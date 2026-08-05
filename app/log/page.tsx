@@ -1,11 +1,12 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ActivitySelector,
   ActivitySpecificFields,
 } from "../components/ActivityFields";
-import { IntensityScale } from "../components/IntensityScale";
+import { IntensityControls } from "../components/IntensityScale";
 import { copy } from "../content/copy";
 import { activities, CURRENT_PLAYER_ID } from "../data/mockData";
 import {
@@ -28,7 +29,27 @@ function currentTimeInput(): string {
   return new Date().toTimeString().slice(0, 5);
 }
 
+function compactDateLabel(dateValue: string): string {
+  const today = toDateInput(new Date());
+  if (dateValue === today) return "Today";
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (dateValue === toDateInput(yesterday)) return "Yesterday";
+  return new Date(`${dateValue}T12:00:00`).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function compactTimeLabel(timeValue: string): string {
+  return new Date(`2000-01-01T${timeValue}:00`).toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export default function LogPage() {
+  const router = useRouter();
   const { addEntry } = useTraining();
   const [activityId, setActivityId] = useState<ActivityId>("hill-sprints");
   const [value, setValue] = useState(initialValues[activityId]);
@@ -72,79 +93,39 @@ export default function LogPage() {
       deleteEligibleUntil: createDeleteDeadline(now),
     };
     addEntry(entry);
-    setMessage(copy.saveSuccess);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    router.push("/?saved=1");
   }
 
   return (
     <div className="page page--log">
-      <header className="page-header">
+      <header className="page-header record-header">
         <span className="page-header__icon" aria-hidden="true">
           ↗
         </span>
         <div>
-          <p className="eyebrow">A few taps. Then done.</p>
-          <h1>Quick training entry</h1>
-          <p>Log a coach-approved activity—no notes needed.</p>
+          <h1>Record Training</h1>
         </div>
       </header>
 
       {message ? (
-        <div
-          className={`notice ${message === copy.saveSuccess ? "notice--success" : "notice--error"}`}
-          role="status"
-        >
-          <span aria-hidden="true">
-            {message === copy.saveSuccess ? "✓" : "!"}
-          </span>
+        <div className="notice notice--error" role="status">
+          <span aria-hidden="true">!</span>
           <strong>{message}</strong>
         </div>
       ) : null}
 
       <form className="log-form" onSubmit={submit}>
         <ActivitySelector selected={activityId} onSelect={chooseActivity} />
-        <section className="form-grid" aria-label="Session details">
-          <div className="field-card">
-            <label htmlFor="session-date">Session date</label>
-            <input
-              id="session-date"
-              type="date"
-              min={earliestAllowedDate()}
-              max={toDateInput(new Date())}
-              value={date}
-              onChange={(event) => setDate(event.target.value)}
-              required
-            />
-            <p className="field-card__context">Today through seven days ago</p>
-          </div>
-          <div className="field-card">
-            <label htmlFor="session-time">Session time</label>
-            <input
-              id="session-time"
-              type="time"
-              value={time}
-              onChange={(event) => setTime(event.target.value)}
-              required
-            />
-            <p className="field-card__context">Use the time you completed it</p>
-          </div>
-          <ActivitySpecificFields
-            activityId={activityId}
-            value={value}
-            onChange={setValue}
-          />
-        </section>
-        <IntensityScale
-          name="effort"
-          value={effort}
-          onChange={setEffort}
-          kind="effort"
+        <ActivitySpecificFields
+          activityId={activityId}
+          value={value}
+          onChange={setValue}
         />
-        <IntensityScale
-          name="exhaustion"
-          value={exhaustion}
-          onChange={setExhaustion}
-          kind="exhaustion"
+        <IntensityControls
+          effort={effort}
+          exhaustion={exhaustion}
+          onEffortChange={setEffort}
+          onExhaustionChange={setExhaustion}
         />
         {exhaustion >= 6 ? (
           <aside className="recovery-note">
@@ -153,11 +134,41 @@ export default function LogPage() {
           </aside>
         ) : null}
         <button className="button button--lime button--wide" type="submit">
-          Save session <span aria-hidden="true">→</span>
+          Save
         </button>
-        <p className="form-footnote">
-          <span aria-hidden="true">◆</span> {copy.noEditing}
-        </p>
+        <details className="when-details">
+          <summary>
+            <span aria-hidden="true">◷</span>
+            <strong>
+              {compactDateLabel(date)} · {compactTimeLabel(time)}
+            </strong>
+            <span>Change</span>
+          </summary>
+          <div className="when-details__fields">
+            <label htmlFor="session-date">
+              Date
+              <input
+                id="session-date"
+                type="date"
+                min={earliestAllowedDate()}
+                max={toDateInput(new Date())}
+                value={date}
+                onChange={(event) => setDate(event.target.value)}
+                required
+              />
+            </label>
+            <label htmlFor="session-time">
+              Time
+              <input
+                id="session-time"
+                type="time"
+                value={time}
+                onChange={(event) => setTime(event.target.value)}
+                required
+              />
+            </label>
+          </div>
+        </details>
       </form>
     </div>
   );

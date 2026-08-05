@@ -18,33 +18,59 @@ const exhaustionLabels = [
   "Really tired",
   "Drained",
 ];
-const faces = ["🙂", "🙂", "😌", "😮", "😓", "😣", "🥵"];
+const faces = ["🙂", "😊", "😌", "😮", "😓", "😣", "🥵"];
 
-export function IntensityScale({
+function IntensityChoice({
   name,
+  title,
   value,
+  labels,
   onChange,
-  kind,
 }: {
   name: string;
+  title: string;
   value: number;
+  labels: string[];
   onChange: (value: number) => void;
-  kind: "effort" | "exhaustion";
 }) {
-  const labels = kind === "effort" ? effortLabels : exhaustionLabels;
-  const title =
-    kind === "effort" ? "Effort during activity" : "Exhaustion after";
+  const selectedLabel = labels[value - 1];
+
   return (
-    <fieldset className="scale-card">
+    <fieldset className="intensity-choice">
       <legend>{title}</legend>
-      <p className="scale-card__hint">Choose the face that fits best.</p>
-      <div className="scale" data-testid={`${kind}-scale`}>
+      <div className="intensity-mobile">
+        <button
+          type="button"
+          aria-label={`Lower ${title.toLowerCase()}`}
+          disabled={value === 1}
+          onClick={() => onChange(Math.max(1, value - 1))}
+        >
+          −
+        </button>
+        <output
+          aria-live="polite"
+          aria-label={`${selectedLabel}, ${value} of 7`}
+        >
+          <span aria-hidden="true">{faces[value - 1]}</span>
+          <span className="sr-only">{selectedLabel}</span>
+        </output>
+        <button
+          type="button"
+          aria-label={`Raise ${title.toLowerCase()}`}
+          disabled={value === 7}
+          onClick={() => onChange(Math.min(7, value + 1))}
+        >
+          +
+        </button>
+      </div>
+      <div className="intensity-desktop" role="radiogroup" aria-label={title}>
         {labels.map((label, index) => {
           const level = index + 1;
           return (
             <label
-              className={`scale__option scale__option--${level} ${value === level ? "is-selected" : ""}`}
               key={label}
+              className={value === level ? "is-selected" : ""}
+              title={label}
             >
               <input
                 type="radio"
@@ -52,16 +78,44 @@ export function IntensityScale({
                 value={level}
                 checked={value === level}
                 onChange={() => onChange(level)}
+                aria-label={`${label}, ${level} of 7`}
               />
-              <span className="scale__face" aria-hidden="true">
-                {faces[index]}
-              </span>
-              <span className="scale__number">{level}</span>
-              <span className="scale__label">{label}</span>
+              <span aria-hidden="true">{faces[index]}</span>
             </label>
           );
         })}
       </div>
     </fieldset>
+  );
+}
+
+export function IntensityControls({
+  effort,
+  exhaustion,
+  onEffortChange,
+  onExhaustionChange,
+}: {
+  effort: number;
+  exhaustion: number;
+  onEffortChange: (value: number) => void;
+  onExhaustionChange: (value: number) => void;
+}) {
+  return (
+    <section className="intensity-card" aria-label="How the session felt">
+      <IntensityChoice
+        name="effort"
+        title="Effort"
+        value={effort}
+        labels={effortLabels}
+        onChange={onEffortChange}
+      />
+      <IntensityChoice
+        name="exhaustion"
+        title="After"
+        value={exhaustion}
+        labels={exhaustionLabels}
+        onChange={onExhaustionChange}
+      />
+    </section>
   );
 }

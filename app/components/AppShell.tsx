@@ -7,7 +7,6 @@ import { copy } from "../content/copy";
 
 const navigation = [
   { href: "/", label: "Home", icon: "⌂" },
-  { href: "/log", label: "Log", icon: "+" },
   { href: "/team", label: "Team", icon: "●●" },
   { href: "/leaders", label: "Leaders", icon: "♜" },
   { href: "/me", label: "Me", icon: "◯" },
@@ -56,6 +55,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
       <main className="main-content">{children}</main>
+      <Link
+        className={`training-fab ${pathname === "/log" ? "is-active" : ""}`}
+        href="/log"
+        aria-label="Record training"
+        aria-current={pathname === "/log" ? "page" : undefined}
+      >
+        <span aria-hidden="true">+</span>
+      </Link>
       <nav className="bottom-nav" aria-label="Primary navigation">
         {navigation.map((item) => {
           const active = pathname === item.href;

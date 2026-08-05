@@ -13,7 +13,7 @@ export function ActivitySelector({
 }) {
   return (
     <fieldset className="activity-picker">
-      <legend>Choose an approved activity</legend>
+      <legend className="sr-only">Activity</legend>
       <div className="activity-picker__grid">
         {activities.map((activity) => (
           <label
@@ -32,10 +32,15 @@ export function ActivitySelector({
             </span>
             <span>
               <strong>{activity.name}</strong>
-              <small>{activity.description}</small>
             </span>
             {activity.id === "hill-sprints" ? (
-              <span className="pill pill--lime">Coach pick</span>
+              <span
+                className="activity-choice__recommended"
+                aria-label="Coach pick"
+                title="Coach pick"
+              >
+                ★
+              </span>
             ) : null}
           </label>
         ))}
@@ -94,7 +99,7 @@ export function ActivitySpecificFields({
         </div>
       )}
       {activityId === "hill-sprints" ? (
-        <p className="field-card__context">Assigned rep duration: 6 seconds</p>
+        <p className="field-card__context">6 seconds each</p>
       ) : null}
     </div>
   );

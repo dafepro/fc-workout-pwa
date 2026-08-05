@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Avatar } from "./components/Avatar";
 import { ProgressBar } from "./components/ProgressBar";
+import { copy } from "./content/copy";
 import {
   activities,
   CURRENT_PLAYER_ID,
@@ -19,6 +21,7 @@ import { useTraining } from "./state/training-context";
 
 export default function HomePage() {
   const { entries, deleteEntry } = useTraining();
+  const [showSavedToast, setShowSavedToast] = useState(false);
   const player = players.find((item) => item.id === CURRENT_PLAYER_ID)!;
   const personalEntries = entries.filter(
     (entry) => entry.playerId === player.id,
@@ -28,8 +31,27 @@ export default function HomePage() {
   const streak = Math.max(player.currentStreak, currentStreak(personalEntries));
   const goalValue = Math.min(weeklyEntries.length, WEEKLY_GOAL);
 
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("saved") !== "1") {
+      return;
+    }
+    window.history.replaceState(null, "", "/");
+    const showTimer = window.setTimeout(() => setShowSavedToast(true), 0);
+    const hideTimer = window.setTimeout(() => setShowSavedToast(false), 2400);
+    return () => {
+      window.clearTimeout(showTimer);
+      window.clearTimeout(hideTimer);
+    };
+  }, []);
+
   return (
     <div className="page page--home">
+      {showSavedToast ? (
+        <div className="toast-overlay" role="status">
+          <span aria-hidden="true">✓</span>
+          <strong>{copy.saveSuccess}</strong>
+        </div>
+      ) : null}
       <header className="player-header">
         <Avatar player={player} size="large" />
         <div>

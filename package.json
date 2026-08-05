@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --check .",
     "format:write": "prettier --write .",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next"
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern work --ignore-pattern outputs"
   },
   "dependencies": {
     "next": "16.2.6",
