@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 	_ "time/tzdata"
 )
@@ -15,13 +16,15 @@ const (
 )
 
 type Config struct {
-	Environment     string
-	Port            int
-	DatabaseURL     string
-	AllowedOrigin   string
-	TeamTimeZone    *time.Location
-	TeamTimeZoneID  string
-	ShutdownTimeout time.Duration
+	Environment       string
+	Port              int
+	DatabaseURL       string
+	AllowedOrigin     string
+	TeamTimeZone      *time.Location
+	TeamTimeZoneID    string
+	ShutdownTimeout   time.Duration
+	EnableE2EFixtures bool
+	E2EResetKey       string
 }
 
 func Load(getenv func(string) string) (Config, error) {
@@ -31,6 +34,23 @@ func Load(getenv func(string) string) (Config, error) {
 		AllowedOrigin:   valueOrDefault(getenv("ALLOWED_ORIGIN"), "http://localhost:3000"),
 		TeamTimeZoneID:  valueOrDefault(getenv("TEAM_TIME_ZONE"), defaultTeamTimeZone),
 		ShutdownTimeout: defaultShutdownTimeout,
+		E2EResetKey:     getenv("E2E_RESET_KEY"),
+	}
+
+	if raw := getenv("ENABLE_E2E_FIXTURES"); raw != "" {
+		enabled, err := strconv.ParseBool(raw)
+		if err != nil {
+			return Config{}, fmt.Errorf("ENABLE_E2E_FIXTURES must be true or false")
+		}
+		cfg.EnableE2EFixtures = enabled
+	}
+	if cfg.EnableE2EFixtures {
+		if cfg.Environment != "e2e" || !e2eBuildEnabled {
+			return Config{}, fmt.Errorf("E2E fixtures require APP_ENV=e2e and an e2e-tagged build")
+		}
+		if strings.TrimSpace(cfg.E2EResetKey) == "" {
+			return Config{}, fmt.Errorf("E2E_RESET_KEY is required when E2E fixtures are enabled")
+		}
 	}
 
 	portValue := valueOrDefault(getenv("PORT"), strconv.Itoa(defaultPort))

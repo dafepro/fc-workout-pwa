@@ -14,9 +14,13 @@
 
   **Codex · Queued (2026-08-05):** Messages will be assembled from predefined system templates, player names, approved context labels, and approved emojis. No player-authored text will be introduced.
 
+  **Codex · Backend addressed (2026-08-05):** Added the private `GET /v1/me/reaction-badges` projection with server-generated copy and emoji. Strict request decoding rejects player-authored fields. Rendering these badges in Me remains queued for frontend integration.
+
 - Limit reactions to a maximum of five sent to one person per day.
 
   **Codex · Queued (2026-08-05):** Working interpretation: one sender may send at most five total reactions to the same recipient during one team-local calendar day, across all contexts. The Go API and database will enforce this authoritatively; the UI will show remaining availability and handle a rejected sixth reaction safely.
+
+  **Codex · Backend addressed (2026-08-05):** The SQLite repository now checks and inserts inside an immediate write transaction. Successful idempotency replays do not consume allowance; a sixth new reaction returns `429 reaction_daily_limit_reached`. The Docker-first E2E spec covers both sequential and simultaneous five-plus-one flows over HTTP.
 
 ## Safety and privacy constraints
 
@@ -43,6 +47,8 @@
 This feedback should be implemented as the first end-to-end feature on the real backend rather than expanded in device-local mock state.
 
 **Codex · Backend prework started (2026-08-05):** Added the draft JSON API contract, authorization matrix, data model, SQLite foundation migration, and a tested Go service scaffold. The contextual-reaction UI and persistence adapters remain queued until this checkpoint is reviewed.
+
+**Codex · Backend slice implemented (2026-08-05):** Selected CGo-free SQLite behind `database/sql`, wired embedded migrations and database readiness, implemented contextual reaction writes and private inbox reads, and added a Docker Compose black-box E2E harness. Fixture identities and reset behavior require both an `e2e` build tag and explicit E2E environment flags; default tests never contact cloud services. The reaction picker and Me UI integration remain the next frontend work.
 
 ### Proposed sequence
 

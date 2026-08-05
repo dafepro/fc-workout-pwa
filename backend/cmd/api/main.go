@@ -12,7 +12,9 @@ import (
 	"time"
 
 	"github.com/dafepro/fc-workout-pwa/backend/internal/config"
+	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/httpapi"
+	"github.com/dafepro/fc-workout-pwa/backend/internal/store"
 )
 
 func main() {
@@ -27,10 +29,22 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
 	}
+	databaseContext, cancelDatabase := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancelDatabase()
+	db, err := database.Open(databaseContext, cfg.DatabaseURL)
+	if err != nil {
+		return fmt.Errorf("open database: %w", err)
+	}
+	defer db.Close()
+	if err := database.Migrate(databaseContext, db); err != nil {
+		return fmt.Errorf("migrate database: %w", err)
+	}
+	repository := store.New(db, cfg.TeamTimeZone)
+	authenticator := configuredAuthenticator(cfg)
 
 	server := &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.Port),
-		Handler:           httpapi.NewHandler(cfg),
+		Handler:           httpapi.NewHandler(cfg, httpapi.WithStore(repository), httpapi.WithAuthenticator(authenticator)),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      15 * time.Second,

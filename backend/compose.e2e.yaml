@@ -1,0 +1,32 @@
+services:
+  api:
+    build:
+      context: .
+      args:
+        GO_BUILD_TAGS: e2e
+    environment:
+      ALLOWED_ORIGIN: http://pwa.invalid
+      APP_ENV: e2e
+      DATABASE_URL: file:/data/stridecrew-e2e.db
+      ENABLE_E2E_FIXTURES: "true"
+      E2E_RESET_KEY: local-e2e-reset-only
+      TEAM_TIME_ZONE: America/Chicago
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/readyz"]
+      interval: 1s
+      timeout: 2s
+      retries: 20
+    tmpfs:
+      - /data:size=32m,uid=65532,gid=65532,mode=0700
+
+  e2e:
+    build:
+      context: .
+      target: test
+    command: ["go", "test", "-tags=e2e", "-count=1", "-v", "./e2e"]
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      E2E_BASE_URL: http://api:8080
+      E2E_RESET_KEY: local-e2e-reset-only

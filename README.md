@@ -42,7 +42,9 @@ The backend foundation lives in `backend/` and the review contracts live in `doc
 - configuration validation and safe HTTP defaults;
 - pure authorization rules for player, assigned-coach, and club-admin access;
 - predefined contextual-reaction rules and a five-per-recipient team-day limit;
-- a versioned SQLite foundation migration with a repository boundary suitable for a later Postgres move;
+- a CGo-free SQLite adapter, embedded versioned migrations, and a repository boundary suitable for a later Postgres move;
+- a first contextual-reaction API slice with idempotent writes, private inbox badges, and an authoritative daily limit;
+- a Docker Compose black-box E2E harness with a real SQLite database and no cloud dependencies;
 - draft API, authorization, and persistence contracts for review before frontend integration.
 
 See `backend/README.md` for local commands and the current implementation boundary.

@@ -133,6 +133,14 @@ func BadgeMessage(senderDisplayName string, reactionType ReactionType, context R
 	}
 }
 
+func ReactionEmoji(reactionType ReactionType) (string, error) {
+	emoji, ok := reactionEmoji[reactionType]
+	if !ok {
+		return "", ErrInvalidReaction
+	}
+	return emoji, nil
+}
+
 var reactionEmoji = map[ReactionType]string{
 	ReactionClap: "👏", ReactionFire: "🔥", ReactionStrong: "💪", ReactionHustle: "⚡",
 	ReactionRunner: "🏃", ReactionWind: "💨", ReactionRobotLeg: "🦿", ReactionDoIt: "✓",

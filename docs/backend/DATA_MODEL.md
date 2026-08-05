@@ -2,7 +2,9 @@
 
 ## Storage choice
 
-Start with SQLite for the smallest cloud-hostable service and local development. Keep SQL behind repository interfaces, use portable column types and explicit migrations, and avoid SQLite-only business logic where a managed Postgres deployment may later be preferable.
+Use Go's `database/sql` with the CGo-free `modernc.org/sqlite` adapter. The first cloud deployment is one API replica in one region with the SQLite file on a mounted persistent volume. Keep SQL behind repository interfaces, use portable column types and explicit migrations, and avoid SQLite-only business logic where a managed Postgres deployment may later be preferable.
+
+This is intentionally a single-writer deployment. Multiple API replicas must not open the same database file over a shared network filesystem. A managed Postgres adapter becomes the preferred next step if the service needs horizontal replicas, multi-region writes, managed high availability/PITR, or substantially more concurrent writes. Before storing production youth data, choose a host with persistent-volume snapshots, define backup retention, and prove a restore into a clean service.
 
 The database is authoritative for identities, memberships, entries, reactions, idempotency, and audit timestamps. Derived streaks, progress, and safe leaderboard projections should be computed from authoritative records or maintained as rebuildable projections.
 
@@ -82,9 +84,8 @@ No raw result, assessment, exhaustion, exact negative group, or player-authored 
 - production backups are required before destructive migrations;
 - identifiers and timestamps remain application-generated opaque strings and RFC 3339/ISO values until a database-specific UUID/timestamp decision is made.
 
-## Decisions before persistence implementation
+## Decisions before production persistence
 
-- hosted SQLite provider versus managed Postgres for production
 - backup frequency, recovery-point objective, and recovery-time objective
 - encryption/key-management requirements beyond provider disk encryption
 - data retention for deleted entries, reactions, audit events, and expired sessions

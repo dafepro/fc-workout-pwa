@@ -3,3 +3,4 @@ data
 *.db
 *.db-*
 coverage.out
+*.exe

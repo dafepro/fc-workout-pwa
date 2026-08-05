@@ -1,4 +1,4 @@
-# Backend API contract (draft 0.1)
+# Backend API contract (draft 0.2)
 
 This contract is the review boundary between the StrideCrew PWA and the milestone 2 Go service. The server is authoritative for identity, authorization, timestamps, deletion windows, safe social projections, and reaction limits.
 
@@ -44,7 +44,7 @@ Process liveness. Does not query private data.
 
 ### `GET /readyz`
 
-Readiness for traffic. It will include a database connectivity check once persistence is wired.
+Readiness for traffic, including a database connectivity check.
 
 ## Training entries
 
@@ -147,6 +147,7 @@ Rules:
 - response includes `remainingForRecipientToday` from 0 through 4;
 - a sixth reaction returns `429 reaction_daily_limit_reached`;
 - replaying a successful idempotency key returns the original result without consuming another allowance.
+- a newly created reaction returns `201`; a successful idempotency replay returns `200`.
 
 ### `GET /v1/me/reaction-badges`
 

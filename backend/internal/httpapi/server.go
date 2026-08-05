@@ -5,9 +5,16 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
+	"strings"
+	"time"
 
+	"github.com/dafepro/fc-workout-pwa/backend/internal/authn"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/config"
+	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
+	"github.com/dafepro/fc-workout-pwa/backend/internal/store"
 )
 
 type contextKey string
@@ -28,19 +35,180 @@ type errorBody struct {
 	RequestID string `json:"requestId"`
 }
 
-func NewHandler(cfg config.Config) http.Handler {
+type service struct {
+	cfg           config.Config
+	store         Repository
+	authenticator authn.Authenticator
+	now           func() time.Time
+}
+
+type Repository interface {
+	Ping(context.Context) error
+	CreateReaction(context.Context, store.CreateReactionInput) (store.CreateReactionResult, error)
+	ListReactionBadges(context.Context, string, int) ([]store.ReactionBadge, error)
+}
+
+type fixtureResetter interface {
+	ResetE2EFixtures(context.Context) error
+}
+
+type Option func(*service)
+
+func WithStore(repository Repository) Option {
+	return func(service *service) { service.store = repository }
+}
+
+func WithAuthenticator(authenticator authn.Authenticator) Option {
+	return func(service *service) { service.authenticator = authenticator }
+}
+
+func NewHandler(cfg config.Config, options ...Option) http.Handler {
+	service := &service{cfg: cfg, authenticator: authn.Disabled{}, now: time.Now}
+	for _, option := range options {
+		option(service)
+	}
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, healthResponse{Status: "ok"})
 	})
-	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
+		if service.store != nil && service.store.Ping(r.Context()) != nil {
+			writeError(w, r, http.StatusServiceUnavailable, "not_ready", "The service is not ready.")
+			return
+		}
 		writeJSON(w, http.StatusOK, healthResponse{Status: "ready"})
 	})
+	mux.HandleFunc("POST /v1/reactions", service.createReaction)
+	mux.HandleFunc("GET /v1/me/reaction-badges", service.listReactionBadges)
+	if _, ok := service.store.(fixtureResetter); cfg.EnableE2EFixtures && ok {
+		mux.HandleFunc("POST /__e2e/reset", service.resetE2EFixtures)
+	}
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
 	})
 
 	return securityHeaders(cfg.AllowedOrigin, requestID(mux))
+}
+
+func (service *service) createReaction(w http.ResponseWriter, r *http.Request) {
+	actor, ok := service.authenticate(w, r)
+	if !ok {
+		return
+	}
+	if actor.Role != domain.RolePlayer || actor.PlayerID == "" {
+		writeError(w, r, http.StatusForbidden, "forbidden", "This account cannot send reactions.")
+		return
+	}
+	if service.store == nil {
+		writeError(w, r, http.StatusServiceUnavailable, "not_ready", "The service is not ready.")
+		return
+	}
+	idempotencyKey := strings.TrimSpace(r.Header.Get("Idempotency-Key"))
+	if idempotencyKey == "" || len(idempotencyKey) > 128 {
+		writeError(w, r, http.StatusBadRequest, "invalid_idempotency_key", "A valid Idempotency-Key header is required.")
+		return
+	}
+
+	var request domain.ReactionRequest
+	if err := decodeStrictJSON(w, r, &request); err != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid_request", "The reaction request is invalid.")
+		return
+	}
+	result, err := service.store.CreateReaction(r.Context(), store.CreateReactionInput{
+		SenderPlayerID: actor.PlayerID,
+		IdempotencyKey: idempotencyKey,
+		Request:        request,
+		Now:            service.now().UTC(),
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrDailyLimitReached):
+			writeError(w, r, http.StatusTooManyRequests, "reaction_daily_limit_reached", "You have sent the daily maximum to this teammate.")
+		case errors.Is(err, store.ErrIdempotencyConflict):
+			writeError(w, r, http.StatusConflict, "idempotency_conflict", "That Idempotency-Key was already used for another request.")
+		case errors.Is(err, store.ErrNotActiveTeammates):
+			writeError(w, r, http.StatusUnprocessableEntity, "reaction_recipient_unavailable", "The reaction recipient is unavailable.")
+		case errors.Is(err, domain.ErrSelfReaction), errors.Is(err, domain.ErrInvalidReaction), errors.Is(err, domain.ErrInvalidContext):
+			writeError(w, r, http.StatusUnprocessableEntity, "invalid_reaction", "The reaction is not allowed.")
+		default:
+			writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")
+		}
+		return
+	}
+	status := http.StatusCreated
+	if result.Replayed {
+		status = http.StatusOK
+	}
+	writeJSON(w, status, result)
+}
+
+func (service *service) listReactionBadges(w http.ResponseWriter, r *http.Request) {
+	actor, ok := service.authenticate(w, r)
+	if !ok {
+		return
+	}
+	if actor.Role != domain.RolePlayer || actor.PlayerID == "" {
+		writeError(w, r, http.StatusForbidden, "forbidden", "This account does not have a player inbox.")
+		return
+	}
+	if service.store == nil {
+		writeError(w, r, http.StatusServiceUnavailable, "not_ready", "The service is not ready.")
+		return
+	}
+	badges, err := service.store.ListReactionBadges(r.Context(), actor.PlayerID, 20)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")
+		return
+	}
+	writeJSON(w, http.StatusOK, struct {
+		Items      []store.ReactionBadge `json:"items"`
+		NextCursor *string               `json:"nextCursor"`
+	}{Items: badges})
+}
+
+func (service *service) resetE2EFixtures(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("X-E2E-Reset-Key") != service.cfg.E2EResetKey {
+		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
+		return
+	}
+	resetter, ok := service.store.(fixtureResetter)
+	if !ok {
+		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
+		return
+	}
+	if err := resetter.ResetE2EFixtures(r.Context()); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "internal_error", "The fixture could not be reset.")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (service *service) authenticate(w http.ResponseWriter, r *http.Request) (domain.Actor, bool) {
+	value := r.Header.Get("Authorization")
+	if !strings.HasPrefix(value, "Bearer ") {
+		writeError(w, r, http.StatusUnauthorized, "unauthenticated", "A valid session is required.")
+		return domain.Actor{}, false
+	}
+	actor, err := service.authenticator.Authenticate(r.Context(), strings.TrimPrefix(value, "Bearer "))
+	if err != nil {
+		writeError(w, r, http.StatusUnauthorized, "unauthenticated", "A valid session is required.")
+		return domain.Actor{}, false
+	}
+	return actor, true
+}
+
+func decodeStrictJSON(w http.ResponseWriter, r *http.Request, destination any) error {
+	r.Body = http.MaxBytesReader(w, r.Body, 16*1024)
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(destination); err != nil {
+		return err
+	}
+	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
+		return errors.New("request must contain one JSON object")
+	}
+	return nil
 }
 
 func requestID(next http.Handler) http.Handler {

@@ -32,6 +32,17 @@ Before planning or editing, read:
 - Add tests for business rules, especially visibility and entry deletion limits.
 - Run formatting, linting, type checks, tests, and the production build before declaring work complete.
 
+## Testing policy
+
+- Follow red-green-refactor TDD: add or change a failing test before implementing behavior.
+- Prefer black-box end-to-end tests for user-visible behavior. Run the application and its real dependencies in Docker, exercise it over its public HTTP interface, and apply the real database migrations.
+- Keep the default end-to-end environment entirely local. It must not connect to cloud services or require cloud credentials.
+- Avoid mocks. Prefer real containerized dependencies. When a dependency must be replaced, use a small in-memory fake that implements the same interface, and contract-test that interface against the real containerized adapter.
+- Add unit tests only for critical, isolated logic whose combinations of states would be prohibitively expensive to cover through Docker end-to-end tests, such as authorization matrices, calendar boundaries, and rate limits.
+- Gate any test that absolutely must contact an external service behind an explicit environment variable or build flag. Such tests must be skipped by default and documented.
+- No default test command may require internet access, secrets, or a developer's personal account.
+- Run the Docker end-to-end suite before declaring work complete when Docker is available. If Docker is unavailable, at minimum compile the suite, run all non-Docker checks, and clearly report that the end-to-end suite was not executed.
+
 ## Prototype conventions
 
 - Use TypeScript.
