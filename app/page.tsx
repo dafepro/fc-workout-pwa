@@ -4,15 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Avatar } from "./components/Avatar";
 import { ProgressBar } from "./components/ProgressBar";
-import { SessionFeelings } from "./components/SessionFeelings";
+import { SessionList } from "./components/SessionList";
 import { WorkoutInstructions } from "./components/WorkoutInstructions";
 import { copy } from "./content/copy";
-import {
-  activities,
-  CURRENT_PLAYER_ID,
-  players,
-  WEEKLY_GOAL,
-} from "./data/mockData";
+import { CURRENT_PLAYER_ID, players, WEEKLY_GOAL } from "./data/mockData";
 import {
   activityDays,
   currentStreak,
@@ -24,7 +19,6 @@ import { useTraining } from "./state/training-context";
 export default function HomePage() {
   const { entries } = useTraining();
   const [showSavedToast, setShowSavedToast] = useState(false);
-  const [visibleSessions, setVisibleSessions] = useState(3);
   const [quipIndex, setQuipIndex] = useState(0);
   const [showQuip, setShowQuip] = useState(false);
   const player = players.find((item) => item.id === CURRENT_PLAYER_ID)!;
@@ -167,57 +161,7 @@ export default function HomePage() {
         </article>
       </section>
 
-      <section className="card recent-card">
-        <div className="section-heading">
-          <h2>My Sessions</h2>
-        </div>
-        <div className="history-list">
-          {personalEntries.slice(0, visibleSessions).map((entry) => {
-            const activity = activities.find(
-              (item) => item.id === entry.activityId,
-            )!;
-            return (
-              <Link
-                className={`history-row history-row--${activity.id}`}
-                href={`/sessions/${entry.id}`}
-                key={entry.id}
-                aria-label={`View ${activity.name} session details`}
-              >
-                <span className="history-row__icon" aria-hidden="true">
-                  {activity.icon}
-                </span>
-                <div>
-                  <strong>{activity.name}</strong>
-                  <p>
-                    {new Date(entry.occurredAt).toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                    })}{" "}
-                    · {entry.value} {entry.unit}
-                  </p>
-                </div>
-                <SessionFeelings
-                  effort={entry.effortLevel}
-                  exhaustion={entry.exhaustionLevel}
-                />
-                <span className="history-row__arrow" aria-hidden="true">
-                  →
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-        {visibleSessions < personalEntries.length ? (
-          <button
-            className="history-load-more"
-            type="button"
-            aria-label="Load more sessions"
-            onClick={() => setVisibleSessions((count) => count + 3)}
-          >
-            <span aria-hidden="true">⌄</span>
-          </button>
-        ) : null}
-      </section>
+      <SessionList entries={personalEntries} />
 
       <section className="card team-preview">
         <div>

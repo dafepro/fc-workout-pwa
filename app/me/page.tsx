@@ -1,15 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { Avatar } from "../components/Avatar";
-import { SessionFeelings } from "../components/SessionFeelings";
-import {
-  activities,
-  CURRENT_PLAYER_ID,
-  players,
-  TEAM_NAME,
-} from "../data/mockData";
+import { SessionList } from "../components/SessionList";
+import { CURRENT_PLAYER_ID, players, TEAM_NAME } from "../data/mockData";
 import { useTraining } from "../state/training-context";
 
 const kitColors = ["#c7f23a", "#7459ff", "#34cbb2", "#ff9a62"];
@@ -89,51 +83,7 @@ export default function MePage() {
           <span className="pill">Prototype</span>
         </article>
       </section>
-      <section className="card recent-card">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Private</p>
-            <h2>Your session history</h2>
-          </div>
-        </div>
-        <div className="history-list">
-          {personalEntries.map((entry) => {
-            const activity = activities.find(
-              (item) => item.id === entry.activityId,
-            )!;
-            return (
-              <Link
-                className={`history-row history-row--${activity.id}`}
-                href={`/sessions/${entry.id}`}
-                key={entry.id}
-                aria-label={`View ${activity.name} session details`}
-              >
-                <span className="history-row__icon" aria-hidden="true">
-                  {activity.icon}
-                </span>
-                <div>
-                  <strong>{activity.name}</strong>
-                  <p>
-                    {new Date(entry.occurredAt).toLocaleString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })}
-                  </p>
-                </div>
-                <SessionFeelings
-                  effort={entry.effortLevel}
-                  exhaustion={entry.exhaustionLevel}
-                />
-                <span className="history-row__arrow" aria-hidden="true">
-                  →
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
+      <SessionList entries={personalEntries} />
     </div>
   );
 }

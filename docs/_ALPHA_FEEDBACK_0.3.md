@@ -25,3 +25,9 @@
 - In Leaders, all the header text is annoying. Just drop to the leaderboard main header. Same with Team. Just Team and the team name.
 
   **Codex · Addressed (2026-08-05):** Leaders now opens with only “Leaderboard.” Team now opens with “Team” and the team name; the eyebrow, icon, and descriptive header copy are removed.
+
+## Me follow-up
+
+- “Me” still has “Private / Your session history.” Reuse the Home card to keep things consistent. Detail for each session is reachable only by the owner and authorized admins/coaches.
+
+  **Codex · Addressed (2026-08-05):** Home and Me now render the same shared “My Sessions” component, including identical rows, feeling emojis, navigation, and load-more behavior. The prototype route filters to the current owner; the production requirement to authorize only the owner, assigned coaches, or club administrators is recorded in `OPEN_DECISIONS.md` for the Go API.
