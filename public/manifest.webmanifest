@@ -1,0 +1,10 @@
+{
+  "name": "StrideCrew Training",
+  "short_name": "StrideCrew",
+  "description": "Safe youth soccer training tracker for effort and consistency.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f7ff",
+  "theme_color": "#0b123d",
+  "orientation": "portrait-primary"
+}
