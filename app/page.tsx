@@ -31,7 +31,6 @@ export default function HomePage() {
     (entry) => entry.playerId === player.id,
   );
   const weeklyEntries = entriesWithinDays(personalEntries, 7);
-  const monthEntries = entriesWithinDays(personalEntries, 30);
   const monthDays = activityDays(personalEntries);
   const streak = Math.max(player.currentStreak, currentStreak(personalEntries));
   const goalValue = Math.min(weeklyEntries.length, WEEKLY_GOAL);
@@ -147,11 +146,8 @@ export default function HomePage() {
           <p>Effort points</p>
         </article>
         <article className="activity-calendar-card">
-          <div className="activity-calendar-card__heading">
-            <span aria-hidden="true">◆</span>
-            <strong>Last 30 days</strong>
-            <small>{monthEntries.length} sessions</small>
-          </div>
+          <span aria-hidden="true">◆</span>
+          <strong>Last 30 days</strong>
           <div
             className="activity-calendar"
             aria-label="Training activity over the last 30 days"

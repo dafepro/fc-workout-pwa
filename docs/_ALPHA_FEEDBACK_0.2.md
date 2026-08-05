@@ -26,7 +26,7 @@ Home screen
 
 - "7 30-day sessions" I want instead a 6x5 grid that shows the past 30 days with green (like github contribution grid) cells, darker for more activities/higher-point
 
-  **Codex · Addressed (2026-08-05):** Replaced the number tile with a 6×5, 30-day contribution grid. Empty days are neutral and activity days darken according to the day’s accumulated safe effort points; every cell has an accessible date/session label.
+  **Codex · Addressed (2026-08-05):** Replaced the number tile with a compact 6×5, 30-day contribution grid sized like the other summary tiles. Empty days are neutral and activity days darken according to the day’s accumulated safe effort points; every cell has an accessible date/session label. Follow-up: removed the visible session count and reduced the box size so the image carries the summary.
 
 - on hover/tap of the streak, say something silly (random from the backend) that calculates how long the streak would be if it was something else. "if your streak was hammerhead sharks, it would be 1.5 miles long! or something
 
