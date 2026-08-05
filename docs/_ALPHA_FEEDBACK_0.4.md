@@ -4,7 +4,7 @@
 
 - Sending a second reaction without reloading must not freeze the picker.
 
-  **Codex · Regression addressed (2026-08-05):** The picker previously kept its successful-send loading state because closing it hid the mounted component instead of unmounting it. It now clears that state after every completed request. A Playwright regression sends to two different teammates in sequence and verifies the second picker remains enabled and closes after success.
+  **Codex · Regression addressed and Docker-verified (2026-08-05):** The second picker was responsive, but the backend rejected its recipient because the E2E roster contained only three of the twelve teammates displayed by the PWA. The Docker fixture now includes the complete UI roster. A Playwright regression sends to Liam and then Noah in sequence, verifying that the second request succeeds, the status names Noah, and the picker closes. The full API and browser suites pass against real SQLite migrations.
 
 - Remove the standalone “Send some energy” section from Team.
 
@@ -68,6 +68,9 @@ This feedback should be implemented as the first end-to-end feature on the real 
 2. **Database foundation:** versioned migrations and a small relational schema. Start with SQLite behind repository interfaces while keeping a managed Postgres migration path open.
 3. **Identity and authorization:** player, assigned-coach, and club-admin roles; server-side authorization for session details, reactions, and private Me data.
 4. **Training-entry API:** replace device-local session persistence through a narrow JSON API without rewriting view components.
+
+   **Codex · Addressed (2026-08-05):** Added idempotent player entry creation, private list/detail reads, structured server-owned activity validation, owner/coach/admin authorization, and trusted 24-hour soft deletion in Go/SQLite. The PWA now uses a matching HTTP gateway in configured environments and keeps the existing device-local adapter only as the unhosted prototype fallback.
+
 5. **Contextual reaction API:** approved reaction/context enums, server-generated badge copy, idempotent writes, and the five-per-recipient daily limit.
 6. **Me inbox integration:** private reaction badges, pagination/read state, and authorized coach/admin visibility.
 7. **Backup and restore:** migration-aware flat-file archives, encryption, integrity checks, isolated forward-migration restore, and Docker restore drills.

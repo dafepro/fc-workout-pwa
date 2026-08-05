@@ -1,6 +1,6 @@
 # StrideCrew backend
 
-This directory contains the milestone 2 Go service foundation. It provides configuration validation, safe HTTP defaults, database-backed readiness, embedded migrations, contextual-reaction persistence and inbox endpoints, and a production container build.
+This directory contains the milestone 2 Go service foundation. It provides configuration validation, safe HTTP defaults, database-backed readiness, embedded migrations, private training-entry persistence, contextual-reaction endpoints, and a production container build.
 
 ## Requirements
 
@@ -50,7 +50,8 @@ SQLite permits many readers but serializes writes. Do not mount the same databas
 
 - No production authentication exists yet.
 - E2E bearer identities are local fixtures, not a production authentication design.
-- Training-entry persistence and frontend API integration are still pending.
-- The PWA continues using device-local persistence.
+- Training-entry create/list/detail/delete and contextual reactions use the real Go/SQLite API in the Docker E2E environment.
+- The PWA selects the real API with `VITE_API_BASE_URL` and `VITE_API_TOKEN`; without both, the private prototype deployment retains its device-local adapter.
+- Safe Team/leaderboard projections, production authentication, cursor pagination, and hosted API operations remain pending.
 - API, authorization, and data-model drafts are in `docs/backend/`.
-- The migration-aware flat-file backup design is in `docs/backend/BACKUP_AND_RESTORE.md`; implementation is the next operations slice after feedback integration.
+- The migration-aware flat-file backup design is in `docs/backend/BACKUP_AND_RESTORE.md`; implementation remains the next operations slice after entry integration.

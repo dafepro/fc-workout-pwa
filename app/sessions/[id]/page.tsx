@@ -2,20 +2,46 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SessionFeelings } from "../../components/SessionFeelings";
 import { activities, CURRENT_PLAYER_ID } from "../../data/mockData";
 import { canDeleteEntry } from "../../domain/rules";
+import type { TrainingEntry } from "../../domain/types";
 import { useTraining } from "../../state/training-context";
 
 export default function SessionDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const { entries, deleteEntry } = useTraining();
+  const { deleteEntry, getEntry } = useTraining();
+  const [entry, setEntry] = useState<TrainingEntry | null | undefined>();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const entry = entries.find(
-    (item) => item.id === params.id && item.playerId === CURRENT_PLAYER_ID,
-  );
+  const [deleteError, setDeleteError] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void getEntry(params.id).then(
+      (loaded) => {
+        if (active) setEntry(loaded);
+      },
+      () => {
+        if (active) setEntry(null);
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [getEntry, params.id]);
+
+  if (entry === undefined) {
+    return (
+      <div className="page page--session-detail">
+        <section className="card empty-session" aria-live="polite">
+          <h1>Loading session…</h1>
+        </section>
+      </div>
+    );
+  }
 
   if (!entry) {
     return (
@@ -35,9 +61,21 @@ export default function SessionDetailPage() {
   const deletable = canDeleteEntry(entry, CURRENT_PLAYER_ID);
   const occurredAt = new Date(entry.occurredAt);
 
-  function removeSession() {
-    deleteEntry(entry!.id);
-    router.replace("/");
+  async function removeSession() {
+    if (!entry || deleting) return;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      await deleteEntry(entry.id);
+      router.replace("/");
+    } catch (cause) {
+      setDeleteError(
+        cause instanceof Error
+          ? cause.message
+          : "That session could not be deleted.",
+      );
+      setDeleting(false);
+    }
   }
 
   return (
@@ -118,18 +156,25 @@ export default function SessionDetailPage() {
             <button
               className="button button--danger"
               type="button"
+              disabled={deleting}
               onClick={removeSession}
             >
-              Yes, delete
+              {deleting ? "Deleting…" : "Yes, delete"}
             </button>
             <button
               className="text-button"
               type="button"
+              disabled={deleting}
               onClick={() => setConfirmingDelete(false)}
             >
               Cancel
             </button>
           </div>
+        ) : null}
+        {deleteError ? (
+          <p className="notice notice--error" role="alert">
+            {deleteError}
+          </p>
         ) : null}
       </section>
     </div>

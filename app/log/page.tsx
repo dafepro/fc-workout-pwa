@@ -8,14 +8,13 @@ import {
 } from "../components/ActivityFields";
 import { IntensityControls } from "../components/IntensityScale";
 import { copy } from "../content/copy";
-import { activities, CURRENT_PLAYER_ID } from "../data/mockData";
+import { activities } from "../data/mockData";
 import {
-  createDeleteDeadline,
   earliestAllowedDate,
   isBackdateAllowed,
   toDateInput,
 } from "../domain/rules";
-import type { ActivityId, TrainingEntry } from "../domain/types";
+import type { ActivityId } from "../domain/types";
 import { useTraining } from "../state/training-context";
 
 const initialValues: Record<ActivityId, number> = {
@@ -58,6 +57,7 @@ export default function LogPage() {
   const [effort, setEffort] = useState(4);
   const [exhaustion, setExhaustion] = useState(4);
   const [message, setMessage] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [showActivities, setShowActivities] = useState(false);
   const selectedActivity = activities.find((item) => item.id === activityId)!;
 
@@ -68,8 +68,9 @@ export default function LogPage() {
     setShowActivities(false);
   }
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
     if (!isBackdateAllowed(date)) {
       setMessage("Choose today or one of the previous seven days.");
       return;
@@ -82,21 +83,26 @@ export default function LogPage() {
       return;
     }
     const occurredAt = new Date(`${date}T${time}:00`);
-    const now = new Date();
-    const entry: TrainingEntry = {
-      id: crypto.randomUUID(),
-      playerId: CURRENT_PLAYER_ID,
-      activityId,
-      occurredAt: occurredAt.toISOString(),
-      value,
-      unit: activity.unit,
-      effortLevel: effort,
-      exhaustionLevel: exhaustion,
-      createdAt: now.toISOString(),
-      deleteEligibleUntil: createDeleteDeadline(now),
-    };
-    addEntry(entry);
-    router.push("/?saved=1");
+    setSaving(true);
+    setMessage(null);
+    try {
+      await addEntry({
+        activityId,
+        occurredAt: occurredAt.toISOString(),
+        value,
+        unit: activity.unit,
+        effortLevel: effort,
+        exhaustionLevel: exhaustion,
+      });
+      router.push("/?saved=1");
+    } catch (cause) {
+      setMessage(
+        cause instanceof Error
+          ? cause.message
+          : "That session could not be saved.",
+      );
+      setSaving(false);
+    }
   }
 
   return (
@@ -160,8 +166,12 @@ export default function LogPage() {
             <p>{copy.recoveryNote}</p>
           </aside>
         ) : null}
-        <button className="button button--lime button--wide" type="submit">
-          Save
+        <button
+          className="button button--lime button--wide"
+          type="submit"
+          disabled={saving}
+        >
+          {saving ? "Saving…" : "Save"}
         </button>
         <details className="when-details">
           <summary>

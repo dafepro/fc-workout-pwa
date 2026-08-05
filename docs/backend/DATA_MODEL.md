@@ -83,6 +83,7 @@ No raw result, assessment, exhaustion, exact negative group, or player-authored 
 - CI creates an empty SQLite database, applies all up migrations, verifies foreign keys and indexes, then applies down migrations where safe;
 - production backups are required before destructive migrations;
 - identifiers and timestamps remain application-generated opaque strings and RFC 3339/ISO values until a database-specific UUID/timestamp decision is made.
+- player entry creation stores a per-player idempotency key behind a partial unique index so browser retries cannot duplicate sessions;
 
 The migration-aware flat-file backup and isolated restore design is specified in `BACKUP_AND_RESTORE.md`. Backup archives pair a consistent SQLite snapshot with a versioned manifest, hashes, and migration ledger; restores verify and migrate a temporary copy before any live-file swap.
 

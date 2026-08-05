@@ -46,11 +46,17 @@ func TestMigrateUpgradesAnExistingFoundationDatabase(t *testing.T) {
 	if columnCount != 1 {
 		t.Fatalf("remaining_after_send column count = %d, want 1", columnCount)
 	}
+	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM pragma_table_info('training_entries') WHERE name = 'idempotency_key'`).Scan(&columnCount); err != nil {
+		t.Fatal(err)
+	}
+	if columnCount != 1 {
+		t.Fatalf("training entry idempotency column count = %d, want 1", columnCount)
+	}
 	var migrationCount int
 	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM schema_migrations`).Scan(&migrationCount); err != nil {
 		t.Fatal(err)
 	}
-	if migrationCount != 2 {
-		t.Fatalf("migration count = %d, want 2", migrationCount)
+	if migrationCount != 3 {
+		t.Fatalf("migration count = %d, want 3", migrationCount)
 	}
 }

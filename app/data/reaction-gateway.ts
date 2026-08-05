@@ -161,11 +161,12 @@ class LocalReactionGateway implements ReactionGateway {
 }
 
 export function createReactionGateway(): ReactionGateway {
-  const baseURL = import.meta.env.VITE_REACTION_API_BASE_URL?.replace(
-    /\/$/,
-    "",
-  );
-  const token = import.meta.env.VITE_REACTION_API_TOKEN;
+  const baseURL = (
+    import.meta.env.VITE_API_BASE_URL ??
+    import.meta.env.VITE_REACTION_API_BASE_URL
+  )?.replace(/\/$/, "");
+  const token =
+    import.meta.env.VITE_API_TOKEN ?? import.meta.env.VITE_REACTION_API_TOKEN;
   if (baseURL && token) return new HTTPReactionGateway(baseURL, token);
   return new LocalReactionGateway();
 }

@@ -33,6 +33,16 @@ export interface TrainingEntry {
   deleteEligibleUntil: string;
 }
 
+export type TrainingEntryInput = Pick<
+  TrainingEntry,
+  | "activityId"
+  | "occurredAt"
+  | "value"
+  | "unit"
+  | "effortLevel"
+  | "exhaustionLevel"
+>;
+
 export interface ActivityDay {
   date: string;
   activityCount: number;

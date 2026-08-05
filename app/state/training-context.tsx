@@ -8,8 +8,9 @@ import {
   useMemo,
   useState,
 } from "react";
-import { CURRENT_PLAYER_ID, initialEntries } from "../data/mockData";
+import { CURRENT_PLAYER_ID } from "../data/mockData";
 import { createReactionGateway } from "../data/reaction-gateway";
+import { createTrainingEntryGateway } from "../data/training-entry-gateway";
 import type {
   Reaction,
   ReactionBadge,
@@ -17,15 +18,19 @@ import type {
   ReactionType,
   SendReactionResult,
   TrainingEntry,
+  TrainingEntryInput,
 } from "../domain/types";
 
 interface TrainingState {
   entries: TrainingEntry[];
+  entriesStatus: "loading" | "ready" | "error";
   reactions: Reaction[];
   reactionBadges: ReactionBadge[];
   reactionInboxStatus: "loading" | "ready" | "error";
-  addEntry: (entry: TrainingEntry) => void;
-  deleteEntry: (entryId: string) => void;
+  addEntry: (entry: TrainingEntryInput) => Promise<TrainingEntry>;
+  getEntry: (entryId: string) => Promise<TrainingEntry | null>;
+  deleteEntry: (entryId: string) => Promise<void>;
+  refreshEntries: () => Promise<void>;
   sendReaction: (
     targetPlayerId: string,
     type: ReactionType,
@@ -34,29 +39,29 @@ interface TrainingState {
   refreshReactionBadges: () => Promise<void>;
 }
 
-const STORAGE_KEY = "stridecrew-milestone-1";
 const TrainingContext = createContext<TrainingState | null>(null);
 
-function persistSnapshot(entries: TrainingEntry[], reactions: Reaction[]) {
-  try {
-    window.localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ entries, reactions }),
-    );
-  } catch {
-    // The in-memory prototype remains usable when device storage is blocked.
-  }
-}
-
 export function TrainingProvider({ children }: { children: React.ReactNode }) {
-  const [entries, setEntries] = useState<TrainingEntry[]>(initialEntries);
+  const [entries, setEntries] = useState<TrainingEntry[]>([]);
+  const [entriesStatus, setEntriesStatus] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
   const [reactions, setReactions] = useState<Reaction[]>([]);
   const [reactionBadges, setReactionBadges] = useState<ReactionBadge[]>([]);
   const [reactionInboxStatus, setReactionInboxStatus] = useState<
     "loading" | "ready" | "error"
   >("loading");
   const [reactionGateway] = useState(createReactionGateway);
-  const [hydrated, setHydrated] = useState(false);
+  const [trainingEntryGateway] = useState(createTrainingEntryGateway);
+
+  const refreshEntries = useCallback(async () => {
+    try {
+      setEntries(await trainingEntryGateway.list());
+      setEntriesStatus("ready");
+    } catch {
+      setEntriesStatus("error");
+    }
+  }, [trainingEntryGateway]);
 
   const refreshReactionBadges = useCallback(async () => {
     try {
@@ -66,6 +71,67 @@ export function TrainingProvider({ children }: { children: React.ReactNode }) {
       setReactionInboxStatus("error");
     }
   }, [reactionGateway]);
+
+  const addEntry = useCallback(
+    async (input: TrainingEntryInput) => {
+      const entry = await trainingEntryGateway.create(input);
+      setEntries((current) => [
+        entry,
+        ...current.filter((item) => item.id !== entry.id),
+      ]);
+      return entry;
+    },
+    [trainingEntryGateway],
+  );
+
+  const getEntry = useCallback(
+    async (entryId: string) => {
+      const entry = await trainingEntryGateway.get(entryId);
+      if (entry) {
+        setEntries((current) =>
+          current.some((item) => item.id === entry.id)
+            ? current
+            : [entry, ...current],
+        );
+      }
+      return entry;
+    },
+    [trainingEntryGateway],
+  );
+
+  const deleteEntry = useCallback(
+    async (entryId: string) => {
+      await trainingEntryGateway.delete(entryId);
+      setEntries((current) => current.filter((entry) => entry.id !== entryId));
+    },
+    [trainingEntryGateway],
+  );
+
+  const sendReaction = useCallback(
+    async (
+      targetPlayerId: string,
+      type: ReactionType,
+      context: ReactionContext,
+    ) => {
+      const result = await reactionGateway.send({
+        recipientPlayerId: targetPlayerId,
+        reactionType: type,
+        context,
+      });
+      setReactions((current) => [
+        {
+          id: crypto.randomUUID(),
+          senderPlayerId: CURRENT_PLAYER_ID,
+          targetPlayerId,
+          type,
+          createdAt: new Date().toISOString(),
+        },
+        ...current,
+      ]);
+      return result;
+    },
+    [reactionGateway],
+  );
 
   useEffect(() => {
     let active = true;
@@ -85,83 +151,48 @@ export function TrainingProvider({ children }: { children: React.ReactNode }) {
   }, [reactionGateway]);
 
   useEffect(() => {
-    const hydrationTask = window.setTimeout(() => {
-      try {
-        const stored = window.localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          const parsed = JSON.parse(stored) as {
-            entries?: TrainingEntry[];
-            reactions?: Reaction[];
-          };
-          if (Array.isArray(parsed.entries)) setEntries(parsed.entries);
-          if (Array.isArray(parsed.reactions)) setReactions(parsed.reactions);
-        }
-      } catch {
-        // A blocked or malformed local store should not prevent the prototype loading.
-      } finally {
-        setHydrated(true);
-      }
-    }, 0);
-    return () => window.clearTimeout(hydrationTask);
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    window.localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ entries, reactions }),
+    let active = true;
+    void trainingEntryGateway.list().then(
+      (loadedEntries) => {
+        if (!active) return;
+        setEntries(loadedEntries);
+        setEntriesStatus("ready");
+      },
+      () => {
+        if (active) setEntriesStatus("error");
+      },
     );
-  }, [entries, reactions, hydrated]);
+    return () => {
+      active = false;
+    };
+  }, [trainingEntryGateway]);
 
   const value = useMemo<TrainingState>(
     () => ({
       entries,
+      entriesStatus,
       reactions,
       reactionBadges,
       reactionInboxStatus,
-      addEntry: (entry) =>
-        setEntries((current) => {
-          const next = [entry, ...current];
-          persistSnapshot(next, reactions);
-          return next;
-        }),
-      deleteEntry: (entryId) =>
-        setEntries((current) => {
-          const next = current.filter((entry) => entry.id !== entryId);
-          persistSnapshot(next, reactions);
-          return next;
-        }),
-      sendReaction: async (targetPlayerId, type, context) => {
-        const result = await reactionGateway.send({
-          recipientPlayerId: targetPlayerId,
-          reactionType: type,
-          context,
-        });
-        setReactions((current) => {
-          const next = [
-            {
-              id: crypto.randomUUID(),
-              senderPlayerId: CURRENT_PLAYER_ID,
-              targetPlayerId,
-              type,
-              createdAt: new Date().toISOString(),
-            },
-            ...current,
-          ];
-          persistSnapshot(entries, next);
-          return next;
-        });
-        return result;
-      },
+      addEntry,
+      getEntry,
+      deleteEntry,
+      refreshEntries,
+      sendReaction,
       refreshReactionBadges,
     }),
     [
+      addEntry,
+      deleteEntry,
       entries,
+      entriesStatus,
+      getEntry,
       reactionBadges,
-      reactionGateway,
       reactionInboxStatus,
       reactions,
+      refreshEntries,
       refreshReactionBadges,
+      sendReaction,
     ],
   );
 

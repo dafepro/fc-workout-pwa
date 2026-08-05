@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS training_entries_player_idempotency_unique;

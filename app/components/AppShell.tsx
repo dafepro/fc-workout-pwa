@@ -35,6 +35,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
+    document.documentElement.dataset.appReady = "true";
+
+    return () => {
+      delete document.documentElement.dataset.appReady;
+    };
+  }, []);
+
+  useEffect(() => {
     if ("serviceWorker" in navigator) {
       const hadController = Boolean(navigator.serviceWorker.controller);
       const reloadForUpdate = () => {

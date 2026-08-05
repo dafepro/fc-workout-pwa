@@ -1,4 +1,5 @@
 import { expect, request, test } from "@playwright/test";
+import { openReadyPage } from "./app-ready";
 
 const apiBaseURL = process.env.E2E_API_BASE_URL ?? "http://api:8080";
 const resetKey = process.env.E2E_RESET_KEY ?? "local-e2e-reset-only";
@@ -17,7 +18,7 @@ test.beforeEach(async () => {
 test("a teammate can be cheered from Team with an emoji-only picker", async ({
   page,
 }) => {
-  await page.goto("/team");
+  await openReadyPage(page, "/team");
 
   await page.getByRole("button", { name: /Liam J\./ }).click();
   const picker = page.getByRole("dialog", { name: "Cheer for Liam" });
@@ -37,7 +38,7 @@ test("a teammate can be cheered from Team with an emoji-only picker", async ({
 test("the picker is usable for a second teammate after a successful cheer", async ({
   page,
 }) => {
-  await page.goto("/team");
+  await openReadyPage(page, "/team");
 
   await page.getByRole("button", { name: /Liam J\./ }).click();
   await page
@@ -62,7 +63,7 @@ test("the picker is usable for a second teammate after a successful cheer", asyn
 test("leader cards retain leaderboard context and the current player is not reactable", async ({
   page,
 }) => {
-  await page.goto("/leaders");
+  await openReadyPage(page, "/leaders");
 
   await expect(
     page.getByRole("button", { name: /Cheer for Mason C\./ }),
@@ -97,7 +98,7 @@ test("received contextual reactions appear privately on Me", async ({
   expect(response.status()).toBe(201);
   await api.dispose();
 
-  await page.goto("/me");
+  await openReadyPage(page, "/me");
   await expect(
     page.getByRole("heading", { name: "Cheers for you" }),
   ).toBeVisible();

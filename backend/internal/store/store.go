@@ -240,21 +240,56 @@ func (store *Store) ResetE2EFixtures(ctx context.Context) error {
 	defer tx.Rollback()
 	statements := []string{
 		"DELETE FROM reactions",
+		"DELETE FROM training_entries",
 		`INSERT INTO clubs (id, name, created_at) VALUES ('club-stridecrew', 'StrideCrew', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
 		`INSERT INTO teams (id, club_id, name, season_id, weekly_default_goal, time_zone, created_at) VALUES ('team-hill-striders', 'club-stridecrew', 'Hill Striders', 'season-2026', 3, 'America/Chicago', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
 		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-mason', 'club-stridecrew', 'Mason', 'C', '{}', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
 		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-ava', 'club-stridecrew', 'Ava', 'R', '{}', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
-		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-liam', 'club-stridecrew', 'Liam', 'M', '{}', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-ethan', 'club-stridecrew', 'Ethan', 'M', '{}', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-liam', 'club-stridecrew', 'Liam', 'J', '{}', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO UPDATE SET last_initial = 'J'`,
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-noah', 'club-stridecrew', 'Noah', 'K', '{}', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-zoe', 'club-stridecrew', 'Zoe', 'T', '{}', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-jayden', 'club-stridecrew', 'Jayden', 'B', '{}', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-lucas', 'club-stridecrew', 'Lucas', 'A', '{}', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-isabella', 'club-stridecrew', 'Isabella', 'M', '{}', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-mia', 'club-stridecrew', 'Mia', 'S', '{}', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-caleb', 'club-stridecrew', 'Caleb', 'D', '{}', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-sophia', 'club-stridecrew', 'Sophia', 'P', '{}', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
 		`INSERT INTO accounts (id, club_id, player_id, role, status, created_at) VALUES ('account-ava', 'club-stridecrew', 'player-ava', 'player', 'active', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
 		`INSERT INTO accounts (id, club_id, player_id, role, status, created_at) VALUES ('account-mason', 'club-stridecrew', 'player-mason', 'player', 'active', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
 		`INSERT INTO accounts (id, club_id, player_id, role, status, created_at) VALUES ('account-liam', 'club-stridecrew', 'player-liam', 'player', 'active', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
 		`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-hill-striders', 'player-ava', '2026-01-01') ON CONFLICT DO NOTHING`,
+		`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-hill-striders', 'player-ethan', '2026-01-01') ON CONFLICT DO NOTHING`,
 		`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-hill-striders', 'player-mason', '2026-01-01') ON CONFLICT DO NOTHING`,
 		`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-hill-striders', 'player-liam', '2026-01-01') ON CONFLICT DO NOTHING`,
+		`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-hill-striders', 'player-noah', '2026-01-01') ON CONFLICT DO NOTHING`,
+		`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-hill-striders', 'player-zoe', '2026-01-01') ON CONFLICT DO NOTHING`,
+		`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-hill-striders', 'player-jayden', '2026-01-01') ON CONFLICT DO NOTHING`,
+		`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-hill-striders', 'player-lucas', '2026-01-01') ON CONFLICT DO NOTHING`,
+		`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-hill-striders', 'player-isabella', '2026-01-01') ON CONFLICT DO NOTHING`,
+		`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-hill-striders', 'player-mia', '2026-01-01') ON CONFLICT DO NOTHING`,
+		`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-hill-striders', 'player-caleb', '2026-01-01') ON CONFLICT DO NOTHING`,
+		`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-hill-striders', 'player-sophia', '2026-01-01') ON CONFLICT DO NOTHING`,
 	}
 	for _, statement := range statements {
 		if _, err := tx.ExecContext(ctx, statement); err != nil {
 			return fmt.Errorf("seed e2e fixture: %w", err)
+		}
+	}
+	now := time.Now().UTC()
+	entries := []struct {
+		id, occurredAt, createdAt, deadline string
+	}{
+		{"entry-mason-recent", now.Add(-2 * time.Hour).Format(time.RFC3339Nano), now.Add(-2 * time.Hour).Format(time.RFC3339Nano), now.Add(22 * time.Hour).Format(time.RFC3339Nano)},
+		{"entry-mason-expired", now.Add(-25 * time.Hour).Format(time.RFC3339Nano), now.Add(-25 * time.Hour).Format(time.RFC3339Nano), now.Add(-time.Hour).Format(time.RFC3339Nano)},
+	}
+	for _, entry := range entries {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO training_entries (
+			id, player_id, team_id, activity_definition_id, occurred_at, result_value,
+			result_unit, effort_level, exhaustion_level, created_at, delete_eligible_until
+		) VALUES (?, 'player-mason', 'team-hill-striders', 'hill-sprints', ?, 8, 'reps', 4, 3, ?, ?)`,
+			entry.id, entry.occurredAt, entry.createdAt, entry.deadline); err != nil {
+			return fmt.Errorf("seed e2e training entry: %w", err)
 		}
 	}
 	return tx.Commit()

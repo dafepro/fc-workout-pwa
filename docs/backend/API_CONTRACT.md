@@ -1,4 +1,4 @@
-# Backend API contract (draft 0.2)
+# Backend API contract (draft 0.3)
 
 This contract is the review boundary between the StrideCrew PWA and the milestone 2 Go service. The server is authoritative for identity, authorization, timestamps, deletion windows, safe social projections, and reaction limits.
 
@@ -60,7 +60,7 @@ Query parameters:
 
 ### `POST /v1/me/training-entries`
 
-Creates one entry for the authenticated player. The server derives `playerId`, `createdAt`, and `deleteEligibleUntil`.
+Creates one entry for the authenticated player. `Idempotency-Key` is required. The server derives `playerId`, `createdAt`, and `deleteEligibleUntil`; replaying the same request returns the original entry without creating a duplicate.
 
 ```json
 {
@@ -76,6 +76,8 @@ Creates one entry for the authenticated player. The server derives `playerId`, `
 
 Activity kind, unit, range, backdating, and assignment eligibility are validated against server-owned definitions.
 
+A new entry returns `201`; an idempotent replay returns `200`. Future timestamps and dates earlier than seven team-local calendar days before today return `422 entry_date_not_allowed`.
+
 ### `GET /v1/training-entries/{entryId}`
 
 Returns private entry detail only to:
@@ -89,6 +91,8 @@ Unauthorized callers receive `404` to avoid confirming that the entry exists.
 ### `DELETE /v1/training-entries/{entryId}`
 
 Soft-deletes an entry only when the authenticated player owns it and the trusted server time is before `deleteEligibleUntil`. Coach/admin removal uses a separate future audited moderation flow.
+
+An owner outside the window receives `422 entry_delete_window_closed`. Other callers receive concealed `404` responses.
 
 ## Safe Team and leaderboard projections
 

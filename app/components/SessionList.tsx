@@ -21,6 +21,9 @@ export function SessionList({
         <h2>My Sessions</h2>
       </div>
       <div className="history-list">
+        {entries.length === 0 ? (
+          <p className="history-list__empty">No sessions saved yet.</p>
+        ) : null}
         {entries.slice(0, visibleCount).map((entry) => {
           const activity = activities.find(
             (item) => item.id === entry.activityId,

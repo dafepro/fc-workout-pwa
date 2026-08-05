@@ -17,7 +17,7 @@ import {
 import { useTraining } from "./state/training-context";
 
 export default function HomePage() {
-  const { entries } = useTraining();
+  const { entries, entriesStatus, refreshEntries } = useTraining();
   const [showSavedToast, setShowSavedToast] = useState(false);
   const [quipIndex, setQuipIndex] = useState(0);
   const [showQuip, setShowQuip] = useState(false);
@@ -58,6 +58,14 @@ export default function HomePage() {
         <div className="toast-overlay" role="status">
           <span aria-hidden="true">✓</span>
           <strong>{copy.saveSuccess}</strong>
+        </div>
+      ) : null}
+      {entriesStatus === "error" ? (
+        <div className="notice notice--error" role="alert">
+          <strong>Your sessions could not be loaded.</strong>
+          <button type="button" onClick={() => void refreshEntries()}>
+            Try again
+          </button>
         </div>
       ) : null}
 

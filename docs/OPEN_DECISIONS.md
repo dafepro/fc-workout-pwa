@@ -70,6 +70,8 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
 - Activity input ranges are conservative UI guardrails for the prototype and are not medical or performance standards.
 - Date and 24-hour deletion checks use the player's current device time until a trusted server clock exists.
 - The PWA frontend will remain independently cloud-hostable and will use a small JSON API boundary when the backend is added.
+- The first training-entry API treats the previous seven team-local calendar dates plus today as eligible, rejects future timestamps, and sets deletion eligibility to exactly 24 hours after the trusted server creation time.
+- Until the Go container receives a production host, authentication design, persistent volume, and managed secret, the privately hosted PWA uses its device-local gateway; Docker and future hosted environments opt into the same HTTP gateway with `VITE_API_BASE_URL` and `VITE_API_TOKEN`.
 - The milestone 2 backend starts with Go `database/sql`, CGo-free SQLite, one API replica, and a persistent volume. Repository boundaries preserve a managed Postgres move when horizontal replicas, higher concurrent writes, or managed HA/PITR justify the extra operations.
 - Milestone 1 uses device-local persistence as required by the prototype boundary and does not add framework-specific server actions, so the Go API can replace the local store without rewriting the view components.
 - Milestone 1 streak comparisons use a centralized, predefined kid-safe pool and client-side random selection. The milestone 2 Go API should choose and return the comparison template while keeping free-form content out of player-facing responses.

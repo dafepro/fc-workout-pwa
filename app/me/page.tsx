@@ -11,6 +11,8 @@ const kitColors = ["#c7f23a", "#7459ff", "#34cbb2", "#ff9a62"];
 export default function MePage() {
   const {
     entries,
+    entriesStatus,
+    refreshEntries,
     reactionBadges,
     reactionInboxStatus,
     refreshReactionBadges,
@@ -112,7 +114,11 @@ export default function MePage() {
           <span aria-hidden="true">▦</span>
           <div>
             <h2>Session history</h2>
-            <p>{personalEntries.length} saved sessions on this device</p>
+            <p>
+              {entriesStatus === "loading"
+                ? "Loading your private sessions…"
+                : `${personalEntries.length} private saved sessions`}
+            </p>
           </div>
         </article>
         <article className="card profile-action">
@@ -133,6 +139,14 @@ export default function MePage() {
         </article>
       </section>
       <SessionList entries={personalEntries} />
+      {entriesStatus === "error" ? (
+        <div className="notice notice--error" role="alert">
+          <strong>Your private sessions could not be loaded.</strong>
+          <button type="button" onClick={() => void refreshEntries()}>
+            Try again
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

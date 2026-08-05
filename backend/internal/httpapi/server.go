@@ -8,6 +8,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -44,6 +45,10 @@ type service struct {
 
 type Repository interface {
 	Ping(context.Context) error
+	CreateTrainingEntry(context.Context, store.CreateTrainingEntryInput) (store.TrainingEntry, error)
+	ListTrainingEntries(context.Context, string, int) ([]store.TrainingEntry, error)
+	GetTrainingEntry(context.Context, string) (store.TrainingEntry, error)
+	DeleteTrainingEntry(context.Context, string, time.Time) (bool, error)
 	CreateReaction(context.Context, store.CreateReactionInput) (store.CreateReactionResult, error)
 	ListReactionBadges(context.Context, string, int) ([]store.ReactionBadge, error)
 }
@@ -81,6 +86,10 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	})
 	mux.HandleFunc("POST /v1/reactions", service.createReaction)
 	mux.HandleFunc("GET /v1/me/reaction-badges", service.listReactionBadges)
+	mux.HandleFunc("GET /v1/me/training-entries", service.listTrainingEntries)
+	mux.HandleFunc("POST /v1/me/training-entries", service.createTrainingEntry)
+	mux.HandleFunc("GET /v1/training-entries/{entryId}", service.getTrainingEntry)
+	mux.HandleFunc("DELETE /v1/training-entries/{entryId}", service.deleteTrainingEntry)
 	if _, ok := service.store.(fixtureResetter); cfg.EnableE2EFixtures && ok {
 		mux.HandleFunc("POST /__e2e/reset", service.resetE2EFixtures)
 	}
@@ -89,6 +98,153 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	})
 
 	return securityHeaders(cfg.AllowedOrigin, requestID(mux))
+}
+
+func (service *service) createTrainingEntry(w http.ResponseWriter, r *http.Request) {
+	actor, ok := service.authenticate(w, r)
+	if !ok {
+		return
+	}
+	if actor.Role != domain.RolePlayer || actor.PlayerID == "" {
+		writeError(w, r, http.StatusForbidden, "forbidden", "This account cannot create player sessions.")
+		return
+	}
+	if service.store == nil {
+		writeError(w, r, http.StatusServiceUnavailable, "not_ready", "The service is not ready.")
+		return
+	}
+	idempotencyKey := strings.TrimSpace(r.Header.Get("Idempotency-Key"))
+	if idempotencyKey == "" || len(idempotencyKey) > 128 {
+		writeError(w, r, http.StatusBadRequest, "invalid_idempotency_key", "A valid Idempotency-Key header is required.")
+		return
+	}
+	var request store.TrainingEntryRequest
+	if err := decodeStrictJSON(w, r, &request); err != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid_request", "The training entry request is invalid.")
+		return
+	}
+	entry, err := service.store.CreateTrainingEntry(r.Context(), store.CreateTrainingEntryInput{
+		PlayerID: actor.PlayerID, IdempotencyKey: idempotencyKey, Request: request, Now: service.now().UTC(),
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrEntryIdempotencyConflict):
+			writeError(w, r, http.StatusConflict, "idempotency_conflict", "That Idempotency-Key was already used for another request.")
+		case errors.Is(err, store.ErrEntryDateNotAllowed):
+			writeError(w, r, http.StatusUnprocessableEntity, "entry_date_not_allowed", "Choose today or one of the previous seven days.")
+		case errors.Is(err, store.ErrEntryResultNotAllowed):
+			writeError(w, r, http.StatusUnprocessableEntity, "entry_result_not_allowed", "That activity result is not allowed.")
+		case errors.Is(err, store.ErrEntryTeamUnavailable):
+			writeError(w, r, http.StatusUnprocessableEntity, "entry_team_unavailable", "That team is unavailable.")
+		case errors.Is(err, store.ErrEntryLevelsNotAllowed):
+			writeError(w, r, http.StatusUnprocessableEntity, "entry_feelings_not_allowed", "Effort and exhaustion must use the seven-step scale.")
+		default:
+			writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")
+		}
+		return
+	}
+	status := http.StatusCreated
+	if entry.Replayed {
+		status = http.StatusOK
+	}
+	writeJSON(w, status, entry)
+}
+
+func (service *service) listTrainingEntries(w http.ResponseWriter, r *http.Request) {
+	actor, ok := service.authenticate(w, r)
+	if !ok {
+		return
+	}
+	if actor.Role != domain.RolePlayer || actor.PlayerID == "" {
+		writeError(w, r, http.StatusForbidden, "forbidden", "This account does not have a player session history.")
+		return
+	}
+	if service.store == nil {
+		writeError(w, r, http.StatusServiceUnavailable, "not_ready", "The service is not ready.")
+		return
+	}
+	limit := 20
+	if raw := r.URL.Query().Get("limit"); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil || parsed < 1 || parsed > 50 {
+			writeError(w, r, http.StatusBadRequest, "invalid_limit", "Limit must be from 1 through 50.")
+			return
+		}
+		limit = parsed
+	}
+	entries, err := service.store.ListTrainingEntries(r.Context(), actor.PlayerID, limit)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")
+		return
+	}
+	writeJSON(w, http.StatusOK, struct {
+		Items      []store.TrainingEntry `json:"items"`
+		NextCursor *string               `json:"nextCursor"`
+	}{Items: entries})
+}
+
+func (service *service) getTrainingEntry(w http.ResponseWriter, r *http.Request) {
+	actor, ok := service.authenticate(w, r)
+	if !ok {
+		return
+	}
+	if service.store == nil {
+		writeError(w, r, http.StatusServiceUnavailable, "not_ready", "The service is not ready.")
+		return
+	}
+	entry, err := service.store.GetTrainingEntry(r.Context(), r.PathValue("entryId"))
+	if errors.Is(err, store.ErrEntryNotFound) {
+		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
+		return
+	}
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")
+		return
+	}
+	if !domain.CanViewSession(actor, entry.Resource) {
+		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
+		return
+	}
+	writeJSON(w, http.StatusOK, entry)
+}
+
+func (service *service) deleteTrainingEntry(w http.ResponseWriter, r *http.Request) {
+	actor, ok := service.authenticate(w, r)
+	if !ok {
+		return
+	}
+	if service.store == nil {
+		writeError(w, r, http.StatusServiceUnavailable, "not_ready", "The service is not ready.")
+		return
+	}
+	entry, err := service.store.GetTrainingEntry(r.Context(), r.PathValue("entryId"))
+	if errors.Is(err, store.ErrEntryNotFound) {
+		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
+		return
+	}
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")
+		return
+	}
+	now := service.now().UTC()
+	if actor.Role == domain.RolePlayer && actor.PlayerID == entry.Resource.OwnerPlayerID && !now.Before(entry.Resource.DeleteEligibleUntil) {
+		writeError(w, r, http.StatusUnprocessableEntity, "entry_delete_window_closed", "The 24-hour deletion window has closed.")
+		return
+	}
+	if !domain.CanDeleteSession(actor, entry.Resource, now) {
+		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
+		return
+	}
+	deleted, err := service.store.DeleteTrainingEntry(r.Context(), entry.ID, now)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")
+		return
+	}
+	if !deleted {
+		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (service *service) createReaction(w http.ResponseWriter, r *http.Request) {

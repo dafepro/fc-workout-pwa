@@ -5,7 +5,7 @@ services:
       args:
         GO_BUILD_TAGS: e2e
     environment:
-      ALLOWED_ORIGIN: http://pwa:3000
+      ALLOWED_ORIGIN: http://[::1]:3000
       APP_ENV: e2e
       DATABASE_URL: file:/data/stridecrew-e2e.db
       ENABLE_E2E_FIXTURES: "true"
@@ -28,15 +28,15 @@ services:
       api:
         condition: service_healthy
     environment:
-      VITE_REACTION_API_BASE_URL: http://api:8080
-      VITE_REACTION_API_TOKEN: e2e-player-mason
+      VITE_API_BASE_URL: http://api:8080
+      VITE_API_TOKEN: e2e-player-mason
     healthcheck:
       test:
         [
           "CMD",
           "node",
           "-e",
-          "fetch('http://127.0.0.1:3000/team').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+          "fetch('http://[::1]:3000/team').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
         ]
       interval: 1s
       timeout: 3s
@@ -64,7 +64,8 @@ services:
         condition: service_healthy
       pwa:
         condition: service_healthy
+    network_mode: service:pwa
     environment:
       E2E_API_BASE_URL: http://api:8080
-      E2E_PWA_BASE_URL: http://pwa:3000
+      E2E_PWA_BASE_URL: http://[::1]:3000
       E2E_RESET_KEY: local-e2e-reset-only
