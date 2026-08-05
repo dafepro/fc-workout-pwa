@@ -39,9 +39,10 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
 
 ## Reactions
 
-- Target: player, entry, or challenge completion.
-- Per-user cooldown and daily limits.
+- First implementation target: another player, with a predefined Team-progress or leaderboard context snapshot.
+- First implementation limit: five reactions from one sender to one recipient per team-local calendar day, across all contexts.
 - Whether reaction totals are visible.
+- Whether a private recipient badge may mention an exact approved leaderboard placement.
 
 ## Privacy and youth safety
 

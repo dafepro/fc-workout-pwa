@@ -1,0 +1,91 @@
+# Backend data model and persistence plan (draft 0.1)
+
+## Storage choice
+
+Start with SQLite for the smallest cloud-hostable service and local development. Keep SQL behind repository interfaces, use portable column types and explicit migrations, and avoid SQLite-only business logic where a managed Postgres deployment may later be preferable.
+
+The database is authoritative for identities, memberships, entries, reactions, idempotency, and audit timestamps. Derived streaks, progress, and safe leaderboard projections should be computed from authoritative records or maintained as rebuildable projections.
+
+## Core relationships
+
+```text
+Club
+├── Team
+│   ├── TeamMembership ── Player
+│   ├── CoachAssignment ── Account (coach)
+│   ├── TrainingEntry ── Player
+│   └── Reaction ── sender Player / recipient Player
+└── Account (player, coach, or club_admin)
+```
+
+## Foundation tables
+
+- `clubs`: organization boundary
+- `teams`: club ownership, season, weekly goal, and IANA time zone
+- `players`: locked display identity and avatar configuration
+- `accounts`: authenticated principal and role; player accounts reference one player
+- `team_memberships`: active player/team relationship with date bounds
+- `coach_team_assignments`: active coach/team authorization with date bounds
+- `activity_definitions`: server-owned input kind, unit, allowed ranges, and safe point policy
+- `training_entries`: private structured result, effort/exhaustion, trusted timestamps, and soft deletion
+- `reactions`: predefined type, recipient, safe context snapshot, team-local day, read state, and idempotency key
+
+## Reaction daily limit
+
+The server resolves the team's IANA time zone and computes `team_day` as the calendar date containing `created_at` in that zone. Within one transaction it:
+
+1. confirms sender/recipient membership and context authorization;
+2. checks for an existing `(sender, idempotency_key)` result;
+3. counts active reactions for `(sender, recipient, team_day)`;
+4. rejects count 5 or greater;
+5. inserts the reaction with the computed `team_day`.
+
+The supporting composite index is not itself sufficient to enforce a maximum count. SQLite writes must use a transaction mode that prevents concurrent writers from both observing count 4; the repository implementation will use an immediate write transaction. Postgres will use an advisory or row lock around a per-pair/day quota record.
+
+## Context vocabulary
+
+Allowed reaction types:
+
+- `clap`
+- `fire`
+- `strong`
+- `hustle`
+- `runner`
+- `wind`
+- `robot_leg`
+- `do_it`
+
+Allowed context types:
+
+- `team_progress`
+- `leaderboard`
+
+Allowed leaderboard periods:
+
+- `weekly`
+- `thirty_days`
+- `season`
+
+Allowed leaderboard metrics:
+
+- `effort`
+- `streaks`
+- `consistency`
+
+No raw result, assessment, exhaustion, exact negative group, or player-authored value is stored in reaction context.
+
+## Migration strategy
+
+- migrations are immutable and applied in lexical order;
+- each migration has explicit up/down SQL during early development;
+- CI creates an empty SQLite database, applies all up migrations, verifies foreign keys and indexes, then applies down migrations where safe;
+- production backups are required before destructive migrations;
+- identifiers and timestamps remain application-generated opaque strings and RFC 3339/ISO values until a database-specific UUID/timestamp decision is made.
+
+## Decisions before persistence implementation
+
+- hosted SQLite provider versus managed Postgres for production
+- backup frequency, recovery-point objective, and recovery-time objective
+- encryption/key-management requirements beyond provider disk encryption
+- data retention for deleted entries, reactions, audit events, and expired sessions
+- whether a player may belong to multiple clubs or have multiple active player accounts

@@ -42,6 +42,8 @@
 
 This feedback should be implemented as the first end-to-end feature on the real backend rather than expanded in device-local mock state.
 
+**Codex · Backend prework started (2026-08-05):** Added the draft JSON API contract, authorization matrix, data model, SQLite foundation migration, and a tested Go service scaffold. The contextual-reaction UI and persistence adapters remain queued until this checkpoint is reviewed.
+
 ### Proposed sequence
 
 1. **Go service skeleton:** small cloud-hostable HTTP service with health checks, configuration, structured errors, and graceful shutdown.

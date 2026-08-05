@@ -43,3 +43,6 @@ next-env.d.ts
 /outputs/
 /work/
 /.codex/
+/backend/data/
+/backend/coverage.out
+/backend/stridecrew-api*

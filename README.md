@@ -33,3 +33,16 @@ Build a responsive, mobile-first PWA prototype with mock data. Implement the fou
 - Team progress and leaderboards use effort and consistency only.
 - Raw performance and assessment results remain personal-only.
 - Automated checks cover the main logging and visibility rules.
+
+## Milestone 2 backend prework
+
+The backend foundation lives in `backend/` and the review contracts live in `docs/backend/`. It currently includes:
+
+- a dependency-light, cloud-hostable Go service with health/readiness endpoints and graceful shutdown;
+- configuration validation and safe HTTP defaults;
+- pure authorization rules for player, assigned-coach, and club-admin access;
+- predefined contextual-reaction rules and a five-per-recipient team-day limit;
+- a versioned SQLite foundation migration with a repository boundary suitable for a later Postgres move;
+- draft API, authorization, and persistence contracts for review before frontend integration.
+
+See `backend/README.md` for local commands and the current implementation boundary.
