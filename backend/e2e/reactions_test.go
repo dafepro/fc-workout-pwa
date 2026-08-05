@@ -24,8 +24,9 @@ import (
 )
 
 const (
-	avaToken  = "e2e-player-ava"
-	liamToken = "e2e-player-liam"
+	masonToken = "e2e-player-mason"
+	avaToken   = "e2e-player-ava"
+	liamToken  = "e2e-player-liam"
 )
 
 type apiClient struct {
@@ -248,6 +249,43 @@ func TestConcurrentReactionWritesCannotExceedTheDailyLimit(t *testing.T) {
 	if created != 5 || limited != 1 {
 		t.Fatalf("concurrent results: created=%d limited=%d, want 5 and 1", created, limited)
 	}
+}
+
+func TestBrowserFixturePlayerCanSendAndReceiveReactions(t *testing.T) {
+	api := newAPIClient(t)
+	api.reset(t)
+
+	outbound := api.do(t, http.MethodPost, "/v1/reactions", masonToken, "mason-outbound", map[string]any{
+		"recipientPlayerId": "player-ava",
+		"reactionType":      "clap",
+		"context": map[string]any{
+			"type":   "team_progress",
+			"teamId": "team-hill-striders",
+			"period": "weekly",
+		},
+	})
+	assertStatus(t, outbound, http.StatusCreated)
+	_ = outbound.Body.Close()
+
+	inbound := api.do(t, http.MethodPost, "/v1/reactions", avaToken, "mason-inbound", map[string]any{
+		"recipientPlayerId": "player-mason",
+		"reactionType":      "fire",
+		"context": map[string]any{
+			"type":   "leaderboard",
+			"teamId": "team-hill-striders",
+			"period": "weekly",
+			"metric": "effort",
+		},
+	})
+	assertStatus(t, inbound, http.StatusCreated)
+	_ = inbound.Body.Close()
+
+	inbox := api.do(t, http.MethodGet, "/v1/me/reaction-badges", masonToken, "", nil)
+	assertStatus(t, inbox, http.StatusOK)
+	if body := readBody(inbox); !strings.Contains(body, "Ava R.") || !strings.Contains(body, "Weekly Effort") {
+		t.Fatalf("Mason inbox did not contain the safe contextual badge: %s", body)
+	}
+	_ = inbox.Body.Close()
 }
 
 func newAPIClient(t *testing.T) apiClient {

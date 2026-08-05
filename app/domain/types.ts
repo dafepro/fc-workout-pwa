@@ -70,6 +70,41 @@ export interface Reaction {
   createdAt: string;
 }
 
+export type ReactionPeriod = "weekly" | "thirty_days" | "season";
+export type ReactionMetric = "effort" | "streaks" | "consistency";
+
+export type ReactionContext =
+  | {
+      type: "team_progress";
+      teamId: string;
+      period: "weekly";
+    }
+  | {
+      type: "leaderboard";
+      teamId: string;
+      period: ReactionPeriod;
+      metric: ReactionMetric;
+    };
+
+export interface ReactionBadge {
+  id: string;
+  sender: {
+    id: string;
+    displayName: string;
+  };
+  reactionType: ReactionType;
+  emoji: string;
+  message: string;
+  context: ReactionContext;
+  createdAt: string;
+  readAt: string | null;
+}
+
+export interface SendReactionResult {
+  id: string;
+  remainingForRecipientToday: number;
+}
+
 export interface SocialEntryProjection {
   id: string;
   playerId: string;

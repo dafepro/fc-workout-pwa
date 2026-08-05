@@ -5,7 +5,7 @@ services:
       args:
         GO_BUILD_TAGS: e2e
     environment:
-      ALLOWED_ORIGIN: http://pwa.invalid
+      ALLOWED_ORIGIN: http://pwa:3000
       APP_ENV: e2e
       DATABASE_URL: file:/data/stridecrew-e2e.db
       ENABLE_E2E_FIXTURES: "true"
@@ -19,6 +19,29 @@ services:
     tmpfs:
       - /data:size=32m,uid=65532,gid=65532,mode=0700
 
+  pwa:
+    build:
+      context: ..
+      dockerfile: Dockerfile.e2e
+      target: pwa
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      VITE_REACTION_API_BASE_URL: http://api:8080
+      VITE_REACTION_API_TOKEN: e2e-player-mason
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/team').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
   e2e:
     build:
       context: .
@@ -29,4 +52,19 @@ services:
         condition: service_healthy
     environment:
       E2E_BASE_URL: http://api:8080
+      E2E_RESET_KEY: local-e2e-reset-only
+
+  browser-e2e:
+    build:
+      context: ..
+      dockerfile: Dockerfile.e2e
+      target: browser-e2e
+    depends_on:
+      api:
+        condition: service_healthy
+      pwa:
+        condition: service_healthy
+    environment:
+      E2E_API_BASE_URL: http://api:8080
+      E2E_PWA_BASE_URL: http://pwa:3000
       E2E_RESET_KEY: local-e2e-reset-only

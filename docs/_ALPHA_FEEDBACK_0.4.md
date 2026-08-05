@@ -6,9 +6,13 @@
 
   **Codex · Queued (2026-08-05):** Reaction entry will move onto teammate surfaces instead of occupying a separate card.
 
+  **Codex · Addressed (2026-08-05):** Removed the standalone card. Team progress rows now open the shared contextual picker for every teammate except the current player.
+
 - Selecting another player on Team or Leaders should open an emoji-only reaction picker. Do not show reaction text beside the emojis.
 
   **Codex · Queued (2026-08-05):** The current player will not be reactable. Emoji buttons will have hidden accessible names even though no visible text is shown. The picker will retain the selected Team or leaderboard context.
+
+  **Codex · Addressed (2026-08-05):** Team rows and leaderboard podium/list cards are whole-button targets. The reusable modal shows emoji-only buttons with accessible names, closes by its close control, backdrop, or Escape, and preserves the selected Team/period/metric context in the API request.
 
 - Reactions should appear in Me as private badges showing who sent the reaction and the context in which they sent it. Examples include “Ava saw your Effort leaderboard position and sent you 🔥” or “Liam cheered your weekly Team progress and sent you 👏.”
 
@@ -16,11 +20,15 @@
 
   **Codex · Backend addressed (2026-08-05):** Added the private `GET /v1/me/reaction-badges` projection with server-generated copy and emoji. Strict request decoding rejects player-authored fields. Rendering these badges in Me remains queued for frontend integration.
 
+  **Codex · Addressed (2026-08-05):** Me now includes a private “Cheers for you” card that renders server-generated sender/context copy and the approved emoji. Docker browser E2E seeds the badge through the real API and verifies the recipient view.
+
 - Limit reactions to a maximum of five sent to one person per day.
 
   **Codex · Queued (2026-08-05):** Working interpretation: one sender may send at most five total reactions to the same recipient during one team-local calendar day, across all contexts. The Go API and database will enforce this authoritatively; the UI will show remaining availability and handle a rejected sixth reaction safely.
 
   **Codex · Backend addressed (2026-08-05):** The SQLite repository now checks and inserts inside an immediate write transaction. Successful idempotency replays do not consume allowance; a sixth new reaction returns `429 reaction_daily_limit_reached`. The Docker-first E2E spec covers both sequential and simultaneous five-plus-one flows over HTTP.
+
+  **Codex · Frontend addressed (2026-08-05):** Successful sends show the server's remaining allowance. Rejections remain in the picker as a safe error instead of creating optimistic local success.
 
 ## Safety and privacy constraints
 
@@ -58,7 +66,8 @@ This feedback should be implemented as the first end-to-end feature on the real 
 4. **Training-entry API:** replace device-local session persistence through a narrow JSON API without rewriting view components.
 5. **Contextual reaction API:** approved reaction/context enums, server-generated badge copy, idempotent writes, and the five-per-recipient daily limit.
 6. **Me inbox integration:** private reaction badges, pagination/read state, and authorized coach/admin visibility.
-7. **Cloud deployment and operations:** container build, managed secrets, database backups, request logging without sensitive payloads, and automated tests in CI.
+7. **Backup and restore:** migration-aware flat-file archives, encryption, integrity checks, isolated forward-migration restore, and Docker restore drills.
+8. **Cloud deployment and operations:** container build, managed secrets, off-host backup retention, request logging without sensitive payloads, and automated tests in CI.
 
 ### First review checkpoint
 

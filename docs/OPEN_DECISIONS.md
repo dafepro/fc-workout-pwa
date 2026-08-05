@@ -52,6 +52,13 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
 - Audit trail and deletion requests.
 - Applicable youth privacy requirements before production use.
 
+## Backup operations
+
+- Recovery-point and recovery-time objectives.
+- Daily/weekly retention after youth-data and deletion-policy review.
+- Off-host encrypted storage provider and key-rotation policy.
+- Who may initiate, download, or restore a backup and how those actions are audited.
+
 ## Milestone 1 prototype assumptions
 
 - The mock team uses a three-session weekly goal.

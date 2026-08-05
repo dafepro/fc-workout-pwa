@@ -1,0 +1,10 @@
+.git
+.env*
+.next
+.wrangler
+dist
+node_modules
+outputs
+work
+backend/data
+backend/*.db*

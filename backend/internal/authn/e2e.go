@@ -15,6 +15,9 @@ type E2EFixtures struct {
 
 func NewE2EFixtures() E2EFixtures {
 	return E2EFixtures{actors: map[string]domain.Actor{
+		"e2e-player-mason": {
+			AccountID: "account-mason", Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-stridecrew",
+		},
 		"e2e-player-ava": {
 			AccountID: "account-ava", Role: domain.RolePlayer, PlayerID: "player-ava", ClubID: "club-stridecrew",
 		},

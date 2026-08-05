@@ -242,11 +242,14 @@ func (store *Store) ResetE2EFixtures(ctx context.Context) error {
 		"DELETE FROM reactions",
 		`INSERT INTO clubs (id, name, created_at) VALUES ('club-stridecrew', 'StrideCrew', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
 		`INSERT INTO teams (id, club_id, name, season_id, weekly_default_goal, time_zone, created_at) VALUES ('team-hill-striders', 'club-stridecrew', 'Hill Striders', 'season-2026', 3, 'America/Chicago', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-mason', 'club-stridecrew', 'Mason', 'C', '{}', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
 		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-ava', 'club-stridecrew', 'Ava', 'R', '{}', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
 		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-liam', 'club-stridecrew', 'Liam', 'M', '{}', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
 		`INSERT INTO accounts (id, club_id, player_id, role, status, created_at) VALUES ('account-ava', 'club-stridecrew', 'player-ava', 'player', 'active', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
+		`INSERT INTO accounts (id, club_id, player_id, role, status, created_at) VALUES ('account-mason', 'club-stridecrew', 'player-mason', 'player', 'active', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
 		`INSERT INTO accounts (id, club_id, player_id, role, status, created_at) VALUES ('account-liam', 'club-stridecrew', 'player-liam', 'player', 'active', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
 		`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-hill-striders', 'player-ava', '2026-01-01') ON CONFLICT DO NOTHING`,
+		`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-hill-striders', 'player-mason', '2026-01-01') ON CONFLICT DO NOTHING`,
 		`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-hill-striders', 'player-liam', '2026-01-01') ON CONFLICT DO NOTHING`,
 	}
 	for _, statement := range statements {

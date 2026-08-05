@@ -84,6 +84,8 @@ No raw result, assessment, exhaustion, exact negative group, or player-authored 
 - production backups are required before destructive migrations;
 - identifiers and timestamps remain application-generated opaque strings and RFC 3339/ISO values until a database-specific UUID/timestamp decision is made.
 
+The migration-aware flat-file backup and isolated restore design is specified in `BACKUP_AND_RESTORE.md`. Backup archives pair a consistent SQLite snapshot with a versioned manifest, hashes, and migration ledger; restores verify and migrate a temporary copy before any live-file swap.
+
 ## Decisions before production persistence
 
 - backup frequency, recovery-point objective, and recovery-time objective

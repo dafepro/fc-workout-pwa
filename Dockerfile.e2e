@@ -1,0 +1,19 @@
+FROM node:22-bookworm-slim AS pwa
+
+WORKDIR /app
+RUN corepack enable && corepack prepare pnpm@11.9.0 --activate
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+COPY . .
+EXPOSE 3000
+CMD ["pnpm", "dev", "--host", "0.0.0.0", "--port", "3000"]
+
+FROM mcr.microsoft.com/playwright:v1.62.1-noble AS browser-e2e
+
+WORKDIR /app
+RUN corepack enable && corepack prepare pnpm@11.9.0 --activate
+COPY package.json pnpm-lock.yaml ./
+RUN PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 pnpm install --frozen-lockfile
+COPY playwright.config.ts ./
+COPY e2e ./e2e
+CMD ["pnpm", "test:e2e"]

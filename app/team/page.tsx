@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Avatar } from "../components/Avatar";
 import { ProgressBar } from "../components/ProgressBar";
+import { ReactionPicker } from "../components/ReactionPicker";
 import {
   CURRENT_PLAYER_ID,
   players,
@@ -10,28 +11,12 @@ import {
   WEEKLY_GOAL,
 } from "../data/mockData";
 import { entriesWithinDays } from "../domain/rules";
-import type { ReactionType } from "../domain/types";
+import type { Player, ReactionType } from "../domain/types";
 import { useTraining } from "../state/training-context";
-
-const reactionOptions: Array<{
-  type: ReactionType;
-  icon: string;
-  label: string;
-}> = [
-  { type: "clap", icon: "👏", label: "Clap" },
-  { type: "fire", icon: "🔥", label: "Fire" },
-  { type: "strong", icon: "💪", label: "Strong" },
-  { type: "hustle", icon: "⚡", label: "Hustle" },
-  { type: "runner", icon: "🏃", label: "Runner" },
-  { type: "wind", icon: "💨", label: "Wind" },
-  { type: "robot-leg", icon: "🦿", label: "Robot leg" },
-  { type: "do-it", icon: "✓", label: "Do it" },
-];
 
 export default function TeamPage() {
   const { entries, sendReaction } = useTraining();
-  const [selectedPlayer, setSelectedPlayer] = useState(players[1].id);
-  const [cooldown, setCooldown] = useState(false);
+  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [sentLabel, setSentLabel] = useState("");
   const myWeek = entriesWithinDays(
     entries.filter((entry) => entry.playerId === CURRENT_PLAYER_ID),
@@ -42,12 +27,6 @@ export default function TeamPage() {
       entries.filter((entry) => entry.playerId === CURRENT_PLAYER_ID),
       1,
     ).length > 0;
-
-  useEffect(() => {
-    if (!cooldown) return;
-    const timer = window.setTimeout(() => setCooldown(false), 6000);
-    return () => window.clearTimeout(timer);
-  }, [cooldown]);
 
   const progressPlayers = useMemo(
     () =>
@@ -87,12 +66,18 @@ export default function TeamPage() {
   const challengePlayers = players.slice(0, 9);
   const completedCount = 7 + (myToday ? 1 : 0);
 
-  function react(type: ReactionType, label: string) {
-    if (cooldown) return;
-    sendReaction(selectedPlayer, type);
-    const teammate = players.find((player) => player.id === selectedPlayer)!;
-    setSentLabel(`${label} sent to ${teammate.firstName}!`);
-    setCooldown(true);
+  async function react(type: ReactionType, emoji: string) {
+    if (!selectedPlayer) return;
+    const teammate = selectedPlayer;
+    const result = await sendReaction(teammate.id, type, {
+      type: "team_progress",
+      teamId: "team-hill-striders",
+      period: "weekly",
+    });
+    setSentLabel(
+      `${emoji} sent to ${teammate.firstName}! ${result.remainingForRecipientToday} left today.`,
+    );
+    setSelectedPlayer(null);
   }
 
   return (
@@ -151,71 +136,68 @@ export default function TeamPage() {
                 <span>{group.subtitle}</span>
               </header>
               {group.players.map((player) => (
-                <div className="player-progress" key={player.id}>
-                  <Avatar player={player} size="small" />
-                  <strong>
-                    {player.firstName} {player.lastInitial}
-                  </strong>
-                  <ProgressBar
-                    value={player.weeklySessions}
-                    max={WEEKLY_GOAL}
-                    tone={group.tone}
-                    label={`${player.firstName}'s weekly participation`}
-                  />
-                  <span>
-                    {Math.min(player.weeklySessions, WEEKLY_GOAL)} of{" "}
-                    {WEEKLY_GOAL}
-                  </span>
-                </div>
+                <PlayerProgressRow
+                  key={player.id}
+                  player={player}
+                  tone={group.tone}
+                  onCheer={() => setSelectedPlayer(player)}
+                />
               ))}
             </section>
           ))}
         </div>
       </section>
-
-      <section className="card reaction-card">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Send some energy</p>
-            <h2>Cheer for a teammate</h2>
-          </div>
-          {sentLabel ? (
-            <span className="pill pill--lime" role="status">
-              {sentLabel}
-            </span>
-          ) : null}
-        </div>
-        <div
-          className="teammate-picker"
-          role="group"
-          aria-label="Choose a teammate"
-        >
-          {players.slice(1, 7).map((player) => (
-            <button
-              type="button"
-              key={player.id}
-              className={selectedPlayer === player.id ? "is-selected" : ""}
-              onClick={() => setSelectedPlayer(player.id)}
-            >
-              <Avatar player={player} size="small" />
-              <span>{player.firstName}</span>
-            </button>
-          ))}
-        </div>
-        <div className="reaction-grid">
-          {reactionOptions.map((reaction) => (
-            <button
-              type="button"
-              key={reaction.type}
-              disabled={cooldown}
-              onClick={() => react(reaction.type, reaction.label)}
-            >
-              <span aria-hidden="true">{reaction.icon}</span>
-              <small>{reaction.label}</small>
-            </button>
-          ))}
-        </div>
-      </section>
+      {sentLabel ? (
+        <p className="reaction-sent-status pill pill--lime" role="status">
+          {sentLabel}
+        </p>
+      ) : null}
+      <ReactionPicker
+        recipient={selectedPlayer}
+        onClose={() => setSelectedPlayer(null)}
+        onSend={react}
+      />
     </div>
+  );
+}
+
+function PlayerProgressRow({
+  player,
+  tone,
+  onCheer,
+}: {
+  player: Player;
+  tone: "lime" | "gold" | "blue";
+  onCheer: () => void;
+}) {
+  const content = (
+    <>
+      <Avatar player={player} size="small" />
+      <strong>
+        {player.firstName} {player.lastInitial}
+      </strong>
+      <ProgressBar
+        value={player.weeklySessions}
+        max={WEEKLY_GOAL}
+        tone={tone}
+        label={`${player.firstName}'s weekly participation`}
+      />
+      <span>
+        {Math.min(player.weeklySessions, WEEKLY_GOAL)} of {WEEKLY_GOAL}
+      </span>
+    </>
+  );
+  if (player.id === CURRENT_PLAYER_ID) {
+    return <div className="player-progress">{content}</div>;
+  }
+  return (
+    <button
+      type="button"
+      className="player-progress player-progress--reactable"
+      aria-label={`Cheer for ${player.firstName} ${player.lastInitial}`}
+      onClick={onCheer}
+    >
+      {content}
+    </button>
   );
 }

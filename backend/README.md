@@ -17,10 +17,10 @@ go test -tags=e2e ./e2e
 go vet ./...
 go build ./cmd/api
 go run ./cmd/api
-docker compose -f compose.e2e.yaml up --build --abort-on-container-exit --exit-code-from e2e
+powershell -File ..\scripts\e2e.ps1
 ```
 
-The tagged E2E suite is dual-mode. With `E2E_BASE_URL` set by Compose it tests the separately running API container. Without that variable it uses a no-Docker fallback with a temporary real SQLite file and the real HTTP handler. The Docker run remains the completion gate when Docker is available.
+The script builds the real API, SQLite, PWA, and Playwright browser environment; runs the API suite and browser feedback flows in sequence; then tears the stack down. The tagged Go E2E suite is also dual-mode: without `E2E_BASE_URL`, it uses a no-Docker fallback with a temporary real SQLite file and the real HTTP handler. The Docker run remains the completion gate when Docker is available.
 
 Health endpoints:
 
@@ -53,3 +53,4 @@ SQLite permits many readers but serializes writes. Do not mount the same databas
 - Training-entry persistence and frontend API integration are still pending.
 - The PWA continues using device-local persistence.
 - API, authorization, and data-model drafts are in `docs/backend/`.
+- The migration-aware flat-file backup design is in `docs/backend/BACKUP_AND_RESTORE.md`; implementation is the next operations slice after feedback integration.

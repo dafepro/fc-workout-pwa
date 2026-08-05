@@ -9,7 +9,12 @@ import { useTraining } from "../state/training-context";
 const kitColors = ["#c7f23a", "#7459ff", "#34cbb2", "#ff9a62"];
 
 export default function MePage() {
-  const { entries } = useTraining();
+  const {
+    entries,
+    reactionBadges,
+    reactionInboxStatus,
+    refreshReactionBadges,
+  } = useTraining();
   const basePlayer = players.find((player) => player.id === CURRENT_PLAYER_ID)!;
   const [kitColor, setKitColor] = useState(basePlayer.avatarColor);
   const [builderOpen, setBuilderOpen] = useState(false);
@@ -58,6 +63,50 @@ export default function MePage() {
           </div>
         </section>
       ) : null}
+      <section
+        className="card reaction-inbox"
+        aria-labelledby="reaction-inbox-title"
+      >
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">From your teammates</p>
+            <h2 id="reaction-inbox-title">Cheers for you</h2>
+          </div>
+          <span className="pill pill--lime">Private</span>
+        </div>
+        {reactionInboxStatus === "loading" ? (
+          <p className="reaction-inbox__state">Loading your cheers…</p>
+        ) : null}
+        {reactionInboxStatus === "error" ? (
+          <div className="reaction-inbox__state">
+            <p>Your cheers could not be loaded.</p>
+            <button
+              type="button"
+              className="button button--outline"
+              onClick={() => void refreshReactionBadges()}
+            >
+              Try again
+            </button>
+          </div>
+        ) : null}
+        {reactionInboxStatus === "ready" && reactionBadges.length === 0 ? (
+          <p className="reaction-inbox__state">
+            Teammate cheers will appear here.
+          </p>
+        ) : null}
+        {reactionBadges.length > 0 ? (
+          <ul className="reaction-badge-list">
+            {reactionBadges.map((badge) => (
+              <li key={badge.id}>
+                <span className="reaction-badge-list__emoji" aria-hidden="true">
+                  {badge.emoji}
+                </span>
+                <p>{badge.message}</p>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </section>
       <section className="profile-grid">
         <article className="card profile-action">
           <span aria-hidden="true">▦</span>

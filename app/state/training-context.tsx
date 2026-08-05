@@ -1,15 +1,37 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { CURRENT_PLAYER_ID, initialEntries } from "../data/mockData";
-import type { Reaction, ReactionType, TrainingEntry } from "../domain/types";
+import { createReactionGateway } from "../data/reaction-gateway";
+import type {
+  Reaction,
+  ReactionBadge,
+  ReactionContext,
+  ReactionType,
+  SendReactionResult,
+  TrainingEntry,
+} from "../domain/types";
 
 interface TrainingState {
   entries: TrainingEntry[];
   reactions: Reaction[];
+  reactionBadges: ReactionBadge[];
+  reactionInboxStatus: "loading" | "ready" | "error";
   addEntry: (entry: TrainingEntry) => void;
   deleteEntry: (entryId: string) => void;
-  sendReaction: (targetPlayerId: string, type: ReactionType) => void;
+  sendReaction: (
+    targetPlayerId: string,
+    type: ReactionType,
+    context: ReactionContext,
+  ) => Promise<SendReactionResult>;
+  refreshReactionBadges: () => Promise<void>;
 }
 
 const STORAGE_KEY = "stridecrew-milestone-1";
@@ -29,7 +51,38 @@ function persistSnapshot(entries: TrainingEntry[], reactions: Reaction[]) {
 export function TrainingProvider({ children }: { children: React.ReactNode }) {
   const [entries, setEntries] = useState<TrainingEntry[]>(initialEntries);
   const [reactions, setReactions] = useState<Reaction[]>([]);
+  const [reactionBadges, setReactionBadges] = useState<ReactionBadge[]>([]);
+  const [reactionInboxStatus, setReactionInboxStatus] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
+  const [reactionGateway] = useState(createReactionGateway);
   const [hydrated, setHydrated] = useState(false);
+
+  const refreshReactionBadges = useCallback(async () => {
+    try {
+      setReactionBadges(await reactionGateway.listReceived());
+      setReactionInboxStatus("ready");
+    } catch {
+      setReactionInboxStatus("error");
+    }
+  }, [reactionGateway]);
+
+  useEffect(() => {
+    let active = true;
+    void reactionGateway.listReceived().then(
+      (badges) => {
+        if (!active) return;
+        setReactionBadges(badges);
+        setReactionInboxStatus("ready");
+      },
+      () => {
+        if (active) setReactionInboxStatus("error");
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [reactionGateway]);
 
   useEffect(() => {
     const hydrationTask = window.setTimeout(() => {
@@ -64,6 +117,8 @@ export function TrainingProvider({ children }: { children: React.ReactNode }) {
     () => ({
       entries,
       reactions,
+      reactionBadges,
+      reactionInboxStatus,
       addEntry: (entry) =>
         setEntries((current) => {
           const next = [entry, ...current];
@@ -76,7 +131,12 @@ export function TrainingProvider({ children }: { children: React.ReactNode }) {
           persistSnapshot(next, reactions);
           return next;
         }),
-      sendReaction: (targetPlayerId, type) =>
+      sendReaction: async (targetPlayerId, type, context) => {
+        const result = await reactionGateway.send({
+          recipientPlayerId: targetPlayerId,
+          reactionType: type,
+          context,
+        });
         setReactions((current) => {
           const next = [
             {
@@ -90,9 +150,19 @@ export function TrainingProvider({ children }: { children: React.ReactNode }) {
           ];
           persistSnapshot(entries, next);
           return next;
-        }),
+        });
+        return result;
+      },
+      refreshReactionBadges,
     }),
-    [entries, reactions],
+    [
+      entries,
+      reactionBadges,
+      reactionGateway,
+      reactionInboxStatus,
+      reactions,
+      refreshReactionBadges,
+    ],
   );
 
   return (
