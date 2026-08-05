@@ -2,6 +2,10 @@
 
 ## Contextual teammate reactions
 
+- Sending a second reaction without reloading must not freeze the picker.
+
+  **Codex · Regression addressed (2026-08-05):** The picker previously kept its successful-send loading state because closing it hid the mounted component instead of unmounting it. It now clears that state after every completed request. A Playwright regression sends to two different teammates in sequence and verifies the second picker remains enabled and closes after success.
+
 - Remove the standalone “Send some energy” section from Team.
 
   **Codex · Queued (2026-08-05):** Reaction entry will move onto teammate surfaces instead of occupying a separate card.

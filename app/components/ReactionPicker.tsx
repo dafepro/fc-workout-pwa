@@ -57,6 +57,7 @@ export function ReactionPicker({
           ? cause.message
           : "That cheer could not be sent.",
       );
+    } finally {
       setSending(false);
     }
   }

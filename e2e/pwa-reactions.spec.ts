@@ -4,6 +4,8 @@ const apiBaseURL = process.env.E2E_API_BASE_URL ?? "http://api:8080";
 const resetKey = process.env.E2E_RESET_KEY ?? "local-e2e-reset-only";
 
 test.beforeEach(async () => {
+  if (process.env.E2E_SKIP_API_RESET === "true") return;
+
   const api = await request.newContext({ baseURL: apiBaseURL });
   const response = await api.post("/__e2e/reset", {
     headers: { "X-E2E-Reset-Key": resetKey },
@@ -30,6 +32,31 @@ test("a teammate can be cheered from Team with an emoji-only picker", async ({
   await expect(
     page.getByRole("heading", { name: "Send some energy" }),
   ).toHaveCount(0);
+});
+
+test("the picker is usable for a second teammate after a successful cheer", async ({
+  page,
+}) => {
+  await page.goto("/team");
+
+  await page.getByRole("button", { name: /Liam J\./ }).click();
+  await page
+    .getByRole("dialog", { name: "Cheer for Liam" })
+    .getByRole("button", { name: "Send Fire to Liam" })
+    .click();
+  await expect(page.getByRole("status")).toContainText("sent to Liam");
+
+  await page.getByRole("button", { name: /Noah K\./ }).click();
+  const secondPicker = page.getByRole("dialog", { name: "Cheer for Noah" });
+  const secondCheer = secondPicker.getByRole("button", {
+    name: "Send Clap to Noah",
+  });
+  await expect(secondPicker).toBeVisible();
+  await expect(secondCheer).toBeEnabled();
+  await secondCheer.click();
+
+  await expect(page.getByRole("status")).toContainText("sent to Noah");
+  await expect(secondPicker).toBeHidden();
 });
 
 test("leader cards retain leaderboard context and the current player is not reactable", async ({
