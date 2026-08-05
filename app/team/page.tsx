@@ -97,12 +97,9 @@ export default function TeamPage() {
 
   return (
     <div className="page page--team">
-      <header className="page-header page-header--simple">
-        <div>
-          <p className="eyebrow">{TEAM_NAME}</p>
-          <h1>Team activity</h1>
-          <p>A board for showing up and cheering each other on.</p>
-        </div>
+      <header className="page-title-header">
+        <h1>Team</h1>
+        <p>{TEAM_NAME}</p>
       </header>
 
       <section className="challenge-card">

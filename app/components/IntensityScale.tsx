@@ -1,5 +1,7 @@
 "use client";
 
+import { copy } from "../content/copy";
+
 const effortLabels = [
   "Super easy",
   "Easy",
@@ -106,7 +108,7 @@ export function IntensityControls({
     <section className="intensity-card" aria-label="How the session felt">
       <IntensityChoice
         name="effort"
-        title="How hard did you work?"
+        title={copy.feelingQuestions.effort}
         controlLabel="effort"
         value={effort}
         labels={effortLabels}
@@ -114,7 +116,7 @@ export function IntensityControls({
       />
       <IntensityChoice
         name="exhaustion"
-        title="How tired are you now?"
+        title={copy.feelingQuestions.exhaustion}
         controlLabel="tiredness"
         value={exhaustion}
         labels={exhaustionLabels}

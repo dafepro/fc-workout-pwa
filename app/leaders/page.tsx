@@ -43,48 +43,11 @@ export default function LeadersPage() {
 
   return (
     <div className="page page--leaders">
-      <header className="page-header">
-        <span
-          className="page-header__icon page-header__icon--purple"
-          aria-hidden="true"
-        >
-          ♜
-        </span>
-        <div>
-          <p className="eyebrow">Lead with effort</p>
-          <h1>Leaders</h1>
-          <p>Consistency helps the whole crew grow.</p>
-        </div>
+      <header className="page-title-header">
+        <h1>Leaderboard</h1>
       </header>
-      <div className="segmented" aria-label="Leaderboard time period">
-        {(["Weekly", "30 Days", "Season"] as Period[]).map((option) => (
-          <button
-            type="button"
-            key={option}
-            className={period === option ? "is-active" : ""}
-            onClick={() => setPeriod(option)}
-          >
-            {option}
-          </button>
-        ))}
-      </div>
-      <div
-        className="segmented segmented--metric"
-        aria-label="Leaderboard category"
-      >
-        {(["Effort", "Streaks", "Consistency"] as Metric[]).map((option) => (
-          <button
-            type="button"
-            key={option}
-            className={metric === option ? "is-active" : ""}
-            onClick={() => setMetric(option)}
-          >
-            {option === "Effort" ? "⚡" : option === "Streaks" ? "🔥" : "↻"}{" "}
-            {option}
-          </button>
-        ))}
-      </div>
-      <section className="leader-summary" aria-label={`${period} team summary`}>
+
+      <section className="leader-summary" aria-label="Team summary">
         <article>
           <span aria-hidden="true">⚡</span>
           <div>
@@ -108,40 +71,84 @@ export default function LeadersPage() {
           </div>
         </article>
       </section>
-      <section className="podium" aria-label={`Top three for ${metric}`}>
-        {[ranked[1], ranked[0], ranked[2]].map((player, index) => {
-          const place = index === 0 ? 2 : index === 1 ? 1 : 3;
-          return (
-            <article
-              className={`podium__place podium__place--${place}`}
-              key={player.id}
-            >
-              <span className="podium__medal">{place}</span>
-              <Avatar player={player} size="large" />
-              <strong>
-                {player.firstName} {player.lastInitial}
-              </strong>
-              <small>{TEAM_NAME}</small>
+
+      <section
+        className="card leaderboard-panel"
+        aria-label={`${period} ${metric} leaderboard`}
+      >
+        <div className="leaderboard-controls">
+          <div className="segmented" aria-label="Leaderboard time period">
+            {(["Weekly", "30 Days", "Season"] as Period[]).map((option) => (
+              <button
+                type="button"
+                key={option}
+                className={period === option ? "is-active" : ""}
+                onClick={() => setPeriod(option)}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+          <div
+            className="segmented segmented--metric"
+            aria-label="Leaderboard category"
+          >
+            {(["Effort", "Streaks", "Consistency"] as Metric[]).map(
+              (option) => (
+                <button
+                  type="button"
+                  key={option}
+                  className={metric === option ? "is-active" : ""}
+                  onClick={() => setMetric(option)}
+                >
+                  {option === "Effort"
+                    ? "⚡"
+                    : option === "Streaks"
+                      ? "🔥"
+                      : "↻"}{" "}
+                  {option}
+                </button>
+              ),
+            )}
+          </div>
+        </div>
+
+        <section className="podium" aria-label={`Top three for ${metric}`}>
+          {[ranked[1], ranked[0], ranked[2]].map((player, index) => {
+            const place = index === 0 ? 2 : index === 1 ? 1 : 3;
+            return (
+              <article
+                className={`podium__place podium__place--${place}`}
+                key={player.id}
+              >
+                <span className="podium__medal">{place}</span>
+                <Avatar player={player} size="large" />
+                <strong>
+                  {player.firstName} {player.lastInitial}
+                </strong>
+                <small>{TEAM_NAME}</small>
+                <span className="pill">{valueFor(player)}</span>
+              </article>
+            );
+          })}
+        </section>
+        <section className="ranking-list" aria-label="Full leaderboard">
+          {ranked.slice(3).map((player, index) => (
+            <article key={player.id}>
+              <strong className="ranking-list__rank">{index + 4}</strong>
+              <Avatar player={player} size="small" />
+              <div>
+                <strong>
+                  {player.firstName} {player.lastInitial}
+                </strong>
+                <small>{TEAM_NAME}</small>
+              </div>
               <span className="pill">{valueFor(player)}</span>
             </article>
-          );
-        })}
+          ))}
+        </section>
       </section>
-      <section className="card ranking-list" aria-label="Full leaderboard">
-        {ranked.slice(3).map((player, index) => (
-          <article key={player.id}>
-            <strong className="ranking-list__rank">{index + 4}</strong>
-            <Avatar player={player} size="small" />
-            <div>
-              <strong>
-                {player.firstName} {player.lastInitial}
-              </strong>
-              <small>{TEAM_NAME}</small>
-            </div>
-            <span className="pill">{valueFor(player)}</span>
-          </article>
-        ))}
-      </section>
+
       <aside className="everyone-card">
         <span aria-hidden="true">●●●</span>
         <div>

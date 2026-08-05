@@ -529,9 +529,19 @@ h2 {
   z-index: 6;
   top: 1rem;
   right: 1rem;
+  width: 2.5rem;
+  height: 2.5rem;
 }
 
-.workout-instructions summary {
+.workout-instructions.is-open {
+  width: min(23rem, calc(100% - 2rem));
+}
+
+.workout-instructions__toggle {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  right: 0;
   display: grid;
   width: 2.5rem;
   height: 2.5rem;
@@ -544,20 +554,17 @@ h2 {
   font-size: 1.1rem;
   font-weight: 900;
   cursor: pointer;
-  list-style: none;
   backdrop-filter: blur(10px);
 }
 
-.workout-instructions summary::-webkit-details-marker {
-  display: none;
-}
-
-.workout-instructions > div {
-  width: min(23rem, calc(100vw - 3.6rem));
+.workout-instructions__panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100%;
   max-height: 18rem;
   overflow-y: auto;
-  margin-top: 0.5rem;
-  padding: 1rem;
+  padding: 3.5rem 1rem 1rem;
   border: 1px solid rgb(255 255 255 / 70%);
   border-radius: 1.15rem;
   background: rgb(255 255 255 / 97%);
@@ -565,13 +572,13 @@ h2 {
   color: var(--ink);
 }
 
-.workout-instructions h2 {
+.workout-instructions__panel h2 {
   margin-bottom: 0.65rem;
   color: var(--ink);
   font-size: 1.05rem;
 }
 
-.workout-instructions ol {
+.workout-instructions__panel ol {
   display: grid;
   gap: 0.55rem;
   margin: 0;
@@ -791,6 +798,17 @@ h2 {
   border-left: 3px solid var(--session-accent, #8190b3);
   grid-template-columns: auto minmax(0, 1fr) auto auto;
   padding-left: 0.65rem;
+  color: inherit;
+  transition:
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.history-row:hover,
+.history-row:focus-visible {
+  background: var(--session-soft, #f7f8fc);
+  outline: none;
+  transform: translateX(0.15rem);
 }
 .history-row:last-child {
   border: 0;
@@ -826,53 +844,59 @@ h2 {
   --session-soft: #fff1dc;
 }
 
-.effort-meter {
+.session-feelings {
   display: flex;
-  gap: 0.16rem;
-  padding: 0.4rem;
+  gap: 0.25rem;
+  padding: 0.3rem 0.4rem;
   border-radius: 99rem;
   background: #f2f3f7;
 }
 
-.effort-meter > span {
-  width: 0.38rem;
-  height: 0.38rem;
-  border-radius: 50%;
-  background: #d7dbe5;
+.session-feelings__item {
+  display: grid;
+  min-width: 1.7rem;
+  place-items: center;
 }
 
-.effort-meter > span.is-filled {
-  background: var(--session-accent, #7da000);
+.session-feelings__item > span {
+  font-size: 1.2rem;
+  line-height: 1;
 }
 
-.session-actions {
-  position: relative;
+.session-feelings--detailed {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.session-actions summary {
-  padding: 0.35rem;
+.session-feelings--detailed .session-feelings__item {
+  min-height: 7.5rem;
+  gap: 0.5rem;
+  padding: 1rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: #f8f9ff;
+  text-align: center;
+}
+
+.session-feelings--detailed .session-feelings__item > span {
+  font-size: 3rem;
+}
+
+.session-feelings--detailed small {
+  max-width: 8rem;
   color: var(--muted);
-  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.history-row__arrow {
+  color: var(--session-accent, #4e3fd1);
+  font-size: 1rem;
   font-weight: 900;
-  letter-spacing: 0.08em;
-  list-style: none;
-}
-
-.session-actions summary::-webkit-details-marker {
-  display: none;
-}
-
-.session-actions button {
-  position: absolute;
-  z-index: 4;
-  top: 100%;
-  right: 0;
-  min-height: 2.5rem;
-  padding: 0.5rem 0.8rem;
-  border: 1px solid #f0b7b7;
-  border-radius: 0.7rem;
-  background: white;
-  box-shadow: 0 10px 24px rgb(11 18 61 / 16%);
 }
 
 .history-load-more {
@@ -947,8 +971,19 @@ h2 {
 .page-header {
   margin: 0.5rem 0 1.6rem;
 }
-.page-header--simple {
-  display: block;
+
+.page-title-header {
+  margin: 0.5rem 0 1.25rem;
+}
+
+.page-title-header h1 {
+  margin: 0;
+}
+
+.page-title-header p {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-weight: 750;
 }
 .page-header__icon {
   display: grid;
@@ -962,11 +997,6 @@ h2 {
   font-size: 2rem;
   font-weight: 900;
 }
-.page-header__icon--purple {
-  background: linear-gradient(135deg, #947cff, #563ad8);
-  color: white;
-}
-
 .notice {
   display: flex;
   align-items: center;
@@ -1507,6 +1537,143 @@ h2 {
   background: #eeebff;
   box-shadow: inset 0 0 0 1px #806aee;
 }
+
+.leaderboard-panel {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-color: #cfc9f4;
+}
+
+.leaderboard-controls {
+  padding: 0.15rem 0.15rem 0.9rem;
+  border-bottom: 1px solid #dedaf5;
+}
+
+.leaderboard-controls .segmented:last-child {
+  margin-bottom: 0;
+}
+
+.leaderboard-panel .podium {
+  margin-top: 1.25rem;
+}
+
+.leaderboard-panel .ranking-list {
+  margin-top: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+
+.page--session-detail {
+  max-width: 48rem;
+}
+
+.session-detail-header {
+  margin-bottom: 1rem;
+}
+
+.session-detail-header a {
+  display: inline-block;
+  margin-bottom: 0.7rem;
+  color: #4e3fd1;
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
+.session-detail-header h1 {
+  margin: 0;
+}
+
+.session-detail-card {
+  position: relative;
+  padding: 1.2rem;
+  border-left: 5px solid var(--session-accent, #8190b3);
+}
+
+.session-detail-card__icon {
+  display: grid;
+  width: 3.3rem;
+  height: 3.3rem;
+  place-items: center;
+  border-radius: 1rem;
+  background: var(--session-soft, #eff1ff);
+  color: var(--session-accent, var(--ink));
+  font-size: 1.4rem;
+  font-weight: 950;
+}
+
+.session-detail-card dl {
+  display: grid;
+  gap: 0.7rem;
+  margin: 1rem 0 1.25rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.session-detail-card dl > div {
+  padding: 0.8rem;
+  border-radius: 0.9rem;
+  background: #f6f7fb;
+}
+
+.session-detail-card dt {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.session-detail-card dd {
+  margin: 0.25rem 0 0;
+  font-weight: 850;
+}
+
+.session-detail-feelings {
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.session-detail-feelings h2,
+.delete-session-card h2,
+.empty-session h1 {
+  margin-bottom: 0.7rem;
+}
+
+.delete-session-card,
+.empty-session {
+  margin-top: 1rem;
+  padding: 1.15rem;
+}
+
+.delete-session-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.delete-session-card p,
+.empty-session p {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.button--danger-outline {
+  border: 1px solid #e5a0a0;
+  background: white;
+  color: var(--danger);
+}
+
+.button--danger {
+  background: var(--danger);
+  color: white;
+}
+
+.delete-session-card__confirm {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
 .leader-summary {
   display: grid;
   margin: 1rem 0;
@@ -1770,13 +1937,27 @@ h2 {
   .history-row {
     grid-template-columns: auto minmax(0, 1fr) auto;
   }
-  .effort-meter {
+  .session-feelings {
     grid-column: 2;
     justify-self: start;
   }
-  .session-actions {
+  .history-row__arrow {
     grid-row: 1 / 3;
     grid-column: 3;
+  }
+  .session-detail-card dl {
+    grid-template-columns: 1fr;
+  }
+  .delete-session-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .delete-session-card .button {
+    width: 100%;
+  }
+  .delete-session-card__confirm {
+    align-items: stretch;
+    flex-direction: column;
   }
   .goal-card {
     grid-template-columns: 1fr;

@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { Avatar } from "../components/Avatar";
+import { SessionFeelings } from "../components/SessionFeelings";
 import {
   activities,
   CURRENT_PLAYER_ID,
@@ -100,7 +102,12 @@ export default function MePage() {
               (item) => item.id === entry.activityId,
             )!;
             return (
-              <article className="history-row" key={entry.id}>
+              <Link
+                className={`history-row history-row--${activity.id}`}
+                href={`/sessions/${entry.id}`}
+                key={entry.id}
+                aria-label={`View ${activity.name} session details`}
+              >
                 <span className="history-row__icon" aria-hidden="true">
                   {activity.icon}
                 </span>
@@ -115,10 +122,14 @@ export default function MePage() {
                     })}
                   </p>
                 </div>
-                <span className="pill">
-                  {entry.value} {entry.unit}
+                <SessionFeelings
+                  effort={entry.effortLevel}
+                  exhaustion={entry.exhaustionLevel}
+                />
+                <span className="history-row__arrow" aria-hidden="true">
+                  →
                 </span>
-              </article>
+              </Link>
             );
           })}
         </div>

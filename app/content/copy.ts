@@ -14,6 +14,10 @@ export const copy = {
     "If each streak day were a soccer ball, your streak would stretch {value} feet!",
     "If each streak day were a giant taco, you would have a {value}-foot snack tower!",
   ],
+  feelingQuestions: {
+    effort: "How hard did you work?",
+    exhaustion: "How tired were you after?",
+  },
   allEffortCounts: "Every player’s effort counts.",
   recoveryNote:
     "Feeling worn out? Hydrate, take it easy, and check with a parent or coach.",

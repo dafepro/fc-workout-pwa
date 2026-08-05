@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Avatar } from "./components/Avatar";
 import { ProgressBar } from "./components/ProgressBar";
+import { SessionFeelings } from "./components/SessionFeelings";
+import { WorkoutInstructions } from "./components/WorkoutInstructions";
 import { copy } from "./content/copy";
 import {
   activities,
@@ -13,7 +15,6 @@ import {
 } from "./data/mockData";
 import {
   activityDays,
-  canDeleteEntry,
   currentStreak,
   entriesWithinDays,
   streakQuipValue,
@@ -21,7 +22,7 @@ import {
 import { useTraining } from "./state/training-context";
 
 export default function HomePage() {
-  const { entries, deleteEntry } = useTraining();
+  const { entries } = useTraining();
   const [showSavedToast, setShowSavedToast] = useState(false);
   const [visibleSessions, setVisibleSessions] = useState(3);
   const [quipIndex, setQuipIndex] = useState(0);
@@ -77,17 +78,7 @@ export default function HomePage() {
             Log session <span aria-hidden="true">→</span>
           </Link>
         </div>
-        <details className="workout-instructions">
-          <summary aria-label="How to do Hill Sprints">i</summary>
-          <div>
-            <h2>How to do Hill Sprints</h2>
-            <ol>
-              {copy.hillSprintInstructions.map((instruction) => (
-                <li key={instruction}>{instruction}</li>
-              ))}
-            </ol>
-          </div>
-        </details>
+        <WorkoutInstructions />
         <div className="hill-art" aria-hidden="true">
           <span className="hill-art__sun">✦</span>
           <span className="hill-art__runner">🏃</span>
@@ -185,11 +176,12 @@ export default function HomePage() {
             const activity = activities.find(
               (item) => item.id === entry.activityId,
             )!;
-            const deletable = canDeleteEntry(entry, CURRENT_PLAYER_ID);
             return (
-              <article
+              <Link
                 className={`history-row history-row--${activity.id}`}
+                href={`/sessions/${entry.id}`}
                 key={entry.id}
+                aria-label={`View ${activity.name} session details`}
               >
                 <span className="history-row__icon" aria-hidden="true">
                   {activity.icon}
@@ -204,34 +196,14 @@ export default function HomePage() {
                     · {entry.value} {entry.unit}
                   </p>
                 </div>
-                <span
-                  className="effort-meter"
-                  aria-label={`Effort: ${entry.effortLevel} of 7`}
-                  title="How the session felt"
-                >
-                  {Array.from({ length: 7 }, (_, index) => (
-                    <span
-                      className={index < entry.effortLevel ? "is-filled" : ""}
-                      key={index}
-                      aria-hidden="true"
-                    />
-                  ))}
+                <SessionFeelings
+                  effort={entry.effortLevel}
+                  exhaustion={entry.exhaustionLevel}
+                />
+                <span className="history-row__arrow" aria-hidden="true">
+                  →
                 </span>
-                {deletable ? (
-                  <details className="session-actions">
-                    <summary aria-label={`Actions for ${activity.name}`}>
-                      •••
-                    </summary>
-                    <button
-                      className="text-button text-button--danger"
-                      type="button"
-                      onClick={() => deleteEntry(entry.id)}
-                    >
-                      Delete
-                    </button>
-                  </details>
-                ) : null}
-              </article>
+              </Link>
             );
           })}
         </div>
