@@ -61,6 +61,14 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
 - Implemented baseline: format-v1 `tar.gz` archives contain a consistent SQLite snapshot, strict manifest, checksums, migration ledger, and safe counts. Restore always writes a new isolated file, applies forward migrations, and refuses live-file overwrite.
 - Current archives declare `encrypted: false` and are limited to local drills or same-host staging. They must not leave the protected host with production youth data until the encryption and key-management decision is implemented.
 
+## Cloud VM operations
+
+- Implemented baseline: one provider-neutral Linux VM runs Caddy plus one non-root Go/SQLite API replica through Docker Compose; only ports 80/443 are public, while database and backup directories are explicit protected host bind mounts.
+- Choose the first VM provider, region, instance size, DNS hostname, and operator SSH allowlist.
+- Choose host OS patch cadence, Docker log retention, disk-capacity thresholds, and `/readyz` uptime alerting.
+- Production authentication remains deliberately disabled. Do not connect the hosted PWA to the VM until the QR/PIN and session decisions above are implemented.
+- First CI/CD candidate: GitHub Actions, an immutable GHCR image, and an approved SSH-triggered Compose deployment. Repository secrets and production host state must remain outside source control.
+
 ## Milestone 1 prototype assumptions
 
 - The mock team uses a three-session weekly goal.

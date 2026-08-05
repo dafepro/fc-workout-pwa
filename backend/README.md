@@ -47,6 +47,8 @@ The API uses `database/sql` with the CGo-free `modernc.org/sqlite` driver. The i
 
 SQLite permits many readers but serializes writes. Do not mount the same database file into multiple API replicas. Move the repository adapter to managed Postgres when horizontal API replicas, multi-region writes, stronger managed failover/PITR, or materially higher concurrent write volume becomes necessary. Backups and a restore drill are required before production youth data is stored.
 
+The portable manual deployment bundle is in `deploy/vm/`. It runs the API behind Caddy on one Linux VM, persists SQLite in an explicit protected host directory, and exposes only ports 80/443. See `docs/backend/CLOUD_VM_DEPLOYMENT.md` for the architecture and safety gates.
+
 ## Backup and restore
 
 `cmd/backup` creates a versioned `tar.gz` archive from a consistent live SQLite snapshot, verifies checksums and database integrity, and restores only into a new isolated database path. Restore applies all missing embedded forward migrations and refuses to overwrite an existing database. See `docs/backend/BACKUP_AND_RESTORE.md` for commands, the Docker drill, and the encryption/off-host work still required before production data.
@@ -60,3 +62,4 @@ SQLite permits many readers but serializes writes. Do not mount the same databas
 - Safe Team/leaderboard projections, production authentication, cursor pagination, and hosted API operations remain pending.
 - API, authorization, and data-model drafts are in `docs/backend/`.
 - The migration-aware flat-file backup CLI and restore drill are implemented; encryption, retention automation, audited off-host storage, and the live-cutover runbook remain production gates.
+- The VM stack is manually deployable and production routes fail closed; do not connect the hosted PWA or persist real youth data until production authentication, encrypted off-host backup, and privacy operations are complete.

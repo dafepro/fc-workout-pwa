@@ -5,8 +5,9 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 ARG GO_BUILD_TAGS
+ARG APP_VERSION=development
 RUN CGO_ENABLED=0 GOOS=linux go build -tags="${GO_BUILD_TAGS}" -trimpath -ldflags="-s -w" -o /out/stridecrew-api ./cmd/api
-RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/stridecrew-backup ./cmd/backup
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w -X main.version=${APP_VERSION}" -o /out/stridecrew-backup ./cmd/backup
 
 FROM build AS test
 

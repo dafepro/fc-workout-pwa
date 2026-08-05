@@ -48,6 +48,7 @@ The backend foundation lives in `backend/` and the review contracts live in `doc
 - a frontend gateway that uses the real API when configured and retains the milestone 1 device-local adapter as an unhosted fallback;
 - a Docker Compose black-box E2E harness with a real SQLite database and no cloud dependencies;
 - a migration-aware SQLite backup CLI with checksummed archives, isolated forward-migrating restore, and a Docker restore drill;
+- a provider-neutral single-VM deployment bundle with Caddy-managed HTTPS, hardened containers, persistent host storage, and operator backup scripts;
 - draft API, authorization, and persistence contracts for review before frontend integration.
 
-See `backend/README.md` for local commands and the current implementation boundary.
+See `backend/README.md` for local commands and `deploy/vm/README.md` for the manual VM runbook. The backend is deployable in a fail-closed state, but the hosted PWA must remain on its local adapter until production authentication and encrypted off-host backups are implemented.

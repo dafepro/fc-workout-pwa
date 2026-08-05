@@ -1,0 +1,140 @@
+name: ${COMPOSE_PROJECT_NAME:-stridecrew}
+
+services:
+  api:
+    image: ${API_IMAGE:-stridecrew-api:local}
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+      args:
+        APP_VERSION: ${APP_VERSION:-manual}
+    restart: unless-stopped
+    init: true
+    environment:
+      ALLOWED_ORIGIN: ${PWA_ORIGIN:?PWA_ORIGIN must be set}
+      APP_ENV: production
+      DATABASE_URL: file:/data/stridecrew.db
+      PORT: "8080"
+      SHUTDOWN_TIMEOUT: 15s
+      TEAM_TIME_ZONE: ${TEAM_TIME_ZONE:-America/Chicago}
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/readyz"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 10s
+    volumes:
+      - type: bind
+        source: ${DATA_DIR:?DATA_DIR must be set}
+        target: /data
+        bind:
+          create_host_path: false
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 20s
+    networks:
+      - backend
+
+  caddy:
+    image: caddy:2.11.4-alpine
+    restart: unless-stopped
+    init: true
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      CADDY_SITE_ADDRESS: ${CADDY_SITE_ADDRESS:?CADDY_SITE_ADDRESS must be set}
+    ports:
+      - name: http
+        target: 80
+        published: "${HTTP_PORT:-80}"
+        host_ip: ${HTTP_BIND_ADDRESS:-0.0.0.0}
+        protocol: tcp
+      - name: https
+        target: 443
+        published: "${HTTPS_PORT:-443}"
+        host_ip: ${HTTPS_BIND_ADDRESS:-0.0.0.0}
+        protocol: tcp
+      - name: http3
+        target: 443
+        published: "${HTTPS_PORT:-443}"
+        host_ip: ${HTTPS_BIND_ADDRESS:-0.0.0.0}
+        protocol: udp
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://api:8080/readyz"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 5s
+    configs:
+      - source: caddyfile
+        target: /etc/caddy/Caddyfile
+        mode: 0444
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=32m
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - edge
+      - backend
+
+  backup:
+    image: ${API_IMAGE:-stridecrew-api:local}
+    profiles:
+      - operations
+    entrypoint:
+      - /stridecrew-backup
+    environment:
+      DATABASE_URL: file:/data/stridecrew.db
+      TMPDIR: /restore
+    volumes:
+      - type: bind
+        source: ${DATA_DIR:?DATA_DIR must be set}
+        target: /data
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${BACKUP_DIR:?BACKUP_DIR must be set}
+        target: /backups
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${RESTORE_DIR:?RESTORE_DIR must be set}
+        target: /restore
+        bind:
+          create_host_path: false
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - backend
+
+configs:
+  caddyfile:
+    file: ./Caddyfile
+
+volumes:
+  caddy-data:
+  caddy-config:
+
+networks:
+  edge:
+  backend:
+    internal: true
