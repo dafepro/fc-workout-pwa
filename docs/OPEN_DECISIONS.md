@@ -58,6 +58,8 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
 - Daily/weekly retention after youth-data and deletion-policy review.
 - Off-host encrypted storage provider and key-rotation policy.
 - Who may initiate, download, or restore a backup and how those actions are audited.
+- Implemented baseline: format-v1 `tar.gz` archives contain a consistent SQLite snapshot, strict manifest, checksums, migration ledger, and safe counts. Restore always writes a new isolated file, applies forward migrations, and refuses live-file overwrite.
+- Current archives declare `encrypted: false` and are limited to local drills or same-host staging. They must not leave the protected host with production youth data until the encryption and key-management decision is implemented.
 
 ## Milestone 1 prototype assumptions
 

@@ -6,12 +6,14 @@ RUN go mod download
 COPY . .
 ARG GO_BUILD_TAGS
 RUN CGO_ENABLED=0 GOOS=linux go build -tags="${GO_BUILD_TAGS}" -trimpath -ldflags="-s -w" -o /out/stridecrew-api ./cmd/api
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/stridecrew-backup ./cmd/backup
 
 FROM build AS test
 
 FROM alpine:3.22 AS runtime
 
 COPY --from=build /out/stridecrew-api /stridecrew-api
+COPY --from=build /out/stridecrew-backup /stridecrew-backup
 RUN mkdir /data && chown 65532:65532 /data
 USER 65532:65532
 ENV PORT=8080

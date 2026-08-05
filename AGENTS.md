@@ -35,6 +35,8 @@ Before planning or editing, read:
 ## Testing policy
 
 - Follow red-green-refactor TDD: add or change a failing test before implementing behavior.
+- Author the Docker E2E expectation before implementation, but do not execute a known-red Docker run solely to demonstrate failure. Run Docker E2E only after implementation, formatting, linting, type checks, unit tests, static analysis, and builds pass and the change is nearly ready to commit.
+- When a lighter-weight agent is available, delegate the final Docker E2E execution and initial failure triage to it; keep implementation decisions and final verification with the primary agent.
 - Prefer black-box end-to-end tests for user-visible behavior. Run the application and its real dependencies in Docker, exercise it over its public HTTP interface, and apply the real database migrations.
 - Keep the default end-to-end environment entirely local. It must not connect to cloud services or require cloud credentials.
 - Avoid mocks. Prefer real containerized dependencies. When a dependency must be replaced, use a small in-memory fake that implements the same interface, and contract-test that interface against the real containerized adapter.

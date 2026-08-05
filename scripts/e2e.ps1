@@ -16,5 +16,5 @@ try {
   docker compose -f $composeFile run --rm browser-e2e
   if ($LASTEXITCODE -ne 0) { throw "The browser E2E suite failed." }
 } finally {
-  docker compose -f $composeFile down --remove-orphans
+  docker compose -f $composeFile down --volumes --remove-orphans
 }

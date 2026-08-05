@@ -16,8 +16,8 @@ services:
       interval: 1s
       timeout: 2s
       retries: 20
-    tmpfs:
-      - /data:size=32m,uid=65532,gid=65532,mode=0700
+    volumes:
+      - e2e-data:/data
 
   pwa:
     build:
@@ -46,13 +46,20 @@ services:
     build:
       context: .
       target: test
+      args:
+        GO_BUILD_TAGS: e2e
     command: ["go", "test", "-tags=e2e", "-count=1", "-v", "./e2e"]
     depends_on:
       api:
         condition: service_healthy
     environment:
       E2E_BASE_URL: http://api:8080
+      E2E_API_BINARY: /out/stridecrew-api
+      E2E_BACKUP_BINARY: /out/stridecrew-backup
+      E2E_DATABASE_URL: file:/data/stridecrew-e2e.db
       E2E_RESET_KEY: local-e2e-reset-only
+    volumes:
+      - e2e-data:/data
 
   browser-e2e:
     build:
@@ -69,3 +76,6 @@ services:
       E2E_API_BASE_URL: http://api:8080
       E2E_PWA_BASE_URL: http://[::1]:3000
       E2E_RESET_KEY: local-e2e-reset-only
+
+volumes:
+  e2e-data:

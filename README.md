@@ -47,6 +47,7 @@ The backend foundation lives in `backend/` and the review contracts live in `doc
 - private training-entry create/list/detail/delete endpoints with server-owned timestamps, structured activity validation, and the 24-hour player deletion rule;
 - a frontend gateway that uses the real API when configured and retains the milestone 1 device-local adapter as an unhosted fallback;
 - a Docker Compose black-box E2E harness with a real SQLite database and no cloud dependencies;
+- a migration-aware SQLite backup CLI with checksummed archives, isolated forward-migrating restore, and a Docker restore drill;
 - draft API, authorization, and persistence contracts for review before frontend integration.
 
 See `backend/README.md` for local commands and the current implementation boundary.

@@ -1,15 +1,17 @@
-# Backup and restore plan (draft 0.1)
+# Backup and restore operations (format v1)
 
-## Goal
+## Delivered boundary
 
-Keep the first production backup system small, local-file based, testable without cloud services, and safe across forward database migrations. A backup is not complete until an automated restore proves that the resulting API data matches the source.
+The `stridecrew-backup` Go command creates, verifies, and restores a migration-aware flat-file archive without cloud services or credentials. It is intended for the initial single-replica SQLite deployment.
+
+The command deliberately has no HTTP endpoint. Backup and restore paths are supplied only by an authorized host operator or scheduler, never by a player-facing request.
 
 ## Archive format
 
-Each backup is one compressed archive with a stable format version:
+Each backup is one gzip-compressed tar archive:
 
 ```text
-stridecrew-backup-2026-08-05T190000Z-v1.tar.zst
+stridecrew-backup-2026-08-05T190000Z-v1.tar.gz
 ├── manifest.json
 ├── database.sqlite3
 └── SHA256SUMS
@@ -17,68 +19,82 @@ stridecrew-backup-2026-08-05T190000Z-v1.tar.zst
 
 `manifest.json` records:
 
-- backup-format version;
-- creation timestamp and application version;
+- archive format version;
+- UTC creation timestamp and application version;
 - database engine and SQLite library version;
 - applied `schema_migrations` versions;
 - SHA-256 hash and byte size of `database.sqlite3`;
 - non-sensitive validation counts for clubs, teams, players, entries, and reactions;
-- whether the archive is encrypted and which key identifier was used, never the key itself.
+- `encrypted: false` for the current local format.
 
-The format version describes the archive, not the live database schema. Older database snapshots remain restorable because the service retains every forward migration and runs them after restoring into an isolated file.
+The format version describes the archive, not the database schema. Older SQLite snapshots remain restorable while their newest migration is no newer than the migrations embedded in the restoring binary.
 
-## Creating a backup
+## Create and verify
 
-The planned `cmd/backup create` command will:
+```text
+stridecrew-backup create \
+  --database-url file:/data/stridecrew.db \
+  --output /backups/stridecrew-backup-2026-08-05T190000Z-v1.tar.gz \
+  --app-version <deployed-version>
 
-1. acquire the same application-level maintenance lock used by migrations;
-2. create a transactionally consistent standalone SQLite snapshot using a server-generated destination path;
-3. query the migration ledger and safe validation counts;
-4. write the versioned manifest and checksums;
-5. verify the archive by opening the snapshot read-only and running SQLite integrity and foreign-key checks;
-6. encrypt the completed archive before it leaves the host;
-7. write through a temporary filename and rename only after verification succeeds.
+stridecrew-backup verify \
+  --archive /backups/stridecrew-backup-2026-08-05T190000Z-v1.tar.gz
+```
 
-The command must never copy the live SQLite file directly while it may have active WAL state. Backup paths are service-owned; no player- or request-supplied path is accepted.
+Creation uses SQLite `VACUUM INTO` to make a transactionally consistent standalone snapshot of the live WAL database. The source database is unchanged. Deleted SQLite pages are not carried into the snapshot.
 
-## Restoring
+Before publishing an archive, the command:
 
-The planned `cmd/backup restore` command will be offline and explicit. It will:
+1. creates the snapshot and validates SQLite integrity and foreign keys;
+2. records the migration ledger and safe row counts;
+3. writes the manifest and SHA-256 checksums;
+4. reopens and verifies the completed compressed archive;
+5. syncs a temporary archive and renames it to the requested output only after verification succeeds.
 
-1. unpack into a newly created temporary directory;
-2. validate the archive-format version, file list, hashes, and encryption metadata;
-3. reject a snapshot created by a newer, unsupported migration version;
-4. open the restored database in isolation and run integrity and foreign-key checks;
-5. apply all missing forward migrations with the normal migration runner;
-6. run application invariants and compare the manifest's safe validation counts;
-7. stop API writes, retain the current database as a rollback file, and atomically swap in the verified restore;
-8. start the API and require readiness plus a private smoke test before removing the rollback file.
+An existing archive is never overwritten.
 
-Restores never run migrations against the only copy of an archive. A restore drill must be possible on a developer machine and in Docker without credentials or cloud access.
+## Isolated restore
 
-## Retention and storage
+```text
+stridecrew-backup restore \
+  --archive /backups/stridecrew-backup-2026-08-05T190000Z-v1.tar.gz \
+  --target /restore/stridecrew-restored.db
+```
 
-Initial proposal, pending production hosting and privacy review:
+Restore is intentionally non-destructive:
 
-- encrypted daily backups retained for 14 days;
-- encrypted weekly backups retained for 8 weeks;
-- at least one copy stored outside the API host's persistent volume;
-- quarterly restore drills, and a restore drill before any destructive migration;
-- access limited to club operators with audited restore/download actions.
+1. reject an unsupported format, unexpected archive entry, duplicate, oversized file, checksum mismatch, corrupt database, foreign-key violation, or newer unsupported migration;
+2. copy the verified snapshot to a temporary database beside the requested target;
+3. apply all missing forward migrations with the service's normal migration runner;
+4. rerun integrity, foreign-key, and safe-count validation;
+5. checkpoint WAL state, sync the database, and atomically rename it to the new target.
 
-Exact recovery-point and recovery-time objectives, encryption provider, key rotation, and deletion/retention requirements remain open production decisions.
+The target must not already exist. This command never swaps or overwrites the live database. A production cutover requires the API to be stopped, the current database retained as a rollback file, the restored database moved into place, and readiness plus private smoke checks completed before rollback removal.
 
-## Schema and adapter changes
+## Automated drill
 
-- Published migrations remain immutable and bundled with the service.
-- Archive format changes require a new format version and backward-reading support.
-- Before replacing SQLite with Postgres, add a stable logical export inside the archive (versioned JSON Lines by domain record) and an E2E migration/restore test. Do not treat a raw SQLite file as the long-term cross-engine interchange format.
-- Backup validation must use public repository behavior and database integrity checks, not private struct serialization.
+The Docker E2E suite:
 
-## TDD delivery sequence
+1. creates private entries and reactions through the running API;
+2. backs up the live database from a second process;
+3. verifies and restores the archive;
+4. starts a second API against the restored file;
+5. compares the owner's private entry and reaction projections;
+6. corrupts an archive and proves restoration fails without creating a target.
 
-1. Docker E2E: create fixture data through HTTP, create a backup, and record expected private/safe projections.
-2. Docker E2E: restore into a clean API/database container, allow migrations to advance, and verify the same projections through HTTP.
-3. Docker E2E: corrupt a snapshot/hash and prove restore fails without touching the live database.
-4. Docker E2E: restore a checked-in fixture from the previous schema version and prove forward migration succeeds.
-5. Implement `cmd/backup`, archive validation, maintenance locking, and operational documentation until those tests pass.
+Focused real-SQLite tests additionally prove that an older snapshot receives current forward migrations and that an existing target cannot be overwritten.
+
+## Production work still required
+
+The current archive is suitable for local drills and same-host staging, but it must not be copied off-host with youth data until encryption and access controls are implemented.
+
+Before production persistence:
+
+- select an encryption envelope and managed key provider;
+- set recovery-point and recovery-time objectives;
+- choose daily/weekly retention after privacy and deletion-policy review;
+- schedule encrypted off-host copies and audited operator access;
+- define an offline live-cutover runbook and rollback retention;
+- run quarterly restore drills and a drill before destructive migrations.
+
+Before replacing SQLite with Postgres, add a stable versioned logical export such as JSON Lines. The raw SQLite snapshot is a migration-aware same-engine backup, not a permanent cross-engine interchange format.

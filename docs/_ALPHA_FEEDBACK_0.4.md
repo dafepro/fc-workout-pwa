@@ -74,6 +74,9 @@ This feedback should be implemented as the first end-to-end feature on the real 
 5. **Contextual reaction API:** approved reaction/context enums, server-generated badge copy, idempotent writes, and the five-per-recipient daily limit.
 6. **Me inbox integration:** private reaction badges, pagination/read state, and authorized coach/admin visibility.
 7. **Backup and restore:** migration-aware flat-file archives, encryption, integrity checks, isolated forward-migration restore, and Docker restore drills.
+
+   **Codex · Baseline addressed (2026-08-05):** Added a dependency-light operator CLI that creates a consistent live SQLite snapshot, packages a strict versioned manifest and SHA-256 checksums, verifies database integrity, and restores only into a new isolated path with forward migrations. The Docker drill compares private HTTP projections before and after restore and rejects corruption. Encryption, retention automation, audited off-host storage, and live cutover remain production gates.
+
 8. **Cloud deployment and operations:** container build, managed secrets, off-host backup retention, request logging without sensitive payloads, and automated tests in CI.
 
 ### First review checkpoint

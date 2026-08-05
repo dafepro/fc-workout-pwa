@@ -16,6 +16,7 @@ go test ./...
 go test -tags=e2e ./e2e
 go vet ./...
 go build ./cmd/api
+go build ./cmd/backup
 go run ./cmd/api
 powershell -File ..\scripts\e2e.ps1
 ```
@@ -46,6 +47,10 @@ The API uses `database/sql` with the CGo-free `modernc.org/sqlite` driver. The i
 
 SQLite permits many readers but serializes writes. Do not mount the same database file into multiple API replicas. Move the repository adapter to managed Postgres when horizontal API replicas, multi-region writes, stronger managed failover/PITR, or materially higher concurrent write volume becomes necessary. Backups and a restore drill are required before production youth data is stored.
 
+## Backup and restore
+
+`cmd/backup` creates a versioned `tar.gz` archive from a consistent live SQLite snapshot, verifies checksums and database integrity, and restores only into a new isolated database path. Restore applies all missing embedded forward migrations and refuses to overwrite an existing database. See `docs/backend/BACKUP_AND_RESTORE.md` for commands, the Docker drill, and the encryption/off-host work still required before production data.
+
 ## Current boundary
 
 - No production authentication exists yet.
@@ -54,4 +59,4 @@ SQLite permits many readers but serializes writes. Do not mount the same databas
 - The PWA selects the real API with `VITE_API_BASE_URL` and `VITE_API_TOKEN`; without both, the private prototype deployment retains its device-local adapter.
 - Safe Team/leaderboard projections, production authentication, cursor pagination, and hosted API operations remain pending.
 - API, authorization, and data-model drafts are in `docs/backend/`.
-- The migration-aware flat-file backup design is in `docs/backend/BACKUP_AND_RESTORE.md`; implementation remains the next operations slice after entry integration.
+- The migration-aware flat-file backup CLI and restore drill are implemented; encryption, retention automation, audited off-host storage, and the live-cutover runbook remain production gates.
