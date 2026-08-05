@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { copy } from "../content/copy";
+import { CURRENT_PLAYER_ID, players } from "../data/mockData";
 
 const navigation = [
   { href: "/", label: "Home", icon: "⌂" },
@@ -14,6 +15,22 @@ const navigation = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const player = players.find((item) => item.id === CURRENT_PLAYER_ID)!;
+
+  function navigationIcon(item: (typeof navigation)[number]) {
+    if (item.href === "/me") {
+      return (
+        <span
+          className="nav-user-avatar"
+          style={{ background: player.avatarColor }}
+          aria-hidden="true"
+        >
+          {player.initials}
+        </span>
+      );
+    }
+    return <span aria-hidden="true">{item.icon}</span>;
+  }
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
@@ -43,7 +60,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 className={active ? "is-active" : ""}
                 aria-current={active ? "page" : undefined}
               >
-                <span aria-hidden="true">{item.icon}</span>
+                {navigationIcon(item)}
                 <span>{item.label}</span>
               </Link>
             );
@@ -73,7 +90,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               className={active ? "is-active" : ""}
               aria-current={active ? "page" : undefined}
             >
-              <span aria-hidden="true">{item.icon}</span>
+              {navigationIcon(item)}
               <small>{item.label}</small>
             </Link>
           );

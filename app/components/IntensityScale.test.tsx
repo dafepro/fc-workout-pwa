@@ -25,7 +25,7 @@ describe("combined intensity controls", () => {
       screen.getByRole("status", { name: "Very hard, 5 of 7" }),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Lower after" }));
+    fireEvent.click(screen.getByRole("button", { name: "Lower tiredness" }));
     expect(
       screen.getByRole("status", { name: "Somewhat tired, 3 of 7" }),
     ).toBeInTheDocument();

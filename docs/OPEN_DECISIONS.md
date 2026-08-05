@@ -64,3 +64,4 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
 - The PWA frontend will remain independently cloud-hostable and will use a small JSON API boundary when the backend is added.
 - The intended milestone 2 backend is Go with a small relational database. SQLite is the simplest starting point; the final choice between hosted SQLite and a managed Postgres service depends on the selected cloud host, backup needs, and expected concurrency.
 - Milestone 1 uses device-local persistence as required by the prototype boundary and does not add framework-specific server actions, so the Go API can replace the local store without rewriting the view components.
+- Milestone 1 streak comparisons use a centralized, predefined kid-safe pool and client-side random selection. The milestone 2 Go API should choose and return the comparison template while keeping free-form content out of player-facing responses.

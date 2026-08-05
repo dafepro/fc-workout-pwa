@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { activities } from "../data/mockData";
 import {
+  activityDays,
   canDeleteEntry,
   createDeleteDeadline,
   getActivityInput,
   isBackdateAllowed,
+  streakQuipValue,
   toSocialEntry,
 } from "./rules";
 import type { TrainingEntry } from "./types";
@@ -41,6 +43,26 @@ describe("activity-specific input model", () => {
     expect(getActivityInput(activities, "recovery-walk-jog")?.inputKind).toBe(
       "duration",
     );
+  });
+});
+
+describe("30-day activity summary", () => {
+  it("returns one ordered cell per day and darkens busier days", () => {
+    const secondEntry = entry({ id: "entry-2", effortLevel: 7 });
+    const days = activityDays([entry(), secondEntry], 3, now);
+
+    expect(days).toHaveLength(3);
+    expect(days.map((day) => day.date)).toEqual([
+      "2026-08-03",
+      "2026-08-04",
+      "2026-08-05",
+    ]);
+    expect(days[2]).toMatchObject({ activityCount: 2, level: 3 });
+  });
+
+  it("calculates playful streak comparisons without changing streak data", () => {
+    expect(streakQuipValue(5, 0)).toBe("65");
+    expect(streakQuipValue(5, 1)).toBe("3.8");
   });
 });
 

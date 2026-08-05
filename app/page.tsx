@@ -9,27 +9,41 @@ import {
   activities,
   CURRENT_PLAYER_ID,
   players,
-  TEAM_NAME,
   WEEKLY_GOAL,
 } from "./data/mockData";
 import {
+  activityDays,
   canDeleteEntry,
   currentStreak,
   entriesWithinDays,
+  streakQuipValue,
 } from "./domain/rules";
 import { useTraining } from "./state/training-context";
 
 export default function HomePage() {
   const { entries, deleteEntry } = useTraining();
   const [showSavedToast, setShowSavedToast] = useState(false);
+  const [visibleSessions, setVisibleSessions] = useState(3);
+  const [quipIndex, setQuipIndex] = useState(0);
+  const [showQuip, setShowQuip] = useState(false);
   const player = players.find((item) => item.id === CURRENT_PLAYER_ID)!;
   const personalEntries = entries.filter(
     (entry) => entry.playerId === player.id,
   );
   const weeklyEntries = entriesWithinDays(personalEntries, 7);
   const monthEntries = entriesWithinDays(personalEntries, 30);
+  const monthDays = activityDays(personalEntries);
   const streak = Math.max(player.currentStreak, currentStreak(personalEntries));
   const goalValue = Math.min(weeklyEntries.length, WEEKLY_GOAL);
+  const streakQuip = copy.streakQuips[quipIndex].replace(
+    "{value}",
+    streakQuipValue(streak, quipIndex),
+  );
+
+  function revealStreakQuip() {
+    setQuipIndex(Math.floor(Math.random() * copy.streakQuips.length));
+    setShowQuip(true);
+  }
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("saved") !== "1") {
@@ -37,7 +51,7 @@ export default function HomePage() {
     }
     window.history.replaceState(null, "", "/");
     const showTimer = window.setTimeout(() => setShowSavedToast(true), 0);
-    const hideTimer = window.setTimeout(() => setShowSavedToast(false), 2400);
+    const hideTimer = window.setTimeout(() => setShowSavedToast(false), 4200);
     return () => {
       window.clearTimeout(showTimer);
       window.clearTimeout(hideTimer);
@@ -52,32 +66,29 @@ export default function HomePage() {
           <strong>{copy.saveSuccess}</strong>
         </div>
       ) : null}
-      <header className="player-header">
-        <Avatar player={player} size="large" />
-        <div>
-          <p className="eyebrow">Ready to move?</p>
-          <h1>
-            {player.firstName} {player.lastInitial}
-          </h1>
-          <p>{TEAM_NAME}</p>
-        </div>
-        <span className="level-pill">Level 12</span>
-      </header>
 
       <section className="hero-card" aria-labelledby="next-workout-title">
-        <div>
+        <div className="hero-card__content">
           <p className="eyebrow eyebrow--lime">Next workout · due today</p>
-          <h2 id="next-workout-title">Hill Sprints</h2>
+          <h1 id="next-workout-title">Hill Sprints</h1>
           <p className="hero-card__detail">
             8 reps <span>×</span> 6 seconds
-          </p>
-          <p className="hero-card__support">
-            Fast feet. Full recovery. Strong finish.
           </p>
           <Link className="button button--lime" href="/log">
             Log session <span aria-hidden="true">→</span>
           </Link>
         </div>
+        <details className="workout-instructions">
+          <summary aria-label="How to do Hill Sprints">i</summary>
+          <div>
+            <h2>How to do Hill Sprints</h2>
+            <ol>
+              {copy.hillSprintInstructions.map((instruction) => (
+                <li key={instruction}>{instruction}</li>
+              ))}
+            </ol>
+          </div>
+        </details>
         <div className="hill-art" aria-hidden="true">
           <span className="hill-art__sun">✦</span>
           <span className="hill-art__runner">🏃</span>
@@ -107,10 +118,23 @@ export default function HomePage() {
       </section>
 
       <section className="metrics-grid" aria-label="Personal training summary">
-        <article>
-          <span aria-hidden="true">🔥</span>
-          <strong>{streak}</strong>
-          <p>Current streak</p>
+        <article className="streak-card">
+          <button
+            type="button"
+            className="streak-card__trigger"
+            onClick={revealStreakQuip}
+            onPointerEnter={revealStreakQuip}
+            aria-describedby={showQuip ? "streak-quip" : undefined}
+          >
+            <span aria-hidden="true">🔥</span>
+            <strong>{streak}</strong>
+            <span>Current streak</span>
+          </button>
+          {showQuip ? (
+            <p className="streak-quip" id="streak-quip" role="status">
+              {streakQuip}
+            </p>
+          ) : null}
         </article>
         <article>
           <span aria-hidden="true">🏆</span>
@@ -118,33 +142,59 @@ export default function HomePage() {
           <p>Longest streak</p>
         </article>
         <article>
-          <span aria-hidden="true">▦</span>
-          <strong>{monthEntries.length}</strong>
-          <p>30-day sessions</p>
-        </article>
-        <article>
           <span aria-hidden="true">⚡</span>
           <strong>{player.effortPoints}</strong>
           <p>Effort points</p>
+        </article>
+        <article className="activity-calendar-card">
+          <div className="activity-calendar-card__heading">
+            <span aria-hidden="true">◆</span>
+            <strong>Last 30 days</strong>
+            <small>{monthEntries.length} sessions</small>
+          </div>
+          <div
+            className="activity-calendar"
+            aria-label="Training activity over the last 30 days"
+          >
+            {monthDays.map((day) => {
+              const dateLabel = new Date(
+                `${day.date}T12:00:00`,
+              ).toLocaleDateString(undefined, {
+                month: "short",
+                day: "numeric",
+              });
+              const sessionLabel = `${day.activityCount} ${
+                day.activityCount === 1 ? "session" : "sessions"
+              }`;
+              return (
+                <span
+                  key={day.date}
+                  className={`activity-calendar__day activity-calendar__day--${day.level}`}
+                  role="img"
+                  aria-label={`${dateLabel}: ${sessionLabel}`}
+                  title={`${dateLabel}: ${sessionLabel}`}
+                />
+              );
+            })}
+          </div>
         </article>
       </section>
 
       <section className="card recent-card">
         <div className="section-heading">
-          <div>
-            <p className="eyebrow">Private history</p>
-            <h2>Recent sessions</h2>
-          </div>
-          <Link href="/me">View all</Link>
+          <h2>My Sessions</h2>
         </div>
         <div className="history-list">
-          {personalEntries.slice(0, 3).map((entry) => {
+          {personalEntries.slice(0, visibleSessions).map((entry) => {
             const activity = activities.find(
               (item) => item.id === entry.activityId,
             )!;
             const deletable = canDeleteEntry(entry, CURRENT_PLAYER_ID);
             return (
-              <article className="history-row" key={entry.id}>
+              <article
+                className={`history-row history-row--${activity.id}`}
+                key={entry.id}
+              >
                 <span className="history-row__icon" aria-hidden="true">
                   {activity.icon}
                 </span>
@@ -158,24 +208,47 @@ export default function HomePage() {
                     · {entry.value} {entry.unit}
                   </p>
                 </div>
-                <span className="pill">Effort {entry.effortLevel}/7</span>
+                <span
+                  className="effort-meter"
+                  aria-label={`Effort: ${entry.effortLevel} of 7`}
+                  title="How the session felt"
+                >
+                  {Array.from({ length: 7 }, (_, index) => (
+                    <span
+                      className={index < entry.effortLevel ? "is-filled" : ""}
+                      key={index}
+                      aria-hidden="true"
+                    />
+                  ))}
+                </span>
                 {deletable ? (
-                  <button
-                    className="text-button text-button--danger"
-                    type="button"
-                    onClick={() => deleteEntry(entry.id)}
-                  >
-                    Delete
-                  </button>
+                  <details className="session-actions">
+                    <summary aria-label={`Actions for ${activity.name}`}>
+                      •••
+                    </summary>
+                    <button
+                      className="text-button text-button--danger"
+                      type="button"
+                      onClick={() => deleteEntry(entry.id)}
+                    >
+                      Delete
+                    </button>
+                  </details>
                 ) : null}
               </article>
             );
           })}
         </div>
-        <p className="privacy-note">
-          <span aria-hidden="true">◆</span> Times, distances, and reps stay
-          private to you and your coaches.
-        </p>
+        {visibleSessions < personalEntries.length ? (
+          <button
+            className="history-load-more"
+            type="button"
+            aria-label="Load more sessions"
+            onClick={() => setVisibleSessions((count) => count + 3)}
+          >
+            <span aria-hidden="true">⌄</span>
+          </button>
+        ) : null}
       </section>
 
       <section className="card team-preview">

@@ -58,11 +58,14 @@ export default function LogPage() {
   const [effort, setEffort] = useState(4);
   const [exhaustion, setExhaustion] = useState(4);
   const [message, setMessage] = useState<string | null>(null);
+  const [showActivities, setShowActivities] = useState(false);
+  const selectedActivity = activities.find((item) => item.id === activityId)!;
 
   function chooseActivity(next: ActivityId) {
     setActivityId(next);
     setValue(initialValues[next]);
     setMessage(null);
+    setShowActivities(false);
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -115,7 +118,31 @@ export default function LogPage() {
       ) : null}
 
       <form className="log-form" onSubmit={submit}>
-        <ActivitySelector selected={activityId} onSelect={chooseActivity} />
+        <section
+          className={`selected-activity selected-activity--${activityId}`}
+          aria-label="Selected workout"
+        >
+          <span className="selected-activity__icon" aria-hidden="true">
+            {selectedActivity.icon}
+          </span>
+          <div>
+            <small>Workout</small>
+            <strong>{selectedActivity.name}</strong>
+          </div>
+          <button
+            type="button"
+            aria-expanded={showActivities}
+            aria-controls="activity-options"
+            onClick={() => setShowActivities((visible) => !visible)}
+          >
+            {showActivities ? "Close" : "Change"}
+          </button>
+        </section>
+        {showActivities ? (
+          <div id="activity-options">
+            <ActivitySelector selected={activityId} onSelect={chooseActivity} />
+          </div>
+        ) : null}
         <ActivitySpecificFields
           activityId={activityId}
           value={value}

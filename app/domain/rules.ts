@@ -1,4 +1,5 @@
 import type {
+  ActivityDay,
   ActivityDefinition,
   SocialEntryProjection,
   TrainingEntry,
@@ -79,6 +80,44 @@ export function entriesWithinDays(
     const time = new Date(entry.occurredAt).getTime();
     return time >= cutoff && time <= now.getTime();
   });
+}
+
+export function activityDays(
+  entries: TrainingEntry[],
+  days = 30,
+  now = new Date(),
+): ActivityDay[] {
+  const totals = new Map<
+    string,
+    { activityCount: number; effortPoints: number }
+  >();
+  entries.forEach((entry) => {
+    const date = toDateInput(new Date(entry.occurredAt));
+    const total = totals.get(date) ?? { activityCount: 0, effortPoints: 0 };
+    total.activityCount += 1;
+    total.effortPoints += effortPoints(entry);
+    totals.set(date, total);
+  });
+
+  return Array.from({ length: days }, (_, index) => {
+    const day = startOfLocalDay(now);
+    day.setDate(day.getDate() - (days - index - 1));
+    const date = toDateInput(day);
+    const total = totals.get(date) ?? { activityCount: 0, effortPoints: 0 };
+    const level = Math.min(
+      4,
+      Math.ceil(total.effortPoints / 70),
+    ) as ActivityDay["level"];
+    return { date, ...total, level };
+  });
+}
+
+export function streakQuipValue(streak: number, quipIndex: number): string {
+  const multipliers = [13, 0.75, 1.5];
+  return (streak * multipliers[quipIndex % multipliers.length]).toLocaleString(
+    undefined,
+    { maximumFractionDigits: 1 },
+  );
 }
 
 export function currentStreak(

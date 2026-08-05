@@ -218,10 +218,6 @@ export default function TeamPage() {
             </button>
           ))}
         </div>
-        <p className="privacy-note">
-          <span aria-hidden="true">◆</span> Only predefined reactions are
-          available. The short cooldown helps keep cheers thoughtful.
-        </p>
       </section>
     </div>
   );

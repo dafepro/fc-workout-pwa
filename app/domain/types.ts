@@ -33,6 +33,13 @@ export interface TrainingEntry {
   deleteEligibleUntil: string;
 }
 
+export interface ActivityDay {
+  date: string;
+  activityCount: number;
+  effortPoints: number;
+  level: 0 | 1 | 2 | 3 | 4;
+}
+
 export interface Player {
   id: string;
   firstName: string;

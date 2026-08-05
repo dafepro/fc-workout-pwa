@@ -23,12 +23,14 @@ const faces = ["🙂", "😊", "😌", "😮", "😓", "😣", "🥵"];
 function IntensityChoice({
   name,
   title,
+  controlLabel,
   value,
   labels,
   onChange,
 }: {
   name: string;
   title: string;
+  controlLabel: string;
   value: number;
   labels: string[];
   onChange: (value: number) => void;
@@ -41,7 +43,7 @@ function IntensityChoice({
       <div className="intensity-mobile">
         <button
           type="button"
-          aria-label={`Lower ${title.toLowerCase()}`}
+          aria-label={`Lower ${controlLabel}`}
           disabled={value === 1}
           onClick={() => onChange(Math.max(1, value - 1))}
         >
@@ -56,7 +58,7 @@ function IntensityChoice({
         </output>
         <button
           type="button"
-          aria-label={`Raise ${title.toLowerCase()}`}
+          aria-label={`Raise ${controlLabel}`}
           disabled={value === 7}
           onClick={() => onChange(Math.min(7, value + 1))}
         >
@@ -104,14 +106,16 @@ export function IntensityControls({
     <section className="intensity-card" aria-label="How the session felt">
       <IntensityChoice
         name="effort"
-        title="Effort"
+        title="How hard did you work?"
+        controlLabel="effort"
         value={effort}
         labels={effortLabels}
         onChange={onEffortChange}
       />
       <IntensityChoice
         name="exhaustion"
-        title="After"
+        title="How tired are you now?"
+        controlLabel="tiredness"
         value={exhaustion}
         labels={exhaustionLabels}
         onChange={onExhaustionChange}
