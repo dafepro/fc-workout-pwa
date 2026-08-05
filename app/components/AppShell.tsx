@@ -6,6 +6,8 @@ import { useEffect } from "react";
 import { copy } from "../content/copy";
 import { CURRENT_PLAYER_ID, players } from "../data/mockData";
 
+const SERVICE_WORKER_URL = "/sw.js?v=2";
+
 const navigation = [
   { href: "/", label: "Home", icon: "⌂" },
   { href: "/team", label: "Team", icon: "●●" },
@@ -34,7 +36,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+      const hadController = Boolean(navigator.serviceWorker.controller);
+      const reloadForUpdate = () => {
+        if (hadController) {
+          window.location.reload();
+        }
+      };
+
+      navigator.serviceWorker.addEventListener(
+        "controllerchange",
+        reloadForUpdate,
+        { once: true },
+      );
+      navigator.serviceWorker
+        .register(SERVICE_WORKER_URL, { updateViaCache: "none" })
+        .then((registration) => registration.update())
+        .catch(() => undefined);
+
+      return () => {
+        navigator.serviceWorker.removeEventListener(
+          "controllerchange",
+          reloadForUpdate,
+        );
+      };
     }
   }, []);
 
