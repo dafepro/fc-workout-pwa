@@ -13,9 +13,9 @@ const requiredFiles = {
   "backup-s3.env": "BACKUP_S3_ENDPOINT=https://unit.r2.cloudflarestorage.com\n",
   "cloudflare.env": "CLOUDFLARE_ACCOUNT_ID=unit-account\n",
   "deploy.env":
-    "DEPLOY_HOST=deploy.quicktrack.cc\nDEPLOY_USER=zoomigo\nZOOMIGO_API_BASE_URL=https://api.quicktrack.cc\n",
+    "DEPLOY_HOST=203.0.113.10\nDEPLOY_USER=zoomigo\nZOOMIGO_API_BASE_URL=https://api.quicktrack.cc\n",
   deploy_ssh_key: "synthetic-key-for-bundle-unit-test\n",
-  known_hosts: "deploy.quicktrack.cc ssh-ed25519 AAAAC3NzaSyntheticUnitTest\n",
+  known_hosts: "203.0.113.10 ssh-ed25519 AAAAC3NzaSyntheticUnitTest\n",
 };
 
 test("portable deployment bundle round trips without a tar implementation", async () => {

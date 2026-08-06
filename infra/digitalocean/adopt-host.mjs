@@ -110,7 +110,7 @@ async function replaceAtomically(source, destination) {
 
 async function deployHost(identityFile, temporaryDirectory) {
   if (!(await exists(ENCRYPTED_STATE_FILE))) {
-    fail("encrypted Terraform state is missing; run provision.mjs apply first");
+    fail("encrypted Terraform state is missing; run provision.sh apply first");
   }
   const stateFile = join(temporaryDirectory, "terraform.tfstate");
   command(
@@ -139,7 +139,7 @@ async function main() {
     !expectedFingerprint
   ) {
     fail(
-      "usage: adopt-host.mjs IDENTITY_FILE --expected-fingerprint SHA256:...",
+      "usage: adopt-host.sh IDENTITY_FILE --expected-fingerprint SHA256:...",
     );
   }
   if (!/^SHA256:[A-Za-z0-9+/]+$/.test(expectedFingerprint)) {

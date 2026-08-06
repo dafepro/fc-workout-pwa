@@ -35,15 +35,15 @@ Before planning or editing, read:
 ## Testing policy
 
 - Follow red-green-refactor TDD: add or change a failing test before implementing behavior.
-- Author the Docker E2E expectation before implementation, but do not execute a known-red Docker run solely to demonstrate failure. Run Docker E2E only after implementation, formatting, linting, type checks, unit tests, static analysis, and builds pass and the change is nearly ready to commit.
-- When a lighter-weight agent is available, delegate the final Docker E2E execution and initial failure triage to it; keep implementation decisions and final verification with the primary agent.
+- Author or update Docker E2E coverage for user-visible workflows when appropriate, but do not run the full Docker suite for every task. Normal completion uses tests targeted to the changed behavior plus formatting, linting, type checks, static analysis, and builds.
+- Run the full Docker E2E and VM smoke suites only for intentional periodic passes, release-candidate validation, or when the user explicitly requests them. When a lighter-weight agent is available, delegate that execution and initial failure triage to it.
 - Prefer black-box end-to-end tests for user-visible behavior. Run the application and its real dependencies in Docker, exercise it over its public HTTP interface, and apply the real database migrations.
 - Keep the default end-to-end environment entirely local. It must not connect to cloud services or require cloud credentials.
 - Avoid mocks. Prefer real containerized dependencies. When a dependency must be replaced, use a small in-memory fake that implements the same interface, and contract-test that interface against the real containerized adapter.
 - Add unit tests only for critical, isolated logic whose combinations of states would be prohibitively expensive to cover through Docker end-to-end tests, such as authorization matrices, calendar boundaries, and rate limits.
 - Gate any test that absolutely must contact an external service behind an explicit environment variable or build flag. Such tests must be skipped by default and documented.
 - No default test command may require internet access, secrets, or a developer's personal account.
-- Run the Docker end-to-end suite before declaring work complete when Docker is available. If Docker is unavailable, at minimum compile the suite, run all non-Docker checks, and clearly report that the end-to-end suite was not executed.
+- Report exactly which targeted tests ran. Do not treat an intentionally skipped full E2E pass as a blocker for ordinary work.
 
 ## Prototype conventions
 

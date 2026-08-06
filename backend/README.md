@@ -13,15 +13,14 @@ From `backend/`:
 
 ```text
 go test ./...
-go test -tags=e2e ./e2e
 go vet ./...
 go build ./cmd/api
 go build ./cmd/backup
 go run ./cmd/api
-powershell -File ..\scripts\e2e.ps1
+../scripts/e2e.sh
 ```
 
-The script builds the real API, SQLite, PWA, and Playwright browser environment; runs the API suite and browser feedback flows in sequence; then tears the stack down. The tagged Go E2E suite is also dual-mode: without `E2E_BASE_URL`, it uses a no-Docker fallback with a temporary real SQLite file and the real HTTP handler. The Docker run remains the completion gate when Docker is available.
+The Unix script builds the real API, SQLite, PWA, and Playwright browser environment; runs the API suite and browser feedback flows in sequence; then tears the stack down. The tagged Go E2E suite is also dual-mode: without `E2E_BASE_URL`, it uses a no-Docker fallback with a temporary real SQLite file and the real HTTP handler. Run the full Docker suite intentionally for periodic or release-candidate validation; ordinary changes use targeted tests.
 
 Health endpoints:
 

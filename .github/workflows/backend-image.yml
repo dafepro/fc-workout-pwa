@@ -6,6 +6,12 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      run_e2e:
+        description: Run the periodic Docker E2E and VM smoke suites
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: backend-image-${{ github.ref }}
@@ -16,7 +22,7 @@ permissions:
 
 jobs:
   verify:
-    name: Static checks, build, then Docker E2E
+    name: Static checks, tests, and build
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -40,46 +46,14 @@ jobs:
         with:
           tofu_version: 1.10.10
 
-      - name: Install frontend dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Frontend static checks and unit tests
-        run: |
-          pnpm format
-          pnpm lint
-          pnpm typecheck
-          pnpm test
-          pnpm build
-
-      - name: Backend static checks and unit tests
-        working-directory: backend
-        run: |
-          test -z "$(gofmt -l .)"
-          go vet ./...
-          go test ./...
-
-      - name: Deployment and release contracts
-        shell: pwsh
-        run: |
-          ./scripts/deployment-contract.ps1
-          ./scripts/zoomigo-branding-contract.ps1
-          ./scripts/secrets-contract.ps1
-          ./scripts/release-contract.ps1
-          ./scripts/iac-contract.ps1
-          ./scripts/production-automation-contract.ps1
-
-      - name: OpenTofu format and validation
-        working-directory: infra/digitalocean
-        run: |
-          tofu fmt -check
-          tofu init -backend=false
-          tofu validate
+      - name: Static checks, unit tests, builds, and contracts
+        run: ./scripts/verify.sh
 
       - name: Docker end-to-end suites
-        shell: pwsh
+        if: github.event_name == 'workflow_dispatch' && inputs.run_e2e
         run: |
-          ./scripts/e2e.ps1
-          ./scripts/vm-smoke.ps1
+          ./scripts/e2e.sh
+          ./scripts/vm-smoke.sh
 
   publish:
     name: Publish immutable GHCR image

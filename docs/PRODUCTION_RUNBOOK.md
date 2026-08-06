@@ -32,9 +32,21 @@ state in a command argument that this runbook does not explicitly require.
 
 ## One-time prerequisites
 
-Install Node.js 22+, OpenTofu 1.10+, age, Git, OpenSSH (`ssh`, `ssh-keygen`, and
-`ssh-keyscan`), Docker, and pnpm. The repository must be on a clean `main` that
-has been pushed.
+The supported operator environment is macOS or Linux with a POSIX shell. On a
+MacBook, install Docker Desktop, then install Node.js 22+, Go 1.26+, OpenTofu
+1.10+, age, Git, OpenSSH, and pnpm. For example, Homebrew can install the CLI
+dependencies:
+
+```sh
+brew install age git go node opentofu pnpm
+```
+
+The repository must be on a clean `main` that has been pushed. Run the complete
+local gate before planning infrastructure:
+
+```sh
+./scripts/verify.sh
+```
 
 Cloud accounts need:
 
@@ -69,16 +81,11 @@ in `docs/backend/LIVE_RESTORE_RUNBOOK.md` instead.
 
 ## 1. Configure public inputs
 
-From the repository root, copy:
+From the repository root, create the ignored operator input file:
 
-```text
-infra/digitalocean/terraform.tfvars.example
-```
-
-to the ignored file:
-
-```text
-infra/digitalocean/terraform.tfvars
+```sh
+cp infra/digitalocean/terraform.tfvars.example \
+  infra/digitalocean/terraform.tfvars
 ```
 
 Set:
@@ -109,8 +116,8 @@ before apply because provider pricing can change.
 Set the DigitalOcean token in the current terminal without printing it. Use the
 operator age identity file that can decrypt the production bundle:
 
-```text
-node infra/digitalocean/provision.mjs plan PATH_TO_OPERATOR_AGE_IDENTITY
+```sh
+./infra/digitalocean/provision.sh plan PATH_TO_OPERATOR_AGE_IDENTITY
 ```
 
 Read the complete plan. A first plan should create one project, SSH key,
@@ -121,8 +128,9 @@ alert may report the API down until the first release completes.
 
 Apply only the reviewed saved plan:
 
-```text
-node infra/digitalocean/provision.mjs apply PATH_TO_OPERATOR_AGE_IDENTITY --confirm zoomigo
+```sh
+./infra/digitalocean/provision.sh apply PATH_TO_OPERATOR_AGE_IDENTITY \
+  --confirm zoomigo
 ```
 
 The command re-encrypts Terraform state as
@@ -131,8 +139,8 @@ after apply. Never commit `terraform.tfvars`, a `.tfplan`, or plaintext state.
 
 To view outputs later without leaving plaintext state behind:
 
-```text
-node infra/digitalocean/provision.mjs output PATH_TO_OPERATOR_AGE_IDENTITY
+```sh
+./infra/digitalocean/provision.sh output PATH_TO_OPERATOR_AGE_IDENTITY
 ```
 
 ## 3. Independently pin the new host
@@ -147,8 +155,9 @@ sudo ssh-keygen -E sha256 -lf /etc/ssh/ssh_host_ed25519_key.pub
 Copy only the displayed `SHA256:...` fingerprint. Back on the operator machine,
 run:
 
-```text
-node infra/digitalocean/adopt-host.mjs PATH_TO_OPERATOR_AGE_IDENTITY --expected-fingerprint SHA256:...
+```sh
+./infra/digitalocean/adopt-host.sh PATH_TO_OPERATOR_AGE_IDENTITY \
+  --expected-fingerprint SHA256:...
 ```
 
 The script reads the Reserved IP from encrypted Terraform state, retrieves the
@@ -162,12 +171,11 @@ an unverified key copied from the network.
 The first release must publish the immutable API image because the new host's
 cloud-init checkout cannot start it before GHCR has that SHA:
 
-```text
+```sh
 PUBLISH_API_IMAGE=true ./deploy/release/release.sh PATH_TO_OPERATOR_AGE_IDENTITY FULL_40_CHARACTER_GIT_SHA
 ```
 
-On PowerShell, set `PUBLISH_API_IMAGE` in the process environment first and run
-the script from Git Bash or WSL. The release:
+The release:
 
 1. publishes the exact Linux/amd64 API image;
 2. builds and binds the Worker to `zoomigo.quicktrack.cc`;
@@ -190,9 +198,11 @@ In the GitHub `production` environment:
 - set repository/environment variable `PRODUCTION_DEPLOY_ENABLED=true` only
   after the first manual release and checks succeed.
 
-Thereafter a push to `main` runs static checks, builds, Docker E2E, publishes an
-immutable API image, backs up and deploys the VM, then deploys the Worker. The
-same `release.sh` remains the incident fallback when GitHub Actions is impaired.
+Thereafter a push to `main` runs static checks, targeted tests, and builds, then
+publishes an immutable API image, backs up and deploys the VM, then deploys the
+Worker. The same `release.sh` remains the incident fallback when GitHub Actions
+is impaired. Trigger the workflow manually with `run_e2e` enabled for an
+intentional full Docker validation pass.
 
 ## Routine infrastructure changes
 

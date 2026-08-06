@@ -17,7 +17,7 @@ variable "project_name" {
 }
 
 variable "ssh_public_key" {
-  description = "Public half of the dedicated deployment key; supplied by provision.mjs."
+  description = "Public half of the dedicated deployment key; supplied by provision.sh."
   type        = string
   sensitive   = true
 

@@ -282,7 +282,7 @@ async function apply(identityFile, confirmation) {
   const sha = releaseSha();
   assertReviewableRelease(sha, true);
   if (!(await exists(PLAN_FILE)) || !(await exists(PLAN_SHA_FILE))) {
-    fail("run and review provision.mjs plan first");
+    fail("run and review provision.sh plan first");
   }
   if ((await readFile(PLAN_SHA_FILE, "utf8")).trim() !== sha) {
     fail("the saved plan belongs to a different revision; create a new plan");
@@ -314,7 +314,7 @@ async function main() {
     process.argv.slice(2);
   if (!operation || !identityArgument) {
     fail(
-      "usage: provision.mjs plan|apply|output IDENTITY_FILE [--confirm zoomigo]",
+      "usage: provision.sh plan|apply|output IDENTITY_FILE [--confirm zoomigo]",
     );
   }
   const identityFile = resolve(identityArgument);
@@ -323,7 +323,7 @@ async function main() {
     return apply(identityFile, flag === "--confirm" ? confirmation : "");
   if (operation === "output") return output(identityFile);
   fail(
-    "usage: provision.mjs plan|apply|output IDENTITY_FILE [--confirm zoomigo]",
+    "usage: provision.sh plan|apply|output IDENTITY_FILE [--confirm zoomigo]",
   );
 }
 

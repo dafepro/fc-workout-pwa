@@ -28,6 +28,9 @@
 - **Codex - Addressed (2026-08-06):** Consolidated production instructions in
   `docs/PRODUCTION_RUNBOOK.md` and removed superseded manual setup/migration
   paths.
+- **Codex - Addressed (2026-08-06):** Made macOS/Linux shell the sole local
+  automation surface for verification, Docker E2E, VM smoke, infrastructure,
+  secret handling, and releases; removed the PowerShell automation suite.
 - **Operator gate:** No cloud resources were created, changed, or destroyed in
   this implementation round. Plan review, explicit apply, console fingerprint
   verification, and production approvals remain operator actions.
