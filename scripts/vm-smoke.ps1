@@ -15,6 +15,10 @@ function Invoke-Compose {
 
   & docker compose --env-file $envFile -f $composeFile @Arguments
   if ($LASTEXITCODE -ne 0) {
+    if ($Arguments.Count -gt 0 -and $Arguments[0] -in @("up", "restart")) {
+      & docker compose --env-file $envFile -f $composeFile ps --all
+      & docker compose --env-file $envFile -f $composeFile logs --no-color --tail 100 api caddy
+    }
     throw "docker compose $($Arguments -join ' ') failed."
   }
 }
@@ -56,11 +60,21 @@ $httpPort = Get-FreeTcpPort
 $httpsPort = Get-FreeTcpPort
 
 New-Item -ItemType Directory -Force -Path $dataDirectory, $backupDirectory, $restoreDirectory, $adminOutputDirectory | Out-Null
+if ($IsLinux -or $IsMacOS) {
+  # Disposable test directories must be writable by the production container's
+  # non-root uid. Production hosts use prepare-host.sh's stricter ownership.
+  & chmod 0777 $dataDirectory $backupDirectory $restoreDirectory $adminOutputDirectory
+  if ($LASTEXITCODE -ne 0) { throw "Could not prepare non-root VM smoke directories." }
+}
 
 $environmentContents = @"
 COMPOSE_PROJECT_NAME=stridecrew-vm-smoke
 API_IMAGE=stridecrew-api:vm-smoke
 APP_VERSION=vm-smoke
+BACKUP_AGE_RECIPIENT=age1vm_smoke_public_recipient
+R2_UPLOAD_ENABLED=false
+LOCAL_BACKUP_RETENTION_DAYS=7
+PRODUCTION_DATA_APPROVED=false
 CADDY_SITE_ADDRESS=http://127.0.0.1
 PWA_ORIGIN=http://localhost:3000
 TEAM_TIME_ZONE=America/Chicago
