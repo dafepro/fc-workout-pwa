@@ -1,7 +1,9 @@
 #cloud-config
 package_update: true
-package_upgrade: true
+package_upgrade: false
 packages:
+  - ca-certificates
+  - curl
   - docker.io
   - docker-compose-v2
   - git
@@ -21,18 +23,36 @@ users:
 ssh_pwauth: false
 disable_root: true
 
+bootcmd:
+  - [cloud-init-per, once, zoomigo-swap, bash, -lc, "fallocate -l 1G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile && echo '/swapfile none swap sw 0 0' >> /etc/fstab"]
+
 write_files:
   - path: /etc/ssh/sshd_config.d/90-zoomigo.conf
     owner: root:root
     permissions: "0644"
     content: |
       PasswordAuthentication no
+      KbdInteractiveAuthentication no
       PermitRootLogin no
+  - path: /tmp/zoomigo-production.env
+    owner: root:root
+    permissions: "0600"
+    content: |
+      ${environment_file}
 
 runcmd:
-  - [mkdir, -p, /opt/app, /etc/zoomigo, /var/lib/zoomigo/data, /var/lib/zoomigo/restore, /var/lib/zoomigo/admin-output, /var/backups/zoomigo]
-  - [chown, -R, "zoomigo:zoomigo", /opt/app]
-  - [chmod, "0700", /etc/zoomigo, /var/lib/zoomigo/restore, /var/lib/zoomigo/admin-output, /var/backups/zoomigo]
   - [systemctl, enable, --now, docker]
+  - [systemctl, enable, --now, apt-daily.timer, apt-daily-upgrade.timer]
+  - [install, -d, -m, "0755", -o, zoomigo, -g, zoomigo, /opt/app]
+  - [sudo, -u, zoomigo, git, clone, --no-checkout, ${repository_url}, /opt/app]
+  - [sudo, -u, zoomigo, git, -C, /opt/app, fetch, --depth=1, origin, ${release_sha}]
+  - [sudo, -u, zoomigo, git, -C, /opt/app, checkout, --detach, ${release_sha}]
+  - [install, -m, "0600", -o, zoomigo, -g, zoomigo, /tmp/zoomigo-production.env, /opt/app/deploy/vm/.env]
+  - [rm, -f, /tmp/zoomigo-production.env]
+  - [/opt/app/deploy/vm/scripts/prepare-host.sh, /opt/app/deploy/vm/.env]
+  - [/opt/app/deploy/vm/scripts/install-backup-service.sh]
   - [systemctl, restart, ssh]
-  - [bash, -lc, "test -e /swapfile || (fallocate -l 1G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile && echo '/swapfile none swap sw 0 0' >> /etc/fstab)"]
+  - [touch, /var/lib/zoomigo/BOOTSTRAP_COMPLETE]
+  - [chmod, "0600", /var/lib/zoomigo/BOOTSTRAP_COMPLETE]
+
+final_message: "ZoomiGo host bootstrap completed; cloud-init status is ready."

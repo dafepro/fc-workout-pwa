@@ -248,7 +248,11 @@ async function validateSshFiles(plaintextDirectory, temporaryDirectory) {
   );
 }
 
-async function seal(plaintextDirectory, recipientsFile, outputFile) {
+export async function sealProductionBundle(
+  plaintextDirectory,
+  recipientsFile,
+  outputFile,
+) {
   await validateRecipients(recipientsFile);
   await requireAbsent(outputFile, "encrypted production bundle");
   const temporaryDirectory = await mkdtemp(
@@ -286,7 +290,11 @@ async function seal(plaintextDirectory, recipientsFile, outputFile) {
   }
 }
 
-async function open(identityFile, bundleFile, outputDirectory) {
+export async function openProductionBundle(
+  identityFile,
+  bundleFile,
+  outputDirectory,
+) {
   await requireRegularFile(identityFile, "age identity file");
   await requireRegularFile(bundleFile, "encrypted production bundle");
   await requireAbsent(outputDirectory, "output directory");
@@ -315,7 +323,7 @@ async function open(identityFile, bundleFile, outputDirectory) {
 async function main() {
   const [command, ...args] = process.argv.slice(2);
   if (command === "seal") {
-    await seal(
+    await sealProductionBundle(
       resolve(args[0] ?? join(SCRIPT_DIRECTORY, "plaintext")),
       resolve(args[1] ?? join(SCRIPT_DIRECTORY, "production-recipients.txt")),
       resolve(args[2] ?? join(SCRIPT_DIRECTORY, "production.tar.gz.age")),
@@ -327,7 +335,7 @@ async function main() {
       fail(
         "usage: manage-production-secrets.mjs open IDENTITY_FILE [BUNDLE] [OUTPUT_DIRECTORY]",
       );
-    await open(
+    await openProductionBundle(
       resolve(args[0]),
       resolve(args[1] ?? join(SCRIPT_DIRECTORY, "production.tar.gz.age")),
       resolve(args[2] ?? join(SCRIPT_DIRECTORY, "opened")),

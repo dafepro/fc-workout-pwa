@@ -9,8 +9,7 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
 - Approved Zoomi mascot artwork is required before mascot integration; Rover
   still needs an approved visual direction or asset.
 - Native `zoomigo` cookie, database, archive, route, cache, binary, project,
-  and service identifiers are the supported runtime contract. A guarded
-  one-time host utility preserves data from the pre-rebrand installation.
+  and service identifiers are the supported runtime contract.
 
 ## Authentication
 
@@ -69,14 +68,14 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
 ## Cloud VM operations
 
 - Implemented baseline: one provider-neutral Linux VM runs Caddy plus one non-root Go/SQLite API replica through Docker Compose; only ports 80/443 are public, while database and backup directories are explicit protected host bind mounts.
-- Selected first host: one DigitalOcean Basic 512 MiB x64 Droplet, with 1 GiB swap and weekly DigitalOcean backup. The region, DNS hostname, and operator SSH allowlist remain operator choices.
-- Implemented operations baseline: Ubuntu security updates run daily without unattended reboot; required reboots are completed within seven days, container logs are bounded, the production check requires at least 1 GiB free, and free DigitalOcean resource alerts start at the documented disk/memory/CPU thresholds. Choose the external `/readyz` monitor and notification destination.
+- Selected first host: one DigitalOcean Basic 512 MiB x64 Droplet in `nyc1`, where the $4 size is available, with 1 GiB swap, DigitalOcean backups, monitoring, an assigned Reserved IP, and an operator-maintained SSH allowlist.
+- Implemented operations baseline: Ubuntu security updates run daily without unattended reboot; required reboots are completed within seven days, container logs are bounded, the production check requires at least 1 GiB free, and DigitalOcean alerts watch disk, memory, CPU, and the public `/readyz` endpoint. The alert email destinations remain operator-private inputs.
 - QR/PIN authentication and the same-origin PWA cookie gateway are implemented. Real youth-data deployment still requires guardian ownership/recovery policy, secure credential distribution, and privacy approval.
 - Implemented safety gate: production player provisioning defaults locked and accepts only explicit `--test-only` identities until `PRODUCTION_DATA_APPROVED=true` is deliberately configured after approval.
 - Implemented release candidate: one serialized GitHub workflow runs static/build gates before Docker E2E, publishes an immutable GHCR image, then deploys the VM and Cloudflare Worker through a disabled-by-default protected environment. The identical encrypted-bundle release path is available locally during a GitHub incident.
 - Implemented secret baseline: one dedicated age identity decrypts the exact deployment bundle in CI; a separate operator identity provides recovery. Neither identity is the database-backup recovery key. The remaining decisions are custodian identities, rotation interval, and repository environment-review availability.
-- Implemented IaC baseline: plan-only OpenTofu models the DigitalOcean Droplet, restricted firewall, proxied API DNS, and secret-free cloud-init. Importing the current host is preferred; replacement and apply remain explicit operator decisions protected from CI and accidental destroy.
-- Selected production frontend host: Cloudflare Workers free tier, deployed as part of the ordered protected release. Sites remains preview-only. Choose the final Cloudflare-zone hostname before deployment.
+- Implemented IaC baseline: OpenTofu models the DigitalOcean project, Droplet, assigned Reserved IP, restricted firewall, proxied API DNS, monitoring, backups, and secret-free cloud-init. A cross-platform operator script creates a reviewed plan and explicit apply while keeping encrypted local state; CI never applies or destroys infrastructure.
+- Selected production frontend host: Cloudflare Workers at `zoomigo.quicktrack.cc`; the API is `api.quicktrack.cc`. The release configures the Worker custom domain, while OpenTofu manages the API A record.
 
 ## Milestone 1 prototype assumptions
 

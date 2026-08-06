@@ -1,7 +1,7 @@
 variable "region" {
   description = "DigitalOcean region slug for the API Droplet."
   type        = string
-  default     = "nyc3"
+  default     = "nyc1"
 }
 
 variable "droplet_size" {
@@ -10,8 +10,14 @@ variable "droplet_size" {
   default     = "s-1vcpu-512mb-10gb"
 }
 
+variable "project_name" {
+  description = "DigitalOcean project containing production resources."
+  type        = string
+  default     = "ZoomiGo Production"
+}
+
 variable "ssh_public_key" {
-  description = "Public SSH key installed for the ZoomiGo deployment account."
+  description = "Public half of the dedicated deployment key; supplied by provision.mjs."
   type        = string
   sensitive   = true
 
@@ -34,12 +40,62 @@ variable "ssh_source_addresses" {
 }
 
 variable "cloudflare_zone_id" {
-  description = "Cloudflare zone identifier for the API hostname."
+  description = "Cloudflare zone identifier for quicktrack.cc."
   type        = string
 }
 
-variable "api_dns_name" {
-  description = "Fully qualified public API hostname."
+variable "alert_email_addresses" {
+  description = "Operator email destinations for DigitalOcean resource alerts; stored only in ignored inputs and encrypted state."
+  type        = list(string)
+  sensitive   = true
+
+  validation {
+    condition = length(var.alert_email_addresses) > 0 && alltrue([
+      for address in var.alert_email_addresses : can(regex("^[^@[:space:]]+@[^@[:space:]]+\\.[^@[:space:]]+$", address))
+    ])
+    error_message = "Provide at least one valid operator alert email address."
+  }
+}
+
+variable "api_hostname" {
+  description = "Fully qualified proxied API hostname."
   type        = string
   default     = "api.quicktrack.cc"
+}
+
+variable "pwa_hostname" {
+  description = "Cloudflare Worker custom domain."
+  type        = string
+  default     = "zoomigo.quicktrack.cc"
+}
+
+variable "release_sha" {
+  description = "Exact Git revision prepared by cloud-init and deployed as the first release."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[0-9a-f]{40}$", var.release_sha))
+    error_message = "release_sha must be a complete lowercase Git SHA."
+  }
+}
+
+variable "backup_age_recipient" {
+  description = "Public age recipient for database backups; never a deployment identity."
+  type        = string
+
+  validation {
+    condition     = can(regex("^age1[0-9a-z]+$", var.backup_age_recipient))
+    error_message = "backup_age_recipient must be an age X25519 public recipient."
+  }
+}
+
+variable "repository_url" {
+  description = "Public Git repository cloned during cloud-init."
+  type        = string
+  default     = "https://github.com/dafepro/fc-workout-pwa.git"
+
+  validation {
+    condition     = can(regex("^https://github\\.com/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+(\\.git)?$", var.repository_url))
+    error_message = "repository_url must be a public HTTPS GitHub repository."
+  }
 }

@@ -63,10 +63,10 @@ jobs:
         run: |
           ./scripts/deployment-contract.ps1
           ./scripts/zoomigo-branding-contract.ps1
-          ./scripts/migration-contract.ps1
           ./scripts/secrets-contract.ps1
           ./scripts/release-contract.ps1
           ./scripts/iac-contract.ps1
+          ./scripts/production-automation-contract.ps1
 
       - name: OpenTofu format and validation
         working-directory: infra/digitalocean

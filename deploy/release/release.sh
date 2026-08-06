@@ -35,6 +35,10 @@ case "$ZOOMIGO_API_BASE_URL" in https://*) ;; *) printf '%s\n' "error: ZOOMIGO_A
 cd "$REPOSITORY_ROOT"
 pnpm install --frozen-lockfile
 pnpm build
+node "$SCRIPT_DIRECTORY/configure-worker.mjs" \
+	"$REPOSITORY_ROOT/dist/server/wrangler.json" \
+	"$REPOSITORY_ROOT/deploy/production.json" \
+	"$ZOOMIGO_API_BASE_URL"
 "$SCRIPT_DIRECTORY/deploy-vm.sh" "$secrets_directory" "$release_sha"
 
 # Keep provider credentials out of dependency installation and application
@@ -46,9 +50,6 @@ set -a
 set +a
 : "${CLOUDFLARE_ACCOUNT_ID:?CLOUDFLARE_ACCOUNT_ID is required}"
 : "${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN is required}"
-pnpm exec wrangler deploy \
-	--config dist/server/wrangler.json \
-	--name zoomigo-training \
-	--var "ZOOMIGO_API_BASE_URL:$ZOOMIGO_API_BASE_URL"
+pnpm exec wrangler deploy --config dist/server/wrangler.json
 
 printf '%s\n' "Released ZoomiGo $release_sha to the VM and Cloudflare Worker."

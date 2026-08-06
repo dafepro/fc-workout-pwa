@@ -47,7 +47,7 @@ The API uses `database/sql` with the CGo-free `modernc.org/sqlite` driver. The i
 
 SQLite permits many readers but serializes writes. Do not mount the same database file into multiple API replicas. Move the repository adapter to managed Postgres when horizontal API replicas, multi-region writes, stronger managed failover/PITR, or materially higher concurrent write volume becomes necessary. Backups and a restore drill are required before production youth data is stored.
 
-The portable manual deployment bundle is in `deploy/vm/`. It runs the API behind Caddy on one Linux VM, persists SQLite in an explicit protected host directory, and exposes only ports 80/443. See `docs/backend/CLOUD_VM_DEPLOYMENT.md` for the architecture and safety gates.
+The production stack in `deploy/vm/` runs the API behind Caddy on one Linux VM, persists SQLite in an explicit protected host directory, and exposes only ports 80/443. See `docs/PRODUCTION_RUNBOOK.md` for provisioning, release, and safety gates.
 
 ## Backup and restore
 
