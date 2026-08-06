@@ -12,6 +12,22 @@ The bundle contains exactly five files:
 - `deploy_ssh_key`: a dedicated, passphrase-free key limited to the ZoomiGo deploy user;
 - `known_hosts`: a host-key line whose fingerprint was verified out of band.
 
+Bundle creation and extraction use a versioned gzip-compressed JSON envelope
+implemented with Node's built-in modules. They do not invoke `tar`, so the same
+commands work with macOS, Linux, and Windows tar installations. The existing
+`production.tar.gz.age` filename is retained for release compatibility even
+though its decrypted payload is now the portable ZoomiGo envelope.
+
+Prerequisites are Node 22 or newer, `age`, and OpenSSH's `ssh-keygen`.
+The shell wrappers work on macOS and Linux. The underlying commands are also
+directly available from PowerShell or any platform with Node:
+
+```sh
+node deploy/secrets/manage-production-secrets.mjs seal
+node deploy/secrets/manage-production-secrets.mjs open \
+  /secure/path/zoomigo-operator-age-identity
+```
+
 ## Initial setup
 
 1. Create two new age identities on trusted machines: one for the operator and
@@ -26,6 +42,10 @@ The bundle contains exactly five files:
    secret `ZOOMIGO_DEPLOY_AGE_IDENTITY`. This is the only secret the release
    workflow needs directly from GitHub.
 5. Delete the local `plaintext/` directory after testing an operator decrypt.
+
+If an earlier script already created `production.tar.gz.age`, move it to a
+private archival location before resealing. The portable opener deliberately
+rejects the previous tar payload instead of guessing its format.
 
 ## Create `known_hosts` safely
 
