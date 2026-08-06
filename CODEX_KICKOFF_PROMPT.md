@@ -2,7 +2,7 @@
 
 Read `AGENTS.md`, all files under `docs/`, and inspect every image in `docs/mockups/` before making changes.
 
-Build milestone 1 of the StrideCrew player-facing PWA as a responsive, interactive frontend prototype.
+Build milestone 1 of the ZoomiGo player-facing PWA as a responsive, interactive frontend prototype.
 
 Start by doing the following:
 

@@ -28,7 +28,7 @@ services:
       api:
         condition: service_healthy
     environment:
-      STRIDECREW_API_BASE_URL: http://api:8080
+      ZOOMIGO_API_BASE_URL: http://api:8080
     healthcheck:
       test:
         [

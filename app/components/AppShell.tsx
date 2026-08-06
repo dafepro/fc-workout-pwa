@@ -73,9 +73,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <Link className="brand" href="/" aria-label="StrideCrew home">
+        <Link className="brand" href="/" aria-label={`${copy.brand} home`}>
           <span className="brand__mark" aria-hidden="true">
-            S
+            Z
           </span>
           <span>
             <strong>{copy.brand}</strong>

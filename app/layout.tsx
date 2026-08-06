@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
+import { copy } from "./content/copy";
 import { AuthGate } from "./state/auth-context";
 import "./globals.css";
 
@@ -15,16 +16,16 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     metadataBase: new URL(origin),
     title: {
-      default: "StrideCrew Training",
-      template: "%s · StrideCrew",
+      default: `${copy.brand} Training`,
+      template: `%s · ${copy.brand}`,
     },
     description,
-    applicationName: "StrideCrew",
+    applicationName: copy.brand,
     manifest: "/manifest.webmanifest",
     appleWebApp: {
       capable: true,
       statusBarStyle: "default",
-      title: "StrideCrew",
+      title: copy.brand,
     },
     icons: {
       icon: "/favicon.svg",
@@ -32,14 +33,14 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     openGraph: {
       type: "website",
-      title: "StrideCrew Training",
+      title: `${copy.brand} Training`,
       description,
-      siteName: "StrideCrew",
-      images: [{ url: `${origin}/og.png`, width: 1729, height: 910 }],
+      siteName: copy.brand,
+      images: [{ url: `${origin}/og.png`, width: 1727, height: 910 }],
     },
     twitter: {
       card: "summary_large_image",
-      title: "StrideCrew Training",
+      title: `${copy.brand} Training`,
       description,
       images: [`${origin}/og.png`],
     },

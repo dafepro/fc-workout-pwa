@@ -19,6 +19,7 @@ jobs:
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      ZOOMIGO_API_BASE_URL: ${{ vars.ZOOMIGO_API_BASE_URL }}
       STRIDECREW_API_BASE_URL: ${{ vars.STRIDECREW_API_BASE_URL }}
     steps:
       - uses: actions/checkout@v4
@@ -36,10 +37,18 @@ jobs:
         run: |
           test -n "$CLOUDFLARE_ACCOUNT_ID"
           test -n "$CLOUDFLARE_API_TOKEN"
-          case "$STRIDECREW_API_BASE_URL" in
+          zoomigo_base="${ZOOMIGO_API_BASE_URL%/}"
+          legacy_base="${STRIDECREW_API_BASE_URL%/}"
+          if [ -n "$zoomigo_base" ] && [ -n "$legacy_base" ] && [ "$zoomigo_base" != "$legacy_base" ]; then
+            echo "ZOOMIGO_API_BASE_URL conflicts with legacy STRIDECREW_API_BASE_URL" >&2
+            exit 1
+          fi
+          deploy_base="${zoomigo_base:-$legacy_base}"
+          case "$deploy_base" in
             https://*) ;;
-            *) echo "STRIDECREW_API_BASE_URL must be an HTTPS origin" >&2; exit 1 ;;
+            *) echo "ZOOMIGO_API_BASE_URL must be an HTTPS origin" >&2; exit 1 ;;
           esac
+          echo "DEPLOY_API_BASE_URL=$deploy_base" >> "$GITHUB_ENV"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -56,5 +65,5 @@ jobs:
         run: >-
           pnpm exec wrangler deploy
           --config dist/server/wrangler.json
-          --name stridecrew-training
-          --var "STRIDECREW_API_BASE_URL:$STRIDECREW_API_BASE_URL"
+          --name zoomigo-training
+          --var "ZOOMIGO_API_BASE_URL:$DEPLOY_API_BASE_URL"

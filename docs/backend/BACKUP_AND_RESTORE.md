@@ -111,7 +111,7 @@ Focused real-SQLite tests additionally prove that an older snapshot receives cur
 
 ## Production operation and remaining approval
 
-The scheduled VM job creates one encrypted archive each day and uploads only that `.age` file to a private R2 Standard bucket through `rclone`. After a successful upload it prunes local encrypted archives older than `LOCAL_BACKUP_RETENTION_DAYS` (seven by default); a failed upload never triggers pruning. Cloud credentials are external to Compose in root-readable `/etc/stridecrew/r2.env`; default test commands never contact R2. Cloudflare's current Standard free tier includes 10 GB-month, one million Class A operations, and ten million Class B operations per month, but usage and billing still need monitoring.
+The scheduled VM job creates one encrypted archive each day and uploads only that `.age` file to private S3-compatible storage through `rclone`. Cloudflare R2 is the first provider and the initial bucket is `zoomigo-backups`, but the runtime contract uses generic `BACKUP_S3_*` settings. After a successful upload it prunes local encrypted archives older than `LOCAL_BACKUP_RETENTION_DAYS` (seven by default); a failed upload never triggers pruning. Cloud credentials are external to Compose in root-readable `/etc/zoomigo/backup-s3.env`; default test commands never contact object storage. Cloudflare's current Standard free tier includes 10 GB-month, one million Class A operations, and ten million Class B operations per month, but usage and billing still need monitoring.
 
 Before production persistence, approve and record:
 

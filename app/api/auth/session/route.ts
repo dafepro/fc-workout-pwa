@@ -125,7 +125,7 @@ async function proxySession(baseURL: string, token: string) {
     return jsonError(
       503,
       "backend_unavailable",
-      "StrideCrew is temporarily unavailable.",
+      "ZoomiGo is temporarily unavailable.",
     );
   }
   return new Response(await response.text(), {

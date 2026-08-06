@@ -1,5 +1,5 @@
 [Unit]
-Description=Create a daily verified StrideCrew SQLite backup
+Description=Create a daily verified ZoomiGo SQLite backup
 
 [Timer]
 OnCalendar=*-*-* 03:15:00

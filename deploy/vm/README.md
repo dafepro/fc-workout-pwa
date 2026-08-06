@@ -1,10 +1,10 @@
-# StrideCrew single-VM deployment
+# ZoomiGo single-VM deployment
 
 This bundle manually deploys the Go API and its SQLite database to one Linux VM. Caddy is the only public container and obtains and renews HTTPS certificates automatically. The API has no published host port and runs as uid/gid `65532` with a read-only container filesystem, dropped Linux capabilities, bounded resources/logs, and a dedicated persistent host directory.
 
 The concrete `$4.80/month` DigitalOcean operator checklist is in `docs/backend/DIGITALOCEAN_UNDER_5_RUNBOOK.md`.
 
-The production PWA runs on Cloudflare Workers' free tier and connects through its own same-origin session gateway. Configure the Worker binding `STRIDECREW_API_BASE_URL=https://api.example.com`; never place an API token in a `VITE_*` variable or browser bundle. The existing Sites deployment remains preview-only.
+The production PWA runs on Cloudflare Workers' free tier and connects through its own same-origin session gateway. Configure the Worker binding `ZOOMIGO_API_BASE_URL=https://api.example.com`; never place an API token in a `VITE_*` variable or browser bundle. The existing Sites deployment remains preview-only.
 
 ## Host prerequisites
 
@@ -12,7 +12,7 @@ The production PWA runs on Cloudflare Workers' free tier and connects through it
 - A public DNS `A`/`AAAA` record for the API hostname pointing to the VM.
 - Inbound TCP 80 and 443, UDP 443, and SSH restricted to operator addresses. Do not publish port 8080.
 - Enough protected disk for the database, an on-host backup, and an isolated restore copy.
-- `rclone` for encrypted uploads to the private R2 bucket.
+- `rclone` for encrypted uploads to private S3-compatible storage. The first provider is Cloudflare R2 and the documented bucket is `zoomigo-backups`.
 - An operator account allowed to run Docker. Treat Docker access as root-equivalent host access.
 
 ## First deployment
@@ -82,7 +82,7 @@ The database lives outside the container and embedded forward migrations run bef
   stridecrew-backup-identity.txt
 ```
 
-The restore drill authenticates and decrypts the age envelope, verifies the archive, and creates a new database under `RESTORE_DIR`; it never replaces the live database. Only the public age recipient belongs on the VM. Supply the identity temporarily for a drill, then remove it immediately. Scheduled jobs upload only encrypted archives to the private R2 bucket.
+The restore drill authenticates and decrypts the age envelope, verifies the archive, and creates a new database under `RESTORE_DIR`; it never replaces the live database. Only the public age recipient belongs on the VM. Supply the identity temporarily for a drill, then remove it immediately. Scheduled jobs upload only encrypted archives through the provider-neutral S3 configuration in root-owned `/etc/zoomigo/backup-s3.env`.
 
 ## Operations
 

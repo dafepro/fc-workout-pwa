@@ -10,9 +10,9 @@ import (
 )
 
 func TestHealthAndSecurityHeaders(t *testing.T) {
-	handler := NewHandler(config.Config{AllowedOrigin: "https://stridecrew.example"})
+	handler := NewHandler(config.Config{AllowedOrigin: "https://zoomigo.example"})
 	request := httptest.NewRequest(http.MethodGet, "/healthz", nil)
-	request.Header.Set("Origin", "https://stridecrew.example")
+	request.Header.Set("Origin", "https://zoomigo.example")
 	response := httptest.NewRecorder()
 
 	handler.ServeHTTP(response, request)
@@ -26,7 +26,7 @@ func TestHealthAndSecurityHeaders(t *testing.T) {
 	if response.Header().Get("Cache-Control") != "no-store" {
 		t.Fatal("private API responses must not be cached")
 	}
-	if response.Header().Get("Access-Control-Allow-Origin") != "https://stridecrew.example" {
+	if response.Header().Get("Access-Control-Allow-Origin") != "https://zoomigo.example" {
 		t.Fatal("configured origin should be allowed")
 	}
 	var body healthResponse
@@ -39,7 +39,7 @@ func TestHealthAndSecurityHeaders(t *testing.T) {
 }
 
 func TestUnknownRouteUsesStructuredErrorWithoutReflectingOrigin(t *testing.T) {
-	handler := NewHandler(config.Config{AllowedOrigin: "https://stridecrew.example"})
+	handler := NewHandler(config.Config{AllowedOrigin: "https://zoomigo.example"})
 	request := httptest.NewRequest(http.MethodGet, "/private/unknown", nil)
 	request.Header.Set("Origin", "https://attacker.example")
 	response := httptest.NewRecorder()
@@ -62,9 +62,9 @@ func TestUnknownRouteUsesStructuredErrorWithoutReflectingOrigin(t *testing.T) {
 }
 
 func TestConfiguredOriginPreflight(t *testing.T) {
-	handler := NewHandler(config.Config{AllowedOrigin: "https://stridecrew.example"})
+	handler := NewHandler(config.Config{AllowedOrigin: "https://zoomigo.example"})
 	request := httptest.NewRequest(http.MethodOptions, "/v1/reactions", nil)
-	request.Header.Set("Origin", "https://stridecrew.example")
+	request.Header.Set("Origin", "https://zoomigo.example")
 	request.Header.Set("Access-Control-Request-Method", http.MethodPost)
 	response := httptest.NewRecorder()
 

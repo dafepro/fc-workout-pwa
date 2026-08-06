@@ -1,6 +1,6 @@
 # DigitalOcean deployment runbook (under $5/month)
 
-This is the operator checklist for the first connected StrideCrew deployment. The PWA and its secure session gateway run on Cloudflare Workers' free tier. Only Caddy, one Go API process, and one SQLite database run on the DigitalOcean Droplet. The existing Sites deployment remains a private preview and is not a production dependency.
+This is the operator checklist for the first connected ZoomiGo deployment. The PWA and its secure session gateway run on Cloudflare Workers' free tier. Only Caddy, one Go API process, and one SQLite database run on the DigitalOcean Droplet. The existing Sites deployment remains a private preview and is not a production dependency.
 
 ## Budget and boundary
 
@@ -31,21 +31,22 @@ Write these down locally; do not commit them:
 - `SSH_ALLOWLIST`: the current public IP or trusted VPN egress IP used for administration.
 - `RELEASE_SHA`: the complete Git commit SHA that passed the backend-image workflow.
 - `BACKUP_AGE_RECIPIENT`: the public `age1...` recipient generated in the next section.
-- `R2_ACCOUNT_ID` and `R2_BUCKET`: the Cloudflare account and private Standard bucket used for encrypted archives.
+- `BACKUP_S3_ENDPOINT`: the account-specific R2 S3 endpoint from Cloudflare.
+- `BACKUP_S3_BUCKET`: the private Standard bucket, initially `zoomigo-backups`.
 
 ## 0. Create the backup key and private R2 bucket (you do this)
 
 On a trusted computer, install [`age`](https://github.com/FiloSottile/age) and create an X25519 identity:
 
 ```sh
-age-keygen -o stridecrew-backup-identity.txt
+age-keygen -o zoomigo-backup-identity.txt
 ```
 
 The command prints a public recipient beginning with `age1`; save that as `BACKUP_AGE_RECIPIENT`. Keep the private identity file off the VM except during a supervised restore. Store two controlled copies in separate secure locations. Never commit it, email it, or put it in Cloudflare.
 
 In Cloudflare R2:
 
-1. Create a private **Standard** bucket such as `stridecrew-backups`.
+1. Create a private **Standard** bucket named `zoomigo-backups`.
 2. Create an API token scoped only to read and write objects in that bucket.
 3. Record its Access Key ID and Secret Access Key locally. They go only in the VM's root-readable R2 environment file.
 4. Do not enable public bucket access. Add a 35-day lifecycle rule only after the retention recommendation in `PRODUCTION_APPROVAL_CHECKLIST.md` is approved.
@@ -69,7 +70,7 @@ No additional GitHub secret is needed: the workflow publishes with GitHub's shor
 
 In DigitalOcean:
 
-1. Create a project for StrideCrew.
+1. Create a project for ZoomiGo.
 2. Create one Droplet with:
    - Ubuntu 24.04 LTS x64;
    - Basic shared CPU, Regular SSD;
@@ -104,13 +105,22 @@ Value: <Droplet IPv4>
 TTL: Auto
 ```
 
-If using Cloudflare, start with the record **DNS only** (gray cloud). Caddy must be able to complete certificate issuance directly. Confirm from your computer:
+For the current deployment, leave the record **Proxied** (orange cloud). A public
+lookup will then return Cloudflare anycast addresses rather than the Droplet
+address; that is expected and must not be used as an origin-IP verification.
+Keep the Droplet address in the private operator record. In Cloudflare, select
+**SSL/TLS → Overview → Full (strict)** so Cloudflare validates Caddy's origin
+certificate; never select Flexible. Confirm the public hostname from your
+computer:
 
 ```sh
 nslookup api.example.com
 ```
 
-Continue only when it resolves to the Droplet.
+Continue only when DNS resolves and `curl --fail https://api.example.com/readyz`
+succeeds through Cloudflare. Keep TCP 80/443 open to the origin during initial
+certificate verification; restricting them to Cloudflare's maintained IP ranges
+is a later hardening step.
 
 ## 4. Harden the operator login (you do this)
 
@@ -118,15 +128,15 @@ DigitalOcean initially permits the selected SSH key for `root`. Connect, create 
 
 ```sh
 ssh root@DROPLET_IP
-adduser stridecrew
-usermod -aG sudo stridecrew
-install -d -m 0700 -o stridecrew -g stridecrew /home/stridecrew/.ssh
-cp /root/.ssh/authorized_keys /home/stridecrew/.ssh/authorized_keys
-chown stridecrew:stridecrew /home/stridecrew/.ssh/authorized_keys
-chmod 0600 /home/stridecrew/.ssh/authorized_keys
+adduser zoomigo
+usermod -aG sudo zoomigo
+install -d -m 0700 -o zoomigo -g zoomigo /home/zoomigo/.ssh
+cp /root/.ssh/authorized_keys /home/zoomigo/.ssh/authorized_keys
+chown zoomigo:zoomigo /home/zoomigo/.ssh/authorized_keys
+chmod 0600 /home/zoomigo/.ssh/authorized_keys
 ```
 
-From a second terminal, prove `ssh stridecrew@DROPLET_IP` and `sudo true` work. Only then disable password and root SSH in `/etc/ssh/sshd_config.d/99-stridecrew.conf`:
+From a second terminal, prove `ssh zoomigo@DROPLET_IP` and `sudo true` work. Only then disable password and root SSH in `/etc/ssh/sshd_config.d/99-zoomigo.conf`:
 
 ```text
 PasswordAuthentication no
@@ -145,7 +155,7 @@ Never close the original root session until the operator login succeeds.
 
 ## 5. Install Docker and prepare the small VM (you do this)
 
-Log in as the `stridecrew` operator. Install Docker Engine and the Compose plugin from Docker's official Ubuntu repository, following [Docker's Ubuntu instructions](https://docs.docker.com/engine/install/ubuntu/). Do not use a desktop Docker package on the server.
+Log in as the `zoomigo` operator. Install Docker Engine and the Compose plugin from Docker's official Ubuntu repository, following [Docker's Ubuntu instructions](https://docs.docker.com/engine/install/ubuntu/). Do not use a desktop Docker package on the server.
 
 Then:
 
@@ -153,7 +163,7 @@ Then:
 sudo apt-get update
 sudo apt-get upgrade -y
 sudo apt-get install -y ca-certificates curl git rclone unattended-upgrades
-sudo usermod -aG docker stridecrew
+sudo usermod -aG docker zoomigo
 ```
 
 Ubuntu Server applies security updates daily by default. Confirm that the timer is enabled; if it is not, enable it through the package's supported configuration flow:
@@ -172,12 +182,13 @@ docker version
 docker compose version
 ```
 
-Clone the repository at the fixed path used by the backup timer:
+Clone the repository at the fixed path used by the backup timer. The live host
+already uses `/opt/app`; keep that checkout to avoid unnecessary state changes:
 
 ```sh
-sudo install -d -m 0755 -o stridecrew -g stridecrew /opt/stridecrew
-git clone https://github.com/dafepro/fc-workout-pwa.git /opt/stridecrew
-cd /opt/stridecrew
+sudo install -d -m 0755 -o zoomigo -g zoomigo /opt/app
+git clone https://github.com/dafepro/fc-workout-pwa.git /opt/app
+cd /opt/app
 git checkout RELEASE_SHA
 sudo sh deploy/vm/scripts/prepare-small-vm.sh
 ```
@@ -187,7 +198,7 @@ The last command creates a persistent 1 GiB `/swapfile` and sets `vm.swappiness=
 ## 6. Configure and deploy the API (you do this)
 
 ```sh
-cd /opt/stridecrew/deploy/vm
+cd /opt/app/deploy/vm
 cp .env.example .env
 chmod 0600 .env
 ```
@@ -201,7 +212,7 @@ CADDY_SITE_ADDRESS=api.example.com
 PWA_ORIGIN=https://app.example.com
 TEAM_TIME_ZONE=America/Chicago
 BACKUP_AGE_RECIPIENT=age1REPLACE_WITH_THE_PUBLIC_RECIPIENT
-R2_UPLOAD_ENABLED=true
+BACKUP_S3_UPLOAD_ENABLED=true
 LOCAL_BACKUP_RETENTION_DAYS=7
 PRODUCTION_DATA_APPROVED=false
 ```
@@ -227,28 +238,29 @@ Readiness should return `{"status":"ready"}`. The unauthenticated private reques
 
 ## 7. Enable and prove encrypted daily backups (you do this)
 
-Create the root-only R2 credentials file. Replace the placeholders without committing them:
+Create the root-only provider-neutral S3 credentials file. Replace the endpoint
+placeholder with the R2 S3 endpoint shown in Cloudflare; do not commit it:
 
 ```sh
-sudo install -d -m 0755 /etc/stridecrew
-sudo install -m 0600 -o root -g root /dev/null /etc/stridecrew/r2.env
-sudoedit /etc/stridecrew/r2.env
+sudo install -d -m 0755 /etc/zoomigo
+sudo install -m 0600 -o root -g root /dev/null /etc/zoomigo/backup-s3.env
+sudoedit /etc/zoomigo/backup-s3.env
 ```
 
 Its contents are:
 
 ```dotenv
-R2_ACCOUNT_ID='replace-me'
-R2_BUCKET='stridecrew-backups'
-R2_ACCESS_KEY_ID='replace-me'
-R2_SECRET_ACCESS_KEY='replace-me'
+BACKUP_S3_ENDPOINT='https://ACCOUNT_ID.r2.cloudflarestorage.com'
+BACKUP_S3_BUCKET='zoomigo-backups'
+BACKUP_S3_PROVIDER='Cloudflare'
+BACKUP_S3_REGION='auto'
+BACKUP_S3_ACCESS_KEY_ID='replace-me'
+BACKUP_S3_SECRET_ACCESS_KEY='replace-me'
 ```
 
 ```sh
-cd /opt/stridecrew/deploy/vm
-sudo install -m 0644 systemd/stridecrew-backup.service /etc/systemd/system/stridecrew-backup.service
-sudo install -m 0644 systemd/stridecrew-backup.timer /etc/systemd/system/stridecrew-backup.timer
-sudo systemctl daemon-reload
+cd /opt/app/deploy/vm
+sudo ./scripts/install-backup-service.sh
 sudo systemctl enable --now stridecrew-backup.timer
 sudo systemctl start stridecrew-backup.service
 sudo systemctl status stridecrew-backup.timer --no-pager
@@ -267,7 +279,7 @@ sudo install -m 0400 -o 65532 -g 65532 /tmp/stridecrew-backup-identity.txt \
   stridecrew-backup-identity.txt
 sudo rm -f /var/lib/stridecrew/restore/stridecrew-backup-identity.txt \
   /tmp/stridecrew-backup-identity.txt
-sudo ./scripts/production-check.sh .env --check-r2
+sudo ./scripts/production-check.sh .env --check-s3
 ```
 
 Transfer `/tmp/stridecrew-backup-identity.txt` over SSH from the trusted computer; do not paste it into shell history. The drill writes only beneath `RESTORE_DIR`; it does not replace the live database. The exact live cutover and rollback procedure is in `LIVE_RESTORE_RUNBOOK.md`.
@@ -283,9 +295,9 @@ The PWA is a Worker, not a static-only site: its server-side gateway keeps the o
 5. Add these production-environment values:
    - secret `CLOUDFLARE_API_TOKEN`;
    - secret `CLOUDFLARE_ACCOUNT_ID`;
-   - variable `STRIDECREW_API_BASE_URL` set to `https://api.example.com` without a trailing slash.
+   - variable `ZOOMIGO_API_BASE_URL` set to `https://api.example.com` without a trailing slash.
 6. Open **Actions → Cloudflare PWA → Run workflow** on the reviewed `main` revision.
-7. After it passes, open Cloudflare **Workers & Pages → stridecrew-training → Domains & Routes → Add Custom Domain** and add `app.example.com`. Cloudflare creates the DNS record and certificate. [Cloudflare recommends a custom domain for a production Worker](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/).
+7. After it passes, open Cloudflare **Workers & Pages → zoomigo-training → Domains & Routes → Add Custom Domain** and add `app.example.com`. Cloudflare creates the DNS record and certificate. [Cloudflare recommends a custom domain for a production Worker](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/).
 8. Open `https://app.example.com/login` and confirm it loads. The generated `workers.dev` address is only a bootstrap URL; use the custom domain for QR codes and installed PWAs.
 
 No API token belongs in a `VITE_*` variable or browser bundle. The Cloudflare API token exists only in the protected GitHub production environment and is not delivered to the Worker. The Worker receives only the public API origin.
@@ -294,7 +306,7 @@ The production Worker is publicly reachable after deployment. Its player data re
 
 ## 9. Bootstrap test data only after the connection works
 
-From `/opt/stridecrew/deploy/vm`, create a test team:
+From `/opt/app/deploy/vm`, create a test team:
 
 ```sh
 docker compose --env-file .env -f compose.yaml --profile operations run --rm admin \
@@ -321,10 +333,10 @@ The admin CLI refuses real-player provisioning while `PRODUCTION_DATA_APPROVED=f
 After a new workflow succeeds:
 
 ```sh
-cd /opt/stridecrew/deploy/vm
+cd /opt/app/deploy/vm
 sudo systemctl start stridecrew-backup.service
 sudo journalctl -u stridecrew-backup.service --since today --no-pager
-cd /opt/stridecrew
+cd /opt/app
 git fetch origin main
 git checkout NEW_RELEASE_SHA
 # Update API_IMAGE and APP_VERSION in deploy/vm/.env to NEW_RELEASE_SHA.
@@ -344,7 +356,7 @@ Frontend releases remain deliberate: run **Cloudflare PWA** manually after its c
 - `df -h /var/lib/stridecrew/data /var/backups/stridecrew`
 - `free -h` and `docker stats --no-stream`
 - confirm the DigitalOcean backup remains enabled and recent;
-- run `sudo ./scripts/production-check.sh .env --check-r2` and confirm the newest encrypted archive is present off-host;
+- run `sudo ./scripts/production-check.sh .env --check-s3` and confirm the newest encrypted archive is present off-host;
 - confirm SSH remains restricted to the current operator IP;
 - install Ubuntu security updates, reboot when required, then recheck readiness;
 - run an isolated restore drill at least quarterly and before a destructive migration.

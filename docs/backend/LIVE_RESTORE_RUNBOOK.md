@@ -7,13 +7,13 @@ This procedure replaces the live SQLite database only during an approved recover
 - Two adults know the recovery is occurring: the operator and the recovery-key custodian.
 - The selected `.tar.gz.age` archive is present in `BACKUP_DIR`, its source and timestamp are recorded, and the matching age identity is available temporarily in `RESTORE_DIR`.
 - The checked-out application revision supports every migration in the archive.
-- A fresh encrypted backup of the current live database has completed and uploaded to R2.
+- A fresh encrypted backup of the current live database has completed and uploaded to the configured S3-compatible store.
 - The maintenance window permits the API and PWA to be unavailable.
 - All paths below are copied from the protected VM `.env`; never substitute a broad directory or a glob.
 
 ## 1. Restore and verify in isolation
 
-From `/opt/stridecrew/deploy/vm`:
+From `/opt/app/deploy/vm`:
 
 ```sh
 sudo ./scripts/restore-drill.sh .env \
@@ -34,7 +34,7 @@ RESTORED_DB="$RESTORE_DIR/restore-drill-YYYYMMDDTHHMMSSZ.db"
 ROLLBACK_DB="$DATA_DIR/stridecrew.pre-restore-YYYYMMDDTHHMMSSZ.db"
 ```
 
-Confirm each value is an absolute, specific file beneath the intended StrideCrew directory. Then stop public traffic and the writer:
+Confirm each value is an absolute, specific file beneath the intended protected ZoomiGo data directory. The legacy `stridecrew` path and database names are retained as compatibility identifiers. Then stop public traffic and the writer:
 
 ```sh
 docker compose --env-file .env -f compose.yaml stop caddy api
@@ -93,5 +93,5 @@ Recheck readiness, the private-route `401`, and an approved private read. Preser
 - Remove the age identity from `RESTORE_DIR` immediately after the drill or cutover. The long-term identity must remain with its custodian, off the VM.
 - Keep the pre-restore database for the approved rollback period only. The recommended initial period is 24 hours after successful application verification.
 - Reapply any verified deletion requests that occurred after the restored backup timestamp.
-- Run `sudo ./scripts/production-check.sh .env --check-r2`.
+- Run `sudo ./scripts/production-check.sh .env --check-s3`.
 - Record archive timestamp, application version, operators, start/end times, validation outcome, and whether rollback was used. Do not record PINs, QR URLs, session tokens, private keys, or child-level data.

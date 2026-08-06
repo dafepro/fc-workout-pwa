@@ -1,4 +1,4 @@
-# StrideCrew backend
+# ZoomiGo backend
 
 This directory contains the milestone 2 Go service foundation. It provides configuration validation, safe HTTP defaults, database-backed readiness, embedded migrations, private training-entry persistence, contextual-reaction endpoints, and a production container build.
 
@@ -58,7 +58,7 @@ The portable manual deployment bundle is in `deploy/vm/`. It runs the API behind
 - Production player authentication uses a unique reissuable 256-bit QR credential plus exactly four PIN digits, Argon2id verification, bounded password work, throttling, and revocable opaque sessions.
 - E2E bearer identities remain local fixtures for older API-focused scenarios; QR+PIN session lifecycle coverage uses the real session service and database.
 - Training-entry create/list/detail/delete and contextual reactions use the real Go/SQLite API in the Docker E2E environment.
-- The PWA worker selects the real API with `STRIDECREW_API_BASE_URL`, keeps the bearer in an HTTP-only same-origin cookie, and uses its local adapter only when that binding is absent.
+- The PWA worker selects the real API with `ZOOMIGO_API_BASE_URL` (temporarily accepting `STRIDECREW_API_BASE_URL` as a compatibility alias), keeps the bearer in an HTTP-only same-origin cookie, and uses its local adapter only when that binding is absent.
 - Safe Team/leaderboard projections, cursor pagination, guardian recovery policy, and hosted API operations remain pending.
 - API, authorization, and data-model drafts are in `docs/backend/`.
 - The migration-aware flat-file backup CLI, age encryption, bounded local retention, private R2 upload, isolated restore drill, and live-cutover runbook are implemented. Key custody, R2 lifecycle, and launch policies still require owner approval.

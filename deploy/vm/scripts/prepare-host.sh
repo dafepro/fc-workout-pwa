@@ -29,4 +29,4 @@ for directory in "$data_directory" "$backup_directory" "$restore_directory" "$ad
 	install -d -m 0700 -o 65532 -g 65532 "$directory"
 done
 
-printf '%s\n' "Prepared StrideCrew data directories for container uid/gid 65532."
+printf '%s\n' "Prepared ZoomiGo data directories for container uid/gid 65532."

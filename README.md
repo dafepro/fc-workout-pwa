@@ -1,4 +1,4 @@
-# StrideCrew prototype handoff
+# ZoomiGo
 
 This repository packet turns the product discussion and visual mockups into durable context for Codex.
 
@@ -20,7 +20,8 @@ Build a responsive, mobile-first PWA prototype with mock data. Implement the fou
 - Use mock players, teams, assignments, logs, reactions, and assessment history.
 - No free-form text, user images, URLs, or uploads anywhere.
 - Milestone 1 used local-only identity; the connected deployment now uses reissuable QR+PIN credentials and revocable server sessions.
-- Represent the QR-code-plus-PIN login as a mocked flow only.
+- Use the connected QR-code-plus-PIN login flow for hosted environments; the
+  device-local adapter remains available only for an unhosted prototype.
 - Do not implement coach screens yet, but keep domain types ready for coach-created assignments and recorded assessments.
 
 ## Definition of done for milestone 1

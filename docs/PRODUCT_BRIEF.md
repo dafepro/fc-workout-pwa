@@ -1,8 +1,8 @@
 # Product brief
 
-## Working name
+## Product name
 
-**StrideCrew** is a temporary standalone product identity. It must not use O26FC club colors or depend on one club's branding.
+**ZoomiGo** is the standalone product identity. It must not use O26FC club colors or depend on one club's branding.
 
 ## Purpose
 

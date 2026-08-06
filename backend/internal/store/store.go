@@ -241,7 +241,7 @@ func (store *Store) ResetE2EFixtures(ctx context.Context) error {
 	statements := []string{
 		"DELETE FROM reactions",
 		"DELETE FROM training_entries",
-		`INSERT INTO clubs (id, name, created_at) VALUES ('club-stridecrew', 'StrideCrew', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
+		`INSERT INTO clubs (id, name, created_at) VALUES ('club-stridecrew', 'ZoomiGo', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO UPDATE SET name = excluded.name`,
 		`INSERT INTO teams (id, club_id, name, season_id, weekly_default_goal, time_zone, created_at) VALUES ('team-hill-striders', 'club-stridecrew', 'Hill Striders', 'season-2026', 3, 'America/Chicago', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
 		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-mason', 'club-stridecrew', 'Mason', 'C', '{}', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
 		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-ava', 'club-stridecrew', 'Ava', 'R', '{}', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,

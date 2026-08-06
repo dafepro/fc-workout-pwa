@@ -6,11 +6,11 @@ SCRIPT_DIRECTORY=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 . "$SCRIPT_DIRECTORY/lib.sh"
 
 [ "$(id -u)" -eq 0 ] || fail "run production-check.sh as root (for example with sudo)"
-check_r2=false
-if [ "${2:-}" = "--check-r2" ]; then
-	check_r2=true
+check_s3=false
+if [ "${2:-}" = "--check-s3" ] || [ "${2:-}" = "--check-r2" ]; then
+	check_s3=true
 elif [ "$#" -gt 1 ]; then
-	fail "usage: production-check.sh <env-file> [--check-r2]"
+	fail "usage: production-check.sh <env-file> [--check-s3]"
 fi
 
 for command_name in awk curl df docker find grep head sort stat swapon systemctl; do
@@ -46,26 +46,36 @@ latest_record=$(find "$backup_directory" -maxdepth 1 -type f -name 'stridecrew-b
 latest_name=${latest_record#* }
 find "$backup_directory" -maxdepth 1 -type f -name "$latest_name" -mmin -1560 -print -quit | grep . >/dev/null || fail "the newest encrypted backup is more than 26 hours old"
 
-if [ "$check_r2" = true ]; then
+if [ "$check_s3" = true ]; then
 	require_command rclone
-	r2_environment=/etc/stridecrew/r2.env
-	[ -f "$r2_environment" ] || fail "$r2_environment is missing"
-	permissions=$(stat -c '%a' "$r2_environment")
-	case "$permissions" in 400|600) ;; *) fail "$r2_environment must have mode 0400 or 0600" ;; esac
-	[ "$(stat -c '%u' "$r2_environment")" = "0" ] || fail "$r2_environment must be owned by root"
+	s3_environment=/etc/zoomigo/backup-s3.env
+	if [ ! -f "$s3_environment" ] && [ -f /etc/stridecrew/r2.env ]; then
+		s3_environment=/etc/stridecrew/r2.env
+	fi
+	[ -f "$s3_environment" ] || fail "/etc/zoomigo/backup-s3.env is missing"
+	permissions=$(stat -c '%a' "$s3_environment")
+	case "$permissions" in 400|600) ;; *) fail "$s3_environment must have mode 0400 or 0600" ;; esac
+	[ "$(stat -c '%u' "$s3_environment")" = "0" ] || fail "$s3_environment must be owned by root"
 	# The file is root-owned operator configuration, not application input.
-	. "$r2_environment"
-	: "${R2_ACCOUNT_ID:?R2_ACCOUNT_ID is required}"
-	: "${R2_BUCKET:?R2_BUCKET is required}"
-	: "${R2_ACCESS_KEY_ID:?R2_ACCESS_KEY_ID is required}"
-	: "${R2_SECRET_ACCESS_KEY:?R2_SECRET_ACCESS_KEY is required}"
-	export RCLONE_CONFIG_STRIDECREW_TYPE=s3
-	export RCLONE_CONFIG_STRIDECREW_PROVIDER=Cloudflare
-	export RCLONE_CONFIG_STRIDECREW_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID"
-	export RCLONE_CONFIG_STRIDECREW_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY"
-	export RCLONE_CONFIG_STRIDECREW_ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
-	export RCLONE_CONFIG_STRIDECREW_ACL=private
-	rclone lsjson "stridecrew:${R2_BUCKET}/daily/${latest_name}" --stat --files-only --s3-no-check-bucket >/dev/null || fail "the newest encrypted backup is missing from R2"
+	. "$s3_environment"
+	backup_s3_endpoint=${BACKUP_S3_ENDPOINT:-}
+	[ -n "$backup_s3_endpoint" ] || [ -z "${R2_ACCOUNT_ID:-}" ] || backup_s3_endpoint="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+	backup_s3_bucket=${BACKUP_S3_BUCKET:-${R2_BUCKET:-}}
+	backup_s3_access_key=${BACKUP_S3_ACCESS_KEY_ID:-${R2_ACCESS_KEY_ID:-}}
+	backup_s3_secret_key=${BACKUP_S3_SECRET_ACCESS_KEY:-${R2_SECRET_ACCESS_KEY:-}}
+	: "${backup_s3_endpoint:?BACKUP_S3_ENDPOINT is required}"
+	: "${backup_s3_bucket:?BACKUP_S3_BUCKET is required}"
+	: "${backup_s3_access_key:?BACKUP_S3_ACCESS_KEY_ID is required}"
+	: "${backup_s3_secret_key:?BACKUP_S3_SECRET_ACCESS_KEY is required}"
+	export RCLONE_CONFIG_ZOOMIGO_TYPE=s3
+	export RCLONE_CONFIG_ZOOMIGO_PROVIDER="${BACKUP_S3_PROVIDER:-${R2_ACCOUNT_ID:+Cloudflare}}"
+	export RCLONE_CONFIG_ZOOMIGO_PROVIDER="${RCLONE_CONFIG_ZOOMIGO_PROVIDER:-Other}"
+	export RCLONE_CONFIG_ZOOMIGO_ACCESS_KEY_ID="$backup_s3_access_key"
+	export RCLONE_CONFIG_ZOOMIGO_SECRET_ACCESS_KEY="$backup_s3_secret_key"
+	export RCLONE_CONFIG_ZOOMIGO_ENDPOINT="$backup_s3_endpoint"
+	export RCLONE_CONFIG_ZOOMIGO_REGION="${BACKUP_S3_REGION:-auto}"
+	export RCLONE_CONFIG_ZOOMIGO_ACL=private
+	rclone lsjson "zoomigo:${backup_s3_bucket}/daily/${latest_name}" --stat --files-only --s3-no-check-bucket >/dev/null || fail "the newest encrypted backup is missing from S3-compatible storage"
 fi
 
 [ ! -f /var/run/reboot-required ] || fail "the VM requires a reboot for installed updates"

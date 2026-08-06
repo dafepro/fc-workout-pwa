@@ -1,5 +1,5 @@
 export const copy = {
-  brand: "StrideCrew",
+  brand: "ZoomiGo",
   tagline: "Show up. Build your stride.",
   safeSocial: "Team views celebrate participation—not speed or scores.",
   saveSuccess: "Training saved",
@@ -24,8 +24,8 @@ export const copy = {
   noEditing:
     "Saved entries cannot be edited. Recent entries can be deleted and re-entered.",
   auth: {
-    opening: "Opening StrideCrew…",
-    unavailableTitle: "StrideCrew is taking a breather",
+    opening: "Opening ZoomiGo…",
+    unavailableTitle: "ZoomiGo is taking a breather",
     unavailableBody: "Please try again in a moment.",
     loginTitle: "Player sign in",
     loginIntro: "Scan your personal QR code, then enter your four-digit PIN.",

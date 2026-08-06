@@ -32,13 +32,14 @@ compose run --rm backup create-encrypted \
 
 printf '%s\n' "Created, verified, and age-encrypted $archive_name."
 
-upload_enabled=$(env_value R2_UPLOAD_ENABLED)
+upload_enabled=$(env_value BACKUP_S3_UPLOAD_ENABLED)
+[ -n "$upload_enabled" ] || upload_enabled=$(env_value R2_UPLOAD_ENABLED)
 case "$upload_enabled" in
 	true)
-		"$SCRIPT_DIRECTORY/upload-backup-r2.sh" "$ENV_FILE" "$archive_name"
+		"$SCRIPT_DIRECTORY/upload-backup-s3.sh" "$ENV_FILE" "$archive_name"
 		find "$backup_directory" -maxdepth 1 -type f -name 'stridecrew-backup-*-v1.tar.gz.age' -mtime "+$retention_days" -delete
-		printf '%s\n' "Pruned local encrypted backups older than $retention_days days after the successful R2 upload."
+		printf '%s\n' "Pruned local encrypted backups older than $retention_days days after the successful S3 upload."
 		;;
-	false|"") printf '%s\n' "Warning: R2 upload is disabled; this backup remains on one host." ;;
-	*) fail "R2_UPLOAD_ENABLED must be true or false" ;;
+	false|"") printf '%s\n' "Warning: S3 upload is disabled; this backup remains on one host." ;;
+	*) fail "BACKUP_S3_UPLOAD_ENABLED must be true or false" ;;
 esac

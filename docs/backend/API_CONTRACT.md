@@ -1,6 +1,6 @@
 # Backend API contract (draft 0.3)
 
-This contract is the review boundary between the StrideCrew PWA and the milestone 2 Go service. The server is authoritative for identity, authorization, timestamps, deletion windows, safe social projections, and reaction limits.
+This contract is the review boundary between the ZoomiGo PWA and the milestone 2 Go service. The server is authoritative for identity, authorization, timestamps, deletion windows, safe social projections, and reaction limits.
 
 ## Conventions
 

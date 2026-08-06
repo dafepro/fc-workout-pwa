@@ -26,7 +26,7 @@ compose up -d --wait --no-build --remove-orphans api caddy
 attempt=1
 while [ "$attempt" -le 30 ]; do
 	if curl --fail --silent --show-error "https://${site_address}/readyz" >/dev/null; then
-		printf '%s\n' "StrideCrew API is ready at https://${site_address}."
+		printf '%s\n' "ZoomiGo API is ready at https://${site_address}."
 		exit 0
 	fi
 	attempt=$((attempt + 1))

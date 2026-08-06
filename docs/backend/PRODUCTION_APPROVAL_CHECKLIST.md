@@ -52,7 +52,7 @@ Recommended initial policy:
 - one named primary operator has SSH/Docker access; no shared administrator login;
 - a second trusted adult holds the encrypted recovery-key copy and can take over after documented verification;
 - the age identity never lives permanently on the VM, in GitHub, in Cloudflare, in email, or beside an encrypted backup;
-- R2 credentials are bucket-scoped and stored only in root-readable `/etc/stridecrew/r2.env`;
+- S3-compatible credentials are bucket-scoped and stored only in root-readable `/etc/zoomigo/backup-s3.env`;
 - operator actions use the CLI and are recorded in the host journal plus application audit events where supported.
 
 Approval needed: identify roles—not credentials—in the private operational record and approve who may restore or delete data.
@@ -76,7 +76,7 @@ Before launch, confirm:
 - privacy/consent wording has been reviewed for the team's jurisdiction and organization;
 - the production hostname, DigitalOcean region, SSH allowlist, and Cloudflare zone are final;
 - the first R2 upload and restore with the offline identity succeeded;
-- `sudo ./scripts/production-check.sh .env --check-r2` passes;
+- `sudo ./scripts/production-check.sh .env --check-s3` passes;
 - QR/PIN delivery and credential-reissue rehearsals succeeded with test-only identities;
 - the PWA access level is deliberately approved.
 

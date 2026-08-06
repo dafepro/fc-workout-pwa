@@ -1,20 +1,22 @@
 import { env } from "cloudflare:workers";
+import { resolveBackendBaseURL } from "./backend-config";
 
 export const SESSION_COOKIE = "__Host-stridecrew_session";
 export const LOCAL_SESSION_COOKIE = "stridecrew_session_local";
 
 export function backendBaseURL(): string | null {
-  const configured =
-    (env as { STRIDECREW_API_BASE_URL?: string }).STRIDECREW_API_BASE_URL ??
-    process.env.STRIDECREW_API_BASE_URL ??
-    "";
-  const value = configured.trim().replace(/\/$/, "");
-  if (!value) return null;
-  const parsed = new URL(value);
-  if (parsed.protocol !== "https:" && parsed.hostname !== "api") {
-    throw new Error("STRIDECREW_API_BASE_URL must use HTTPS");
-  }
-  return value;
+  const workerEnv = env as {
+    ZOOMIGO_API_BASE_URL?: string;
+    STRIDECREW_API_BASE_URL?: string;
+  };
+  return resolveBackendBaseURL({
+    zoomigo:
+      workerEnv.ZOOMIGO_API_BASE_URL?.trim() ||
+      process.env.ZOOMIGO_API_BASE_URL,
+    stridecrew:
+      workerEnv.STRIDECREW_API_BASE_URL?.trim() ||
+      process.env.STRIDECREW_API_BASE_URL,
+  });
 }
 
 export function sessionCookieName(request: Request): string {

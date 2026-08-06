@@ -56,12 +56,12 @@ The infrastructure is deployable now, but the product is not yet approved to per
 The operations container enforces this boundary: `PRODUCTION_DATA_APPROVED` defaults to `false`, and player provisioning requires `--test-only` until the approved operator deliberately changes it.
 
 1. **Authentication operations:** complete parent/guardian ownership and recovery policy, securely distribute the initial QR+PIN, and rehearse operator reissue/revocation. The application mechanism is implemented, but policy approval remains required before real youth accounts are provisioned.
-2. **Backups:** age encryption and private R2 upload are implemented. Approve key custody/rotation, retention, deletion handling, recovery objectives, and operator access before real data.
+2. **Backups:** age encryption and private S3-compatible upload are implemented, with Cloudflare R2 as the first provider. Approve key custody/rotation, retention, deletion handling, recovery objectives, and operator access before real data.
 3. **Privacy operations:** settle consent/account ownership, retention/deletion requests, coach/admin access, and applicable youth-privacy obligations.
 4. **Recovery:** execute and time `LIVE_RESTORE_RUNBOOK.md` with test-only data.
 5. **Operations:** configure provider firewalling, OS patching, disk capacity alerts, uptime checks, and log retention.
 
-The Cloudflare PWA receives only `STRIDECREW_API_BASE_URL`; never configure a browser-visible API token. A connected deployment redirects unauthenticated players to `/login`, and the VM returns `401` for private endpoints without a valid server-issued session. The Sites build is a preview, not a production dependency.
+The Cloudflare PWA receives only `ZOOMIGO_API_BASE_URL`; never configure a browser-visible API token. The legacy binding is accepted only during migration. A connected deployment redirects unauthenticated players to `/login`, and the VM returns `401` for private endpoints without a valid server-issued session. The Sites build is a preview, not a production dependency.
 
 ## First provider and release pipeline
 

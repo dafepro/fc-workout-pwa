@@ -63,9 +63,9 @@ export default function LoginPage() {
     <main className="login-page">
       <section className="login-card" aria-labelledby="login-title">
         <div className="brand__mark" aria-hidden="true">
-          S
+          Z
         </div>
-        <p className="eyebrow">StrideCrew</p>
+        <p className="eyebrow">{copy.brand}</p>
         <h1 id="login-title">{copy.auth.loginTitle}</h1>
         <p>{copy.auth.loginIntro}</p>
         <form
