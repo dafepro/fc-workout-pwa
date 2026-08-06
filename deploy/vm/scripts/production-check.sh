@@ -38,10 +38,10 @@ curl --fail --silent --show-error "https://${site_address}/readyz" >/dev/null ||
 private_status=$(curl --silent --output /dev/null --write-out '%{http_code}' "https://${site_address}/v1/me/training-entries")
 [ "$private_status" = "401" ] || fail "the unauthenticated private-route check returned HTTP $private_status, want 401"
 
-systemctl is-enabled --quiet stridecrew-backup.timer || fail "the backup timer is not enabled"
-systemctl is-active --quiet stridecrew-backup.timer || fail "the backup timer is not active"
+systemctl is-enabled --quiet zoomigo-backup.timer || fail "the backup timer is not enabled"
+systemctl is-active --quiet zoomigo-backup.timer || fail "the backup timer is not active"
 
-latest_record=$(find "$backup_directory" -maxdepth 1 -type f -name 'stridecrew-backup-*-v1.tar.gz.age' -printf '%T@ %f\n' | sort -nr | head -n 1)
+latest_record=$(find "$backup_directory" -maxdepth 1 -type f -name 'zoomigo-backup-*-v1.tar.gz.age' -printf '%T@ %f\n' | sort -nr | head -n 1)
 [ -n "$latest_record" ] || fail "no encrypted local backup exists"
 latest_name=${latest_record#* }
 find "$backup_directory" -maxdepth 1 -type f -name "$latest_name" -mmin -1560 -print -quit | grep . >/dev/null || fail "the newest encrypted backup is more than 26 hours old"
@@ -49,9 +49,6 @@ find "$backup_directory" -maxdepth 1 -type f -name "$latest_name" -mmin -1560 -p
 if [ "$check_s3" = true ]; then
 	require_command rclone
 	s3_environment=/etc/zoomigo/backup-s3.env
-	if [ ! -f "$s3_environment" ] && [ -f /etc/stridecrew/r2.env ]; then
-		s3_environment=/etc/stridecrew/r2.env
-	fi
 	[ -f "$s3_environment" ] || fail "/etc/zoomigo/backup-s3.env is missing"
 	permissions=$(stat -c '%a' "$s3_environment")
 	case "$permissions" in 400|600) ;; *) fail "$s3_environment must have mode 0400 or 0600" ;; esac
@@ -59,17 +56,15 @@ if [ "$check_s3" = true ]; then
 	# The file is root-owned operator configuration, not application input.
 	. "$s3_environment"
 	backup_s3_endpoint=${BACKUP_S3_ENDPOINT:-}
-	[ -n "$backup_s3_endpoint" ] || [ -z "${R2_ACCOUNT_ID:-}" ] || backup_s3_endpoint="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
-	backup_s3_bucket=${BACKUP_S3_BUCKET:-${R2_BUCKET:-}}
-	backup_s3_access_key=${BACKUP_S3_ACCESS_KEY_ID:-${R2_ACCESS_KEY_ID:-}}
-	backup_s3_secret_key=${BACKUP_S3_SECRET_ACCESS_KEY:-${R2_SECRET_ACCESS_KEY:-}}
+	backup_s3_bucket=${BACKUP_S3_BUCKET:-}
+	backup_s3_access_key=${BACKUP_S3_ACCESS_KEY_ID:-}
+	backup_s3_secret_key=${BACKUP_S3_SECRET_ACCESS_KEY:-}
 	: "${backup_s3_endpoint:?BACKUP_S3_ENDPOINT is required}"
 	: "${backup_s3_bucket:?BACKUP_S3_BUCKET is required}"
 	: "${backup_s3_access_key:?BACKUP_S3_ACCESS_KEY_ID is required}"
 	: "${backup_s3_secret_key:?BACKUP_S3_SECRET_ACCESS_KEY is required}"
 	export RCLONE_CONFIG_ZOOMIGO_TYPE=s3
-	export RCLONE_CONFIG_ZOOMIGO_PROVIDER="${BACKUP_S3_PROVIDER:-${R2_ACCOUNT_ID:+Cloudflare}}"
-	export RCLONE_CONFIG_ZOOMIGO_PROVIDER="${RCLONE_CONFIG_ZOOMIGO_PROVIDER:-Other}"
+	export RCLONE_CONFIG_ZOOMIGO_PROVIDER="${BACKUP_S3_PROVIDER:-Other}"
 	export RCLONE_CONFIG_ZOOMIGO_ACCESS_KEY_ID="$backup_s3_access_key"
 	export RCLONE_CONFIG_ZOOMIGO_SECRET_ACCESS_KEY="$backup_s3_secret_key"
 	export RCLONE_CONFIG_ZOOMIGO_ENDPOINT="$backup_s3_endpoint"

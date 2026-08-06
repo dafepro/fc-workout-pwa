@@ -30,14 +30,14 @@ Health endpoints:
 
 ## Configuration
 
-| Variable           | Default                   | Purpose                                    |
-| ------------------ | ------------------------- | ------------------------------------------ |
-| `APP_ENV`          | `development`             | Runtime environment label                  |
-| `PORT`             | `8080`                    | HTTP listener port                         |
-| `DATABASE_URL`     | `file:data/stridecrew.db` | SQLite connection string; never logged     |
-| `ALLOWED_ORIGIN`   | `http://localhost:3000`   | Exact frontend origin allowed by CORS      |
-| `TEAM_TIME_ZONE`   | `America/Chicago`         | IANA zone used for team-local daily limits |
-| `SHUTDOWN_TIMEOUT` | `10s`                     | Graceful HTTP shutdown deadline            |
+| Variable           | Default                 | Purpose                                    |
+| ------------------ | ----------------------- | ------------------------------------------ |
+| `APP_ENV`          | `development`           | Runtime environment label                  |
+| `PORT`             | `8080`                  | HTTP listener port                         |
+| `DATABASE_URL`     | `file:data/zoomigo.db`  | SQLite connection string; never logged     |
+| `ALLOWED_ORIGIN`   | `http://localhost:3000` | Exact frontend origin allowed by CORS      |
+| `TEAM_TIME_ZONE`   | `America/Chicago`       | IANA zone used for team-local daily limits |
+| `SHUTDOWN_TIMEOUT` | `10s`                   | Graceful HTTP shutdown deadline            |
 
 `ENABLE_E2E_FIXTURES` and `E2E_RESET_KEY` exist only for the local E2E stack. Fixtures require all of an `e2e`-tagged binary, `APP_ENV=e2e`, and the explicit enable flag. A normal production build rejects them.
 
@@ -58,7 +58,7 @@ The portable manual deployment bundle is in `deploy/vm/`. It runs the API behind
 - Production player authentication uses a unique reissuable 256-bit QR credential plus exactly four PIN digits, Argon2id verification, bounded password work, throttling, and revocable opaque sessions.
 - E2E bearer identities remain local fixtures for older API-focused scenarios; QR+PIN session lifecycle coverage uses the real session service and database.
 - Training-entry create/list/detail/delete and contextual reactions use the real Go/SQLite API in the Docker E2E environment.
-- The PWA worker selects the real API with `ZOOMIGO_API_BASE_URL` (temporarily accepting `STRIDECREW_API_BASE_URL` as a compatibility alias), keeps the bearer in an HTTP-only same-origin cookie, and uses its local adapter only when that binding is absent.
+- The PWA worker selects the real API with `ZOOMIGO_API_BASE_URL` (temporarily accepting `ZOOMIGO_API_BASE_URL` as a compatibility alias), keeps the bearer in an HTTP-only same-origin cookie, and uses its local adapter only when that binding is absent.
 - Safe Team/leaderboard projections, cursor pagination, guardian recovery policy, and hosted API operations remain pending.
 - API, authorization, and data-model drafts are in `docs/backend/`.
 - The migration-aware flat-file backup CLI, age encryption, bounded local retention, private R2 upload, isolated restore drill, and live-cutover runbook are implemented. Key custody, R2 lifecycle, and launch policies still require owner approval.

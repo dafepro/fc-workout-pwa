@@ -1,0 +1,6 @@
+region               = "nyc3"
+droplet_size         = "s-1vcpu-512mb-10gb"
+ssh_public_key       = "ssh-ed25519 REPLACE_WITH_DEPLOY_PUBLIC_KEY zoomigo-deploy"
+ssh_source_addresses = ["203.0.113.10/32"]
+cloudflare_zone_id   = "REPLACE_WITH_ZONE_ID"
+api_dns_name         = "api.quicktrack.cc"

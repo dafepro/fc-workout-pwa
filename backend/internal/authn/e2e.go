@@ -16,22 +16,22 @@ type E2EFixtures struct {
 func NewE2EFixtures() E2EFixtures {
 	return E2EFixtures{actors: map[string]domain.Actor{
 		"e2e-player-mason": {
-			AccountID: "account-mason", Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-stridecrew",
+			AccountID: "account-mason", Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-zoomigo",
 		},
 		"e2e-player-ava": {
-			AccountID: "account-ava", Role: domain.RolePlayer, PlayerID: "player-ava", ClubID: "club-stridecrew",
+			AccountID: "account-ava", Role: domain.RolePlayer, PlayerID: "player-ava", ClubID: "club-zoomigo",
 		},
 		"e2e-player-liam": {
-			AccountID: "account-liam", Role: domain.RolePlayer, PlayerID: "player-liam", ClubID: "club-stridecrew",
+			AccountID: "account-liam", Role: domain.RolePlayer, PlayerID: "player-liam", ClubID: "club-zoomigo",
 		},
 		"e2e-coach-hill": {
-			AccountID: "account-coach-hill", Role: domain.RoleCoach, ClubID: "club-stridecrew", AssignedTeamIDs: []string{"team-hill-striders"},
+			AccountID: "account-coach-hill", Role: domain.RoleCoach, ClubID: "club-zoomigo", AssignedTeamIDs: []string{"team-hill-striders"},
 		},
-		"e2e-admin-stridecrew": {
-			AccountID: "account-admin-stridecrew", Role: domain.RoleClubAdmin, ClubID: "club-stridecrew",
+		"e2e-admin-zoomigo": {
+			AccountID: "account-admin-zoomigo", Role: domain.RoleClubAdmin, ClubID: "club-zoomigo",
 		},
 		"e2e-coach-other": {
-			AccountID: "account-coach-other", Role: domain.RoleCoach, ClubID: "club-stridecrew", AssignedTeamIDs: []string{"team-other"},
+			AccountID: "account-coach-other", Role: domain.RoleCoach, ClubID: "club-zoomigo", AssignedTeamIDs: []string{"team-other"},
 		},
 		"e2e-admin-other": {
 			AccountID: "account-admin-other", Role: domain.RoleClubAdmin, ClubID: "club-other",

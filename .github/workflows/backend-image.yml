@@ -1,4 +1,4 @@
-name: Backend image
+name: Verify and release ZoomiGo
 
 on:
   pull_request:
@@ -9,7 +9,7 @@ on:
 
 concurrency:
   group: backend-image-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -36,6 +36,10 @@ jobs:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
 
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: 1.10.10
+
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
@@ -54,9 +58,22 @@ jobs:
           go vet ./...
           go test ./...
 
-      - name: Deployment configuration contract
+      - name: Deployment and release contracts
         shell: pwsh
-        run: ./scripts/deployment-contract.ps1
+        run: |
+          ./scripts/deployment-contract.ps1
+          ./scripts/zoomigo-branding-contract.ps1
+          ./scripts/migration-contract.ps1
+          ./scripts/secrets-contract.ps1
+          ./scripts/release-contract.ps1
+          ./scripts/iac-contract.ps1
+
+      - name: OpenTofu format and validation
+        working-directory: infra/digitalocean
+        run: |
+          tofu fmt -check
+          tofu init -backend=false
+          tofu validate
 
       - name: Docker end-to-end suites
         shell: pwsh
@@ -98,3 +115,40 @@ jobs:
           cache-to: type=gha,mode=max
           provenance: mode=max
           sbom: true
+
+  deploy:
+    name: Deploy VM and Cloudflare Worker
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.PRODUCTION_DEPLOY_ENABLED == 'true'
+    needs: publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.20.0
+          cache: pnpm
+
+      - name: Install age
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y age
+
+      - name: Release the verified revision
+        env:
+          DEPLOY_AGE_IDENTITY: ${{ secrets.ZOOMIGO_DEPLOY_AGE_IDENTITY }}
+        run: |
+          test -n "$DEPLOY_AGE_IDENTITY"
+          identity="$RUNNER_TEMP/zoomigo-deploy-age-identity"
+          trap 'rm -f -- "$identity"' EXIT
+          umask 077
+          printf '%s\n' "$DEPLOY_AGE_IDENTITY" > "$identity"
+          ./deploy/release/release.sh "$identity" "${{ github.sha }}"

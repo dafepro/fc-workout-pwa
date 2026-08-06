@@ -3,9 +3,8 @@ $ErrorActionPreference = "Stop"
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $composeFile = Join-Path $repositoryRoot "deploy\vm\compose.yaml"
 $workflowFile = Join-Path $repositoryRoot ".github\workflows\backend-image.yml"
-$pwaWorkflowFile = Join-Path $repositoryRoot ".github\workflows\cloudflare-pwa.yml"
-$backupService = Join-Path $repositoryRoot "deploy\vm\systemd\stridecrew-backup.service"
-$backupTimer = Join-Path $repositoryRoot "deploy\vm\systemd\stridecrew-backup.timer"
+$backupService = Join-Path $repositoryRoot "deploy\vm\systemd\zoomigo-backup.service"
+$backupTimer = Join-Path $repositoryRoot "deploy\vm\systemd\zoomigo-backup.timer"
 $productionCheck = Join-Path $repositoryRoot "deploy\vm\scripts\production-check.sh"
 $s3UploadScript = Join-Path $repositoryRoot "deploy\vm\scripts\upload-backup-s3.sh"
 $backupInstaller = Join-Path $repositoryRoot "deploy\vm\scripts\install-backup-service.sh"
@@ -39,7 +38,7 @@ function Assert-True {
 New-Item -ItemType Directory -Force -Path $contractRoot | Out-Null
 
 $environmentContents = @"
-COMPOSE_PROJECT_NAME=stridecrew-contract
+COMPOSE_PROJECT_NAME=zoomigo-contract
 API_IMAGE=ghcr.io/dafepro/fc-workout-pwa/api:sha-0123456789abcdef
 APP_VERSION=0123456789abcdef
 BACKUP_AGE_RECIPIENT=age1contractrecipient
@@ -49,10 +48,10 @@ PRODUCTION_DATA_APPROVED=false
 CADDY_SITE_ADDRESS=api.example.com
 PWA_ORIGIN=https://zoomigo.example
 TEAM_TIME_ZONE=America/Chicago
-DATA_DIR=/var/lib/stridecrew/data
-BACKUP_DIR=/var/backups/stridecrew
-RESTORE_DIR=/var/lib/stridecrew/restore
-ADMIN_OUTPUT_DIR=/var/lib/stridecrew/admin-output
+DATA_DIR=/var/lib/zoomigo/data
+BACKUP_DIR=/var/backups/zoomigo
+RESTORE_DIR=/var/lib/zoomigo/restore
+ADMIN_OUTPUT_DIR=/var/lib/zoomigo/admin-output
 "@
 [System.IO.File]::WriteAllText(
   $envFile,
@@ -80,7 +79,6 @@ try {
   }
 
   Assert-True (Test-Path -LiteralPath $workflowFile) "The checked backend image workflow is missing."
-  Assert-True (Test-Path -LiteralPath $pwaWorkflowFile) "The Cloudflare production PWA workflow is missing."
   Assert-True (Test-Path -LiteralPath $backupService) "The daily backup systemd service is missing."
   Assert-True (Test-Path -LiteralPath $backupTimer) "The daily backup systemd timer is missing."
   Assert-True (Test-Path -LiteralPath $productionCheck) "The production readiness check is missing."
@@ -89,9 +87,9 @@ try {
   Assert-True (Test-Path -LiteralPath $approvalChecklist) "The production approval checklist is missing."
   Assert-True (Test-Path -LiteralPath $liveRestoreRunbook) "The live restore runbook is missing."
 
-  $pwaWorkflowContents = Get-Content -LiteralPath $pwaWorkflowFile -Raw
-  Assert-True ($pwaWorkflowContents.Contains('ZOOMIGO_API_BASE_URL')) "The production PWA workflow must use the ZoomiGo API binding."
-  Assert-True ($pwaWorkflowContents.Contains('--name zoomigo-training')) "The production Worker must use the ZoomiGo service name."
+  $workflowContents = Get-Content -LiteralPath $workflowFile -Raw
+  Assert-True ($workflowContents.Contains('deploy/release/release.sh')) "The checked release workflow must deploy the VM and Worker together."
+  Assert-True ($workflowContents.Contains('PRODUCTION_DEPLOY_ENABLED')) "Production deployment must have an explicit enable gate."
 
   $deployScript = Get-Content -LiteralPath (Join-Path $repositoryRoot "deploy\vm\scripts\deploy.sh") -Raw
   Assert-True ($deployScript.Contains('compose pull api caddy')) "Production deployment must pull the prebuilt API and Caddy images."
@@ -107,12 +105,10 @@ try {
 
   $backupServiceContents = Get-Content -LiteralPath $backupService -Raw
   Assert-True ($backupServiceContents.Contains('EnvironmentFile=-/etc/zoomigo/backup-s3.env')) "The backup service must load its root-owned S3 credentials file."
-  Assert-True ($backupServiceContents.Contains('EnvironmentFile=-/etc/stridecrew/r2.env')) "The backup service must retain a temporary legacy credential-file alias."
   Assert-True ($backupServiceContents.Contains('WorkingDirectory=/opt/app/deploy/vm')) "The backup service must match the deployed repository checkout."
 
   $s3UploadContents = Get-Content -LiteralPath $s3UploadScript -Raw
   Assert-True ($s3UploadContents.Contains('BACKUP_S3_ENDPOINT')) "The uploader must use a provider-neutral S3 endpoint."
-  Assert-True ($s3UploadContents.Contains('R2_ACCOUNT_ID')) "The uploader must retain the documented R2 transition alias."
 
   $backupInstallerContents = Get-Content -LiteralPath $backupInstaller -Raw
   Assert-True ($backupInstallerContents.Contains('DEPLOY_DIRECTORY')) "The backup installer must derive the active checkout path."

@@ -1,0 +1,38 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+packages:
+  - docker.io
+  - docker-compose-v2
+  - git
+  - rclone
+  - unattended-upgrades
+
+users:
+  - default
+  - name: zoomigo
+    groups: [sudo, docker]
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: true
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+ssh_pwauth: false
+disable_root: true
+
+write_files:
+  - path: /etc/ssh/sshd_config.d/90-zoomigo.conf
+    owner: root:root
+    permissions: "0644"
+    content: |
+      PasswordAuthentication no
+      PermitRootLogin no
+
+runcmd:
+  - [mkdir, -p, /opt/app, /etc/zoomigo, /var/lib/zoomigo/data, /var/lib/zoomigo/restore, /var/lib/zoomigo/admin-output, /var/backups/zoomigo]
+  - [chown, -R, "zoomigo:zoomigo", /opt/app]
+  - [chmod, "0700", /etc/zoomigo, /var/lib/zoomigo/restore, /var/lib/zoomigo/admin-output, /var/backups/zoomigo]
+  - [systemctl, enable, --now, docker]
+  - [systemctl, restart, ssh]
+  - [bash, -lc, "test -e /swapfile || (fallocate -l 1G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile && echo '/swapfile none swap sw 0 0' >> /etc/fstab)"]

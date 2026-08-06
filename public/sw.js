@@ -1,4 +1,4 @@
-const CACHE_NAME = "stridecrew-shell-v3";
+const CACHE_NAME = "zoomigo-shell-v4";
 const APP_SHELL = [
   "/",
   "/log",

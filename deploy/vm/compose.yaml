@@ -1,4 +1,4 @@
-name: ${COMPOSE_PROJECT_NAME:-stridecrew}
+name: ${COMPOSE_PROJECT_NAME:-zoomigo}
 
 x-logging: &bounded-logging
   driver: local
@@ -8,7 +8,7 @@ x-logging: &bounded-logging
 
 services:
   api:
-    image: ${API_IMAGE:-stridecrew-api:local}
+    image: ${API_IMAGE:-zoomigo-api:local}
     build:
       context: ../../backend
       dockerfile: Dockerfile
@@ -19,7 +19,7 @@ services:
     environment:
       ALLOWED_ORIGIN: ${PWA_ORIGIN:?PWA_ORIGIN must be set}
       APP_ENV: production
-      DATABASE_URL: file:/data/stridecrew.db
+      DATABASE_URL: file:/data/zoomigo.db
       GOMEMLIMIT: 192MiB
       GOMAXPROCS: "1"
       PORT: "8080"
@@ -108,13 +108,13 @@ services:
       - backend
 
   backup:
-    image: ${API_IMAGE:-stridecrew-api:local}
+    image: ${API_IMAGE:-zoomigo-api:local}
     profiles:
       - operations
     entrypoint:
-      - /stridecrew-backup
+      - /zoomigo-backup
     environment:
-      DATABASE_URL: file:/data/stridecrew.db
+      DATABASE_URL: file:/data/zoomigo.db
       TMPDIR: /restore
     volumes:
       - type: bind
@@ -144,13 +144,13 @@ services:
       - backend
 
   admin:
-    image: ${API_IMAGE:-stridecrew-api:local}
+    image: ${API_IMAGE:-zoomigo-api:local}
     profiles:
       - operations
     entrypoint:
-      - /stridecrew-admin
+      - /zoomigo-admin
     environment:
-      DATABASE_URL: file:/data/stridecrew.db
+      DATABASE_URL: file:/data/zoomigo.db
       PRODUCTION_DATA_APPROVED: ${PRODUCTION_DATA_APPROVED:-false}
     volumes:
       - type: bind

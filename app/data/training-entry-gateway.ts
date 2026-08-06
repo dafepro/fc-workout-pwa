@@ -40,7 +40,7 @@ interface APITrainingEntry {
   deleteEligibleUntil: string;
 }
 
-const LOCAL_ENTRIES_KEY = "stridecrew-milestone-1";
+const LOCAL_ENTRIES_KEY = "zoomigo-milestone-1";
 
 class HTTPTrainingEntryGateway implements TrainingEntryGateway {
   constructor(private readonly teamID: string) {}
@@ -53,7 +53,7 @@ class HTTPTrainingEntryGateway implements TrainingEntryGateway {
 
   async get(entryID: string): Promise<TrainingEntry | null> {
     const response = await fetch(
-      `/api/stridecrew/v1/training-entries/${encodeURIComponent(entryID)}`,
+      `/api/zoomigo/v1/training-entries/${encodeURIComponent(entryID)}`,
     );
     if (response.status === 404) return null;
     await throwForError(response);
@@ -68,7 +68,7 @@ class HTTPTrainingEntryGateway implements TrainingEntryGateway {
         "That activity is unavailable.",
       );
     }
-    const response = await fetch("/api/stridecrew/v1/me/training-entries", {
+    const response = await fetch("/api/zoomigo/v1/me/training-entries", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -93,7 +93,7 @@ class HTTPTrainingEntryGateway implements TrainingEntryGateway {
 
   async delete(entryID: string): Promise<void> {
     const response = await fetch(
-      `/api/stridecrew/v1/training-entries/${encodeURIComponent(entryID)}`,
+      `/api/zoomigo/v1/training-entries/${encodeURIComponent(entryID)}`,
       {
         method: "DELETE",
       },
@@ -102,7 +102,7 @@ class HTTPTrainingEntryGateway implements TrainingEntryGateway {
   }
 
   private async request(path: string): Promise<Response> {
-    const response = await fetch(`/api/stridecrew${path}`);
+    const response = await fetch(`/api/zoomigo${path}`);
     await throwForError(response);
     return response;
   }

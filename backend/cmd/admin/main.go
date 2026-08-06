@@ -51,7 +51,7 @@ func run(arguments []string) error {
 
 func bootstrapTeam(ctx context.Context, arguments []string) error {
 	flags := flag.NewFlagSet("bootstrap-team", flag.ContinueOnError)
-	databaseURL := flags.String("database-url", envOr("DATABASE_URL", "file:data/stridecrew.db"), "SQLite database URL")
+	databaseURL := flags.String("database-url", envOr("DATABASE_URL", "file:data/zoomigo.db"), "SQLite database URL")
 	clubName := flags.String("club-name", "", "club name")
 	teamName := flags.String("team-name", "", "team name")
 	seasonID := flags.String("season-id", "", "season identifier")
@@ -99,7 +99,7 @@ func bootstrapTeam(ctx context.Context, arguments []string) error {
 
 func provisionPlayer(ctx context.Context, arguments []string) error {
 	flags := flag.NewFlagSet("provision-player", flag.ContinueOnError)
-	databaseURL := flags.String("database-url", envOr("DATABASE_URL", "file:data/stridecrew.db"), "")
+	databaseURL := flags.String("database-url", envOr("DATABASE_URL", "file:data/zoomigo.db"), "")
 	teamID := flags.String("team-id", "", "")
 	first := flags.String("first-name", "", "")
 	last := flags.String("last-initial", "", "")
@@ -159,7 +159,7 @@ func provisionPlayer(ctx context.Context, arguments []string) error {
 
 func rotatePlayer(ctx context.Context, arguments []string) error {
 	flags := flag.NewFlagSet("rotate-player-login", flag.ContinueOnError)
-	databaseURL := flags.String("database-url", envOr("DATABASE_URL", "file:data/stridecrew.db"), "")
+	databaseURL := flags.String("database-url", envOr("DATABASE_URL", "file:data/zoomigo.db"), "")
 	playerID := flags.String("player-id", "", "")
 	loginURL := flags.String("login-url", "", "")
 	qrOutput := flags.String("qr-output", "", "")
@@ -184,7 +184,7 @@ func rotatePlayer(ctx context.Context, arguments []string) error {
 
 func revokePlayer(ctx context.Context, arguments []string) error {
 	flags := flag.NewFlagSet("revoke-player-login", flag.ContinueOnError)
-	databaseURL := flags.String("database-url", envOr("DATABASE_URL", "file:data/stridecrew.db"), "")
+	databaseURL := flags.String("database-url", envOr("DATABASE_URL", "file:data/zoomigo.db"), "")
 	playerID := flags.String("player-id", "", "")
 	if err := flags.Parse(arguments); err != nil {
 		return err
@@ -306,5 +306,5 @@ func requireProvisioningApproval(testOnly bool) error {
 	return errors.New("real player provisioning is locked; complete the production approval checklist and set PRODUCTION_DATA_APPROVED=true, or use --test-only for a disposable test identity")
 }
 func usageError() error {
-	return errors.New("usage: stridecrew-admin bootstrap-team|provision-player|rotate-player-login|revoke-player-login [flags]")
+	return errors.New("usage: zoomigo-admin bootstrap-team|provision-player|rotate-player-login|revoke-player-login [flags]")
 }

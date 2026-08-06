@@ -8,8 +8,9 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
 - Final logo, type, color tokens, and icon set remain open.
 - Approved Zoomi mascot artwork is required before mascot integration; Rover
   still needs an approved visual direction or asset.
-- Existing `stridecrew` cookie, database, archive, and service identifiers are
-  temporary compatibility names until a state-preserving migration is proven.
+- Native `zoomigo` cookie, database, archive, route, cache, binary, project,
+  and service identifiers are the supported runtime contract. A guarded
+  one-time host utility preserves data from the pre-rebrand installation.
 
 ## Authentication
 
@@ -72,8 +73,10 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
 - Implemented operations baseline: Ubuntu security updates run daily without unattended reboot; required reboots are completed within seven days, container logs are bounded, the production check requires at least 1 GiB free, and free DigitalOcean resource alerts start at the documented disk/memory/CPU thresholds. Choose the external `/readyz` monitor and notification destination.
 - QR/PIN authentication and the same-origin PWA cookie gateway are implemented. Real youth-data deployment still requires guardian ownership/recovery policy, secure credential distribution, and privacy approval.
 - Implemented safety gate: production player provisioning defaults locked and accepts only explicit `--test-only` identities until `PRODUCTION_DATA_APPROVED=true` is deliberately configured after approval.
-- Implemented release candidate: GitHub Actions runs static/build gates before Docker E2E and publishes an immutable GHCR image. VM deployment is still operator-triggered; repository secrets and production host state remain outside source control.
-- Selected production frontend host: Cloudflare Workers free tier, deployed manually through the production GitHub environment. Sites remains preview-only. Choose the final Cloudflare-zone hostname before deployment.
+- Implemented release candidate: one serialized GitHub workflow runs static/build gates before Docker E2E, publishes an immutable GHCR image, then deploys the VM and Cloudflare Worker through a disabled-by-default protected environment. The identical encrypted-bundle release path is available locally during a GitHub incident.
+- Implemented secret baseline: one dedicated age identity decrypts the exact deployment bundle in CI; a separate operator identity provides recovery. Neither identity is the database-backup recovery key. The remaining decisions are custodian identities, rotation interval, and repository environment-review availability.
+- Implemented IaC baseline: plan-only OpenTofu models the DigitalOcean Droplet, restricted firewall, proxied API DNS, and secret-free cloud-init. Importing the current host is preferred; replacement and apply remain explicit operator decisions protected from CI and accidental destroy.
+- Selected production frontend host: Cloudflare Workers free tier, deployed as part of the ordered protected release. Sites remains preview-only. Choose the final Cloudflare-zone hostname before deployment.
 
 ## Milestone 1 prototype assumptions
 
@@ -87,7 +90,7 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
 - Date and 24-hour deletion checks use the player's current device time until a trusted server clock exists.
 - The PWA frontend will remain independently cloud-hostable and will use a small JSON API boundary when the backend is added.
 - The first training-entry API treats the previous seven team-local calendar dates plus today as eligible, rejects future timestamps, and sets deletion eligibility to exactly 24 hours after the trusted server creation time.
-- Until the Cloudflare PWA receives a production `ZOOMIGO_API_BASE_URL` binding (or the temporary legacy alias), the privately hosted Sites preview remains in explicit device-local prototype mode. Connected builds keep the opaque API session in a same-origin HTTP-only cookie and never expose it through `VITE_*` variables.
+- Until the Cloudflare PWA receives a production `ZOOMIGO_API_BASE_URL` binding, the privately hosted Sites preview remains in explicit device-local prototype mode. Connected builds keep the opaque API session in a same-origin HTTP-only cookie and never expose it through `VITE_*` variables.
 - The milestone 2 backend starts with Go `database/sql`, CGo-free SQLite, one API replica, and a persistent volume. Repository boundaries preserve a managed Postgres move when horizontal replicas, higher concurrent writes, or managed HA/PITR justify the extra operations.
 - Milestone 1 uses device-local persistence as required by the prototype boundary and does not add framework-specific server actions, so the Go API can replace the local store without rewriting the view components.
 - Milestone 1 streak comparisons use a centralized, predefined kid-safe pool and client-side random selection. The milestone 2 Go API should choose and return the comparison template while keeping free-form content out of player-facing responses.

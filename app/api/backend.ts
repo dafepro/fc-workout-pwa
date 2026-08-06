@@ -1,22 +1,15 @@
 import { env } from "cloudflare:workers";
 import { resolveBackendBaseURL } from "./backend-config";
 
-export const SESSION_COOKIE = "__Host-stridecrew_session";
-export const LOCAL_SESSION_COOKIE = "stridecrew_session_local";
+export const SESSION_COOKIE = "__Host-zoomigo_session";
+export const LOCAL_SESSION_COOKIE = "zoomigo_session_local";
 
 export function backendBaseURL(): string | null {
-  const workerEnv = env as {
-    ZOOMIGO_API_BASE_URL?: string;
-    STRIDECREW_API_BASE_URL?: string;
-  };
-  return resolveBackendBaseURL({
-    zoomigo:
-      workerEnv.ZOOMIGO_API_BASE_URL?.trim() ||
-      process.env.ZOOMIGO_API_BASE_URL,
-    stridecrew:
-      workerEnv.STRIDECREW_API_BASE_URL?.trim() ||
-      process.env.STRIDECREW_API_BASE_URL,
-  });
+  const workerValue = (env as { ZOOMIGO_API_BASE_URL?: string })
+    .ZOOMIGO_API_BASE_URL;
+  return resolveBackendBaseURL(
+    workerValue?.trim() || process.env.ZOOMIGO_API_BASE_URL,
+  );
 }
 
 export function sessionCookieName(request: Request): string {

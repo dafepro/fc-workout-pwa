@@ -21,11 +21,11 @@ case "$retention_days" in
 esac
 [ "$retention_days" -ge 1 ] && [ "$retention_days" -le 90 ] || fail "LOCAL_BACKUP_RETENTION_DAYS must be an integer from 1 through 90"
 
-archive_name="stridecrew-backup-$(date -u +%Y%m%dT%H%M%SZ)-v1.tar.gz.age"
+archive_name="zoomigo-backup-$(date -u +%Y%m%dT%H%M%SZ)-v1.tar.gz.age"
 archive_path="/backups/${archive_name}"
 
 compose run --rm backup create-encrypted \
-	--database-url file:/data/stridecrew.db \
+	--database-url file:/data/zoomigo.db \
 	--output "$archive_path" \
 	--recipient "$backup_recipient" \
 	--app-version "$application_version"
@@ -33,11 +33,10 @@ compose run --rm backup create-encrypted \
 printf '%s\n' "Created, verified, and age-encrypted $archive_name."
 
 upload_enabled=$(env_value BACKUP_S3_UPLOAD_ENABLED)
-[ -n "$upload_enabled" ] || upload_enabled=$(env_value R2_UPLOAD_ENABLED)
 case "$upload_enabled" in
 	true)
 		"$SCRIPT_DIRECTORY/upload-backup-s3.sh" "$ENV_FILE" "$archive_name"
-		find "$backup_directory" -maxdepth 1 -type f -name 'stridecrew-backup-*-v1.tar.gz.age' -mtime "+$retention_days" -delete
+		find "$backup_directory" -maxdepth 1 -type f -name 'zoomigo-backup-*-v1.tar.gz.age' -mtime "+$retention_days" -delete
 		printf '%s\n' "Pruned local encrypted backups older than $retention_days days after the successful S3 upload."
 		;;
 	false|"") printf '%s\n' "Warning: S3 upload is disabled; this backup remains on one host." ;;

@@ -2,7 +2,7 @@
 
 ## Delivered boundary
 
-The `stridecrew-backup` Go command creates, verifies, age-encrypts, and restores a migration-aware flat-file archive. Cryptography and restore behavior are local and require no cloud service. The VM upload script sends only the encrypted envelope to a private Cloudflare R2 bucket.
+The `zoomigo-backup` Go command creates, verifies, age-encrypts, and restores a migration-aware flat-file archive. Cryptography and restore behavior are local and require no cloud service. The VM upload script sends only the encrypted envelope to a private Cloudflare R2 bucket.
 
 The command deliberately has no HTTP endpoint. Backup and restore paths are supplied only by an authorized host operator or scheduler, never by a player-facing request.
 
@@ -11,7 +11,7 @@ The command deliberately has no HTTP endpoint. Backup and restore paths are supp
 The verified payload is one gzip-compressed tar archive:
 
 ```text
-stridecrew-backup-2026-08-05T190000Z-v1.tar.gz
+zoomigo-backup-2026-08-05T190000Z-v1.tar.gz
 ├── manifest.json
 ├── database.sqlite3
 └── SHA256SUMS
@@ -34,13 +34,13 @@ The format version describes the archive, not the database schema. Older SQLite 
 Plaintext commands remain available for local tests and format tooling:
 
 ```text
-stridecrew-backup create \
-  --database-url file:/data/stridecrew.db \
-  --output /backups/stridecrew-backup-2026-08-05T190000Z-v1.tar.gz \
+zoomigo-backup create \
+  --database-url file:/data/zoomigo.db \
+  --output /backups/zoomigo-backup-2026-08-05T190000Z-v1.tar.gz \
   --app-version <deployed-version>
 
-stridecrew-backup verify \
-  --archive /backups/stridecrew-backup-2026-08-05T190000Z-v1.tar.gz
+zoomigo-backup verify \
+  --archive /backups/zoomigo-backup-2026-08-05T190000Z-v1.tar.gz
 ```
 
 Creation uses SQLite `VACUUM INTO` to make a transactionally consistent standalone snapshot of the live WAL database. The source database is unchanged. Deleted SQLite pages are not carried into the snapshot.
@@ -58,9 +58,9 @@ An existing archive is never overwritten.
 Production creation uses an age X25519 public recipient:
 
 ```text
-stridecrew-backup create-encrypted \
-  --database-url file:/data/stridecrew.db \
-  --output /backups/stridecrew-backup-2026-08-05T190000Z-v1.tar.gz.age \
+zoomigo-backup create-encrypted \
+  --database-url file:/data/zoomigo.db \
+  --output /backups/zoomigo-backup-2026-08-05T190000Z-v1.tar.gz.age \
   --recipient age1... \
   --app-version <deployed-version>
 ```
@@ -70,9 +70,9 @@ The command creates and verifies the protected payload, encrypts it, atomically 
 An authorized recovery operator can authenticate and verify the envelope with a temporarily supplied identity file:
 
 ```text
-stridecrew-backup verify-encrypted \
-  --archive /backups/stridecrew-backup-2026-08-05T190000Z-v1.tar.gz.age \
-  --identity /restore/stridecrew-backup-identity.txt
+zoomigo-backup verify-encrypted \
+  --archive /backups/zoomigo-backup-2026-08-05T190000Z-v1.tar.gz.age \
+  --identity /restore/zoomigo-backup-identity.txt
 ```
 
 The wrong identity, a modified envelope, a modified inner archive, or a mismatched checksum fails closed.
@@ -80,10 +80,10 @@ The wrong identity, a modified envelope, a modified inner archive, or a mismatch
 ## Isolated restore
 
 ```text
-stridecrew-backup restore-encrypted \
-  --archive /backups/stridecrew-backup-2026-08-05T190000Z-v1.tar.gz.age \
-  --identity /restore/stridecrew-backup-identity.txt \
-  --target /restore/stridecrew-restored.db
+zoomigo-backup restore-encrypted \
+  --archive /backups/zoomigo-backup-2026-08-05T190000Z-v1.tar.gz.age \
+  --identity /restore/zoomigo-backup-identity.txt \
+  --target /restore/zoomigo-restored.db
 ```
 
 Restore is intentionally non-destructive:

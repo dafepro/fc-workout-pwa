@@ -12,7 +12,7 @@ const (
 	defaultPort            = 8080
 	defaultShutdownTimeout = 10 * time.Second
 	defaultTeamTimeZone    = "America/Chicago"
-	defaultDatabaseURL     = "file:data/stridecrew.db"
+	defaultDatabaseURL     = "file:data/zoomigo.db"
 )
 
 type Config struct {

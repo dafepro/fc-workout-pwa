@@ -13,7 +13,7 @@ Caddy on VM ports 80/443
         |
         | private Docker network
         v
-one Go API container --> /var/lib/stridecrew/data/stridecrew.db
+one Go API container --> /var/lib/zoomigo/data/zoomigo.db
         |
         +--> operator-only backup/admin CLIs --> protected host directories
 ```

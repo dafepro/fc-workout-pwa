@@ -48,5 +48,18 @@ next-env.d.ts
 /.codex/
 /backend/data/
 /backend/coverage.out
-/backend/stridecrew-api*
+/backend/zoomigo-api*
+
+# Production deployment secrets are committed only as an age-encrypted bundle.
+/deploy/secrets/plaintext/
+/deploy/secrets/opened/
+/deploy/secrets/*.identity
+/deploy/secrets/*.key
+/deploy/secrets/*identity*
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
+**/*.tfplan
+**/terraform.tfvars
+**/*.auto.tfvars
 /backend/*.exe

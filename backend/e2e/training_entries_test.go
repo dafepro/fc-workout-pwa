@@ -11,7 +11,7 @@ import (
 
 const (
 	hillCoachToken  = "e2e-coach-hill"
-	clubAdminToken  = "e2e-admin-stridecrew"
+	clubAdminToken  = "e2e-admin-zoomigo"
 	otherCoachToken = "e2e-coach-other"
 	otherAdminToken = "e2e-admin-other"
 )

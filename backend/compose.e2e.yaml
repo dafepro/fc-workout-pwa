@@ -7,7 +7,7 @@ services:
     environment:
       ALLOWED_ORIGIN: http://[::1]:3000
       APP_ENV: e2e
-      DATABASE_URL: file:/data/stridecrew-e2e.db
+      DATABASE_URL: file:/data/zoomigo-e2e.db
       ENABLE_E2E_FIXTURES: "true"
       E2E_RESET_KEY: local-e2e-reset-only
       TEAM_TIME_ZONE: America/Chicago
@@ -53,9 +53,9 @@ services:
         condition: service_healthy
     environment:
       E2E_BASE_URL: http://api:8080
-      E2E_API_BINARY: /out/stridecrew-api
-      E2E_BACKUP_BINARY: /out/stridecrew-backup
-      E2E_DATABASE_URL: file:/data/stridecrew-e2e.db
+      E2E_API_BINARY: /out/zoomigo-api
+      E2E_BACKUP_BINARY: /out/zoomigo-backup
+      E2E_DATABASE_URL: file:/data/zoomigo-e2e.db
       E2E_RESET_KEY: local-e2e-reset-only
     volumes:
       - e2e-data:/data

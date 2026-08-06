@@ -17,7 +17,20 @@ The production PWA runs on Cloudflare Workers' free tier and connects through it
 
 ## First deployment
 
-Run from `deploy/vm/` on the VM:
+For an existing pre-rebrand host, do not copy `.env.example` over the live
+environment. Check out the reviewed native ZoomiGo revision and run the guarded
+one-time copy first:
+
+```sh
+cd /opt/app/deploy/vm
+sudo ./scripts/migrate-legacy-install.sh .env
+```
+
+It creates a verified encrypted backup and preserves the source database. Pin
+the new immutable image/version and verify the new service before retiring any
+old state. See the full DigitalOcean runbook for the rollback boundary.
+
+For a new host, run from `deploy/vm/` on the VM:
 
 ```sh
 cp .env.example .env
@@ -31,7 +44,7 @@ sudo ./scripts/prepare-host.sh .env
 ./scripts/deploy.sh .env
 ```
 
-`prepare-small-vm.sh` adds a 1 GiB swap safety cushion for the 512 MiB plan. `prepare-host.sh` refuses broad paths and creates the configured directories with mode `0700`, owned by the API container's numeric uid/gid. For production, `deploy.sh` pulls the immutable `sha-*` image that already passed CI; a `stridecrew-api:*` image name retains the local source-build path used by the VM smoke test.
+`prepare-small-vm.sh` adds a 1 GiB swap safety cushion for the 512 MiB plan. `prepare-host.sh` refuses broad paths and creates the configured directories with mode `0700`, owned by the API container's numeric uid/gid. For production, `deploy.sh` pulls the immutable `sha-*` image that already passed CI; a `zoomigo-api:*` image name retains the local source-build path used by the VM smoke test.
 
 Verify the safety lock after deployment:
 
@@ -63,23 +76,31 @@ Use an allowed four-digit PIN and distribute it separately from the QR code. Rep
 
 ## Update
 
-Before an application update, create a verified backup. Then check out the reviewed revision and run the same deploy script:
+Routine production updates should use the ordered release entrypoint. Both the
+protected GitHub environment and an operator fallback decrypt the same bundle
+and call it:
 
 ```sh
-./scripts/backup.sh .env
-git pull --ff-only
-./scripts/deploy.sh .env
+./deploy/release/release.sh /secure/path/zoomigo-operator-age-identity RELEASE_SHA
 ```
 
-The database lives outside the container and embedded forward migrations run before the API becomes ready. Run only one API replica against this SQLite file.
+During an Actions outage where the immutable image was not published, log in to
+GHCR through standard input and set `PUBLISH_API_IMAGE=true`; the full runbook
+contains the exact commands. The publisher refuses a dirty worktree or a SHA
+other than the checked-out commit.
+
+That command completes a verified VM backup, pins the checkout and image to the
+same full SHA, deploys and checks the API, then deploys the Worker. The database
+lives outside the container and embedded forward migrations run before the API
+becomes ready. Run only one API replica against this SQLite file.
 
 ## Backup and restore drill
 
 ```sh
 ./scripts/backup.sh .env
 ./scripts/restore-drill.sh .env \
-  stridecrew-backup-YYYYMMDDTHHMMSSZ-v1.tar.gz.age \
-  stridecrew-backup-identity.txt
+  zoomigo-backup-YYYYMMDDTHHMMSSZ-v1.tar.gz.age \
+  zoomigo-backup-identity.txt
 ```
 
 The restore drill authenticates and decrypts the age envelope, verifies the archive, and creates a new database under `RESTORE_DIR`; it never replaces the live database. Only the public age recipient belongs on the VM. Supply the identity temporarily for a drill, then remove it immediately. Scheduled jobs upload only encrypted archives through the provider-neutral S3 configuration in root-owned `/etc/zoomigo/backup-s3.env`.

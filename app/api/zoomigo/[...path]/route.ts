@@ -28,7 +28,7 @@ export async function DELETE(request: Request) {
 
 async function proxy(request: Request) {
   const incoming = new URL(request.url);
-  const marker = "/api/stridecrew/";
+  const marker = "/api/zoomigo/";
   const path = incoming.pathname.slice(
     incoming.pathname.indexOf(marker) + marker.length,
   );

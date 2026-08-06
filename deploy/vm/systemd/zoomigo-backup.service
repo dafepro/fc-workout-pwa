@@ -7,7 +7,6 @@ ConditionPathExists=/opt/app/deploy/vm/.env
 [Service]
 Type=oneshot
 WorkingDirectory=/opt/app/deploy/vm
-EnvironmentFile=-/etc/stridecrew/r2.env
 EnvironmentFile=-/etc/zoomigo/backup-s3.env
 ExecStart=/opt/app/deploy/vm/scripts/backup.sh /opt/app/deploy/vm/.env
 Nice=10

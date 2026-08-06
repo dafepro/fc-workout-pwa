@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import { copy } from "../content/copy";
 import { useAuth } from "../state/auth-context";
 
-const SERVICE_WORKER_URL = "/sw.js?v=3";
+const SERVICE_WORKER_URL = "/sw.js?v=4";
 
 const navigation = [
   { href: "/", label: "Home", icon: "⌂" },

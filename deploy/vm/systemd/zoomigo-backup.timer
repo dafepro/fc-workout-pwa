@@ -5,7 +5,7 @@ Description=Create a daily verified ZoomiGo SQLite backup
 OnCalendar=*-*-* 03:15:00
 RandomizedDelaySec=15m
 Persistent=true
-Unit=stridecrew-backup.service
+Unit=zoomigo-backup.service
 
 [Install]
 WantedBy=timers.target

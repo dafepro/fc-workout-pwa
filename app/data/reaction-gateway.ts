@@ -25,7 +25,7 @@ export class ReactionGatewayError extends Error {
   }
 }
 
-const LOCAL_REACTIONS_KEY = "stridecrew-reaction-gateway-v1";
+const LOCAL_REACTIONS_KEY = "zoomigo-reaction-gateway-v1";
 const apiReactionType: Record<ReactionType, string> = {
   clap: "clap",
   fire: "fire",
@@ -59,7 +59,7 @@ interface APIBadge extends Omit<ReactionBadge, "reactionType"> {
 
 class HTTPReactionGateway implements ReactionGateway {
   async send(input: SendReactionInput): Promise<SendReactionResult> {
-    const response = await fetch("/api/stridecrew/v1/reactions", {
+    const response = await fetch("/api/zoomigo/v1/reactions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -85,7 +85,7 @@ class HTTPReactionGateway implements ReactionGateway {
   }
 
   async listReceived(): Promise<ReactionBadge[]> {
-    const response = await fetch("/api/stridecrew/v1/me/reaction-badges");
+    const response = await fetch("/api/zoomigo/v1/me/reaction-badges");
     if (!response.ok) {
       throw new ReactionGatewayError(
         "reaction_inbox_failed",

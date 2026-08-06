@@ -16,7 +16,6 @@ const localBindingConfig = {
   compatibility_flags: ["nodejs_compat"],
   vars: {
     ZOOMIGO_API_BASE_URL: process.env.ZOOMIGO_API_BASE_URL ?? "",
-    STRIDECREW_API_BASE_URL: process.env.STRIDECREW_API_BASE_URL ?? "",
   },
   d1_databases: d1
     ? [

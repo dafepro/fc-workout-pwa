@@ -32,7 +32,7 @@ func EncryptArchive(plainPath, encryptedPath, recipientText string) error {
 	if err := os.MkdirAll(directory, archiveDirectoryMode); err != nil {
 		return fmt.Errorf("create encrypted archive directory: %w", err)
 	}
-	temporary, err := os.CreateTemp(directory, ".stridecrew-backup-encrypted-*.tmp")
+	temporary, err := os.CreateTemp(directory, ".zoomigo-backup-encrypted-*.tmp")
 	if err != nil {
 		return fmt.Errorf("create temporary encrypted archive: %w", err)
 	}
@@ -110,7 +110,7 @@ func decryptArchiveToTemporary(encryptedPath, identityText string) (string, erro
 	if err != nil {
 		return "", fmt.Errorf("decrypt backup: %w", err)
 	}
-	temporary, err := os.CreateTemp("", ".stridecrew-backup-decrypted-*.tar.gz")
+	temporary, err := os.CreateTemp("", ".zoomigo-backup-decrypted-*.tar.gz")
 	if err != nil {
 		return "", fmt.Errorf("create temporary decrypted backup: %w", err)
 	}

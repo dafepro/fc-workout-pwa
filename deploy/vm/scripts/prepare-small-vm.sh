@@ -36,7 +36,7 @@ if ! grep -Eq '^/swapfile[[:space:]]+none[[:space:]]+swap[[:space:]]+sw[[:space:
 	printf '%s\n' '/swapfile none swap sw 0 0' >>/etc/fstab
 fi
 
-printf '%s\n' 'vm.swappiness=10' >/etc/sysctl.d/99-stridecrew-small-vm.conf
+printf '%s\n' 'vm.swappiness=10' >/etc/sysctl.d/99-zoomigo-small-vm.conf
 sysctl --system >/dev/null
 
 printf '%s\n' "Prepared a persistent $swap_size swap file for the 512 MiB VM."

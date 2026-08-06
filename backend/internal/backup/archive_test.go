@@ -18,7 +18,7 @@ import (
 
 func TestEncryptedArchiveRequiresTheOperatorIdentityToVerifyAndRestore(t *testing.T) {
 	ctx := context.Background()
-	plainPath := filepath.Join(t.TempDir(), "stridecrew-backup.tar.gz")
+	plainPath := filepath.Join(t.TempDir(), "zoomigo-backup.tar.gz")
 	manifest, err := backup.Create(ctx, backup.CreateOptions{
 		DatabaseURL:        seededDatabase(t, ctx),
 		ArchivePath:        plainPath,
@@ -31,7 +31,7 @@ func TestEncryptedArchiveRequiresTheOperatorIdentityToVerifyAndRestore(t *testin
 	if err != nil {
 		t.Fatal(err)
 	}
-	encryptedPath := filepath.Join(t.TempDir(), "stridecrew-backup.tar.gz.age")
+	encryptedPath := filepath.Join(t.TempDir(), "zoomigo-backup.tar.gz.age")
 	if err := backup.EncryptArchive(plainPath, encryptedPath, identity.Recipient().String()); err != nil {
 		t.Fatalf("encrypt archive: %v", err)
 	}
@@ -74,7 +74,7 @@ func TestEncryptedArchiveRequiresTheOperatorIdentityToVerifyAndRestore(t *testin
 func TestCreateVerifyAndRestoreArchive(t *testing.T) {
 	ctx := context.Background()
 	databaseURL := seededDatabase(t, ctx)
-	archivePath := filepath.Join(t.TempDir(), "stridecrew-backup.tar.gz")
+	archivePath := filepath.Join(t.TempDir(), "zoomigo-backup.tar.gz")
 	createdAt := time.Date(2026, time.August, 5, 20, 30, 0, 0, time.UTC)
 
 	manifest, err := backup.Create(ctx, backup.CreateOptions{
@@ -135,7 +135,7 @@ func TestCreateVerifyAndRestoreArchive(t *testing.T) {
 
 func TestRestoreRejectsCorruptionWithoutCreatingTarget(t *testing.T) {
 	ctx := context.Background()
-	archivePath := filepath.Join(t.TempDir(), "stridecrew-backup.tar.gz")
+	archivePath := filepath.Join(t.TempDir(), "zoomigo-backup.tar.gz")
 	if _, err := backup.Create(ctx, backup.CreateOptions{
 		DatabaseURL: seededDatabase(t, ctx),
 		ArchivePath: archivePath,

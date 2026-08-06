@@ -10,7 +10,7 @@ site_address=$(require_env_value CADDY_SITE_ADDRESS)
 api_image=$(require_env_value API_IMAGE)
 
 case "$api_image" in
-	stridecrew-api:*)
+	zoomigo-api:*)
 		printf '%s\n' "Building local development image $api_image."
 		compose pull caddy
 		compose build --pull api

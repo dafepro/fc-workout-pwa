@@ -94,7 +94,7 @@ func Create(ctx context.Context, options CreateOptions) (Manifest, error) {
 		return Manifest{}, fmt.Errorf("create archive directory: %w", err)
 	}
 
-	workingDirectory, err := os.MkdirTemp(archiveDirectory, ".stridecrew-backup-create-*")
+	workingDirectory, err := os.MkdirTemp(archiveDirectory, ".zoomigo-backup-create-*")
 	if err != nil {
 		return Manifest{}, fmt.Errorf("create backup work directory: %w", err)
 	}
@@ -160,7 +160,7 @@ func Create(ctx context.Context, options CreateOptions) (Manifest, error) {
 		manifestName,
 	))
 
-	temporaryArchive, err := os.CreateTemp(archiveDirectory, ".stridecrew-backup-*.tmp")
+	temporaryArchive, err := os.CreateTemp(archiveDirectory, ".zoomigo-backup-*.tmp")
 	if err != nil {
 		return Manifest{}, fmt.Errorf("create temporary archive: %w", err)
 	}
@@ -221,7 +221,7 @@ func Restore(ctx context.Context, options RestoreOptions) (Manifest, error) {
 	if err := os.MkdirAll(targetDirectory, archiveDirectoryMode); err != nil {
 		return Manifest{}, fmt.Errorf("create restore directory: %w", err)
 	}
-	temporary, err := os.CreateTemp(targetDirectory, ".stridecrew-restore-*.db")
+	temporary, err := os.CreateTemp(targetDirectory, ".zoomigo-restore-*.db")
 	if err != nil {
 		return Manifest{}, fmt.Errorf("create temporary restore database: %w", err)
 	}
@@ -451,7 +451,7 @@ func extractAndVerify(ctx context.Context, archivePath string) (extractedArchive
 	if strings.TrimSpace(archivePath) == "" {
 		return extractedArchive{}, errors.New("archive path is required")
 	}
-	directory, err := os.MkdirTemp("", "stridecrew-backup-verify-*")
+	directory, err := os.MkdirTemp("", "zoomigo-backup-verify-*")
 	if err != nil {
 		return extractedArchive{}, fmt.Errorf("create verification directory: %w", err)
 	}

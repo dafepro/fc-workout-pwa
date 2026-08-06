@@ -307,7 +307,7 @@ func startLocalAPI(t *testing.T) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	databaseURL := "file:" + filepath.ToSlash(filepath.Join(t.TempDir(), "stridecrew-e2e.db"))
+	databaseURL := "file:" + filepath.ToSlash(filepath.Join(t.TempDir(), "zoomigo-e2e.db"))
 	db, err := database.Open(t.Context(), databaseURL)
 	if err != nil {
 		t.Fatalf("open local E2E database: %v", err)

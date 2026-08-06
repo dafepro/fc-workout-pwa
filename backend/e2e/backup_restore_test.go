@@ -55,7 +55,7 @@ func TestBackupRestorePreservesPrivateAPIProjections(t *testing.T) {
 	if err := os.WriteFile(identityPath, []byte(identity.String()+"\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	archivePath := filepath.Join(workDir, "stridecrew.tar.gz.age")
+	archivePath := filepath.Join(workDir, "zoomigo.tar.gz.age")
 	runBackupCommand(t, "create-encrypted", "--database-url", databaseURL, "--output", archivePath, "--recipient", identity.Recipient().String(), "--app-version", "docker-e2e")
 	runBackupCommand(t, "verify-encrypted", "--archive", archivePath, "--identity", identityPath)
 
@@ -109,13 +109,13 @@ func runBackupCommand(t *testing.T, arguments ...string) {
 }
 
 func backupBinary() string {
-	return valueOrDefault(os.Getenv("E2E_BACKUP_BINARY"), "/out/stridecrew-backup")
+	return valueOrDefault(os.Getenv("E2E_BACKUP_BINARY"), "/out/zoomigo-backup")
 }
 
 func startRestoredAPI(t *testing.T, databasePath string) apiClient {
 	t.Helper()
 	port := "18081"
-	command := exec.Command(valueOrDefault(os.Getenv("E2E_API_BINARY"), "/out/stridecrew-api"))
+	command := exec.Command(valueOrDefault(os.Getenv("E2E_API_BINARY"), "/out/zoomigo-api"))
 	var output bytes.Buffer
 	command.Stdout = &output
 	command.Stderr = &output

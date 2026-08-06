@@ -51,22 +51,69 @@ In Cloudflare R2:
 3. Record its Access Key ID and Secret Access Key locally. They go only in the VM's root-readable R2 environment file.
 4. Do not enable public bucket access. Add a 35-day lifecycle rule only after the retention recommendation in `PRODUCTION_APPROVAL_CHECKLIST.md` is approved.
 
-## 1. One-time GitHub setup (you do this)
+## 1. One-time GitHub and encrypted-secret setup (you do this)
 
-1. Open the repository's **Actions** tab and allow GitHub Actions if it is disabled.
-2. Open **Actions → Backend image → Run workflow**, select `main`, and run it.
-3. Wait for both jobs to pass. The workflow performs static checks and builds first, then Docker E2E, then publishes:
+The deployment is intentionally inert until both the encrypted bundle and the
+repository gate exist. Follow `deploy/secrets/README.md` to create separate
+operator and CI age identities, fill the ignored plaintext templates, seal the
+bundle, and verify an operator decrypt. Do not reuse the database-backup age
+identity.
+
+1. In GitHub **Settings -> Environments**, create `production`. Require an
+   operator review where the repository plan supports it.
+2. Add only the CI private age identity as the environment secret
+   `ZOOMIGO_DEPLOY_AGE_IDENTITY`. Cloudflare, SSH, host, and S3 values remain
+   inside the encrypted bundle.
+3. In **Settings -> Actions -> Variables**, create the repository variable
+   `PRODUCTION_DEPLOY_ENABLED` with value `false`.
+4. Open the repository's **Actions** tab and allow GitHub Actions if disabled.
+5. Open **Actions -> Verify and release ZoomiGo -> Run workflow**, select
+   `main`, and run it. Keep the production gate false for this verification.
+6. Wait for verification and publication to pass. Static checks and builds run
+   before Docker E2E, then the workflow publishes:
 
    ```text
    ghcr.io/dafepro/fc-workout-pwa/api:sha-<complete-commit-sha>
    ```
 
-4. Open the repository owner's **Packages** page, select the `api` container package, and make it public. This avoids storing a GitHub PAT on the VM. A public image contains compiled application code, not the database or environment file.
-5. Copy the complete immutable `sha-...` image tag. Never deploy `:main` or `:latest`.
+7. Open the repository owner's **Packages** page, select the `api` container package, and make it public. This avoids storing a GitHub PAT on the VM. A public image contains compiled application code, not the database or environment file.
+8. Copy the complete immutable `sha-...` image tag. Never deploy `:main` or `:latest`.
 
-No additional GitHub secret is needed: the workflow publishes with GitHub's short-lived built-in token.
+Image publication uses GitHub's short-lived built-in token. The one deployment
+identity is required only for the protected production job.
 
-## 2. Create the Droplet (you do this)
+If GitHub Actions is unavailable, do not weaken the gate or copy decrypted
+values into ad-hoc environment variables. After local static/E2E verification,
+run the same release implementation from a trusted Linux/macOS/WSL shell:
+
+```sh
+gh auth token | docker login ghcr.io -u dafepro --password-stdin
+PUBLISH_API_IMAGE=true ./deploy/release/release.sh \
+  /secure/path/zoomigo-operator-age-identity RELEASE_SHA
+docker logout ghcr.io
+```
+
+This path publishes only the immutable SHA image, then backs up and deploys the
+VM before deploying the Worker. The checked-out SHA must match and the worktree
+must be clean. The GitHub token moves through standard input and is not read by
+the release script or stored in the encrypted bundle.
+
+## 2. Review infrastructure (you do this)
+
+`infra/digitalocean/` models the Droplet, firewall, proxied API record, and
+secret-free cloud-init in OpenTofu. For the current server, import its resources
+and review `tofu plan`; do not recreate a working host just to adopt IaC. The
+Droplet and firewall have `prevent_destroy` guards. Provider tokens come from
+`DIGITALOCEAN_TOKEN` and `CLOUDFLARE_API_TOKEN` in the operator shell and never
+from `.tfvars`.
+
+If replacement is genuinely needed, first pass an off-host encrypted restore
+drill, preserve the current host, review the entire plan, and use a new origin
+until verification completes. This repository never runs `tofu apply` in CI.
+
+See `infra/digitalocean/README.md` for import and plan commands.
+
+## 3. Create the Droplet only when there is no usable host (you do this)
 
 In DigitalOcean:
 
@@ -94,7 +141,7 @@ Create a free DigitalOcean Cloud Firewall and attach it to this Droplet:
 
 Do not expose TCP 8080 or any SQLite/database port. If your administrator IP changes, update the firewall allowlist before trying SSH.
 
-## 3. Point DNS at the VM (you do this)
+## 4. Point DNS at the VM (you do this)
 
 At the DNS provider, create:
 
@@ -122,7 +169,7 @@ succeeds through Cloudflare. Keep TCP 80/443 open to the origin during initial
 certificate verification; restricting them to Cloudflare's maintained IP ranges
 is a later hardening step.
 
-## 4. Harden the operator login (you do this)
+## 5. Harden the operator login (you do this)
 
 DigitalOcean initially permits the selected SSH key for `root`. Connect, create a named operator, and keep the first session open while testing a second login:
 
@@ -153,7 +200,7 @@ sudo systemctl reload ssh
 
 Never close the original root session until the operator login succeeds.
 
-## 5. Install Docker and prepare the small VM (you do this)
+## 6. Install Docker and prepare the small VM (you do this)
 
 Log in as the `zoomigo` operator. Install Docker Engine and the Compose plugin from Docker's official Ubuntu repository, following [Docker's Ubuntu instructions](https://docs.docker.com/engine/install/ubuntu/). Do not use a desktop Docker package on the server.
 
@@ -195,7 +242,31 @@ sudo sh deploy/vm/scripts/prepare-small-vm.sh
 
 The last command creates a persistent 1 GiB `/swapfile` and sets `vm.swappiness=10`. Confirm that swap is active with `free -h`. Swap is an emergency cushion, not extra application capacity; sustained swapping means the service has outgrown this plan.
 
-## 6. Configure and deploy the API (you do this)
+## 7. Configure and deploy the API (you do this)
+
+### Existing pre-rebrand host
+
+Do this once before enabling continuous deployment. Check out the reviewed
+ZoomiGo revision while retaining the current `.env`, then run:
+
+```sh
+cd /opt/app/deploy/vm
+sudo ./scripts/migrate-legacy-install.sh .env
+```
+
+The migration stops the existing Compose project, creates and verifies an
+encrypted pre-migration backup with the currently deployed image, copies the
+SQLite database and sidecars into native ZoomiGo paths, preserves the source
+database, rewrites only the known path/project values, and records a marker.
+It refuses partial or ambiguous destinations. Keep the backup and source
+database until login, one private read, backup upload, and restore drill pass.
+Existing browser sessions will be invalidated by the new cookie name.
+
+Set the immutable ZoomiGo `API_IMAGE` and `APP_VERSION` in the migrated `.env`,
+then continue with the deployment commands below. Do not enable the GitHub
+production gate until this first native release and backup service succeed.
+
+### New host
 
 ```sh
 cd /opt/app/deploy/vm
@@ -236,7 +307,7 @@ docker stats --no-stream
 
 Readiness should return `{"status":"ready"}`. The unauthenticated private request must return `401`. Both containers should be healthy and remain below their configured ceilings.
 
-## 7. Enable and prove encrypted daily backups (you do this)
+## 8. Enable and prove encrypted daily backups (you do this)
 
 Create the root-only provider-neutral S3 credentials file. Replace the endpoint
 placeholder with the R2 S3 endpoint shown in Cloudflare; do not commit it:
@@ -261,10 +332,10 @@ BACKUP_S3_SECRET_ACCESS_KEY='replace-me'
 ```sh
 cd /opt/app/deploy/vm
 sudo ./scripts/install-backup-service.sh
-sudo systemctl enable --now stridecrew-backup.timer
-sudo systemctl start stridecrew-backup.service
-sudo systemctl status stridecrew-backup.timer --no-pager
-sudo journalctl -u stridecrew-backup.service --since today --no-pager
+sudo systemctl enable --now zoomigo-backup.timer
+sudo systemctl start zoomigo-backup.service
+sudo systemctl status zoomigo-backup.timer --no-pager
+sudo journalctl -u zoomigo-backup.service --since today --no-pager
 ```
 
 The timer runs daily around 03:15 host time. It creates and verifies an application-consistent SQLite archive, encrypts it to the off-VM age recipient, and uploads only the encrypted `.age` file to the private R2 bucket. After a successful upload, local encrypted archives older than seven days are pruned so the small VM disk cannot grow without bound. The weekly DigitalOcean backup also captures the Droplet disk. The private age identity is not required to create a backup and does not live on the VM.
@@ -272,39 +343,45 @@ The timer runs daily around 03:15 host time. It creates and verifies an applicat
 After the first backup, copy the private identity to the VM only for a supervised, non-destructive restore drill. Put it in the restore directory with the application container's UID and a private mode, run the drill using the encrypted filename printed in the journal, and immediately remove it:
 
 ```sh
-sudo install -m 0400 -o 65532 -g 65532 /tmp/stridecrew-backup-identity.txt \
-  /var/lib/stridecrew/restore/stridecrew-backup-identity.txt
+sudo install -m 0400 -o 65532 -g 65532 /tmp/zoomigo-backup-identity.txt \
+  /var/lib/zoomigo/restore/zoomigo-backup-identity.txt
 ./scripts/restore-drill.sh .env \
-  stridecrew-backup-YYYYMMDDTHHMMSSZ-v1.tar.gz.age \
-  stridecrew-backup-identity.txt
-sudo rm -f /var/lib/stridecrew/restore/stridecrew-backup-identity.txt \
-  /tmp/stridecrew-backup-identity.txt
+  zoomigo-backup-YYYYMMDDTHHMMSSZ-v1.tar.gz.age \
+  zoomigo-backup-identity.txt
+sudo rm -f /var/lib/zoomigo/restore/zoomigo-backup-identity.txt \
+  /tmp/zoomigo-backup-identity.txt
 sudo ./scripts/production-check.sh .env --check-s3
 ```
 
-Transfer `/tmp/stridecrew-backup-identity.txt` over SSH from the trusted computer; do not paste it into shell history. The drill writes only beneath `RESTORE_DIR`; it does not replace the live database. The exact live cutover and rollback procedure is in `LIVE_RESTORE_RUNBOOK.md`.
+Transfer `/tmp/zoomigo-backup-identity.txt` over SSH from the trusted computer; do not paste it into shell history. The drill writes only beneath `RESTORE_DIR`; it does not replace the live database. The exact live cutover and rollback procedure is in `LIVE_RESTORE_RUNBOOK.md`.
 
-## 8. Deploy the production PWA to Cloudflare (you do this)
+## 9. Deploy the production PWA to Cloudflare (you do this)
 
 The PWA is a Worker, not a static-only site: its server-side gateway keeps the opaque API bearer token in a same-origin HTTP-only cookie. Cloudflare hosts that gateway without adding another process to the 512 MiB VM.
 
 1. Add the domain to Cloudflare and complete its nameserver setup if the zone is not already active there.
-2. In Cloudflare **My Profile → API Tokens**, create a narrowly scoped token that can edit Workers Scripts for this account. Do not create or reuse the Global API Key.
-3. Copy the Cloudflare Account ID from the account overview.
-4. In GitHub **Settings → Environments**, create a `production` environment. Add a required reviewer if the repository plan supports it.
-5. Add these production-environment values:
-   - secret `CLOUDFLARE_API_TOKEN`;
-   - secret `CLOUDFLARE_ACCOUNT_ID`;
-   - variable `ZOOMIGO_API_BASE_URL` set to `https://api.example.com` without a trailing slash.
-6. Open **Actions → Cloudflare PWA → Run workflow** on the reviewed `main` revision.
-7. After it passes, open Cloudflare **Workers & Pages → zoomigo-training → Domains & Routes → Add Custom Domain** and add `app.example.com`. Cloudflare creates the DNS record and certificate. [Cloudflare recommends a custom domain for a production Worker](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/).
-8. Open `https://app.example.com/login` and confirm it loads. The generated `workers.dev` address is only a bootstrap URL; use the custom domain for QR codes and installed PWAs.
+2. In Cloudflare **My Profile -> API Tokens**, create a narrowly scoped token that can edit Workers Scripts for this account. Do not create or reuse the Global API Key.
+3. Copy the Cloudflare Account ID and put it, the token, and the public
+   `ZOOMIGO_API_BASE_URL` into the ignored secret templates. Reseal and commit
+   only `deploy/secrets/production.tar.gz.age`.
+4. Run the local release once with the operator identity while the GitHub gate
+   is still false. Verify the VM backup/deploy completes before the Worker.
+5. Open Cloudflare **Workers & Pages -> zoomigo-training -> Domains & Routes -> Add Custom Domain** and add `app.example.com`. Cloudflare creates the DNS record and certificate. [Cloudflare recommends a custom domain for a production Worker](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/).
+6. Open `https://app.example.com/login`, sign in with a test-only QR/PIN, and
+   check the installed PWA. The generated `workers.dev` address is only a
+   bootstrap URL; use the custom domain for QR codes and installed PWAs.
+7. Set `PRODUCTION_DEPLOY_ENABLED=true` only after the native VM migration,
+   off-host backup, restore drill, Worker custom domain, and production
+   environment review are complete.
 
-No API token belongs in a `VITE_*` variable or browser bundle. The Cloudflare API token exists only in the protected GitHub production environment and is not delivered to the Worker. The Worker receives only the public API origin.
+No API token belongs in a `VITE_*` variable or browser bundle. GitHub receives
+only an age identity through the protected environment and decrypts the bundle
+in a private temporary directory. The Worker receives only the public API
+origin.
 
 The production Worker is publicly reachable after deployment. Its player data remains protected by QR+PIN authentication, but do not share the URL or create real youth accounts until the privacy and account-ownership gates are approved.
 
-## 9. Bootstrap test data only after the connection works
+## 10. Bootstrap test data only after the connection works
 
 From `/opt/app/deploy/vm`, create a test team:
 
@@ -330,30 +407,29 @@ The admin CLI refuses real-player provisioning while `PRODUCTION_DATA_APPROVED=f
 
 ## Routine update
 
-After a new workflow succeeds:
+Normal `main` releases are ordered automatically: verify, Docker E2E, publish
+an immutable image, verified VM backup, VM deploy/readiness checks, then Worker
+deploy. Only one run may enter production at a time.
+
+During a GitHub Actions incident, use a complete SHA that was verified locally:
 
 ```sh
-cd /opt/app/deploy/vm
-sudo systemctl start stridecrew-backup.service
-sudo journalctl -u stridecrew-backup.service --since today --no-pager
-cd /opt/app
-git fetch origin main
-git checkout NEW_RELEASE_SHA
-# Update API_IMAGE and APP_VERSION in deploy/vm/.env to NEW_RELEASE_SHA.
-cd deploy/vm
-./scripts/preflight.sh .env
-./scripts/deploy.sh .env
+gh auth token | docker login ghcr.io -u dafepro --password-stdin
+PUBLISH_API_IMAGE=true ./deploy/release/release.sh \
+  /secure/path/zoomigo-operator-age-identity RELEASE_SHA
+docker logout ghcr.io
 ```
 
-Check `/readyz`, the unauthenticated `401`, login, and one private read. Database migrations are forward-only; rollback never means copying an old database over the live one.
-
-Frontend releases remain deliberate: run **Cloudflare PWA** manually after its checks pass. The workflow deploys the exact selected Git revision and does not require VM access.
+The local command and CI call the same scripts and deploy the same SHA. Check
+`/readyz`, the unauthenticated `401`, login, and one private read. Database
+migrations are forward-only; rollback never means copying an old database over
+the live one.
 
 ## Troubleshooting and monthly checks
 
 - `docker compose --env-file .env -f compose.yaml logs --tail 100 api caddy`
-- `journalctl -u stridecrew-backup.service --since "7 days ago"`
-- `df -h /var/lib/stridecrew/data /var/backups/stridecrew`
+- `journalctl -u zoomigo-backup.service --since "7 days ago"`
+- `df -h /var/lib/zoomigo/data /var/backups/zoomigo`
 - `free -h` and `docker stats --no-stream`
 - confirm the DigitalOcean backup remains enabled and recent;
 - run `sudo ./scripts/production-check.sh .env --check-s3` and confirm the newest encrypted archive is present off-host;

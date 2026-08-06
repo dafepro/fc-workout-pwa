@@ -17,8 +17,8 @@ From `/opt/app/deploy/vm`:
 
 ```sh
 sudo ./scripts/restore-drill.sh .env \
-  stridecrew-backup-YYYYMMDDTHHMMSSZ-v1.tar.gz.age \
-  stridecrew-backup-identity.txt
+  zoomigo-backup-YYYYMMDDTHHMMSSZ-v1.tar.gz.age \
+  zoomigo-backup-identity.txt
 ```
 
 Record the exact restored database filename printed by the command. It must be beneath `RESTORE_DIR`. Do not continue if envelope authentication, checksums, integrity, foreign keys, migration compatibility, or safe counts fail.
@@ -28,13 +28,13 @@ Record the exact restored database filename printed by the command. It must be b
 Resolve and record the exact paths:
 
 ```sh
-DATA_DIR=/var/lib/stridecrew/data
-RESTORE_DIR=/var/lib/stridecrew/restore
+DATA_DIR=/var/lib/zoomigo/data
+RESTORE_DIR=/var/lib/zoomigo/restore
 RESTORED_DB="$RESTORE_DIR/restore-drill-YYYYMMDDTHHMMSSZ.db"
-ROLLBACK_DB="$DATA_DIR/stridecrew.pre-restore-YYYYMMDDTHHMMSSZ.db"
+ROLLBACK_DB="$DATA_DIR/zoomigo.pre-restore-YYYYMMDDTHHMMSSZ.db"
 ```
 
-Confirm each value is an absolute, specific file beneath the intended protected ZoomiGo data directory. The legacy `stridecrew` path and database names are retained as compatibility identifiers. Then stop public traffic and the writer:
+Confirm each value is an absolute, specific file beneath the intended protected ZoomiGo data directory. The legacy `zoomigo` path and database names are retained as compatibility identifiers. Then stop public traffic and the writer:
 
 ```sh
 docker compose --env-file .env -f compose.yaml stop caddy api
@@ -48,14 +48,14 @@ Do not continue if `api` is still running.
 Move the exact live database and any SQLite sidecars to uniquely named rollback files. Never overwrite an existing rollback file.
 
 ```sh
-sudo mv -- "$DATA_DIR/stridecrew.db" "$ROLLBACK_DB"
-if [ -e "$DATA_DIR/stridecrew.db-wal" ]; then
-  sudo mv -- "$DATA_DIR/stridecrew.db-wal" "$ROLLBACK_DB-wal"
+sudo mv -- "$DATA_DIR/zoomigo.db" "$ROLLBACK_DB"
+if [ -e "$DATA_DIR/zoomigo.db-wal" ]; then
+  sudo mv -- "$DATA_DIR/zoomigo.db-wal" "$ROLLBACK_DB-wal"
 fi
-if [ -e "$DATA_DIR/stridecrew.db-shm" ]; then
-  sudo mv -- "$DATA_DIR/stridecrew.db-shm" "$ROLLBACK_DB-shm"
+if [ -e "$DATA_DIR/zoomigo.db-shm" ]; then
+  sudo mv -- "$DATA_DIR/zoomigo.db-shm" "$ROLLBACK_DB-shm"
 fi
-sudo install -m 0600 -o 65532 -g 65532 "$RESTORED_DB" "$DATA_DIR/stridecrew.db"
+sudo install -m 0600 -o 65532 -g 65532 "$RESTORED_DB" "$DATA_DIR/zoomigo.db"
 ```
 
 Start the API and proxy:
@@ -74,15 +74,15 @@ Keep traffic stopped while rolling back:
 
 ```sh
 docker compose --env-file .env -f compose.yaml stop caddy api
-sudo mv -- "$DATA_DIR/stridecrew.db" "$RESTORE_DIR/failed-cutover-YYYYMMDDTHHMMSSZ.db"
-sudo mv -- "$ROLLBACK_DB" "$DATA_DIR/stridecrew.db"
+sudo mv -- "$DATA_DIR/zoomigo.db" "$RESTORE_DIR/failed-cutover-YYYYMMDDTHHMMSSZ.db"
+sudo mv -- "$ROLLBACK_DB" "$DATA_DIR/zoomigo.db"
 if [ -e "$ROLLBACK_DB-wal" ]; then
-  sudo mv -- "$ROLLBACK_DB-wal" "$DATA_DIR/stridecrew.db-wal"
+  sudo mv -- "$ROLLBACK_DB-wal" "$DATA_DIR/zoomigo.db-wal"
 fi
 if [ -e "$ROLLBACK_DB-shm" ]; then
-  sudo mv -- "$ROLLBACK_DB-shm" "$DATA_DIR/stridecrew.db-shm"
+  sudo mv -- "$ROLLBACK_DB-shm" "$DATA_DIR/zoomigo.db-shm"
 fi
-sudo chown 65532:65532 "$DATA_DIR/stridecrew.db" "$DATA_DIR"/stridecrew.db-* 2>/dev/null || true
+sudo chown 65532:65532 "$DATA_DIR/zoomigo.db" "$DATA_DIR"/zoomigo.db-* 2>/dev/null || true
 docker compose --env-file .env -f compose.yaml up -d --wait --no-build api caddy
 ```
 

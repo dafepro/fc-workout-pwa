@@ -32,7 +32,7 @@ func run(arguments []string) error {
 	switch arguments[0] {
 	case "create":
 		flags := flag.NewFlagSet("create", flag.ContinueOnError)
-		databaseURL := flags.String("database-url", valueOrDefault(os.Getenv("DATABASE_URL"), "file:data/stridecrew.db"), "SQLite database URL")
+		databaseURL := flags.String("database-url", valueOrDefault(os.Getenv("DATABASE_URL"), "file:data/zoomigo.db"), "SQLite database URL")
 		output := flags.String("output", "", "new backup archive path")
 		applicationVersion := flags.String("app-version", version, "application version recorded in the manifest")
 		if err := flags.Parse(arguments[1:]); err != nil {
@@ -52,7 +52,7 @@ func run(arguments []string) error {
 		return writeResult("created", *output, manifest)
 	case "create-encrypted":
 		flags := flag.NewFlagSet("create-encrypted", flag.ContinueOnError)
-		databaseURL := flags.String("database-url", valueOrDefault(os.Getenv("DATABASE_URL"), "file:data/stridecrew.db"), "SQLite database URL")
+		databaseURL := flags.String("database-url", valueOrDefault(os.Getenv("DATABASE_URL"), "file:data/zoomigo.db"), "SQLite database URL")
 		output := flags.String("output", "", "new age-encrypted backup archive path")
 		recipient := flags.String("recipient", "", "age X25519 public recipient")
 		applicationVersion := flags.String("app-version", version, "application version recorded in the manifest")
@@ -67,7 +67,7 @@ func run(arguments []string) error {
 		} else if !errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("inspect encrypted archive: %w", err)
 		}
-		temporary, err := os.CreateTemp("", ".stridecrew-backup-plaintext-*.tar.gz")
+		temporary, err := os.CreateTemp("", ".zoomigo-backup-plaintext-*.tar.gz")
 		if err != nil {
 			return fmt.Errorf("create temporary backup path: %w", err)
 		}
@@ -186,7 +186,7 @@ func writeResult(status, path string, manifest backup.Manifest) error {
 }
 
 func usageError() error {
-	return errors.New("usage: stridecrew-backup create|create-encrypted|verify|verify-encrypted|restore|restore-encrypted [flags]")
+	return errors.New("usage: zoomigo-backup create|create-encrypted|verify|verify-encrypted|restore|restore-encrypted [flags]")
 }
 
 func readIdentity(path string) (string, error) {

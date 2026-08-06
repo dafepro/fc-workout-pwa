@@ -68,8 +68,8 @@ if ($IsLinux -or $IsMacOS) {
 }
 
 $environmentContents = @"
-COMPOSE_PROJECT_NAME=stridecrew-vm-smoke
-API_IMAGE=stridecrew-api:vm-smoke
+COMPOSE_PROJECT_NAME=zoomigo-vm-smoke
+API_IMAGE=zoomigo-api:vm-smoke
 APP_VERSION=vm-smoke
 BACKUP_AGE_RECIPIENT=age1vm_smoke_public_recipient
 BACKUP_S3_UPLOAD_ENABLED=false
@@ -110,7 +110,7 @@ try {
     }
   }
 
-  $databasePath = Join-Path $dataDirectory "stridecrew.db"
+  $databasePath = Join-Path $dataDirectory "zoomigo.db"
   if (-not (Test-Path -LiteralPath $databasePath)) {
     throw "The API did not create the persistent SQLite database."
   }
@@ -121,7 +121,7 @@ try {
     throw "The SQLite database did not survive an API container restart."
   }
 
-  Invoke-Compose run --rm backup create --database-url file:/data/stridecrew.db --output /backups/smoke.tar.gz --app-version vm-smoke
+  Invoke-Compose run --rm backup create --database-url file:/data/zoomigo.db --output /backups/smoke.tar.gz --app-version vm-smoke
   Invoke-Compose run --rm backup verify --archive /backups/smoke.tar.gz
   Invoke-Compose run --rm backup restore --archive /backups/smoke.tar.gz --target /restore/smoke.db
 

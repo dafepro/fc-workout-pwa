@@ -20,13 +20,10 @@ esac
 require_process_value() {
 	name=$1
 	case "$name" in
-		BACKUP_S3_ENDPOINT)
-			value=${BACKUP_S3_ENDPOINT:-}
-			[ -n "$value" ] || [ -z "${R2_ACCOUNT_ID:-}" ] || value="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
-			;;
-		BACKUP_S3_BUCKET) value=${BACKUP_S3_BUCKET:-${R2_BUCKET:-}} ;;
-		BACKUP_S3_ACCESS_KEY_ID) value=${BACKUP_S3_ACCESS_KEY_ID:-${R2_ACCESS_KEY_ID:-}} ;;
-		BACKUP_S3_SECRET_ACCESS_KEY) value=${BACKUP_S3_SECRET_ACCESS_KEY:-${R2_SECRET_ACCESS_KEY:-}} ;;
+		BACKUP_S3_ENDPOINT) value=${BACKUP_S3_ENDPOINT:-} ;;
+		BACKUP_S3_BUCKET) value=${BACKUP_S3_BUCKET:-} ;;
+		BACKUP_S3_ACCESS_KEY_ID) value=${BACKUP_S3_ACCESS_KEY_ID:-} ;;
+		BACKUP_S3_SECRET_ACCESS_KEY) value=${BACKUP_S3_SECRET_ACCESS_KEY:-} ;;
 		*) fail "unsupported process value: $name" ;;
 	esac
 	[ -n "$value" ] || fail "$name must be present in the backup service environment"
@@ -37,9 +34,7 @@ endpoint=$(require_process_value BACKUP_S3_ENDPOINT)
 bucket=$(require_process_value BACKUP_S3_BUCKET)
 access_key=$(require_process_value BACKUP_S3_ACCESS_KEY_ID)
 secret_key=$(require_process_value BACKUP_S3_SECRET_ACCESS_KEY)
-provider=${BACKUP_S3_PROVIDER:-}
-[ -n "$provider" ] || [ -z "${R2_ACCOUNT_ID:-}" ] || provider=Cloudflare
-provider=${provider:-Other}
+provider=${BACKUP_S3_PROVIDER:-Other}
 region=${BACKUP_S3_REGION:-auto}
 
 case "$endpoint" in https://*) ;; *) fail "BACKUP_S3_ENDPOINT must use HTTPS" ;; esac
