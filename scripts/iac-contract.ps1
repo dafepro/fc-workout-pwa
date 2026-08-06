@@ -8,9 +8,14 @@ $requiredFiles = @(
   "main.tf",
   "outputs.tf",
   "cloud-init.yaml.tftpl",
+  "environment.tftpl",
   "terraform.tfvars.example",
   ".terraform.lock.hcl",
-  "README.md"
+  "README.md",
+  "provision.mjs",
+  "provision.test.mjs",
+  "adopt-host.mjs",
+  "adopt-host.test.mjs"
 )
 
 foreach ($file in $requiredFiles) {
@@ -26,8 +31,13 @@ $readme = Get-Content -LiteralPath (Join-Path $infrastructureRoot "README.md") -
 $gitignore = Get-Content -LiteralPath (Join-Path $repositoryRoot ".gitignore") -Raw
 
 foreach ($required in @(
+  'resource "digitalocean_project"',
   'resource "digitalocean_droplet"',
+  'resource "digitalocean_reserved_ip"',
   'resource "digitalocean_firewall"',
+  'resource "digitalocean_monitor_alert"',
+  'resource "digitalocean_uptime_check"',
+  'resource "digitalocean_uptime_alert"',
   'resource "cloudflare_dns_record"',
   'prevent_destroy = true',
   's-1vcpu-512mb-10gb'
@@ -47,5 +57,11 @@ if (-not $readme.Contains('tofu plan') -or -not $readme.Contains('No secrets')) 
 if (-not $gitignore.Contains('**/terraform.tfvars') -or -not $gitignore.Contains('**/*.auto.tfvars')) {
   throw "Personal OpenTofu values and automatic variable files must be ignored by Git."
 }
+if (-not $gitignore.Contains('!infra/digitalocean/terraform.tfstate.age')) {
+  throw "Only age-encrypted OpenTofu state may be committed."
+}
+
+& node --test (Join-Path $infrastructureRoot "provision.test.mjs") (Join-Path $infrastructureRoot "adopt-host.test.mjs")
+if ($LASTEXITCODE -ne 0) { throw "Infrastructure orchestration tests failed." }
 
 Write-Output "ZoomiGo OpenTofu contract passed."
