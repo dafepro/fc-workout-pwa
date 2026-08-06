@@ -1,0 +1,73 @@
+#!/bin/sh
+
+set -eu
+
+SCRIPT_DIRECTORY=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "$SCRIPT_DIRECTORY/lib.sh"
+
+[ "$(id -u)" -eq 0 ] || fail "run production-check.sh as root (for example with sudo)"
+check_r2=false
+if [ "${2:-}" = "--check-r2" ]; then
+	check_r2=true
+elif [ "$#" -gt 1 ]; then
+	fail "usage: production-check.sh <env-file> [--check-r2]"
+fi
+
+for command_name in awk curl df docker find grep head sort stat swapon systemctl; do
+	require_command "$command_name"
+done
+"$SCRIPT_DIRECTORY/preflight.sh" "$ENV_FILE"
+
+site_address=$(require_env_value CADDY_SITE_ADDRESS)
+data_directory=$(require_env_value DATA_DIR)
+backup_directory=$(require_env_value BACKUP_DIR)
+
+swap_kib=$(swapon --show=SIZE --bytes --noheadings | awk '{ total += $1 } END { printf "%.0f", total / 1024 }')
+[ "${swap_kib:-0}" -ge 900000 ] || fail "at least 1 GiB of configured swap must be active"
+
+for directory in "$data_directory" "$backup_directory"; do
+	available_kib=$(df -Pk "$directory" | awk 'NR == 2 { print $4 }')
+	[ "${available_kib:-0}" -ge 1048576 ] || fail "$directory has less than 1 GiB free"
+done
+
+running_services=$(compose ps --status running --services)
+printf '%s\n' "$running_services" | grep -Fx api >/dev/null || fail "the API container is not running"
+printf '%s\n' "$running_services" | grep -Fx caddy >/dev/null || fail "the Caddy container is not running"
+
+curl --fail --silent --show-error "https://${site_address}/readyz" >/dev/null || fail "public readiness failed"
+private_status=$(curl --silent --output /dev/null --write-out '%{http_code}' "https://${site_address}/v1/me/training-entries")
+[ "$private_status" = "401" ] || fail "the unauthenticated private-route check returned HTTP $private_status, want 401"
+
+systemctl is-enabled --quiet stridecrew-backup.timer || fail "the backup timer is not enabled"
+systemctl is-active --quiet stridecrew-backup.timer || fail "the backup timer is not active"
+
+latest_record=$(find "$backup_directory" -maxdepth 1 -type f -name 'stridecrew-backup-*-v1.tar.gz.age' -printf '%T@ %f\n' | sort -nr | head -n 1)
+[ -n "$latest_record" ] || fail "no encrypted local backup exists"
+latest_name=${latest_record#* }
+find "$backup_directory" -maxdepth 1 -type f -name "$latest_name" -mmin -1560 -print -quit | grep . >/dev/null || fail "the newest encrypted backup is more than 26 hours old"
+
+if [ "$check_r2" = true ]; then
+	require_command rclone
+	r2_environment=/etc/stridecrew/r2.env
+	[ -f "$r2_environment" ] || fail "$r2_environment is missing"
+	permissions=$(stat -c '%a' "$r2_environment")
+	case "$permissions" in 400|600) ;; *) fail "$r2_environment must have mode 0400 or 0600" ;; esac
+	[ "$(stat -c '%u' "$r2_environment")" = "0" ] || fail "$r2_environment must be owned by root"
+	# The file is root-owned operator configuration, not application input.
+	. "$r2_environment"
+	: "${R2_ACCOUNT_ID:?R2_ACCOUNT_ID is required}"
+	: "${R2_BUCKET:?R2_BUCKET is required}"
+	: "${R2_ACCESS_KEY_ID:?R2_ACCESS_KEY_ID is required}"
+	: "${R2_SECRET_ACCESS_KEY:?R2_SECRET_ACCESS_KEY is required}"
+	export RCLONE_CONFIG_STRIDECREW_TYPE=s3
+	export RCLONE_CONFIG_STRIDECREW_PROVIDER=Cloudflare
+	export RCLONE_CONFIG_STRIDECREW_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID"
+	export RCLONE_CONFIG_STRIDECREW_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY"
+	export RCLONE_CONFIG_STRIDECREW_ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+	export RCLONE_CONFIG_STRIDECREW_ACL=private
+	rclone lsjson "stridecrew:${R2_BUCKET}/daily/${latest_name}" --stat --files-only --s3-no-check-bucket >/dev/null || fail "the newest encrypted backup is missing from R2"
+fi
+
+[ ! -f /var/run/reboot-required ] || fail "the VM requires a reboot for installed updates"
+
+printf '%s\n' "Production readiness checks passed with encrypted backup $latest_name."

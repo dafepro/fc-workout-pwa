@@ -105,7 +105,11 @@ func provisionPlayer(ctx context.Context, arguments []string) error {
 	last := flags.String("last-initial", "", "")
 	loginURL := flags.String("login-url", "", "")
 	qrOutput := flags.String("qr-output", "", "")
+	testOnly := flags.Bool("test-only", false, "assert this player is a disposable test identity")
 	if err := flags.Parse(arguments); err != nil {
+		return err
+	}
+	if err := requireProvisioningApproval(*testOnly); err != nil {
 		return err
 	}
 	if *teamID == "" || strings.TrimSpace(*first) == "" || len(strings.TrimSpace(*last)) != 1 {
@@ -244,7 +248,7 @@ func issueLogin(ctx context.Context, db *sql.DB, accountID, pin, loginBase, qrOu
 }
 
 func readPIN() (string, error) {
-	fmt.Fprint(os.Stderr, "Six-digit player PIN: ")
+	fmt.Fprint(os.Stderr, "Four-digit player PIN: ")
 	var bytes []byte
 	var err error
 	if term.IsTerminal(int(os.Stdin.Fd())) {
@@ -294,6 +298,12 @@ func envOr(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+func requireProvisioningApproval(testOnly bool) error {
+	if testOnly || os.Getenv("PRODUCTION_DATA_APPROVED") == "true" {
+		return nil
+	}
+	return errors.New("real player provisioning is locked; complete the production approval checklist and set PRODUCTION_DATA_APPROVED=true, or use --test-only for a disposable test identity")
 }
 func usageError() error {
 	return errors.New("usage: stridecrew-admin bootstrap-team|provision-player|rotate-player-login|revoke-player-login [flags]")

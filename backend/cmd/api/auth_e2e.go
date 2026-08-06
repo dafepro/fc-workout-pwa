@@ -11,7 +11,7 @@ import (
 func configuredAuthenticator(cfg config.Config, sessions *authn.Service) (authn.Authenticator, func(context.Context) error) {
 	if cfg.EnableE2EFixtures {
 		reset := func(ctx context.Context) error {
-			return sessions.ResetE2ECredential(ctx, "account-mason", "246810", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+			return sessions.ResetE2ECredential(ctx, "account-mason", "2468", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 		}
 		return authn.Fallback{Primary: sessions, Secondary: authn.NewE2EFixtures()}, reset
 	}

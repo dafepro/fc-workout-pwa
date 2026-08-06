@@ -53,17 +53,19 @@ Docker access is root-equivalent. Restrict SSH and Docker-group membership, inst
 
 The infrastructure is deployable now, but the product is not yet approved to persist real youth data in production.
 
+The operations container enforces this boundary: `PRODUCTION_DATA_APPROVED` defaults to `false`, and player provisioning requires `--test-only` until the approved operator deliberately changes it.
+
 1. **Authentication operations:** complete parent/guardian ownership and recovery policy, securely distribute the initial QR+PIN, and rehearse operator reissue/revocation. The application mechanism is implemented, but policy approval remains required before real youth accounts are provisioned.
-2. **Backups:** encrypt archives before off-host transfer; choose managed keys, retention, deletion handling, recovery objectives, operator auditing, and a remote store.
+2. **Backups:** age encryption and private R2 upload are implemented. Approve key custody/rotation, retention, deletion handling, recovery objectives, and operator access before real data.
 3. **Privacy operations:** settle consent/account ownership, retention/deletion requests, coach/admin access, and applicable youth-privacy obligations.
-4. **Recovery:** execute and time an offline live cutover and rollback drill.
+4. **Recovery:** execute and time `LIVE_RESTORE_RUNBOOK.md` with test-only data.
 5. **Operations:** configure provider firewalling, OS patching, disk capacity alerts, uptime checks, and log retention.
 
 The Cloudflare PWA receives only `STRIDECREW_API_BASE_URL`; never configure a browser-visible API token. A connected deployment redirects unauthenticated players to `/login`, and the VM returns `401` for private endpoints without a valid server-issued session. The Sites build is a preview, not a production dependency.
 
 ## First provider and release pipeline
 
-The first target is DigitalOcean's 512 MiB Basic Droplet. Weekly provider backup keeps the expected infrastructure total at $4.80/month before tax and any domain registration. The `backend-image` GitHub Actions workflow runs static checks and builds first, then both Docker suites, and publishes `ghcr.io/dafepro/fc-workout-pwa/api:sha-<full-sha>`. Deployment remains a deliberate operator action; the environment file, database, backups, and SSH access remain outside the repository. See `DIGITALOCEAN_UNDER_5_RUNBOOK.md`.
+The first target is DigitalOcean's 512 MiB Basic Droplet. Weekly provider backup keeps the expected infrastructure total at $4.80/month before tax and any domain registration; encrypted daily archives use Cloudflare R2 Standard's free allowance while storage and operations remain below its limits. The `backend-image` GitHub Actions workflow runs static checks and builds first, then both Docker suites, and publishes `ghcr.io/dafepro/fc-workout-pwa/api:sha-<full-sha>`. Deployment remains a deliberate operator action; the environment file, database, backups, private age identity, and SSH access remain outside the repository. See `DIGITALOCEAN_UNDER_5_RUNBOOK.md`.
 
 ## Verification contract
 

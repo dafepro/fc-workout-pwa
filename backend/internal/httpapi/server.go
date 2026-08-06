@@ -381,6 +381,11 @@ func (service *service) createSession(w http.ResponseWriter, r *http.Request) {
 	}
 	session, err := service.sessions.CreateSession(r.Context(), strings.TrimSpace(request.Credential), request.PIN, request.RememberDevice)
 	if err != nil {
+		if errors.Is(err, authn.ErrLoginBusy) {
+			w.Header().Set("Retry-After", "2")
+			writeError(w, r, http.StatusTooManyRequests, "login_temporarily_busy", "Sign in is busy. Try again in a moment.")
+			return
+		}
 		if errors.Is(err, authn.ErrLoginLocked) {
 			w.Header().Set("Retry-After", "900")
 			writeError(w, r, http.StatusTooManyRequests, "login_temporarily_locked", "Too many attempts. Ask a parent or coach for help if this continues.")

@@ -12,6 +12,7 @@ The production PWA runs on Cloudflare Workers' free tier and connects through it
 - A public DNS `A`/`AAAA` record for the API hostname pointing to the VM.
 - Inbound TCP 80 and 443, UDP 443, and SSH restricted to operator addresses. Do not publish port 8080.
 - Enough protected disk for the database, an on-host backup, and an isolated restore copy.
+- `rclone` for encrypted uploads to the private R2 bucket.
 - An operator account allowed to run Docker. Treat Docker access as root-equivalent host access.
 
 ## First deployment
@@ -52,12 +53,13 @@ docker compose --env-file .env -f compose.yaml --profile operations run --rm adm
 
 docker compose --env-file .env -f compose.yaml \
   --profile operations run --rm admin provision-player \
-  --team-id TEAM_ID --first-name Mason --last-initial C \
+  --team-id TEAM_ID --first-name Test --last-initial P \
   --login-url "https://app.example.com/login" \
-  --qr-output /output/mason-login.png
+  --qr-output /output/test-player-login.png \
+  --test-only
 ```
 
-Use a non-obvious six-digit PIN and distribute it separately from the QR code. `rotate-player-login` issues a replacement and revokes all prior credentials/sessions; `revoke-player-login` disables current credentials/sessions. The QR URL holds its secret after `#`, so it is not sent with the initial web request.
+Use an allowed four-digit PIN and distribute it separately from the QR code. Repeated digits and `1234`/`4321` are rejected. Real-player provisioning remains locked while `PRODUCTION_DATA_APPROVED=false`; `--test-only` asserts the identity is disposable. Set it to `true` only after the production approval checklist is complete. `rotate-player-login` issues a unique replacement and revokes all prior credentials/sessions; `revoke-player-login` disables current credentials/sessions. The QR URL holds its 256-bit secret after `#`, so it is not sent with the initial web request.
 
 ## Update
 
@@ -75,10 +77,12 @@ The database lives outside the container and embedded forward migrations run bef
 
 ```sh
 ./scripts/backup.sh .env
-./scripts/restore-drill.sh .env stridecrew-backup-YYYYMMDDTHHMMSSZ-v1.tar.gz
+./scripts/restore-drill.sh .env \
+  stridecrew-backup-YYYYMMDDTHHMMSSZ-v1.tar.gz.age \
+  stridecrew-backup-identity.txt
 ```
 
-The restore drill verifies the archive and creates a new database under `RESTORE_DIR`; it never replaces the live database. Current v1 archives are unencrypted and must remain on the protected host. Off-host copies are blocked until encryption, key management, retention, and operator auditing are implemented.
+The restore drill authenticates and decrypts the age envelope, verifies the archive, and creates a new database under `RESTORE_DIR`; it never replaces the live database. Only the public age recipient belongs on the VM. Supply the identity temporarily for a drill, then remove it immediately. Scheduled jobs upload only encrypted archives to the private R2 bucket.
 
 ## Operations
 
@@ -92,6 +96,6 @@ Container logs use Docker's bounded local driver (three files of at most 5 MiB p
 
 ## Recovery and rollback boundary
 
-Application rollback means checking out the prior reviewed source and running `deploy.sh` again. Database migrations are forward-only. Do not copy an older database over the live file. A database cutover must use the offline, retain-the-old-file procedure in `docs/backend/BACKUP_AND_RESTORE.md`; that live cutover remains a production gate.
+Application rollback means checking out the prior reviewed source and running `deploy.sh` again. Database migrations are forward-only. Do not copy an older database over the live file. A database cutover must use `docs/backend/LIVE_RESTORE_RUNBOOK.md`, retain the old live file, and pass post-cutover checks.
 
 See `docs/backend/CLOUD_VM_DEPLOYMENT.md` for the architecture and unresolved gates.

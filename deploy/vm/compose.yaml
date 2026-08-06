@@ -151,6 +151,7 @@ services:
       - /stridecrew-admin
     environment:
       DATABASE_URL: file:/data/stridecrew.db
+      PRODUCTION_DATA_APPROVED: ${PRODUCTION_DATA_APPROVED:-false}
     volumes:
       - type: bind
         source: ${DATA_DIR:?DATA_DIR must be set}

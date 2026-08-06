@@ -51,15 +51,15 @@ The portable manual deployment bundle is in `deploy/vm/`. It runs the API behind
 
 ## Backup and restore
 
-`cmd/backup` creates a versioned `tar.gz` archive from a consistent live SQLite snapshot, verifies checksums and database integrity, and restores only into a new isolated database path. Restore applies all missing embedded forward migrations and refuses to overwrite an existing database. See `docs/backend/BACKUP_AND_RESTORE.md` for commands, the Docker drill, and the encryption/off-host work still required before production data.
+`cmd/backup` creates a versioned archive from a consistent live SQLite snapshot, verifies checksums and database integrity, encrypts it to an age X25519 recipient, and restores only into a new isolated database path. Restore applies all missing embedded forward migrations and refuses to overwrite an existing database. See `docs/backend/BACKUP_AND_RESTORE.md` for commands and the Docker drill.
 
 ## Current boundary
 
-- Production player authentication uses a reissuable QR credential plus six-digit PIN, Argon2id verification, throttling, and revocable opaque sessions.
+- Production player authentication uses a unique reissuable 256-bit QR credential plus exactly four PIN digits, Argon2id verification, bounded password work, throttling, and revocable opaque sessions.
 - E2E bearer identities remain local fixtures for older API-focused scenarios; QR+PIN session lifecycle coverage uses the real session service and database.
 - Training-entry create/list/detail/delete and contextual reactions use the real Go/SQLite API in the Docker E2E environment.
 - The PWA worker selects the real API with `STRIDECREW_API_BASE_URL`, keeps the bearer in an HTTP-only same-origin cookie, and uses its local adapter only when that binding is absent.
 - Safe Team/leaderboard projections, cursor pagination, guardian recovery policy, and hosted API operations remain pending.
 - API, authorization, and data-model drafts are in `docs/backend/`.
-- The migration-aware flat-file backup CLI and restore drill are implemented; encryption, retention automation, audited off-host storage, and the live-cutover runbook remain production gates.
-- The VM stack and connected login path are manually deployable. Do not persist real youth data until credential-delivery/recovery policy, encrypted off-host backup, and privacy operations are complete.
+- The migration-aware flat-file backup CLI, age encryption, bounded local retention, private R2 upload, isolated restore drill, and live-cutover runbook are implemented. Key custody, R2 lifecycle, and launch policies still require owner approval.
+- The VM stack, connected login path, age-encrypted backup, and private R2 upload path are manually deployable. Do not persist real youth data until the owner approvals in `docs/backend/PRODUCTION_APPROVAL_CHECKLIST.md` are complete.

@@ -7,6 +7,7 @@ ConditionPathExists=/opt/stridecrew/deploy/vm/.env
 [Service]
 Type=oneshot
 WorkingDirectory=/opt/stridecrew/deploy/vm
+EnvironmentFile=/etc/stridecrew/r2.env
 ExecStart=/opt/stridecrew/deploy/vm/scripts/backup.sh /opt/stridecrew/deploy/vm/.env
 Nice=10
 IOSchedulingClass=best-effort

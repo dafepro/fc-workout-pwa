@@ -13,6 +13,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"filippo.io/age"
 )
 
 func TestBackupRestorePreservesPrivateAPIProjections(t *testing.T) {
@@ -45,12 +47,20 @@ func TestBackupRestorePreservesPrivateAPIProjections(t *testing.T) {
 	expectedEntries := projection(t, api, "/v1/me/training-entries", masonToken)
 	expectedBadges := projection(t, api, "/v1/me/reaction-badges", masonToken)
 	workDir := t.TempDir()
-	archivePath := filepath.Join(workDir, "stridecrew.tar.gz")
-	runBackupCommand(t, "create", "--database-url", databaseURL, "--output", archivePath, "--app-version", "docker-e2e")
-	runBackupCommand(t, "verify", "--archive", archivePath)
+	identity, err := age.GenerateX25519Identity()
+	if err != nil {
+		t.Fatal(err)
+	}
+	identityPath := filepath.Join(workDir, "backup-identity.txt")
+	if err := os.WriteFile(identityPath, []byte(identity.String()+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	archivePath := filepath.Join(workDir, "stridecrew.tar.gz.age")
+	runBackupCommand(t, "create-encrypted", "--database-url", databaseURL, "--output", archivePath, "--recipient", identity.Recipient().String(), "--app-version", "docker-e2e")
+	runBackupCommand(t, "verify-encrypted", "--archive", archivePath, "--identity", identityPath)
 
 	restoredPath := filepath.Join(workDir, "restored.db")
-	runBackupCommand(t, "restore", "--archive", archivePath, "--target", restoredPath)
+	runBackupCommand(t, "restore-encrypted", "--archive", archivePath, "--identity", identityPath, "--target", restoredPath)
 	restoredAPI := startRestoredAPI(t, restoredPath)
 	if got := projection(t, restoredAPI, "/v1/me/training-entries", masonToken); !reflect.DeepEqual(got, expectedEntries) {
 		t.Fatalf("restored training projection differs\n got: %#v\nwant: %#v", got, expectedEntries)
@@ -64,12 +74,12 @@ func TestBackupRestorePreservesPrivateAPIProjections(t *testing.T) {
 		t.Fatal(err)
 	}
 	contents[len(contents)/2] ^= 0xff
-	corruptPath := filepath.Join(workDir, "corrupt.tar.gz")
+	corruptPath := filepath.Join(workDir, "corrupt.tar.gz.age")
 	if err := os.WriteFile(corruptPath, contents, 0o600); err != nil {
 		t.Fatal(err)
 	}
 	rejectedTarget := filepath.Join(workDir, "rejected.db")
-	command := exec.Command(backupBinary(), "restore", "--archive", corruptPath, "--target", rejectedTarget)
+	command := exec.Command(backupBinary(), "restore-encrypted", "--archive", corruptPath, "--identity", identityPath, "--target", rejectedTarget)
 	if output, err := command.CombinedOutput(); err == nil {
 		t.Fatalf("corrupt restore succeeded: %s", output)
 	}

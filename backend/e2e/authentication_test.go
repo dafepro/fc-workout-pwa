@@ -9,7 +9,7 @@ import (
 
 const (
 	e2eLoginCredential = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-	e2eLoginPIN        = "246810"
+	e2eLoginPIN        = "2468"
 )
 
 func TestQRAndPINSessionLifecycleAndLockout(t *testing.T) {
@@ -19,7 +19,7 @@ func TestQRAndPINSessionLifecycleAndLockout(t *testing.T) {
 	for attempt := 1; attempt <= 5; attempt++ {
 		response := api.do(t, http.MethodPost, "/v1/auth/sessions", "", "", map[string]any{
 			"credential": e2eLoginCredential,
-			"pin":        "111111",
+			"pin":        "1111",
 		})
 		want := http.StatusUnauthorized
 		if attempt == 5 {

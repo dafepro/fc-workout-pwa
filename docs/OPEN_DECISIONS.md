@@ -9,7 +9,7 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
 
 ## Authentication
 
-- Implemented baseline: a reissuable 256-bit QR credential is combined with a six-digit PIN and verified with Argon2id; only hashes/verifiers are stored.
+- Implemented baseline: a unique reissuable 256-bit QR credential is combined with exactly four PIN digits and verified with Argon2id; only hashes/verifiers are stored. Trivial repeated/sequential PINs are rejected, malformed or unknown QR values avoid expensive password work, and only one Argon2 login runs at a time on the small VM.
 - Implemented baseline: five failures trigger a 15-minute lock, later failure windows double, and the tenth failure revokes the credential and all associated sessions.
 - Implemented baseline: normal sessions last 12 hours and explicitly remembered devices last 30 days. Reissuing or revoking a QR invalidates prior sessions.
 - Parent recovery flow.
@@ -56,17 +56,18 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
 
 - Recovery-point and recovery-time objectives.
 - Daily/weekly retention after youth-data and deletion-policy review.
-- Off-host encrypted storage provider and key-rotation policy.
+- Selected first off-host provider: private Cloudflare R2 Standard storage, using only the free allowance while usage remains below it. The age X25519 identity and key-rotation schedule still require owner approval.
 - Who may initiate, download, or restore a backup and how those actions are audited.
 - Implemented baseline: format-v1 `tar.gz` archives contain a consistent SQLite snapshot, strict manifest, checksums, migration ledger, and safe counts. Restore always writes a new isolated file, applies forward migrations, and refuses live-file overwrite.
-- Current archives declare `encrypted: false` and are limited to local drills or same-host staging. They must not leave the protected host with production youth data until the encryption and key-management decision is implemented.
+- Implemented production envelope: verified format-v1 payloads are encrypted with age X25519 before upload; the VM stores only the public recipient. The matching identity remains off-host with the recovery custodian. Retention and custodian approval remain open.
 
 ## Cloud VM operations
 
 - Implemented baseline: one provider-neutral Linux VM runs Caddy plus one non-root Go/SQLite API replica through Docker Compose; only ports 80/443 are public, while database and backup directories are explicit protected host bind mounts.
 - Selected first host: one DigitalOcean Basic 512 MiB x64 Droplet, with 1 GiB swap and weekly DigitalOcean backup. The region, DNS hostname, and operator SSH allowlist remain operator choices.
-- Choose host OS patch cadence, Docker log retention, disk-capacity thresholds, and `/readyz` uptime alerting.
+- Implemented operations baseline: Ubuntu security updates run daily without unattended reboot; required reboots are completed within seven days, container logs are bounded, the production check requires at least 1 GiB free, and free DigitalOcean resource alerts start at the documented disk/memory/CPU thresholds. Choose the external `/readyz` monitor and notification destination.
 - QR/PIN authentication and the same-origin PWA cookie gateway are implemented. Real youth-data deployment still requires guardian ownership/recovery policy, secure credential distribution, and privacy approval.
+- Implemented safety gate: production player provisioning defaults locked and accepts only explicit `--test-only` identities until `PRODUCTION_DATA_APPROVED=true` is deliberately configured after approval.
 - Implemented release candidate: GitHub Actions runs static/build gates before Docker E2E and publishes an immutable GHCR image. VM deployment is still operator-triggered; repository secrets and production host state remain outside source control.
 - Selected production frontend host: Cloudflare Workers free tier, deployed manually through the production GitHub environment. Sites remains preview-only. Choose the final Cloudflare-zone hostname before deployment.
 

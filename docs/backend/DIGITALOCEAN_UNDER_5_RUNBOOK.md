@@ -9,14 +9,16 @@ This is the operator checklist for the first connected StrideCrew deployment. Th
 | Basic Droplet, 512 MiB RAM / 1 vCPU / 10 GiB disk |                 $4.00 |
 | Weekly DigitalOcean Droplet backups (20%)         |                 $0.80 |
 | DigitalOcean Cloud Firewall                       |                 $0.00 |
+| DigitalOcean Monitoring and resource alerts       |                 $0.00 |
 | Cloudflare Workers Free and DNS, existing domain  |                 $0.00 |
+| Cloudflare R2 Standard, within its free allowance |                 $0.00 |
 | Total before tax and domain registration          |             **$4.80** |
 
-Verify the displayed total before creating the Droplet because provider pricing can change. The current references are [Droplet pricing](https://www.digitalocean.com/pricing/droplets), [backup pricing](https://docs.digitalocean.com/products/backups/details/pricing/), [Cloud Firewall pricing](https://docs.digitalocean.com/products/networking/firewalls/details/pricing/), and [Cloudflare Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/). Workers Free currently allows 100,000 dynamic requests per day, which is ample for the first team but is still a limit to monitor.
+Verify the displayed total before creating the Droplet because provider pricing can change. The current references are [Droplet pricing](https://www.digitalocean.com/pricing/droplets), [backup pricing](https://docs.digitalocean.com/products/backups/details/pricing/), [Cloud Firewall pricing](https://docs.digitalocean.com/products/networking/firewalls/details/pricing/), [DigitalOcean Monitoring pricing](https://docs.digitalocean.com/products/monitoring/details/pricing/), [Cloudflare Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/), and [Cloudflare R2 pricing](https://developers.cloudflare.com/r2/pricing/). Workers Free currently allows 100,000 dynamic requests per day. R2 Standard currently includes 10 GB-month storage, one million Class A operations, ten million Class B operations, and free Internet egress each month; monitor usage rather than assuming it will always remain free.
 
 The 512 MiB plan is intentionally tight. The VM does not compile the application: GitHub Actions tests it and publishes a runtime-only image. The host gets 1 GiB of swap, container memory/PID limits, and bounded Docker logs. Run only one API replica.
 
-Do not provision real youth accounts merely because the deployment is reachable. Guardian ownership/recovery, credential distribution, privacy operations, encrypted off-host backup, and live restore-cutover approval remain production gates.
+Do not provision real youth accounts merely because the deployment is reachable. The technical encrypted off-host backup and live restore-cutover mechanisms are implemented, but guardian ownership/recovery, credential distribution, retention, key custody, and launch approval remain production gates. Record those decisions in `PRODUCTION_APPROVAL_CHECKLIST.md`.
 
 ## Values to decide before starting
 
@@ -28,6 +30,25 @@ Write these down locally; do not commit them:
 - `REGION`: the DigitalOcean region closest to the team.
 - `SSH_ALLOWLIST`: the current public IP or trusted VPN egress IP used for administration.
 - `RELEASE_SHA`: the complete Git commit SHA that passed the backend-image workflow.
+- `BACKUP_AGE_RECIPIENT`: the public `age1...` recipient generated in the next section.
+- `R2_ACCOUNT_ID` and `R2_BUCKET`: the Cloudflare account and private Standard bucket used for encrypted archives.
+
+## 0. Create the backup key and private R2 bucket (you do this)
+
+On a trusted computer, install [`age`](https://github.com/FiloSottile/age) and create an X25519 identity:
+
+```sh
+age-keygen -o stridecrew-backup-identity.txt
+```
+
+The command prints a public recipient beginning with `age1`; save that as `BACKUP_AGE_RECIPIENT`. Keep the private identity file off the VM except during a supervised restore. Store two controlled copies in separate secure locations. Never commit it, email it, or put it in Cloudflare.
+
+In Cloudflare R2:
+
+1. Create a private **Standard** bucket such as `stridecrew-backups`.
+2. Create an API token scoped only to read and write objects in that bucket.
+3. Record its Access Key ID and Secret Access Key locally. They go only in the VM's root-readable R2 environment file.
+4. Do not enable public bucket access. Add a 35-day lifecycle rule only after the retention recommendation in `PRODUCTION_APPROVAL_CHECKLIST.md` is approved.
 
 ## 1. One-time GitHub setup (you do this)
 
@@ -56,7 +77,8 @@ In DigitalOcean:
    - the chosen region;
    - SSH-key authentication only;
    - weekly Droplet backups enabled;
-   - no paid volume, managed database, load balancer, reserved IP, or monitoring add-on.
+   - free DigitalOcean Monitoring enabled;
+   - no paid volume, managed database, load balancer, reserved IP, or paid monitoring add-on.
 3. Record its public IPv4 address. Add an IPv6 record only if you deliberately enable and test IPv6.
 
 Create a free DigitalOcean Cloud Firewall and attach it to this Droplet:
@@ -130,9 +152,18 @@ Then:
 ```sh
 sudo apt-get update
 sudo apt-get upgrade -y
-sudo apt-get install -y ca-certificates curl git
+sudo apt-get install -y ca-certificates curl git rclone unattended-upgrades
 sudo usermod -aG docker stridecrew
 ```
+
+Ubuntu Server applies security updates daily by default. Confirm that the timer is enabled; if it is not, enable it through the package's supported configuration flow:
+
+```sh
+systemctl is-enabled apt-daily-upgrade.timer
+sudo dpkg-reconfigure unattended-upgrades
+```
+
+Do not enable unattended reboots. The readiness check fails while `/var/run/reboot-required` exists; schedule and complete that reboot within seven days, or sooner for an actively exploited issue.
 
 Log out and back in so Docker-group membership applies. Treat membership in that group as root-equivalent. Verify:
 
@@ -169,6 +200,10 @@ APP_VERSION=RELEASE_SHA
 CADDY_SITE_ADDRESS=api.example.com
 PWA_ORIGIN=https://app.example.com
 TEAM_TIME_ZONE=America/Chicago
+BACKUP_AGE_RECIPIENT=age1REPLACE_WITH_THE_PUBLIC_RECIPIENT
+R2_UPLOAD_ENABLED=true
+LOCAL_BACKUP_RETENTION_DAYS=7
+PRODUCTION_DATA_APPROVED=false
 ```
 
 Keep the four default host data paths. Then run:
@@ -190,7 +225,24 @@ docker stats --no-stream
 
 Readiness should return `{"status":"ready"}`. The unauthenticated private request must return `401`. Both containers should be healthy and remain below their configured ceilings.
 
-## 7. Enable and prove daily backups (you do this)
+## 7. Enable and prove encrypted daily backups (you do this)
+
+Create the root-only R2 credentials file. Replace the placeholders without committing them:
+
+```sh
+sudo install -d -m 0755 /etc/stridecrew
+sudo install -m 0600 -o root -g root /dev/null /etc/stridecrew/r2.env
+sudoedit /etc/stridecrew/r2.env
+```
+
+Its contents are:
+
+```dotenv
+R2_ACCOUNT_ID='replace-me'
+R2_BUCKET='stridecrew-backups'
+R2_ACCESS_KEY_ID='replace-me'
+R2_SECRET_ACCESS_KEY='replace-me'
+```
 
 ```sh
 cd /opt/stridecrew/deploy/vm
@@ -203,15 +255,22 @@ sudo systemctl status stridecrew-backup.timer --no-pager
 sudo journalctl -u stridecrew-backup.service --since today --no-pager
 ```
 
-The timer runs daily around 03:15 host time, creates an application-consistent SQLite archive, and verifies it. The weekly DigitalOcean backup then captures the Droplet disk, including those local archives. Current archives are not encrypted; do not copy them to email, Drive, GitHub, or another off-host location until encryption and key management are implemented.
+The timer runs daily around 03:15 host time. It creates and verifies an application-consistent SQLite archive, encrypts it to the off-VM age recipient, and uploads only the encrypted `.age` file to the private R2 bucket. After a successful upload, local encrypted archives older than seven days are pruned so the small VM disk cannot grow without bound. The weekly DigitalOcean backup also captures the Droplet disk. The private age identity is not required to create a backup and does not live on the VM.
 
-After the first backup, run a non-destructive restore drill using the filename printed in the journal:
+After the first backup, copy the private identity to the VM only for a supervised, non-destructive restore drill. Put it in the restore directory with the application container's UID and a private mode, run the drill using the encrypted filename printed in the journal, and immediately remove it:
 
 ```sh
-./scripts/restore-drill.sh .env stridecrew-backup-YYYYMMDDTHHMMSSZ-v1.tar.gz
+sudo install -m 0400 -o 65532 -g 65532 /tmp/stridecrew-backup-identity.txt \
+  /var/lib/stridecrew/restore/stridecrew-backup-identity.txt
+./scripts/restore-drill.sh .env \
+  stridecrew-backup-YYYYMMDDTHHMMSSZ-v1.tar.gz.age \
+  stridecrew-backup-identity.txt
+sudo rm -f /var/lib/stridecrew/restore/stridecrew-backup-identity.txt \
+  /tmp/stridecrew-backup-identity.txt
+sudo ./scripts/production-check.sh .env --check-r2
 ```
 
-The drill writes only beneath `RESTORE_DIR`; it does not replace the live database.
+Transfer `/tmp/stridecrew-backup-identity.txt` over SSH from the trusted computer; do not paste it into shell history. The drill writes only beneath `RESTORE_DIR`; it does not replace the live database. The exact live cutover and rollback procedure is in `LIVE_RESTORE_RUNBOOK.md`.
 
 ## 8. Deploy the production PWA to Cloudflare (you do this)
 
@@ -249,10 +308,13 @@ Copy the returned team ID. Provision a test player interactively so the PIN is r
 docker compose --env-file .env -f compose.yaml --profile operations run --rm admin \
   provision-player --team-id TEAM_ID --first-name Test --last-initial P \
   --login-url "https://app.example.com/login" \
-  --qr-output /output/test-player-login.png
+  --qr-output /output/test-player-login.png \
+  --test-only
 ```
 
-Use a non-obvious six-digit PIN. Treat the output URL, QR image, PIN, database, and backup archives as credentials/private data. Do not use a real child's name for this deployment test.
+Use a non-obvious four-digit PIN; repeated digits and ascending or descending sequences are rejected. Deliver the PIN separately from the QR code. Treat the output URL, QR image, PIN, database, and backup archives as credentials/private data. Do not use a real child's name for this deployment test.
+
+The admin CLI refuses real-player provisioning while `PRODUCTION_DATA_APPROVED=false`; `--test-only` is an explicit assertion that the identity is disposable. Change the environment value to `true` only after every owner approval is recorded and the launch checklist passes.
 
 ## Routine update
 
@@ -260,7 +322,8 @@ After a new workflow succeeds:
 
 ```sh
 cd /opt/stridecrew/deploy/vm
-./scripts/backup.sh .env
+sudo systemctl start stridecrew-backup.service
+sudo journalctl -u stridecrew-backup.service --since today --no-pager
 cd /opt/stridecrew
 git fetch origin main
 git checkout NEW_RELEASE_SHA
@@ -281,8 +344,11 @@ Frontend releases remain deliberate: run **Cloudflare PWA** manually after its c
 - `df -h /var/lib/stridecrew/data /var/backups/stridecrew`
 - `free -h` and `docker stats --no-stream`
 - confirm the DigitalOcean backup remains enabled and recent;
+- run `sudo ./scripts/production-check.sh .env --check-r2` and confirm the newest encrypted archive is present off-host;
 - confirm SSH remains restricted to the current operator IP;
 - install Ubuntu security updates, reboot when required, then recheck readiness;
 - run an isolated restore drill at least quarterly and before a destructive migration.
+
+In the DigitalOcean control panel, add the operator's alert contact and configure the free resource alerts after observing the first day's baseline. Starting thresholds are disk above 80% for 5 minutes, memory above 85% for 15 minutes, and CPU above 90% for 15 minutes. Also configure one external HTTPS monitor against `/readyz`; the provider and notification destination are operator choices and must not receive credentials or private paths.
 
 If the API is repeatedly OOM-killed or swap use grows during ordinary traffic, move to the next Droplet size. Do not weaken Argon2 credential hashing to fit the $4 plan.

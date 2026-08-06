@@ -32,7 +32,7 @@ export default function LoginPage() {
       setError(copy.auth.missingQR);
       return;
     }
-    if (!/^\d{6}$/.test(pin)) {
+    if (!/^\d{4}$/.test(pin)) {
       setError(copy.auth.invalidPIN);
       return;
     }
@@ -70,6 +70,7 @@ export default function LoginPage() {
         <p>{copy.auth.loginIntro}</p>
         <form
           onSubmit={submit}
+          noValidate
           data-credential-ready={credential ? "true" : "false"}
         >
           <label htmlFor="player-pin">{copy.auth.pinLabel}</label>
@@ -79,8 +80,8 @@ export default function LoginPage() {
             type="password"
             inputMode="numeric"
             autoComplete="one-time-code"
-            pattern="[0-9]{6}"
-            maxLength={6}
+            pattern="[0-9]{4}"
+            maxLength={4}
             value={pin}
             onChange={(event) => setPIN(event.target.value.replace(/\D/g, ""))}
             required

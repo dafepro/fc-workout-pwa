@@ -38,3 +38,20 @@ test("a player signs in from a QR fragment, stays signed in, and logs out", asyn
     page.getByRole("heading", { name: "Player sign in" }),
   ).toBeVisible();
 });
+
+test("the PIN field accepts exactly four digits before sending a login", async ({
+  page,
+}) => {
+  await page.goto(
+    "/login?e2e=1#credential=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  );
+  await page.locator("form[data-credential-ready='true']").waitFor();
+  const pin = page.getByLabel("Four-digit PIN");
+
+  await pin.fill("123");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page.getByRole("alert")).toContainText("four-digit PIN");
+
+  await pin.fill("24680");
+  await expect(pin).toHaveValue("2468");
+});

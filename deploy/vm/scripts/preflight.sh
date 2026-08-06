@@ -13,6 +13,9 @@ docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 is required"
 site_address=$(require_env_value CADDY_SITE_ADDRESS)
 pwa_origin=$(require_env_value PWA_ORIGIN)
 api_image=$(require_env_value API_IMAGE)
+backup_recipient=$(require_env_value BACKUP_AGE_RECIPIENT)
+local_retention_days=$(require_env_value LOCAL_BACKUP_RETENTION_DAYS)
+production_data_approved=$(require_env_value PRODUCTION_DATA_APPROVED)
 data_directory=$(require_env_value DATA_DIR)
 backup_directory=$(require_env_value BACKUP_DIR)
 restore_directory=$(require_env_value RESTORE_DIR)
@@ -27,6 +30,21 @@ case "$api_image" in
 	*:latest|*:main) fail "API_IMAGE must use an immutable sha-* tag, not a moving tag" ;;
 	*:sha-*|stridecrew-api:*) ;;
 	*) fail "API_IMAGE must use an immutable sha-* tag (or stridecrew-api:* for a local source build)" ;;
+esac
+
+case "$backup_recipient" in
+	age1*) ;;
+	*) fail "BACKUP_AGE_RECIPIENT must be an age X25519 public recipient" ;;
+esac
+
+case "$local_retention_days" in
+	*[!0-9]*|"") fail "LOCAL_BACKUP_RETENTION_DAYS must be an integer from 1 through 90" ;;
+esac
+[ "$local_retention_days" -ge 1 ] && [ "$local_retention_days" -le 90 ] || fail "LOCAL_BACKUP_RETENTION_DAYS must be an integer from 1 through 90"
+
+case "$production_data_approved" in
+	true|false) ;;
+	*) fail "PRODUCTION_DATA_APPROVED must be true or false" ;;
 esac
 
 case "$pwa_origin" in

@@ -77,6 +77,8 @@ This feedback should be implemented as the first end-to-end feature on the real 
 
    **Codex · Baseline addressed (2026-08-05):** Added a dependency-light operator CLI that creates a consistent live SQLite snapshot, packages a strict versioned manifest and SHA-256 checksums, verifies database integrity, and restores only into a new isolated path with forward migrations. The Docker drill compares private HTTP projections before and after restore and rejects corruption. Encryption, retention automation, audited off-host storage, and live cutover remain production gates.
 
+   **Codex · Production gate addressed (2026-08-05):** Added age X25519 encryption, a private Cloudflare R2 upload path, bounded local retention after successful uploads, strict recovery-key file permissions, encrypted restore E2E coverage, a production readiness check, and an offline live cutover/rollback runbook. Guardian/recovery, retention, key-custody, recovery-objective, and launch policies remain explicitly owner-approved gates in `backend/PRODUCTION_APPROVAL_CHECKLIST.md`.
+
 8. **Cloud deployment and operations:** container build, managed secrets, off-host backup retention, request logging without sensitive payloads, and automated tests in CI.
 
 ### First review checkpoint

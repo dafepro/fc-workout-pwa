@@ -18,7 +18,7 @@ export async function loginAsMason(page: Page) {
   );
   await page.locator("html[data-app-ready='true']").waitFor();
   await page.locator("form[data-credential-ready='true']").waitFor();
-  await page.getByLabel("Six-digit PIN").fill("246810");
+  await page.getByLabel("Four-digit PIN").fill("2468");
   await page.getByLabel("Remember this device for 30 days").check();
   const signInResponse = page.waitForResponse(
     (response) =>

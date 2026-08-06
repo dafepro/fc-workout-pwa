@@ -29,14 +29,16 @@ const (
 var (
 	ErrInvalidLogin       = errors.New("invalid login")
 	ErrLoginLocked        = errors.New("login locked")
+	ErrLoginBusy          = errors.New("login busy")
 	ErrInvalidPIN         = errors.New("invalid PIN")
 	ErrAccountUnavailable = errors.New("account unavailable")
-	pinPattern            = regexp.MustCompile(`^[0-9]{6}$`)
+	pinPattern            = regexp.MustCompile(`^[0-9]{4}$`)
 )
 
 type Service struct {
-	db  *sql.DB
-	now func() time.Time
+	db         *sql.DB
+	now        func() time.Time
+	loginSlots chan struct{}
 }
 
 type TeamProfile struct {
@@ -65,7 +67,7 @@ type Credential struct {
 }
 
 func NewService(db *sql.DB) *Service {
-	return &Service{db: db, now: time.Now}
+	return &Service{db: db, now: time.Now, loginSlots: make(chan struct{}, 1)}
 }
 
 func (service *Service) Authenticate(ctx context.Context, bearerToken string) (domain.Actor, error) {
@@ -80,6 +82,16 @@ func (service *Service) Authenticate(ctx context.Context, bearerToken string) (d
 }
 
 func (service *Service) CreateSession(ctx context.Context, credentialToken, pin string, remember bool) (Session, error) {
+	if !validCredentialToken(credentialToken) || !pinPattern.MatchString(pin) {
+		return Session{}, ErrInvalidLogin
+	}
+	select {
+	case service.loginSlots <- struct{}{}:
+		defer func() { <-service.loginSlots }()
+	default:
+		return Session{}, ErrLoginBusy
+	}
+
 	now := service.now().UTC()
 	selector := sha256.Sum256([]byte(credentialToken))
 	connection, err := service.db.Conn(ctx)
@@ -103,7 +115,6 @@ func (service *Service) CreateSession(ctx context.Context, credentialToken, pin 
 	var lockedUntil, revokedAt sql.NullString
 	err = connection.QueryRowContext(ctx, `SELECT id, account_id, verifier_salt, verifier_hash, failed_attempts, locked_until, revoked_at FROM auth_credentials WHERE selector_hash = ?`, selector[:]).Scan(&credentialID, &accountID, &salt, &expected, &failed, &lockedUntil, &revokedAt)
 	if errors.Is(err, sql.ErrNoRows) {
-		service.dummyVerify(credentialToken, pin)
 		_, _ = connection.ExecContext(ctx, "ROLLBACK")
 		return Session{}, ErrInvalidLogin
 	}
@@ -330,7 +341,7 @@ func (service *Service) issueCredential(ctx context.Context, accountID, pin, tok
 	if err := ValidatePIN(pin); err != nil {
 		return Credential{}, err
 	}
-	if decoded, err := base64.RawURLEncoding.DecodeString(token); err != nil || len(decoded) != 32 {
+	if !validCredentialToken(token) {
 		return Credential{}, errors.New("credential token must contain 32 random bytes")
 	}
 	var status, role string
@@ -375,7 +386,11 @@ func ValidatePIN(pin string) error {
 	if !pinPattern.MatchString(pin) {
 		return ErrInvalidPIN
 	}
-	blocked := map[string]bool{"000000": true, "111111": true, "222222": true, "333333": true, "444444": true, "555555": true, "666666": true, "777777": true, "888888": true, "999999": true, "123456": true, "654321": true}
+	blocked := map[string]bool{
+		"0000": true, "1111": true, "2222": true, "3333": true, "4444": true,
+		"5555": true, "6666": true, "7777": true, "8888": true, "9999": true,
+		"1234": true, "4321": true,
+	}
 	if blocked[pin] {
 		return ErrInvalidPIN
 	}
@@ -430,11 +445,13 @@ func (service *Service) lookupSession(ctx context.Context, token string) (sessio
 func deriveVerifier(token, pin string, salt []byte) []byte {
 	return argon2.IDKey([]byte(token+"\x00"+pin), salt, argonTime, argonMemory, argonThreads, argonKeyLength)
 }
-func (service *Service) dummyVerify(token, pin string) {
-	salt := sha256.Sum256([]byte("stridecrew-invalid-login"))
-	_ = deriveVerifier(token, pin, salt[:16])
-}
 func lockDuration(failed int) time.Duration { return 15 * time.Minute * time.Duration(1<<(failed-5)) }
+
+func validCredentialToken(token string) bool {
+	decoded, err := base64.RawURLEncoding.DecodeString(token)
+	return err == nil && len(decoded) == 32
+}
+
 func randomToken() (string, error) {
 	raw := make([]byte, 32)
 	if _, err := rand.Read(raw); err != nil {

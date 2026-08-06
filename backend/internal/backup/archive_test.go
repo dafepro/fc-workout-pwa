@@ -8,11 +8,68 @@ import (
 	"testing"
 	"time"
 
+	"filippo.io/age"
+
 	"github.com/dafepro/fc-workout-pwa/backend/internal/backup"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/store"
 	"github.com/dafepro/fc-workout-pwa/backend/migrations"
 )
+
+func TestEncryptedArchiveRequiresTheOperatorIdentityToVerifyAndRestore(t *testing.T) {
+	ctx := context.Background()
+	plainPath := filepath.Join(t.TempDir(), "stridecrew-backup.tar.gz")
+	manifest, err := backup.Create(ctx, backup.CreateOptions{
+		DatabaseURL:        seededDatabase(t, ctx),
+		ArchivePath:        plainPath,
+		ApplicationVersion: "encrypted-test",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	identity, err := age.GenerateX25519Identity()
+	if err != nil {
+		t.Fatal(err)
+	}
+	encryptedPath := filepath.Join(t.TempDir(), "stridecrew-backup.tar.gz.age")
+	if err := backup.EncryptArchive(plainPath, encryptedPath, identity.Recipient().String()); err != nil {
+		t.Fatalf("encrypt archive: %v", err)
+	}
+
+	encryptedBytes, err := os.ReadFile(encryptedPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(encryptedBytes) < len("age-encryption.org/v1") || string(encryptedBytes[:len("age-encryption.org/v1")]) != "age-encryption.org/v1" {
+		t.Fatal("encrypted backup did not use the age v1 envelope")
+	}
+	wrongIdentity, err := age.GenerateX25519Identity()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := backup.VerifyEncrypted(ctx, encryptedPath, wrongIdentity.String()); err == nil {
+		t.Fatal("encrypted backup verified with the wrong identity")
+	}
+
+	verified, err := backup.VerifyEncrypted(ctx, encryptedPath, identity.String())
+	if err != nil {
+		t.Fatalf("verify encrypted backup: %v", err)
+	}
+	if verified.Database.SHA256 != manifest.Database.SHA256 {
+		t.Fatal("encrypted verification returned the wrong manifest")
+	}
+	restoredPath := filepath.Join(t.TempDir(), "restored.db")
+	restored, err := backup.RestoreEncrypted(ctx, backup.RestoreOptions{
+		ArchivePath:  encryptedPath,
+		DatabasePath: restoredPath,
+	}, identity.String())
+	if err != nil {
+		t.Fatalf("restore encrypted backup: %v", err)
+	}
+	if restored.Database.SHA256 != manifest.Database.SHA256 {
+		t.Fatal("encrypted restore returned the wrong manifest")
+	}
+}
 
 func TestCreateVerifyAndRestoreArchive(t *testing.T) {
 	ctx := context.Background()
