@@ -14,13 +14,12 @@ The bundle contains exactly five files:
 
 Bundle creation and extraction use a versioned gzip-compressed JSON envelope
 implemented with Node's built-in modules. They do not invoke `tar`, so the same
-commands work with macOS, Linux, and Windows tar installations. The existing
-`production.tar.gz.age` filename is retained for release compatibility even
-though its decrypted payload is now the portable ZoomiGo envelope.
+commands work with the macOS and Linux operator environments. The existing
+`production.tar.gz.age` filename is retained even though its decrypted payload
+is now the portable ZoomiGo envelope.
 
-Prerequisites are Node 22 or newer, `age`, and OpenSSH's `ssh-keygen`.
-The shell wrappers work on macOS and Linux. The underlying commands are also
-directly available from PowerShell or any platform with Node:
+Prerequisites are Node 22 or newer, `age`, and OpenSSH's `ssh-keygen`. Use the
+Unix shell wrappers on macOS or Linux:
 
 ```sh
 node deploy/secrets/manage-production-secrets.mjs seal
@@ -47,36 +46,35 @@ If an earlier script already created `production.tar.gz.age`, move it to a
 private archival location before resealing. The portable opener deliberately
 rejects the previous tar payload instead of guessing its format.
 
-## Create `known_hosts` safely
+## Rotate `known_hosts` safely
 
 `known_hosts` contains the Droplet's public SSH host key. It lets automated
 releases confirm that `DEPLOY_HOST` is still the server you approved before
 sending credentials or running commands. It is not a login key and is not
 secret.
 
-Use the DNS-only deployment hostname, such as `deploy.quicktrack.cc`, for
-`DEPLOY_HOST`. Do not use an orange-cloud proxied hostname for ordinary SSH.
-
-From DigitalOcean's authenticated web console on the new Droplet, print the
-server's Ed25519 host key with the intended hostname:
+SSH uses the assigned DigitalOcean Reserved IP directly. From DigitalOcean's
+authenticated web console on the new Droplet, print the server's Ed25519 host
+key fingerprint:
 
 ```sh
-host=deploy.quicktrack.cc
-awk -v host="$host" '{print host " " $1 " " $2}' \
-  /etc/ssh/ssh_host_ed25519_key.pub
-sudo ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
+sudo ssh-keygen -E sha256 -lf /etc/ssh/ssh_host_ed25519_key.pub
 ```
 
-Copy only the first command's single `deploy.quicktrack.cc ssh-ed25519 AAAA...`
-line into `plaintext/known_hosts`. Keep the SHA256 fingerprint from the second
-command in the private operator record. As an alternative, `ssh-keyscan` may
-collect the line, but compare its fingerprint with the console result before
-trusting it; `ssh-keyscan` does not authenticate the server by itself.
+Use the separately observed fingerprint with the automated adoption command:
+
+```sh
+./infra/digitalocean/adopt-host.sh /secure/path/operator-age-identity \
+  --expected-fingerprint SHA256:...
+```
+
+The script reads the Reserved IP from encrypted OpenTofu state, collects the
+public key with `ssh-keyscan`, refuses a fingerprint mismatch, and reseals both
+`DEPLOY_HOST` and `known_hosts`. `ssh-keyscan` never establishes trust by itself.
 
 The sealing script verifies that `known_hosts` contains `DEPLOY_HOST` and that
 `deploy_ssh_key` is a valid passphrase-free private key. Rebuilding the Droplet
-changes its host key, so releases will intentionally stop until you repeat this
-verification and reseal the bundle.
+changes its host key, so releases intentionally stop until adoption succeeds.
 
 To test locally without deploying:
 
