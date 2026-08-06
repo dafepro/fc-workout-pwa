@@ -27,6 +27,37 @@ The bundle contains exactly five files:
    workflow needs directly from GitHub.
 5. Delete the local `plaintext/` directory after testing an operator decrypt.
 
+## Create `known_hosts` safely
+
+`known_hosts` contains the Droplet's public SSH host key. It lets automated
+releases confirm that `DEPLOY_HOST` is still the server you approved before
+sending credentials or running commands. It is not a login key and is not
+secret.
+
+Use the DNS-only deployment hostname, such as `deploy.quicktrack.cc`, for
+`DEPLOY_HOST`. Do not use an orange-cloud proxied hostname for ordinary SSH.
+
+From DigitalOcean's authenticated web console on the new Droplet, print the
+server's Ed25519 host key with the intended hostname:
+
+```sh
+host=deploy.quicktrack.cc
+awk -v host="$host" '{print host " " $1 " " $2}' \
+  /etc/ssh/ssh_host_ed25519_key.pub
+sudo ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
+```
+
+Copy only the first command's single `deploy.quicktrack.cc ssh-ed25519 AAAA...`
+line into `plaintext/known_hosts`. Keep the SHA256 fingerprint from the second
+command in the private operator record. As an alternative, `ssh-keyscan` may
+collect the line, but compare its fingerprint with the console result before
+trusting it; `ssh-keyscan` does not authenticate the server by itself.
+
+The sealing script verifies that `known_hosts` contains `DEPLOY_HOST` and that
+`deploy_ssh_key` is a valid passphrase-free private key. Rebuilding the Droplet
+changes its host key, so releases will intentionally stop until you repeat this
+verification and reseal the bundle.
+
 To test locally without deploying:
 
 ```sh
