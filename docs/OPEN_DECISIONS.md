@@ -64,10 +64,11 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
 ## Cloud VM operations
 
 - Implemented baseline: one provider-neutral Linux VM runs Caddy plus one non-root Go/SQLite API replica through Docker Compose; only ports 80/443 are public, while database and backup directories are explicit protected host bind mounts.
-- Choose the first VM provider, region, instance size, DNS hostname, and operator SSH allowlist.
+- Selected first host: one DigitalOcean Basic 512 MiB x64 Droplet, with 1 GiB swap and weekly DigitalOcean backup. The region, DNS hostname, and operator SSH allowlist remain operator choices.
 - Choose host OS patch cadence, Docker log retention, disk-capacity thresholds, and `/readyz` uptime alerting.
 - QR/PIN authentication and the same-origin PWA cookie gateway are implemented. Real youth-data deployment still requires guardian ownership/recovery policy, secure credential distribution, and privacy approval.
-- First CI/CD candidate: GitHub Actions, an immutable GHCR image, and an approved SSH-triggered Compose deployment. Repository secrets and production host state must remain outside source control.
+- Implemented release candidate: GitHub Actions runs static/build gates before Docker E2E and publishes an immutable GHCR image. VM deployment is still operator-triggered; repository secrets and production host state remain outside source control.
+- Selected production frontend host: Cloudflare Workers free tier, deployed manually through the production GitHub environment. Sites remains preview-only. Choose the final Cloudflare-zone hostname before deployment.
 
 ## Milestone 1 prototype assumptions
 
@@ -81,7 +82,7 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
 - Date and 24-hour deletion checks use the player's current device time until a trusted server clock exists.
 - The PWA frontend will remain independently cloud-hostable and will use a small JSON API boundary when the backend is added.
 - The first training-entry API treats the previous seven team-local calendar dates plus today as eligible, rejects future timestamps, and sets deletion eligibility to exactly 24 hours after the trusted server creation time.
-- Until the PWA receives a production `STRIDECREW_API_BASE_URL` binding, the privately hosted build remains in explicit device-local prototype mode. Connected builds keep the opaque API session in a same-origin HTTP-only cookie and never expose it through `VITE_*` variables.
+- Until the Cloudflare PWA receives a production `STRIDECREW_API_BASE_URL` binding, the privately hosted Sites preview remains in explicit device-local prototype mode. Connected builds keep the opaque API session in a same-origin HTTP-only cookie and never expose it through `VITE_*` variables.
 - The milestone 2 backend starts with Go `database/sql`, CGo-free SQLite, one API replica, and a persistent volume. Repository boundaries preserve a managed Postgres move when horizontal replicas, higher concurrent writes, or managed HA/PITR justify the extra operations.
 - Milestone 1 uses device-local persistence as required by the prototype boundary and does not add framework-specific server actions, so the Go API can replace the local store without rewriting the view components.
 - Milestone 1 streak comparisons use a centralized, predefined kid-safe pool and client-side random selection. The milestone 2 Go API should choose and return the comparison template while keeping free-form content out of player-facing responses.

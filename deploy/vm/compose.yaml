@@ -1,5 +1,11 @@
 name: ${COMPOSE_PROJECT_NAME:-stridecrew}
 
+x-logging: &bounded-logging
+  driver: local
+  options:
+    max-size: "5m"
+    max-file: "3"
+
 services:
   api:
     image: ${API_IMAGE:-stridecrew-api:local}
@@ -14,6 +20,8 @@ services:
       ALLOWED_ORIGIN: ${PWA_ORIGIN:?PWA_ORIGIN must be set}
       APP_ENV: production
       DATABASE_URL: file:/data/stridecrew.db
+      GOMEMLIMIT: 192MiB
+      GOMAXPROCS: "1"
       PORT: "8080"
       SHUTDOWN_TIMEOUT: 15s
       TEAM_TIME_ZONE: ${TEAM_TIME_ZONE:-America/Chicago}
@@ -38,6 +46,9 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+    mem_limit: 256m
+    pids_limit: 128
+    logging: *bounded-logging
     stop_grace_period: 20s
     networks:
       - backend
@@ -89,6 +100,9 @@ services:
       - NET_BIND_SERVICE
     security_opt:
       - no-new-privileges:true
+    mem_limit: 96m
+    pids_limit: 64
+    logging: *bounded-logging
     networks:
       - edge
       - backend
@@ -123,6 +137,9 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+    mem_limit: 192m
+    pids_limit: 64
+    logging: *bounded-logging
     networks:
       - backend
 
@@ -150,6 +167,9 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+    mem_limit: 192m
+    pids_limit: 64
+    logging: *bounded-logging
     networks:
       - backend
 

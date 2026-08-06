@@ -8,6 +8,7 @@ $envFile = Join-Path $smokeRoot "smoke.env"
 $dataDirectory = Join-Path $smokeRoot "data"
 $backupDirectory = Join-Path $smokeRoot "backups"
 $restoreDirectory = Join-Path $smokeRoot "restore"
+$adminOutputDirectory = Join-Path $smokeRoot "admin-output"
 
 function Invoke-Compose {
   param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments)
@@ -54,7 +55,7 @@ function Wait-ForJsonStatus {
 $httpPort = Get-FreeTcpPort
 $httpsPort = Get-FreeTcpPort
 
-New-Item -ItemType Directory -Force -Path $dataDirectory, $backupDirectory, $restoreDirectory | Out-Null
+New-Item -ItemType Directory -Force -Path $dataDirectory, $backupDirectory, $restoreDirectory, $adminOutputDirectory | Out-Null
 
 $environmentContents = @"
 COMPOSE_PROJECT_NAME=stridecrew-vm-smoke
@@ -66,6 +67,7 @@ TEAM_TIME_ZONE=America/Chicago
 DATA_DIR=$($dataDirectory -replace '\\', '/')
 BACKUP_DIR=$($backupDirectory -replace '\\', '/')
 RESTORE_DIR=$($restoreDirectory -replace '\\', '/')
+ADMIN_OUTPUT_DIR=$($adminOutputDirectory -replace '\\', '/')
 HTTP_BIND_ADDRESS=127.0.0.1
 HTTP_PORT=$httpPort
 HTTPS_BIND_ADDRESS=127.0.0.1

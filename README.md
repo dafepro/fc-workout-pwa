@@ -51,4 +51,4 @@ The backend foundation lives in `backend/` and the review contracts live in `doc
 - a provider-neutral single-VM deployment bundle with Caddy-managed HTTPS, hardened containers, persistent host storage, and operator backup scripts;
 - draft API, authorization, and persistence contracts for review before frontend integration.
 
-See `backend/README.md` for local commands and `deploy/vm/README.md` for the manual VM runbook. The backend and QR+PIN session path are deployable; real youth-data use still requires approved guardian/recovery policy, secure credential distribution, encrypted off-host backups, and privacy operations.
+See `backend/README.md` for local commands, `deploy/vm/README.md` for the provider-neutral bundle, and `docs/backend/DIGITALOCEAN_UNDER_5_RUNBOOK.md` for the under-$5 manual deployment. The backend and QR+PIN session path are deployable; real youth-data use still requires approved guardian/recovery policy, secure credential distribution, encrypted off-host backups, and privacy operations.

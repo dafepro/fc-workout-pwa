@@ -5,7 +5,7 @@
 Use a provider-neutral, single-VM Docker Compose deployment for the first Go/SQLite backend:
 
 ```text
-private Sites-hosted PWA worker (session cookie gateway)
+Cloudflare-hosted PWA worker (session cookie gateway)
         |
         | HTTPS
         v
@@ -18,7 +18,7 @@ one Go API container --> /var/lib/stridecrew/data/stridecrew.db
         +--> operator-only backup/admin CLIs --> protected host directories
 ```
 
-The frontend remains independently hosted. The VM builds the backend image from the reviewed Git revision, so no paid registry or provider-specific service is required for the first manual deployment. The same Compose bundle can move between ordinary Linux VM providers by moving the environment file, encrypted backup, and DNS record.
+The frontend remains independently hosted on Cloudflare Workers' free tier. GitHub Actions runs the static and Docker E2E gates, then publishes an immutable runtime image to GHCR. The small VM only pulls that reviewed image; it does not compile Go or run test tooling. The same Compose bundle can move between ordinary Linux VM providers by moving the environment file, encrypted backup, and DNS record.
 
 ## Why this shape
 
@@ -42,6 +42,7 @@ The Sites platform's D1 binding remains unused because authoritative state belon
 - separate internal backend network;
 - persistent database and TLS state;
 - strict, operator-created host directories;
+- explicit memory/PID ceilings and bounded local container logs for the 512 MiB host;
 - production binary cannot enable E2E fixtures;
 - production QR+PIN authenticator stores only credential verifiers and hashed sessions;
 - no reverse-proxy access log by default.
@@ -58,11 +59,11 @@ The infrastructure is deployable now, but the product is not yet approved to per
 4. **Recovery:** execute and time an offline live cutover and rollback drill.
 5. **Operations:** configure provider firewalling, OS patching, disk capacity alerts, uptime checks, and log retention.
 
-The hosted PWA receives only `STRIDECREW_API_BASE_URL`; never configure a browser-visible API token. Without that binding it intentionally remains in milestone-1 local prototype mode. A connected deployment redirects unauthenticated players to `/login`, and the VM returns `401` for private endpoints without a valid server-issued session.
+The Cloudflare PWA receives only `STRIDECREW_API_BASE_URL`; never configure a browser-visible API token. A connected deployment redirects unauthenticated players to `/login`, and the VM returns `401` for private endpoints without a valid server-issued session. The Sites build is a preview, not a production dependency.
 
-## CI/CD follow-on
+## First provider and release pipeline
 
-The natural next step is a small GitHub Actions workflow that runs cheap checks, delegates the full Docker E2E gate to a suitable runner, builds one immutable API image in GHCR, and deploys an approved image tag over SSH with `docker compose pull && docker compose up -d`. Keep the environment file, database, backups, and deployment SSH key outside the repository. Provider-specific infrastructure can be added only after a VM/provider and DNS zone are chosen.
+The first target is DigitalOcean's 512 MiB Basic Droplet. Weekly provider backup keeps the expected infrastructure total at $4.80/month before tax and any domain registration. The `backend-image` GitHub Actions workflow runs static checks and builds first, then both Docker suites, and publishes `ghcr.io/dafepro/fc-workout-pwa/api:sha-<full-sha>`. Deployment remains a deliberate operator action; the environment file, database, backups, and SSH access remain outside the repository. See `DIGITALOCEAN_UNDER_5_RUNBOOK.md`.
 
 ## Verification contract
 

@@ -1,0 +1,60 @@
+name: Cloudflare PWA
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: cloudflare-pwa-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Verify and deploy production PWA
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: production
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      STRIDECREW_API_BASE_URL: ${{ vars.STRIDECREW_API_BASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.20.0
+          cache: pnpm
+
+      - name: Require production configuration
+        run: |
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          case "$STRIDECREW_API_BASE_URL" in
+            https://*) ;;
+            *) echo "STRIDECREW_API_BASE_URL must be an HTTPS origin" >&2; exit 1 ;;
+          esac
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Static checks and production build
+        run: |
+          pnpm format
+          pnpm lint
+          pnpm typecheck
+          pnpm test
+          pnpm build
+
+      - name: Deploy Worker and static assets
+        run: >-
+          pnpm exec wrangler deploy
+          --config dist/server/wrangler.json
+          --name stridecrew-training
+          --var "STRIDECREW_API_BASE_URL:$STRIDECREW_API_BASE_URL"

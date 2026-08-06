@@ -1,0 +1,13 @@
+[Unit]
+Description=Create and verify a StrideCrew SQLite backup
+Requires=docker.service
+After=docker.service
+ConditionPathExists=/opt/stridecrew/deploy/vm/.env
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/stridecrew/deploy/vm
+ExecStart=/opt/stridecrew/deploy/vm/scripts/backup.sh /opt/stridecrew/deploy/vm/.env
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

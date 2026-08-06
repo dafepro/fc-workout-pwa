@@ -1,0 +1,11 @@
+[Unit]
+Description=Create a daily verified StrideCrew SQLite backup
+
+[Timer]
+OnCalendar=*-*-* 03:15:00
+RandomizedDelaySec=15m
+Persistent=true
+Unit=stridecrew-backup.service
+
+[Install]
+WantedBy=timers.target
