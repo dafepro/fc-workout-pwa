@@ -13,6 +13,8 @@ Build a responsive, mobile-first PWA prototype with mock data. Implement the fou
 3. Inspect the four mockups in `docs/mockups/`.
 4. Use `CODEX_KICKOFF_PROMPT.md` as the first Codex task.
 
+Active priorities and release gates are maintained in `docs/ROADMAP.md`.
+
 On macOS or Linux, `./scripts/verify.sh` runs every static, unit, build, and
 contract gate. For an intentional periodic or release-candidate pass, use
 `./scripts/verify.sh --all` to append the Docker API/browser E2E and VM
