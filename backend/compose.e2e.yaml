@@ -28,8 +28,7 @@ services:
       api:
         condition: service_healthy
     environment:
-      VITE_API_BASE_URL: http://api:8080
-      VITE_API_TOKEN: e2e-player-mason
+      STRIDECREW_API_BASE_URL: http://api:8080
     healthcheck:
       test:
         [

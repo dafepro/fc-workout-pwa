@@ -41,7 +41,17 @@ interface TrainingState {
 
 const TrainingContext = createContext<TrainingState | null>(null);
 
-export function TrainingProvider({ children }: { children: React.ReactNode }) {
+export function TrainingProvider({
+  children,
+  connected = false,
+  currentPlayerID = CURRENT_PLAYER_ID,
+  currentTeamID = "team-hill-striders",
+}: {
+  children: React.ReactNode;
+  connected?: boolean;
+  currentPlayerID?: string;
+  currentTeamID?: string;
+}) {
   const [entries, setEntries] = useState<TrainingEntry[]>([]);
   const [entriesStatus, setEntriesStatus] = useState<
     "loading" | "ready" | "error"
@@ -51,8 +61,10 @@ export function TrainingProvider({ children }: { children: React.ReactNode }) {
   const [reactionInboxStatus, setReactionInboxStatus] = useState<
     "loading" | "ready" | "error"
   >("loading");
-  const [reactionGateway] = useState(createReactionGateway);
-  const [trainingEntryGateway] = useState(createTrainingEntryGateway);
+  const [reactionGateway] = useState(() => createReactionGateway(connected));
+  const [trainingEntryGateway] = useState(() =>
+    createTrainingEntryGateway(connected, currentTeamID),
+  );
 
   const refreshEntries = useCallback(async () => {
     try {
@@ -121,7 +133,7 @@ export function TrainingProvider({ children }: { children: React.ReactNode }) {
       setReactions((current) => [
         {
           id: crypto.randomUUID(),
-          senderPlayerId: CURRENT_PLAYER_ID,
+          senderPlayerId: currentPlayerID,
           targetPlayerId,
           type,
           createdAt: new Date().toISOString(),
@@ -130,7 +142,7 @@ export function TrainingProvider({ children }: { children: React.ReactNode }) {
       ]);
       return result;
     },
-    [reactionGateway],
+    [currentPlayerID, reactionGateway],
   );
 
   useEffect(() => {

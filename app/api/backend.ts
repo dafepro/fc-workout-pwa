@@ -1,0 +1,99 @@
+import { env } from "cloudflare:workers";
+
+export const SESSION_COOKIE = "__Host-stridecrew_session";
+export const LOCAL_SESSION_COOKIE = "stridecrew_session_local";
+
+export function backendBaseURL(): string | null {
+  const configured =
+    (env as { STRIDECREW_API_BASE_URL?: string }).STRIDECREW_API_BASE_URL ??
+    process.env.STRIDECREW_API_BASE_URL ??
+    "";
+  const value = configured.trim().replace(/\/$/, "");
+  if (!value) return null;
+  const parsed = new URL(value);
+  if (parsed.protocol !== "https:" && parsed.hostname !== "api") {
+    throw new Error("STRIDECREW_API_BASE_URL must use HTTPS");
+  }
+  return value;
+}
+
+export function sessionCookieName(request: Request): string {
+  return new URL(request.url).protocol === "https:"
+    ? SESSION_COOKIE
+    : LOCAL_SESSION_COOKIE;
+}
+
+export function readSessionCookie(request: Request): string | null {
+  const name = sessionCookieName(request);
+  const cookies = request.headers.get("cookie") ?? "";
+  for (const part of cookies.split(";")) {
+    const [key, ...value] = part.trim().split("=");
+    if (key === name) return decodeURIComponent(value.join("="));
+  }
+  return null;
+}
+
+export function setSessionCookie(
+  request: Request,
+  token: string,
+  rememberDevice: boolean,
+): string {
+  const secure = new URL(request.url).protocol === "https:";
+  const attributes = [
+    `${sessionCookieName(request)}=${encodeURIComponent(token)}`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Strict",
+  ];
+  if (secure) attributes.push("Secure");
+  if (rememberDevice) attributes.push(`Max-Age=${30 * 24 * 60 * 60}`);
+  return attributes.join("; ");
+}
+
+export function clearSessionCookie(request: Request): string {
+  const secure = new URL(request.url).protocol === "https:";
+  return [
+    `${sessionCookieName(request)}=`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Strict",
+    "Max-Age=0",
+    secure ? "Secure" : "",
+  ]
+    .filter(Boolean)
+    .join("; ");
+}
+
+export function sameOrigin(request: Request): boolean {
+  const origin = request.headers.get("origin");
+  return origin === null || origin === new URL(request.url).origin;
+}
+
+export function jsonError(status: number, code: string, message: string) {
+  return Response.json(
+    { error: { code, message } },
+    { status, headers: { "Cache-Control": "no-store" } },
+  );
+}
+
+export async function limitedBody(
+  request: Request,
+  maximumBytes: number,
+): Promise<string> {
+  const declared = Number(request.headers.get("content-length") ?? 0);
+  if (declared > maximumBytes) throw new Error("request_too_large");
+  const body = await request.text();
+  if (new TextEncoder().encode(body).byteLength > maximumBytes) {
+    throw new Error("request_too_large");
+  }
+  return body;
+}
+
+export function forwardedHeaders(response: Response): Headers {
+  const headers = new Headers({ "Cache-Control": "no-store" });
+  for (const name of ["content-type", "x-request-id", "retry-after"]) {
+    const value = response.headers.get(name);
+    if (value) headers.set(name, value);
+  }
+  return headers;
+}

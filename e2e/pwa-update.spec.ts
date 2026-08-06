@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { loginAsMason } from "./app-ready";
 
 test("a new service worker removes the previous app-shell cache", async ({
   page,
@@ -9,12 +10,12 @@ test("a new service worker removes the previous app-shell cache", async ({
     await oldCache.put("/team", new Response("outdated team screen"));
   });
 
-  await page.goto("/");
+  await loginAsMason(page);
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
   });
 
   await expect
     .poll(() => page.evaluate(() => caches.keys()))
-    .toEqual(["stridecrew-shell-v2"]);
+    .toEqual(["stridecrew-shell-v3"]);
 });

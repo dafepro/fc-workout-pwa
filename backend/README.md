@@ -55,11 +55,11 @@ The portable manual deployment bundle is in `deploy/vm/`. It runs the API behind
 
 ## Current boundary
 
-- No production authentication exists yet.
-- E2E bearer identities are local fixtures, not a production authentication design.
+- Production player authentication uses a reissuable QR credential plus six-digit PIN, Argon2id verification, throttling, and revocable opaque sessions.
+- E2E bearer identities remain local fixtures for older API-focused scenarios; QR+PIN session lifecycle coverage uses the real session service and database.
 - Training-entry create/list/detail/delete and contextual reactions use the real Go/SQLite API in the Docker E2E environment.
-- The PWA selects the real API with `VITE_API_BASE_URL` and `VITE_API_TOKEN`; without both, the private prototype deployment retains its device-local adapter.
-- Safe Team/leaderboard projections, production authentication, cursor pagination, and hosted API operations remain pending.
+- The PWA worker selects the real API with `STRIDECREW_API_BASE_URL`, keeps the bearer in an HTTP-only same-origin cookie, and uses its local adapter only when that binding is absent.
+- Safe Team/leaderboard projections, cursor pagination, guardian recovery policy, and hosted API operations remain pending.
 - API, authorization, and data-model drafts are in `docs/backend/`.
 - The migration-aware flat-file backup CLI and restore drill are implemented; encryption, retention automation, audited off-host storage, and the live-cutover runbook remain production gates.
-- The VM stack is manually deployable and production routes fail closed; do not connect the hosted PWA or persist real youth data until production authentication, encrypted off-host backup, and privacy operations are complete.
+- The VM stack and connected login path are manually deployable. Do not persist real youth data until credential-delivery/recovery policy, encrypted off-host backup, and privacy operations are complete.

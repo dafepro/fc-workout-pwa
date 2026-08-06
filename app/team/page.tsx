@@ -13,29 +13,38 @@ import {
 import { entriesWithinDays } from "../domain/rules";
 import type { Player, ReactionType } from "../domain/types";
 import { useTraining } from "../state/training-context";
+import { useAuth } from "../state/auth-context";
 
 export default function TeamPage() {
   const { entries, sendReaction } = useTraining();
+  const { currentPlayer, currentPlayerID, session } = useAuth();
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [sentLabel, setSentLabel] = useState("");
   const myWeek = entriesWithinDays(
-    entries.filter((entry) => entry.playerId === CURRENT_PLAYER_ID),
+    entries.filter((entry) => entry.playerId === currentPlayerID),
     7,
   ).length;
   const myToday =
     entriesWithinDays(
-      entries.filter((entry) => entry.playerId === CURRENT_PLAYER_ID),
+      entries.filter((entry) => entry.playerId === currentPlayerID),
       1,
     ).length > 0;
 
+  const displayPlayers = useMemo(
+    () => [
+      currentPlayer,
+      ...players.filter((player) => player.id !== CURRENT_PLAYER_ID),
+    ],
+    [currentPlayer],
+  );
   const progressPlayers = useMemo(
     () =>
-      players.map((player) =>
-        player.id === CURRENT_PLAYER_ID
+      displayPlayers.map((player) =>
+        player.id === currentPlayerID
           ? { ...player, weeklySessions: myWeek }
           : player,
       ),
-    [myWeek],
+    [currentPlayerID, displayPlayers, myWeek],
   );
   const groups = [
     {
@@ -63,7 +72,7 @@ export default function TeamPage() {
       ),
     },
   ];
-  const challengePlayers = players.slice(0, 9);
+  const challengePlayers = displayPlayers.slice(0, 9);
   const completedCount = 7 + (myToday ? 1 : 0);
 
   async function react(type: ReactionType, emoji: string) {
@@ -71,7 +80,7 @@ export default function TeamPage() {
     const teammate = selectedPlayer;
     const result = await sendReaction(teammate.id, type, {
       type: "team_progress",
-      teamId: "team-hill-striders",
+      teamId: session?.player?.teams[0]?.id ?? "team-hill-striders",
       period: "weekly",
     });
     setSentLabel(
@@ -84,7 +93,7 @@ export default function TeamPage() {
     <div className="page page--team">
       <header className="page-title-header">
         <h1>Team</h1>
-        <p>{TEAM_NAME}</p>
+        <p>{session?.player?.teams[0]?.name ?? TEAM_NAME}</p>
       </header>
 
       <section className="challenge-card">
@@ -93,7 +102,7 @@ export default function TeamPage() {
           <h2>Hill Sprints</h2>
           <p className="challenge-card__due">◷ Due by 11:59 PM</p>
           <strong className="challenge-card__count">
-            <span>✓</span> {completedCount} of {players.length} teammates
+            <span>✓</span> {completedCount} of {displayPlayers.length} teammates
             completed
           </strong>
         </div>
@@ -141,6 +150,7 @@ export default function TeamPage() {
                   player={player}
                   tone={group.tone}
                   onCheer={() => setSelectedPlayer(player)}
+                  isCurrentPlayer={player.id === currentPlayerID}
                 />
               ))}
             </section>
@@ -165,10 +175,12 @@ function PlayerProgressRow({
   player,
   tone,
   onCheer,
+  isCurrentPlayer,
 }: {
   player: Player;
   tone: "lime" | "gold" | "blue";
   onCheer: () => void;
+  isCurrentPlayer: boolean;
 }) {
   const content = (
     <>
@@ -187,7 +199,7 @@ function PlayerProgressRow({
       </span>
     </>
   );
-  if (player.id === CURRENT_PLAYER_ID) {
+  if (isCurrentPlayer) {
     return <div className="player-progress">{content}</div>;
   }
   return (

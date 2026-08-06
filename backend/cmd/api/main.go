@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/dafepro/fc-workout-pwa/backend/internal/authn"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/config"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/httpapi"
@@ -40,11 +41,16 @@ func run() error {
 		return fmt.Errorf("migrate database: %w", err)
 	}
 	repository := store.New(db, cfg.TeamTimeZone)
-	authenticator := configuredAuthenticator(cfg)
+	sessions := authn.NewService(db)
+	authenticator, resetAuthFixtures := configuredAuthenticator(cfg, sessions)
 
+	handlerOptions := []httpapi.Option{httpapi.WithStore(repository), httpapi.WithAuthenticator(authenticator), httpapi.WithSessionManager(sessions)}
+	if resetAuthFixtures != nil {
+		handlerOptions = append(handlerOptions, httpapi.WithAuthFixtureReset(resetAuthFixtures))
+	}
 	server := &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.Port),
-		Handler:           httpapi.NewHandler(cfg, httpapi.WithStore(repository), httpapi.WithAuthenticator(authenticator)),
+		Handler:           httpapi.NewHandler(cfg, handlerOptions...),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      15 * time.Second,

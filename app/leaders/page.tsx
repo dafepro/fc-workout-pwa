@@ -7,19 +7,28 @@ import { copy } from "../content/copy";
 import { CURRENT_PLAYER_ID, players, TEAM_NAME } from "../data/mockData";
 import type { Player, ReactionType } from "../domain/types";
 import { useTraining } from "../state/training-context";
+import { useAuth } from "../state/auth-context";
 
 type Period = "Weekly" | "30 Days" | "Season";
 type Metric = "Effort" | "Streaks" | "Consistency";
 
 export default function LeadersPage() {
   const { sendReaction } = useTraining();
+  const { currentPlayer, currentPlayerID, session } = useAuth();
   const [period, setPeriod] = useState<Period>("Weekly");
   const [metric, setMetric] = useState<Metric>("Effort");
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [sentLabel, setSentLabel] = useState("");
+  const displayPlayers = useMemo(
+    () => [
+      currentPlayer,
+      ...players.filter((player) => player.id !== CURRENT_PLAYER_ID),
+    ],
+    [currentPlayer],
+  );
   const ranked = useMemo(
     () =>
-      [...players].sort((a, b) => {
+      [...displayPlayers].sort((a, b) => {
         const aValue =
           metric === "Effort"
             ? a.effortPoints
@@ -38,7 +47,7 @@ export default function LeadersPage() {
           a.firstName.localeCompare(b.firstName)
         );
       }),
-    [metric],
+    [displayPlayers, metric],
   );
 
   function valueFor(player: (typeof players)[number]): string {
@@ -52,7 +61,7 @@ export default function LeadersPage() {
     const teammate = selectedPlayer;
     const result = await sendReaction(teammate.id, type, {
       type: "leaderboard",
-      teamId: "team-hill-striders",
+      teamId: session?.player?.teams[0]?.id ?? "team-hill-striders",
       period:
         period === "Weekly"
           ? "weekly"
@@ -79,7 +88,7 @@ export default function LeadersPage() {
           <div>
             <p>Team effort</p>
             <strong>
-              {players
+              {displayPlayers
                 .reduce((sum, player) => sum + player.effortPoints, 0)
                 .toLocaleString()}
             </strong>
@@ -91,7 +100,10 @@ export default function LeadersPage() {
           <div>
             <p>Showing up</p>
             <strong>
-              {players.reduce((sum, player) => sum + player.weeklySessions, 0)}
+              {displayPlayers.reduce(
+                (sum, player) => sum + player.weeklySessions,
+                0,
+              )}
             </strong>
             <small>team sessions</small>
           </div>
@@ -149,6 +161,7 @@ export default function LeadersPage() {
                 place={place}
                 value={valueFor(player)}
                 onCheer={() => setSelectedPlayer(player)}
+                isCurrentPlayer={player.id === currentPlayerID}
               />
             );
           })}
@@ -161,6 +174,7 @@ export default function LeadersPage() {
               rank={index + 4}
               value={valueFor(player)}
               onCheer={() => setSelectedPlayer(player)}
+              isCurrentPlayer={player.id === currentPlayerID}
             />
           ))}
         </section>
@@ -195,11 +209,13 @@ function PodiumPlayer({
   place,
   value,
   onCheer,
+  isCurrentPlayer,
 }: {
   player: Player;
   place: number;
   value: string;
   onCheer: () => void;
+  isCurrentPlayer: boolean;
 }) {
   const content = (
     <>
@@ -213,7 +229,7 @@ function PodiumPlayer({
     </>
   );
   const className = `podium__place podium__place--${place}`;
-  if (player.id === CURRENT_PLAYER_ID) {
+  if (isCurrentPlayer) {
     return <article className={className}>{content}</article>;
   }
   return (
@@ -233,11 +249,13 @@ function RankingPlayer({
   rank,
   value,
   onCheer,
+  isCurrentPlayer,
 }: {
   player: Player;
   rank: number;
   value: string;
   onCheer: () => void;
+  isCurrentPlayer: boolean;
 }) {
   const content = (
     <>
@@ -252,7 +270,7 @@ function RankingPlayer({
       <span className="pill">{value}</span>
     </>
   );
-  if (player.id === CURRENT_PLAYER_ID) {
+  if (isCurrentPlayer) {
     return <article className="ranking-row">{content}</article>;
   }
   return (

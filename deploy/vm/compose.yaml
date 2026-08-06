@@ -126,6 +126,33 @@ services:
     networks:
       - backend
 
+  admin:
+    image: ${API_IMAGE:-stridecrew-api:local}
+    profiles:
+      - operations
+    entrypoint:
+      - /stridecrew-admin
+    environment:
+      DATABASE_URL: file:/data/stridecrew.db
+    volumes:
+      - type: bind
+        source: ${DATA_DIR:?DATA_DIR must be set}
+        target: /data
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${ADMIN_OUTPUT_DIR:?ADMIN_OUTPUT_DIR must be set}
+        target: /output
+        bind:
+          create_host_path: false
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - backend
+
 configs:
   caddyfile:
     file: ./Caddyfile

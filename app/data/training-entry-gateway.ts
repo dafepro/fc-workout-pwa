@@ -43,10 +43,7 @@ interface APITrainingEntry {
 const LOCAL_ENTRIES_KEY = "stridecrew-milestone-1";
 
 class HTTPTrainingEntryGateway implements TrainingEntryGateway {
-  constructor(
-    private readonly baseURL: string,
-    private readonly bearerToken: string,
-  ) {}
+  constructor(private readonly teamID: string) {}
 
   async list(): Promise<TrainingEntry[]> {
     const response = await this.request("/v1/me/training-entries");
@@ -56,8 +53,7 @@ class HTTPTrainingEntryGateway implements TrainingEntryGateway {
 
   async get(entryID: string): Promise<TrainingEntry | null> {
     const response = await fetch(
-      `${this.baseURL}/v1/training-entries/${encodeURIComponent(entryID)}`,
-      { headers: { Authorization: `Bearer ${this.bearerToken}` } },
+      `/api/stridecrew/v1/training-entries/${encodeURIComponent(entryID)}`,
     );
     if (response.status === 404) return null;
     await throwForError(response);
@@ -72,15 +68,14 @@ class HTTPTrainingEntryGateway implements TrainingEntryGateway {
         "That activity is unavailable.",
       );
     }
-    const response = await fetch(`${this.baseURL}/v1/me/training-entries`, {
+    const response = await fetch("/api/stridecrew/v1/me/training-entries", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${this.bearerToken}`,
         "Content-Type": "application/json",
         "Idempotency-Key": crypto.randomUUID(),
       },
       body: JSON.stringify({
-        teamId: "team-hill-striders",
+        teamId: this.teamID,
         activityDefinitionId: input.activityId,
         occurredAt: input.occurredAt,
         result: {
@@ -98,19 +93,16 @@ class HTTPTrainingEntryGateway implements TrainingEntryGateway {
 
   async delete(entryID: string): Promise<void> {
     const response = await fetch(
-      `${this.baseURL}/v1/training-entries/${encodeURIComponent(entryID)}`,
+      `/api/stridecrew/v1/training-entries/${encodeURIComponent(entryID)}`,
       {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${this.bearerToken}` },
       },
     );
     await throwForError(response);
   }
 
   private async request(path: string): Promise<Response> {
-    const response = await fetch(`${this.baseURL}${path}`, {
-      headers: { Authorization: `Bearer ${this.bearerToken}` },
-    });
+    const response = await fetch(`/api/stridecrew${path}`);
     await throwForError(response);
     return response;
   }
@@ -145,15 +137,13 @@ class LocalTrainingEntryGateway implements TrainingEntryGateway {
   }
 }
 
-export function createTrainingEntryGateway(): TrainingEntryGateway {
-  const baseURL = (
-    import.meta.env.VITE_API_BASE_URL ??
-    import.meta.env.VITE_REACTION_API_BASE_URL
-  )?.replace(/\/$/, "");
-  const token =
-    import.meta.env.VITE_API_TOKEN ?? import.meta.env.VITE_REACTION_API_TOKEN;
-  if (baseURL && token) return new HTTPTrainingEntryGateway(baseURL, token);
-  return new LocalTrainingEntryGateway();
+export function createTrainingEntryGateway(
+  connected = false,
+  teamID = "team-hill-striders",
+): TrainingEntryGateway {
+  return connected
+    ? new HTTPTrainingEntryGateway(teamID)
+    : new LocalTrainingEntryGateway();
 }
 
 async function throwForError(response: Response): Promise<void> {
@@ -175,7 +165,7 @@ async function throwForError(response: Response): Promise<void> {
 function fromAPIEntry(entry: APITrainingEntry): TrainingEntry {
   return {
     id: entry.id,
-    playerId: entry.playerId.replace(/^player-/, ""),
+    playerId: entry.playerId.replace(/^player[-_]/, ""),
     activityId: entry.activityDefinitionId,
     occurredAt: entry.occurredAt,
     value: entry.result.value,

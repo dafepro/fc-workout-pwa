@@ -2284,3 +2284,66 @@ h2 {
     animation: none;
   }
 }
+/* Connected sign-in */
+.auth-state,
+.login-page {
+  min-height: 100dvh;
+  display: grid;
+  place-content: center;
+  padding: 1.25rem;
+  background: #0b123d;
+  color: white;
+  text-align: center;
+}
+
+.auth-state .button {
+  margin: 1rem auto 0;
+}
+
+.login-card {
+  width: min(100%, 26rem);
+  padding: clamp(1.5rem, 6vw, 2.5rem);
+  border-radius: 1.5rem;
+  background: white;
+  color: #0b123d;
+  box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 0.25);
+}
+
+.login-card .brand__mark {
+  margin: 0 auto 1rem;
+}
+
+.login-card form {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 1.5rem;
+  text-align: left;
+}
+
+.login-card input[type="password"] {
+  width: 100%;
+  min-height: 3.25rem;
+  border: 2px solid #cad0e0;
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  font: inherit;
+  font-size: 1.4rem;
+  letter-spacing: 0.35em;
+}
+
+.login-remember {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.login-remember input {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.login-help {
+  margin-top: 1.25rem;
+  color: #59617b;
+  font-size: 0.9rem;
+}

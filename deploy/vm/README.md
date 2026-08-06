@@ -2,7 +2,7 @@
 
 This bundle manually deploys the Go API and its SQLite database to one Linux VM. Caddy is the only public container and obtains and renews HTTPS certificates automatically. The API has no published host port and runs as uid/gid `65532` with a read-only container filesystem, dropped Linux capabilities, and a dedicated persistent host directory.
 
-The hosted PWA is intentionally **not** connected to this API yet. Production authentication is disabled, so all private endpoints return `401`. Do not add `VITE_API_BASE_URL` or a production token to the PWA until the QR/PIN session design is implemented and reviewed.
+The hosted PWA connects through its own same-origin session gateway. Configure the Sites binding `STRIDECREW_API_BASE_URL=https://api.example.com`; never place an API token in a `VITE_*` variable or browser bundle. Without the binding, the hosted build deliberately stays in local prototype mode.
 
 ## Host prerequisites
 
@@ -35,7 +35,25 @@ curl --fail https://api.example.com/readyz
 curl -i https://api.example.com/v1/me/training-entries
 ```
 
-The first request should return `{"status":"ready"}`. The private request must return `401` until production authentication exists.
+The first request should return `{"status":"ready"}`. The private request must return `401` without a valid session.
+
+## Create a team and player login
+
+The operations-only admin container reads and writes the same SQLite file without exposing an HTTP admin endpoint. Keep its JSON output and QR files private.
+
+```sh
+docker compose --env-file .env -f compose.yaml --profile operations run --rm admin \
+  bootstrap-team --club-name "Hill Striders" --team-name "Hill Striders U12" \
+  --season-id "2026-fall" --time-zone "America/Chicago"
+
+printf '%s\n' '246810' | docker compose --env-file .env -f compose.yaml \
+  --profile operations run --rm -T admin provision-player \
+  --team-id TEAM_ID --first-name Mason --last-initial C \
+  --login-url "https://stridecrew-training.dafe.chatgpt.site/login" \
+  --qr-output /output/mason-login.png
+```
+
+Use a non-obvious six-digit PIN and distribute it separately from the QR code. `rotate-player-login` issues a replacement and revokes all prior credentials/sessions; `revoke-player-login` disables current credentials/sessions. The QR URL holds its secret after `#`, so it is not sent with the initial web request.
 
 ## Update
 

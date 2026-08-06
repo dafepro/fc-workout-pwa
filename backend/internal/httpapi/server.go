@@ -40,7 +40,15 @@ type service struct {
 	cfg           config.Config
 	store         Repository
 	authenticator authn.Authenticator
+	sessions      SessionManager
+	authFixtures  func(context.Context) error
 	now           func() time.Time
+}
+
+type SessionManager interface {
+	CreateSession(context.Context, string, string, bool) (authn.Session, error)
+	Session(context.Context, string) (authn.Session, error)
+	RevokeSession(context.Context, string) error
 }
 
 type Repository interface {
@@ -67,6 +75,14 @@ func WithAuthenticator(authenticator authn.Authenticator) Option {
 	return func(service *service) { service.authenticator = authenticator }
 }
 
+func WithSessionManager(sessions SessionManager) Option {
+	return func(service *service) { service.sessions = sessions }
+}
+
+func WithAuthFixtureReset(reset func(context.Context) error) Option {
+	return func(service *service) { service.authFixtures = reset }
+}
+
 func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	service := &service{cfg: cfg, authenticator: authn.Disabled{}, now: time.Now}
 	for _, option := range options {
@@ -84,6 +100,9 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 		}
 		writeJSON(w, http.StatusOK, healthResponse{Status: "ready"})
 	})
+	mux.HandleFunc("POST /v1/auth/sessions", service.createSession)
+	mux.HandleFunc("GET /v1/auth/session", service.getSession)
+	mux.HandleFunc("DELETE /v1/auth/session", service.revokeSession)
 	mux.HandleFunc("POST /v1/reactions", service.createReaction)
 	mux.HandleFunc("GET /v1/me/reaction-badges", service.listReactionBadges)
 	mux.HandleFunc("GET /v1/me/training-entries", service.listTrainingEntries)
@@ -337,21 +356,90 @@ func (service *service) resetE2EFixtures(w http.ResponseWriter, r *http.Request)
 		writeError(w, r, http.StatusInternalServerError, "internal_error", "The fixture could not be reset.")
 		return
 	}
+	if service.authFixtures != nil {
+		if err := service.authFixtures(r.Context()); err != nil {
+			writeError(w, r, http.StatusInternalServerError, "internal_error", "The fixture could not be reset.")
+			return
+		}
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (service *service) createSession(w http.ResponseWriter, r *http.Request) {
+	if service.sessions == nil {
+		writeError(w, r, http.StatusServiceUnavailable, "not_ready", "Sign in is not ready.")
+		return
+	}
+	var request struct {
+		Credential     string `json:"credential"`
+		PIN            string `json:"pin"`
+		RememberDevice bool   `json:"rememberDevice"`
+	}
+	if err := decodeStrictJSON(w, r, &request); err != nil || len(request.Credential) > 128 || len(request.PIN) > 16 {
+		writeError(w, r, http.StatusBadRequest, "invalid_request", "The sign-in request is invalid.")
+		return
+	}
+	session, err := service.sessions.CreateSession(r.Context(), strings.TrimSpace(request.Credential), request.PIN, request.RememberDevice)
+	if err != nil {
+		if errors.Is(err, authn.ErrLoginLocked) {
+			w.Header().Set("Retry-After", "900")
+			writeError(w, r, http.StatusTooManyRequests, "login_temporarily_locked", "Too many attempts. Ask a parent or coach for help if this continues.")
+			return
+		}
+		if errors.Is(err, authn.ErrInvalidLogin) || errors.Is(err, authn.ErrAccountUnavailable) {
+			writeError(w, r, http.StatusUnauthorized, "invalid_login", "That QR code and PIN did not match.")
+			return
+		}
+		writeError(w, r, http.StatusInternalServerError, "internal_error", "Sign in could not be completed.")
+		return
+	}
+	writeJSON(w, http.StatusCreated, session)
+}
+
+func (service *service) getSession(w http.ResponseWriter, r *http.Request) {
+	token, ok := bearerToken(r)
+	if !ok || service.sessions == nil {
+		writeError(w, r, http.StatusUnauthorized, "unauthenticated", "A valid session is required.")
+		return
+	}
+	session, err := service.sessions.Session(r.Context(), token)
+	if err != nil {
+		writeError(w, r, http.StatusUnauthorized, "unauthenticated", "A valid session is required.")
+		return
+	}
+	writeJSON(w, http.StatusOK, session)
+}
+
+func (service *service) revokeSession(w http.ResponseWriter, r *http.Request) {
+	token, ok := bearerToken(r)
+	if !ok || service.sessions == nil || service.sessions.RevokeSession(r.Context(), token) != nil {
+		writeError(w, r, http.StatusUnauthorized, "unauthenticated", "A valid session is required.")
+		return
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (service *service) authenticate(w http.ResponseWriter, r *http.Request) (domain.Actor, bool) {
-	value := r.Header.Get("Authorization")
-	if !strings.HasPrefix(value, "Bearer ") {
+	token, ok := bearerToken(r)
+	if !ok {
 		writeError(w, r, http.StatusUnauthorized, "unauthenticated", "A valid session is required.")
 		return domain.Actor{}, false
 	}
-	actor, err := service.authenticator.Authenticate(r.Context(), strings.TrimPrefix(value, "Bearer "))
+	actor, err := service.authenticator.Authenticate(r.Context(), token)
 	if err != nil {
 		writeError(w, r, http.StatusUnauthorized, "unauthenticated", "A valid session is required.")
 		return domain.Actor{}, false
 	}
 	return actor, true
+}
+
+func bearerToken(r *http.Request) (string, bool) {
+	value := r.Header.Get("Authorization")
+	if !strings.HasPrefix(value, "Bearer ") {
+		return "", false
+	}
+	token := strings.TrimSpace(strings.TrimPrefix(value, "Bearer "))
+	return token, token != ""
 }
 
 func decodeStrictJSON(w http.ResponseWriter, r *http.Request, destination any) error {

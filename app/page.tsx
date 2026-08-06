@@ -7,7 +7,7 @@ import { ProgressBar } from "./components/ProgressBar";
 import { SessionList } from "./components/SessionList";
 import { WorkoutInstructions } from "./components/WorkoutInstructions";
 import { copy } from "./content/copy";
-import { CURRENT_PLAYER_ID, players, WEEKLY_GOAL } from "./data/mockData";
+import { players, WEEKLY_GOAL } from "./data/mockData";
 import {
   activityDays,
   currentStreak,
@@ -15,15 +15,16 @@ import {
   streakQuipValue,
 } from "./domain/rules";
 import { useTraining } from "./state/training-context";
+import { useAuth } from "./state/auth-context";
 
 export default function HomePage() {
   const { entries, entriesStatus, refreshEntries } = useTraining();
+  const { currentPlayer: player, currentPlayerID } = useAuth();
   const [showSavedToast, setShowSavedToast] = useState(false);
   const [quipIndex, setQuipIndex] = useState(0);
   const [showQuip, setShowQuip] = useState(false);
-  const player = players.find((item) => item.id === CURRENT_PLAYER_ID)!;
   const personalEntries = entries.filter(
-    (entry) => entry.playerId === player.id,
+    (entry) => entry.playerId === currentPlayerID,
   );
   const weeklyEntries = entriesWithinDays(personalEntries, 7);
   const monthDays = activityDays(personalEntries);

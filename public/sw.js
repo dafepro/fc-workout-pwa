@@ -1,10 +1,11 @@
-const CACHE_NAME = "stridecrew-shell-v2";
+const CACHE_NAME = "stridecrew-shell-v3";
 const APP_SHELL = [
   "/",
   "/log",
   "/team",
   "/leaders",
   "/me",
+  "/login",
   "/manifest.webmanifest",
 ];
 
@@ -32,12 +33,19 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  const requestURL = new URL(event.request.url);
+  if (
+    requestURL.origin !== self.location.origin ||
+    requestURL.pathname.startsWith("/api/")
+  ) {
+    return;
+  }
   event.respondWith(
     fetch(event.request)
       .then((response) => {
         if (
           response.ok &&
-          new URL(event.request.url).origin === self.location.origin
+          !response.headers.get("Cache-Control")?.includes("no-store")
         ) {
           const copy = response.clone();
           event.waitUntil(

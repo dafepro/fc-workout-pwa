@@ -5,9 +5,9 @@
 Use a provider-neutral, single-VM Docker Compose deployment for the first Go/SQLite backend:
 
 ```text
-private Sites-hosted PWA
+private Sites-hosted PWA worker (session cookie gateway)
         |
-        | HTTPS (after production QR/PIN authentication exists)
+        | HTTPS
         v
 Caddy on VM ports 80/443
         |
@@ -15,7 +15,7 @@ Caddy on VM ports 80/443
         v
 one Go API container --> /var/lib/stridecrew/data/stridecrew.db
         |
-        +--> operator-only backup CLI --> protected backup/restore directories
+        +--> operator-only backup/admin CLIs --> protected host directories
 ```
 
 The frontend remains independently hosted. The VM builds the backend image from the reviewed Git revision, so no paid registry or provider-specific service is required for the first manual deployment. The same Compose bundle can move between ordinary Linux VM providers by moving the environment file, encrypted backup, and DNS record.
@@ -43,7 +43,7 @@ The Sites platform's D1 binding remains unused because authoritative state belon
 - persistent database and TLS state;
 - strict, operator-created host directories;
 - production binary cannot enable E2E fixtures;
-- production authenticator remains fail-closed;
+- production QR+PIN authenticator stores only credential verifiers and hashed sessions;
 - no reverse-proxy access log by default.
 
 Docker access is root-equivalent. Restrict SSH and Docker-group membership, install security updates, enable disk/uptime alerts, and configure Docker log rotation on the host.
@@ -52,13 +52,13 @@ Docker access is root-equivalent. Restrict SSH and Docker-group membership, inst
 
 The infrastructure is deployable now, but the product is not yet approved to persist real youth data in production.
 
-1. **Authentication:** decide and implement QR lifetime/revocation, PIN rules and retry limits, session duration, trusted-device behavior, and recovery. Browser-supplied bearer identities and the Sites identity headers are not interchangeable with the app's player/coach authorization model.
+1. **Authentication operations:** complete parent/guardian ownership and recovery policy, securely distribute the initial QR+PIN, and rehearse operator reissue/revocation. The application mechanism is implemented, but policy approval remains required before real youth accounts are provisioned.
 2. **Backups:** encrypt archives before off-host transfer; choose managed keys, retention, deletion handling, recovery objectives, operator auditing, and a remote store.
 3. **Privacy operations:** settle consent/account ownership, retention/deletion requests, coach/admin access, and applicable youth-privacy obligations.
 4. **Recovery:** execute and time an offline live cutover and rollback drill.
 5. **Operations:** configure provider firewalling, OS patching, disk capacity alerts, uptime checks, and log retention.
 
-Until the authentication gate closes, the hosted PWA must not be built with a VM API URL or token. A live VM should expose readiness and fail closed with `401` on every private endpoint.
+The hosted PWA receives only `STRIDECREW_API_BASE_URL`; never configure a browser-visible API token. Without that binding it intentionally remains in milestone-1 local prototype mode. A connected deployment redirects unauthenticated players to `/login`, and the VM returns `401` for private endpoints without a valid server-issued session.
 
 ## CI/CD follow-on
 

@@ -9,11 +9,11 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
 
 ## Authentication
 
-- QR token lifetime.
-- PIN length and retry rules.
-- Session duration and trusted-device behavior.
+- Implemented baseline: a reissuable 256-bit QR credential is combined with a six-digit PIN and verified with Argon2id; only hashes/verifiers are stored.
+- Implemented baseline: five failures trigger a 15-minute lock, later failure windows double, and the tenth failure revokes the credential and all associated sessions.
+- Implemented baseline: normal sessions last 12 hours and explicitly remembered devices last 30 days. Reissuing or revoking a QR invalidates prior sessions.
 - Parent recovery flow.
-- QR replacement and revocation.
+- Decide the approved physical/guardian delivery process for QR codes and PINs before real accounts are created.
 
 ## Goals and workload
 
@@ -66,7 +66,7 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
 - Implemented baseline: one provider-neutral Linux VM runs Caddy plus one non-root Go/SQLite API replica through Docker Compose; only ports 80/443 are public, while database and backup directories are explicit protected host bind mounts.
 - Choose the first VM provider, region, instance size, DNS hostname, and operator SSH allowlist.
 - Choose host OS patch cadence, Docker log retention, disk-capacity thresholds, and `/readyz` uptime alerting.
-- Production authentication remains deliberately disabled. Do not connect the hosted PWA to the VM until the QR/PIN and session decisions above are implemented.
+- QR/PIN authentication and the same-origin PWA cookie gateway are implemented. Real youth-data deployment still requires guardian ownership/recovery policy, secure credential distribution, and privacy approval.
 - First CI/CD candidate: GitHub Actions, an immutable GHCR image, and an approved SSH-triggered Compose deployment. Repository secrets and production host state must remain outside source control.
 
 ## Milestone 1 prototype assumptions
@@ -81,7 +81,7 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
 - Date and 24-hour deletion checks use the player's current device time until a trusted server clock exists.
 - The PWA frontend will remain independently cloud-hostable and will use a small JSON API boundary when the backend is added.
 - The first training-entry API treats the previous seven team-local calendar dates plus today as eligible, rejects future timestamps, and sets deletion eligibility to exactly 24 hours after the trusted server creation time.
-- Until the Go container receives a production host, authentication design, persistent volume, and managed secret, the privately hosted PWA uses its device-local gateway; Docker and future hosted environments opt into the same HTTP gateway with `VITE_API_BASE_URL` and `VITE_API_TOKEN`.
+- Until the PWA receives a production `STRIDECREW_API_BASE_URL` binding, the privately hosted build remains in explicit device-local prototype mode. Connected builds keep the opaque API session in a same-origin HTTP-only cookie and never expose it through `VITE_*` variables.
 - The milestone 2 backend starts with Go `database/sql`, CGo-free SQLite, one API replica, and a persistent volume. Repository boundaries preserve a managed Postgres move when horizontal replicas, higher concurrent writes, or managed HA/PITR justify the extra operations.
 - Milestone 1 uses device-local persistence as required by the prototype boundary and does not add framework-specific server actions, so the Go API can replace the local store without rewriting the view components.
 - Milestone 1 streak comparisons use a centralized, predefined kid-safe pool and client-side random selection. The milestone 2 Go API should choose and return the comparison template while keeping free-form content out of player-facing responses.

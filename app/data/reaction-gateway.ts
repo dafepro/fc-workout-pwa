@@ -58,16 +58,10 @@ interface APIBadge extends Omit<ReactionBadge, "reactionType"> {
 }
 
 class HTTPReactionGateway implements ReactionGateway {
-  constructor(
-    private readonly baseURL: string,
-    private readonly bearerToken: string,
-  ) {}
-
   async send(input: SendReactionInput): Promise<SendReactionResult> {
-    const response = await fetch(`${this.baseURL}/v1/reactions`, {
+    const response = await fetch("/api/stridecrew/v1/reactions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${this.bearerToken}`,
         "Content-Type": "application/json",
         "Idempotency-Key": crypto.randomUUID(),
       },
@@ -91,9 +85,7 @@ class HTTPReactionGateway implements ReactionGateway {
   }
 
   async listReceived(): Promise<ReactionBadge[]> {
-    const response = await fetch(`${this.baseURL}/v1/me/reaction-badges`, {
-      headers: { Authorization: `Bearer ${this.bearerToken}` },
-    });
+    const response = await fetch("/api/stridecrew/v1/me/reaction-badges");
     if (!response.ok) {
       throw new ReactionGatewayError(
         "reaction_inbox_failed",
@@ -160,15 +152,8 @@ class LocalReactionGateway implements ReactionGateway {
   }
 }
 
-export function createReactionGateway(): ReactionGateway {
-  const baseURL = (
-    import.meta.env.VITE_API_BASE_URL ??
-    import.meta.env.VITE_REACTION_API_BASE_URL
-  )?.replace(/\/$/, "");
-  const token =
-    import.meta.env.VITE_API_TOKEN ?? import.meta.env.VITE_REACTION_API_TOKEN;
-  if (baseURL && token) return new HTTPReactionGateway(baseURL, token);
-  return new LocalReactionGateway();
+export function createReactionGateway(connected = false): ReactionGateway {
+  return connected ? new HTTPReactionGateway() : new LocalReactionGateway();
 }
 
 function toAPIPlayerID(playerID: string): string {

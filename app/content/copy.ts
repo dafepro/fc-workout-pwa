@@ -23,4 +23,16 @@ export const copy = {
     "Feeling worn out? Hydrate, take it easy, and check with a parent or coach.",
   noEditing:
     "Saved entries cannot be edited. Recent entries can be deleted and re-entered.",
+  auth: {
+    opening: "Opening StrideCrew…",
+    unavailableTitle: "StrideCrew is taking a breather",
+    unavailableBody: "Please try again in a moment.",
+    loginTitle: "Player sign in",
+    loginIntro: "Scan your personal QR code, then enter your six-digit PIN.",
+    pinLabel: "Six-digit PIN",
+    remember: "Remember this device for 30 days",
+    missingQR: "Scan your player QR code first.",
+    invalidPIN: "Enter the six-digit PIN from your parent or coach.",
+    help: "Need help? Ask a parent or coach to reissue your QR code.",
+  },
 } as const;

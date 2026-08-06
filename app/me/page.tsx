@@ -3,12 +3,20 @@
 import { useState } from "react";
 import { Avatar } from "../components/Avatar";
 import { SessionList } from "../components/SessionList";
-import { CURRENT_PLAYER_ID, players, TEAM_NAME } from "../data/mockData";
+import { TEAM_NAME } from "../data/mockData";
 import { useTraining } from "../state/training-context";
+import { useAuth } from "../state/auth-context";
 
 const kitColors = ["#c7f23a", "#7459ff", "#34cbb2", "#ff9a62"];
 
 export default function MePage() {
+  const {
+    connected,
+    signOut,
+    currentPlayer: basePlayer,
+    currentPlayerID,
+    session,
+  } = useAuth();
   const {
     entries,
     entriesStatus,
@@ -17,13 +25,13 @@ export default function MePage() {
     reactionInboxStatus,
     refreshReactionBadges,
   } = useTraining();
-  const basePlayer = players.find((player) => player.id === CURRENT_PLAYER_ID)!;
   const [kitColor, setKitColor] = useState(basePlayer.avatarColor);
   const [builderOpen, setBuilderOpen] = useState(false);
   const player = { ...basePlayer, avatarColor: kitColor };
   const personalEntries = entries.filter(
-    (entry) => entry.playerId === CURRENT_PLAYER_ID,
+    (entry) => entry.playerId === currentPlayerID,
   );
+  const teamName = session?.player?.teams[0]?.name ?? TEAM_NAME;
 
   return (
     <div className="page page--me">
@@ -34,7 +42,7 @@ export default function MePage() {
           <h1>
             {player.firstName} {player.lastInitial}
           </h1>
-          <p>{TEAM_NAME}</p>
+          <p>{teamName}</p>
         </div>
         <button
           className="button button--outline"
@@ -43,6 +51,15 @@ export default function MePage() {
         >
           {builderOpen ? "Close builder" : "Avatar builder"}
         </button>
+        {connected ? (
+          <button
+            className="button button--outline"
+            type="button"
+            onClick={() => void signOut()}
+          >
+            Sign out
+          </button>
+        ) : null}
       </header>
       {builderOpen ? (
         <section className="card avatar-builder">
@@ -133,9 +150,11 @@ export default function MePage() {
           <span aria-hidden="true">◇</span>
           <div>
             <h2>QR + PIN security</h2>
-            <p>Mocked for milestone 1</p>
+            <p>
+              {connected ? "Connected to your player login" : "Prototype mode"}
+            </p>
           </div>
-          <span className="pill">Prototype</span>
+          <span className="pill">{connected ? "Connected" : "Prototype"}</span>
         </article>
       </section>
       <SessionList entries={personalEntries} />

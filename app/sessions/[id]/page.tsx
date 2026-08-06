@@ -4,15 +4,17 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { SessionFeelings } from "../../components/SessionFeelings";
-import { activities, CURRENT_PLAYER_ID } from "../../data/mockData";
+import { activities } from "../../data/mockData";
 import { canDeleteEntry } from "../../domain/rules";
 import type { TrainingEntry } from "../../domain/types";
 import { useTraining } from "../../state/training-context";
+import { useAuth } from "../../state/auth-context";
 
 export default function SessionDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { deleteEntry, getEntry } = useTraining();
+  const { currentPlayerID } = useAuth();
   const [entry, setEntry] = useState<TrainingEntry | null | undefined>();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState("");
@@ -58,7 +60,7 @@ export default function SessionDetailPage() {
   }
 
   const activity = activities.find((item) => item.id === entry.activityId)!;
-  const deletable = canDeleteEntry(entry, CURRENT_PLAYER_ID);
+  const deletable = canDeleteEntry(entry, currentPlayerID);
   const occurredAt = new Date(entry.occurredAt);
 
   async function removeSession() {

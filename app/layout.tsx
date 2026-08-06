@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
-import { AppShell } from "./components/AppShell";
-import { TrainingProvider } from "./state/training-context";
+import { AuthGate } from "./state/auth-context";
 import "./globals.css";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -61,9 +60,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <TrainingProvider>
-          <AppShell>{children}</AppShell>
-        </TrainingProvider>
+        <AuthGate>{children}</AuthGate>
       </body>
     </html>
   );

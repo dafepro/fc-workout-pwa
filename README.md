@@ -19,7 +19,7 @@ Build a responsive, mobile-first PWA prototype with mock data. Implement the fou
 - Mobile first, but functional and clean on desktop.
 - Use mock players, teams, assignments, logs, reactions, and assessment history.
 - No free-form text, user images, URLs, or uploads anywhere.
-- No production authentication in the first milestone.
+- Milestone 1 used local-only identity; the connected deployment now uses reissuable QR+PIN credentials and revocable server sessions.
 - Represent the QR-code-plus-PIN login as a mocked flow only.
 - Do not implement coach screens yet, but keep domain types ready for coach-created assignments and recorded assessments.
 
@@ -51,4 +51,4 @@ The backend foundation lives in `backend/` and the review contracts live in `doc
 - a provider-neutral single-VM deployment bundle with Caddy-managed HTTPS, hardened containers, persistent host storage, and operator backup scripts;
 - draft API, authorization, and persistence contracts for review before frontend integration.
 
-See `backend/README.md` for local commands and `deploy/vm/README.md` for the manual VM runbook. The backend is deployable in a fail-closed state, but the hosted PWA must remain on its local adapter until production authentication and encrypted off-host backups are implemented.
+See `backend/README.md` for local commands and `deploy/vm/README.md` for the manual VM runbook. The backend and QR+PIN session path are deployable; real youth-data use still requires approved guardian/recovery policy, secure credential distribution, encrypted off-host backups, and privacy operations.

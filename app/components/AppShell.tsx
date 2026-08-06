@@ -4,9 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { copy } from "../content/copy";
-import { CURRENT_PLAYER_ID, players } from "../data/mockData";
+import { useAuth } from "../state/auth-context";
 
-const SERVICE_WORKER_URL = "/sw.js?v=2";
+const SERVICE_WORKER_URL = "/sw.js?v=3";
 
 const navigation = [
   { href: "/", label: "Home", icon: "⌂" },
@@ -17,7 +17,7 @@ const navigation = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const player = players.find((item) => item.id === CURRENT_PLAYER_ID)!;
+  const { currentPlayer: player } = useAuth();
 
   function navigationIcon(item: (typeof navigation)[number]) {
     if (item.href === "/me") {

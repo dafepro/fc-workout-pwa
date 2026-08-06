@@ -14,6 +14,9 @@ const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 const localBindingConfig = {
   main: "./worker/index.ts",
   compatibility_flags: ["nodejs_compat"],
+  vars: {
+    STRIDECREW_API_BASE_URL: process.env.STRIDECREW_API_BASE_URL ?? "",
+  },
   d1_databases: d1
     ? [
         {
