@@ -60,6 +60,8 @@ next-env.d.ts
 **/*.tfstate
 **/*.tfstate.*
 **/*.tfplan
+**/*.tfplan.sha
 **/terraform.tfvars
 **/*.auto.tfvars
+!infra/digitalocean/terraform.tfstate.age
 /backend/*.exe

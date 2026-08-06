@@ -2,8 +2,7 @@ $ErrorActionPreference = "Stop"
 
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $historicalFeedbackPattern = [regex]'docs[/\\]_ALPHA_FEEDBACK_0\.[0-6]\.md$'
-$migrationPattern = [regex]'deploy[/\\]vm[/\\]scripts[/\\]migrate-legacy-install\.sh$'
-$contractPattern = [regex]'scripts[/\\](zoomigo-branding-contract|migration-contract)\.ps1$'
+$contractPattern = [regex]'scripts[/\\]zoomigo-branding-contract\.ps1$'
 $textExtensions = @(
   ".go", ".json", ".md", ".ps1", ".service", ".sh", ".timer", ".ts",
   ".tsx", ".webmanifest", ".yaml", ".yml"
@@ -13,7 +12,7 @@ $trackedFiles = & git -C $repositoryRoot ls-files --cached --others --exclude-st
 if ($LASTEXITCODE -ne 0) { throw "Could not enumerate tracked files." }
 
 $matches = foreach ($relativePath in $trackedFiles) {
-  if ($historicalFeedbackPattern.IsMatch($relativePath) -or $migrationPattern.IsMatch($relativePath) -or $contractPattern.IsMatch($relativePath)) {
+  if ($historicalFeedbackPattern.IsMatch($relativePath) -or $contractPattern.IsMatch($relativePath)) {
     continue
   }
   $extension = [System.IO.Path]::GetExtension($relativePath)
