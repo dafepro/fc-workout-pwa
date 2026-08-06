@@ -20,9 +20,10 @@
   Droplet, assigned Reserved IP, restricted firewall, monitoring, backups,
   resource alerts, a global readiness check, proxied API DNS, plus repeatable
   cloud-init preparation.
-- **Codex - Addressed (2026-08-06):** Added cross-platform Node orchestration
-  for reviewed plan/apply, encrypted local state, independently verified SSH
-  host-key adoption, and deployment-bundle rotation.
+- **Codex - Addressed (2026-08-06):** Added platform-neutral Node internals
+  behind the supported Unix scripts for reviewed plan/apply, encrypted local
+  state, independently verified SSH host-key adoption, and deployment-bundle
+  rotation.
 - **Codex - Addressed (2026-08-06):** Made a fresh host deploy self-bootstrap
   and verify its first encrypted off-host backup before the release succeeds.
 - **Codex - Addressed (2026-08-06):** Consolidated production instructions in

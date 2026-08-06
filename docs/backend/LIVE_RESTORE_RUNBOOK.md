@@ -34,7 +34,8 @@ RESTORED_DB="$RESTORE_DIR/restore-drill-YYYYMMDDTHHMMSSZ.db"
 ROLLBACK_DB="$DATA_DIR/zoomigo.pre-restore-YYYYMMDDTHHMMSSZ.db"
 ```
 
-Confirm each value is an absolute, specific file beneath the intended protected ZoomiGo data directory. The legacy `zoomigo` path and database names are retained as compatibility identifiers. Then stop public traffic and the writer:
+Confirm each value is an absolute, specific file beneath the intended protected
+ZoomiGo data directory. Then stop public traffic and the writer:
 
 ```sh
 docker compose --env-file .env -f compose.yaml stop caddy api
