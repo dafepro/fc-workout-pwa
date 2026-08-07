@@ -95,6 +95,23 @@ jobs:
           path: infra/digitalocean/tfplan
           retention-days: 14
 
+      - name: Record the plan run ID and plan output
+        working-directory: infra/digitalocean
+        run: |
+          {
+            echo "### tofu plan"
+            echo ""
+            echo "To apply this exact plan, trigger this workflow again with"
+            echo "\`action: apply\` and \`plan_run_id: ${{ github.run_id }}\`."
+            echo ""
+            echo '<details><summary>Plan output</summary>'
+            echo ""
+            echo '```'
+            tofu show -no-color tfplan
+            echo '```'
+            echo "</details>"
+          } >>"$GITHUB_STEP_SUMMARY"
+
   apply:
     if: inputs.action == 'apply'
     name: tofu apply
@@ -142,3 +159,7 @@ jobs:
           DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: tofu apply -input=false tfplan
+
+      - name: Record what was applied
+        run: |
+          echo "Applied the plan from run ${{ inputs.plan_run_id }}." >>"$GITHUB_STEP_SUMMARY"
