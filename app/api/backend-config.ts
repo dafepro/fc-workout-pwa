@@ -14,3 +14,16 @@ export function resolveBackendBaseURL(
   }
   return value;
 }
+
+export function resolveBackendRequired(
+  configured: string | undefined,
+): boolean {
+  const value = (configured ?? "").trim().toLowerCase();
+  if (value === "true") return true;
+  if (value === "" || value === "false") return false;
+  throw new Error("ZOOMIGO_REQUIRE_BACKEND must be true or false");
+}
+
+export function missingBackendCodeFor(required: boolean): string {
+  return required ? "backend_required" : "backend_not_configured";
+}

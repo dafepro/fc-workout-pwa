@@ -61,6 +61,7 @@ type Repository interface {
 	ListReactionBadges(context.Context, string, int) ([]store.ReactionBadge, error)
 	TeamActivity(context.Context, domain.Actor, string, time.Time) (store.TeamActivityProjection, error)
 	Leaderboard(context.Context, domain.Actor, string, domain.LeaderboardPeriod, domain.LeaderboardMetric, time.Time) (store.LeaderboardProjection, error)
+	TrainingDashboard(context.Context, domain.Actor, string, time.Time) (store.TrainingDashboardProjection, error)
 }
 
 type fixtureResetter interface {
@@ -108,6 +109,7 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	mux.HandleFunc("POST /v1/reactions", service.createReaction)
 	mux.HandleFunc("GET /v1/me/reaction-badges", service.listReactionBadges)
 	mux.HandleFunc("GET /v1/me/training-entries", service.listTrainingEntries)
+	mux.HandleFunc("GET /v1/me/training-dashboard", service.getTrainingDashboard)
 	mux.HandleFunc("POST /v1/me/training-entries", service.createTrainingEntry)
 	mux.HandleFunc("GET /v1/training-entries/{entryId}", service.getTrainingEntry)
 	mux.HandleFunc("DELETE /v1/training-entries/{entryId}", service.deleteTrainingEntry)
@@ -121,6 +123,28 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	})
 
 	return securityHeaders(cfg.AllowedOrigin, requestID(mux))
+}
+
+func (service *service) getTrainingDashboard(w http.ResponseWriter, r *http.Request) {
+	actor, ok := service.authenticate(w, r)
+	if !ok {
+		return
+	}
+	if service.store == nil {
+		writeError(w, r, http.StatusServiceUnavailable, "not_ready", "The service is not ready.")
+		return
+	}
+	teamID := strings.TrimSpace(r.URL.Query().Get("teamId"))
+	projection, err := service.store.TrainingDashboard(r.Context(), actor, teamID, service.now().UTC())
+	if errors.Is(err, store.ErrTrainingDashboardUnavailable) {
+		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
+		return
+	}
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")
+		return
+	}
+	writeJSON(w, http.StatusOK, projection)
 }
 
 func (service *service) getTeamActivity(w http.ResponseWriter, r *http.Request) {
@@ -207,6 +231,8 @@ func (service *service) createTrainingEntry(w http.ResponseWriter, r *http.Reque
 			writeError(w, r, http.StatusUnprocessableEntity, "entry_result_not_allowed", "That activity result is not allowed.")
 		case errors.Is(err, store.ErrEntryTeamUnavailable):
 			writeError(w, r, http.StatusUnprocessableEntity, "entry_team_unavailable", "That team is unavailable.")
+		case errors.Is(err, store.ErrEntryAssignmentUnavailable):
+			writeError(w, r, http.StatusUnprocessableEntity, "entry_assignment_unavailable", "That assignment is unavailable.")
 		case errors.Is(err, store.ErrEntryLevelsNotAllowed):
 			writeError(w, r, http.StatusUnprocessableEntity, "entry_feelings_not_allowed", "Effort and exhaustion must use the seven-step scale.")
 		default:

@@ -101,12 +101,16 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   )!;
   const currentPlayer: Player = session?.player
     ? {
-        ...prototypePlayer,
         id: currentPlayerID,
         firstName: session.player.firstName,
         lastInitial: `${session.player.lastInitial.replace(/\.$/, "")}.`,
         initials:
           `${session.player.firstName[0] ?? ""}${session.player.lastInitial[0] ?? ""}`.toUpperCase(),
+        avatarColor: connectedAvatarColor(currentPlayerID),
+        weeklySessions: 0,
+        effortPoints: 0,
+        currentStreak: 0,
+        consistency: 0,
       }
     : prototypePlayer;
   const currentTeamID = session?.player?.teams[0]?.id ?? "team-hill-striders";
@@ -137,4 +141,13 @@ export function useAuth(): AuthState {
   const value = useContext(AuthContext);
   if (!value) throw new Error("useAuth must be used inside AuthGate");
   return value;
+}
+
+function connectedAvatarColor(id: string): string {
+  const palette = ["#c7f23a", "#7be3d2", "#ffca63", "#a9b7ff"];
+  const hash = [...id].reduce(
+    (total, character) => total + character.charCodeAt(0),
+    0,
+  );
+  return palette[hash % palette.length];
 }

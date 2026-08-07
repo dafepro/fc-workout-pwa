@@ -11,6 +11,7 @@ import {
 import { CURRENT_PLAYER_ID } from "../data/mockData";
 import { createReactionGateway } from "../data/reaction-gateway";
 import { createTrainingEntryGateway } from "../data/training-entry-gateway";
+import { createTrainingDashboardGateway } from "../data/training-dashboard-gateway";
 import type {
   Reaction,
   ReactionBadge,
@@ -19,14 +20,18 @@ import type {
   SendReactionResult,
   TrainingEntry,
   TrainingEntryInput,
+  TrainingDashboard,
 } from "../domain/types";
 
 interface TrainingState {
+  connected: boolean;
   entries: TrainingEntry[];
   entriesStatus: "loading" | "ready" | "error";
   reactions: Reaction[];
   reactionBadges: ReactionBadge[];
   reactionInboxStatus: "loading" | "ready" | "error";
+  dashboard: TrainingDashboard | null;
+  dashboardStatus: "loading" | "ready" | "error";
   addEntry: (entry: TrainingEntryInput) => Promise<TrainingEntry>;
   getEntry: (entryId: string) => Promise<TrainingEntry | null>;
   deleteEntry: (entryId: string) => Promise<void>;
@@ -37,6 +42,7 @@ interface TrainingState {
     context: ReactionContext,
   ) => Promise<SendReactionResult>;
   refreshReactionBadges: () => Promise<void>;
+  refreshDashboard: () => Promise<void>;
 }
 
 const TrainingContext = createContext<TrainingState | null>(null);
@@ -61,10 +67,26 @@ export function TrainingProvider({
   const [reactionInboxStatus, setReactionInboxStatus] = useState<
     "loading" | "ready" | "error"
   >("loading");
+  const [dashboard, setDashboard] = useState<TrainingDashboard | null>(null);
+  const [dashboardStatus, setDashboardStatus] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
   const [reactionGateway] = useState(() => createReactionGateway(connected));
   const [trainingEntryGateway] = useState(() =>
     createTrainingEntryGateway(connected, currentTeamID),
   );
+  const [trainingDashboardGateway] = useState(() =>
+    createTrainingDashboardGateway(connected, currentTeamID),
+  );
+
+  const refreshDashboard = useCallback(async () => {
+    try {
+      setDashboard(await trainingDashboardGateway.get());
+      setDashboardStatus("ready");
+    } catch {
+      setDashboardStatus("error");
+    }
+  }, [trainingDashboardGateway]);
 
   const refreshEntries = useCallback(async () => {
     try {
@@ -91,9 +113,10 @@ export function TrainingProvider({
         entry,
         ...current.filter((item) => item.id !== entry.id),
       ]);
+      if (connected) void refreshDashboard();
       return entry;
     },
-    [trainingEntryGateway],
+    [connected, refreshDashboard, trainingEntryGateway],
   );
 
   const getEntry = useCallback(
@@ -179,22 +202,46 @@ export function TrainingProvider({
     };
   }, [trainingEntryGateway]);
 
+  useEffect(() => {
+    let active = true;
+    void trainingDashboardGateway.get().then(
+      (loadedDashboard) => {
+        if (!active) return;
+        setDashboard(loadedDashboard);
+        setDashboardStatus("ready");
+      },
+      () => {
+        if (active) setDashboardStatus("error");
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [trainingDashboardGateway]);
+
   const value = useMemo<TrainingState>(
     () => ({
+      connected,
       entries,
       entriesStatus,
       reactions,
       reactionBadges,
       reactionInboxStatus,
+      dashboard,
+      dashboardStatus,
       addEntry,
       getEntry,
       deleteEntry,
       refreshEntries,
       sendReaction,
       refreshReactionBadges,
+      refreshDashboard,
     }),
     [
       addEntry,
+      connected,
+      dashboard,
+      dashboardStatus,
       deleteEntry,
       entries,
       entriesStatus,
@@ -204,6 +251,7 @@ export function TrainingProvider({
       reactions,
       refreshEntries,
       refreshReactionBadges,
+      refreshDashboard,
       sendReaction,
     ],
   );

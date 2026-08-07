@@ -14,9 +14,9 @@ Go/SQLite service, encrypted backup path, single-VM deployment, Cloudflare Worke
 frontend, GitHub release workflow, and DigitalOcean/Cloudflare OpenTofu are
 implemented. Infrastructure has not yet been created from this repository.
 
-Team and Leaders now use safe authoritative projections in connected mode. The
-largest remaining product gap is that workout definitions, assignments, and
-several Home summaries still use prototype data in connected mode.
+Team, Leaders, Home, and Record Training now use safe authoritative projections
+in connected mode. The next engineering priority is the versioned logical
+backup export, followed by the test-only cloud environment.
 
 ## Recommended next work
 
@@ -45,7 +45,7 @@ performance data.
 
 ### 2. Connect Home, assignments, and the activity catalog
 
-Status: **Recommended next engineering task**
+Status: **Implemented; awaiting periodic E2E pass**
 
 - Add server-owned activity definitions, team weekly goal, current assignment,
   and safe personal-summary projections.
@@ -61,7 +61,7 @@ configured hosted session.
 
 ### 3. Add a versioned logical export for durable backups
 
-Status: **Ready for Codex**
+Status: **Recommended next engineering task**
 
 The existing encrypted SQLite archive is a strong same-engine recovery format,
 but it is intentionally coupled to SQLite. Add a stable, versioned logical

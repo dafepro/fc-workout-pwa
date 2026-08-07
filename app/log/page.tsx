@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ActivitySelector,
@@ -8,7 +8,6 @@ import {
 } from "../components/ActivityFields";
 import { IntensityControls } from "../components/IntensityScale";
 import { copy } from "../content/copy";
-import { activities } from "../data/mockData";
 import {
   earliestAllowedDate,
   isBackdateAllowed,
@@ -16,13 +15,6 @@ import {
 } from "../domain/rules";
 import type { ActivityId } from "../domain/types";
 import { useTraining } from "../state/training-context";
-
-const initialValues: Record<ActivityId, number> = {
-  "hill-sprints": 8,
-  "timed-run-walk": 20,
-  "distance-run": 1.5,
-  "recovery-walk-jog": 20,
-};
 
 function currentTimeInput(): string {
   return new Date().toTimeString().slice(0, 5);
@@ -49,9 +41,12 @@ function compactTimeLabel(timeValue: string): string {
 
 export default function LogPage() {
   const router = useRouter();
-  const { addEntry } = useTraining();
+  const { addEntry, dashboard, dashboardStatus, refreshDashboard } =
+    useTraining();
+  const activities = useMemo(() => dashboard?.activities ?? [], [dashboard]);
+  const assignment = dashboard?.currentAssignment ?? null;
   const [activityId, setActivityId] = useState<ActivityId>("hill-sprints");
-  const [value, setValue] = useState(initialValues[activityId]);
+  const [value, setValue] = useState(8);
   const [date, setDate] = useState(toDateInput(new Date()));
   const [time, setTime] = useState(currentTimeInput());
   const [effort, setEffort] = useState(4);
@@ -59,11 +54,31 @@ export default function LogPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [showActivities, setShowActivities] = useState(false);
-  const selectedActivity = activities.find((item) => item.id === activityId)!;
+  const initialized = useRef(false);
+  const selectedActivity = activities.find((item) => item.id === activityId);
+
+  useEffect(() => {
+    if (initialized.current || activities.length === 0) return;
+    const selected =
+      activities.find((item) => item.id === assignment?.activityDefinitionId) ??
+      activities[0];
+    initialized.current = true;
+    setActivityId(selected.id);
+    setValue(
+      assignment?.activityDefinitionId === selected.id
+        ? assignment.targetValue
+        : selected.min,
+    );
+  }, [activities, assignment]);
 
   function chooseActivity(next: ActivityId) {
     setActivityId(next);
-    setValue(initialValues[next]);
+    const nextActivity = activities.find((item) => item.id === next);
+    setValue(
+      assignment?.activityDefinitionId === next
+        ? assignment.targetValue
+        : (nextActivity?.min ?? 1),
+    );
     setMessage(null);
     setShowActivities(false);
   }
@@ -88,6 +103,13 @@ export default function LogPage() {
     try {
       await addEntry({
         activityId,
+        inputKind: activity.inputKind,
+        assignmentId:
+          assignment?.activityDefinitionId === activityId &&
+          date >= assignment.startsOn &&
+          date <= assignment.dueOn
+            ? assignment.id
+            : undefined,
         occurredAt: occurredAt.toISOString(),
         value,
         unit: activity.unit,
@@ -103,6 +125,24 @@ export default function LogPage() {
       );
       setSaving(false);
     }
+  }
+
+  if (dashboardStatus === "loading") {
+    return <main className="auth-state">Loading approved activities…</main>;
+  }
+
+  if (dashboardStatus === "error" || !dashboard || !selectedActivity) {
+    return (
+      <main className="auth-state" role="alert">
+        <h1>Approved activities could not be loaded</h1>
+        <button
+          className="button button--lime"
+          onClick={() => void refreshDashboard()}
+        >
+          Try again
+        </button>
+      </main>
+    );
   }
 
   return (
@@ -146,13 +186,18 @@ export default function LogPage() {
         </section>
         {showActivities ? (
           <div id="activity-options">
-            <ActivitySelector selected={activityId} onSelect={chooseActivity} />
+            <ActivitySelector
+              selected={activityId}
+              onSelect={chooseActivity}
+              activities={activities}
+            />
           </div>
         ) : null}
         <ActivitySpecificFields
           activityId={activityId}
           value={value}
           onChange={setValue}
+          activities={activities}
         />
         <IntensityControls
           effort={effort}
