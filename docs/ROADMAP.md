@@ -181,6 +181,11 @@ Status: **Ongoing after first deployment**
 - Rotate deployment, backup, and cloud credentials on the approved cadence.
 - Keep runbooks synchronized with executable scripts and remove superseded
   paths rather than retaining compatibility-only automation.
+- Install and configure `fail2ban` (or sshd `PerSourcePenalties`/`MaxStartups`)
+  on the Droplet. `ssh_source_addresses` is open (`0.0.0.0/0`/`::/0`) because
+  neither the operator's laptop nor the GitHub-hosted CI runner that deploys
+  over SSH has a stable IP; key-only auth is the real boundary, and this is
+  purely to cut internet SSH-scanner log noise, not to close a hole.
 
 ## Trigger-based work, not current scope
 

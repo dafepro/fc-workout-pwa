@@ -17,10 +17,14 @@ test("backendConfigArgs builds the R2 state backend flags", () => {
   assert.deepEqual(args, [
     "-backend-config=bucket=zoomigo-tfstate",
     "-backend-config=key=infra/digitalocean/terraform.tfstate",
-    "-backend-config=endpoints.s3=https://ACCOUNT_ID.r2.cloudflarestorage.com",
+    "-backend-config=endpoint=https://ACCOUNT_ID.r2.cloudflarestorage.com",
     "-backend-config=region=auto",
     "-backend-config=use_path_style=true",
     "-backend-config=use_lockfile=true",
+    "-backend-config=skip_region_validation=true",
+    "-backend-config=skip_credentials_validation=true",
+    "-backend-config=skip_requesting_account_id=true",
+    "-backend-config=skip_metadata_api_check=true",
     "-backend-config=access_key=access",
     "-backend-config=secret_key=secret",
   ]);

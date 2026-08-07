@@ -12,9 +12,10 @@ terraform {
     }
   }
 
-  # Real values (bucket, key, endpoints.s3, region, access/secret key,
-  # use_lockfile) are supplied with -backend-config flags at `tofu init` time;
-  # backend blocks cannot reference variables.
+  # Real values (bucket, key, endpoint, region, access/secret key,
+  # use_lockfile, and the skip_* flags R2 needs since it is not AWS) are
+  # supplied with -backend-config flags at `tofu init` time; backend blocks
+  # cannot reference variables. See provision.mjs's backendConfigArgs.
   backend "s3" {}
 }
 
