@@ -16,4 +16,4 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 pnpm install --frozen-lockfile
 COPY playwright.config.ts ./
 COPY e2e ./e2e
-CMD ["pnpm", "test:e2e"]
+CMD ["pnpm", "test:browser"]
