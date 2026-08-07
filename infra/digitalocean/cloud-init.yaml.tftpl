@@ -35,8 +35,18 @@ users:
 ssh_pwauth: false
 disable_root: false # TEMPORARY: see the root user entry above.
 
-bootcmd:
-  - [cloud-init-per, once, zoomigo-swap, bash, -lc, "fallocate -l 1G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile && echo '/swapfile none swap sw 0 0' >> /etc/fstab"]
+# Swap must be created by the swap module, not by bootcmd. cloud-init runs
+# bootcmd in the init stage BEFORE growpart/resizefs, so on a fresh Droplet the
+# root filesystem is still the image's 2.5G partition rather than the full 10G
+# disk. "fallocate -l 1G" there fills the remaining ~640MB and dies with ENOSPC,
+# leaving the disk 100% full and every later stage -- host key generation, user
+# creation, write_files, packages, runcmd -- unable to run at all. The swap
+# module is part of cc_mounts in the config stage, which runs after the root
+# filesystem has been grown, so there is room by then.
+swap:
+  filename: /swapfile
+  size: 1G
+  maxsize: 1G
 
 write_files:
   - path: /etc/ssh/sshd_config.d/90-zoomigo.conf
