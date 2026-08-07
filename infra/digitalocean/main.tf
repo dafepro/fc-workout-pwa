@@ -13,15 +13,16 @@ resource "digitalocean_ssh_key" "zoomigo" {
 }
 
 resource "digitalocean_droplet" "zoomigo" {
-  name       = "zoomigo-api"
-  image      = "ubuntu-24-04-x64"
-  region     = var.region
-  size       = var.droplet_size
-  monitoring = true
-  backups    = true
-  ipv6       = true
-  ssh_keys   = [digitalocean_ssh_key.zoomigo.fingerprint]
-  tags       = ["zoomigo", "production"]
+  name          = "zoomigo-api"
+  image         = "ubuntu-24-04-x64"
+  region        = var.region
+  size          = var.droplet_size
+  monitoring    = true
+  droplet_agent = true
+  backups       = true
+  ipv6          = true
+  ssh_keys      = [digitalocean_ssh_key.zoomigo.fingerprint]
+  tags          = ["zoomigo", "production"]
   user_data = templatefile("${path.module}/cloud-init.yaml.tftpl", {
     environment_file = indent(6, templatefile("${path.module}/environment.tftpl", {
       api_hostname         = var.api_hostname
@@ -36,6 +37,12 @@ resource "digitalocean_droplet" "zoomigo" {
 
   lifecycle {
     prevent_destroy = true
+    # cloud-init only ever runs on first boot, so a later commit's release_sha
+    # must not force-replace an already-provisioned Droplet; ongoing releases
+    # happen over SSH via deploy-vm.sh instead. droplet_agent is newly added
+    # here (existing Droplets predate it) and is also ForceNew, so ignore it
+    # too rather than force-replacing a protected Droplet to pick it up.
+    ignore_changes = [user_data, droplet_agent]
   }
 }
 
