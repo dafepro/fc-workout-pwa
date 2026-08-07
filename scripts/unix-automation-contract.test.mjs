@@ -45,3 +45,16 @@ test("macOS and Linux are the canonical local automation path", async () => {
   assert.match(verifier, /--all/);
   assert.match(contracts, /ZoomiGo production automation contract passed/);
 });
+
+test("the browser image runs Playwright without recursing into Docker", async () => {
+  const [dockerfile, packageDocument] = await Promise.all([
+    readFile(join(root, "Dockerfile.e2e"), "utf8"),
+    readFile(join(root, "package.json"), "utf8"),
+  ]);
+  const scripts = JSON.parse(packageDocument).scripts;
+
+  assert.equal(scripts["test:e2e"], "./scripts/e2e.sh");
+  assert.equal(scripts["test:browser"], "playwright test");
+  assert.match(dockerfile, /CMD \["pnpm", "test:browser"\]/);
+  assert.doesNotMatch(dockerfile, /CMD \["pnpm", "test:e2e"\]/);
+});
