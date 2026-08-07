@@ -12,12 +12,13 @@ import (
 )
 
 var (
-	ErrEntryNotFound            = errors.New("training entry not found")
-	ErrEntryIdempotencyConflict = errors.New("entry idempotency key was used for a different request")
-	ErrEntryTeamUnavailable     = errors.New("entry team is unavailable")
-	ErrEntryDateNotAllowed      = errors.New("entry date is not allowed")
-	ErrEntryResultNotAllowed    = errors.New("entry result is not allowed")
-	ErrEntryLevelsNotAllowed    = errors.New("entry effort or exhaustion is not allowed")
+	ErrEntryNotFound              = errors.New("training entry not found")
+	ErrEntryIdempotencyConflict   = errors.New("entry idempotency key was used for a different request")
+	ErrEntryTeamUnavailable       = errors.New("entry team is unavailable")
+	ErrEntryDateNotAllowed        = errors.New("entry date is not allowed")
+	ErrEntryResultNotAllowed      = errors.New("entry result is not allowed")
+	ErrEntryLevelsNotAllowed      = errors.New("entry effort or exhaustion is not allowed")
+	ErrEntryAssignmentUnavailable = errors.New("entry assignment is unavailable")
 )
 
 type TrainingResult struct {
@@ -136,6 +137,19 @@ func (store *Store) CreateTrainingEntry(ctx context.Context, input CreateTrainin
 		input.Request.Result.Unit != definition.unit ||
 		!resultValueAllowed(input.Request.Result.Value, definition.minimum, definition.maximum, definition.step) {
 		return TrainingEntry{}, ErrEntryResultNotAllowed
+	}
+	if input.Request.AssignmentID != nil {
+		var assignmentCount int
+		err = tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM assignments
+			WHERE id = ? AND team_id = ? AND activity_definition_id = ? AND target_unit = ?
+			AND starts_on <= ? AND due_on >= ?`, *input.Request.AssignmentID, input.Request.TeamID,
+			input.Request.ActivityDefinitionID, input.Request.Result.Unit, teamDay, teamDay).Scan(&assignmentCount)
+		if err != nil {
+			return TrainingEntry{}, fmt.Errorf("verify training assignment: %w", err)
+		}
+		if assignmentCount != 1 {
+			return TrainingEntry{}, ErrEntryAssignmentUnavailable
+		}
 	}
 
 	createdAt := now.Format(time.RFC3339Nano)

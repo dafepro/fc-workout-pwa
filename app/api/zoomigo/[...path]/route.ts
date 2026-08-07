@@ -3,12 +3,14 @@ import {
   forwardedHeaders,
   jsonError,
   limitedBody,
+  missingBackendCode,
   readSessionCookie,
   sameOrigin,
 } from "../../backend";
 
 const allowed = [
   { method: "GET", pattern: /^v1\/me\/training-entries$/ },
+  { method: "GET", pattern: /^v1\/me\/training-dashboard$/ },
   { method: "POST", pattern: /^v1\/me\/training-entries$/ },
   { method: "GET", pattern: /^v1\/me\/reaction-badges$/ },
   { method: "POST", pattern: /^v1\/reactions$/ },
@@ -48,7 +50,7 @@ async function proxy(request: Request) {
   if (!baseURL) {
     return jsonError(
       503,
-      "backend_not_configured",
+      missingBackendCode(),
       "The backend is not configured.",
     );
   }

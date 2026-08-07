@@ -1,5 +1,9 @@
 import { env } from "cloudflare:workers";
-import { resolveBackendBaseURL } from "./backend-config";
+import {
+  missingBackendCodeFor,
+  resolveBackendBaseURL,
+  resolveBackendRequired,
+} from "./backend-config";
 
 export const SESSION_COOKIE = "__Host-zoomigo_session";
 export const LOCAL_SESSION_COOKIE = "zoomigo_session_local";
@@ -10,6 +14,18 @@ export function backendBaseURL(): string | null {
   return resolveBackendBaseURL(
     workerValue?.trim() || process.env.ZOOMIGO_API_BASE_URL,
   );
+}
+
+export function backendRequired(): boolean {
+  const workerValue = (env as { ZOOMIGO_REQUIRE_BACKEND?: string })
+    .ZOOMIGO_REQUIRE_BACKEND;
+  return resolveBackendRequired(
+    workerValue?.trim() || process.env.ZOOMIGO_REQUIRE_BACKEND,
+  );
+}
+
+export function missingBackendCode(): string {
+  return missingBackendCodeFor(backendRequired());
 }
 
 export function sessionCookieName(request: Request): string {

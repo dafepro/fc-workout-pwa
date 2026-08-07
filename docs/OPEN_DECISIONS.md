@@ -49,7 +49,14 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
 
 - Distance units by team or locale.
 - Minimum and maximum plausible values.
-- Handling partial assigned workouts.
+- Implemented first-assignment rule: the current whole-team assignment is the
+  earliest-due assignment whose team-local date window includes today. A
+  session is attached only when the PWA submits that exact assignment ID with
+  its matching team, activity, unit, and in-window occurrence date. Partial
+  work remains a valid private training entry but completes the assignment only
+  when its structured value meets or exceeds the target. An unassigned session
+  of the same activity does not complete it. Recurring, subgroup, and
+  individual assignments remain deferred.
 - Whether effort and exhaustion are required for recovery sessions.
 
 ## Reactions
@@ -109,8 +116,17 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
 - Date and 24-hour deletion checks use the player's current device time until a trusted server clock exists.
 - The PWA frontend will remain independently cloud-hostable and will use a small JSON API boundary when the backend is added.
 - The first training-entry API treats the previous seven team-local calendar dates plus today as eligible, rejects future timestamps, and sets deletion eligibility to exactly 24 hours after the trusted server creation time.
-- Until the Cloudflare PWA receives a production `ZOOMIGO_API_BASE_URL` binding, the privately hosted Sites preview remains in explicit device-local prototype mode. Connected builds keep the opaque API session in a same-origin HTTP-only cookie and never expose it through `VITE_*` variables.
+- The privately hosted Sites preview remains in explicit device-local prototype
+  mode when neither backend binding nor production-required flag is configured.
+  A production Worker release sets both `ZOOMIGO_API_BASE_URL` and
+  `ZOOMIGO_REQUIRE_BACKEND=true`; if its backend URL is absent, authentication
+  fails closed and prototype data is never rendered. Connected builds keep the
+  opaque API session in a same-origin HTTP-only cookie and never expose it
+  through `VITE_*` variables.
 - The milestone 2 backend starts with Go `database/sql`, CGo-free SQLite, one API replica, and a persistent volume. Repository boundaries preserve a managed Postgres move when horizontal replicas, higher concurrent writes, or managed HA/PITR justify the extra operations.
 - Milestone 1 uses device-local persistence as required by the prototype boundary and does not add framework-specific server actions, so the Go API can replace the local store without rewriting the view components.
-- Milestone 1 streak comparisons use a centralized, predefined kid-safe pool and client-side random selection. The milestone 2 Go API should choose and return the comparison template while keeping free-form content out of player-facing responses.
+- Implemented connected-mode streak comparisons: the Go API deterministically
+  selects a predefined kid-safe template per player and team-local day and
+  returns server-generated copy. The local prototype keeps a fixed predefined
+  comparison; player-authored copy is never accepted.
 - Milestone 1 session-detail routes filter to the current mock player. The production Go API must authorize each detail request for only the entry owner, an assigned coach, or an authorized club administrator; route knowledge alone must never grant access.

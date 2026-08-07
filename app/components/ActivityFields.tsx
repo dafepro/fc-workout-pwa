@@ -1,15 +1,16 @@
 "use client";
 
-import { activities } from "../data/mockData";
 import { getActivityInput } from "../domain/rules";
-import type { ActivityId } from "../domain/types";
+import type { ActivityDefinition, ActivityId } from "../domain/types";
 
 export function ActivitySelector({
   selected,
   onSelect,
+  activities,
 }: {
   selected: ActivityId;
   onSelect: (activityId: ActivityId) => void;
+  activities: ActivityDefinition[];
 }) {
   return (
     <fieldset className="activity-picker">
@@ -53,10 +54,12 @@ export function ActivitySpecificFields({
   activityId,
   value,
   onChange,
+  activities,
 }: {
   activityId: ActivityId;
   value: number;
   onChange: (value: number) => void;
+  activities: ActivityDefinition[];
 }) {
   const activity = getActivityInput(activities, activityId);
   if (!activity) return null;
@@ -64,7 +67,7 @@ export function ActivitySpecificFields({
   return (
     <div className="field-card" data-testid="activity-fields">
       <label htmlFor="activity-value">{activity.fieldLabel}</label>
-      {activityId === "hill-sprints" ? (
+      {activity.inputKind === "repetitions" ? (
         <div className="stepper">
           <button
             type="button"

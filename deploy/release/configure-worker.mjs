@@ -34,6 +34,7 @@ export function configureWorker(generated, production, apiBaseURL) {
     vars: {
       ...(generated.vars ?? {}),
       ZOOMIGO_API_BASE_URL: apiBaseURL,
+      ZOOMIGO_REQUIRE_BACKEND: "true",
     },
     workers_dev: false,
     routes: [{ pattern: pwaHostname, custom_domain: true }],

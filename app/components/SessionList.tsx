@@ -2,15 +2,16 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { activities } from "../data/mockData";
-import type { TrainingEntry } from "../domain/types";
+import type { ActivityDefinition, TrainingEntry } from "../domain/types";
 import { SessionFeelings } from "./SessionFeelings";
 
 export function SessionList({
   entries,
+  activities,
   initialVisible = 3,
 }: {
   entries: TrainingEntry[];
+  activities: ActivityDefinition[];
   initialVisible?: number;
 }) {
   const [visibleCount, setVisibleCount] = useState(initialVisible);
@@ -27,7 +28,8 @@ export function SessionList({
         {entries.slice(0, visibleCount).map((entry) => {
           const activity = activities.find(
             (item) => item.id === entry.activityId,
-          )!;
+          );
+          if (!activity) return null;
           return (
             <Link
               className={`history-row history-row--${activity.id}`}
