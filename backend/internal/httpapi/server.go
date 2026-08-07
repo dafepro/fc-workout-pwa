@@ -59,6 +59,8 @@ type Repository interface {
 	DeleteTrainingEntry(context.Context, string, time.Time) (bool, error)
 	CreateReaction(context.Context, store.CreateReactionInput) (store.CreateReactionResult, error)
 	ListReactionBadges(context.Context, string, int) ([]store.ReactionBadge, error)
+	TeamActivity(context.Context, domain.Actor, string, time.Time) (store.TeamActivityProjection, error)
+	Leaderboard(context.Context, domain.Actor, string, domain.LeaderboardPeriod, domain.LeaderboardMetric, time.Time) (store.LeaderboardProjection, error)
 }
 
 type fixtureResetter interface {
@@ -109,6 +111,8 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	mux.HandleFunc("POST /v1/me/training-entries", service.createTrainingEntry)
 	mux.HandleFunc("GET /v1/training-entries/{entryId}", service.getTrainingEntry)
 	mux.HandleFunc("DELETE /v1/training-entries/{entryId}", service.deleteTrainingEntry)
+	mux.HandleFunc("GET /v1/teams/{teamId}/activity", service.getTeamActivity)
+	mux.HandleFunc("GET /v1/teams/{teamId}/leaderboards", service.getLeaderboard)
 	if _, ok := service.store.(fixtureResetter); cfg.EnableE2EFixtures && ok {
 		mux.HandleFunc("POST /__e2e/reset", service.resetE2EFixtures)
 	}
@@ -117,6 +121,54 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	})
 
 	return securityHeaders(cfg.AllowedOrigin, requestID(mux))
+}
+
+func (service *service) getTeamActivity(w http.ResponseWriter, r *http.Request) {
+	actor, ok := service.authenticate(w, r)
+	if !ok {
+		return
+	}
+	if service.store == nil {
+		writeError(w, r, http.StatusServiceUnavailable, "not_ready", "The service is not ready.")
+		return
+	}
+	projection, err := service.store.TeamActivity(r.Context(), actor, r.PathValue("teamId"), service.now().UTC())
+	if errors.Is(err, store.ErrSocialTeamUnavailable) {
+		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
+		return
+	}
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")
+		return
+	}
+	writeJSON(w, http.StatusOK, projection)
+}
+
+func (service *service) getLeaderboard(w http.ResponseWriter, r *http.Request) {
+	actor, ok := service.authenticate(w, r)
+	if !ok {
+		return
+	}
+	if service.store == nil {
+		writeError(w, r, http.StatusServiceUnavailable, "not_ready", "The service is not ready.")
+		return
+	}
+	period := domain.LeaderboardPeriod(r.URL.Query().Get("period"))
+	metric := domain.LeaderboardMetric(r.URL.Query().Get("metric"))
+	projection, err := service.store.Leaderboard(r.Context(), actor, r.PathValue("teamId"), period, metric, service.now().UTC())
+	if errors.Is(err, store.ErrSocialProjectionInvalid) {
+		writeError(w, r, http.StatusBadRequest, "invalid_leaderboard", "Choose an approved leaderboard period and category.")
+		return
+	}
+	if errors.Is(err, store.ErrSocialTeamUnavailable) {
+		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
+		return
+	}
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")
+		return
+	}
+	writeJSON(w, http.StatusOK, projection)
 }
 
 func (service *service) createTrainingEntry(w http.ResponseWriter, r *http.Request) {

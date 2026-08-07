@@ -53,6 +53,7 @@ The backend foundation lives in `backend/` and the review contracts live in `doc
 - predefined contextual-reaction rules and a five-per-recipient team-day limit;
 - a CGo-free SQLite adapter, embedded versioned migrations, and a repository boundary suitable for a later Postgres move;
 - a first contextual-reaction API slice with idempotent writes, private inbox badges, and an authoritative daily limit;
+- safe, server-ranked Team and Leaderboard projections derived from active memberships and participation only;
 - private training-entry create/list/detail/delete endpoints with server-owned timestamps, structured activity validation, and the 24-hour player deletion rule;
 - a frontend gateway that uses the real API when configured and retains the milestone 1 device-local adapter as an unhosted fallback;
 - a Docker Compose black-box E2E harness with a real SQLite database and no cloud dependencies;

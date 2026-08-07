@@ -1,11 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Avatar } from "../components/Avatar";
 import { ReactionPicker } from "../components/ReactionPicker";
 import { copy } from "../content/copy";
-import { CURRENT_PLAYER_ID, players, TEAM_NAME } from "../data/mockData";
-import type { Player, ReactionType } from "../domain/types";
+import { createSocialGateway } from "../data/social-gateway";
+import type {
+  LeaderboardItem,
+  LeaderboardProjection,
+  Player,
+  ReactionMetric,
+  ReactionPeriod,
+  ReactionType,
+} from "../domain/types";
 import { useTraining } from "../state/training-context";
 import { useAuth } from "../state/auth-context";
 
@@ -14,46 +21,54 @@ type Metric = "Effort" | "Streaks" | "Consistency";
 
 export default function LeadersPage() {
   const { sendReaction } = useTraining();
-  const { currentPlayer, currentPlayerID, session } = useAuth();
+  const { connected, currentPlayerID, session } = useAuth();
+  const teamID = session?.player?.teams[0]?.id ?? "team-hill-striders";
+  const gateway = useMemo(
+    () => createSocialGateway(connected, teamID),
+    [connected, teamID],
+  );
   const [period, setPeriod] = useState<Period>("Weekly");
   const [metric, setMetric] = useState<Metric>("Effort");
+  const [projection, setProjection] = useState<LeaderboardProjection | null>(
+    null,
+  );
+  const [status, setStatus] = useState<"loading" | "ready" | "error">(
+    "loading",
+  );
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [sentLabel, setSentLabel] = useState("");
-  const displayPlayers = useMemo(
-    () => [
-      currentPlayer,
-      ...players.filter((player) => player.id !== CURRENT_PLAYER_ID),
-    ],
-    [currentPlayer],
-  );
-  const ranked = useMemo(
-    () =>
-      [...displayPlayers].sort((a, b) => {
-        const aValue =
-          metric === "Effort"
-            ? a.effortPoints
-            : metric === "Streaks"
-              ? a.currentStreak
-              : a.consistency;
-        const bValue =
-          metric === "Effort"
-            ? b.effortPoints
-            : metric === "Streaks"
-              ? b.currentStreak
-              : b.consistency;
-        return (
-          bValue - aValue ||
-          b.consistency - a.consistency ||
-          a.firstName.localeCompare(b.firstName)
-        );
-      }),
-    [displayPlayers, metric],
-  );
 
-  function valueFor(player: (typeof players)[number]): string {
-    if (metric === "Effort") return `${player.effortPoints} pts`;
-    if (metric === "Streaks") return `${player.currentStreak} days`;
-    return `${player.consistency} in 5`;
+  const apiPeriod = periodValue(period);
+  const apiMetric = metricValue(metric);
+  const loadLeaderboard = useCallback(async () => {
+    setStatus("loading");
+    try {
+      setProjection(await gateway.leaderboard(apiPeriod, apiMetric));
+      setStatus("ready");
+    } catch {
+      setStatus("error");
+    }
+  }, [apiMetric, apiPeriod, gateway]);
+
+  useEffect(() => {
+    let active = true;
+    void gateway.leaderboard(apiPeriod, apiMetric).then(
+      (result) => {
+        if (!active) return;
+        setProjection(result);
+        setStatus("ready");
+      },
+      () => active && setStatus("error"),
+    );
+    return () => {
+      active = false;
+    };
+  }, [apiMetric, apiPeriod, gateway]);
+
+  function valueFor(player: LeaderboardItem): string {
+    if (metric === "Effort") return `${player.value} pts`;
+    if (metric === "Streaks") return `${player.value} days`;
+    return `${player.value} active days`;
   }
 
   async function react(type: ReactionType, emoji: string) {
@@ -61,14 +76,9 @@ export default function LeadersPage() {
     const teammate = selectedPlayer;
     const result = await sendReaction(teammate.id, type, {
       type: "leaderboard",
-      teamId: session?.player?.teams[0]?.id ?? "team-hill-striders",
-      period:
-        period === "Weekly"
-          ? "weekly"
-          : period === "30 Days"
-            ? "thirty_days"
-            : "season",
-      metric: metric.toLowerCase() as "effort" | "streaks" | "consistency",
+      teamId: teamID,
+      period: apiPeriod,
+      metric: apiMetric,
     });
     setSentLabel(
       `${emoji} sent to ${teammate.firstName}! ${result.remainingForRecipientToday} left today.`,
@@ -76,109 +86,137 @@ export default function LeadersPage() {
     setSelectedPlayer(null);
   }
 
+  const ranked = projection?.items ?? [];
+  const podiumOrder = [ranked[1], ranked[0], ranked[2]].filter(
+    (player): player is LeaderboardItem => Boolean(player),
+  );
+
   return (
     <div className="page page--leaders">
       <header className="page-title-header">
         <h1>Leaderboard</h1>
       </header>
 
-      <section className="leader-summary" aria-label="Team summary">
-        <article>
-          <span aria-hidden="true">⚡</span>
-          <div>
-            <p>Team effort</p>
-            <strong>
-              {displayPlayers
-                .reduce((sum, player) => sum + player.effortPoints, 0)
-                .toLocaleString()}
-            </strong>
-            <small>participation points</small>
-          </div>
-        </article>
-        <article>
-          <span aria-hidden="true">✓</span>
-          <div>
-            <p>Showing up</p>
-            <strong>
-              {displayPlayers.reduce(
-                (sum, player) => sum + player.weeklySessions,
-                0,
-              )}
-            </strong>
-            <small>team sessions</small>
-          </div>
-        </article>
-      </section>
+      {status === "loading" && !projection ? (
+        <section className="card notice" role="status">
+          {copy.social.leaderboardLoading}
+        </section>
+      ) : null}
+      {status === "error" ? (
+        <section className="notice notice--error" role="alert">
+          <strong>{copy.social.leaderboardError}</strong>
+          <button type="button" onClick={() => void loadLeaderboard()}>
+            {copy.social.retry}
+          </button>
+        </section>
+      ) : null}
 
-      <section
-        className="card leaderboard-panel"
-        aria-label={`${period} ${metric} leaderboard`}
-      >
-        <div className="leaderboard-controls">
-          <div className="segmented" aria-label="Leaderboard time period">
-            {(["Weekly", "30 Days", "Season"] as Period[]).map((option) => (
-              <button
-                type="button"
-                key={option}
-                className={period === option ? "is-active" : ""}
-                onClick={() => setPeriod(option)}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
-          <div
-            className="segmented segmented--metric"
-            aria-label="Leaderboard category"
+      {projection ? (
+        <>
+          <section className="leader-summary" aria-label="Team summary">
+            <article>
+              <span aria-hidden="true">⚡</span>
+              <div>
+                <p>Team effort</p>
+                <strong>{projection.teamEffortPoints.toLocaleString()}</strong>
+                <small>{copy.social.safePoints}</small>
+              </div>
+            </article>
+            <article>
+              <span aria-hidden="true">✓</span>
+              <div>
+                <p>Showing up</p>
+                <strong>{projection.teamSessions}</strong>
+                <small>team sessions</small>
+              </div>
+            </article>
+          </section>
+
+          <section
+            className="card leaderboard-panel"
+            aria-label={`${period} ${metric} leaderboard`}
+            aria-busy={status === "loading"}
           >
-            {(["Effort", "Streaks", "Consistency"] as Metric[]).map(
-              (option) => (
-                <button
-                  type="button"
-                  key={option}
-                  className={metric === option ? "is-active" : ""}
-                  onClick={() => setMetric(option)}
-                >
-                  {option === "Effort"
-                    ? "⚡"
-                    : option === "Streaks"
-                      ? "🔥"
-                      : "↻"}{" "}
-                  {option}
-                </button>
-              ),
-            )}
-          </div>
-        </div>
+            <div className="leaderboard-controls">
+              <div className="segmented" aria-label="Leaderboard time period">
+                {(["Weekly", "30 Days", "Season"] as Period[]).map((option) => (
+                  <button
+                    type="button"
+                    key={option}
+                    className={period === option ? "is-active" : ""}
+                    onClick={() => {
+                      setStatus("loading");
+                      setPeriod(option);
+                    }}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+              <div
+                className="segmented segmented--metric"
+                aria-label="Leaderboard category"
+              >
+                {(["Effort", "Streaks", "Consistency"] as Metric[]).map(
+                  (option) => (
+                    <button
+                      type="button"
+                      key={option}
+                      className={metric === option ? "is-active" : ""}
+                      onClick={() => {
+                        setStatus("loading");
+                        setMetric(option);
+                      }}
+                    >
+                      {option === "Effort"
+                        ? "⚡"
+                        : option === "Streaks"
+                          ? "🔥"
+                          : "↻"}{" "}
+                      {option}
+                    </button>
+                  ),
+                )}
+              </div>
+            </div>
 
-        <section className="podium" aria-label={`Top three for ${metric}`}>
-          {[ranked[1], ranked[0], ranked[2]].map((player, index) => {
-            const place = index === 0 ? 2 : index === 1 ? 1 : 3;
-            return (
-              <PodiumPlayer
-                key={player.id}
-                player={player}
-                place={place}
-                value={valueFor(player)}
-                onCheer={() => setSelectedPlayer(player)}
-                isCurrentPlayer={player.id === currentPlayerID}
-              />
-            );
-          })}
-        </section>
-        <section className="ranking-list" aria-label="Full leaderboard">
-          {ranked.slice(3).map((player, index) => (
-            <RankingPlayer
-              key={player.id}
-              player={player}
-              rank={index + 4}
-              value={valueFor(player)}
-              onCheer={() => setSelectedPlayer(player)}
-              isCurrentPlayer={player.id === currentPlayerID}
-            />
-          ))}
-        </section>
-      </section>
+            {ranked.length === 0 ? (
+              <p className="notice">{copy.social.noParticipation}</p>
+            ) : (
+              <>
+                <section
+                  className="podium"
+                  aria-label={`Top three for ${metric}`}
+                >
+                  {podiumOrder.map((player) => (
+                    <PodiumPlayer
+                      key={player.id}
+                      player={player}
+                      place={player.rank}
+                      teamName={projection.team.name}
+                      value={valueFor(player)}
+                      onCheer={() => setSelectedPlayer(player)}
+                      isCurrentPlayer={player.id === currentPlayerID}
+                    />
+                  ))}
+                </section>
+                <section className="ranking-list" aria-label="Full leaderboard">
+                  {ranked.slice(3).map((player) => (
+                    <RankingPlayer
+                      key={player.id}
+                      player={player}
+                      teamName={projection.team.name}
+                      value={valueFor(player)}
+                      onCheer={() => setSelectedPlayer(player)}
+                      isCurrentPlayer={player.id === currentPlayerID}
+                    />
+                  ))}
+                </section>
+              </>
+            )}
+          </section>
+        </>
+      ) : null}
 
       <aside className="everyone-card">
         <span aria-hidden="true">●●●</span>
@@ -204,15 +242,29 @@ export default function LeadersPage() {
   );
 }
 
+function periodValue(period: Period): ReactionPeriod {
+  return period === "Weekly"
+    ? "weekly"
+    : period === "30 Days"
+      ? "thirty_days"
+      : "season";
+}
+
+function metricValue(metric: Metric): ReactionMetric {
+  return metric.toLowerCase() as ReactionMetric;
+}
+
 function PodiumPlayer({
   player,
   place,
+  teamName,
   value,
   onCheer,
   isCurrentPlayer,
 }: {
-  player: Player;
+  player: LeaderboardItem;
   place: number;
+  teamName: string;
   value: string;
   onCheer: () => void;
   isCurrentPlayer: boolean;
@@ -224,7 +276,7 @@ function PodiumPlayer({
       <strong>
         {player.firstName} {player.lastInitial}
       </strong>
-      <small>{TEAM_NAME}</small>
+      <small>{teamName}</small>
       <span className="pill">{value}</span>
     </>
   );
@@ -246,26 +298,26 @@ function PodiumPlayer({
 
 function RankingPlayer({
   player,
-  rank,
+  teamName,
   value,
   onCheer,
   isCurrentPlayer,
 }: {
-  player: Player;
-  rank: number;
+  player: LeaderboardItem;
+  teamName: string;
   value: string;
   onCheer: () => void;
   isCurrentPlayer: boolean;
 }) {
   const content = (
     <>
-      <strong className="ranking-list__rank">{rank}</strong>
+      <strong className="ranking-list__rank">{player.rank}</strong>
       <Avatar player={player} size="small" />
       <div>
         <strong>
           {player.firstName} {player.lastInitial}
         </strong>
-        <small>{TEAM_NAME}</small>
+        <small>{teamName}</small>
       </div>
       <span className="pill">{value}</span>
     </>
