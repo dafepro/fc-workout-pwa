@@ -14,18 +14,18 @@ Go/SQLite service, encrypted backup path, single-VM deployment, Cloudflare Worke
 frontend, GitHub release workflow, and DigitalOcean/Cloudflare OpenTofu are
 implemented. Infrastructure has not yet been created from this repository.
 
-The largest product gap is that Team, Leaders, workout definitions, assignments,
-and several Home summaries still use prototype data in connected mode.
+Team and Leaders now use safe authoritative projections in connected mode. The
+largest remaining product gap is that workout definitions, assignments, and
+several Home summaries still use prototype data in connected mode.
 
 ## Recommended next work
 
 ### 1. Connect Team and Leaders to authoritative projections
 
-Status: **Ready for Codex**
+Status: **Implemented; targeted verification complete**
 
-This is the next engineering task. It closes the largest visible mock-data gap
-and makes contextual reactions operate on the same roster and progress data the
-server authorizes.
+This closed the largest visible mock-data gap and made contextual reactions
+operate on the same roster and progress data the server authorizes.
 
 - Implement `GET /v1/teams/{teamId}/activity` without returning times,
   distances, repetitions, exhaustion, or assessments.
@@ -45,7 +45,7 @@ performance data.
 
 ### 2. Connect Home, assignments, and the activity catalog
 
-Status: **Planned after item 1**
+Status: **Recommended next engineering task**
 
 - Add server-owned activity definitions, team weekly goal, current assignment,
   and safe personal-summary projections.

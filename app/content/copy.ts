@@ -35,4 +35,16 @@ export const copy = {
     invalidPIN: "Enter the four-digit PIN from your parent or coach.",
     help: "Need help? Ask a parent or coach to reissue your QR code.",
   },
+  social: {
+    teamLoading: "Loading team progress…",
+    teamError: "Team progress could not be loaded.",
+    leaderboardLoading: "Loading leaderboard…",
+    leaderboardError: "The leaderboard could not be loaded.",
+    retry: "Try again",
+    weeklyGoal: "This week’s goal",
+    dueSunday: "◇ By Sunday",
+    consistencyBadge: "✦ 3 active days in 5 = Consistency badge",
+    safePoints: "safe participation points",
+    noParticipation: "No participation has been recorded for this period yet.",
+  },
 } as const;

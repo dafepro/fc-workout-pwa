@@ -1,86 +1,101 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Avatar } from "../components/Avatar";
 import { ProgressBar } from "../components/ProgressBar";
 import { ReactionPicker } from "../components/ReactionPicker";
-import {
-  CURRENT_PLAYER_ID,
-  players,
-  TEAM_NAME,
-  WEEKLY_GOAL,
-} from "../data/mockData";
+import { copy } from "../content/copy";
+import { createSocialGateway } from "../data/social-gateway";
+import type {
+  Player,
+  ReactionType,
+  TeamActivityProjection,
+  TeamGoalStatus,
+  TeamMemberProjection,
+} from "../domain/types";
 import { entriesWithinDays } from "../domain/rules";
-import type { Player, ReactionType } from "../domain/types";
 import { useTraining } from "../state/training-context";
 import { useAuth } from "../state/auth-context";
 
 export default function TeamPage() {
   const { entries, sendReaction } = useTraining();
-  const { currentPlayer, currentPlayerID, session } = useAuth();
+  const { connected, currentPlayerID, session } = useAuth();
+  const teamID = session?.player?.teams[0]?.id ?? "team-hill-striders";
+  const gateway = useMemo(
+    () => createSocialGateway(connected, teamID),
+    [connected, teamID],
+  );
+  const [projection, setProjection] = useState<TeamActivityProjection | null>(
+    null,
+  );
+  const [status, setStatus] = useState<"loading" | "ready" | "error">(
+    "loading",
+  );
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [sentLabel, setSentLabel] = useState("");
-  const myWeek = entriesWithinDays(
-    entries.filter((entry) => entry.playerId === currentPlayerID),
-    7,
-  ).length;
-  const myToday =
-    entriesWithinDays(
-      entries.filter((entry) => entry.playerId === currentPlayerID),
-      1,
-    ).length > 0;
 
-  const displayPlayers = useMemo(
-    () => [
-      currentPlayer,
-      ...players.filter((player) => player.id !== CURRENT_PLAYER_ID),
-    ],
-    [currentPlayer],
-  );
-  const progressPlayers = useMemo(
-    () =>
-      displayPlayers.map((player) =>
-        player.id === currentPlayerID
-          ? { ...player, weeklySessions: myWeek }
-          : player,
+  const loadTeam = useCallback(async () => {
+    setStatus("loading");
+    try {
+      setProjection(await gateway.teamActivity());
+      setStatus("ready");
+    } catch {
+      setStatus("error");
+    }
+  }, [gateway]);
+
+  useEffect(() => {
+    let active = true;
+    void gateway.teamActivity().then(
+      (result) => {
+        if (!active) return;
+        setProjection(result);
+        setStatus("ready");
+      },
+      () => active && setStatus("error"),
+    );
+    return () => {
+      active = false;
+    };
+  }, [gateway]);
+
+  const displayedProjection = useMemo(() => {
+    if (!projection || connected) return projection;
+    const weeklySessions = entriesWithinDays(
+      entries.filter((entry) => entry.playerId === currentPlayerID),
+      7,
+    ).length;
+    const members = projection.members.map((member) =>
+      member.id === currentPlayerID
+        ? {
+            ...member,
+            weeklySessions,
+            goalStatus: statusForGoal(
+              weeklySessions,
+              projection.team.weeklyGoal,
+            ),
+          }
+        : member,
+    );
+    return {
+      ...projection,
+      teamSessions: members.reduce(
+        (total, member) => total + member.weeklySessions,
+        0,
       ),
-    [currentPlayerID, displayPlayers, myWeek],
-  );
-  const groups = [
-    {
-      title: "Completed",
-      subtitle: "Goal met!",
-      tone: "lime" as const,
-      players: progressPlayers.filter(
-        (player) => player.weeklySessions >= WEEKLY_GOAL,
-      ),
-    },
-    {
-      title: "One Away",
-      subtitle: "Almost there!",
-      tone: "gold" as const,
-      players: progressPlayers.filter(
-        (player) => player.weeklySessions === WEEKLY_GOAL - 1,
-      ),
-    },
-    {
-      title: "Keep Going",
-      subtitle: "You’ve got this!",
-      tone: "blue" as const,
-      players: progressPlayers.filter(
-        (player) => player.weeklySessions < WEEKLY_GOAL - 1,
-      ),
-    },
-  ];
-  const challengePlayers = displayPlayers.slice(0, 9);
-  const completedCount = 7 + (myToday ? 1 : 0);
+      membersMeetingGoal: members.filter(
+        (member) => member.weeklySessions >= projection.team.weeklyGoal,
+      ).length,
+      members,
+    };
+  }, [connected, currentPlayerID, entries, projection]);
 
   async function react(type: ReactionType, emoji: string) {
     if (!selectedPlayer) return;
     const teammate = selectedPlayer;
     const result = await sendReaction(teammate.id, type, {
       type: "team_progress",
-      teamId: session?.player?.teams[0]?.id ?? "team-hill-striders",
+      teamId: teamID,
       period: "weekly",
     });
     setSentLabel(
@@ -89,74 +104,123 @@ export default function TeamPage() {
     setSelectedPlayer(null);
   }
 
+  const groups = displayedProjection
+    ? [
+        teamGroup(
+          "completed",
+          "Completed",
+          "Goal met!",
+          "lime",
+          displayedProjection,
+        ),
+        teamGroup(
+          "one_away",
+          "One Away",
+          "Almost there!",
+          "gold",
+          displayedProjection,
+        ),
+        teamGroup(
+          "keep_going",
+          "Keep Going",
+          "You’ve got this!",
+          "blue",
+          displayedProjection,
+        ),
+      ]
+    : [];
+
   return (
     <div className="page page--team">
       <header className="page-title-header">
         <h1>Team</h1>
-        <p>{session?.player?.teams[0]?.name ?? TEAM_NAME}</p>
+        <p>
+          {displayedProjection?.team.name ??
+            session?.player?.teams[0]?.name ??
+            ""}
+        </p>
       </header>
 
-      <section className="challenge-card">
-        <div>
-          <p className="eyebrow eyebrow--lime">Today’s challenge</p>
-          <h2>Hill Sprints</h2>
-          <p className="challenge-card__due">◷ Due by 11:59 PM</p>
-          <strong className="challenge-card__count">
-            <span>✓</span> {completedCount} of {displayPlayers.length} teammates
-            completed
-          </strong>
-        </div>
-        <div className="challenge-card__art" aria-hidden="true">
-          🏃
-        </div>
-        <div
-          className="challenge-card__avatars"
-          aria-label="Challenge participation"
-        >
-          {challengePlayers.map((player, index) => (
-            <Avatar
-              key={player.id}
-              player={player}
-              size="small"
-              completed={index < completedCount}
-            />
-          ))}
-        </div>
-      </section>
+      {status === "loading" && !projection ? (
+        <section className="card notice" role="status">
+          {copy.social.teamLoading}
+        </section>
+      ) : null}
+      {status === "error" ? (
+        <section className="notice notice--error" role="alert">
+          <strong>{copy.social.teamError}</strong>
+          <button type="button" onClick={() => void loadTeam()}>
+            {copy.social.retry}
+          </button>
+        </section>
+      ) : null}
 
-      <section className="card team-progress-card">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Team progress</p>
-            <h2>Weekly goal</h2>
-          </div>
-          <span className="badge-callout">
-            ✦ 3 logs in 5 days = Consistency badge
-          </span>
-        </div>
-        <div className="progress-groups">
-          {groups.map((group) => (
-            <section
-              className={`progress-group progress-group--${group.tone}`}
-              key={group.title}
+      {displayedProjection ? (
+        <>
+          <section className="challenge-card">
+            <div>
+              <p className="eyebrow eyebrow--lime">{copy.social.weeklyGoal}</p>
+              <h2>{displayedProjection.team.weeklyGoal} sessions</h2>
+              <p className="challenge-card__due">{copy.social.dueSunday}</p>
+              <strong className="challenge-card__count">
+                <span>✓</span> {displayedProjection.membersMeetingGoal} of{" "}
+                {displayedProjection.members.length} teammates met the goal
+              </strong>
+            </div>
+            <div className="challenge-card__art" aria-hidden="true">
+              🏃
+            </div>
+            <div
+              className="challenge-card__avatars"
+              aria-label="Weekly goal participation"
             >
-              <header>
-                <strong>{group.title}</strong>
-                <span>{group.subtitle}</span>
-              </header>
-              {group.players.map((player) => (
-                <PlayerProgressRow
+              {displayedProjection.members.slice(0, 9).map((player) => (
+                <Avatar
                   key={player.id}
                   player={player}
-                  tone={group.tone}
-                  onCheer={() => setSelectedPlayer(player)}
-                  isCurrentPlayer={player.id === currentPlayerID}
+                  size="small"
+                  completed={player.goalStatus === "completed"}
                 />
               ))}
-            </section>
-          ))}
-        </div>
-      </section>
+            </div>
+          </section>
+
+          <section className="card team-progress-card">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">Team progress</p>
+                <h2>Weekly goal</h2>
+              </div>
+              <span className="badge-callout">
+                {copy.social.consistencyBadge}
+              </span>
+            </div>
+            <div className="progress-groups">
+              {groups.map((group) => (
+                <section
+                  className={`progress-group progress-group--${group.tone}`}
+                  key={group.title}
+                >
+                  <header>
+                    <strong>{group.title}</strong>
+                    <span>{group.subtitle}</span>
+                  </header>
+                  {group.players.map((player) => (
+                    <PlayerProgressRow
+                      key={player.id}
+                      player={player}
+                      weeklyGoal={displayedProjection.team.weeklyGoal}
+                      tone={group.tone}
+                      onCheer={() => setSelectedPlayer(player)}
+                      isCurrentPlayer={player.id === currentPlayerID}
+                    />
+                  ))}
+                </section>
+              ))}
+            </div>
+          </section>
+        </>
+      ) : null}
       {sentLabel ? (
         <p className="reaction-sent-status pill pill--lime" role="status">
           {sentLabel}
@@ -171,13 +235,38 @@ export default function TeamPage() {
   );
 }
 
+function statusForGoal(sessions: number, weeklyGoal: number): TeamGoalStatus {
+  if (sessions >= weeklyGoal) return "completed";
+  if (sessions === weeklyGoal - 1) return "one_away";
+  return "keep_going";
+}
+
+function teamGroup(
+  status: TeamGoalStatus,
+  title: string,
+  subtitle: string,
+  tone: "lime" | "gold" | "blue",
+  projection: TeamActivityProjection,
+) {
+  return {
+    title,
+    subtitle,
+    tone,
+    players: projection.members.filter(
+      (player) => player.goalStatus === status,
+    ),
+  };
+}
+
 function PlayerProgressRow({
   player,
+  weeklyGoal,
   tone,
   onCheer,
   isCurrentPlayer,
 }: {
-  player: Player;
+  player: TeamMemberProjection;
+  weeklyGoal: number;
   tone: "lime" | "gold" | "blue";
   onCheer: () => void;
   isCurrentPlayer: boolean;
@@ -190,12 +279,12 @@ function PlayerProgressRow({
       </strong>
       <ProgressBar
         value={player.weeklySessions}
-        max={WEEKLY_GOAL}
+        max={weeklyGoal}
         tone={tone}
         label={`${player.firstName}'s weekly participation`}
       />
       <span>
-        {Math.min(player.weeklySessions, WEEKLY_GOAL)} of {WEEKLY_GOAL}
+        {Math.min(player.weeklySessions, weeklyGoal)} of {weeklyGoal}
       </span>
     </>
   );

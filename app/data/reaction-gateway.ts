@@ -66,7 +66,7 @@ class HTTPReactionGateway implements ReactionGateway {
         "Idempotency-Key": crypto.randomUUID(),
       },
       body: JSON.stringify({
-        recipientPlayerId: toAPIPlayerID(input.recipientPlayerId),
+        recipientPlayerId: input.recipientPlayerId,
         reactionType: apiReactionType[input.reactionType],
         context: input.context,
       }),
@@ -154,10 +154,6 @@ class LocalReactionGateway implements ReactionGateway {
 
 export function createReactionGateway(connected = false): ReactionGateway {
   return connected ? new HTTPReactionGateway() : new LocalReactionGateway();
-}
-
-function toAPIPlayerID(playerID: string): string {
-  return playerID.startsWith("player-") ? playerID : `player-${playerID}`;
 }
 
 function localDay(value: Date): string {
