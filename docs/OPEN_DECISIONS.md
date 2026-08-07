@@ -28,11 +28,22 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
 
 ## Points and leaderboards
 
-- Exact effort-point formula.
+- Implemented interim safe projection formula: one session per player per
+  team-local calendar day may score `10 + min(effort level, 5)` points. Extra
+  sessions, duration, distance, repetitions, and exhaustion add no leaderboard
+  points; effort levels 6–7 add nothing beyond the level-5 cap. All valid sessions still count toward a
+  session-based weekly goal. The final formula remains an owner decision.
 - How to avoid rewarding unsafe overtraining or fake volume.
-- Tie-breaking rules.
+- Implemented interim tie-breaking: selected metric, then rolling five-day
+  consistency, then display name. The API owns ordering and returns rank.
 - Whether the top-three podium is healthy for this team.
 - Whether consistency should use a rolling window or fixed week.
+- Implemented interim period behavior: Effort sums capped daily points; Streaks
+  counts the current run ending today or yesterday within the selected period;
+  Consistency counts distinct active days in the selected period. The Team
+  consistency badge remains three active days in the rolling last five days.
+- Until explicit season dates are modeled, the Season window begins at the
+  team's creation timestamp.
 
 ## Activity rules
 

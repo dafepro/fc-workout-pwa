@@ -1,4 +1,4 @@
-# Backend API contract (draft 0.3)
+# Backend API contract (draft 0.4)
 
 This contract is the review boundary between the ZoomiGo PWA and the milestone 2 Go service. The server is authoritative for identity, authorization, timestamps, deletion windows, safe social projections, and reaction limits.
 
@@ -98,7 +98,37 @@ An owner outside the window receives `422 entry_delete_window_closed`. Other cal
 
 ### `GET /v1/teams/{teamId}/activity`
 
-Returns participation status, approved activity type, weekly-goal group, streak/badge summaries, and safe reaction counts. It excludes result values, assessment data, exhaustion, and private timestamps beyond the approved display granularity.
+Returns the active roster, weekly-goal group, and safe participation summaries.
+It excludes result values, assessment data, exhaustion, and private timestamps
+beyond the approved display granularity.
+
+The current response is roster and weekly-goal focused; assignment/challenge
+detail will be added with the assignment API:
+
+```json
+{
+  "team": { "id": "team_opaque", "name": "Trailblazers", "weeklyGoal": 3 },
+  "weekStart": "2026-08-10",
+  "weekEnd": "2026-08-16",
+  "teamSessions": 7,
+  "membersMeetingGoal": 1,
+  "members": [
+    {
+      "playerId": "player_opaque",
+      "firstName": "Ava",
+      "lastInitial": "R",
+      "weeklySessions": 3,
+      "effortPoints": 42,
+      "currentStreak": 2,
+      "consistencyDays": 3,
+      "goalStatus": "completed"
+    }
+  ]
+}
+```
+
+`goalStatus` is `completed`, `one_away`, or `keep_going`. Membership and week
+boundaries are evaluated in the team's IANA time zone.
 
 ### `GET /v1/teams/{teamId}/leaderboards`
 
@@ -108,6 +138,34 @@ Required query parameters:
 - `metric`: `effort`, `streaks`, or `consistency`
 
 The response contains only approved participation-derived values. It never contains raw training performance or assessments.
+
+```json
+{
+  "team": { "id": "team_opaque", "name": "Trailblazers", "weeklyGoal": 3 },
+  "period": "weekly",
+  "metric": "effort",
+  "periodStart": "2026-08-10",
+  "periodEnd": "2026-08-12",
+  "teamSessions": 7,
+  "teamEffortPoints": 84,
+  "items": [
+    {
+      "rank": 1,
+      "playerId": "player_opaque",
+      "firstName": "Ava",
+      "lastInitial": "R",
+      "value": 42,
+      "effortPoints": 42,
+      "sessions": 3,
+      "streakDays": 2,
+      "consistencyDays": 3
+    }
+  ]
+}
+```
+
+The service owns ordering and rank. Clients must preserve opaque player IDs and
+must not reconstruct or infer identifier prefixes.
 
 ## Contextual reactions
 

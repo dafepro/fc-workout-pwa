@@ -95,8 +95,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   }
   const connected = state.status === "connected";
   const session = connected ? state.session : null;
-  const currentPlayerID =
-    session?.player?.id.replace(/^player[-_]/, "") ?? CURRENT_PLAYER_ID;
+  const currentPlayerID = session?.player?.id ?? CURRENT_PLAYER_ID;
   const prototypePlayer = players.find(
     (player) => player.id === CURRENT_PLAYER_ID,
   )!;

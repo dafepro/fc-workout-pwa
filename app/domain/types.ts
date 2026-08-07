@@ -62,6 +62,47 @@ export interface Player {
   consistency: number;
 }
 
+export interface SocialTeam {
+  id: string;
+  name: string;
+  weeklyGoal: number;
+}
+
+export type TeamGoalStatus = "completed" | "one_away" | "keep_going";
+
+export interface TeamMemberProjection extends Player {
+  consistencyDays: number;
+  goalStatus: TeamGoalStatus;
+}
+
+export interface TeamActivityProjection {
+  team: SocialTeam;
+  weekStart: string;
+  weekEnd: string;
+  teamSessions: number;
+  membersMeetingGoal: number;
+  members: TeamMemberProjection[];
+}
+
+export interface LeaderboardItem extends Player {
+  rank: number;
+  value: number;
+  sessions: number;
+  streakDays: number;
+  consistencyDays: number;
+}
+
+export interface LeaderboardProjection {
+  team: SocialTeam;
+  period: ReactionPeriod;
+  metric: ReactionMetric;
+  periodStart: string;
+  periodEnd: string;
+  teamSessions: number;
+  teamEffortPoints: number;
+  items: LeaderboardItem[];
+}
+
 export type ReactionType =
   | "clap"
   | "fire"

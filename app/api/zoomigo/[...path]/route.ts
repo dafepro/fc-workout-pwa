@@ -14,6 +14,8 @@ const allowed = [
   { method: "POST", pattern: /^v1\/reactions$/ },
   { method: "GET", pattern: /^v1\/training-entries\/[^/]+$/ },
   { method: "DELETE", pattern: /^v1\/training-entries\/[^/]+$/ },
+  { method: "GET", pattern: /^v1\/teams\/[^/]+\/activity$/ },
+  { method: "GET", pattern: /^v1\/teams\/[^/]+\/leaderboards$/ },
 ];
 
 export async function GET(request: Request) {

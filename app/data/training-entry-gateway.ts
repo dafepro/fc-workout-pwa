@@ -165,7 +165,7 @@ async function throwForError(response: Response): Promise<void> {
 function fromAPIEntry(entry: APITrainingEntry): TrainingEntry {
   return {
     id: entry.id,
-    playerId: entry.playerId.replace(/^player[-_]/, ""),
+    playerId: entry.playerId,
     activityId: entry.activityDefinitionId,
     occurredAt: entry.occurredAt,
     value: entry.result.value,
