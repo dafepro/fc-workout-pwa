@@ -1,0 +1,136 @@
+name: ZoomiGo infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: OpenTofu action to run
+        required: true
+        type: choice
+        options:
+          - plan
+          - apply
+      plan_run_id:
+        description: Run ID of the "plan" run to apply (required for apply)
+        required: false
+        type: string
+
+concurrency:
+  group: infra-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    if: inputs.action == 'plan'
+    name: tofu plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: 1.10.10
+
+      - name: Read the production hostnames
+        run: |
+          {
+            printf 'API_HOSTNAME=%s\n' "$(jq -r '.apiHostname' deploy/production.json)"
+            printf 'PWA_HOSTNAME=%s\n' "$(jq -r '.pwaHostname' deploy/production.json)"
+          } >>"$GITHUB_ENV"
+
+      - name: Derive the deployment SSH public key
+        env:
+          ZOOMIGO_DEPLOY_SSH_KEY: ${{ secrets.ZOOMIGO_DEPLOY_SSH_KEY }}
+        run: |
+          umask 077
+          identity="$RUNNER_TEMP/deploy_ssh_key"
+          printf '%s\n' "$ZOOMIGO_DEPLOY_SSH_KEY" >"$identity"
+          printf 'SSH_PUBLIC_KEY=%s\n' "$(ssh-keygen -y -P '' -f "$identity")" >>"$GITHUB_ENV"
+          rm -f -- "$identity"
+
+      - name: tofu init
+        working-directory: infra/digitalocean
+        run: |
+          tofu init -input=false \
+            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
+            -backend-config="key=infra/digitalocean/terraform.tfstate" \
+            -backend-config="endpoints.s3=${{ vars.TF_STATE_ENDPOINT }}" \
+            -backend-config="region=auto" \
+            -backend-config="use_path_style=true" \
+            -backend-config="use_lockfile=true" \
+            -backend-config="access_key=${{ secrets.TF_STATE_ACCESS_KEY_ID }}" \
+            -backend-config="secret_key=${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}"
+
+      - name: tofu plan
+        working-directory: infra/digitalocean
+        env:
+          DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          tofu plan -input=false -out=tfplan \
+            -var="release_sha=${{ github.sha }}" \
+            -var="ssh_public_key=${SSH_PUBLIC_KEY}" \
+            -var="api_hostname=${API_HOSTNAME}" \
+            -var="pwa_hostname=${PWA_HOSTNAME}" \
+            -var="cloudflare_zone_id=${{ vars.CLOUDFLARE_ZONE_ID }}" \
+            -var='ssh_source_addresses=${{ vars.SSH_SOURCE_ADDRESSES }}' \
+            -var='alert_email_addresses=${{ vars.ALERT_EMAIL_ADDRESSES }}' \
+            -var="backup_age_recipient=${{ vars.BACKUP_AGE_RECIPIENT }}"
+          tofu show -no-color tfplan
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: infra/digitalocean/tfplan
+          retention-days: 14
+
+  apply:
+    if: inputs.action == 'apply'
+    name: tofu apply
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: production
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: 1.10.10
+
+      - name: Download the reviewed plan
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          path: infra/digitalocean
+          run-id: ${{ inputs.plan_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: tofu init
+        working-directory: infra/digitalocean
+        run: |
+          tofu init -input=false \
+            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
+            -backend-config="key=infra/digitalocean/terraform.tfstate" \
+            -backend-config="endpoints.s3=${{ vars.TF_STATE_ENDPOINT }}" \
+            -backend-config="region=auto" \
+            -backend-config="use_path_style=true" \
+            -backend-config="use_lockfile=true" \
+            -backend-config="access_key=${{ secrets.TF_STATE_ACCESS_KEY_ID }}" \
+            -backend-config="secret_key=${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}"
+
+      - name: tofu apply
+        working-directory: infra/digitalocean
+        env:
+          DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: tofu apply -input=false tfplan
