@@ -1,6 +1,9 @@
 region               = "nyc1"
 droplet_size         = "s-1vcpu-512mb-10gb"
-ssh_source_addresses = ["203.0.113.10/32"]
+# Neither the operator's laptop nor the GitHub-hosted CI runner that deploys
+# over SSH has a stable IP, so SSH access is not restricted by source address;
+# it is protected by key-only auth instead (see cloud-init.yaml.tftpl).
+ssh_source_addresses = ["0.0.0.0/0", "::/0"]
 cloudflare_zone_id   = "REPLACE_WITH_ZONE_ID"
 alert_email_addresses = ["operator@example.net"]
 backup_age_recipient = "age1REPLACE_WITH_BACKUP_PUBLIC_RECIPIENT"

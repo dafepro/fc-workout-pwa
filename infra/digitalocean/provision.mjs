@@ -57,10 +57,19 @@ export function backendConfigArgs(env) {
   return [
     `-backend-config=bucket=${bucket}`,
     `-backend-config=key=${STATE_KEY}`,
-    `-backend-config=endpoints.s3=${endpoint}`,
+    // "endpoints.s3=..." (dotted path into the nested endpoints object) is
+    // rejected by -backend-config's flat key=value parser; the deprecated
+    // top-level "endpoint" string alias is the only CLI-settable form.
+    `-backend-config=endpoint=${endpoint}`,
     "-backend-config=region=auto",
     "-backend-config=use_path_style=true",
     "-backend-config=use_lockfile=true",
+    // R2 is not AWS: "auto" is not a real AWS region and there is no STS
+    // account-ID/metadata endpoint to query.
+    "-backend-config=skip_region_validation=true",
+    "-backend-config=skip_credentials_validation=true",
+    "-backend-config=skip_requesting_account_id=true",
+    "-backend-config=skip_metadata_api_check=true",
     `-backend-config=access_key=${accessKey}`,
     `-backend-config=secret_key=${secretKey}`,
   ];

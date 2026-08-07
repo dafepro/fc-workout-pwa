@@ -20,18 +20,18 @@ read them directly; nothing decrypts a file to reach them.
 
 ## GitHub `production` environment variables (not secret)
 
-| Variable                                                                              | Purpose                                                                        |
-| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `DEPLOY_HOST`                                                                         | Droplet reserved IPv4 address. Updated by `infra/digitalocean/adopt-host.mjs`. |
-| `DEPLOY_USER`                                                                         | SSH login user on the VM (`zoomigo`).                                          |
-| `ZOOMIGO_API_BASE_URL`                                                                | Public API origin, e.g. `https://api.quicktrack.cc`.                           |
-| `BACKUP_AGE_RECIPIENT`                                                                | Public `age1...` recipient for encrypting SQLite backups.                      |
-| `BACKUP_S3_ENDPOINT` / `BACKUP_S3_BUCKET` / `BACKUP_S3_PROVIDER` / `BACKUP_S3_REGION` | R2 backup bucket connection details.                                           |
-| `TF_STATE_BUCKET` / `TF_STATE_ENDPOINT`                                               | R2 state bucket connection details.                                            |
-| `CLOUDFLARE_ZONE_ID`                                                                  | Zone ID for `quicktrack.cc`.                                                   |
-| `SSH_SOURCE_ADDRESSES`                                                                | OpenTofu list literal, e.g. `["203.0.113.10/32"]`.                             |
-| `ALERT_EMAIL_ADDRESSES`                                                               | OpenTofu list literal, e.g. `["ops@example.net"]`.                             |
-| `PRODUCTION_DEPLOY_ENABLED`                                                           | Set to `true` only after the first manual release succeeds.                    |
+| Variable                                                                              | Purpose                                                                                                                                                                                           |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DEPLOY_HOST`                                                                         | Droplet reserved IPv4 address. Updated by `infra/digitalocean/adopt-host.mjs`.                                                                                                                    |
+| `DEPLOY_USER`                                                                         | SSH login user on the VM (`zoomigo`).                                                                                                                                                             |
+| `ZOOMIGO_API_BASE_URL`                                                                | Public API origin, e.g. `https://api.quicktrack.cc`.                                                                                                                                              |
+| `BACKUP_AGE_RECIPIENT`                                                                | Public `age1...` recipient for encrypting SQLite backups.                                                                                                                                         |
+| `BACKUP_S3_ENDPOINT` / `BACKUP_S3_BUCKET` / `BACKUP_S3_PROVIDER` / `BACKUP_S3_REGION` | R2 backup bucket connection details.                                                                                                                                                              |
+| `TF_STATE_BUCKET` / `TF_STATE_ENDPOINT`                                               | R2 state bucket connection details.                                                                                                                                                               |
+| `CLOUDFLARE_ZONE_ID`                                                                  | Zone ID for `quicktrack.cc`.                                                                                                                                                                      |
+| `SSH_SOURCE_ADDRESSES`                                                                | OpenTofu list literal. Normally `["0.0.0.0/0", "::/0"]` — neither the operator's laptop nor the CI runner has a stable IP, so SSH is protected by key-only auth instead of a source-IP allowlist. |
+| `ALERT_EMAIL_ADDRESSES`                                                               | OpenTofu list literal, e.g. `["ops@example.net"]`. One or more operator email addresses for CPU/memory/disk alerts.                                                                               |
+| `PRODUCTION_DEPLOY_ENABLED`                                                           | Set to `true` only after the first manual release succeeds.                                                                                                                                       |
 
 Set these with `gh secret set NAME --env production` and
 `gh variable set NAME --env production --body VALUE`.
