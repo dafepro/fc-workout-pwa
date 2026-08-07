@@ -7,3 +7,6 @@ ssh_source_addresses = ["0.0.0.0/0", "::/0"]
 cloudflare_zone_id   = "REPLACE_WITH_ZONE_ID"
 alert_email_addresses = ["operator@example.net"]
 backup_age_recipient = "age1REPLACE_WITH_BACKUP_PUBLIC_RECIPIENT"
+# Optional: also authorize your own laptop's public key for direct operator
+# SSH access alongside the dedicated deploy key. Leave unset/empty to skip.
+operator_ssh_public_key = "ssh-ed25519 AAAA...REPLACE_WITH_YOUR_PUBLIC_KEY"
