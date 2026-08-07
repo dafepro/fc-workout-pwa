@@ -45,7 +45,7 @@ performance data.
 
 ### 2. Connect Home, assignments, and the activity catalog
 
-Status: **Implemented; awaiting periodic E2E pass**
+Status: **Implemented; full Docker E2E verified 2026-08-06**
 
 - Add server-owned activity definitions, team weekly goal, current assignment,
   and safe personal-summary projections.
