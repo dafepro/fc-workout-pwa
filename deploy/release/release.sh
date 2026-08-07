@@ -4,9 +4,7 @@ set -eu
 
 SCRIPT_DIRECTORY=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 REPOSITORY_ROOT=$(CDPATH='' cd -- "$SCRIPT_DIRECTORY/../.." && pwd)
-identity_file=${1:?usage: release.sh DEPLOYMENT_AGE_IDENTITY RELEASE_SHA [ENCRYPTED_BUNDLE]}
-release_sha=${2:?usage: release.sh DEPLOYMENT_AGE_IDENTITY RELEASE_SHA [ENCRYPTED_BUNDLE]}
-bundle=${3:-"$REPOSITORY_ROOT/deploy/secrets/production.tar.gz.age"}
+release_sha=${1:?usage: release.sh RELEASE_SHA}
 
 for command_name in node pnpm ssh; do
 	command -v "$command_name" >/dev/null 2>&1 || { printf '%s\n' "error: $command_name is required" >&2; exit 1; }
@@ -18,18 +16,14 @@ case ${PUBLISH_API_IMAGE:-false} in
 	*) printf '%s\n' "error: PUBLISH_API_IMAGE must be true or false" >&2; exit 1 ;;
 esac
 
-private_root=$(mktemp -d)
-secrets_directory="$private_root/secrets"
-trap 'rm -rf -- "$private_root"' EXIT HUP INT TERM
-"$REPOSITORY_ROOT/deploy/secrets/open-production-secrets.sh" \
-	"$identity_file" "$bundle" "$secrets_directory"
-
-set -a
-# Opened from the validated encrypted bundle.
-# shellcheck disable=SC1091
-. "$secrets_directory/deploy.env"
-set +a
+: "${DEPLOY_HOST:?DEPLOY_HOST is required}"
+: "${DEPLOY_USER:?DEPLOY_USER is required}"
 : "${ZOOMIGO_API_BASE_URL:?ZOOMIGO_API_BASE_URL is required}"
+: "${ZOOMIGO_DEPLOY_SSH_KEY:?ZOOMIGO_DEPLOY_SSH_KEY is required}"
+: "${BACKUP_S3_ENDPOINT:?BACKUP_S3_ENDPOINT is required}"
+: "${BACKUP_S3_BUCKET:?BACKUP_S3_BUCKET is required}"
+: "${BACKUP_S3_ACCESS_KEY_ID:?BACKUP_S3_ACCESS_KEY_ID is required}"
+: "${BACKUP_S3_SECRET_ACCESS_KEY:?BACKUP_S3_SECRET_ACCESS_KEY is required}"
 case "$ZOOMIGO_API_BASE_URL" in https://*) ;; *) printf '%s\n' "error: ZOOMIGO_API_BASE_URL must use HTTPS" >&2; exit 1 ;; esac
 
 cd "$REPOSITORY_ROOT"
@@ -39,15 +33,26 @@ node "$SCRIPT_DIRECTORY/configure-worker.mjs" \
 	"$REPOSITORY_ROOT/dist/server/wrangler.json" \
 	"$REPOSITORY_ROOT/deploy/production.json" \
 	"$ZOOMIGO_API_BASE_URL"
+
+private_root=$(mktemp -d)
+secrets_directory="$private_root/secrets"
+trap 'rm -rf -- "$private_root"' EXIT HUP INT TERM
+mkdir -m 0700 -- "$secrets_directory"
+(
+	umask 077
+	printf '%s\n' "$ZOOMIGO_DEPLOY_SSH_KEY" >"$secrets_directory/deploy_ssh_key"
+	cp -- "$REPOSITORY_ROOT/infra/known_hosts" "$secrets_directory/known_hosts"
+	cat >"$secrets_directory/backup-s3.env" <<-EOF
+	BACKUP_S3_ENDPOINT='$BACKUP_S3_ENDPOINT'
+	BACKUP_S3_BUCKET='$BACKUP_S3_BUCKET'
+	BACKUP_S3_PROVIDER='${BACKUP_S3_PROVIDER:-Cloudflare}'
+	BACKUP_S3_REGION='${BACKUP_S3_REGION:-auto}'
+	BACKUP_S3_ACCESS_KEY_ID='$BACKUP_S3_ACCESS_KEY_ID'
+	BACKUP_S3_SECRET_ACCESS_KEY='$BACKUP_S3_SECRET_ACCESS_KEY'
+	EOF
+)
 "$SCRIPT_DIRECTORY/deploy-vm.sh" "$secrets_directory" "$release_sha"
 
-# Keep provider credentials out of dependency installation and application
-# builds. They exist in the process environment only for the Worker upload.
-set -a
-# Opened from the validated encrypted bundle.
-# shellcheck disable=SC1091
-. "$secrets_directory/cloudflare.env"
-set +a
 : "${CLOUDFLARE_ACCOUNT_ID:?CLOUDFLARE_ACCOUNT_ID is required}"
 : "${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN is required}"
 pnpm exec wrangler deploy --config dist/server/wrangler.json
