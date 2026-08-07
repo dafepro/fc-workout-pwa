@@ -50,9 +50,9 @@ next-env.d.ts
 /backend/coverage.out
 /backend/zoomigo-api*
 
-# Production deployment secrets are committed only as an age-encrypted bundle.
+# Production deployment secrets live only in GitHub Actions secrets/variables;
+# these guard against ever accidentally staging real credentials locally.
 /deploy/secrets/plaintext/
-/deploy/secrets/opened/
 /deploy/secrets/*.identity
 /deploy/secrets/*.key
 /deploy/secrets/*identity*
@@ -63,5 +63,4 @@ next-env.d.ts
 **/*.tfplan.sha
 **/terraform.tfvars
 **/*.auto.tfvars
-!infra/digitalocean/terraform.tfstate.age
 /backend/*.exe

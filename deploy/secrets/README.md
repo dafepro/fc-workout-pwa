@@ -1,100 +1,65 @@
-# Encrypted production deployment secrets
+# Production secrets
 
-ZoomiGo keeps one versioned, age-encrypted deployment bundle in this directory.
-The matching private identities never enter Git. This identity is dedicated to
-deployment and must not be the private key used to decrypt database backups.
+ZoomiGo keeps no local, plaintext, or encrypted-bundle copy of production
+credentials. GitHub Actions secrets and variables in the protected
+`production` environment are the only place these credentials live.
+`.github/workflows/backend-image.yml` and `.github/workflows/infra.yml`
+read them directly; nothing decrypts a file to reach them.
 
-The bundle contains exactly five files:
+## GitHub `production` environment secrets
 
-- `backup-s3.env`: private S3-compatible backup credentials installed on the VM;
-- `cloudflare.env`: the narrowly scoped Workers deployment token and account ID;
-- `deploy.env`: deployment host/user plus the public API origin;
-- `deploy_ssh_key`: a dedicated, passphrase-free key limited to the ZoomiGo deploy user;
-- `known_hosts`: a host-key line whose fingerprint was verified out of band.
+| Secret                                                    | Used by                 | Purpose                                                                                                                   |
+| --------------------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `ZOOMIGO_DEPLOY_SSH_KEY`                                  | release, infra          | Private half of the dedicated deploy key. The public half is derived with `ssh-keygen -y` at plan/apply and release time. |
+| `CLOUDFLARE_API_TOKEN`                                    | release, infra          | Edits DNS for `quicktrack.cc` and deploys Workers/custom domains.                                                         |
+| `CLOUDFLARE_ACCOUNT_ID`                                   | release                 | Cloudflare account for the Worker deploy.                                                                                 |
+| `BACKUP_S3_ACCESS_KEY_ID` / `BACKUP_S3_SECRET_ACCESS_KEY` | release                 | R2 credentials installed on the VM for encrypted-backup uploads.                                                          |
+| `DIGITALOCEAN_TOKEN`                                      | infra                   | Manages the Droplet, firewall, monitoring, and reserved IP.                                                               |
+| `TF_STATE_ACCESS_KEY_ID` / `TF_STATE_SECRET_ACCESS_KEY`   | release, infra          | R2 credentials for the OpenTofu state bucket (`zoomigo-tfstate`).                                                         |
+| `BACKUP_AGE_IDENTITY`                                     | on-demand restore drill | Private half of the one remaining `age` identity; decrypts SQLite backups.                                                |
 
-Bundle creation and extraction use a versioned gzip-compressed JSON envelope
-implemented with Node's built-in modules. They do not invoke `tar`, so the same
-commands work with the macOS and Linux operator environments. The existing
-`production.tar.gz.age` filename is retained even though its decrypted payload
-is now the portable ZoomiGo envelope.
+## GitHub `production` environment variables (not secret)
 
-Prerequisites are Node 22 or newer, `age`, and OpenSSH's `ssh-keygen`. Use the
-Unix shell wrappers on macOS or Linux:
+| Variable                                                                              | Purpose                                                                        |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `DEPLOY_HOST`                                                                         | Droplet reserved IPv4 address. Updated by `infra/digitalocean/adopt-host.mjs`. |
+| `DEPLOY_USER`                                                                         | SSH login user on the VM (`zoomigo`).                                          |
+| `ZOOMIGO_API_BASE_URL`                                                                | Public API origin, e.g. `https://api.quicktrack.cc`.                           |
+| `BACKUP_AGE_RECIPIENT`                                                                | Public `age1...` recipient for encrypting SQLite backups.                      |
+| `BACKUP_S3_ENDPOINT` / `BACKUP_S3_BUCKET` / `BACKUP_S3_PROVIDER` / `BACKUP_S3_REGION` | R2 backup bucket connection details.                                           |
+| `TF_STATE_BUCKET` / `TF_STATE_ENDPOINT`                                               | R2 state bucket connection details.                                            |
+| `CLOUDFLARE_ZONE_ID`                                                                  | Zone ID for `quicktrack.cc`.                                                   |
+| `SSH_SOURCE_ADDRESSES`                                                                | OpenTofu list literal, e.g. `["203.0.113.10/32"]`.                             |
+| `ALERT_EMAIL_ADDRESSES`                                                               | OpenTofu list literal, e.g. `["ops@example.net"]`.                             |
+| `PRODUCTION_DEPLOY_ENABLED`                                                           | Set to `true` only after the first manual release succeeds.                    |
 
-```sh
-node deploy/secrets/manage-production-secrets.mjs seal
-node deploy/secrets/manage-production-secrets.mjs open \
-  /secure/path/zoomigo-operator-age-identity
-```
+Set these with `gh secret set NAME --env production` and
+`gh variable set NAME --env production --body VALUE`.
 
-## Initial setup
+## The one remaining `age` identity
 
-1. Create two new age identities on trusted machines: one for the operator and
-   one for CI. Record only their `age1...` public recipients in
-   `production-recipients.txt`; keep both private identities outside the repo.
-2. Copy `plaintext.example/` to ignored `plaintext/`, replace every placeholder,
-   and keep the directory mode private.
-3. Run `./seal-production-secrets.sh`. Review that the only new tracked secret
-   artifact is `production.tar.gz.age`, then commit that encrypted file and the
-   public recipient list.
-4. Store the CI private identity as the protected GitHub production-environment
-   secret `ZOOMIGO_DEPLOY_AGE_IDENTITY`. This is the only secret the release
-   workflow needs directly from GitHub.
-5. Delete the local `plaintext/` directory after testing an operator decrypt.
+`age` now protects exactly one thing: SQLite backup archives at rest in R2.
+There is no "operator identity" or "CI identity" for deployment secrets
+anymore, because there is no bundle to decrypt.
 
-If an earlier script already created `production.tar.gz.age`, move it to a
-private archival location before resealing. The portable opener deliberately
-rejects the previous tar payload instead of guessing its format.
-
-## Rotate `known_hosts` safely
-
-`known_hosts` contains the Droplet's public SSH host key. It lets automated
-releases confirm that `DEPLOY_HOST` is still the server you approved before
-sending credentials or running commands. It is not a login key and is not
-secret.
-
-SSH uses the assigned DigitalOcean Reserved IP directly. From DigitalOcean's
-authenticated web console on the new Droplet, print the server's Ed25519 host
-key fingerprint:
+One-time setup:
 
 ```sh
-sudo ssh-keygen -E sha256 -lf /etc/ssh/ssh_host_ed25519_key.pub
+age-keygen -o backup-identity.txt
 ```
 
-Use the separately observed fingerprint with the automated adoption command:
+The file's `# public key:` comment line is `BACKUP_AGE_RECIPIENT` (a plain
+GitHub variable). The `AGE-SECRET-KEY-...` line is `BACKUP_AGE_IDENTITY` (a
+GitHub secret, only needed for a restore drill or local restore). Store that
+secret in GitHub, then keep exactly one offline copy of `backup-identity.txt`
+somewhere durable outside GitHub — a safe, a second password manager entry,
+printed and locked away — for the doomsday case of losing GitHub account
+access. This is a one-time step, not a rotation pipeline. Delete the local
+file once both copies exist.
 
-```sh
-./infra/digitalocean/adopt-host.sh /secure/path/operator-age-identity \
-  --expected-fingerprint SHA256:...
-```
+## Rotating a credential
 
-The script reads the Reserved IP from encrypted OpenTofu state, collects the
-public key with `ssh-keyscan`, refuses a fingerprint mismatch, and reseals both
-`DEPLOY_HOST` and `known_hosts`. `ssh-keyscan` never establishes trust by itself.
-
-The sealing script verifies that `known_hosts` contains `DEPLOY_HOST` and that
-`deploy_ssh_key` is a valid passphrase-free private key. Rebuilding the Droplet
-changes its host key, so releases intentionally stop until adoption succeeds.
-
-To test locally without deploying:
-
-```sh
-./open-production-secrets.sh /secure/path/zoomigo-operator-age-identity
-rm -rf -- opened
-```
-
-If GitHub Actions cannot publish the immutable API image, authenticate Docker
-without printing or storing the token, then let the local release publish only
-the SHA tag before it decrypts deployment secrets:
-
-```sh
-gh auth token | docker login ghcr.io -u dafepro --password-stdin
-PUBLISH_API_IMAGE=true ./deploy/release/release.sh \
-  /secure/path/zoomigo-operator-age-identity RELEASE_SHA
-docker logout ghcr.io
-```
-
-Never paste a private identity into a command argument, commit it, reuse the
-backup recovery identity, or rely on an unverified `ssh-keyscan` result. Rotate
-the deployment bundle by creating a new CI identity/SSH key/token, resealing,
-deploying successfully, and only then revoking the prior credentials.
+Rotate a credential by creating the new value at its provider, updating the
+matching GitHub secret with `gh secret set`, and confirming the next release
+or `infra.yml` run succeeds before revoking the old value. Nothing needs to
+be resealed or recommitted, because nothing is committed.

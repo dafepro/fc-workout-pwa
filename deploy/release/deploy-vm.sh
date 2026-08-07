@@ -5,9 +5,6 @@ set -eu
 secrets_directory=${1:?usage: deploy-vm.sh OPENED_SECRETS_DIRECTORY RELEASE_SHA}
 release_sha=${2:?usage: deploy-vm.sh OPENED_SECRETS_DIRECTORY RELEASE_SHA}
 
-# Opened from the validated encrypted bundle.
-# shellcheck disable=SC1091
-. "$secrets_directory/deploy.env"
 : "${DEPLOY_HOST:?DEPLOY_HOST is required}"
 : "${DEPLOY_USER:?DEPLOY_USER is required}"
 case "$DEPLOY_HOST" in *[!A-Za-z0-9.-]*|"") printf '%s\n' "invalid DEPLOY_HOST" >&2; exit 1 ;; esac

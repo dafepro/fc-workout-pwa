@@ -206,55 +206,67 @@ async function deploymentContract() {
 }
 
 async function secretContract() {
-  const portable = await text("deploy/secrets/manage-production-secrets.mjs");
-  const seal = await text("deploy/secrets/seal-production-secrets.sh");
-  const open = await text("deploy/secrets/open-production-secrets.sh");
-  await requireFile("deploy/secrets/manage-production-secrets.test.mjs");
   await requireFile("deploy/secrets/README.md");
+  await requireFile(".github/workflows/infra.yml");
+
+  const obsolete = [
+    "deploy/secrets/manage-production-secrets.mjs",
+    "deploy/secrets/manage-production-secrets.test.mjs",
+    "deploy/secrets/seal-production-secrets.sh",
+    "deploy/secrets/open-production-secrets.sh",
+    "deploy/secrets/production.tar.gz.age",
+    "deploy/secrets/production-recipients.txt",
+  ];
+  for (const path of obsolete) {
+    try {
+      await access(join(ROOT, path));
+      fail(`Retired secrets-bundle artifact remains: ${path}`);
+    } catch (error) {
+      if (error?.message?.startsWith("Retired")) throw error;
+    }
+  }
+
+  const workflow = await text(".github/workflows/backend-image.yml");
   containsEvery(
-    portable,
+    workflow,
     [
-      "backup-s3.env",
-      "cloudflare.env",
-      "deploy.env",
-      "deploy_ssh_key",
-      "known_hosts",
-      '"--encrypt"',
-      '"--decrypt"',
-      "ACCOUNT_ID\\.r2",
-      "basename",
-      '"ssh-keygen"',
-      '["-y"',
-      '["-F"',
+      "ZOOMIGO_DEPLOY_SSH_KEY",
+      "secrets.CLOUDFLARE_API_TOKEN",
+      "secrets.CLOUDFLARE_ACCOUNT_ID",
+      "secrets.BACKUP_S3_ACCESS_KEY_ID",
+      "secrets.BACKUP_S3_SECRET_ACCESS_KEY",
+      "vars.DEPLOY_HOST",
+      "vars.ZOOMIGO_API_BASE_URL",
     ],
-    "Encrypted bundle contract",
+    "Release workflow secrets",
   );
   requireCondition(
-    !portable.includes("|ACCOUNT_ID|"),
-    "Placeholder validation rejects a real variable name.",
+    !workflow.includes("ZOOMIGO_DEPLOY_AGE_IDENTITY"),
+    "The retired deployment bundle identity must not be referenced.",
   );
-  requireCondition(
-    seal.includes("manage-production-secrets.mjs") &&
-      open.includes("manage-production-secrets.mjs"),
-    "Secret shell entrypoints must use the portable Node implementation.",
+
+  const infraWorkflow = await text(".github/workflows/infra.yml");
+  containsEvery(
+    infraWorkflow,
+    [
+      "secrets.DIGITALOCEAN_TOKEN",
+      "secrets.TF_STATE_ACCESS_KEY_ID",
+      "secrets.TF_STATE_SECRET_ACCESS_KEY",
+      "vars.TF_STATE_BUCKET",
+      "vars.TF_STATE_ENDPOINT",
+      "environment: production",
+      "tofu apply",
+    ],
+    "Infrastructure workflow",
   );
-  requireCondition(
-    !seal.includes("tar ") &&
-      !open.includes("tar ") &&
-      !portable.includes("tar "),
-    "Secret handling must not depend on tar.",
-  );
+
   const gitignore = await text(".gitignore");
   containsEvery(
     gitignore,
     ["/deploy/secrets/plaintext/", "/deploy/secrets/*identity*"],
     "Secret ignore rules",
   );
-  run("node", [
-    "--test",
-    join(ROOT, "deploy/secrets/manage-production-secrets.test.mjs"),
-  ]);
-  console.log("ZoomiGo encrypted-secret contract passed.");
+  console.log("ZoomiGo GitHub-secrets contract passed.");
 }
 
 async function releaseContract() {
@@ -270,27 +282,35 @@ async function releaseContract() {
     workflow,
     [
       "PRODUCTION_DEPLOY_ENABLED",
-      "ZOOMIGO_DEPLOY_AGE_IDENTITY",
+      "ZOOMIGO_DEPLOY_SSH_KEY",
       "environment: production",
       "deploy/release/release.sh",
     ],
     "Release workflow",
   );
+  requireCondition(
+    !workflow.includes("ZOOMIGO_DEPLOY_AGE_IDENTITY"),
+    "The release workflow must not depend on the retired deployment bundle identity.",
+  );
   const release = await text("deploy/release/release.sh");
+  requireCondition(
+    !release.includes("open-production-secrets.sh") &&
+      !release.includes("manage-production-secrets"),
+    "release.sh must not depend on the retired secrets bundle.",
+  );
   containsEvery(
     release,
-    ["open-production-secrets.sh", "wrangler deploy"],
+    [
+      "ZOOMIGO_DEPLOY_SSH_KEY",
+      "infra/known_hosts",
+      "BACKUP_S3_ACCESS_KEY_ID",
+      "wrangler deploy",
+    ],
     "Release script",
   );
   requireCondition(
-    release.indexOf('. "$secrets_directory/cloudflare.env"') >
-      release.indexOf("pnpm build"),
-    "Cloudflare credentials must not enter the build environment.",
-  );
-  requireCondition(
-    release.indexOf("open-production-secrets.sh") >
-      release.indexOf("publish-image.sh"),
-    "The fallback must publish before decrypting deployment secrets.",
+    release.indexOf("publish-image.sh") < release.indexOf("deploy-vm.sh"),
+    "The fallback must publish the image before deploying it to the VM.",
   );
   containsEvery(
     await text("deploy/release/publish-image.sh"),
@@ -337,6 +357,7 @@ async function iacContract() {
   await Promise.all(
     required.map((name) => requireFile(`infra/digitalocean/${name}`)),
   );
+  await requireFile("infra/known_hosts");
   const terraform = (
     await Promise.all(
       required
@@ -357,6 +378,7 @@ async function iacContract() {
       'resource "cloudflare_dns_record"',
       "prevent_destroy = true",
       "s-1vcpu-512mb-10gb",
+      'backend "s3"',
     ],
     "OpenTofu configuration",
   );
@@ -364,6 +386,10 @@ async function iacContract() {
     !terraform.includes('variable "digitalocean_token"') &&
       !terraform.includes('variable "cloudflare_api_token"'),
     "Provider credentials must not enter OpenTofu state.",
+  );
+  requireCondition(
+    /required_version\s*=\s*">=\s*1\.10\.0"/.test(terraform),
+    "OpenTofu must require the version with native S3 state locking.",
   );
   const cloudInit = await text("infra/digitalocean/cloud-init.yaml.tftpl");
   requireCondition(
@@ -378,12 +404,12 @@ async function iacContract() {
   const gitignore = await text(".gitignore");
   containsEvery(
     gitignore,
-    [
-      "**/terraform.tfvars",
-      "**/*.auto.tfvars",
-      "!infra/digitalocean/terraform.tfstate.age",
-    ],
+    ["**/terraform.tfvars", "**/*.auto.tfvars", "**/*.tfstate"],
     "OpenTofu ignore rules",
+  );
+  requireCondition(
+    !gitignore.includes("terraform.tfstate.age"),
+    "Terraform state is no longer committed as an encrypted artifact.",
   );
   run("node", [
     "--test",
@@ -448,7 +474,7 @@ async function productionAutomationContract() {
       "CLOUDFLARE_API_TOKEN",
       "tofu",
       "release_sha",
-      "production.tar.gz.age",
+      "backend-config",
     ],
     "Provisioning orchestration",
   );
@@ -459,7 +485,7 @@ async function productionAutomationContract() {
       "expected-fingerprint",
       "known_hosts",
       "DEPLOY_HOST",
-      "production.tar.gz.age",
+      "gh variable set",
     ],
     "Host adoption",
   );
