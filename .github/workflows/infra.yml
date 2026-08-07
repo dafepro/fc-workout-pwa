@@ -10,8 +10,13 @@ on:
         options:
           - plan
           - apply
+          - destroy
       plan_run_id:
         description: Run ID of the "plan" run to apply (required for apply)
+        required: false
+        type: string
+      confirm_destroy:
+        description: 'Type exactly "destroy-zoomigo" to confirm (required for destroy)'
         required: false
         type: string
 
@@ -164,3 +169,99 @@ jobs:
       - name: Record what was applied
         run: |
           echo "Applied the plan from run ${{ inputs.plan_run_id }}." >>"$GITHUB_STEP_SUMMARY"
+
+  # TEMPORARY teardown path for rebuilding a Droplet whose cloud-init bootstrap
+  # never brought sshd up. Destroying through OpenTofu (rather than deleting the
+  # Droplet by hand) also releases the Reserved IP, so no orphaned IPv4 is left
+  # billing. Remove this job, the "destroy" choice, and the confirm_destroy input
+  # once the rebuild is confirmed healthy.
+  destroy:
+    if: inputs.action == 'destroy'
+    name: tofu destroy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      - name: Require the exact confirmation phrase
+        env:
+          CONFIRM_DESTROY: ${{ inputs.confirm_destroy }}
+        run: |
+          if [ "$CONFIRM_DESTROY" != "destroy-zoomigo" ]; then
+            echo "::error::confirm_destroy must be exactly 'destroy-zoomigo'"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: 1.10.10
+
+      - name: Read the production hostnames
+        run: |
+          {
+            printf 'API_HOSTNAME=%s\n' "$(jq -r '.apiHostname' deploy/production.json)"
+            printf 'PWA_HOSTNAME=%s\n' "$(jq -r '.pwaHostname' deploy/production.json)"
+          } >>"$GITHUB_ENV"
+
+      - name: Derive the deployment SSH public key
+        env:
+          ZOOMIGO_DEPLOY_SSH_KEY: ${{ secrets.ZOOMIGO_DEPLOY_SSH_KEY }}
+        run: |
+          umask 077
+          identity="$RUNNER_TEMP/deploy_ssh_key"
+          printf '%s\n' "$ZOOMIGO_DEPLOY_SSH_KEY" >"$identity"
+          printf 'SSH_PUBLIC_KEY=%s\n' "$(ssh-keygen -y -P '' -f "$identity")" >>"$GITHUB_ENV"
+          rm -f -- "$identity"
+
+      - name: tofu init
+        working-directory: infra/digitalocean
+        run: |
+          tofu init -input=false \
+            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
+            -backend-config="key=infra/digitalocean/terraform.tfstate" \
+            -backend-config="endpoint=${{ vars.TF_STATE_ENDPOINT }}" \
+            -backend-config="region=auto" \
+            -backend-config="use_path_style=true" \
+            -backend-config="use_lockfile=true" \
+            -backend-config="skip_region_validation=true" \
+            -backend-config="skip_credentials_validation=true" \
+            -backend-config="skip_requesting_account_id=true" \
+            -backend-config="skip_metadata_api_check=true" \
+            -backend-config="access_key=${{ secrets.TF_STATE_ACCESS_KEY_ID }}" \
+            -backend-config="secret_key=${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}"
+
+      - name: Record the Droplet being destroyed
+        working-directory: infra/digitalocean
+        run: |
+          {
+            echo "### Destroying"
+            echo ""
+            echo "- Droplet ID: \`$(tofu output -raw droplet_id 2>/dev/null || echo unknown)\`"
+            echo "- Droplet IPv4: \`$(tofu output -raw droplet_ipv4_address 2>/dev/null || echo unknown)\`"
+            echo "- Reserved IP: \`$(tofu output -raw deploy_host 2>/dev/null || echo unknown)\`"
+          } >>"$GITHUB_STEP_SUMMARY"
+
+      - name: tofu destroy
+        working-directory: infra/digitalocean
+        env:
+          DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          tofu destroy -input=false -auto-approve \
+            -var="release_sha=${{ github.sha }}" \
+            -var="ssh_public_key=${SSH_PUBLIC_KEY}" \
+            -var="api_hostname=${API_HOSTNAME}" \
+            -var="pwa_hostname=${PWA_HOSTNAME}" \
+            -var="cloudflare_zone_id=${{ vars.CLOUDFLARE_ZONE_ID }}" \
+            -var='ssh_source_addresses=${{ vars.SSH_SOURCE_ADDRESSES }}' \
+            -var='alert_email_addresses=${{ vars.ALERT_EMAIL_ADDRESSES }}' \
+            -var="backup_age_recipient=${{ vars.BACKUP_AGE_RECIPIENT }}" \
+            -var="operator_ssh_public_key=${{ vars.OPERATOR_SSH_PUBLIC_KEY }}"
+
+      - name: Record what was destroyed
+        run: |
+          echo "" >>"$GITHUB_STEP_SUMMARY"
+          echo "Destroyed all ZoomiGo infrastructure at $(date -u +%Y-%m-%dT%H:%M:%SZ)." >>"$GITHUB_STEP_SUMMARY"

@@ -37,7 +37,11 @@ resource "digitalocean_droplet" "zoomigo" {
   })
 
   lifecycle {
-    prevent_destroy = true
+    # TEMPORARILY removed to tear down and recreate a Droplet whose cloud-init
+    # bootstrap never brought sshd up (port 22 returns an immediate RST on both
+    # the Droplet and Reserved IP, so packets reach the kernel and nothing is
+    # listening). Restore this in a follow-up commit before the next apply.
+    # prevent_destroy = true
     # cloud-init only ever runs on first boot, so a later commit's release_sha
     # must not force-replace an already-provisioned Droplet; ongoing releases
     # happen over SSH via deploy-vm.sh instead. droplet_agent is newly added
@@ -52,7 +56,8 @@ resource "digitalocean_reserved_ip" "zoomigo" {
   region     = digitalocean_droplet.zoomigo.region
 
   lifecycle {
-    prevent_destroy = true
+    # TEMPORARILY removed; see digitalocean_droplet.zoomigo above.
+    # prevent_destroy = true
   }
 }
 
@@ -96,7 +101,8 @@ resource "digitalocean_firewall" "zoomigo" {
   }
 
   lifecycle {
-    prevent_destroy = true
+    # TEMPORARILY removed; see digitalocean_droplet.zoomigo above.
+    # prevent_destroy = true
   }
 }
 
