@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { SessionFeelings } from "../../components/SessionFeelings";
-import { activities } from "../../data/mockData";
 import { canDeleteEntry } from "../../domain/rules";
 import type { TrainingEntry } from "../../domain/types";
 import { useTraining } from "../../state/training-context";
@@ -13,7 +12,7 @@ import { useAuth } from "../../state/auth-context";
 export default function SessionDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const { deleteEntry, getEntry } = useTraining();
+  const { dashboard, dashboardStatus, deleteEntry, getEntry } = useTraining();
   const { currentPlayerID } = useAuth();
   const [entry, setEntry] = useState<TrainingEntry | null | undefined>();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -35,7 +34,7 @@ export default function SessionDetailPage() {
     };
   }, [getEntry, params.id]);
 
-  if (entry === undefined) {
+  if (entry === undefined || dashboardStatus === "loading") {
     return (
       <div className="page page--session-detail">
         <section className="card empty-session" aria-live="polite">
@@ -59,7 +58,19 @@ export default function SessionDetailPage() {
     );
   }
 
-  const activity = activities.find((item) => item.id === entry.activityId)!;
+  const activity = dashboard?.activities.find(
+    (item) => item.id === entry.activityId,
+  );
+  if (!activity) {
+    return (
+      <div className="page page--session-detail">
+        <section className="card empty-session" role="alert">
+          <h1>Activity unavailable</h1>
+          <p>This approved activity could not be loaded.</p>
+        </section>
+      </div>
+    );
+  }
   const deletable = canDeleteEntry(entry, currentPlayerID);
   const occurredAt = new Date(entry.occurredAt);
 

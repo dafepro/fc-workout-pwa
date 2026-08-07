@@ -31,6 +31,7 @@ export interface TrainingEntry {
   exhaustionLevel: number;
   createdAt: string;
   deleteEligibleUntil: string;
+  assignmentId?: string;
 }
 
 export type TrainingEntryInput = Pick<
@@ -41,13 +42,47 @@ export type TrainingEntryInput = Pick<
   | "unit"
   | "effortLevel"
   | "exhaustionLevel"
->;
+> & {
+  inputKind: InputKind;
+  assignmentId?: string;
+};
 
 export interface ActivityDay {
   date: string;
   activityCount: number;
   effortPoints: number;
   level: 0 | 1 | 2 | 3 | 4;
+}
+
+export interface TrainingAssignment {
+  id: string;
+  activityDefinitionId: ActivityId;
+  catalogKey: "hill_sprints_8x6";
+  targetValue: number;
+  targetUnit: ActivityDefinition["unit"];
+  startsOn: string;
+  dueOn: string;
+  completed: boolean;
+}
+
+export interface TrainingDashboard {
+  team: SocialTeam;
+  activities: ActivityDefinition[];
+  currentAssignment: TrainingAssignment | null;
+  summary: {
+    weeklySessions: number;
+    rolling30Sessions: number;
+    currentStreak: number;
+    longestStreak: number;
+    effortPoints: number;
+    activityDays: ActivityDay[];
+  };
+  teamPulse: { activeThisWeek: number };
+  streakComparison: {
+    templateKey: string;
+    value: string;
+    message: string;
+  };
 }
 
 export interface Player {

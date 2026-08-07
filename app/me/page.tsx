@@ -24,6 +24,7 @@ export default function MePage() {
     reactionBadges,
     reactionInboxStatus,
     refreshReactionBadges,
+    dashboard,
   } = useTraining();
   const [kitColor, setKitColor] = useState(basePlayer.avatarColor);
   const [builderOpen, setBuilderOpen] = useState(false);
@@ -157,7 +158,10 @@ export default function MePage() {
           <span className="pill">{connected ? "Connected" : "Prototype"}</span>
         </article>
       </section>
-      <SessionList entries={personalEntries} />
+      <SessionList
+        entries={personalEntries}
+        activities={dashboard?.activities ?? []}
+      />
       {entriesStatus === "error" ? (
         <div className="notice notice--error" role="alert">
           <strong>Your private sessions could not be loaded.</strong>

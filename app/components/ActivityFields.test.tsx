@@ -3,17 +3,23 @@ import { useState } from "react";
 import { describe, expect, it } from "vitest";
 import type { ActivityId } from "../domain/types";
 import { ActivitySelector, ActivitySpecificFields } from "./ActivityFields";
+import { activities } from "../data/mockData";
 
 function Harness() {
   const [activity, setActivity] = useState<ActivityId>("hill-sprints");
   const [value, setValue] = useState(8);
   return (
     <>
-      <ActivitySelector selected={activity} onSelect={setActivity} />
+      <ActivitySelector
+        selected={activity}
+        onSelect={setActivity}
+        activities={activities}
+      />
       <ActivitySpecificFields
         activityId={activity}
         value={value}
         onChange={setValue}
+        activities={activities}
       />
     </>
   );

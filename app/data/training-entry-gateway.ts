@@ -4,7 +4,7 @@ import type {
   TrainingEntry,
   TrainingEntryInput,
 } from "../domain/types";
-import { activities, CURRENT_PLAYER_ID, initialEntries } from "./mockData";
+import { CURRENT_PLAYER_ID, initialEntries } from "./mockData";
 
 export interface TrainingEntryGateway {
   list(): Promise<TrainingEntry[]>;
@@ -61,13 +61,6 @@ class HTTPTrainingEntryGateway implements TrainingEntryGateway {
   }
 
   async create(input: TrainingEntryInput): Promise<TrainingEntry> {
-    const activity = activities.find((item) => item.id === input.activityId);
-    if (!activity) {
-      throw new TrainingEntryGatewayError(
-        "entry_result_not_allowed",
-        "That activity is unavailable.",
-      );
-    }
     const response = await fetch("/api/zoomigo/v1/me/training-entries", {
       method: "POST",
       headers: {
@@ -77,9 +70,10 @@ class HTTPTrainingEntryGateway implements TrainingEntryGateway {
       body: JSON.stringify({
         teamId: this.teamID,
         activityDefinitionId: input.activityId,
+        assignmentId: input.assignmentId,
         occurredAt: input.occurredAt,
         result: {
-          kind: activity.inputKind,
+          kind: input.inputKind,
           value: input.value,
           unit: input.unit,
         },
@@ -122,7 +116,13 @@ class LocalTrainingEntryGateway implements TrainingEntryGateway {
     const entry: TrainingEntry = {
       id: crypto.randomUUID(),
       playerId: CURRENT_PLAYER_ID,
-      ...input,
+      activityId: input.activityId,
+      occurredAt: input.occurredAt,
+      value: input.value,
+      unit: input.unit,
+      effortLevel: input.effortLevel,
+      exhaustionLevel: input.exhaustionLevel,
+      assignmentId: input.assignmentId,
       createdAt: now.toISOString(),
       deleteEligibleUntil: createDeleteDeadline(now),
     };
@@ -174,6 +174,7 @@ function fromAPIEntry(entry: APITrainingEntry): TrainingEntry {
     exhaustionLevel: entry.exhaustionLevel,
     createdAt: entry.createdAt,
     deleteEligibleUntil: entry.deleteEligibleUntil,
+    assignmentId: entry.assignmentId ?? undefined,
   };
 }
 

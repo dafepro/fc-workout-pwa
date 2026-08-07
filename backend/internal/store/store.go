@@ -241,6 +241,7 @@ func (store *Store) ResetE2EFixtures(ctx context.Context) error {
 	statements := []string{
 		"DELETE FROM reactions",
 		"DELETE FROM training_entries",
+		"DELETE FROM assignments",
 		`INSERT INTO clubs (id, name, created_at) VALUES ('club-zoomigo', 'ZoomiGo', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO UPDATE SET name = excluded.name`,
 		`INSERT INTO teams (id, club_id, name, season_id, weekly_default_goal, time_zone, created_at) VALUES ('team-hill-striders', 'club-zoomigo', 'Hill Striders', 'season-2026', 3, 'America/Chicago', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
 		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-mason', 'club-zoomigo', 'Mason', 'C', '{}', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
@@ -277,6 +278,15 @@ func (store *Store) ResetE2EFixtures(ctx context.Context) error {
 		}
 	}
 	now := time.Now().UTC()
+	teamToday := now.In(store.location).Format("2006-01-02")
+	teamDue := now.In(store.location).AddDate(0, 0, 6).Format("2006-01-02")
+	if _, err := tx.ExecContext(ctx, `INSERT INTO assignments (
+		id, team_id, activity_definition_id, catalog_key, target_value, target_unit,
+		starts_on, due_on, created_at
+	) VALUES ('assignment-hill-sprints', 'team-hill-striders', 'hill-sprints',
+		'hill_sprints_8x6', 8, 'reps', ?, ?, ?)`, teamToday, teamDue, now.Format(time.RFC3339Nano)); err != nil {
+		return fmt.Errorf("seed e2e assignment: %w", err)
+	}
 	entries := []struct {
 		id, occurredAt, createdAt, deadline string
 	}{

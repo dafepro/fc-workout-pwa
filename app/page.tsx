@@ -8,35 +8,42 @@ import { SessionList } from "./components/SessionList";
 import { WorkoutInstructions } from "./components/WorkoutInstructions";
 import { copy } from "./content/copy";
 import { players, WEEKLY_GOAL } from "./data/mockData";
-import {
-  activityDays,
-  currentStreak,
-  entriesWithinDays,
-  streakQuipValue,
-} from "./domain/rules";
+import { activityDays, currentStreak, entriesWithinDays } from "./domain/rules";
 import { useTraining } from "./state/training-context";
 import { useAuth } from "./state/auth-context";
 
 export default function HomePage() {
-  const { entries, entriesStatus, refreshEntries } = useTraining();
-  const { currentPlayer: player, currentPlayerID } = useAuth();
+  const {
+    connected,
+    dashboard,
+    dashboardStatus,
+    entries,
+    entriesStatus,
+    refreshDashboard,
+    refreshEntries,
+  } = useTraining();
+  const { currentPlayerID } = useAuth();
   const [showSavedToast, setShowSavedToast] = useState(false);
-  const [quipIndex, setQuipIndex] = useState(0);
   const [showQuip, setShowQuip] = useState(false);
   const personalEntries = entries.filter(
     (entry) => entry.playerId === currentPlayerID,
   );
   const weeklyEntries = entriesWithinDays(personalEntries, 7);
-  const monthDays = activityDays(personalEntries);
-  const streak = Math.max(player.currentStreak, currentStreak(personalEntries));
-  const goalValue = Math.min(weeklyEntries.length, WEEKLY_GOAL);
-  const streakQuip = copy.streakQuips[quipIndex].replace(
-    "{value}",
-    streakQuipValue(streak, quipIndex),
+  const summary = connected ? dashboard?.summary : null;
+  const monthDays = summary?.activityDays ?? activityDays(personalEntries);
+  const streak = summary?.currentStreak ?? currentStreak(personalEntries);
+  const longestStreak = summary?.longestStreak ?? 12;
+  const effortPoints = summary?.effortPoints ?? 520;
+  const weeklyGoal = dashboard?.team.weeklyGoal ?? WEEKLY_GOAL;
+  const weeklySessions = summary?.weeklySessions ?? weeklyEntries.length;
+  const goalValue = Math.min(weeklySessions, weeklyGoal);
+  const assignment = dashboard?.currentAssignment ?? null;
+  const assignmentActivity = dashboard?.activities.find(
+    (activity) => activity.id === assignment?.activityDefinitionId,
   );
+  const streakQuip = dashboard?.streakComparison.message;
 
   function revealStreakQuip() {
-    setQuipIndex(Math.floor(Math.random() * copy.streakQuips.length));
     setShowQuip(true);
   }
 
@@ -52,6 +59,24 @@ export default function HomePage() {
       window.clearTimeout(hideTimer);
     };
   }, []);
+
+  if (connected && dashboardStatus === "loading") {
+    return <main className="auth-state">Loading your training plan…</main>;
+  }
+
+  if (connected && (dashboardStatus === "error" || !dashboard)) {
+    return (
+      <main className="auth-state" role="alert">
+        <h1>Your training plan could not be loaded</h1>
+        <button
+          className="button button--lime"
+          onClick={() => void refreshDashboard()}
+        >
+          Try again
+        </button>
+      </main>
+    );
+  }
 
   return (
     <div className="page page--home">
@@ -72,16 +97,32 @@ export default function HomePage() {
 
       <section className="hero-card" aria-labelledby="next-workout-title">
         <div className="hero-card__content">
-          <p className="eyebrow eyebrow--lime">Next workout · due today</p>
-          <h1 id="next-workout-title">Hill Sprints</h1>
+          <p className="eyebrow eyebrow--lime">
+            {assignment
+              ? `Next workout · due ${assignment.dueOn}`
+              : "Approved training"}
+          </p>
+          <h1 id="next-workout-title">
+            {assignmentActivity?.name ?? "Choose a workout"}
+          </h1>
           <p className="hero-card__detail">
-            8 reps <span>×</span> 6 seconds
+            {assignment
+              ? `${assignment.targetValue} ${assignment.targetUnit}`
+              : "Pick from your team’s activity list"}
+            {assignment?.catalogKey === "hill_sprints_8x6" ? (
+              <>
+                {" "}
+                <span>×</span> 6 seconds
+              </>
+            ) : null}
           </p>
           <Link className="button button--lime" href="/log">
             Log session <span aria-hidden="true">→</span>
           </Link>
         </div>
-        <WorkoutInstructions />
+        {assignment?.catalogKey === "hill_sprints_8x6" ? (
+          <WorkoutInstructions />
+        ) : null}
         <div className="hill-art" aria-hidden="true">
           <span className="hill-art__sun">✦</span>
           <span className="hill-art__runner">🏃</span>
@@ -92,19 +133,19 @@ export default function HomePage() {
         <div>
           <p className="eyebrow">Weekly goal</p>
           <h2>
-            {goalValue} <span>of {WEEKLY_GOAL}</span>
+            {goalValue} <span>of {weeklyGoal}</span>
           </h2>
           <p>
-            {goalValue >= WEEKLY_GOAL
+            {goalValue >= weeklyGoal
               ? "Goal met—nice work!"
-              : `${WEEKLY_GOAL - goalValue} more session to hit your goal.`}
+              : `${weeklyGoal - goalValue} more session to hit your goal.`}
           </p>
         </div>
         <div className="goal-card__progress">
-          <strong>{Math.round((goalValue / WEEKLY_GOAL) * 100)}%</strong>
+          <strong>{Math.round((goalValue / weeklyGoal) * 100)}%</strong>
           <ProgressBar
             value={goalValue}
-            max={WEEKLY_GOAL}
+            max={weeklyGoal}
             label="Weekly goal progress"
           />
         </div>
@@ -123,7 +164,7 @@ export default function HomePage() {
             <strong>{streak}</strong>
             <span>Current streak</span>
           </button>
-          {showQuip ? (
+          {showQuip && streakQuip ? (
             <p className="streak-quip" id="streak-quip" role="status">
               {streakQuip}
             </p>
@@ -131,12 +172,12 @@ export default function HomePage() {
         </article>
         <article>
           <span aria-hidden="true">🏆</span>
-          <strong>12</strong>
+          <strong>{longestStreak}</strong>
           <p>Longest streak</p>
         </article>
         <article>
           <span aria-hidden="true">⚡</span>
-          <strong>{player.effortPoints}</strong>
+          <strong>{effortPoints}</strong>
           <p>Effort points</p>
         </article>
         <article className="activity-calendar-card">
@@ -170,27 +211,39 @@ export default function HomePage() {
         </article>
       </section>
 
-      <SessionList entries={personalEntries} />
+      <SessionList
+        entries={personalEntries}
+        activities={dashboard?.activities ?? []}
+      />
 
       <section className="card team-preview">
         <div>
           <p className="eyebrow">Team pulse</p>
-          <h2>8 teammates showed up today</h2>
+          <h2>
+            {dashboard?.teamPulse.activeThisWeek ?? 8} teammates showed up this
+            week
+          </h2>
           <p>Your crew is building momentum together.</p>
         </div>
         <div
           className="avatar-stack"
           aria-label="Teammates who completed today's challenge"
         >
-          {players.slice(1, 6).map((teammate) => (
-            <Avatar
-              key={teammate.id}
-              player={teammate}
-              size="small"
-              completed
-            />
-          ))}
-          <span className="avatar avatar--small avatar--more">+3</span>
+          {!connected
+            ? players
+                .slice(1, 6)
+                .map((teammate) => (
+                  <Avatar
+                    key={teammate.id}
+                    player={teammate}
+                    size="small"
+                    completed
+                  />
+                ))
+            : null}
+          {!connected ? (
+            <span className="avatar avatar--small avatar--more">+3</span>
+          ) : null}
         </div>
         <Link className="button button--outline" href="/team">
           Team activity

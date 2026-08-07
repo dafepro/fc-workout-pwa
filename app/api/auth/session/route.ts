@@ -4,6 +4,7 @@ import {
   forwardedHeaders,
   jsonError,
   limitedBody,
+  missingBackendCode,
   readSessionCookie,
   sameOrigin,
   setSessionCookie,
@@ -14,7 +15,7 @@ export async function GET(request: Request) {
   if (!baseURL) {
     return jsonError(
       503,
-      "backend_not_configured",
+      missingBackendCode(),
       "Connected sign in is not configured.",
     );
   }
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
   if (!baseURL) {
     return jsonError(
       503,
-      "backend_not_configured",
+      missingBackendCode(),
       "Connected sign in is not configured.",
     );
   }

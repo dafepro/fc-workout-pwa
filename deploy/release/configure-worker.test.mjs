@@ -21,6 +21,7 @@ test("configures the production Worker custom domain and API binding", () => {
       vars: {
         KEEP_ME: "yes",
         ZOOMIGO_API_BASE_URL: "https://api.quicktrack.cc",
+        ZOOMIGO_REQUIRE_BACKEND: "true",
       },
       workers_dev: false,
       routes: [
