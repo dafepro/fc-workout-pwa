@@ -12,6 +12,15 @@ packages:
 
 users:
   - default
+  # TEMPORARY diagnostic root access for the first boot of a rebuilt host;
+  # revert this entry, disable_root, and PermitRootLogin below together once
+  # the bootstrap is confirmed working.
+  - name: root
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+%{ if operator_ssh_public_key != "" }
+      - ${operator_ssh_public_key}
+%{ endif }
   - name: zoomigo
     groups: [sudo, docker]
     shell: /bin/bash
@@ -24,7 +33,7 @@ users:
 %{ endif }
 
 ssh_pwauth: false
-disable_root: true
+disable_root: false # TEMPORARY: see the root user entry above.
 
 bootcmd:
   - [cloud-init-per, once, zoomigo-swap, bash, -lc, "fallocate -l 1G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile && echo '/swapfile none swap sw 0 0' >> /etc/fstab"]
@@ -36,7 +45,10 @@ write_files:
     content: |
       PasswordAuthentication no
       KbdInteractiveAuthentication no
-      PermitRootLogin no
+      # TEMPORARY: prohibit-password still blocks all password-based login;
+      # this only allows root in with a key, same effective access zoomigo's
+      # NOPASSWD sudo already grants. Revert to "no" once confirmed working.
+      PermitRootLogin prohibit-password
   - path: /tmp/zoomigo-production.env
     owner: root:root
     permissions: "0600"
