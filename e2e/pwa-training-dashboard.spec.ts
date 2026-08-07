@@ -23,7 +23,11 @@ test("connected Home and Record Training use the server assignment", async ({
   await expect(page.getByText("of 3", { exact: true })).toBeVisible();
 
   await page.getByRole("link", { name: /Log session/i }).click();
-  await expect(page.getByText("Hill Sprints", { exact: true })).toBeVisible();
+  await expect(
+    page
+      .locator(".selected-activity")
+      .getByText("Hill Sprints", { exact: true }),
+  ).toBeVisible();
   const createResponse = page.waitForResponse(
     (response) =>
       response.url().includes("/api/zoomigo/v1/me/training-entries") &&
