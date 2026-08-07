@@ -27,6 +27,17 @@ variable "ssh_public_key" {
   }
 }
 
+variable "operator_ssh_public_key" {
+  description = "Optional additional public key authorized for the zoomigo user, for direct operator SSH access alongside the dedicated deploy key. Not secret; never the private half."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.operator_ssh_public_key == "" || can(regex("^(ssh-(ed25519|rsa)|ecdsa-sha2-nistp)", var.operator_ssh_public_key))
+    error_message = "operator_ssh_public_key must be empty or an OpenSSH public key."
+  }
+}
+
 variable "ssh_source_addresses" {
   description = "CIDR allowlist for SSH. Neither the operator's laptop nor the GitHub-hosted CI runner that deploys over SSH has a stable IP, so this is normally [\"0.0.0.0/0\", \"::/0\"]; SSH is protected by key-only auth (see cloud-init.yaml.tftpl), not by source IP."
   type        = list(string)
