@@ -28,14 +28,12 @@ variable "ssh_public_key" {
 }
 
 variable "ssh_source_addresses" {
-  description = "CIDR allowlist for SSH. Never use 0.0.0.0/0 or ::/0."
+  description = "CIDR allowlist for SSH. Neither the operator's laptop nor the GitHub-hosted CI runner that deploys over SSH has a stable IP, so this is normally [\"0.0.0.0/0\", \"::/0\"]; SSH is protected by key-only auth (see cloud-init.yaml.tftpl), not by source IP."
   type        = list(string)
 
   validation {
-    condition = length(var.ssh_source_addresses) > 0 && alltrue([
-      for address in var.ssh_source_addresses : !contains(["0.0.0.0/0", "::/0"], address)
-    ])
-    error_message = "Provide at least one restricted SSH source CIDR."
+    condition     = length(var.ssh_source_addresses) > 0
+    error_message = "Provide at least one SSH source CIDR."
   }
 }
 
