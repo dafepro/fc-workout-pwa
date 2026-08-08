@@ -53,6 +53,10 @@ func run(arguments []string, stdout io.Writer) error {
 		return credentialStatus(ctx, arguments[1:], stdout)
 	case "deactivate-player":
 		return deactivatePlayer(ctx, arguments[1:], stdout)
+	case "unlock-player-login":
+		return unlockPlayer(ctx, arguments[1:], stdout)
+	case "list-teams":
+		return listTeams(ctx, arguments[1:], stdout)
 	case "audit":
 		return auditEvents(ctx, arguments[1:], stdout)
 	default:
@@ -244,6 +248,80 @@ func deactivatePlayer(ctx context.Context, arguments []string, stdout io.Writer)
 		return err
 	}
 	return json.NewEncoder(stdout).Encode(map[string]string{"status": "deactivated", "playerId": *playerID})
+}
+
+// unlockPlayer clears a lockout without reissuing, so a player who simply
+// mistyped their PIN keeps the QR code already in their hands. Clearing the
+// counter matters as much as the deadline: a credential left at five failures
+// re-locks for twice as long on the next mistake.
+func unlockPlayer(ctx context.Context, arguments []string, stdout io.Writer) error {
+	flags := flag.NewFlagSet("unlock-player-login", flag.ContinueOnError)
+	databaseURL := flags.String("database-url", envOr("DATABASE_URL", "file:data/zoomigo.db"), "")
+	playerID := flags.String("player-id", "", "")
+	if err := flags.Parse(arguments); err != nil {
+		return err
+	}
+	db, err := open(ctx, *databaseURL)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	var accountID string
+	if err = db.QueryRowContext(ctx, `SELECT id FROM accounts WHERE player_id = ? AND status = 'active'`, *playerID).Scan(&accountID); err != nil {
+		return errors.New("active player account not found")
+	}
+	result, err := db.ExecContext(ctx, `UPDATE auth_credentials SET failed_attempts = 0, locked_until = NULL
+		WHERE account_id = ? AND revoked_at IS NULL`, accountID)
+	if err != nil {
+		return err
+	}
+	changed, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if changed == 0 {
+		return errors.New("the player has no active credential to unlock; reissue one with rotate-player-login")
+	}
+	return json.NewEncoder(stdout).Encode(map[string]string{"status": "unlocked", "playerId": *playerID})
+}
+
+type teamSummary struct {
+	TeamID      string `json:"teamId"`
+	Name        string `json:"name"`
+	SeasonID    string `json:"seasonId"`
+	TimeZone    string `json:"timeZone"`
+	PlayerCount int    `json:"playerCount"`
+}
+
+func listTeams(ctx context.Context, arguments []string, stdout io.Writer) error {
+	flags := flag.NewFlagSet("list-teams", flag.ContinueOnError)
+	databaseURL := flags.String("database-url", envOr("DATABASE_URL", "file:data/zoomigo.db"), "")
+	if err := flags.Parse(arguments); err != nil {
+		return err
+	}
+	db, err := open(ctx, *databaseURL)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	rows, err := db.QueryContext(ctx, `SELECT t.id, t.name, t.season_id, t.time_zone,
+		(SELECT COUNT(*) FROM team_memberships m WHERE m.team_id = t.id) FROM teams t ORDER BY t.name, t.id`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	teams := []teamSummary{}
+	for rows.Next() {
+		var team teamSummary
+		if err = rows.Scan(&team.TeamID, &team.Name, &team.SeasonID, &team.TimeZone, &team.PlayerCount); err != nil {
+			return err
+		}
+		teams = append(teams, team)
+	}
+	if err = rows.Err(); err != nil {
+		return err
+	}
+	return json.NewEncoder(stdout).Encode(map[string]any{"teams": teams})
 }
 
 type playerSummary struct {
@@ -533,5 +611,5 @@ func requireProvisioningApproval(testOnly bool) error {
 	return errors.New("real player provisioning is locked; complete the production approval checklist and set PRODUCTION_DATA_APPROVED=true, or use --test-only for a disposable test identity")
 }
 func usageError() error {
-	return errors.New("usage: zoomigo-admin bootstrap-team|provision-player|rotate-player-login|revoke-player-login|list-players|credential-status|deactivate-player|audit [flags]")
+	return errors.New("usage: zoomigo-admin bootstrap-team|provision-player|rotate-player-login|revoke-player-login|list-players|credential-status|deactivate-player|unlock-player-login|list-teams|audit [flags]")
 }
