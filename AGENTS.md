@@ -102,6 +102,16 @@ last and fails on `/var/run/reboot-required`, so unattended kernel/libc updates
 turn an otherwise finished deploy red. Reboot the VM and re-dispatch; the
 containers are `restart: unless-stopped` and come back without help.
 
+**Rebuilding a table other tables point at.** SQLite cannot alter a `CHECK` or
+a `NOT NULL`, so changing one means rebuilding the table -- and dropping a
+parent while foreign keys are enforced counts as deleting every row a child
+references. `PRAGMA defer_foreign_keys` does not save it: the drop increments
+the violation counter and renaming a replacement into place never decrements
+it, so the commit fails on any database with rows and passes on an empty one.
+Mark such a migration with `-- zoomigo:table-rebuild` on its first line;
+`internal/database` then runs SQLite's documented sequence around it. Test the
+migration against a _populated_ database or it proves nothing.
+
 **Schema literals that must be bumped.** `internal/database/database_test.go`
 asserts an exact `schema_migrations` count, so any new migration fails it until
 that number changes. `auth_audit_events.event_type` is `CHECK`-constrained to
