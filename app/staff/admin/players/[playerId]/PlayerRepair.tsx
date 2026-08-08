@@ -16,7 +16,15 @@ import type { CredentialReveal, PlayerDetail } from "../../../console/types";
  * can this child not sign in", and every repair inline, so the answer never
  * requires an SSH session.
  */
-export function PlayerRepair({ playerId }: { playerId: string }) {
+export function PlayerRepair({
+  playerId,
+  backHref = routes.staffAdmin,
+  backLabel = consoleCopy.admin.backToSearch,
+}: {
+  playerId: string;
+  backHref?: string;
+  backLabel?: string;
+}) {
   const player = useResource<PlayerDetail>(`v1/staff/players/${playerId}`);
   const [reveal, setReveal] = useState<CredentialReveal | null>(null);
   const [error, setError] = useState("");
@@ -62,8 +70,8 @@ export function PlayerRepair({ playerId }: { playerId: string }) {
     <ConsoleChrome
       title={name}
       back={{
-        href: routes.staffAdmin,
-        label: consoleCopy.admin.backToSearch,
+        href: backHref,
+        label: backLabel,
       }}
     >
       {player.loading ? <p>{consoleCopy.loading}</p> : null}

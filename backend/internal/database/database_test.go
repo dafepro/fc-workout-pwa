@@ -64,6 +64,16 @@ func TestMigrateUpgradesAnExistingFoundationDatabase(t *testing.T) {
 			t.Fatalf("%s references accounts %d times, want 1", child, references)
 		}
 	}
+	// assignments is rebuilt by migration 000011 to point catalog_key at
+	// assignment_catalog; reactions.context_assignment_id must still find it
+	// afterward.
+	var assignmentReferences int
+	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM pragma_foreign_key_list('reactions') WHERE "table" = 'assignments'`).Scan(&assignmentReferences); err != nil {
+		t.Fatal(err)
+	}
+	if assignmentReferences != 1 {
+		t.Fatalf("reactions references assignments %d times, want 1", assignmentReferences)
+	}
 	violations, err := db.QueryContext(ctx, `PRAGMA foreign_key_check`)
 	if err != nil {
 		t.Fatal(err)
@@ -77,7 +87,7 @@ func TestMigrateUpgradesAnExistingFoundationDatabase(t *testing.T) {
 	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM schema_migrations`).Scan(&migrationCount); err != nil {
 		t.Fatal(err)
 	}
-	if migrationCount != 10 {
-		t.Fatalf("migration count = %d, want 10", migrationCount)
+	if migrationCount != 11 {
+		t.Fatalf("migration count = %d, want 11", migrationCount)
 	}
 }

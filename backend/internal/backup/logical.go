@@ -506,6 +506,16 @@ func loadLogicalTables(ctx context.Context, db *sql.DB, extracted extractedLogic
 	}
 	defer tx.Rollback()
 
+	// assignment_catalog is itself seeded and points at activity_definitions,
+	// so clearing and reinserting both in declaration order would check the
+	// foreign key mid-transaction, before activity_definitions is repopulated.
+	// Deferring the check to commit, same as SQLite's documented answer for
+	// exactly this shape, means statement order inside the transaction no
+	// longer matters.
+	if _, err := tx.ExecContext(ctx, "PRAGMA defer_foreign_keys = ON"); err != nil {
+		return fmt.Errorf("defer foreign keys for import: %w", err)
+	}
+
 	for _, table := range logicalTables {
 		descriptor, exported := byName[table.Name]
 		if !exported {

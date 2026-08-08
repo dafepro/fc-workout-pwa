@@ -261,7 +261,7 @@ rather than needing a release of its own.
 
 ### 9. Coach and operator console
 
-Status: **Designed 2026-08-08; phases 0–2 in progress**
+Status: **Designed 2026-08-08; phases 0–3 built, phase 3 not yet released**
 
 Full design and requirements: **`docs/STAFF_CONSOLE_DESIGN.md`**. That document
 owns the persona flows, the authority matrix, numbered requirements with

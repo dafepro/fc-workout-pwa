@@ -11,13 +11,32 @@ import { CredentialRevealPanel } from "../../../console/RevealOnce";
 import { ConsoleError, consoleRequest, messageFor } from "../../../console/api";
 import { useResource } from "../../../console/useResource";
 import type {
+  AssignmentCatalogEntry,
+  AssignmentCompletion,
+  AssignmentSummary,
   CredentialReveal,
+  PlayerCompletion,
   RosterEntry,
   TeamSummary,
 } from "../../../console/types";
 
-/** F-C2 through F-C5, unscoped for the operator (F-O8). */
-export function TeamRoster({ teamId }: { teamId: string }) {
+/**
+ * F-C2 through F-C5, unscoped for the operator (F-O8). The operator and coach
+ * consoles share this one screen; only where it links to (the teams list and
+ * a player's own repair screen) differs between them, since those routes are
+ * gated separately in the UI (the API authorizes both regardless, per SEC-5).
+ */
+export function TeamRoster({
+  teamId,
+  backHref = routes.staffAdminTeams,
+  backLabel = consoleCopy.teams.title,
+  playerHref = routes.staffAdminPlayer,
+}: {
+  teamId: string;
+  backHref?: string;
+  backLabel?: string;
+  playerHref?: (playerId: string) => string;
+}) {
   const team = useResource<TeamSummary>(`v1/staff/teams/${teamId}`);
   const roster = useResource<{ roster: RosterEntry[] }>(
     `v1/staff/teams/${teamId}/roster`,
@@ -38,8 +57,8 @@ export function TeamRoster({ teamId }: { teamId: string }) {
     <ConsoleChrome
       title={team.data?.name ?? consoleCopy.roster.title}
       back={{
-        href: routes.staffAdminTeams,
-        label: consoleCopy.teams.title,
+        href: backHref,
+        label: backLabel,
       }}
     >
       {team.error ? <ConsoleNotice message={team.error} /> : null}
@@ -75,7 +94,7 @@ export function TeamRoster({ teamId }: { teamId: string }) {
         <ul className="console-list">
           {(roster.data?.roster ?? []).map((entry) => (
             <li key={entry.playerId} className="console-list__row">
-              <Link href={routes.staffAdminPlayer(entry.playerId)}>
+              <Link href={playerHref(entry.playerId)}>
                 {entry.firstName} {entry.lastInitial}
               </Link>
               <span>{consoleCopy.credential.state[entry.credentialState]}</span>
@@ -126,7 +145,233 @@ export function TeamRoster({ teamId }: { teamId: string }) {
           team.reload();
         }}
       />
+
+      <AssignmentPanel teamId={teamId} />
     </ConsoleChrome>
+  );
+}
+
+/** F-C7 and F-C8: set the team's assignment from the approved catalog, and
+ * watch who has completed it using the Completed / One Away / Keep Going
+ * grouping from UX_AND_SAFETY_RULES.md -- never a raw value. */
+function AssignmentPanel({ teamId }: { teamId: string }) {
+  const catalog = useResource<{ catalog: AssignmentCatalogEntry[] }>(
+    "v1/staff/assignment-catalog",
+  );
+  const assignments = useResource<{
+    assignments: AssignmentSummary[];
+    current: AssignmentCompletion;
+  }>(`v1/staff/teams/${teamId}/assignments`);
+
+  const [catalogKey, setCatalogKey] = useState("");
+  const [targetValue, setTargetValue] = useState("");
+  const [targetUnit, setTargetUnit] = useState("");
+  const [startsOn, setStartsOn] = useState("");
+  const [dueOn, setDueOn] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  function chooseCatalogEntry(key: string) {
+    setCatalogKey(key);
+    const entry = catalog.data?.catalog.find((item) => item.key === key);
+    if (entry) {
+      setTargetValue(String(entry.defaultTargetValue));
+      setTargetUnit(entry.defaultTargetUnit);
+    }
+  }
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      await consoleRequest<{ id: string }>(
+        `v1/staff/teams/${teamId}/assignments`,
+        {
+          method: "POST",
+          body: {
+            catalogKey,
+            targetValue: Number(targetValue),
+            targetUnit,
+            startsOn,
+            dueOn,
+          },
+        },
+      );
+      setCatalogKey("");
+      setTargetValue("");
+      setTargetUnit("");
+      setStartsOn("");
+      setDueOn("");
+      assignments.reload();
+    } catch (caught) {
+      setError(messageFor(caught));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const current = assignments.data?.current;
+
+  return (
+    <section
+      className="console-card"
+      aria-label={consoleCopy.assignments.title}
+    >
+      <h2 className="console-card__title">{consoleCopy.assignments.title}</h2>
+      {assignments.error ? <ConsoleNotice message={assignments.error} /> : null}
+      {assignments.loading ? <p>{consoleCopy.loading}</p> : null}
+
+      {current && current.assignment ? (
+        <>
+          <p>
+            {current.assignment.activityName}{" "}
+            {consoleCopy.assignments.window(
+              current.assignment.startsOn,
+              current.assignment.dueOn,
+            )}
+          </p>
+          <CompletionGroup
+            label={consoleCopy.assignments.completed}
+            players={current.completed}
+          />
+          <CompletionGroup
+            label={consoleCopy.assignments.oneAway}
+            players={current.oneAway}
+          />
+          <CompletionGroup
+            label={consoleCopy.assignments.keepGoing}
+            players={current.keepGoing}
+          />
+        </>
+      ) : (
+        <p>{consoleCopy.assignments.noneLive}</p>
+      )}
+
+      <h3 className="console-card__title">
+        {consoleCopy.assignments.historyTitle}
+      </h3>
+      {assignments.data && assignments.data.assignments.length === 0 ? (
+        <p>{consoleCopy.assignments.empty}</p>
+      ) : null}
+      <ul className="console-list">
+        {(assignments.data?.assignments ?? []).map((assignment) => (
+          <li key={assignment.id} className="console-list__row">
+            <strong>{assignment.activityName}</strong>
+            <span>
+              {assignment.targetValue} {assignment.targetUnit}
+            </span>
+            <span>
+              {consoleCopy.assignments.window(
+                assignment.startsOn,
+                assignment.dueOn,
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <form onSubmit={submit} noValidate className="console-form">
+        <p className="console-hint">{consoleCopy.assignments.createHint}</p>
+        <label htmlFor="assignment-catalog">
+          {consoleCopy.assignments.catalogLabel}
+        </label>
+        <select
+          id="assignment-catalog"
+          value={catalogKey}
+          onChange={(event) => chooseCatalogEntry(event.target.value)}
+          required
+        >
+          <option value="" disabled>
+            {consoleCopy.assignments.catalogLabel}
+          </option>
+          {(catalog.data?.catalog ?? []).map((entry) => (
+            <option key={entry.key} value={entry.key}>
+              {entry.displayName}
+            </option>
+          ))}
+        </select>
+        <label htmlFor="assignment-target-value">
+          {consoleCopy.assignments.targetValueLabel}
+        </label>
+        <input
+          id="assignment-target-value"
+          type="number"
+          min="0"
+          step="any"
+          value={targetValue}
+          onChange={(event) => setTargetValue(event.target.value)}
+          required
+        />
+        <label htmlFor="assignment-target-unit">
+          {consoleCopy.assignments.targetUnitLabel}
+        </label>
+        <input
+          id="assignment-target-unit"
+          type="text"
+          value={targetUnit}
+          readOnly
+        />
+        <label htmlFor="assignment-starts-on">
+          {consoleCopy.assignments.startsOnLabel}
+        </label>
+        <input
+          id="assignment-starts-on"
+          type="date"
+          value={startsOn}
+          onChange={(event) => setStartsOn(event.target.value)}
+          required
+        />
+        <label htmlFor="assignment-due-on">
+          {consoleCopy.assignments.dueOnLabel}
+        </label>
+        <input
+          id="assignment-due-on"
+          type="date"
+          value={dueOn}
+          onChange={(event) => setDueOn(event.target.value)}
+          required
+        />
+        {error ? (
+          <p className="notice notice--error" role="alert">
+            {error}
+          </p>
+        ) : null}
+        <button
+          className="button button--lime"
+          disabled={busy || !catalogKey || !targetValue || !startsOn || !dueOn}
+        >
+          {busy ? staffCopy.working : consoleCopy.assignments.createAction}
+        </button>
+      </form>
+    </section>
+  );
+}
+
+function CompletionGroup({
+  label,
+  players,
+}: {
+  label: string;
+  players: PlayerCompletion[];
+}) {
+  return (
+    <section className="console-card" aria-label={label}>
+      <h3 className="console-card__title">
+        {label} ({players.length})
+      </h3>
+      {players.length === 0 ? (
+        <p>{consoleCopy.assignments.noPlayers}</p>
+      ) : (
+        <ul className="console-list">
+          {players.map((player) => (
+            <li key={player.playerId} className="console-list__row">
+              {player.firstName} {player.lastInitial}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
