@@ -60,7 +60,11 @@ async function proxy(request: Request) {
   const path = incoming.pathname.slice(
     incoming.pathname.indexOf(marker) + marker.length,
   );
+  // A percent-escape would let one `[^/]+` segment below carry an encoded
+  // slash and resolve upstream to a path this allowlist never approved, so the
+  // escape is refused rather than decoded. No approved path needs one.
   if (
+    path.includes("%") ||
     !allowed.some(
       (route) => route.method === request.method && route.pattern.test(path),
     )
