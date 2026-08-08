@@ -191,8 +191,8 @@ The release:
 1. publishes the exact Linux/amd64 API image;
 2. builds and binds the Worker to `zoomigo.quicktrack.cc`;
 3. waits for cloud-init and deploys the API to the pinned Reserved IP;
-4. enables the daily backup timer, creates the first encrypted backup, and
-   verifies that exact object exists in private R2;
+4. enables the daily backup timer, creates the first encrypted SQLite snapshot
+   and logical export, and verifies both objects exist in private R2;
 5. verifies public API readiness and an unauthenticated `401` private route;
 6. deploys the Worker custom domain.
 
@@ -227,6 +227,6 @@ separate reviewed change removing `prevent_destroy`; verify an off-host backup
 and restore drill first, and explicitly release the Reserved IP so it does not
 accrue unassigned IPv4 charges.
 
-Backup format and isolated restore details remain in
+Backup formats, the logical export, and isolated restore details remain in
 `docs/backend/BACKUP_AND_RESTORE.md`; production cutover and rollback are in
 `docs/backend/LIVE_RESTORE_RUNBOOK.md`.

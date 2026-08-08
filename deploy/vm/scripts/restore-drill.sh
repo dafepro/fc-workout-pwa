@@ -16,8 +16,9 @@ archive_name=$2
 identity_name=$3
 case "$archive_name" in
 	*/*|*\\*|.|..) fail "archive must be a filename in BACKUP_DIR" ;;
-	*.tar.gz.age) ;;
-	*) fail "archive must end in .tar.gz.age" ;;
+	zoomigo-backup-*.tar.gz.age) verify_command=verify-encrypted; load_command=restore-encrypted ;;
+	zoomigo-export-*.tar.gz.age) verify_command=verify-export-encrypted; load_command=import-encrypted ;;
+	*) fail "archive must be a zoomigo-backup-*.tar.gz.age snapshot or a zoomigo-export-*.tar.gz.age logical export" ;;
 esac
 case "$identity_name" in
 	*/*|*\\*|.|..) fail "identity must be a filename in RESTORE_DIR" ;;
@@ -29,8 +30,8 @@ archive_path="/backups/${archive_name}"
 target_path="/restore/${target_name}"
 identity_path="/restore/${identity_name}"
 
-compose run --rm backup verify-encrypted --archive "$archive_path" --identity "$identity_path"
-compose run --rm backup restore-encrypted --archive "$archive_path" --identity "$identity_path" --target "$target_path"
+compose run --rm backup "$verify_command" --archive "$archive_path" --identity "$identity_path"
+compose run --rm backup "$load_command" --archive "$archive_path" --identity "$identity_path" --target "$target_path"
 
 printf '%s\n' "Restore drill passed and left the isolated database at RESTORE_DIR/$target_name."
 printf '%s\n' "The live database was not stopped, replaced, or modified."

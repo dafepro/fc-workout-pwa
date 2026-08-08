@@ -5,8 +5,8 @@ This procedure replaces the live SQLite database only during an approved recover
 ## Preconditions
 
 - Two adults know the recovery is occurring: the operator and the recovery-key custodian.
-- The selected `.tar.gz.age` archive is present in `BACKUP_DIR`, its source and timestamp are recorded, and the matching age identity is available temporarily in `RESTORE_DIR`.
-- The checked-out application revision supports every migration in the archive.
+- The selected `.tar.gz.age` archive — a `zoomigo-backup-` snapshot or a `zoomigo-export-` logical export — is present in `BACKUP_DIR`, its source and timestamp are recorded, and the matching age identity is available temporarily in `RESTORE_DIR`.
+- The checked-out application revision supports every migration in the archive. A logical export has no such constraint.
 - A fresh encrypted backup of the current live database has completed and uploaded to the configured S3-compatible store.
 - The maintenance window permits the API and PWA to be unavailable.
 - All paths below are copied from the protected VM `.env`; never substitute a broad directory or a glob.
@@ -22,6 +22,16 @@ sudo ./scripts/restore-drill.sh .env \
 ```
 
 Record the exact restored database filename printed by the command. It must be beneath `RESTORE_DIR`. Do not continue if envelope authentication, checksums, integrity, foreign keys, migration compatibility, or safe counts fail.
+
+If the SQLite snapshot cannot be restored — its migration ledger is too old for the checked-out build, or the database file itself is damaged — use that day's logical export instead. The script takes the same three arguments and switches to verify/import automatically:
+
+```sh
+sudo ./scripts/restore-drill.sh .env \
+  zoomigo-export-YYYYMMDDTHHMMSSZ-v1.tar.gz.age \
+  zoomigo-backup-identity.txt
+```
+
+The import builds a database at the current schema from the exported rows, so it is the correct choice precisely when forward migration of an old snapshot is impossible. The rest of this runbook is unchanged; it operates on whichever restored database file the command printed.
 
 ## 2. Enter the offline window
 
