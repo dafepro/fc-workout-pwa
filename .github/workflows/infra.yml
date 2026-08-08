@@ -87,7 +87,10 @@ jobs:
             -var='ssh_source_addresses=${{ vars.SSH_SOURCE_ADDRESSES }}' \
             -var='alert_email_addresses=${{ vars.ALERT_EMAIL_ADDRESSES }}' \
             -var="backup_age_recipient=${{ vars.BACKUP_AGE_RECIPIENT }}" \
-            -var="operator_ssh_public_key=${{ vars.OPERATOR_SSH_PUBLIC_KEY }}"
+            -var="operator_ssh_public_key=${{ vars.OPERATOR_SSH_PUBLIC_KEY }}" \
+            -var="cloudflare_account_id=${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" \
+            -var="staff_console_team_domain=${{ vars.STAFF_CONSOLE_TEAM_DOMAIN }}" \
+            -var='staff_console_email_addresses=${{ vars.STAFF_CONSOLE_EMAIL_ADDRESSES }}'
           tofu show -no-color tfplan
 
       - uses: actions/upload-artifact@v4
