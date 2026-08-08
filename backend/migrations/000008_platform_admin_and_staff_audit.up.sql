@@ -1,18 +1,20 @@
+-- zoomigo:table-rebuild
+--
 -- Two table rebuilds in one migration, because SQLite cannot alter a CHECK and
--- both are prerequisites for staff identity. Doing them together means one
--- rehearsed destructive release rather than two.
+-- both are prerequisites for staff identity.
 --
--- accounts is a parent of auth_credentials, auth_sessions, auth_audit_events,
--- and coach_team_assignments. Renaming it out of the way would rewrite all four
--- child references to follow it, leaving them bound to the archive copy, so the
--- new table is built beside it under another name and renamed into place
--- instead: nothing ever references the temporary name, so nothing is rewritten.
+-- The directive on the first line matters. accounts is the parent of
+-- auth_credentials, auth_sessions, auth_audit_events, and
+-- coach_team_assignments, and dropping a parent while foreign keys are enforced
+-- counts as deleting every row a child still references. Deferring the check
+-- does not save it: the drop increments SQLite's violation counter and renaming
+-- a replacement into place never decrements it, so the commit fails on any
+-- database that has rows -- which is every database except a fresh one. The
+-- runner therefore disables enforcement around this file and runs
+-- PRAGMA foreign_key_check itself before committing.
 --
--- Dropping the old parent is an implicit delete of every row a child still
--- points at. defer_foreign_keys holds that check until commit, by which time
--- the rows are back under the same table name. It is the transaction-scoped
--- pragma, unlike foreign_keys, which a migration's transaction cannot change.
-PRAGMA defer_foreign_keys = ON;
+-- The replacement is still built beside the original and renamed into place, so
+-- no child's foreign key is rewritten to follow the original out of the way.
 
 DROP INDEX accounts_player_id_unique;
 
