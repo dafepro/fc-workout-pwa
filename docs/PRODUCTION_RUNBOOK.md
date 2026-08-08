@@ -221,20 +221,19 @@ enabled for an intentional full Docker validation pass.
 ## 6. Prove production operations before real data
 
 Dispatch "Production operations drills". It never deploys and never writes to
-the production database. Three of its four checks need no secrets: the container
-drills (`./scripts/drills.sh`), the full release-candidate pass
-(`./scripts/verify.sh --all`), and the operator attestation check
-(`node scripts/drill-attestations.mjs`). The fourth needs `host_checks` enabled
-and repository variable `PRODUCTION_DRILLS_ENABLED=true`, and only inspects the
-live host — it pipes `scripts/host-drills.sh` in over SSH and has no access to
-the age identity, so it cannot restore anything.
+the production database. Two of its checks need no secrets: the container drills
+(`./scripts/drills.sh`) and the full release-candidate pass
+(`./scripts/verify.sh --all`). The third needs `host_checks` enabled and
+repository variable `PRODUCTION_DRILLS_ENABLED=true`, and only inspects the live
+host — it pipes `scripts/host-drills.sh` in over SSH and has no access to the age
+identity, so it cannot restore anything.
 
-Record the drills a runner cannot perform in
-`docs/backend/PRODUCTION_DRILL_LOG.md`: an alert email actually arriving, the
-first real R2 upload, the timed isolated restore and the offline cutover
-rehearsal on real archives, and one release driven from an operator's own
-machine. The gate stays red until every row is dated and attributed, which is
-the point — step 5 is not complete until a person has done those five things.
+A green run proves the mechanics, not the outcome. Three things still have to be
+done by hand before real data: confirm an alert email actually arrives, perform
+and time the isolated restore and the offline cutover rehearsal from
+`docs/backend/LIVE_RESTORE_RUNBOOK.md` against real archives, and drive one
+release with `./deploy/release/release.sh` from an operator's own machine so the
+Actions-is-down fallback is known to work.
 
 ## Routine infrastructure changes
 
