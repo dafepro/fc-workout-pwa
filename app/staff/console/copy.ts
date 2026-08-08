@@ -69,7 +69,7 @@ export const consoleCopy = {
   home: {
     coachTitle: "Coach console",
     coachBody:
-      "The coach console is still being built. Rosters, assignments, and assessments arrive in a later release. Until then, ask the operator for anything you need changed.",
+      "Open a team to manage its roster, repair a login, or set its assignment. Assessments arrive in a later release.",
     teams: "Your teams",
     noTeams: "No teams are assigned to this account yet.",
     signedInAs: (email: string) => `Signed in as ${email}`,
@@ -220,6 +220,26 @@ export const consoleCopy = {
     setupUrlLabel: "Setup link",
     temporaryPasswordLabel: "Temporary password",
     expiresAt: "Expires",
+  },
+  assignments: {
+    title: "Team assignment",
+    historyTitle: "Assignment history",
+    create: "Set a new assignment",
+    createHint:
+      "Pick an approved activity, a target, and a date window. The current assignment is whichever one's window includes today; overlapping windows are allowed, and the one due soonest is the one players see.",
+    catalogLabel: "Activity",
+    targetValueLabel: "Target",
+    targetUnitLabel: "Unit",
+    startsOnLabel: "Starts on",
+    dueOnLabel: "Due on",
+    createAction: "Create assignment",
+    noneLive: "No assignment is live for this team today.",
+    completed: "Completed",
+    oneAway: "One Away",
+    keepGoing: "Keep Going",
+    noPlayers: "No players in this group.",
+    empty: "No assignments yet.",
+    window: (startsOn: string, dueOn: string) => `${startsOn} – ${dueOn}`,
   },
   audit: {
     title: "Audit trail",

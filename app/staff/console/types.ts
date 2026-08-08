@@ -109,3 +109,35 @@ export interface AuditEvent {
   targetId: string;
   detail?: string;
 }
+
+export interface AssignmentCatalogEntry {
+  key: string;
+  displayName: string;
+  activityDefinitionId: string;
+  defaultTargetValue: number;
+  defaultTargetUnit: string;
+}
+
+export interface AssignmentSummary {
+  id: string;
+  catalogKey: string;
+  activityName: string;
+  targetValue: number;
+  targetUnit: string;
+  startsOn: string;
+  dueOn: string;
+  createdAt: string;
+}
+
+export interface PlayerCompletion {
+  playerId: string;
+  firstName: string;
+  lastInitial: string;
+}
+
+export interface AssignmentCompletion {
+  assignment?: AssignmentSummary;
+  completed: PlayerCompletion[];
+  oneAway: PlayerCompletion[];
+  keepGoing: PlayerCompletion[];
+}

@@ -14,4 +14,6 @@ export const routes = {
   staffAdminAudit: "/staff/admin/audit",
   staffAdminTeam: (teamId: string) => `/staff/admin/teams/${teamId}`,
   staffAdminPlayer: (playerId: string) => `/staff/admin/players/${playerId}`,
+  staffTeam: (teamId: string) => `/staff/teams/${teamId}`,
+  staffPlayer: (playerId: string) => `/staff/players/${playerId}`,
 } as const;

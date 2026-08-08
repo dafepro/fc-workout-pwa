@@ -122,6 +122,109 @@ func TestMigrateRebuildsAPopulatedParentTable(t *testing.T) {
 	}
 }
 
+// Migration 000011 rebuilds assignments the same way migration 8 rebuilt
+// accounts, and reactions.context_assignment_id is the one row that survives
+// it. Test it with a populated database, not an empty one, for the same
+// reason TestMigrateRebuildsAPopulatedParentTable exists.
+func TestMigrateRebuildsAPopulatedAssignmentsTable(t *testing.T) {
+	ctx := context.Background()
+	databaseURL := "file:" + filepath.ToSlash(filepath.Join(t.TempDir(), "populated-assignments.db"))
+	db, err := Open(ctx, databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+
+	if _, err = db.ExecContext(ctx, `CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)`); err != nil {
+		t.Fatal(err)
+	}
+	for _, version := range []string{
+		"000001_foundation.up.sql",
+		"000002_reaction_replay_result.up.sql",
+		"000003_training_entry_idempotency.up.sql",
+		"000004_authentication.up.sql",
+		"000005_assignments.up.sql",
+		"000006_activity_defaults.up.sql",
+		"000007_challenge_reactions.up.sql",
+		"000008_platform_admin_and_staff_audit.up.sql",
+		"000009_staff_credentials.up.sql",
+		"000010_admin_audit.up.sql",
+	} {
+		contents, readErr := fs.ReadFile(migrations.Files, version)
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		if _, err = db.ExecContext(ctx, string(contents)); err != nil {
+			t.Fatalf("apply %s: %v", version, err)
+		}
+		if _, err = db.ExecContext(ctx, `INSERT INTO schema_migrations (version, applied_at) VALUES (?, '2026-08-05T00:00:00Z')`,
+			version[:6]); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	for _, statement := range []string{
+		`INSERT INTO clubs (id, name, created_at) VALUES ('club-1', 'Club', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO teams (id, club_id, name, season_id, weekly_default_goal, time_zone, created_at)
+		 VALUES ('team-1', 'club-1', 'Team', 'season-2026', 3, 'UTC', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at)
+		 VALUES ('player-1', 'club-1', 'Sender', 'A', '{}', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at)
+		 VALUES ('player-2', 'club-1', 'Recipient', 'B', '{}', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO assignments (id, team_id, activity_definition_id, catalog_key, target_value, target_unit, starts_on, due_on, created_at)
+		 VALUES ('assignment-1', 'team-1', 'hill-sprints', 'hill_sprints_8x6', 6, 'reps', '2026-01-01', '2026-01-07', '2026-01-01T00:00:00Z')`,
+		// The one row that must still find assignment-1 after the rebuild.
+		`INSERT INTO reactions (id, sender_player_id, recipient_player_id, team_id, reaction_type,
+			context_type, context_period, context_metric, context_assignment_id, team_day, idempotency_key, created_at)
+		 VALUES ('reaction-1', 'player-1', 'player-2', 'team-1', 'clap',
+			'challenge', NULL, NULL, 'assignment-1', '2026-01-02', 'idem-1', '2026-01-02T00:00:00Z')`,
+	} {
+		if _, err = db.ExecContext(ctx, statement); err != nil {
+			t.Fatalf("seed %q: %v", statement, err)
+		}
+	}
+
+	if err = Migrate(ctx, db); err != nil {
+		t.Fatalf("migrate a populated database: %v", err)
+	}
+
+	for table, want := range map[string]int{"assignments": 1, "reactions": 1, "assignment_catalog": 1} {
+		var count int
+		if err = db.QueryRowContext(ctx, "SELECT COUNT(*) FROM "+table).Scan(&count); err != nil {
+			t.Fatal(err)
+		}
+		if count != want {
+			t.Fatalf("%s has %d rows after the rebuild, want %d", table, count, want)
+		}
+	}
+	var references int
+	if err = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM pragma_foreign_key_list('reactions') WHERE "table" = 'assignments'`).Scan(&references); err != nil {
+		t.Fatal(err)
+	}
+	if references != 1 {
+		t.Fatalf("reactions references assignments %d times after the rebuild, want 1", references)
+	}
+	var catalogKey string
+	if err = db.QueryRowContext(ctx, `SELECT catalog_key FROM assignments WHERE id = 'assignment-1'`).Scan(&catalogKey); err != nil {
+		t.Fatal(err)
+	}
+	if catalogKey != "hill_sprints_8x6" {
+		t.Fatalf("assignment-1 catalog_key = %q, want hill_sprints_8x6", catalogKey)
+	}
+	violations, err := db.QueryContext(ctx, "PRAGMA foreign_key_check")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer violations.Close()
+	if violations.Next() {
+		t.Fatal("the rebuilt schema has foreign key violations")
+	}
+	if _, err = db.ExecContext(ctx, `INSERT INTO assignments (id, team_id, activity_definition_id, catalog_key, target_value, target_unit, starts_on, due_on, created_at)
+		VALUES ('assignment-bad', 'team-1', 'hill-sprints', 'not_a_catalog_key', 6, 'reps', '2026-01-01', '2026-01-07', '2026-01-01T00:00:00Z')`); err == nil {
+		t.Fatal("an assignment with an unknown catalog_key must be refused")
+	}
+}
+
 // Enforcement must be back on for the pool afterwards, or every later write
 // silently skips its foreign keys.
 func TestForeignKeysAreEnforcedAfterARebuildMigration(t *testing.T) {

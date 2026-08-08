@@ -137,6 +137,19 @@ var logicalTables = []logicalTable{
 		},
 	},
 	{
+		Name:    "assignment_catalog",
+		OrderBy: []string{"key"},
+		Seeded:  true,
+		Fields: []logicalField{
+			textField("key"),
+			textField("display_name"),
+			textField("activity_definition_id"),
+			realField("default_target_value"),
+			textField("default_target_unit"),
+			integerField("approved"),
+		},
+	},
+	{
 		Name:    "assignments",
 		OrderBy: []string{"id"},
 		Fields: []logicalField{

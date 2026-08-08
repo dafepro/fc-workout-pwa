@@ -588,6 +588,196 @@ func (staff *StaffStore) DeactivatePlayer(ctx context.Context, accountID string)
 	return nil
 }
 
+type AssignmentCatalogEntry struct {
+	Key                  string  `json:"key"`
+	DisplayName          string  `json:"displayName"`
+	ActivityDefinitionID string  `json:"activityDefinitionId"`
+	DefaultTargetValue   float64 `json:"defaultTargetValue"`
+	DefaultTargetUnit    string  `json:"defaultTargetUnit"`
+}
+
+// ListAssignmentCatalog is F-C7's picker: only approved entries, so a catalog
+// row awaiting review never becomes something a coach can assign.
+func (staff *StaffStore) ListAssignmentCatalog(ctx context.Context) ([]AssignmentCatalogEntry, error) {
+	rows, err := staff.db.QueryContext(ctx, `SELECT key, display_name, activity_definition_id, default_target_value, default_target_unit
+		FROM assignment_catalog WHERE approved = 1 ORDER BY display_name`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	catalog := []AssignmentCatalogEntry{}
+	for rows.Next() {
+		var entry AssignmentCatalogEntry
+		if err = rows.Scan(&entry.Key, &entry.DisplayName, &entry.ActivityDefinitionID,
+			&entry.DefaultTargetValue, &entry.DefaultTargetUnit); err != nil {
+			return nil, err
+		}
+		catalog = append(catalog, entry)
+	}
+	return catalog, rows.Err()
+}
+
+type AssignmentSummary struct {
+	ID           string  `json:"id"`
+	CatalogKey   string  `json:"catalogKey"`
+	ActivityName string  `json:"activityName"`
+	TargetValue  float64 `json:"targetValue"`
+	TargetUnit   string  `json:"targetUnit"`
+	StartsOn     string  `json:"startsOn"`
+	DueOn        string  `json:"dueOn"`
+	CreatedAt    string  `json:"createdAt"`
+}
+
+type AssignmentInput struct {
+	CatalogKey  string
+	TargetValue float64
+	TargetUnit  string
+	StartsOn    string
+	DueOn       string
+}
+
+var assignmentTargetUnits = map[string]bool{"reps": true, "minutes": true, "miles": true}
+
+// CreateAssignment is F-C7. The catalog key must be one of the approved
+// entries and carries the activity it assigns; the window is validated as
+// team-local calendar dates, not parsed as a timestamp, matching every other
+// date the console reasons about.
+func (staff *StaffStore) CreateAssignment(ctx context.Context, teamID string, input AssignmentInput) (string, error) {
+	if input.TargetValue <= 0 || !assignmentTargetUnits[input.TargetUnit] {
+		return "", ErrStaffInvalid
+	}
+	if _, err := time.Parse("2006-01-02", input.StartsOn); err != nil {
+		return "", ErrStaffInvalid
+	}
+	if _, err := time.Parse("2006-01-02", input.DueOn); err != nil {
+		return "", ErrStaffInvalid
+	}
+	if input.StartsOn > input.DueOn {
+		return "", ErrStaffInvalid
+	}
+	var activityDefinitionID string
+	err := staff.db.QueryRowContext(ctx, `SELECT activity_definition_id FROM assignment_catalog WHERE key = ? AND approved = 1`,
+		input.CatalogKey).Scan(&activityDefinitionID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", ErrStaffInvalid
+	}
+	if err != nil {
+		return "", err
+	}
+	if _, err = staff.teamToday(ctx, teamID); err != nil {
+		return "", err
+	}
+	id, err := newStaffID("assignment")
+	if err != nil {
+		return "", err
+	}
+	_, err = staff.db.ExecContext(ctx, `INSERT INTO assignments
+		(id, team_id, activity_definition_id, catalog_key, target_value, target_unit, starts_on, due_on, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		id, teamID, activityDefinitionID, input.CatalogKey, input.TargetValue, input.TargetUnit,
+		input.StartsOn, input.DueOn, stampNow(staff.now))
+	if err != nil {
+		return "", err
+	}
+	return id, nil
+}
+
+// ListAssignments is the team's assignment history, most recently due first.
+func (staff *StaffStore) ListAssignments(ctx context.Context, teamID string) ([]AssignmentSummary, error) {
+	rows, err := staff.db.QueryContext(ctx, `SELECT a.id, a.catalog_key, d.name, a.target_value, a.target_unit, a.starts_on, a.due_on, a.created_at
+		FROM assignments a JOIN activity_definitions d ON d.id = a.activity_definition_id
+		WHERE a.team_id = ? ORDER BY a.due_on DESC, a.created_at DESC`, teamID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	assignments := []AssignmentSummary{}
+	for rows.Next() {
+		var assignment AssignmentSummary
+		if err = rows.Scan(&assignment.ID, &assignment.CatalogKey, &assignment.ActivityName, &assignment.TargetValue,
+			&assignment.TargetUnit, &assignment.StartsOn, &assignment.DueOn, &assignment.CreatedAt); err != nil {
+			return nil, err
+		}
+		assignments = append(assignments, assignment)
+	}
+	return assignments, rows.Err()
+}
+
+type PlayerCompletion struct {
+	PlayerID    string `json:"playerId"`
+	FirstName   string `json:"firstName"`
+	LastInitial string `json:"lastInitial"`
+}
+
+type AssignmentCompletion struct {
+	Assignment *AssignmentSummary `json:"assignment,omitempty"`
+	Completed  []PlayerCompletion `json:"completed"`
+	OneAway    []PlayerCompletion `json:"oneAway"`
+	KeepGoing  []PlayerCompletion `json:"keepGoing"`
+}
+
+// CurrentAssignmentCompletion is F-C8: the live assignment, which is the
+// earliest-due assignment whose team-local window includes today (the same
+// rule the player's Home screen uses), grouped per
+// UX_AND_SAFETY_RULES.md's Completed / One Away / Keep Going labels. One Away
+// means the player has logged an entry against this assignment without yet
+// reaching its target; Keep Going means no entry at all. Coaches see who is
+// in which group, never a raw value (SEC-8).
+func (staff *StaffStore) CurrentAssignmentCompletion(ctx context.Context, teamID string) (AssignmentCompletion, error) {
+	completion := AssignmentCompletion{Completed: []PlayerCompletion{}, OneAway: []PlayerCompletion{}, KeepGoing: []PlayerCompletion{}}
+	teamDay, err := staff.teamToday(ctx, teamID)
+	if err != nil {
+		return AssignmentCompletion{}, err
+	}
+	var assignment AssignmentSummary
+	err = staff.db.QueryRowContext(ctx, `SELECT a.id, a.catalog_key, d.name, a.target_value, a.target_unit, a.starts_on, a.due_on
+		FROM assignments a JOIN activity_definitions d ON d.id = a.activity_definition_id
+		WHERE a.team_id = ? AND a.starts_on <= ? AND a.due_on >= ?
+		ORDER BY a.due_on, a.created_at DESC LIMIT 1`, teamID, teamDay, teamDay).Scan(
+		&assignment.ID, &assignment.CatalogKey, &assignment.ActivityName, &assignment.TargetValue,
+		&assignment.TargetUnit, &assignment.StartsOn, &assignment.DueOn)
+	if errors.Is(err, sql.ErrNoRows) {
+		return completion, nil
+	}
+	if err != nil {
+		return AssignmentCompletion{}, err
+	}
+	completion.Assignment = &assignment
+
+	rows, err := staff.db.QueryContext(ctx, `SELECT p.id, p.first_name, p.last_initial,
+		EXISTS (SELECT 1 FROM training_entries e WHERE e.assignment_id = ? AND e.player_id = p.id
+			AND e.deleted_at IS NULL AND e.result_unit = ? AND e.result_value >= ?) AS met,
+		EXISTS (SELECT 1 FROM training_entries e WHERE e.assignment_id = ? AND e.player_id = p.id AND e.deleted_at IS NULL) AS started
+		FROM players p
+		JOIN team_memberships m ON m.player_id = p.id
+		WHERE m.team_id = ? AND m.active_from <= ? AND (m.active_to IS NULL OR m.active_to >= ?)
+		ORDER BY p.first_name, p.last_initial`,
+		assignment.ID, assignment.TargetUnit, assignment.TargetValue, assignment.ID, teamID, teamDay, teamDay)
+	if err != nil {
+		return AssignmentCompletion{}, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var player PlayerCompletion
+		var met, started bool
+		if err = rows.Scan(&player.PlayerID, &player.FirstName, &player.LastInitial, &met, &started); err != nil {
+			return AssignmentCompletion{}, err
+		}
+		switch {
+		case met:
+			completion.Completed = append(completion.Completed, player)
+		case started:
+			completion.OneAway = append(completion.OneAway, player)
+		default:
+			completion.KeepGoing = append(completion.KeepGoing, player)
+		}
+	}
+	if err = rows.Err(); err != nil {
+		return AssignmentCompletion{}, err
+	}
+	return completion, nil
+}
+
 func (staff *StaffStore) AssignCoach(ctx context.Context, accountID, teamID string) error {
 	activeFrom, err := staff.teamToday(ctx, teamID)
 	if err != nil {

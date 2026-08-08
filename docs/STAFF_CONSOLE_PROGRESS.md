@@ -13,8 +13,8 @@ at the end.
 
 Phases 0, 1, and 2 — sign-in entry, staff identity, and the operator console —
 released to production with a working `platform_admin` login. Phase 3 (coach
-console) and phase 4 (assessments) are deliberately out of scope here and keep
-their own releases.
+console) is now built against that release, below; phase 4 (assessments)
+remains out of scope and keeps its own release.
 
 ## Decisions taken during implementation
 
@@ -27,6 +27,7 @@ These closed open items from `STAFF_CONSOLE_DESIGN.md` §8 and are recorded in
 | Staff session lifetimes (§8.4)   | 30 minutes idle, 8 hours absolute, 5-minute step-up window, no remembered device                              |
 | Production data gate (SEC-7)     | `PRODUCTION_DATA_APPROVED=true` in production, so the console may provision real players                      |
 | Staff credential delivery (§8.2) | Interim: the operator bootstrap prints a setup link and temporary password on the VM, handed over out of band |
+| Coach provisioning authority (§8.1) | Decided 2026-08-08 for phase 3: a coach may provision players on their own team, matching the design's recommendation |
 
 ## Phase status
 
@@ -35,8 +36,9 @@ These closed open items from `STAFF_CONSOLE_DESIGN.md` §8 and are recorded in
 | 0 — sign-in entry    | REQ-101–105                              | Complete                                            |
 | 1 — staff identity   | REQ-106, 107, 201–208, 301–305, 401, 402 | Complete                                            |
 | 2 — operator console | REQ-601–610, 701–704                     | Complete                                            |
+| 3 — coach console    | Migration D, REQ-501–506, 403, 404       | Built; not yet released, below                      |
 | Access gate          | REQ-402                                  | Interim passphrase gate live; Access blocked, below |
-| Release              | —                                        | Released 2026-08-08 as `960f34e`                    |
+| Release              | —                                        | Phases 0–2 released 2026-08-08 as `960f34e`; phase 3 awaits its own release |
 | First operator       | —                                        | Awaiting the bootstrap command on the host, below   |
 
 ## Blocked
@@ -216,3 +218,57 @@ All three console browser tests pass against the real Worker request path.
 Phases 0, 1, and 2 are done. What remains for this effort is the first operator
 account, which is a command on the host, and Cloudflare Access, which is
 waiting on token scopes.
+
+### 2026-08-08 — phase 3, coach console
+
+Migration 000011 (Migration D) adds `assignment_catalog` and rebuilds
+`assignments` to foreign-key `catalog_key` against it instead of a `CHECK`,
+seeded with the existing `hill_sprints_8x6`. `assignments` is itself the
+parent of `reactions.context_assignment_id`, so this rebuild took the same
+disabled-enforcement sequence as migration 8, including a populated-table
+test that seeds a `reactions` row and proves it still finds `assignment-1`
+afterward. The logical export/import path needed one more fix once
+`assignment_catalog` existed: it is a seeded table that itself points at the
+seeded `activity_definitions`, and clearing both in declaration order cleared
+the parent while the child's row still referenced it. Import now runs inside
+`PRAGMA defer_foreign_keys = ON`, so the check lands at commit instead of
+per-statement and clear/insert order stops mattering — the general answer,
+rather than a reordering special case for these two tables.
+
+REQ-501 through REQ-504 needed no new backend work: phase 2 already built
+roster, membership, provisioning, and credential repair generically, scoped by
+`domain.CanManageTeam` for whichever role reaches the route, coach included.
+What phase 3 actually added was REQ-505 and REQ-506 — assignment creation and
+the Completed / One Away / Keep Going read — plus routes, and the frontend
+screens a coach can actually reach.
+
+The coach-provisioning open decision in `STAFF_CONSOLE_DESIGN.md` §8.1 closed
+with the product owner during this phase: a coach may provision players on
+their own team, as the design recommended.
+
+One Away and Keep Going are defined operationally: One Away is a player who
+has logged at least one entry against the live assignment without reaching
+its target, Keep Going is a player with no entry against it at all. The
+design's own wording ("who is one session away") maps to that distinction
+rather than to a numeric closeness threshold, since assignments do not have
+partial credit.
+
+On the frontend, `TeamRoster` and `PlayerRepair` (built in phase 2 for the
+operator) turned out to need no duplication for the coach: both already
+authorize purely through the API, so they only needed their back-link and
+player-link destinations made overridable props, defaulting to the operator's
+routes. New routes `/staff/teams/{teamId}` and `/staff/players/{playerId}`
+render the same components for a signed-in coach, gated only by
+`requireStaffSession` (any staff role) rather than `requireOperator`, since
+REQ-301/302 is enforced by the API regardless of which door the browser used
+(SEC-5). `CoachHome` now links each of the coach's teams to its roster instead
+of just naming them.
+
+Not done in this phase: the Docker E2E extension of
+`TestOperatorBuildsAClubAndAPlayerSignsIn` that the design's §6 asks for first
+— operator creates a coach, the coach completes setup, provisions a player,
+sets an assignment, the player completes it, the coach sees the completion —
+is still owed as the release-candidate pass before this phase ships. Targeted
+Go unit tests cover the store logic (catalog approval, window validation, the
+three-way grouping) and a Vitest component test covers the frontend panel;
+neither substitutes for that full-seam pass.

@@ -43,6 +43,10 @@ type StaffRepository interface {
 	UnassignCoach(context.Context, string, string) error
 	Audit(context.Context, store.AuditFilter) ([]store.AdminAuditEntry, error)
 	RecordAdminAction(context.Context, string, string, string, string, map[string]any) error
+	ListAssignmentCatalog(context.Context) ([]store.AssignmentCatalogEntry, error)
+	CreateAssignment(context.Context, string, store.AssignmentInput) (string, error)
+	ListAssignments(context.Context, string) ([]store.AssignmentSummary, error)
+	CurrentAssignmentCompletion(context.Context, string) (store.AssignmentCompletion, error)
 }
 
 type CredentialManager interface {
@@ -81,6 +85,9 @@ func (service *service) registerStaffRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v1/staff/teams/{teamId}/roster", service.startMembership)
 	mux.HandleFunc("DELETE /v1/staff/teams/{teamId}/roster/{playerId}", service.endMembership)
 	mux.HandleFunc("POST /v1/staff/teams/{teamId}/players", service.provisionPlayer)
+	mux.HandleFunc("GET /v1/staff/assignment-catalog", service.getAssignmentCatalog)
+	mux.HandleFunc("GET /v1/staff/teams/{teamId}/assignments", service.listAssignments)
+	mux.HandleFunc("POST /v1/staff/teams/{teamId}/assignments", service.createAssignment)
 	mux.HandleFunc("GET /v1/staff/players/{playerId}", service.getPlayerDetail)
 	mux.HandleFunc("POST /v1/staff/players/{playerId}/credential", service.repairCredential)
 	mux.HandleFunc("POST /v1/staff/players/{playerId}/deactivate", service.deactivatePlayer)
@@ -384,6 +391,68 @@ func (service *service) provisionPlayer(w http.ResponseWriter, r *http.Request) 
 	service.record(r.Context(), actor, "player.provision", "player", playerID, map[string]any{"teamId": teamID})
 	reveal["playerId"], reveal["accountId"] = playerID, accountID
 	writeJSON(w, http.StatusCreated, reveal)
+}
+
+// F-C7's picker. Any authenticated staff account may read the catalog; only
+// teamActor gates actually assigning from it.
+func (service *service) getAssignmentCatalog(w http.ResponseWriter, r *http.Request) {
+	if _, ok := service.staffActor(w, r); !ok {
+		return
+	}
+	catalog, err := service.staffStore.ListAssignmentCatalog(r.Context())
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"catalog": catalog})
+}
+
+// F-C7 and F-C8 on one read: the team's assignment history plus the live
+// assignment's Completed / One Away / Keep Going grouping (REQ-506).
+func (service *service) listAssignments(w http.ResponseWriter, r *http.Request) {
+	teamID := r.PathValue("teamId")
+	if _, ok := service.teamActor(w, r, teamID); !ok {
+		return
+	}
+	assignments, err := service.staffStore.ListAssignments(r.Context(), teamID)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")
+		return
+	}
+	completion, err := service.staffStore.CurrentAssignmentCompletion(r.Context(), teamID)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"assignments": assignments, "current": completion})
+}
+
+func (service *service) createAssignment(w http.ResponseWriter, r *http.Request) {
+	teamID := r.PathValue("teamId")
+	actor, ok := service.teamActor(w, r, teamID)
+	if !ok {
+		return
+	}
+	var request struct {
+		CatalogKey  string  `json:"catalogKey"`
+		TargetValue float64 `json:"targetValue"`
+		TargetUnit  string  `json:"targetUnit"`
+		StartsOn    string  `json:"startsOn"`
+		DueOn       string  `json:"dueOn"`
+	}
+	if err := decodeStrictJSON(w, r, &request); err != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid_request", "The request is invalid.")
+		return
+	}
+	assignmentID, err := service.staffStore.CreateAssignment(r.Context(), teamID, store.AssignmentInput{
+		CatalogKey: request.CatalogKey, TargetValue: request.TargetValue, TargetUnit: request.TargetUnit,
+		StartsOn: request.StartsOn, DueOn: request.DueOn,
+	})
+	if service.writeStaffStoreError(w, r, err) {
+		return
+	}
+	service.record(r.Context(), actor, "assignment.create", "assignment", assignmentID, map[string]any{"teamId": teamID})
+	writeJSON(w, http.StatusCreated, map[string]any{"id": assignmentID})
 }
 
 func (service *service) getPlayerDetail(w http.ResponseWriter, r *http.Request) {
