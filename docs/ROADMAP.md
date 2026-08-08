@@ -17,7 +17,23 @@ implemented. Infrastructure has not yet been created from this repository.
 Team, Leaders, Home, and Record Training now use safe authoritative projections
 in connected mode, and daily backups produce both an encrypted SQLite snapshot
 and a versioned logical export. The next priority is the test-only cloud
-environment, which is operator-assisted.
+environment, which is operator-assisted. The provisioned-player save regression
+is fixed; the next non-operator product slice is the Record Training input pass
+in `UX_GOALS.md`.
+
+### Provisioned-player training-entry regression
+
+Status: **Implemented; targeted Docker verification complete 2026-08-08**
+
+- Training-entry date and membership checks now use the selected team's stored
+  IANA time zone instead of the API process's legacy default time zone.
+- `provision-player` starts membership on the team's local calendar date rather
+  than the host's UTC date.
+- An inactive membership now returns specific, actionable player copy and does
+  not partially write an entry.
+- A black-box regression uses the real admin bootstrap/provisioning binaries,
+  QR+PIN session creation, and public HTTP endpoints to cover today's entry,
+  allowed backdating, detail, deletion, and inactive membership behavior.
 
 ## Recommended next work
 
