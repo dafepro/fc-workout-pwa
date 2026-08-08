@@ -19,6 +19,8 @@ Before planning or editing, read:
 ## Working rules
 
 - Work in small, reviewable steps.
+- Boy Scout rule: leave the code better than you found it. Fix the messes you touch — dedupe, delete dead code, collapse repetition — rather than adding a second copy beside them. Prefer changes that remove lines; if adding a feature means a file grows, shrink the duplication it exposed.
+- Comment only to explain _why_. One line where possible, and only where the code cannot say it itself. Delete comments that restate the code.
 - First produce an implementation plan and proposed file tree.
 - Build the smallest useful interactive prototype before backend work.
 - Keep the UI mobile-first and responsive down to 320 CSS pixels.
@@ -62,3 +64,53 @@ For each task, report:
 2. Important assumptions.
 3. Commands run and results.
 4. Screens or flows that should be reviewed next.
+
+## Operator hints
+
+Hard-won specifics that are easy to lose hours on. Host addresses and key
+material live in `infra/` outputs and the `production` environment, not here.
+
+**GitHub.** The repo is `dafepro`; your `gh` session is probably a different
+account with no admin, so write APIs return `403`. `git push` already works via a
+repo-local credential helper. The `gh` API needs the token passed explicitly:
+`GH_TOKEN="$(gh auth token -h github.com -u dafepro)" gh ...`.
+
+**Releases are manual.** A push to `main` verifies and publishes an image but
+never deploys. To ship, dispatch `backend-image.yml` with `deploy=true`.
+`PRODUCTION_DEPLOY_ENABLED` must be _repository_-scoped: a job-level `if` is
+evaluated before the environment resolves, so an environment-scoped variable is
+invisible there and the job silently skips.
+
+**SSH.** Connect as `zoomigo`, not root. The host key is pinned in
+`infra/known_hosts`, not `~/.ssh/known_hosts` — pass
+`-o UserKnownHostsFile=infra/known_hosts` or the connection dies with "Host key
+verification failed". Pin, don't weaken `StrictHostKeyChecking`. Use the
+reserved IP (it survives Droplet rebuilds), not the Droplet's own. zsh does not
+word-split unquoted variables, so `SSH="ssh -i ..."; $SSH host cmd` fails — put
+the invocation in a small `.sh` wrapper.
+
+**Host with no working sshd.** DigitalOcean's Recovery ISO needs no password.
+Its sshd is publickey-only, so the root password it prints will not work over the
+network; use the web console. Mount the real disk read-only to preserve evidence.
+Rescue root is a small overlay but copies the Droplet's hostname, so `hostname`
+alone will fool you.
+
+**CI gates that bite.** `prettier --check .` covers everything, including
+`.github/workflows/*.yml` and every `.md` — a long markdown table cell breaks the
+build. `scripts/contracts.mjs` matches literal _substrings_, so a commented-out
+line still satisfies it; the guard is weaker than it looks. `scripts/verify.sh`
+runs no shellcheck; `sh -n` is the only shell syntax gate.
+
+**Cloudflare.** The API token is account-owned, so `/user/tokens/verify` returns
+`401 Invalid API Token` even when the token is fine — use
+`/accounts/<id>/tokens/verify`. On `/accounts/<id>/workers/*`, `403 code 10000`
+means missing Workers Scripts: Edit; `403 code 9109` on `/accounts/<id>` is only
+a missing Account Settings: Read and does not matter here.
+
+**Landmines already hit.** cloud-init runs `bootcmd` _before_ `growpart`, so
+anything consuming disk there runs against the un-grown partition — use the
+`swap:` module. `install` under `sudo` changes the destination's owner, which
+once rewrote a `zoomigo:zoomigo` file as `root:root` and broke every release at
+the next unprivileged step. `deploy.sh`'s public readiness probe hairpins through
+Cloudflare, so check the container locally first or an edge misconfig looks like
+a crashed app.
