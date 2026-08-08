@@ -139,4 +139,50 @@ jobs:
           BACKUP_S3_REGION: ${{ vars.BACKUP_S3_REGION }}
           BACKUP_S3_ACCESS_KEY_ID: ${{ secrets.BACKUP_S3_ACCESS_KEY_ID }}
           BACKUP_S3_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_S3_SECRET_ACCESS_KEY }}
-        run: ./deploy/release/release.sh "${{ github.sha }}"
+        # pipefail so tee cannot mask a failing release; the log is captured so
+        # the next step can report what the host said without anyone reading the
+        # raw job output or opening an SSH session.
+        run: |
+          set -o pipefail
+          ./deploy/release/release.sh "${{ github.sha }}" 2>&1 | tee "$RUNNER_TEMP/release.log"
+
+      # production-check.sh already runs on the VM as the last thing deploy-vm.sh
+      # does, and a failure there fails the release. This only surfaces its
+      # verdict in the run summary.
+      - name: Summarize how the host took it
+        if: always()
+        run: |
+          log="$RUNNER_TEMP/release.log"
+          {
+            if [ "${{ job.status }}" = "success" ]; then
+              echo "### Release succeeded"
+            else
+              echo "### Release FAILED"
+            fi
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Revision | \`${{ github.sha }}\` |"
+            echo "| API image | \`ghcr.io/${{ github.repository }}/api:sha-${{ github.sha }}\` |"
+            echo "| VM host | \`${{ vars.DEPLOY_HOST }}\` as \`${{ vars.DEPLOY_USER }}\` |"
+            echo "| API | $(jq -r '"https://" + .apiHostname + "/readyz"' deploy/production.json) |"
+            echo "| PWA | $(jq -r '"https://" + .pwaHostname' deploy/production.json) |"
+            echo ""
+            if [ -f "$log" ]; then
+              echo "#### Host readiness checks"
+              echo ""
+              echo '```'
+              grep -E '^(Prepared|Installed|Created, verified|Pruned|Warning:|error:|Production readiness|Deployed)' "$log" \
+                || echo "(no recognized status lines; see the full log below)"
+              echo '```'
+              echo ""
+              echo "<details><summary>Last 60 lines of the release log</summary>"
+              echo ""
+              echo '```'
+              tail -60 "$log"
+              echo '```'
+              echo "</details>"
+            else
+              echo "The release step produced no log; it failed before running."
+            fi
+          } >>"$GITHUB_STEP_SUMMARY"
