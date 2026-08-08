@@ -21,25 +21,25 @@ remains out of scope and keeps its own release.
 These closed open items from `STAFF_CONSOLE_DESIGN.md` §8 and are recorded in
 `OPEN_DECISIONS.md` as the durable home.
 
-| Question                         | Resolution                                                                                                    |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Access gate mechanism (§8.3)     | Cloudflare Zero Trust Access on `/staff/*`, provisioned in OpenTofu, one-time PIN identity                    |
-| Staff session lifetimes (§8.4)   | 30 minutes idle, 8 hours absolute, 5-minute step-up window, no remembered device                              |
-| Production data gate (SEC-7)     | `PRODUCTION_DATA_APPROVED=true` in production, so the console may provision real players                      |
-| Staff credential delivery (§8.2) | Interim: the operator bootstrap prints a setup link and temporary password on the VM, handed over out of band |
+| Question                            | Resolution                                                                                                            |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Access gate mechanism (§8.3)        | Cloudflare Zero Trust Access on `/staff/*`, provisioned in OpenTofu, one-time PIN identity                            |
+| Staff session lifetimes (§8.4)      | 30 minutes idle, 8 hours absolute, 5-minute step-up window, no remembered device                                      |
+| Production data gate (SEC-7)        | `PRODUCTION_DATA_APPROVED=true` in production, so the console may provision real players                              |
+| Staff credential delivery (§8.2)    | Interim: the operator bootstrap prints a setup link and temporary password on the VM, handed over out of band         |
 | Coach provisioning authority (§8.1) | Decided 2026-08-08 for phase 3: a coach may provision players on their own team, matching the design's recommendation |
 
 ## Phase status
 
-| Phase                | Requirements                             | Status                                              |
-| -------------------- | ---------------------------------------- | --------------------------------------------------- |
-| 0 — sign-in entry    | REQ-101–105                              | Complete                                            |
-| 1 — staff identity   | REQ-106, 107, 201–208, 301–305, 401, 402 | Complete                                            |
-| 2 — operator console | REQ-601–610, 701–704                     | Complete                                            |
-| 3 — coach console    | Migration D, REQ-501–506, 403, 404       | Built; not yet released, below                      |
-| Access gate          | REQ-402                                  | Interim passphrase gate live; Access blocked, below |
+| Phase                | Requirements                             | Status                                                                      |
+| -------------------- | ---------------------------------------- | --------------------------------------------------------------------------- |
+| 0 — sign-in entry    | REQ-101–105                              | Complete                                                                    |
+| 1 — staff identity   | REQ-106, 107, 201–208, 301–305, 401, 402 | Complete                                                                    |
+| 2 — operator console | REQ-601–610, 701–704                     | Complete                                                                    |
+| 3 — coach console    | Migration D, REQ-501–506, 403, 404       | Built; not yet released, below                                              |
+| Access gate          | REQ-402                                  | Interim passphrase gate live; Access blocked, below                         |
 | Release              | —                                        | Phases 0–2 released 2026-08-08 as `960f34e`; phase 3 awaits its own release |
-| First operator       | —                                        | Awaiting the bootstrap command on the host, below   |
+| First operator       | —                                        | Awaiting the bootstrap command on the host, below                           |
 
 ## Blocked
 
