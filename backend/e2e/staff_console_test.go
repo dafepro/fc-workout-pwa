@@ -80,6 +80,19 @@ func TestOperatorBuildsAClubAndAPlayerSignsIn(t *testing.T) {
 	assertStatus(t, replayed, http.StatusUnauthorized)
 	_ = replayed.Body.Close()
 
+	// The code that completed setup is spent. Reusing it inside its own window
+	// is exactly the replay REQ-203 forbids, so signing in has to wait for the
+	// next step -- which is also why setup hands back a session rather than
+	// making a new operator sign in again straight away.
+	spentCode := currentTOTP(secret)
+	spent := staffChallenge(t, api, "operator@zoomigo.test", operatorPassword)
+	reused := api.do(t, http.MethodPost, "/v1/auth/staff-sessions/totp", "", "", map[string]any{
+		"challenge": spent, "code": spentCode,
+	})
+	assertStatus(t, reused, http.StatusUnauthorized)
+	_ = reused.Body.Close()
+
+	waitForNextTOTPStep(t)
 	token := signInAsStaff(t, api, "operator@zoomigo.test", operatorPassword, secret)
 
 	club := staffPost[struct {
@@ -216,7 +229,7 @@ func TestStaffRoutesRefuseTheWrongCredential(t *testing.T) {
 	_ = wrongDoor.Body.Close()
 }
 
-func signInAsStaff(t *testing.T, api apiClient, email, password string, secret []byte) string {
+func staffChallenge(t *testing.T, api apiClient, email, password string) string {
 	t.Helper()
 	challenge := staffPost[struct {
 		Challenge string `json:"challenge"`
@@ -226,6 +239,22 @@ func signInAsStaff(t *testing.T, api apiClient, email, password string, secret [
 	if challenge.Challenge == "" {
 		t.Fatal("a correct password must yield a challenge and no session")
 	}
+	return challenge.Challenge
+}
+
+// Costs up to thirty seconds once, which is the price of exercising the real
+// single-use rule rather than a version of it that lets a code through twice.
+func waitForNextTOTPStep(t *testing.T) {
+	t.Helper()
+	start := time.Now().UTC().Unix() / 30
+	for time.Now().UTC().Unix()/30 == start {
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+
+func signInAsStaff(t *testing.T, api apiClient, email, password string, secret []byte) string {
+	t.Helper()
+	challenge := struct{ Challenge string }{Challenge: staffChallenge(t, api, email, password)}
 	session := staffPost[struct {
 		Token string `json:"token"`
 	}](t, api, "/v1/auth/staff-sessions/totp", "", http.StatusCreated, map[string]any{
