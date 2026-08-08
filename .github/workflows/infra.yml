@@ -125,7 +125,9 @@ jobs:
     timeout-minutes: 15
     environment: production
     permissions:
-      contents: read
+      # contents: write so the pinned host key can be committed back; a Droplet
+      # replacement changes the host key and releases fail until it is pinned.
+      contents: write
       actions: read
     steps:
       - uses: actions/checkout@v4
@@ -165,6 +167,74 @@ jobs:
           DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: tofu apply -input=false tfplan
+
+      # Replacing the Droplet changes its SSH host key, and deploy-vm.sh runs
+      # with StrictHostKeyChecking=yes against infra/known_hosts, so a release
+      # cannot connect until the new key is pinned. Scanning here -- from the
+      # same job that just created the Droplet, seconds after its first boot --
+      # anchors that trust to the DigitalOcean API, which this workflow already
+      # trusts completely to choose the address and provision the image. It
+      # replaces a manual fingerprint copy out of the DigitalOcean console,
+      # which was never a stronger check against DigitalOcean itself.
+      - name: Pin the Droplet host key
+        working-directory: infra/digitalocean
+        run: |
+          host=$(tofu output -raw deploy_host)
+          printf 'DEPLOY_HOST_ACTUAL=%s\n' "$host" >>"$GITHUB_ENV"
+          scan="$RUNNER_TEMP/known_hosts"
+          : >"$scan"
+          for attempt in $(seq 1 30); do
+            if ssh-keyscan -T 10 -t ed25519 "$host" 2>/dev/null | grep ' ssh-ed25519 ' >"$scan"; then
+              break
+            fi
+            echo "sshd is not answering on $host yet (attempt $attempt/30); retrying in 10s..."
+            sleep 10
+          done
+          found=$(grep -c ' ssh-ed25519 ' "$scan" || true)
+          if [ "$found" != "1" ]; then
+            echo "::error::expected exactly one ED25519 host key from $host, got ${found:-0}"
+            exit 1
+          fi
+          install -m 0644 "$scan" "$GITHUB_WORKSPACE/infra/known_hosts"
+          ssh-keygen -E sha256 -lf "$GITHUB_WORKSPACE/infra/known_hosts"
+
+      - name: Commit the pinned host key
+        run: |
+          if git diff --quiet -- infra/known_hosts; then
+            echo "infra/known_hosts already matches the live host." >>"$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add infra/known_hosts
+          git commit -m "chore: pin Droplet host key for ${DEPLOY_HOST_ACTUAL}"
+          git push origin "HEAD:${{ github.ref_name }}"
+          echo "Pinned and committed the host key for ${DEPLOY_HOST_ACTUAL}." >>"$GITHUB_STEP_SUMMARY"
+
+      # GITHUB_TOKEN cannot write Environment variables (that needs repository
+      # admin), so this reports drift rather than fixing it. The Reserved IP is
+      # stable across Droplet rebuilds, so this only fires when the Reserved IP
+      # itself was replaced.
+      - name: Check DEPLOY_HOST is current
+        env:
+          DEPLOY_HOST_VAR: ${{ vars.DEPLOY_HOST }}
+        run: |
+          if [ "$DEPLOY_HOST_VAR" = "$DEPLOY_HOST_ACTUAL" ]; then
+            echo "DEPLOY_HOST is current (${DEPLOY_HOST_ACTUAL})." >>"$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          {
+            echo "### DEPLOY_HOST is stale"
+            echo ""
+            echo "The Reserved IP is now \`${DEPLOY_HOST_ACTUAL}\` but \`vars.DEPLOY_HOST\` is \`${DEPLOY_HOST_VAR:-unset}\`."
+            echo "Releases will target the old address until this is updated:"
+            echo ""
+            echo '```sh'
+            echo "gh variable set DEPLOY_HOST --env production --body ${DEPLOY_HOST_ACTUAL} --repo ${{ github.repository }}"
+            echo '```'
+          } >>"$GITHUB_STEP_SUMMARY"
+          echo "::error::vars.DEPLOY_HOST is stale; see the job summary for the fix"
+          exit 1
 
       - name: Record what was applied
         run: |
