@@ -12,6 +12,26 @@ export const copy = {
     effort: "How hard did you work?",
     exhaustion: "How tired were you after?",
   },
+  intensityValues: {
+    effort: [
+      "Super easy",
+      "Easy",
+      "Moderate",
+      "Getting hard",
+      "Hard",
+      "Very hard",
+      "Max effort",
+    ],
+    exhaustion: [
+      "Not tired",
+      "Barely tired",
+      "A little tired",
+      "Tired",
+      "Very tired",
+      "Really tired",
+      "Drained",
+    ],
+  },
   allEffortCounts: "Every player’s effort counts.",
   recoveryNote:
     "Feeling worn out? Hydrate, take it easy, and check with a parent or coach.",

@@ -39,6 +39,22 @@ test("connected Home and Record Training use the server assignment", async ({
   await page.getByRole("button", { name: "How to do Distance Run" }).click();
   await expect(page.getByText("How to do Distance Run")).toBeVisible();
   await page.keyboard.press("Escape");
+
+  const effort = page.getByRole("slider", {
+    name: "How hard did you work?",
+  });
+  const tiredness = page.getByRole("slider", {
+    name: "How tired were you after?",
+  });
+  await expect(effort).toHaveValue("4");
+  await expect(tiredness).toHaveValue("4");
+  await effort.focus();
+  await page.keyboard.press("ArrowRight");
+  await tiredness.focus();
+  await page.keyboard.press("ArrowLeft");
+  await expect(effort).toHaveValue("5");
+  await expect(tiredness).toHaveValue("3");
+
   const createResponse = page.waitForResponse(
     (response) =>
       response.url().includes("/api/zoomigo/v1/me/training-entries") &&

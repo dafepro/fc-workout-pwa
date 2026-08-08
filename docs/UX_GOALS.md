@@ -266,8 +266,9 @@ Definition of done:
 
 Status: Implemented and targeted-Docker-verified 2026-08-08. The live visual
 pass covered the assigned and alternate paths at 320 CSS pixels, including the
-instruction overlay, direct entry, steppers, feeling labels, and fixed-control
-overlap.
+instruction overlay, direct entry, steppers, feeling controls, and fixed-control
+overlap. A same-day follow-up replaced the feeling choices with stacked sliders
+and aligned session-history visuals with their continuous scales.
 
 Address the concrete alpha and live-review friction as one coherent input pass:
 
@@ -276,8 +277,11 @@ Address the concrete alpha and live-review friction as one coherent input pass:
 - expose shared, activity-specific instructions beside every picker option;
 - add honest per-activity defaults and consistent direct-entry plus stepper
   controls, including quarter-mile Distance Run steps and a one-mile default;
-- replace and reorder feeling faces, show the selected number and label on
-  mobile, and make adjustment targets at least 44 pixels;
+- use always-stacked seven-step sliders with three emoji anchors, no visible
+  numeric or descriptive value text, distinct effort and tiredness gradients,
+  and touch targets at least 44 pixels high;
+- show saved effort and tiredness as positions on compact read-only gradients
+  so session history preserves all seven values without seven separate faces;
 - hide the Record FAB on the Record route before attempting the larger
   button-to-screen morph transition.
 

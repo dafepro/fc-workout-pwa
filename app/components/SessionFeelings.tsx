@@ -1,9 +1,8 @@
+import type { CSSProperties } from "react";
 import { copy } from "../content/copy";
 
-const faces = ["😊", "🙂", "😐", "😓", "😣", "😫", "🥵"];
-
-export function feelingFace(value: number): string {
-  return faces[Math.max(1, Math.min(7, value)) - 1];
+function clampScaleValue(value: number): number {
+  return Math.max(1, Math.min(7, value));
 }
 
 export function SessionFeelings({
@@ -18,15 +17,17 @@ export function SessionFeelings({
   const feelings = [
     {
       key: "effort",
+      icon: "💪",
       label: copy.feelingQuestions.effort,
-      value: effort,
+      value: clampScaleValue(effort),
     },
     {
       key: "exhaustion",
+      icon: "😓",
       label: copy.feelingQuestions.exhaustion,
-      value: exhaustion,
+      value: clampScaleValue(exhaustion),
     },
-  ];
+  ] as const;
 
   return (
     <div
@@ -35,12 +36,20 @@ export function SessionFeelings({
     >
       {feelings.map((feeling) => (
         <span
-          className="session-feelings__item"
+          className={`session-feelings__item session-feelings__item--${feeling.key}`}
           key={feeling.key}
           aria-label={`${feeling.label} ${feeling.value} of 7`}
           title={feeling.label}
         >
-          <span aria-hidden="true">{feelingFace(feeling.value)}</span>
+          <span className="session-feelings__icon" aria-hidden="true">
+            {feeling.icon}
+          </span>
+          <span className="session-feelings__track" aria-hidden="true">
+            <span
+              className="session-feelings__marker"
+              style={{ "--scale-value": feeling.value } as CSSProperties}
+            />
+          </span>
           {detailed ? <small>{feeling.label}</small> : null}
         </span>
       ))}
