@@ -89,10 +89,24 @@ func RestoreEncrypted(ctx context.Context, options RestoreOptions, identityText 
 	return Restore(ctx, options)
 }
 
-func decryptArchiveToTemporary(encryptedPath, identityText string) (string, error) {
-	identity, err := age.ParseX25519Identity(strings.TrimSpace(identityText))
+// The operator supplies the file age-keygen produced, comment lines and all.
+// Exactly one key must remain after those are skipped: an archive has one
+// recovery key, and a file holding several means the wrong file was supplied.
+func parseBackupIdentity(identityText string) (age.Identity, error) {
+	identities, err := age.ParseIdentities(strings.NewReader(identityText))
 	if err != nil {
-		return "", fmt.Errorf("parse backup identity: %w", err)
+		return nil, fmt.Errorf("parse backup identity: %w", err)
+	}
+	if len(identities) != 1 {
+		return nil, fmt.Errorf("backup identity file must hold exactly one key, found %d", len(identities))
+	}
+	return identities[0], nil
+}
+
+func decryptArchiveToTemporary(encryptedPath, identityText string) (string, error) {
+	identity, err := parseBackupIdentity(identityText)
+	if err != nil {
+		return "", err
 	}
 	info, err := os.Stat(encryptedPath)
 	if err != nil {
