@@ -1,3 +1,5 @@
+-- zoomigo:table-rebuild
+
 DROP INDEX IF EXISTS assignments_team_window_idx;
 
 CREATE TABLE assignments_reverted (
