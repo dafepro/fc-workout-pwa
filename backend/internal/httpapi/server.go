@@ -41,6 +41,7 @@ type service struct {
 	store         Repository
 	authenticator authn.Authenticator
 	sessions      SessionManager
+	staff         StaffSessionManager
 	authFixtures  func(context.Context) error
 	now           func() time.Time
 }
@@ -107,6 +108,14 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	mux.Handle("POST /v1/auth/sessions", throttle.guard(http.HandlerFunc(service.createSession)))
 	mux.HandleFunc("GET /v1/auth/session", service.getSession)
 	mux.HandleFunc("DELETE /v1/auth/session", service.revokeSession)
+	// The same throttle instance, so the staff path shares one budget with the
+	// player path rather than adding a second one beside it (SEC-6).
+	mux.Handle("POST /v1/auth/staff-sessions", throttle.guard(http.HandlerFunc(service.beginStaffSession)))
+	mux.Handle("POST /v1/auth/staff-sessions/totp", throttle.guard(http.HandlerFunc(service.completeStaffSession)))
+	mux.Handle("POST /v1/auth/staff-sessions/step-up", throttle.guard(http.HandlerFunc(service.staffStepUp)))
+	mux.Handle("POST /v1/auth/staff-setup", throttle.guard(http.HandlerFunc(service.staffSetup)))
+	mux.HandleFunc("GET /v1/auth/staff-session", service.getStaffSession)
+	mux.HandleFunc("DELETE /v1/auth/staff-session", service.revokeStaffSession)
 	mux.HandleFunc("POST /v1/reactions", service.createReaction)
 	mux.HandleFunc("GET /v1/me/reaction-badges", service.listReactionBadges)
 	mux.HandleFunc("GET /v1/me/training-entries", service.listTrainingEntries)
