@@ -324,6 +324,9 @@ func startLocalAPI(t *testing.T) string {
 		TeamTimeZoneID:    "America/Chicago",
 		EnableE2EFixtures: true,
 		E2EResetKey:       "local-e2e-reset-only",
+		// Match compose.e2e.yaml so the throttle is exercised on both E2E paths.
+		LoginAttemptsPerMinute:       20,
+		GlobalLoginAttemptsPerMinute: 1000,
 	}
 	repository := store.New(db, location)
 	server := httptest.NewServer(httpapi.NewHandler(
