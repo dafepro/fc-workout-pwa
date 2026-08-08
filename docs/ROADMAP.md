@@ -19,9 +19,9 @@ Team, Leaders, Home, and Record Training now use safe authoritative projections
 in connected mode, and daily backups produce both an encrypted SQLite snapshot
 and a versioned logical export. Production operations are codified and rehearsed;
 only operator-performed confirmations remain. The provisioned-player save
-regression is fixed. The next implementation priority is credential
-administration and abuse protection, with the Record Training input pass in
-`UX_GOALS.md` queued behind it.
+regression is fixed, and the Record Training input pass is complete. The next
+implementation priority is credential administration; the next UX slice is the
+completion/reward loop in `UX_GOALS.md`.
 
 ### Provisioned-player training-entry regression
 
@@ -36,6 +36,23 @@ Status: **Implemented; targeted Docker verification complete 2026-08-08**
 - A black-box regression uses the real admin bootstrap/provisioning binaries,
   QR+PIN session creation, and public HTTP endpoints to cover today's entry,
   allowed backdating, detail, deletion, and inactive membership behavior.
+
+### Record Training input pass
+
+Status: **Implemented; targeted Docker and 320-pixel browser verification complete 2026-08-08**
+
+- The selected workout card now opens the approved activity picker as one
+  large target; the redundant Change edge and Record-route floating action are
+  gone.
+- Every approved activity uses shared, centrally maintained instructions in
+  Home and Record Training.
+- Server-owned activity definitions now include entry defaults. Distance Run
+  defaults to one mile and uses quarter-mile steps; every activity supports
+  direct numeric entry plus bounded minus/plus controls.
+- Feeling controls use a clearer face sequence, visible selected values and
+  labels on phones, and 44-pixel adjustment targets.
+- Connected browser coverage exercises the assigned path, picker, alternate
+  instructions, fixed-control absence, and save flow at 320 CSS pixels.
 
 ## Recommended next work
 

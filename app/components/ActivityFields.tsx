@@ -2,39 +2,45 @@
 
 import { getActivityInput } from "../domain/rules";
 import type { ActivityDefinition, ActivityId } from "../domain/types";
+import { WorkoutInstructions } from "./WorkoutInstructions";
 
 export function ActivitySelector({
   selected,
   onSelect,
   activities,
+  recommended,
 }: {
   selected: ActivityId;
   onSelect: (activityId: ActivityId) => void;
   activities: ActivityDefinition[];
+  recommended?: ActivityId;
 }) {
   return (
     <fieldset className="activity-picker">
       <legend className="sr-only">Activity</legend>
       <div className="activity-picker__grid">
         {activities.map((activity) => (
-          <label
+          <div
             key={activity.id}
             className={`activity-choice ${selected === activity.id ? "is-selected" : ""}`}
           >
-            <input
-              type="radio"
-              name="activity"
-              value={activity.id}
-              checked={selected === activity.id}
-              onChange={() => onSelect(activity.id)}
-            />
-            <span className="activity-choice__icon" aria-hidden="true">
-              {activity.icon}
-            </span>
-            <span>
-              <strong>{activity.name}</strong>
-            </span>
-            {activity.id === "hill-sprints" ? (
+            <label>
+              <input
+                type="radio"
+                name="activity"
+                value={activity.id}
+                checked={selected === activity.id}
+                onChange={() => onSelect(activity.id)}
+              />
+              <span className="activity-choice__icon" aria-hidden="true">
+                {activity.icon}
+              </span>
+              <span className="activity-choice__copy">
+                <strong>{activity.name}</strong>
+                <small>{activity.description}</small>
+              </span>
+            </label>
+            {activity.id === recommended ? (
               <span
                 className="activity-choice__recommended"
                 aria-label="Coach pick"
@@ -43,7 +49,11 @@ export function ActivitySelector({
                 ★
               </span>
             ) : null}
-          </label>
+            <WorkoutInstructions
+              activityName={activity.name}
+              instructions={activity.instructions}
+            />
+          </div>
         ))}
       </div>
     </fieldset>
@@ -64,28 +74,32 @@ export function ActivitySpecificFields({
   const activity = getActivityInput(activities, activityId);
   if (!activity) return null;
 
+  const decimals = activity.step.toString().split(".")[1]?.length ?? 0;
+  const adjust = (direction: -1 | 1) => {
+    const next = value + direction * activity.step;
+    onChange(
+      Number(
+        Math.min(activity.max, Math.max(activity.min, next)).toFixed(decimals),
+      ),
+    );
+  };
+  const incrementUnit =
+    activity.step === 1
+      ? { reps: "rep", minutes: "minute", miles: "mile" }[activity.unit]
+      : activity.unit;
+
   return (
     <div className="field-card" data-testid="activity-fields">
       <label htmlFor="activity-value">{activity.fieldLabel}</label>
-      {activity.inputKind === "repetitions" ? (
-        <div className="stepper">
-          <button
-            type="button"
-            aria-label="Remove one repetition"
-            onClick={() => onChange(Math.max(activity.min, value - 1))}
-          >
-            −
-          </button>
-          <strong>{value}</strong>
-          <button
-            type="button"
-            aria-label="Add one repetition"
-            onClick={() => onChange(Math.min(activity.max, value + 1))}
-          >
-            +
-          </button>
-        </div>
-      ) : (
+      <div className="stepper">
+        <button
+          type="button"
+          aria-label={`Remove ${activity.step} ${incrementUnit}`}
+          disabled={value <= activity.min}
+          onClick={() => adjust(-1)}
+        >
+          −
+        </button>
         <div className="input-with-unit">
           <input
             id="activity-value"
@@ -100,7 +114,15 @@ export function ActivitySpecificFields({
           />
           <span>{activity.unit}</span>
         </div>
-      )}
+        <button
+          type="button"
+          aria-label={`Add ${activity.step} ${incrementUnit}`}
+          disabled={value >= activity.max}
+          onClick={() => adjust(1)}
+        >
+          +
+        </button>
+      </div>
       {activityId === "hill-sprints" ? (
         <p className="field-card__context">6 seconds each</p>
       ) : null}

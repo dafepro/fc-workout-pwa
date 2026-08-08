@@ -1,6 +1,6 @@
 import { copy } from "../content/copy";
 
-const faces = ["🙂", "😊", "😌", "😮", "😓", "😣", "🥵"];
+const faces = ["😊", "🙂", "😐", "😓", "😣", "😫", "🥵"];
 
 export function feelingFace(value: number): string {
   return faces[Math.max(1, Math.min(7, value)) - 1];

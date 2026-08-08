@@ -23,6 +23,7 @@ type ActivityDefinitionProjection struct {
 	MinimumValue float64 `json:"minimumValue"`
 	MaximumValue float64 `json:"maximumValue"`
 	StepValue    float64 `json:"stepValue"`
+	DefaultValue float64 `json:"defaultValue"`
 }
 
 type AssignmentProjection struct {
@@ -109,7 +110,7 @@ func (store *Store) TrainingDashboard(ctx context.Context, actor domain.Actor, t
 }
 
 func (store *Store) approvedActivities(ctx context.Context) ([]ActivityDefinitionProjection, error) {
-	rows, err := store.db.QueryContext(ctx, `SELECT id, name, input_kind, unit, minimum_value, maximum_value, step_value
+	rows, err := store.db.QueryContext(ctx, `SELECT id, name, input_kind, unit, minimum_value, maximum_value, step_value, default_value
 		FROM activity_definitions WHERE approved_for_player_entry = 1 ORDER BY id`)
 	if err != nil {
 		return nil, fmt.Errorf("list activity catalog: %w", err)
@@ -118,7 +119,7 @@ func (store *Store) approvedActivities(ctx context.Context) ([]ActivityDefinitio
 	items := make([]ActivityDefinitionProjection, 0)
 	for rows.Next() {
 		var item ActivityDefinitionProjection
-		if err := rows.Scan(&item.ID, &item.Name, &item.InputKind, &item.Unit, &item.MinimumValue, &item.MaximumValue, &item.StepValue); err != nil {
+		if err := rows.Scan(&item.ID, &item.Name, &item.InputKind, &item.Unit, &item.MinimumValue, &item.MaximumValue, &item.StepValue, &item.DefaultValue); err != nil {
 			return nil, fmt.Errorf("scan activity catalog: %w", err)
 		}
 		items = append(items, item)

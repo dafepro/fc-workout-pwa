@@ -67,7 +67,7 @@ export default function LogPage() {
     setValue(
       assignment?.activityDefinitionId === selected.id
         ? assignment.targetValue
-        : selected.min,
+        : selected.defaultValue,
     );
   }, [activities, assignment]);
 
@@ -77,7 +77,7 @@ export default function LogPage() {
     setValue(
       assignment?.activityDefinitionId === next
         ? assignment.targetValue
-        : (nextActivity?.min ?? 1),
+        : (nextActivity?.defaultValue ?? 1),
     );
     setMessage(null);
     setShowActivities(false);
@@ -164,32 +164,33 @@ export default function LogPage() {
       ) : null}
 
       <form className="log-form" onSubmit={submit}>
-        <section
+        <button
+          type="button"
           className={`selected-activity selected-activity--${activityId}`}
-          aria-label="Selected workout"
+          aria-label={`Selected workout: ${selectedActivity.name}. ${showActivities ? "Close activity choices" : "Choose another activity"}`}
+          aria-expanded={showActivities}
+          aria-controls="activity-options"
+          onClick={() => setShowActivities((visible) => !visible)}
         >
           <span className="selected-activity__icon" aria-hidden="true">
             {selectedActivity.icon}
           </span>
-          <div>
+          <span className="selected-activity__copy">
             <small>Workout</small>
             <strong>{selectedActivity.name}</strong>
-          </div>
-          <button
-            type="button"
-            aria-expanded={showActivities}
-            aria-controls="activity-options"
-            onClick={() => setShowActivities((visible) => !visible)}
-          >
-            {showActivities ? "Close" : "Change"}
-          </button>
-        </section>
+            <small>{selectedActivity.description}</small>
+          </span>
+          <span className="selected-activity__chevron" aria-hidden="true">
+            {showActivities ? "⌃" : "⌄"}
+          </span>
+        </button>
         {showActivities ? (
           <div id="activity-options">
             <ActivitySelector
               selected={activityId}
               onSelect={chooseActivity}
               activities={activities}
+              recommended={assignment?.activityDefinitionId}
             />
           </div>
         ) : null}

@@ -264,6 +264,11 @@ Definition of done:
 
 ### P1 — Make Record Training obvious, legible, and thumb-friendly
 
+Status: Implemented and targeted-Docker-verified 2026-08-08. The live visual
+pass covered the assigned and alternate paths at 320 CSS pixels, including the
+instruction overlay, direct entry, steppers, feeling labels, and fixed-control
+overlap.
+
 Address the concrete alpha and live-review friction as one coherent input pass:
 
 - make the selected activity card the picker trigger and remove its Change

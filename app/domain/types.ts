@@ -16,8 +16,10 @@ export interface ActivityDefinition {
   min: number;
   max: number;
   step: number;
+  defaultValue: number;
   fieldLabel: string;
   description: string;
+  instructions: readonly string[];
 }
 
 export interface TrainingEntry {

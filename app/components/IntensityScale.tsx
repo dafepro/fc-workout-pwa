@@ -6,21 +6,21 @@ const effortLabels = [
   "Super easy",
   "Easy",
   "Moderate",
+  "Getting hard",
   "Hard",
   "Very hard",
-  "Super hard",
   "Max effort",
 ];
 const exhaustionLabels = [
   "Not tired",
+  "Barely tired",
   "A little tired",
-  "Somewhat tired",
   "Tired",
   "Very tired",
   "Really tired",
   "Drained",
 ];
-const faces = ["🙂", "😊", "😌", "😮", "😓", "😣", "🥵"];
+const faces = ["😊", "🙂", "😐", "😓", "😣", "😫", "🥵"];
 
 function IntensityChoice({
   name,
@@ -56,7 +56,9 @@ function IntensityChoice({
           aria-label={`${selectedLabel}, ${value} of 7`}
         >
           <span aria-hidden="true">{faces[value - 1]}</span>
-          <span className="sr-only">{selectedLabel}</span>
+          <small aria-hidden="true">
+            {value} · {selectedLabel}
+          </small>
         </output>
         <button
           type="button"

@@ -16,6 +16,7 @@ describe("connected training dashboard gateway", () => {
           minimumValue: 1,
           maximumValue: 20,
           stepValue: 1,
+          defaultValue: 8,
         },
       ],
       currentAssignment: null,
@@ -41,7 +42,7 @@ describe("connected training dashboard gateway", () => {
       createTrainingDashboardGateway(true, "team-real").get(),
     ).resolves.toMatchObject({
       team: { id: "team-real", weeklyGoal: 4 },
-      activities: [{ id: "hill-sprints", min: 1, max: 20 }],
+      activities: [{ id: "hill-sprints", min: 1, max: 20, defaultValue: 8 }],
       summary: { effortPoints: 42 },
     });
     expect(fetch).toHaveBeenCalledWith(
