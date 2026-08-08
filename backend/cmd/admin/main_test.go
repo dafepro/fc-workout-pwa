@@ -138,6 +138,51 @@ func TestDeactivatePlayerRevokesAccessAndKeepsTheRecord(t *testing.T) {
 	}
 }
 
+// The audit trail is the only durable record of who was issued or denied
+// access, and an operator must be able to read it without a SQL client.
+func TestAuditReportsCredentialLifecycleWithoutSecrets(t *testing.T) {
+	databaseURL, player := provisionedTestPlayer(t)
+	playerID := player["playerId"].(string)
+	adminRun(t, databaseURL, "revoke-player-login", "--player-id", playerID)
+
+	audit := adminRun(t, databaseURL, "audit", "--player-id", playerID)
+	events, ok := audit["events"].([]any)
+	if !ok || len(events) < 2 {
+		t.Fatalf("audit returned %+v", audit)
+	}
+	types := map[string]bool{}
+	for _, raw := range events {
+		event := raw.(map[string]any)
+		types[event["eventType"].(string)] = true
+		if event["occurredAt"] == "" || event["playerId"] != playerID {
+			t.Fatalf("incomplete audit event: %+v", event)
+		}
+	}
+	for _, want := range []string{"credential_issued", "credential_revoked"} {
+		if !types[want] {
+			t.Fatalf("audit omitted %q; saw %v", want, types)
+		}
+	}
+	raw, err := json.Marshal(audit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(raw), player["pin"].(string)) || strings.Contains(string(raw), "credential=") {
+		t.Fatal("audit leaked a secret")
+	}
+}
+
+func TestAuditHonoursItsLimit(t *testing.T) {
+	databaseURL, player := provisionedTestPlayer(t)
+	playerID := player["playerId"].(string)
+	adminRun(t, databaseURL, "revoke-player-login", "--player-id", playerID)
+
+	audit := adminRun(t, databaseURL, "audit", "--player-id", playerID, "--limit", "1")
+	if events := audit["events"].([]any); len(events) != 1 {
+		t.Fatalf("audit --limit 1 returned %d events", len(events))
+	}
+}
+
 func TestDeactivatePlayerRejectsAnUnknownPlayer(t *testing.T) {
 	databaseURL, _ := provisionedTestPlayer(t)
 	var stdout bytes.Buffer
