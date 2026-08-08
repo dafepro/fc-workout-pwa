@@ -108,3 +108,38 @@ variable "repository_url" {
     error_message = "repository_url must be a public HTTPS GitHub repository."
   }
 }
+
+variable "cloudflare_account_id" {
+  description = "Cloudflare account identifier owning the Zero Trust organization that gates the staff console."
+  type        = string
+  sensitive   = true
+
+  validation {
+    condition     = can(regex("^[0-9a-f]{32}$", var.cloudflare_account_id))
+    error_message = "cloudflare_account_id must be a 32-character Cloudflare account identifier."
+  }
+}
+
+variable "staff_console_email_addresses" {
+  description = "Email addresses allowed through the staff console access gate. Named addresses only: this surface can read every child in every club."
+  type        = list(string)
+  sensitive   = true
+
+  validation {
+    condition = length(var.staff_console_email_addresses) > 0 && alltrue([
+      for address in var.staff_console_email_addresses : can(regex("^[^@[:space:]]+@[^@[:space:]]+\\.[^@[:space:]]+$", address))
+    ])
+    error_message = "Provide at least one valid staff console email address."
+  }
+}
+
+variable "staff_console_team_domain" {
+  description = "Zero Trust team domain label to create, without the .cloudflareaccess.com suffix. Leave empty when the account already has an organization, so the apply uses it instead of creating a second."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.staff_console_team_domain == "" || can(regex("^[a-z0-9-]{1,63}$", var.staff_console_team_domain))
+    error_message = "staff_console_team_domain must be a lowercase DNS label."
+  }
+}
