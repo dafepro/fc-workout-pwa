@@ -3,8 +3,8 @@
 # Roadmap step 5 ("Prove production operations with test data") is six drills.
 # This harness runs the half of each one that a container can prove on its own,
 # against the real deploy/vm/compose.yaml stack and the real operator scripts --
-# never against a cloud service. The live-host and operator halves are recorded
-# in docs/backend/PRODUCTION_DRILL_LOG.md and checked by drill-attestations.mjs.
+# never against a cloud service. scripts/host-drills.sh covers the read-only
+# live-host half.
 
 set -eu
 

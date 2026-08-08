@@ -99,8 +99,7 @@ plan approval, and host-fingerprint comparison remain operator actions.
 
 ### 5. Prove production operations with test data
 
-Status: **Codified; container drills pass, live-host and operator halves blocked
-on item 4**
+Status: **Codified; container drills pass, live-host checks blocked on item 4**
 
 - Verify alert delivery and bounded logs on the 512 MiB Droplet.
 - Prove the first encrypted R2 upload and retention behavior.
@@ -110,15 +109,15 @@ on item 4**
 - Exercise the local incident-release path independently of GitHub Actions.
 - Run one intentional full `./scripts/verify.sh --all` release-candidate pass.
 
-The `Production operations drills` workflow is the gate for all six. Dispatch it
-manually; it never deploys or mutates production. `./scripts/drills.sh` rehearses
-the mechanics of every drill in containers and runs anywhere Docker does.
-`scripts/host-drills.sh` adds the read-only live-host checks, and the halves no
-runner can honestly prove — an alert reaching an inbox, a real R2 upload, the
-timed restore and cutover on real data, a release from an operator's own machine
-— are recorded in `docs/backend/PRODUCTION_DRILL_LOG.md` and checked by
-`node scripts/drill-attestations.mjs`. The workflow's summary explains each
-failure and how to reproduce it locally.
+The `Production operations drills` workflow covers the mechanics of all six.
+Dispatch it manually; it never deploys or mutates production.
+`./scripts/drills.sh` rehearses every drill in containers and runs anywhere
+Docker does, and `scripts/host-drills.sh` adds the read-only live-host checks.
+Its summary explains each failure and how to reproduce it locally.
+
+A green run means the mechanics hold. It does not mean step 5 is signed off:
+an alert reaching an inbox, the timed restore and cutover on real archives, and
+one release driven from an operator's own machine still have to be done by hand.
 
 ### 6. Complete production owner approvals
 
