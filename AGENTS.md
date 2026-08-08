@@ -89,7 +89,24 @@ invisible there and the job silently skips.
 verification failed". Pin, don't weaken `StrictHostKeyChecking`. Use the
 reserved IP (it survives Droplet rebuilds), not the Droplet's own. zsh does not
 word-split unquoted variables, so `SSH="ssh -i ..."; $SSH host cmd` fails — put
-the invocation in a small `.sh` wrapper.
+the invocation in a small `.sh` wrapper. The key is `~/.ssh/id_ed25519`;
+`zoomigo_github_deploy` is CI's and the host rejects it.
+
+**Admin commands on the host.** The `admin` service sits behind a Compose
+profile, so it needs all of
+`cd /opt/app/deploy/vm && sudo -n docker compose --env-file .env --profile operations run --rm --no-TTY admin <subcommand>`.
+Without `--profile operations` Compose claims the service does not exist.
+
+**A complete deploy can still fail the release.** `production-check.sh` runs
+last and fails on `/var/run/reboot-required`, so unattended kernel/libc updates
+turn an otherwise finished deploy red. Reboot the VM and re-dispatch; the
+containers are `restart: unless-stopped` and come back without help.
+
+**Schema literals that must be bumped.** `internal/database/database_test.go`
+asserts an exact `schema_migrations` count, so any new migration fails it until
+that number changes. `auth_audit_events.event_type` is `CHECK`-constrained to
+six values, so a new event type means rebuilding the table. `accounts.status`
+accepts only `active` and `disabled`.
 
 **Host with no working sshd.** DigitalOcean's Recovery ISO needs no password.
 Its sshd is publickey-only, so the root password it prints will not work over the
