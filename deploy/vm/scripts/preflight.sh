@@ -47,6 +47,21 @@ case "$production_data_approved" in
 	*) fail "PRODUCTION_DATA_APPROVED must be true or false" ;;
 esac
 
+# Empty is allowed and means the console is off; a wrong value is not, because
+# it would fail at staff sign-in rather than here.
+staff_secret_key=$(env_value STAFF_SECRET_KEY)
+if [ -n "$staff_secret_key" ]; then
+	printf '%s' "$staff_secret_key" | grep -Eq '^[A-Za-z0-9+/]{43}=$' || fail "STAFF_SECRET_KEY must be 32 base64-encoded bytes"
+fi
+for console_url_name in PLAYER_LOGIN_URL STAFF_SETUP_URL; do
+	console_url=$(env_value "$console_url_name")
+	case "$console_url" in
+		"") ;;
+		https://*) ;;
+		*) fail "$console_url_name must be an absolute https URL" ;;
+	esac
+done
+
 case "$pwa_origin" in
 	https://*/*) fail "PWA_ORIGIN must not include a path or trailing slash" ;;
 	https://*) ;;

@@ -15,7 +15,8 @@ case "$release_sha" in *[!0-9a-f]*|"") printf '%s\n' "invalid release SHA" >&2; 
 identity_file="$secrets_directory/deploy_ssh_key"
 known_hosts_file="$secrets_directory/known_hosts"
 backup_environment="$secrets_directory/backup-s3.env"
-chmod 0600 "$identity_file" "$known_hosts_file" "$backup_environment"
+console_environment="$secrets_directory/console.env"
+chmod 0600 "$identity_file" "$known_hosts_file" "$backup_environment" "$console_environment"
 ssh_target="${DEPLOY_USER}@${DEPLOY_HOST}"
 
 run_ssh() {
@@ -39,6 +40,13 @@ run_ssh "sudo -n install -d -m 0755 /etc/zoomigo && sudo -n sh -c 'umask 077; ca
 run_ssh "if sudo -n test -f /var/lib/zoomigo/data/zoomigo.db; then sudo -n systemctl start zoomigo-backup.service; fi"
 
 image="ghcr.io/dafepro/fc-workout-pwa/api:sha-$release_sha"
-run_ssh "set -eu; cd /opt/app; test -z \"\$(git status --porcelain --untracked-files=no)\"; git fetch --depth=1 origin '$release_sha'; git checkout --detach '$release_sha'; cd deploy/vm; sudo -n ./scripts/set-release.sh .env '$image' '$release_sha'; sudo -n ./scripts/prepare-host.sh .env; ./scripts/preflight.sh .env; ./scripts/deploy.sh .env; sudo -n ./scripts/install-backup-service.sh; sudo -n systemctl enable --now zoomigo-backup.timer; sudo -n systemctl start zoomigo-backup.service; sudo -n ./scripts/production-check.sh .env --check-s3"
+run_ssh "set -eu; cd /opt/app; test -z \"\$(git status --porcelain --untracked-files=no)\"; git fetch --depth=1 origin '$release_sha'; git checkout --detach '$release_sha'; cd deploy/vm; sudo -n ./scripts/set-release.sh .env '$image' '$release_sha'"
+
+# A connection of its own, so the staff secret arrives on standard input rather
+# than inside a command string that sshd and any process list would show. The
+# script comes from the checkout above, so this cannot run before it.
+run_ssh "cd /opt/app/deploy/vm && sudo -n ./scripts/set-console-settings.sh .env" <"$console_environment"
+
+run_ssh "set -eu; cd /opt/app/deploy/vm; sudo -n ./scripts/prepare-host.sh .env; ./scripts/preflight.sh .env; ./scripts/deploy.sh .env; sudo -n ./scripts/install-backup-service.sh; sudo -n systemctl enable --now zoomigo-backup.timer; sudo -n systemctl start zoomigo-backup.service; sudo -n ./scripts/production-check.sh .env --check-s3"
 
 printf '%s\n' "Deployed and verified ZoomiGo VM release $release_sha."

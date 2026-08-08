@@ -65,6 +65,7 @@ async function deploymentContract() {
     "deploy/vm/systemd/zoomigo-backup.service",
     "deploy/vm/systemd/zoomigo-backup.timer",
     "deploy/vm/scripts/production-check.sh",
+    "deploy/vm/scripts/set-console-settings.sh",
     "deploy/vm/scripts/upload-backup-s3.sh",
     "deploy/vm/scripts/install-backup-service.sh",
     "docs/backend/PRODUCTION_APPROVAL_CHECKLIST.md",

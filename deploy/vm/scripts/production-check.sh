@@ -38,6 +38,35 @@ curl --fail --silent --show-error "https://${site_address}/readyz" >/dev/null ||
 private_status=$(curl --silent --output /dev/null --write-out '%{http_code}' "https://${site_address}/v1/me/training-entries")
 [ "$private_status" = "401" ] || fail "the unauthenticated private-route check returned HTTP $private_status, want 401"
 
+# One assertion per staff route family (REQ-304). A console route that answered
+# anything else without credentials would be a release-stopping regression, and
+# this is the check that stops it.
+for staff_route in \
+	/v1/auth/staff-session \
+	/v1/staff/search \
+	/v1/staff/clubs \
+	/v1/staff/teams \
+	/v1/staff/players/unknown \
+	/v1/staff/accounts \
+	/v1/staff/audit
+do
+	staff_status=$(curl --silent --output /dev/null --write-out '%{http_code}' "https://${site_address}${staff_route}")
+	[ "$staff_status" = "401" ] || fail "unauthenticated ${staff_route} returned HTTP $staff_status, want 401"
+done
+
+# Staff sign-in must exist and must refuse a password on its own. A 503 here
+# means STAFF_SECRET_KEY never reached the container, which would leave the
+# console unusable while everything else looked healthy.
+staff_sign_in_status=$(curl --silent --output /dev/null --write-out '%{http_code}' \
+	--request POST --header 'Content-Type: application/json' \
+	--data '{"email":"release-check@invalid.test","password":"not-a-real-password"}' \
+	"https://${site_address}/v1/auth/staff-sessions")
+case "$staff_sign_in_status" in
+	401|429) ;;
+	503) fail "staff sign-in is unavailable; STAFF_SECRET_KEY is probably not set on the API container" ;;
+	*) fail "staff sign-in returned HTTP $staff_sign_in_status for a bad password, want 401" ;;
+esac
+
 systemctl is-enabled --quiet zoomigo-backup.timer || fail "the backup timer is not enabled"
 systemctl is-active --quiet zoomigo-backup.timer || fail "the backup timer is not active"
 
