@@ -74,19 +74,14 @@ export default function LeadersPage() {
   async function react(type: ReactionType, emoji: string) {
     if (!selectedPlayer) return;
     const teammate = selectedPlayer;
-    const result = await sendReaction(teammate.id, type, {
+    setSentLabel("");
+    await sendReaction(teammate.id, type, {
       type: "leaderboard",
       teamId: teamID,
       period: apiPeriod,
       metric: apiMetric,
     });
-    setSentLabel(
-      copy.cheers.sent(
-        emoji,
-        teammate.firstName,
-        result.remainingForRecipientToday,
-      ),
-    );
+    setSentLabel(copy.cheers.sent(emoji, teammate.firstName));
     setSelectedPlayer(null);
   }
 
