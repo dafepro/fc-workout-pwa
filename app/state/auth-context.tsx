@@ -7,6 +7,7 @@ import { CURRENT_PLAYER_ID, players } from "../data/mockData";
 import type { Player } from "../domain/types";
 import { TrainingProvider } from "./training-context";
 import { copy } from "../content/copy";
+import { routes } from "../content/routes";
 
 interface SessionProfile {
   accountId: string;
@@ -40,7 +41,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   >({ status: "checking" });
 
   useEffect(() => {
-    if (pathname === "/login") {
+    if (outsideThePlayerApp(pathname)) {
       return;
     }
     let active = true;
@@ -63,7 +64,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         ) {
           setState({ status: "local" });
         } else if (response.status === 401) {
-          router.replace("/login");
+          router.replace(routes.playerSignIn);
         } else {
           setState({ status: "unavailable" });
         }
@@ -75,7 +76,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     };
   }, [pathname, router]);
 
-  if (pathname === "/login") return <>{children}</>;
+  if (outsideThePlayerApp(pathname)) return <>{children}</>;
   if (state.status === "checking") {
     return <main className="auth-state">{copy.auth.opening}</main>;
   }
@@ -121,7 +122,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     currentPlayer,
     async signOut() {
       await fetch("/api/auth/session", { method: "DELETE" });
-      router.replace("/login");
+      router.replace(routes.playerSignIn);
     },
   };
   return (
@@ -141,6 +142,14 @@ export function useAuth(): AuthState {
   const value = useContext(AuthContext);
   if (!value) throw new Error("useAuth must be used inside AuthGate");
   return value;
+}
+
+/** The sign-in page and the staff console both authenticate for themselves, and
+ * neither may be wrapped in the player shell. */
+function outsideThePlayerApp(pathname: string): boolean {
+  return (
+    pathname === routes.playerSignIn || pathname.startsWith(routes.staffPrefix)
+  );
 }
 
 function connectedAvatarColor(id: string): string {
