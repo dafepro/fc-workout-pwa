@@ -1,6 +1,7 @@
 "use client";
 
 import { copy } from "../content/copy";
+import { RangeSlider } from "./RangeSlider";
 
 const scaleAnchors = {
   effort: ["👌", "💪", "💥"],
@@ -25,18 +26,17 @@ function IntensityChoice({
   return (
     <fieldset className={`intensity-choice intensity-choice--${name}`}>
       <legend>{title}</legend>
-      <div className="intensity-slider">
-        <input
-          type="range"
-          name={name}
-          min="1"
-          max="7"
-          step="1"
-          value={value}
-          aria-label={title}
-          aria-valuetext={`${labels[value - 1]}, ${value} of 7`}
-          onChange={(event) => onChange(Number(event.target.value))}
-        />
+      <RangeSlider
+        className="intensity-slider"
+        name={name}
+        label={title}
+        valueText={`${labels[value - 1]}, ${value} of 7`}
+        value={value}
+        min={1}
+        max={7}
+        step={1}
+        onChange={onChange}
+      >
         <div
           className="intensity-slider__anchors"
           data-testid={`${name}-anchors`}
@@ -46,7 +46,7 @@ function IntensityChoice({
             <span key={anchor}>{anchor}</span>
           ))}
         </div>
-      </div>
+      </RangeSlider>
     </fieldset>
   );
 }
