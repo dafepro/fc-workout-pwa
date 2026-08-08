@@ -37,37 +37,40 @@ These closed open items from `STAFF_CONSOLE_DESIGN.md` §8 and are recorded in
 | 1 — staff identity   | REQ-106, 107, 201–208, 301–305, 401, 402 | Complete                                                                    |
 | 2 — operator console | REQ-601–610, 701–704                     | Complete                                                                    |
 | 3 — coach console    | Migration D, REQ-501–506, 403, 404       | Built; not yet released, below                                              |
-| Access gate          | REQ-402                                  | Interim passphrase gate live; Access blocked, below                         |
+| Access gate          | REQ-402                                  | Interim passphrase gate live; Access blocked on account onboarding, below   |
 | Release              | —                                        | Phases 0–2 released 2026-08-08 as `960f34e`; phase 3 awaits its own release |
-| First operator       | —                                        | Awaiting the bootstrap command on the host, below                           |
+| First operator       | —                                        | Created 2026-08-08 for the project operator; setup link not yet redeemed    |
 
 ## Blocked
 
-**Cloudflare Access needs two token scopes.** `infra/digitalocean/access.tf`
-provisions the Zero Trust application, policy, one-time-PIN identity provider,
-and organization. `tofu plan` is clean, but `apply` returns
-`403 code 10000` on every Access call: the account-owned
-`CLOUDFLARE_API_TOKEN` carries no Zero Trust permissions. Add **Access: Apps
-and Policies → Edit** and **Access: Organizations, Identity Providers, and
-Groups → Edit** to that token and re-run `infra.yml`, first `plan` and then
-`apply` with the plan's run ID.
+**Cloudflare Access needs to be enabled on the account, by hand, once.** The
+token scopes that blocked this before are now present: `apply` no longer
+returns `403 code 10000`. It now fails on all three Access resources with
 
-Until then the gate is the interim passphrase in `worker/staff-gate.ts`,
-checked before the request reaches the application and failing closed when no
-key is configured. It is weak as a secret and is not pretending otherwise.
-
-**The first operator account has to be created by hand.** The console cannot
-create the account that signs into it, and the bootstrap runs on the host:
-
-```sh
-cd /opt/app/deploy/vm && sudo -n docker compose --env-file .env \
-  --profile operations run --rm --no-TTY admin \
-  create-operator --email 'dcarrell@axon.com' \
-  --setup-url 'https://zoomigo.quicktrack.cc/staff/setup'
+```text
+access.api.error.not_enabled: Access is not enabled. Visit the Access
+dashboard at https://dash.cloudflare.com/ and click the 'Enable Access' button.
 ```
 
-It prints a one-time setup link and a temporary password, once. See
-`PRODUCTION_RUNBOOK.md` for what to do with them.
+Onboarding Zero Trust is a dashboard action — it picks the team name and the
+plan — and there is no API for it, so OpenTofu cannot bootstrap past it. The
+failed apply created nothing: the application resource was never attempted
+because it depends on the policy and identity provider, so state is clean and a
+re-apply starts from the same place.
+
+To close it: enable Access in the dashboard, choosing team name `zoomigo` so
+the auth domain matches what `access.tf` expects. That leaves the account with
+an organization already created, which is the case `access.tf` line 10 covers —
+so set `STAFF_CONSOLE_TEAM_DOMAIN` to the empty string before re-planning, or
+the apply will try to create a second organization and fail. Then re-run
+`infra.yml`, first `plan` and then `apply` with the plan's run ID.
+
+Until Access is live the gate is still the interim passphrase in
+`worker/staff-gate.ts`, checked before the request reaches the application and
+failing closed when no key is configured. It is weak as a secret and is not
+pretending otherwise. It must not be removed before Access replaces it: it is
+currently the only thing in front of `/staff/*`, including the setup link the
+first operator needs.
 
 ## Log
 
@@ -272,3 +275,33 @@ is still owed as the release-candidate pass before this phase ships. Targeted
 Go unit tests cover the store logic (catalog approval, window validation, the
 three-way grouping) and a Vitest component test covers the frontend panel;
 neither substitutes for that full-seam pass.
+
+### 2026-08-08 — the Access token scopes, and the first operator
+
+The `CLOUDFLARE_API_TOKEN` gained its Zero Trust scopes, so the blocker recorded
+above moved rather than closed. `plan` is clean and `apply` no longer returns
+`403 code 10000` — it now returns `access.api.error.not_enabled` on the
+organization, identity provider, and policy alike. Zero Trust has never been
+onboarded on the account, and that first step is a dashboard action with no API
+behind it. The apply created none of the three, and never reached the
+application resource, so nothing is half-built in state. The remaining step and
+its consequence for `STAFF_CONSOLE_TEAM_DOMAIN` are in **Blocked** above.
+
+The interim passphrase gate therefore stays. It was always meant to be deleted
+the moment Access took over — `worker/staff-gate.ts`, its wiring in
+`worker/index.ts` and `vite.config.ts`, the secret put in
+`deploy/release/release.sh`, and `STAFF_CONSOLE_GATE_KEY` in `release.yml` and
+the production environment all go together — but removing it now would leave
+`/staff/*` open, so it is deliberately untouched.
+
+The bootstrap command now uses the project's designated address. It matches
+`STAFF_CONSOLE_EMAIL_ADDRESSES` to `ALERT_EMAIL_ADDRESSES`, which matters more
+than tidiness: Access admits by exact address and one-time PIN mails the code
+there, so the wrong value in that variable is a lockout rather than a
+cosmetic error.
+
+The first `platform_admin` now exists — `list-staff` returned an empty set
+beforehand, so it is genuinely the first. Its setup link is single use and
+expires 2026-08-15; until it is redeemed the console has no account that can
+sign in. Redeeming it means passing the interim passphrase first, since the
+setup route is under `/staff/*` like everything else.
