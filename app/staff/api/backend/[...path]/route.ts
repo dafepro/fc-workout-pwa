@@ -9,8 +9,9 @@ import { backendOrResponse, unavailable } from "../../upstream";
 
 /**
  * The console's data gateway. It lives under `/staff/api/` deliberately: the
- * access gate in `worker/staff-gate.ts` covers `/staff/*` only, so a gateway
- * anywhere else would sit outside it and lose one of SEC-5's three layers.
+ * Cloudflare Access application in `infra/digitalocean/access.tf` covers
+ * `/staff/*` only, so a gateway anywhere else would sit outside it and lose one
+ * of SEC-5's three layers.
  *
  * Only these exact shapes are proxied. An arbitrary backend path is never
  * reachable through the browser.

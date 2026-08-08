@@ -86,7 +86,6 @@ jobs:
           ZOOMIGO_DEPLOY_SSH_KEY: ${{ secrets.ZOOMIGO_DEPLOY_SSH_KEY }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          STAFF_CONSOLE_GATE_KEY: ${{ secrets.STAFF_CONSOLE_GATE_KEY }}
           STAFF_SECRET_KEY: ${{ secrets.STAFF_SECRET_KEY }}
           PLAYER_LOGIN_URL: ${{ vars.PLAYER_LOGIN_URL }}
           STAFF_SETUP_URL: ${{ vars.STAFF_SETUP_URL }}

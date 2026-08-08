@@ -18,7 +18,6 @@ read them directly; nothing decrypts a file to reach them.
 | `TF_STATE_ACCESS_KEY_ID` / `TF_STATE_SECRET_ACCESS_KEY`   | release, infra          | R2 credentials for the OpenTofu state bucket (`zoomigo-tfstate`).                                                                                                                                                                           |
 | `BACKUP_AGE_IDENTITY`                                     | on-demand restore drill | Private half of the one remaining `age` identity; decrypts SQLite backups.                                                                                                                                                                  |
 | `STAFF_SECRET_KEY`                                        | release                 | 32 base64 bytes encrypting stored staff second factors. Rotating it makes every enrolled authenticator unreadable, so every staff account must re-enrol. Absent, the API refuses staff sign-in rather than running without a second factor. |
-| `STAFF_CONSOLE_GATE_KEY`                                  | release                 | Passphrase for the interim console access gate in `worker/staff-gate.ts`, in force only until Cloudflare Access is applied.                                                                                                                 |
 
 ## GitHub `production` environment variables (not secret)
 

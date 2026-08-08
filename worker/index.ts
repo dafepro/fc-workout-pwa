@@ -5,11 +5,9 @@ import {
   DEFAULT_IMAGE_SIZES,
 } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
-import { guardStaffConsole } from "./staff-gate";
 
 interface Env {
   ASSETS: Fetcher;
-  STAFF_CONSOLE_GATE_KEY?: string;
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -41,14 +39,10 @@ const worker = {
   ): Promise<Response> {
     const url = new URL(request.url);
 
-    // Before anything else, including asset serving: an unadmitted request to
-    // the console must not reach the application at all.
-    const gated = await guardStaffConsole(request, {
-      key: env.STAFF_CONSOLE_GATE_KEY,
-      secure: url.protocol === "https:",
-    });
-    if (gated) return gated;
-
+    // Nothing guards `/staff/*` here any more. Cloudflare Access does it at the
+    // edge (`infra/digitalocean/access.tf`), so an unadmitted request is turned
+    // back before it ever reaches this Worker -- which is what the interim
+    // passphrase gate that used to sit here was standing in for.
     if (url.pathname === "/_vinext/image") {
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
       return handleImageOptimization(

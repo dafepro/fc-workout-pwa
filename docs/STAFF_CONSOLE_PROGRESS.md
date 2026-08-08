@@ -31,46 +31,28 @@ These closed open items from `STAFF_CONSOLE_DESIGN.md` §8 and are recorded in
 
 ## Phase status
 
-| Phase                | Requirements                             | Status                                                                      |
-| -------------------- | ---------------------------------------- | --------------------------------------------------------------------------- |
-| 0 — sign-in entry    | REQ-101–105                              | Complete                                                                    |
-| 1 — staff identity   | REQ-106, 107, 201–208, 301–305, 401, 402 | Complete                                                                    |
-| 2 — operator console | REQ-601–610, 701–704                     | Complete                                                                    |
-| 3 — coach console    | Migration D, REQ-501–506, 403, 404       | Built; not yet released, below                                              |
-| Access gate          | REQ-402                                  | Interim passphrase gate live; Access blocked on account onboarding, below   |
-| Release              | —                                        | Phases 0–2 released 2026-08-08 as `960f34e`; phase 3 awaits its own release |
-| First operator       | —                                        | Created 2026-08-08 for the project operator; setup link not yet redeemed    |
+| Phase                | Requirements                             | Status                                                                       |
+| -------------------- | ---------------------------------------- | ---------------------------------------------------------------------------- |
+| 0 — sign-in entry    | REQ-101–105                              | Complete                                                                     |
+| 1 — staff identity   | REQ-106, 107, 201–208, 301–305, 401, 402 | Complete                                                                     |
+| 2 — operator console | REQ-601–610, 701–704                     | Complete                                                                     |
+| 3 — coach console    | Migration D, REQ-501–506, 403, 404       | Built; not yet released, below                                               |
+| Access gate          | REQ-402                                  | Cloudflare Access applied 2026-08-08; interim gate removed, awaiting release |
+| Release              | —                                        | Phases 0–2 released 2026-08-08 as `960f34e`; phase 3 awaits its own release  |
+| First operator       | —                                        | Created 2026-08-08 for the project operator; setup link not yet redeemed     |
 
 ## Blocked
 
-**Cloudflare Access needs to be enabled on the account, by hand, once.** The
-token scopes that blocked this before are now present: `apply` no longer
-returns `403 code 10000`. It now fails on all three Access resources with
+**The console is unreachable until the next release ships.** Access is live at
+the edge, but the deployed Worker still carries the interim passphrase gate,
+and the phrase itself is not recoverable — it exists only as a GitHub secret and
+a Worker secret, both write-only by design. So a browser today clears Access and
+is then asked for a phrase nobody holds. The commit that removes the gate is on
+`main`; releasing it clears this.
 
-```text
-access.api.error.not_enabled: Access is not enabled. Visit the Access
-dashboard at https://dash.cloudflare.com/ and click the 'Enable Access' button.
-```
-
-Onboarding Zero Trust is a dashboard action — it picks the team name and the
-plan — and there is no API for it, so OpenTofu cannot bootstrap past it. The
-failed apply created nothing: the application resource was never attempted
-because it depends on the policy and identity provider, so state is clean and a
-re-apply starts from the same place.
-
-To close it: enable Access in the dashboard, choosing team name `zoomigo` so
-the auth domain matches what `access.tf` expects. That leaves the account with
-an organization already created, which is the case `access.tf` line 10 covers —
-so set `STAFF_CONSOLE_TEAM_DOMAIN` to the empty string before re-planning, or
-the apply will try to create a second organization and fail. Then re-run
-`infra.yml`, first `plan` and then `apply` with the plan's run ID.
-
-Until Access is live the gate is still the interim passphrase in
-`worker/staff-gate.ts`, checked before the request reaches the application and
-failing closed when no key is configured. It is weak as a secret and is not
-pretending otherwise. It must not be removed before Access replaces it: it is
-currently the only thing in front of `/staff/*`, including the setup link the
-first operator needs.
+That release also ships phase 3, which has not had the full-seam Docker E2E pass
+its own section says it owes. Phase 3's release and this fix are now the same
+release, and that is the thing to decide before dispatching it.
 
 ## Log
 
@@ -305,3 +287,31 @@ beforehand, so it is genuinely the first. Its setup link is single use and
 expires 2026-08-15; until it is redeemed the console has no account that can
 sign in. Redeeming it means passing the interim passphrase first, since the
 setup route is under `/staff/*` like everything else.
+
+### 2026-08-08 — Access applied, interim gate removed
+
+Zero Trust was enabled on the account by hand, which is the step that had no
+API. With the organization then already existing, `STAFF_CONSOLE_TEAM_DOMAIN`
+was deleted rather than blanked — GitHub rejects an empty variable value, and an
+unset variable interpolates to the empty string the workflow already passes, so
+`access.tf`'s `count` correctly skipped creating a second organization. The
+apply then completed: 3 added, 1 changed, 0 destroyed.
+
+Verified against production rather than assumed: `/staff` and `/staff/setup`
+both return 302 to the Access login, and `/` still returns 200, so the policy is
+path-scoped as intended and the player app is untouched. The team domain came
+out as the auto-generated `shy-shape-73e0`, not `zoomigo`; nothing depends on it
+now that the organization is unmanaged, so it is cosmetic.
+
+The interim gate is gone with it: `worker/staff-gate.ts` and its unit tests
+deleted, the guard removed from `worker/index.ts`, the dev-only phrase and its
+now-unused `serving` parameter out of `vite.config.ts`, the secret put out of
+`deploy/release/release.sh`, and `STAFF_CONSOLE_GATE_KEY` out of `release.yml`
+and the secrets README.
+
+The e2e suite lost its REQ-402 test, deliberately rather than quietly. That test
+drove the passphrase form through the real Worker path; Access has no local
+equivalent, so there is nothing to point it at. The remaining tests now start at
+`/staff/admin` and land on `/staff/sign-in`, which is what a browser past Access
+actually sees. REQ-402's evidence moves from the suite to the production check
+recorded above, which is weaker and worth knowing.
