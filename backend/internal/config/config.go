@@ -33,6 +33,15 @@ type Config struct {
 	// Zero disables the corresponding login throttle.
 	LoginAttemptsPerMinute       int
 	GlobalLoginAttemptsPerMinute int
+	// Absolute https URL the console builds a player's QR link from. Absent,
+	// the console can still provision but cannot reveal a scannable code.
+	PlayerLoginURL string
+	// Absolute https URL of the console's setup page, used to build the
+	// one-time staff setup link.
+	StaffSetupURL string
+	// Whether real player data may be created. The console honours this exactly
+	// as the CLI does (SEC-7).
+	ProductionDataApproved bool
 	// Encrypts stored TOTP secrets. Absent, staff sign-in is refused rather
 	// than run without a second factor, and the player app is unaffected.
 	StaffSecretKey []byte
@@ -46,7 +55,10 @@ func Load(getenv func(string) string) (Config, error) {
 		TeamTimeZoneID:  valueOrDefault(getenv("TEAM_TIME_ZONE"), defaultTeamTimeZone),
 		ShutdownTimeout: defaultShutdownTimeout,
 		E2EResetKey:     getenv("E2E_RESET_KEY"),
+		PlayerLoginURL:  strings.TrimSpace(getenv("PLAYER_LOGIN_URL")),
+		StaffSetupURL:   strings.TrimSpace(getenv("STAFF_SETUP_URL")),
 	}
+	cfg.ProductionDataApproved = getenv("PRODUCTION_DATA_APPROVED") == "true"
 
 	if raw := getenv("ENABLE_E2E_FIXTURES"); raw != "" {
 		enabled, err := strconv.ParseBool(raw)

@@ -138,7 +138,7 @@ func provisionPlayer(ctx context.Context, arguments []string, stdout io.Writer) 
 	if *teamID == "" || strings.TrimSpace(*first) == "" || len(strings.TrimSpace(*last)) != 1 {
 		return errors.New("team-id, first-name, and one-character last-initial are required")
 	}
-	pin, err := generatePIN()
+	pin, err := authn.GeneratePIN()
 	if err != nil {
 		return err
 	}
@@ -193,7 +193,7 @@ func rotatePlayer(ctx context.Context, arguments []string, stdout io.Writer) err
 	if err := flags.Parse(arguments); err != nil {
 		return err
 	}
-	pin, err := generatePIN()
+	pin, err := authn.GeneratePIN()
 	if err != nil {
 		return err
 	}
@@ -552,26 +552,6 @@ func issueLogin(ctx context.Context, db *sql.DB, accountID, pin, loginBase, qrOu
 	return json.NewEncoder(stdout).Encode(result)
 }
 
-// The PIN is generated rather than chosen so no operator can reuse a habitual
-// value, and it is revealed exactly once by the caller that issued it.
-func generatePIN() (string, error) {
-	for {
-		raw := make([]byte, 2)
-		if _, err := rand.Read(raw); err != nil {
-			return "", err
-		}
-		// Discard the tail that would not divide evenly, so every PIN is equally
-		// likely rather than the low ones being slightly favoured.
-		draw := int(raw[0])<<8 | int(raw[1])
-		if draw >= 60000 {
-			continue
-		}
-		pin := fmt.Sprintf("%04d", draw%10000)
-		if authn.ValidatePIN(pin) == nil {
-			return pin, nil
-		}
-	}
-}
 func loginLink(raw, token string) (string, error) {
 	parsed, err := url.Parse(raw)
 	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil {

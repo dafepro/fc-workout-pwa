@@ -318,6 +318,19 @@ var logicalTables = []logicalTable{
 			nullable(textField("consumed_at")),
 		},
 	},
+	{
+		Name:    "admin_audit_events",
+		OrderBy: []string{"id"},
+		Fields: []logicalField{
+			textField("id"),
+			textField("actor_account_id"),
+			textField("action"),
+			textField("target_type"),
+			textField("target_id"),
+			withDefault(textField("detail_json"), "{}"),
+			textField("occurred_at"),
+		},
+	},
 }
 
 func logicalTableByName(name string) (logicalTable, bool) {
