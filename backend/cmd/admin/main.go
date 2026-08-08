@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"crypto/rand"
 	"database/sql"
@@ -10,6 +9,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"strings"
@@ -20,20 +20,19 @@ import (
 	_ "time/tzdata"
 
 	qrcode "github.com/skip2/go-qrcode"
-	"golang.org/x/term"
 
 	"github.com/dafepro/fc-workout-pwa/backend/internal/authn"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
 )
 
 func main() {
-	if err := run(os.Args[1:]); err != nil {
+	if err := run(os.Args[1:], os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, "admin:", err)
 		os.Exit(1)
 	}
 }
 
-func run(arguments []string) error {
+func run(arguments []string, stdout io.Writer) error {
 	if len(arguments) == 0 {
 		return usageError()
 	}
@@ -41,19 +40,25 @@ func run(arguments []string) error {
 	defer cancel()
 	switch arguments[0] {
 	case "bootstrap-team":
-		return bootstrapTeam(ctx, arguments[1:])
+		return bootstrapTeam(ctx, arguments[1:], stdout)
 	case "provision-player":
-		return provisionPlayer(ctx, arguments[1:])
+		return provisionPlayer(ctx, arguments[1:], stdout)
 	case "rotate-player-login":
-		return rotatePlayer(ctx, arguments[1:])
+		return rotatePlayer(ctx, arguments[1:], stdout)
 	case "revoke-player-login":
-		return revokePlayer(ctx, arguments[1:])
+		return revokePlayer(ctx, arguments[1:], stdout)
+	case "list-players":
+		return listPlayers(ctx, arguments[1:], stdout)
+	case "credential-status":
+		return credentialStatus(ctx, arguments[1:], stdout)
+	case "deactivate-player":
+		return deactivatePlayer(ctx, arguments[1:], stdout)
 	default:
 		return usageError()
 	}
 }
 
-func bootstrapTeam(ctx context.Context, arguments []string) error {
+func bootstrapTeam(ctx context.Context, arguments []string, stdout io.Writer) error {
 	flags := flag.NewFlagSet("bootstrap-team", flag.ContinueOnError)
 	databaseURL := flags.String("database-url", envOr("DATABASE_URL", "file:data/zoomigo.db"), "SQLite database URL")
 	clubName := flags.String("club-name", "", "club name")
@@ -98,10 +103,10 @@ func bootstrapTeam(ctx context.Context, arguments []string) error {
 	if err = tx.Commit(); err != nil {
 		return err
 	}
-	return json.NewEncoder(os.Stdout).Encode(map[string]string{"clubId": clubID, "teamId": teamID})
+	return json.NewEncoder(stdout).Encode(map[string]string{"clubId": clubID, "teamId": teamID})
 }
 
-func provisionPlayer(ctx context.Context, arguments []string) error {
+func provisionPlayer(ctx context.Context, arguments []string, stdout io.Writer) error {
 	flags := flag.NewFlagSet("provision-player", flag.ContinueOnError)
 	databaseURL := flags.String("database-url", envOr("DATABASE_URL", "file:data/zoomigo.db"), "")
 	teamID := flags.String("team-id", "", "")
@@ -119,7 +124,7 @@ func provisionPlayer(ctx context.Context, arguments []string) error {
 	if *teamID == "" || strings.TrimSpace(*first) == "" || len(strings.TrimSpace(*last)) != 1 {
 		return errors.New("team-id, first-name, and one-character last-initial are required")
 	}
-	pin, err := readPIN()
+	pin, err := generatePIN()
 	if err != nil {
 		return err
 	}
@@ -162,10 +167,10 @@ func provisionPlayer(ctx context.Context, arguments []string) error {
 	if err = tx.Commit(); err != nil {
 		return err
 	}
-	return issueLogin(ctx, db, accountID, pin, *loginURL, *qrOutput, map[string]string{"accountId": accountID, "playerId": playerID})
+	return issueLogin(ctx, db, accountID, pin, *loginURL, *qrOutput, stdout, map[string]string{"accountId": accountID, "playerId": playerID})
 }
 
-func rotatePlayer(ctx context.Context, arguments []string) error {
+func rotatePlayer(ctx context.Context, arguments []string, stdout io.Writer) error {
 	flags := flag.NewFlagSet("rotate-player-login", flag.ContinueOnError)
 	databaseURL := flags.String("database-url", envOr("DATABASE_URL", "file:data/zoomigo.db"), "")
 	playerID := flags.String("player-id", "", "")
@@ -174,7 +179,7 @@ func rotatePlayer(ctx context.Context, arguments []string) error {
 	if err := flags.Parse(arguments); err != nil {
 		return err
 	}
-	pin, err := readPIN()
+	pin, err := generatePIN()
 	if err != nil {
 		return err
 	}
@@ -187,10 +192,10 @@ func rotatePlayer(ctx context.Context, arguments []string) error {
 	if err = db.QueryRowContext(ctx, `SELECT id FROM accounts WHERE player_id = ? AND status='active'`, *playerID).Scan(&accountID); err != nil {
 		return errors.New("active player account not found")
 	}
-	return issueLogin(ctx, db, accountID, pin, *loginURL, *qrOutput, map[string]string{"accountId": accountID, "playerId": *playerID})
+	return issueLogin(ctx, db, accountID, pin, *loginURL, *qrOutput, stdout, map[string]string{"accountId": accountID, "playerId": *playerID})
 }
 
-func revokePlayer(ctx context.Context, arguments []string) error {
+func revokePlayer(ctx context.Context, arguments []string, stdout io.Writer) error {
 	flags := flag.NewFlagSet("revoke-player-login", flag.ContinueOnError)
 	databaseURL := flags.String("database-url", envOr("DATABASE_URL", "file:data/zoomigo.db"), "")
 	playerID := flags.String("player-id", "", "")
@@ -209,10 +214,143 @@ func revokePlayer(ctx context.Context, arguments []string) error {
 	if err = authn.NewService(db).RevokeAccountCredentials(ctx, accountID); err != nil {
 		return err
 	}
-	return json.NewEncoder(os.Stdout).Encode(map[string]string{"status": "revoked", "playerId": *playerID})
+	return json.NewEncoder(stdout).Encode(map[string]string{"status": "revoked", "playerId": *playerID})
 }
 
-func issueLogin(ctx context.Context, db *sql.DB, accountID, pin, loginBase, qrOutput string, result map[string]string) error {
+// deactivatePlayer is the CLI's last word on an account: access stops
+// everywhere and nothing is erased. Erasure is a separate, audited workflow.
+func deactivatePlayer(ctx context.Context, arguments []string, stdout io.Writer) error {
+	flags := flag.NewFlagSet("deactivate-player", flag.ContinueOnError)
+	databaseURL := flags.String("database-url", envOr("DATABASE_URL", "file:data/zoomigo.db"), "")
+	playerID := flags.String("player-id", "", "")
+	if err := flags.Parse(arguments); err != nil {
+		return err
+	}
+	db, err := open(ctx, *databaseURL)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	var accountID string
+	if err = db.QueryRowContext(ctx, `SELECT id FROM accounts WHERE player_id = ?`, *playerID).Scan(&accountID); err != nil {
+		return errors.New("player account not found")
+	}
+	if err = authn.NewService(db).RevokeAccountCredentials(ctx, accountID); err != nil {
+		return err
+	}
+	if _, err = db.ExecContext(ctx, `UPDATE accounts SET status = 'disabled' WHERE id = ?`, accountID); err != nil {
+		return err
+	}
+	return json.NewEncoder(stdout).Encode(map[string]string{"status": "deactivated", "playerId": *playerID})
+}
+
+type playerSummary struct {
+	PlayerID        string `json:"playerId"`
+	FirstName       string `json:"firstName"`
+	LastInitial     string `json:"lastInitial"`
+	AccountStatus   string `json:"accountStatus"`
+	CredentialState string `json:"credentialState"`
+}
+
+func listPlayers(ctx context.Context, arguments []string, stdout io.Writer) error {
+	flags := flag.NewFlagSet("list-players", flag.ContinueOnError)
+	databaseURL := flags.String("database-url", envOr("DATABASE_URL", "file:data/zoomigo.db"), "")
+	teamID := flags.String("team-id", "", "restrict the listing to one team")
+	if err := flags.Parse(arguments); err != nil {
+		return err
+	}
+	db, err := open(ctx, *databaseURL)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	query := `SELECT p.id, p.first_name, p.last_initial, a.status, c.id, c.locked_until
+		FROM players p
+		JOIN accounts a ON a.player_id = p.id
+		LEFT JOIN auth_credentials c ON c.account_id = a.id AND c.revoked_at IS NULL`
+	parameters := []any{}
+	if *teamID != "" {
+		query += ` WHERE EXISTS (SELECT 1 FROM team_memberships m WHERE m.player_id = p.id AND m.team_id = ?)`
+		parameters = append(parameters, *teamID)
+	}
+	query += ` ORDER BY p.first_name, p.last_initial, p.id`
+	rows, err := db.QueryContext(ctx, query, parameters...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	players := []playerSummary{}
+	now := time.Now().UTC()
+	for rows.Next() {
+		var summary playerSummary
+		var credentialID, lockedUntil sql.NullString
+		if err = rows.Scan(&summary.PlayerID, &summary.FirstName, &summary.LastInitial, &summary.AccountStatus, &credentialID, &lockedUntil); err != nil {
+			return err
+		}
+		summary.CredentialState = credentialState(credentialID, lockedUntil, now)
+		players = append(players, summary)
+	}
+	if err = rows.Err(); err != nil {
+		return err
+	}
+	return json.NewEncoder(stdout).Encode(map[string]any{"players": players})
+}
+
+func credentialStatus(ctx context.Context, arguments []string, stdout io.Writer) error {
+	flags := flag.NewFlagSet("credential-status", flag.ContinueOnError)
+	databaseURL := flags.String("database-url", envOr("DATABASE_URL", "file:data/zoomigo.db"), "")
+	playerID := flags.String("player-id", "", "")
+	if err := flags.Parse(arguments); err != nil {
+		return err
+	}
+	db, err := open(ctx, *databaseURL)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	var accountID, accountStatus string
+	if err = db.QueryRowContext(ctx, `SELECT id, status FROM accounts WHERE player_id = ?`, *playerID).Scan(&accountID, &accountStatus); err != nil {
+		return errors.New("player account not found")
+	}
+	var credentialID, issuedAt, lastUsedAt, lockedUntil sql.NullString
+	var failedAttempts int
+	err = db.QueryRowContext(ctx, `SELECT id, issued_at, last_used_at, locked_until, failed_attempts
+		FROM auth_credentials WHERE account_id = ? AND revoked_at IS NULL`, accountID).
+		Scan(&credentialID, &issuedAt, &lastUsedAt, &lockedUntil, &failedAttempts)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+	var activeSessions int
+	if err = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM auth_sessions
+		WHERE account_id = ? AND revoked_at IS NULL AND expires_at > ?`,
+		accountID, time.Now().UTC().Format(time.RFC3339Nano)).Scan(&activeSessions); err != nil {
+		return err
+	}
+	return json.NewEncoder(stdout).Encode(map[string]any{
+		"playerId":        *playerID,
+		"accountStatus":   accountStatus,
+		"credentialState": credentialState(credentialID, lockedUntil, time.Now().UTC()),
+		"issuedAt":        issuedAt.String,
+		"lastUsedAt":      lastUsedAt.String,
+		"lockedUntil":     lockedUntil.String,
+		"failedAttempts":  failedAttempts,
+		"activeSessions":  activeSessions,
+	})
+}
+
+func credentialState(credentialID, lockedUntil sql.NullString, now time.Time) string {
+	if !credentialID.Valid {
+		return "none"
+	}
+	if lockedUntil.Valid {
+		if until, err := time.Parse(time.RFC3339Nano, lockedUntil.String); err == nil && now.Before(until) {
+			return "locked"
+		}
+	}
+	return "active"
+}
+
+func issueLogin(ctx context.Context, db *sql.DB, accountID, pin, loginBase, qrOutput string, stdout io.Writer, result map[string]string) error {
 	if _, err := loginLink(loginBase, "validation"); err != nil {
 		return err
 	}
@@ -251,28 +389,30 @@ func issueLogin(ctx context.Context, db *sql.DB, accountID, pin, loginBase, qrOu
 	}
 	result["credentialId"] = credential.ID
 	result["loginUrl"] = login
-	fmt.Fprintln(os.Stderr, "Keep this QR and URL private. Reissuing it revokes prior sessions.")
-	return json.NewEncoder(os.Stdout).Encode(result)
+	result["pin"] = pin
+	fmt.Fprintln(os.Stderr, "Keep this QR, URL, and PIN private. The PIN is shown only now and cannot be recovered; reissuing produces a new one and revokes prior sessions.")
+	return json.NewEncoder(stdout).Encode(result)
 }
 
-func readPIN() (string, error) {
-	fmt.Fprint(os.Stderr, "Four-digit player PIN: ")
-	var bytes []byte
-	var err error
-	if term.IsTerminal(int(os.Stdin.Fd())) {
-		bytes, err = term.ReadPassword(int(os.Stdin.Fd()))
-		fmt.Fprintln(os.Stderr)
-	} else {
-		reader := bufio.NewReader(os.Stdin)
-		var value string
-		value, err = reader.ReadString('\n')
-		bytes = []byte(strings.TrimSpace(value))
+// The PIN is generated rather than chosen so no operator can reuse a habitual
+// value, and it is revealed exactly once by the caller that issued it.
+func generatePIN() (string, error) {
+	for {
+		raw := make([]byte, 2)
+		if _, err := rand.Read(raw); err != nil {
+			return "", err
+		}
+		// Discard the tail that would not divide evenly, so every PIN is equally
+		// likely rather than the low ones being slightly favoured.
+		draw := int(raw[0])<<8 | int(raw[1])
+		if draw >= 60000 {
+			continue
+		}
+		pin := fmt.Sprintf("%04d", draw%10000)
+		if authn.ValidatePIN(pin) == nil {
+			return pin, nil
+		}
 	}
-	if err != nil {
-		return "", err
-	}
-	pin := strings.TrimSpace(string(bytes))
-	return pin, authn.ValidatePIN(pin)
 }
 func loginLink(raw, token string) (string, error) {
 	parsed, err := url.Parse(raw)
@@ -321,5 +461,5 @@ func requireProvisioningApproval(testOnly bool) error {
 	return errors.New("real player provisioning is locked; complete the production approval checklist and set PRODUCTION_DATA_APPROVED=true, or use --test-only for a disposable test identity")
 }
 func usageError() error {
-	return errors.New("usage: zoomigo-admin bootstrap-team|provision-player|rotate-player-login|revoke-player-login [flags]")
+	return errors.New("usage: zoomigo-admin bootstrap-team|provision-player|rotate-player-login|revoke-player-login|list-players|credential-status|deactivate-player [flags]")
 }
