@@ -131,6 +131,33 @@ any client a way to spend the single Argon2 slot for free.
 - The full authority matrix is a table test across all four roles, including
   `club_admin`, which no account holds yet.
 
+### 2026-08-08 — the outage, and what it changed
+
+The first release attempt took the production API down for about six minutes.
+Migration 8 rebuilds `accounts`, which four tables point at. Dropping a parent
+while foreign keys are enforced counts as deleting every row a child still
+references, and deferring the check does not save it: the drop increments
+SQLite's violation counter and renaming a replacement into place never
+decrements it. The commit therefore fails on any database that has rows.
+
+Every test it had used an empty database, where there is no child row to
+violate anything. It passed everywhere and failed on the only database that
+mattered. The transaction rolled back, so the schema was never modified and
+nothing needed restoring; the API simply refused to start and crashlooped until
+the previous revision was redeployed.
+
+Two changes came out of it. The migration runner understands a first-line
+`-- zoomigo:table-rebuild` directive: it takes one dedicated connection,
+disables foreign keys outside the transaction, runs the rebuild inside it, runs
+`PRAGMA foreign_key_check` itself before committing, and restores enforcement
+whatever happens. That is SQLite's documented sequence and it stays atomic. And
+`internal/database/rebuild_test.go` migrates a database with rows in every table
+hanging off `accounts`; removing the directive reproduces the production error
+exactly.
+
+The design had said this phase wanted its own rehearsed release. Bundling it
+with phases 0 and 2 is what turned a caught bug into an outage.
+
 ### 2026-08-08 — release plumbing
 
 - The API now needs `STAFF_SECRET_KEY`, `PLAYER_LOGIN_URL`, and
