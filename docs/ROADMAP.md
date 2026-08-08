@@ -21,7 +21,7 @@ and a versioned logical export. Production operations are codified and rehearsed
 only operator-performed confirmations remain. The provisioned-player save
 regression is fixed, and the Record Training input pass is complete. The next
 implementation priority is credential administration; the next UX slice is the
-completion/reward loop in `UX_GOALS.md`.
+shared challenge and understandable Team cheers in `UX_GOALS.md`.
 
 ### Provisioned-player training-entry regression
 
@@ -58,6 +58,21 @@ Status: **Implemented; targeted Docker and 320-pixel browser verification comple
   values to separate faces.
 - Connected browser coverage exercises the assigned path, picker, alternate
   instructions, fixed-control absence, and save flow at 320 CSS pixels.
+
+### Home completion and reward loop
+
+Status: **Implemented; targeted connected Docker verification complete 2026-08-08**
+
+- Home uses the authoritative assignment completion flag to replace the next
+  workout prompt with a clear done-for-today state and a Team-progress action.
+- The first assigned completion gets a brief star/check pop and weekly-progress
+  motion; reduced-motion preferences receive the finished state without those
+  animations.
+- The completed card explains that the player's effort helped the team, while
+  extra same-day entries keep the same public daily effort score and do not
+  replay or escalate the assignment-completion animation.
+- Connected browser coverage proves the visible `2 of 3` to `3 of 3` transition,
+  completed hero, non-escalating second save, and unchanged public effort score.
 
 ## Recommended next work
 

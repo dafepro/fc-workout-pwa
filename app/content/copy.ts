@@ -3,6 +3,14 @@ export const copy = {
   tagline: "Show up. Build your stride.",
   safeSocial: "Team views celebrate participation—not speed or scores.",
   saveSuccess: "Training saved",
+  completion: {
+    eyebrow: "Workout complete",
+    title: "Done for today!",
+    activity: (activityName: string) => `${activityName} complete`,
+    teamContribution: (teamName: string) =>
+      `Nice work—your effort helped ${teamName} move forward.`,
+    action: "See team progress",
+  },
   streakQuips: [
     "If each streak day were a hammerhead shark, your streak would be {value} feet long!",
     "If each streak day were a soccer ball, your streak would stretch {value} feet!",
