@@ -16,6 +16,10 @@ const localBindingConfig = {
   compatibility_flags: ["nodejs_compat"],
   vars: {
     ZOOMIGO_API_BASE_URL: process.env.ZOOMIGO_API_BASE_URL ?? "",
+    // The console gate fails closed, so local development needs some phrase.
+    // Production's lives in a Worker secret and never appears here.
+    STAFF_CONSOLE_GATE_KEY:
+      process.env.STAFF_CONSOLE_GATE_KEY ?? "local-staff-gate",
   },
   d1_databases: d1
     ? [
