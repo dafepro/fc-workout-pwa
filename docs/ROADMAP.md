@@ -187,6 +187,68 @@ Status: **Ongoing after first deployment**
   over SSH has a stable IP; key-only auth is the real boundary, and this is
   purely to cut internet SSH-scanner log noise, not to close a hole.
 
+### 12. Replace Docker Compose with a bare Go binary deployment
+
+Status: **Backlog, not started**
+
+The API and Caddy are both single static Go binaries, so the container runtime
+buys very little on a one-service host. Measured on the 512 MB Droplet: `dockerd`
+plus `containerd` cost roughly 120 MB of 458 MB usable RAM and several hundred MB
+of disk before the application starts. The API image itself is already distroless
+(uid 65532), so the weight is the engine, not the image.
+
+- Ship `api`, `admin`, and `backup` as versioned static binaries from CI instead
+  of a GHCR image, and install Caddy natively.
+- Replace the compose services with systemd units. The container hardening has
+  direct equivalents: `read_only` → `ProtectSystem=strict`, `cap_drop: ALL` →
+  `CapabilityBoundingSet=`, `mem_limit: 256m` → `MemoryMax=256M`,
+  `no-new-privileges` → `NoNewPrivileges=`, and the uid 65532 convention →
+  `DynamicUser=` or a dedicated account.
+- Rollback becomes keeping the last N binaries and swapping a symlink.
+- Touches `deploy.sh`, `preflight.sh`, `production-check.sh` (uses `compose ps`),
+  `backup.sh` (uses `compose run --rm backup`), `install-backup-service.sh`,
+  `compose.yaml`, the `Caddyfile` (`reverse_proxy api:8080` becomes
+  `127.0.0.1:8080`), and `scripts/contracts.mjs`, which asserts compose service
+  structure including logging caps and memory limits.
+- Sequence this so a failed deploy is recoverable: build the systemd path while
+  leaving `compose.yaml` in place, and only delete it once a release has proven
+  green. The first validation would otherwise land on the only production host.
+
+### 13. Unauthenticated demo mode with a daily reset
+
+Status: **Backlog, not started**
+
+Let a prospective user exercise the app without signing up, persisting what they
+enter, seeded with representative mock data, and dropped and reseeded cleanly
+once a day.
+
+- **Do not weaken the unauthenticated 401 behaviour.** `production-check.sh`
+  asserts that `GET /v1/me/training-entries` without credentials returns exactly
+  `401`, and that assertion gates every release. A demo path that makes private
+  routes publicly readable will start failing releases.
+- Reuse the existing fixture machinery rather than inventing one: the backend
+  already has `POST /__e2e/reset` → `resetE2EFixtures` in `internal/httpapi`,
+  guarded by an `X-E2E-Reset-Key` header, plus an `e2e_build_enabled.go` /
+  `e2e_build_disabled.go` build-tag split in `internal/config`.
+- Decide the isolation model first, since it drives the data model, the reset
+  job, and whether demo writes land in the encrypted backups:
+  - _Demo session over a demo team in the main database._ A public
+    `POST /v1/demo/session` mints a short-lived token for a seeded demo team, so
+    private routes still require a token and the 401 gate is preserved. Reset
+    deletes and reseeds only demo-owned rows. One database, one backup, reuses
+    `internal/authn`; demo rows live beside real ones.
+  - _A separate demo SQLite file._ Reset is an atomic `rename(2)` over the demo
+    database and demo data cannot contaminate real data or backups by
+    construction, at the cost of threading store selection through the handlers
+    and keeping two migration paths in sync.
+  - _Fully public demo routes with no token._ Simplest, but it puts
+    unauthenticated write endpoints on the public internet with no rate limiting
+    in front of them.
+- Drive the daily reset from a systemd timer alongside `zoomigo-backup.timer`,
+  not an in-process scheduler, so it survives restarts and is inspectable with
+  `systemctl list-timers`.
+- Demo rows must be excluded from leaderboards and team activity for real teams.
+
 ## Trigger-based work, not current scope
 
 - Move from SQLite to managed Postgres only when multiple API replicas,
