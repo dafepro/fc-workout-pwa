@@ -103,7 +103,8 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 		}
 		writeJSON(w, http.StatusOK, healthResponse{Status: "ready"})
 	})
-	mux.HandleFunc("POST /v1/auth/sessions", service.createSession)
+	throttle := newLoginThrottle(cfg.LoginAttemptsPerMinute, cfg.GlobalLoginAttemptsPerMinute, service.now)
+	mux.Handle("POST /v1/auth/sessions", throttle.guard(http.HandlerFunc(service.createSession)))
 	mux.HandleFunc("GET /v1/auth/session", service.getSession)
 	mux.HandleFunc("DELETE /v1/auth/session", service.revokeSession)
 	mux.HandleFunc("POST /v1/reactions", service.createReaction)

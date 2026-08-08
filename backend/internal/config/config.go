@@ -13,6 +13,10 @@ const (
 	defaultShutdownTimeout = 10 * time.Second
 	defaultTeamTimeZone    = "America/Chicago"
 	defaultDatabaseURL     = "file:data/zoomigo.db"
+	// A squad's worth of players signing in never approaches these rates, while
+	// they leave credential spraying far too slow to be useful.
+	defaultLoginAttemptsPerMinute       = 30
+	defaultGlobalLoginAttemptsPerMinute = 120
 )
 
 type Config struct {
@@ -25,6 +29,9 @@ type Config struct {
 	ShutdownTimeout   time.Duration
 	EnableE2EFixtures bool
 	E2EResetKey       string
+	// Zero disables the corresponding login throttle.
+	LoginAttemptsPerMinute       int
+	GlobalLoginAttemptsPerMinute int
 }
 
 func Load(getenv func(string) string) (Config, error) {
@@ -68,6 +75,15 @@ func Load(getenv func(string) string) (Config, error) {
 		cfg.ShutdownTimeout = timeout
 	}
 
+	cfg.LoginAttemptsPerMinute, err = attemptRate(getenv, "LOGIN_ATTEMPTS_PER_MINUTE", defaultLoginAttemptsPerMinute)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.GlobalLoginAttemptsPerMinute, err = attemptRate(getenv, "GLOBAL_LOGIN_ATTEMPTS_PER_MINUTE", defaultGlobalLoginAttemptsPerMinute)
+	if err != nil {
+		return Config{}, err
+	}
+
 	location, err := time.LoadLocation(cfg.TeamTimeZoneID)
 	if err != nil {
 		return Config{}, fmt.Errorf("TEAM_TIME_ZONE must be a valid IANA time zone: %w", err)
@@ -75,6 +91,18 @@ func Load(getenv func(string) string) (Config, error) {
 	cfg.TeamTimeZone = location
 
 	return cfg, nil
+}
+
+func attemptRate(getenv func(string) string, key string, fallback int) (int, error) {
+	raw := getenv(key)
+	if raw == "" {
+		return fallback, nil
+	}
+	rate, err := strconv.Atoi(raw)
+	if err != nil || rate < 0 {
+		return 0, fmt.Errorf("%s must be a non-negative integer, where 0 disables the throttle", key)
+	}
+	return rate, nil
 }
 
 func valueOrDefault(value, fallback string) string {
