@@ -7,4 +7,11 @@ export const routes = {
   staffSignIn: "/staff/sign-in",
   staffSetup: "/staff/setup",
   staffConsoleHome: "/staff",
+  staffAdmin: "/staff/admin",
+  staffAdminClubs: "/staff/admin/clubs",
+  staffAdminTeams: "/staff/admin/teams",
+  staffAdminAccounts: "/staff/admin/accounts",
+  staffAdminAudit: "/staff/admin/audit",
+  staffAdminTeam: (teamId: string) => `/staff/admin/teams/${teamId}`,
+  staffAdminPlayer: (playerId: string) => `/staff/admin/players/${playerId}`,
 } as const;
