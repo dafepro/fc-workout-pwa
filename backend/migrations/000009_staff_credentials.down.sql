@@ -1,0 +1,9 @@
+DROP INDEX IF EXISTS staff_sign_in_challenges_expiry_idx;
+DROP TABLE IF EXISTS staff_sign_in_challenges;
+DROP INDEX IF EXISTS staff_sessions_account_active_idx;
+DROP TABLE IF EXISTS staff_sessions;
+DROP TABLE IF EXISTS staff_setup_tokens;
+DROP INDEX IF EXISTS auth_recovery_codes_account_unused_idx;
+DROP TABLE IF EXISTS auth_recovery_codes;
+DROP TABLE IF EXISTS auth_totp_enrollments;
+DROP TABLE IF EXISTS auth_password_credentials;

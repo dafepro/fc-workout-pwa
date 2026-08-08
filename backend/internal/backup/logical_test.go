@@ -39,6 +39,12 @@ var exportedTables = []string{
 	"auth_credentials",
 	"auth_sessions",
 	"auth_audit_events",
+	"auth_password_credentials",
+	"auth_totp_enrollments",
+	"auth_recovery_codes",
+	"staff_setup_tokens",
+	"staff_sessions",
+	"staff_sign_in_challenges",
 }
 
 func TestLogicalExportAndImportPreserveEveryTableExactly(t *testing.T) {
@@ -62,8 +68,8 @@ func TestLogicalExportAndImportPreserveEveryTableExactly(t *testing.T) {
 	if manifest.CreatedAt != createdAt.Format(time.RFC3339) || manifest.ApplicationVersion != "logical-test" {
 		t.Fatalf("unexpected manifest metadata: %+v", manifest)
 	}
-	if len(manifest.Source.SchemaMigrations) != 7 {
-		t.Fatalf("source migrations = %v, want seven applied", manifest.Source.SchemaMigrations)
+	if len(manifest.Source.SchemaMigrations) != 9 {
+		t.Fatalf("source migrations = %v, want nine applied", manifest.Source.SchemaMigrations)
 	}
 	exported := make([]string, 0, len(manifest.Tables))
 	for _, table := range manifest.Tables {
@@ -109,8 +115,8 @@ func TestLogicalExportAndImportPreserveEveryTableExactly(t *testing.T) {
 	if err := target.QueryRowContext(ctx, "SELECT COUNT(*) FROM schema_migrations").Scan(&ledger); err != nil {
 		t.Fatal(err)
 	}
-	if ledger != 7 {
-		t.Fatalf("imported migration ledger = %d, want the current 7", ledger)
+	if ledger != 9 {
+		t.Fatalf("imported migration ledger = %d, want the current 9", ledger)
 	}
 }
 
@@ -161,8 +167,8 @@ func TestLogicalExportFromAnOlderSchemaImportsIntoTheCurrentSchema(t *testing.T)
 	if err := target.QueryRowContext(ctx, "SELECT idempotency_key FROM training_entries WHERE id = 'entry-old'").Scan(&idempotencyKey); err != nil {
 		t.Fatal(err)
 	}
-	if entries != 1 || migrationsApplied != 7 {
-		t.Fatalf("entries=%d migrations=%d, want 1 and 7", entries, migrationsApplied)
+	if entries != 1 || migrationsApplied != 9 {
+		t.Fatalf("entries=%d migrations=%d, want 1 and 9", entries, migrationsApplied)
 	}
 	if idempotencyKey.Valid {
 		t.Fatalf("field added after the export defaulted to %q, want NULL", idempotencyKey.String)
@@ -424,6 +430,40 @@ func fullyPopulatedDatabase(t *testing.T, ctx context.Context) string {
 		 VALUES ('audit-login', 'account-ava', 'credential-ava', 'session-ava', 'login_succeeded', NULL, '2026-08-03T00:00:00Z')`,
 		`INSERT INTO auth_audit_events (id, account_id, credential_id, session_id, event_type, detail_code, occurred_at)
 		 VALUES ('audit-anonymous', NULL, NULL, NULL, 'login_failed', 'unknown_selector', '2026-08-03T00:00:01Z')`,
+		// A clubless operator, which only the rebuilt accounts table can hold.
+		`INSERT INTO accounts (id, club_id, player_id, role, status, created_at)
+		 VALUES ('account-operator', NULL, NULL, 'platform_admin', 'active', '2026-01-02T00:00:00Z')`,
+		`INSERT INTO auth_password_credentials (
+			id, account_id, email_identity, verifier_salt, verifier_hash, must_change,
+			failed_attempts, locked_until, issued_at, last_used_at, revoked_at
+		) VALUES (
+			'password-operator', 'account-operator', 'operator@example.test', X'1122', X'3344', 0,
+			1, '2026-08-04T00:00:00Z', '2026-08-01T00:00:00Z', '2026-08-03T00:00:00Z', NULL
+		)`,
+		`INSERT INTO auth_totp_enrollments (
+			id, account_id, secret_ciphertext, secret_nonce, confirmed_at, last_used_step, issued_at, revoked_at
+		) VALUES (
+			'totp-operator', 'account-operator', X'5566', X'7788', '2026-08-01T00:10:00Z',
+			58000000, '2026-08-01T00:00:00Z', NULL
+		)`,
+		`INSERT INTO auth_recovery_codes (id, account_id, code_hash, issued_at, used_at)
+		 VALUES ('recovery-used', 'account-operator', X'99aa', '2026-08-01T00:00:00Z', '2026-08-02T00:00:00Z')`,
+		`INSERT INTO auth_recovery_codes (id, account_id, code_hash, issued_at, used_at)
+		 VALUES ('recovery-unused', 'account-operator', X'bbcc', '2026-08-01T00:00:00Z', NULL)`,
+		`INSERT INTO staff_setup_tokens (id, account_id, token_hash, issued_at, expires_at, consumed_at)
+		 VALUES ('setup-operator', 'account-operator', X'ddee', '2026-08-01T00:00:00Z', '2026-08-02T00:00:00Z', '2026-08-01T00:05:00Z')`,
+		`INSERT INTO staff_sessions (
+			id, account_id, token_hash, created_at, expires_at, idle_expires_at, authenticated_at, revoked_at
+		) VALUES (
+			'staff-session-operator', 'account-operator', X'ff11', '2026-08-03T00:00:00Z',
+			'2026-08-03T08:00:00Z', '2026-08-03T00:30:00Z', '2026-08-03T00:00:00Z', NULL
+		)`,
+		`INSERT INTO staff_sign_in_challenges (
+			id, account_id, token_hash, purpose, created_at, expires_at, consumed_at
+		) VALUES (
+			'challenge-operator', 'account-operator', X'2233', 'sign_in',
+			'2026-08-03T00:00:00Z', '2026-08-03T00:05:00Z', '2026-08-03T00:00:10Z'
+		)`,
 	}
 	for _, statement := range statements {
 		if _, err := db.ExecContext(ctx, statement); err != nil {

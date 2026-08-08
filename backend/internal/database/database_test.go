@@ -52,11 +52,32 @@ func TestMigrateUpgradesAnExistingFoundationDatabase(t *testing.T) {
 	if columnCount != 1 {
 		t.Fatalf("training entry idempotency column count = %d, want 1", columnCount)
 	}
+	// Rebuilding a parent table is where a foreign key quietly starts pointing
+	// at the archive copy instead of the live one, and nothing else would notice
+	// until a write failed in production.
+	for _, child := range []string{"auth_credentials", "auth_sessions", "auth_audit_events", "coach_team_assignments"} {
+		var references int
+		if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM pragma_foreign_key_list(?) WHERE "table" = 'accounts'`, child).Scan(&references); err != nil {
+			t.Fatal(err)
+		}
+		if references != 1 {
+			t.Fatalf("%s references accounts %d times, want 1", child, references)
+		}
+	}
+	violations, err := db.QueryContext(ctx, `PRAGMA foreign_key_check`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer violations.Close()
+	if violations.Next() {
+		t.Fatal("the migrated schema has foreign key violations")
+	}
+
 	var migrationCount int
 	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM schema_migrations`).Scan(&migrationCount); err != nil {
 		t.Fatal(err)
 	}
-	if migrationCount != 7 {
-		t.Fatalf("migration count = %d, want 7", migrationCount)
+	if migrationCount != 9 {
+		t.Fatalf("migration count = %d, want 9", migrationCount)
 	}
 }
