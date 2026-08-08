@@ -1,6 +1,6 @@
 "use client";
 
-import { copy } from "../content/copy";
+import { consoleCopy } from "./console/copy";
 import { ConsoleChrome, ConsoleNotice } from "./console/ConsoleChrome";
 import { useResource } from "./console/useResource";
 import type { TeamSummary } from "./console/types";
@@ -11,28 +11,28 @@ export function CoachHome({ email }: { email: string }) {
   const teams = useResource<{ teams: TeamSummary[] }>("v1/staff/teams");
 
   return (
-    <ConsoleChrome title={copy.console.home.coachTitle}>
-      <p className="console__who">{copy.console.home.signedInAs(email)}</p>
-      <p>{copy.console.home.coachBody}</p>
-      <section className="console-card" aria-label={copy.console.home.teams}>
-        <h2 className="console-card__title">{copy.console.home.teams}</h2>
+    <ConsoleChrome title={consoleCopy.home.coachTitle}>
+      <p className="console__who">{consoleCopy.home.signedInAs(email)}</p>
+      <p>{consoleCopy.home.coachBody}</p>
+      <section className="console-card" aria-label={consoleCopy.home.teams}>
+        <h2 className="console-card__title">{consoleCopy.home.teams}</h2>
         {teams.error ? <ConsoleNotice message={teams.error} /> : null}
-        {teams.loading ? <p>{copy.console.loading}</p> : null}
+        {teams.loading ? <p>{consoleCopy.loading}</p> : null}
         {teams.data && teams.data.teams.length === 0 ? (
-          <p>{copy.console.home.noTeams}</p>
+          <p>{consoleCopy.home.noTeams}</p>
         ) : null}
         <ul className="console-list">
           {(teams.data?.teams ?? []).map((team) => (
             <li key={team.id} className="console-list__row">
               <strong>{team.name}</strong>
               <span>{team.clubName}</span>
-              <span>{copy.console.teams.playerCount(team.playerCount)}</span>
+              <span>{consoleCopy.teams.playerCount(team.playerCount)}</span>
               <span>{team.timeZone}</span>
             </li>
           ))}
         </ul>
       </section>
-      <p className="console-hint">{copy.console.signOutHint}</p>
+      <p className="console-hint">{consoleCopy.signOutHint}</p>
     </ConsoleChrome>
   );
 }

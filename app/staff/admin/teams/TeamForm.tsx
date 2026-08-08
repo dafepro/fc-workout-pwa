@@ -1,9 +1,8 @@
 "use client";
 
-import { staffCopy } from "../../console/copy";
+import { consoleCopy, staffCopy } from "../../console/copy";
 
 import { FormEvent, useState } from "react";
-import { copy } from "../../../content/copy";
 import { consoleRequest, messageFor } from "../../console/api";
 import { defaultTimeZone, timeZonesIncluding } from "../../console/time-zones";
 import type { ClubSummary, TeamSummary } from "../../console/types";
@@ -72,7 +71,7 @@ export function TeamForm({
   }
 
   if (!team && clubs.length === 0) {
-    return <p>{copy.console.teams.needsClub}</p>;
+    return <p>{consoleCopy.teams.needsClub}</p>;
   }
 
   const fieldPrefix = team ? `team-${team.id}` : "new-team";
@@ -80,7 +79,7 @@ export function TeamForm({
   return (
     <form onSubmit={submit} noValidate className="console-form">
       <label htmlFor={`${fieldPrefix}-club`}>
-        {copy.console.teams.clubLabel}
+        {consoleCopy.teams.clubLabel}
       </label>
       <select
         id={`${fieldPrefix}-club`}
@@ -97,7 +96,7 @@ export function TeamForm({
       </select>
 
       <label htmlFor={`${fieldPrefix}-name`}>
-        {copy.console.teams.nameLabel}
+        {consoleCopy.teams.nameLabel}
       </label>
       <input
         id={`${fieldPrefix}-name`}
@@ -110,7 +109,7 @@ export function TeamForm({
       />
 
       <label htmlFor={`${fieldPrefix}-season`}>
-        {copy.console.teams.seasonLabel}
+        {consoleCopy.teams.seasonLabel}
       </label>
       <input
         id={`${fieldPrefix}-season`}
@@ -123,7 +122,7 @@ export function TeamForm({
       />
 
       <label htmlFor={`${fieldPrefix}-zone`}>
-        {copy.console.teams.timeZoneLabel}
+        {consoleCopy.teams.timeZoneLabel}
       </label>
       <select
         id={`${fieldPrefix}-zone`}
@@ -143,7 +142,7 @@ export function TeamForm({
       </select>
 
       <label htmlFor={`${fieldPrefix}-goal`}>
-        {copy.console.teams.weeklyGoalLabel}
+        {consoleCopy.teams.weeklyGoalLabel}
       </label>
       <select
         id={`${fieldPrefix}-goal`}
@@ -161,7 +160,7 @@ export function TeamForm({
 
       {pendingZoneChange && team ? (
         <p className="console-warning" role="alert">
-          {copy.console.teams.timeZoneWarning(team.timeZone, timeZone)}
+          {consoleCopy.teams.timeZoneWarning(team.timeZone, timeZone)}
         </p>
       ) : null}
       {error ? (
@@ -174,10 +173,10 @@ export function TeamForm({
         {busy
           ? staffCopy.working
           : pendingZoneChange
-            ? copy.console.teams.timeZoneConfirm
+            ? consoleCopy.teams.timeZoneConfirm
             : team
-              ? copy.console.teams.save
-              : copy.console.teams.create}
+              ? consoleCopy.teams.save
+              : consoleCopy.teams.create}
       </button>
     </form>
   );

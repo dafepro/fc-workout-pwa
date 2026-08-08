@@ -1,9 +1,9 @@
 "use client";
 
+import { consoleCopy } from "./copy";
 import { ReactNode, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { copy } from "../../content/copy";
 import { routes } from "../../content/routes";
 
 /** Sign out is prominent on every console screen, and never hidden behind a
@@ -21,7 +21,7 @@ export function ConsoleChrome({
     <div className="console">
       <header className="console__bar">
         <div>
-          <p className="eyebrow">{copy.console.eyebrow}</p>
+          <p className="eyebrow">{consoleCopy.eyebrow}</p>
           <h1 className="console__title">{title}</h1>
         </div>
         <SignOutButton />
@@ -53,7 +53,7 @@ export function SignOutButton() {
         }
       }}
     >
-      {copy.console.signOut}
+      {consoleCopy.signOut}
     </button>
   );
 }

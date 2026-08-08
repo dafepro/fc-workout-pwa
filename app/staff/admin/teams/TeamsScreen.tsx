@@ -1,8 +1,8 @@
 "use client";
 
+import { consoleCopy } from "../../console/copy";
 import { useState } from "react";
 import Link from "next/link";
-import { copy } from "../../../content/copy";
 import { routes } from "../../../content/routes";
 import { ConsoleChrome, ConsoleNotice } from "../../console/ConsoleChrome";
 import { useResource } from "../../console/useResource";
@@ -18,15 +18,15 @@ export function TeamsScreen() {
 
   return (
     <ConsoleChrome
-      title={copy.console.teams.title}
-      back={{ href: routes.staffAdmin, label: copy.console.admin.backToSearch }}
+      title={consoleCopy.teams.title}
+      back={{ href: routes.staffAdmin, label: consoleCopy.admin.backToSearch }}
     >
       <AdminNav />
       {clubs.error ? <ConsoleNotice message={clubs.error} /> : null}
       {teams.error ? <ConsoleNotice message={teams.error} /> : null}
 
-      <section className="console-card" aria-label={copy.console.teams.create}>
-        <h2 className="console-card__title">{copy.console.teams.create}</h2>
+      <section className="console-card" aria-label={consoleCopy.teams.create}>
+        <h2 className="console-card__title">{consoleCopy.teams.create}</h2>
         <TeamForm
           clubs={clubs.data?.clubs ?? []}
           onSaved={() => {
@@ -36,11 +36,11 @@ export function TeamsScreen() {
         />
       </section>
 
-      <section className="console-card" aria-label={copy.console.teams.title}>
-        <h2 className="console-card__title">{copy.console.teams.title}</h2>
-        {teams.loading ? <p>{copy.console.loading}</p> : null}
+      <section className="console-card" aria-label={consoleCopy.teams.title}>
+        <h2 className="console-card__title">{consoleCopy.teams.title}</h2>
+        {teams.loading ? <p>{consoleCopy.loading}</p> : null}
         {teams.data && teams.data.teams.length === 0 ? (
-          <p>{copy.console.teams.empty}</p>
+          <p>{consoleCopy.teams.empty}</p>
         ) : null}
         <ul className="console-list">
           {(teams.data?.teams ?? []).map((team) => (
@@ -50,9 +50,9 @@ export function TeamsScreen() {
                 <span>{team.clubName}</span>
                 <span>{team.seasonId}</span>
                 <span>{team.timeZone}</span>
-                <span>{copy.console.teams.playerCount(team.playerCount)}</span>
+                <span>{consoleCopy.teams.playerCount(team.playerCount)}</span>
                 <Link href={routes.staffAdminTeam(team.id)}>
-                  {copy.console.teams.openRoster}
+                  {consoleCopy.teams.openRoster}
                 </Link>
                 <button
                   type="button"
@@ -62,12 +62,12 @@ export function TeamsScreen() {
                     setEditing(editing === team.id ? null : team.id)
                   }
                 >
-                  {copy.console.teams.edit}
+                  {consoleCopy.teams.edit}
                 </button>
               </div>
               {editing === team.id ? (
                 <div className="console-edit">
-                  <h3>{copy.console.teams.editing(team.name)}</h3>
+                  <h3>{consoleCopy.teams.editing(team.name)}</h3>
                   <TeamForm
                     clubs={clubs.data?.clubs ?? []}
                     team={team}

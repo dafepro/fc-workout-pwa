@@ -1,6 +1,6 @@
 "use client";
 
-import { copy } from "../../content/copy";
+import { consoleCopy } from "./copy";
 import type { CredentialReveal, StaffInvitation } from "./types";
 
 /** SEC-4. Whatever produced these values cannot produce them again, so the copy
@@ -14,10 +14,10 @@ export function CredentialRevealPanel({
 }) {
   return (
     <section className="console-card console-card--reveal" aria-live="polite">
-      <h2 className="console-card__title">{copy.console.reveal.title}</h2>
-      <p className="console-warning">{copy.console.reveal.warning}</p>
+      <h2 className="console-card__title">{consoleCopy.reveal.title}</h2>
+      <p className="console-warning">{consoleCopy.reveal.warning}</p>
       <p className="console-reveal__pin">
-        <span>{copy.console.reveal.pinLabel}</span>
+        <span>{consoleCopy.reveal.pinLabel}</span>
         <strong>{reveal.pin}</strong>
       </p>
       {/* Rendered from the response bytes: the console adds no QR dependency,
@@ -26,16 +26,16 @@ export function CredentialRevealPanel({
       <img
         className="console-reveal__qr"
         src={`data:image/png;base64,${reveal.qrPngBase64}`}
-        alt={copy.console.reveal.qrAlt}
+        alt={consoleCopy.reveal.qrAlt}
         width={220}
         height={220}
       />
       <dl className="console-facts">
-        <dt>{copy.console.reveal.linkLabel}</dt>
+        <dt>{consoleCopy.reveal.linkLabel}</dt>
         <dd className="console-facts__code">{reveal.loginUrl}</dd>
       </dl>
       <button type="button" className="button button--lime" onClick={onDismiss}>
-        {copy.console.reveal.done}
+        {consoleCopy.reveal.done}
       </button>
     </section>
   );
@@ -51,23 +51,23 @@ export function InvitationPanel({
   return (
     <section className="console-card console-card--reveal" aria-live="polite">
       <h2 className="console-card__title">
-        {copy.console.accounts.invitationTitle}
+        {consoleCopy.accounts.invitationTitle}
       </h2>
       <p className="console-warning">
-        {copy.console.accounts.invitationWarning}
+        {consoleCopy.accounts.invitationWarning}
       </p>
       <dl className="console-facts">
-        <dt>{copy.console.accounts.emailLabel}</dt>
+        <dt>{consoleCopy.accounts.emailLabel}</dt>
         <dd>{invitation.email}</dd>
-        <dt>{copy.console.accounts.setupUrlLabel}</dt>
+        <dt>{consoleCopy.accounts.setupUrlLabel}</dt>
         <dd className="console-facts__code">{invitation.setupUrl}</dd>
-        <dt>{copy.console.accounts.temporaryPasswordLabel}</dt>
+        <dt>{consoleCopy.accounts.temporaryPasswordLabel}</dt>
         <dd className="console-facts__code">{invitation.temporaryPassword}</dd>
-        <dt>{copy.console.accounts.expiresAt}</dt>
+        <dt>{consoleCopy.accounts.expiresAt}</dt>
         <dd>{invitation.expiresAt}</dd>
       </dl>
       <button type="button" className="button button--lime" onClick={onDismiss}>
-        {copy.console.reveal.done}
+        {consoleCopy.reveal.done}
       </button>
     </section>
   );
