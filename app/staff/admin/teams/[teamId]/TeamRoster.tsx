@@ -1,10 +1,9 @@
 "use client";
 
-import { staffCopy } from "../../../console/copy";
+import { consoleCopy, staffCopy } from "../../../console/copy";
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { copy } from "../../../../content/copy";
 import { routes } from "../../../../content/routes";
 import { ConsoleChrome, ConsoleNotice } from "../../../console/ConsoleChrome";
 import { ConfirmButton } from "../../../console/ConfirmButton";
@@ -37,10 +36,10 @@ export function TeamRoster({ teamId }: { teamId: string }) {
 
   return (
     <ConsoleChrome
-      title={team.data?.name ?? copy.console.roster.title}
+      title={team.data?.name ?? consoleCopy.roster.title}
       back={{
         href: routes.staffAdminTeams,
-        label: copy.console.teams.title,
+        label: consoleCopy.teams.title,
       }}
     >
       {team.error ? <ConsoleNotice message={team.error} /> : null}
@@ -49,13 +48,13 @@ export function TeamRoster({ teamId }: { teamId: string }) {
 
       {team.data ? (
         <dl className="console-facts">
-          <dt>{copy.console.teams.clubLabel}</dt>
+          <dt>{consoleCopy.teams.clubLabel}</dt>
           <dd>{team.data.clubName}</dd>
-          <dt>{copy.console.teams.seasonLabel}</dt>
+          <dt>{consoleCopy.teams.seasonLabel}</dt>
           <dd>{team.data.seasonId}</dd>
-          <dt>{copy.console.teams.timeZoneLabel}</dt>
+          <dt>{consoleCopy.teams.timeZoneLabel}</dt>
           <dd>{team.data.timeZone}</dd>
-          <dt>{copy.console.teams.weeklyGoalLabel}</dt>
+          <dt>{consoleCopy.teams.weeklyGoalLabel}</dt>
           <dd>{team.data.weeklyGoal}</dd>
         </dl>
       ) : null}
@@ -67,11 +66,11 @@ export function TeamRoster({ teamId }: { teamId: string }) {
         />
       ) : null}
 
-      <section className="console-card" aria-label={copy.console.roster.title}>
-        <h2 className="console-card__title">{copy.console.roster.title}</h2>
-        {roster.loading ? <p>{copy.console.loading}</p> : null}
+      <section className="console-card" aria-label={consoleCopy.roster.title}>
+        <h2 className="console-card__title">{consoleCopy.roster.title}</h2>
+        {roster.loading ? <p>{consoleCopy.loading}</p> : null}
         {roster.data && roster.data.roster.length === 0 ? (
-          <p>{copy.console.roster.empty}</p>
+          <p>{consoleCopy.roster.empty}</p>
         ) : null}
         <ul className="console-list">
           {(roster.data?.roster ?? []).map((entry) => (
@@ -79,24 +78,22 @@ export function TeamRoster({ teamId }: { teamId: string }) {
               <Link href={routes.staffAdminPlayer(entry.playerId)}>
                 {entry.firstName} {entry.lastInitial}
               </Link>
+              <span>{consoleCopy.credential.state[entry.credentialState]}</span>
               <span>
-                {copy.console.credential.state[entry.credentialState]}
+                {consoleCopy.player.from} {entry.membershipFrom}
               </span>
               <span>
-                {copy.console.player.from} {entry.membershipFrom}
-              </span>
-              <span>
-                {copy.console.roster.lastActivity}:{" "}
-                {entry.lastActivityOn ?? copy.console.roster.never}
+                {consoleCopy.roster.lastActivity}:{" "}
+                {entry.lastActivityOn ?? consoleCopy.roster.never}
               </span>
               {entry.membershipTo ? (
                 <span>
-                  {copy.console.player.to} {entry.membershipTo}
+                  {consoleCopy.player.to} {entry.membershipTo}
                 </span>
               ) : (
                 <ConfirmButton
-                  label={copy.console.roster.endMembership}
-                  question={copy.console.player.endMembershipConfirm}
+                  label={consoleCopy.roster.endMembership}
+                  question={consoleCopy.player.endMembershipConfirm}
                   onConfirm={() =>
                     act(async () => {
                       await consoleRequest<void>(
@@ -182,11 +179,11 @@ function AddExistingPlayer({
   return (
     <section
       className="console-card"
-      aria-label={copy.console.roster.addExisting}
+      aria-label={consoleCopy.roster.addExisting}
     >
-      <h2 className="console-card__title">{copy.console.roster.addExisting}</h2>
+      <h2 className="console-card__title">{consoleCopy.roster.addExisting}</h2>
       <form onSubmit={search} noValidate className="console-form">
-        <label htmlFor="roster-search">{copy.console.roster.addExisting}</label>
+        <label htmlFor="roster-search">{consoleCopy.roster.addExisting}</label>
         <input
           id="roster-search"
           name="q"
@@ -198,15 +195,15 @@ function AddExistingPlayer({
           required
         />
         <p id="roster-search-hint" className="console-hint">
-          {copy.console.roster.addExistingHint}
+          {consoleCopy.roster.addExistingHint}
         </p>
         <button className="button button--outline" disabled={busy}>
-          {busy ? staffCopy.working : copy.console.admin.searchAction}
+          {busy ? staffCopy.working : consoleCopy.admin.searchAction}
         </button>
       </form>
       {error ? <ConsoleNotice message={error} /> : null}
       {matches && matches.length === 0 ? (
-        <p>{copy.console.admin.searchEmpty}</p>
+        <p>{consoleCopy.admin.searchEmpty}</p>
       ) : null}
       <ul className="console-list">
         {(matches ?? []).map((match) => (
@@ -219,7 +216,7 @@ function AddExistingPlayer({
               className="button button--outline"
               onClick={() => add(match.playerId)}
             >
-              {copy.console.roster.add}
+              {consoleCopy.roster.add}
             </button>
           </li>
         ))}
@@ -261,7 +258,7 @@ function ProvisionPlayer({
       // created before the deployment is approved for it.
       setError(
         caught instanceof ConsoleError && caught.code === "provisioning_locked"
-          ? copy.console.roster.provisionLocked
+          ? consoleCopy.roster.provisionLocked
           : messageFor(caught),
       );
     } finally {
@@ -270,15 +267,12 @@ function ProvisionPlayer({
   }
 
   return (
-    <section
-      className="console-card"
-      aria-label={copy.console.roster.provision}
-    >
-      <h2 className="console-card__title">{copy.console.roster.provision}</h2>
-      <p className="console-hint">{copy.console.roster.provisionHint}</p>
+    <section className="console-card" aria-label={consoleCopy.roster.provision}>
+      <h2 className="console-card__title">{consoleCopy.roster.provision}</h2>
+      <p className="console-hint">{consoleCopy.roster.provisionHint}</p>
       <form onSubmit={submit} noValidate className="console-form">
         <label htmlFor="provision-first-name">
-          {copy.console.roster.firstNameLabel}
+          {consoleCopy.roster.firstNameLabel}
         </label>
         <input
           id="provision-first-name"
@@ -291,7 +285,7 @@ function ProvisionPlayer({
           required
         />
         <label htmlFor="provision-last-initial">
-          {copy.console.roster.lastInitialLabel}
+          {consoleCopy.roster.lastInitialLabel}
         </label>
         <input
           id="provision-last-initial"
@@ -317,7 +311,7 @@ function ProvisionPlayer({
           className="button button--lime"
           disabled={busy || !firstName.trim() || !lastInitial}
         >
-          {busy ? staffCopy.working : copy.console.roster.provisionAction}
+          {busy ? staffCopy.working : consoleCopy.roster.provisionAction}
         </button>
       </form>
     </section>

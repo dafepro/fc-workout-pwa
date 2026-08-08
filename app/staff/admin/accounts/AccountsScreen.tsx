@@ -1,9 +1,8 @@
 "use client";
 
-import { staffCopy } from "../../console/copy";
+import { consoleCopy, staffCopy } from "../../console/copy";
 
 import { FormEvent, useState } from "react";
-import { copy } from "../../../content/copy";
 import { routes } from "../../../content/routes";
 import { ConsoleChrome, ConsoleNotice } from "../../console/ConsoleChrome";
 import { ConfirmButton } from "../../console/ConfirmButton";
@@ -41,8 +40,8 @@ export function AccountsScreen() {
 
   return (
     <ConsoleChrome
-      title={copy.console.accounts.title}
-      back={{ href: routes.staffAdmin, label: copy.console.admin.backToSearch }}
+      title={consoleCopy.accounts.title}
+      back={{ href: routes.staffAdmin, label: consoleCopy.admin.backToSearch }}
     >
       <AdminNav />
       {accounts.error ? <ConsoleNotice message={accounts.error} /> : null}
@@ -76,14 +75,11 @@ export function AccountsScreen() {
         }}
       />
 
-      <section
-        className="console-card"
-        aria-label={copy.console.accounts.title}
-      >
-        <h2 className="console-card__title">{copy.console.accounts.title}</h2>
-        {accounts.loading ? <p>{copy.console.loading}</p> : null}
+      <section className="console-card" aria-label={consoleCopy.accounts.title}>
+        <h2 className="console-card__title">{consoleCopy.accounts.title}</h2>
+        {accounts.loading ? <p>{consoleCopy.loading}</p> : null}
         {accounts.data && accounts.data.staff.length === 0 ? (
-          <p>{copy.console.accounts.empty}</p>
+          <p>{consoleCopy.accounts.empty}</p>
         ) : null}
         <ul className="console-list">
           {(accounts.data?.staff ?? []).map((account) => (
@@ -94,15 +90,15 @@ export function AccountsScreen() {
                 <span>{account.status}</span>
                 <span>
                   {account.setupComplete
-                    ? copy.console.accounts.setupComplete
-                    : copy.console.accounts.setupPending}
+                    ? consoleCopy.accounts.setupComplete
+                    : consoleCopy.accounts.setupPending}
                 </span>
                 <span>
-                  {copy.console.accounts.lastUsed}: {account.lastUsedAt ?? "—"}
+                  {consoleCopy.accounts.lastUsed}: {account.lastUsedAt ?? "—"}
                 </span>
                 <ConfirmButton
-                  label={copy.console.accounts.reset}
-                  question={copy.console.accounts.resetConfirm}
+                  label={consoleCopy.accounts.reset}
+                  question={consoleCopy.accounts.resetConfirm}
                   onConfirm={() =>
                     act(async () => {
                       setInvitation(
@@ -130,7 +126,7 @@ export function AccountsScreen() {
 }
 
 function roleLabel(role: string): string {
-  const labels: Record<string, string> = copy.console.accounts.roles;
+  const labels: Record<string, string> = consoleCopy.accounts.roles;
   return labels[role] ?? role;
 }
 
@@ -166,15 +162,13 @@ function CreateAccount({
     }
   }
 
-  if (clubs.length === 0) return <p>{copy.console.teams.needsClub}</p>;
+  if (clubs.length === 0) return <p>{consoleCopy.teams.needsClub}</p>;
 
   return (
-    <section className="console-card" aria-label={copy.console.accounts.create}>
-      <h2 className="console-card__title">{copy.console.accounts.create}</h2>
+    <section className="console-card" aria-label={consoleCopy.accounts.create}>
+      <h2 className="console-card__title">{consoleCopy.accounts.create}</h2>
       <form onSubmit={submit} noValidate className="console-form">
-        <label htmlFor="account-email">
-          {copy.console.accounts.emailLabel}
-        </label>
+        <label htmlFor="account-email">{consoleCopy.accounts.emailLabel}</label>
         <input
           id="account-email"
           name="email"
@@ -186,7 +180,7 @@ function CreateAccount({
           onChange={(event) => setEmail(event.target.value)}
           required
         />
-        <label htmlFor="account-club">{copy.console.accounts.clubLabel}</label>
+        <label htmlFor="account-club">{consoleCopy.accounts.clubLabel}</label>
         <select
           id="account-club"
           name="clubId"
@@ -200,7 +194,7 @@ function CreateAccount({
             </option>
           ))}
         </select>
-        <label htmlFor="account-role">{copy.console.accounts.roleLabel}</label>
+        <label htmlFor="account-role">{consoleCopy.accounts.roleLabel}</label>
         <select
           id="account-role"
           name="role"
@@ -223,7 +217,7 @@ function CreateAccount({
           className="button button--lime"
           disabled={busy || !email.trim()}
         >
-          {busy ? staffCopy.working : copy.console.accounts.create}
+          {busy ? staffCopy.working : consoleCopy.accounts.create}
         </button>
       </form>
     </section>
@@ -248,7 +242,7 @@ function TeamAssignment({
   return (
     <div className="console-assign">
       <label htmlFor={`assign-${accountId}`}>
-        {copy.console.accounts.assignments}
+        {consoleCopy.accounts.assignments}
       </label>
       <select
         id={`assign-${accountId}`}
@@ -274,7 +268,7 @@ function TeamAssignment({
             )
           }
         >
-          {copy.console.accounts.assign}
+          {consoleCopy.accounts.assign}
         </button>
         <button
           type="button"
@@ -288,7 +282,7 @@ function TeamAssignment({
             )
           }
         >
-          {copy.console.accounts.unassign}
+          {consoleCopy.accounts.unassign}
         </button>
       </div>
     </div>

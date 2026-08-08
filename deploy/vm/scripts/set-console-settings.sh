@@ -30,7 +30,9 @@ environment_uid=$(stat -c '%u' "$ENV_FILE")
 environment_gid=$(stat -c '%g' "$ENV_FILE")
 
 working=$(mktemp)
-trap 'rm -f -- "$working"' EXIT HUP INT TERM
+# Both, because the loop below writes a sibling and an interrupted run would
+# otherwise leave a copy of the staff key behind in the temporary directory.
+trap 'rm -f -- "$working" "$working.next"' EXIT HUP INT TERM
 umask 077
 cp -- "$ENV_FILE" "$working"
 

@@ -1,9 +1,8 @@
 "use client";
 
-import { staffCopy } from "../../console/copy";
+import { consoleCopy, staffCopy } from "../../console/copy";
 
 import { FormEvent, useState } from "react";
-import { copy } from "../../../content/copy";
 import { routes } from "../../../content/routes";
 import { ConsoleChrome, ConsoleNotice } from "../../console/ConsoleChrome";
 import { consoleRequest, messageFor } from "../../console/api";
@@ -47,12 +46,12 @@ export function AuditScreen() {
 
   return (
     <ConsoleChrome
-      title={copy.console.audit.title}
-      back={{ href: routes.staffAdmin, label: copy.console.admin.backToSearch }}
+      title={consoleCopy.audit.title}
+      back={{ href: routes.staffAdmin, label: consoleCopy.admin.backToSearch }}
     >
       <AdminNav />
       <form onSubmit={submit} noValidate className="console-form">
-        <label htmlFor="audit-account">{copy.console.audit.accountLabel}</label>
+        <label htmlFor="audit-account">{consoleCopy.audit.accountLabel}</label>
         <input
           id="audit-account"
           name="accountId"
@@ -61,7 +60,7 @@ export function AuditScreen() {
           value={accountId}
           onChange={(event) => setAccountId(event.target.value)}
         />
-        <label htmlFor="audit-since">{copy.console.audit.sinceLabel}</label>
+        <label htmlFor="audit-since">{consoleCopy.audit.sinceLabel}</label>
         <input
           id="audit-since"
           name="since"
@@ -69,7 +68,7 @@ export function AuditScreen() {
           value={since}
           onChange={(event) => setSince(event.target.value)}
         />
-        <label htmlFor="audit-limit">{copy.console.audit.limitLabel}</label>
+        <label htmlFor="audit-limit">{consoleCopy.audit.limitLabel}</label>
         <select
           id="audit-limit"
           name="limit"
@@ -83,24 +82,24 @@ export function AuditScreen() {
           ))}
         </select>
         <button className="button button--lime" disabled={busy}>
-          {busy ? staffCopy.working : copy.console.audit.apply}
+          {busy ? staffCopy.working : consoleCopy.audit.apply}
         </button>
       </form>
 
       {error ? <ConsoleNotice message={error} /> : null}
-      {events && events.length === 0 ? <p>{copy.console.audit.empty}</p> : null}
+      {events && events.length === 0 ? <p>{consoleCopy.audit.empty}</p> : null}
 
       {events && events.length > 0 ? (
         <div className="console-table-scroll">
           <table className="console-table">
-            <caption className="sr-only">{copy.console.audit.title}</caption>
+            <caption className="sr-only">{consoleCopy.audit.title}</caption>
             <thead>
               <tr>
-                <th scope="col">{copy.console.audit.occurredAt}</th>
-                <th scope="col">{copy.console.audit.actor}</th>
-                <th scope="col">{copy.console.audit.action}</th>
-                <th scope="col">{copy.console.audit.target}</th>
-                <th scope="col">{copy.console.audit.detail}</th>
+                <th scope="col">{consoleCopy.audit.occurredAt}</th>
+                <th scope="col">{consoleCopy.audit.actor}</th>
+                <th scope="col">{consoleCopy.audit.action}</th>
+                <th scope="col">{consoleCopy.audit.target}</th>
+                <th scope="col">{consoleCopy.audit.detail}</th>
               </tr>
             </thead>
             <tbody>

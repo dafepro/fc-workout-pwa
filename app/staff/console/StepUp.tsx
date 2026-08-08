@@ -1,9 +1,8 @@
 "use client";
 
-import { staffCopy } from "./copy";
+import { consoleCopy, staffCopy } from "./copy";
 
 import { FormEvent, useCallback, useState } from "react";
-import { copy } from "../../content/copy";
 import { ConsoleError, consoleAuthRequest, messageFor } from "./api";
 
 type Action = () => Promise<void>;
@@ -76,8 +75,8 @@ export function StepUpForm({
 
   return (
     <section className="console-card console-card--step-up">
-      <h2 className="console-card__title">{copy.console.stepUp.title}</h2>
-      <p>{copy.console.stepUp.body}</p>
+      <h2 className="console-card__title">{consoleCopy.stepUp.title}</h2>
+      <p>{consoleCopy.stepUp.body}</p>
       <form onSubmit={submit} noValidate className="console-form">
         <label htmlFor="step-up-password">{staffCopy.passwordLabel}</label>
         <input
@@ -111,7 +110,7 @@ export function StepUpForm({
         ) : null}
         <div className="console-actions">
           <button className="button button--lime" disabled={busy}>
-            {busy ? staffCopy.working : copy.console.stepUp.confirm}
+            {busy ? staffCopy.working : consoleCopy.stepUp.confirm}
           </button>
           <button
             type="button"
@@ -119,7 +118,7 @@ export function StepUpForm({
             onClick={onCancel}
             disabled={busy}
           >
-            {copy.console.cancel}
+            {consoleCopy.cancel}
           </button>
         </div>
       </form>
