@@ -96,11 +96,14 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
 - Implemented operations baseline: Ubuntu security updates run daily without unattended reboot; required reboots are completed within seven days, container logs are bounded, the production check requires at least 1 GiB free, and DigitalOcean alerts watch disk, memory, CPU, and the public `/readyz` endpoint. The alert email destinations remain operator-private inputs.
 - QR/PIN authentication and the same-origin PWA cookie gateway are implemented. Real youth-data deployment still requires guardian ownership/recovery policy, secure credential distribution, and privacy approval.
 - Implemented safety gate: production player provisioning defaults locked and accepts only explicit `--test-only` identities until `PRODUCTION_DATA_APPROVED=true` is deliberately configured after approval.
-- Implemented release candidate: one serialized GitHub workflow runs static,
-  targeted-test, and build gates, publishes an immutable GHCR image, then
-  deploys the VM and Cloudflare Worker through a disabled-by-default protected
-  environment. Full Docker E2E is an explicit periodic or release-candidate
-  workflow input. The identical encrypted-bundle release path is available
+- Implemented release candidate: one GitHub workflow runs static, targeted-test,
+  and build gates and publishes an immutable GHCR image, and a separate release
+  workflow deploys an already-published image to the VM and Cloudflare Worker
+  through a disabled-by-default protected environment. Releasing therefore never
+  rebuilds, so the artifact reaching production is the one that was verified; the
+  release refuses a revision with no published image or one that is not an
+  ancestor of `main`. Full Docker E2E is an explicit periodic or
+  release-candidate workflow input. The identical release path is available
   locally during a GitHub incident.
 - Implemented secret baseline: one dedicated age identity decrypts the exact deployment bundle in CI; a separate operator identity provides recovery. Neither identity is the database-backup recovery key. The remaining decisions are custodian identities, rotation interval, and repository environment-review availability.
 - Implemented IaC baseline: OpenTofu models the DigitalOcean project, Droplet,
