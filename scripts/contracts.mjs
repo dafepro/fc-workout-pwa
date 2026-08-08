@@ -60,6 +60,7 @@ function containsEvery(contents, required, label) {
 async function deploymentContract() {
   const requiredFiles = [
     ".github/workflows/backend-image.yml",
+    ".github/workflows/release.yml",
     "deploy/vm/compose.yaml",
     "deploy/vm/systemd/zoomigo-backup.service",
     "deploy/vm/systemd/zoomigo-backup.timer",
@@ -160,7 +161,7 @@ async function deploymentContract() {
     await rm(contractRoot, { recursive: true, force: true });
   }
 
-  const workflow = await text(".github/workflows/backend-image.yml");
+  const workflow = await text(".github/workflows/release.yml");
   containsEvery(
     workflow,
     ["deploy/release/release.sh", "PRODUCTION_DEPLOY_ENABLED"],
@@ -227,7 +228,7 @@ async function secretContract() {
     }
   }
 
-  const workflow = await text(".github/workflows/backend-image.yml");
+  const workflow = await text(".github/workflows/release.yml");
   containsEvery(
     workflow,
     [
@@ -278,7 +279,7 @@ async function releaseContract() {
     "deploy/vm/scripts/set-release.sh",
   ];
   await Promise.all(required.map(requireFile));
-  const workflow = await text(".github/workflows/backend-image.yml");
+  const workflow = await text(".github/workflows/release.yml");
   containsEvery(
     workflow,
     [

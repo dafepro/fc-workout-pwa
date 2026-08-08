@@ -76,7 +76,9 @@ repo-local credential helper. The `gh` API needs the token passed explicitly:
 `GH_TOKEN="$(gh auth token -h github.com -u dafepro)" gh ...`.
 
 **Releases are manual.** A push to `main` verifies and publishes an image but
-never deploys. To ship, dispatch `backend-image.yml` with `deploy=true`.
+never deploys. To ship, dispatch `release.yml` with the 40-character
+`release_sha` whose image was already published; it never rebuilds the image and
+refuses a SHA with no published image or one that is not an ancestor of `main`.
 `PRODUCTION_DEPLOY_ENABLED` must be _repository_-scoped: a job-level `if` is
 evaluated before the environment resolves, so an environment-scoped variable is
 invisible there and the job silently skips.
