@@ -1,10 +1,7 @@
--- Reverses to the pre-staff shape, using the same build-beside-and-rename
--- approach as the up migration so no child foreign key is rewritten. Rows only
--- the newer schema can hold -- platform_admin accounts and staff audit events --
--- are dropped rather than coerced, because there is no honest older
--- representation of them.
-PRAGMA defer_foreign_keys = ON;
-
+-- zoomigo:table-rebuild
+--
+-- Same reason as the up migration: rebuilding a parent table needs foreign key
+-- enforcement disabled around it, which a transaction cannot do.
 DROP INDEX auth_audit_events_account_occurred_idx;
 
 CREATE TABLE auth_audit_events_rebuilt (
