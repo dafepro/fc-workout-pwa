@@ -276,6 +276,28 @@ func (store *Store) ResetE2EFixtures(ctx context.Context) error {
 		"DELETE FROM reactions",
 		"DELETE FROM training_entries",
 		"DELETE FROM assignments",
+		// Staff state as well, or a second run of the console suite collides with
+		// the operator the first run created. The order is foreign-key order:
+		// audit rows, then everything hanging off an account, then the accounts,
+		// then the club and team a test built.
+		"DELETE FROM admin_audit_events",
+		"DELETE FROM auth_audit_events",
+		"DELETE FROM auth_sessions",
+		"DELETE FROM auth_credentials",
+		"DELETE FROM staff_sign_in_challenges",
+		"DELETE FROM staff_sessions",
+		"DELETE FROM staff_setup_tokens",
+		"DELETE FROM auth_recovery_codes",
+		"DELETE FROM auth_totp_enrollments",
+		"DELETE FROM auth_password_credentials",
+		"DELETE FROM coach_team_assignments",
+		// Fixture rows use hyphenated identifiers; anything a test created has a
+		// generated one, so this keeps the fixtures and clears the rest.
+		"DELETE FROM team_memberships WHERE player_id NOT LIKE 'player-%'",
+		"DELETE FROM accounts WHERE id NOT LIKE 'account-%'",
+		"DELETE FROM players WHERE id NOT LIKE 'player-%'",
+		"DELETE FROM teams WHERE id NOT LIKE 'team-%'",
+		"DELETE FROM clubs WHERE id NOT LIKE 'club-%'",
 		`INSERT INTO clubs (id, name, created_at) VALUES ('club-zoomigo', 'ZoomiGo', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO UPDATE SET name = excluded.name`,
 		`INSERT INTO teams (id, club_id, name, season_id, weekly_default_goal, time_zone, created_at) VALUES ('team-hill-striders', 'club-zoomigo', 'Hill Striders', 'season-2026', 3, 'America/Chicago', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
 		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-mason', 'club-zoomigo', 'Mason', 'C', '{}', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,

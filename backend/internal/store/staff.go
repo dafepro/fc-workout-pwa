@@ -345,9 +345,12 @@ func (staff *StaffStore) PlayerDetail(ctx context.Context, playerID string) (Pla
 	now := staff.now().UTC()
 	var detail PlayerDetail
 	var accountID string
-	err := staff.db.QueryRowContext(ctx, `SELECT p.first_name, p.last_initial, a.id, a.status, p.club_id, c.name
+	var lastActivity sql.NullString
+	err := staff.db.QueryRowContext(ctx, `SELECT p.first_name, p.last_initial, a.id, a.status, p.club_id, c.name,
+		(SELECT MAX(e.occurred_at) FROM training_entries e WHERE e.player_id = p.id AND e.deleted_at IS NULL)
 		FROM players p JOIN accounts a ON a.player_id = p.id JOIN clubs c ON c.id = p.club_id WHERE p.id = ?`, playerID).
-		Scan(&detail.Player.FirstName, &detail.Player.LastInitial, &accountID, &detail.Player.AccountStatus, &detail.ClubID, &detail.ClubName)
+		Scan(&detail.Player.FirstName, &detail.Player.LastInitial, &accountID, &detail.Player.AccountStatus,
+			&detail.ClubID, &detail.ClubName, &lastActivity)
 	if errors.Is(err, sql.ErrNoRows) {
 		return PlayerDetail{}, ErrStaffNotFound
 	}
@@ -355,6 +358,7 @@ func (staff *StaffStore) PlayerDetail(ctx context.Context, playerID string) (Pla
 		return PlayerDetail{}, err
 	}
 	detail.Player.PlayerID, detail.Player.AccountID = playerID, accountID
+	detail.Player.LastActivityOn = lastActivity.String
 
 	rows, err := staff.db.QueryContext(ctx, `SELECT m.team_id, t.name, m.active_from, m.active_to
 		FROM team_memberships m JOIN teams t ON t.id = m.team_id WHERE m.player_id = ? ORDER BY m.active_from DESC`, playerID)
