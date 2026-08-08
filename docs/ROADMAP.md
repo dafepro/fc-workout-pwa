@@ -251,6 +251,26 @@ once a day.
   `systemctl list-timers`.
 - Demo rows must be excluded from leaderboards and team activity for real teams.
 
+### 14. Ephemeral dev droplet for repeatable UATs
+
+Status: **Backlog, not started**
+
+A short-lived second Droplet, provisioned from the same OpenTofu and destroyed
+after use, so a full user-acceptance pass can run against a real host instead of
+only the local Docker suite. May never be needed; recorded so the option is not
+rediscovered.
+
+- The value is the things local E2E structurally cannot cover: cloud-init, the
+  real deploy path, systemd timers, TLS issuance, and Cloudflare edge behaviour.
+- Provision, adopt its host key, release to it, run the UAT, destroy. DigitalOcean
+  bills hourly, so a few hours a month costs cents rather than a second standing
+  Droplet.
+- Give it its own ephemeral IP and hostname. Do not touch the production Reserved
+  IP, and remember an unassigned Reserved IP still accrues charges.
+- Do not colocate this on the production Droplet to save the monthly cost. A
+  shared host tests none of the above, and puts the only host that matters behind
+  the same OOM killer and disk as untested code.
+
 ## Trigger-based work, not current scope
 
 - Move from SQLite to managed Postgres only when multiple API replicas,

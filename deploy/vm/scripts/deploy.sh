@@ -52,6 +52,11 @@ attempt=1
 while [ "$attempt" -le 90 ]; do
 	if curl --fail --silent --show-error --max-time 10 "https://${site_address}/readyz" >/dev/null; then
 		printf '%s\n' "ZoomiGo API is ready at https://${site_address}."
+		# Superseded release images accumulate on an 8.7 GiB disk that also has to
+		# hold the database and backups. The running image is never pruned, and
+		# GHCR still has the rest, so an image rollback re-pulls instead of losing
+		# anything. Never fail a healthy deploy over reclaiming disk.
+		docker image prune --all --force --filter "until=72h" >/dev/null 2>&1 || true
 		exit 0
 	fi
 	attempt=$((attempt + 1))
