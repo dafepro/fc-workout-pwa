@@ -1,0 +1,141 @@
+name: Release ZoomiGo to production
+
+# Releases are manual and consume an image that was already built and verified
+# by "Verify and release ZoomiGo". Nothing here builds a container: the whole
+# point of the split is that shipping a revision cannot produce a different
+# artifact than the one that passed verification.
+#
+# PRODUCTION_DEPLOY_ENABLED is a kill switch rather than an auto-deploy enabler
+# -- set it to anything but "true" to block every release without editing this
+# workflow. It must stay repository-scoped, because a job-level `if` is
+# evaluated before the environment resolves and an environment-scoped variable
+# is invisible there.
+on:
+  workflow_dispatch:
+    inputs:
+      release_sha:
+        description: Full 40-character commit SHA whose image was already published
+        required: true
+        type: string
+
+concurrency:
+  group: zoomigo-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy VM and Cloudflare Worker
+    if: vars.PRODUCTION_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: production
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      # Checking out the released revision rather than a branch tip keeps the
+      # deploy scripts and Worker configuration matched to the image.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_sha }}
+
+      - name: Reject a SHA that is not on main
+        env:
+          RELEASE_SHA: ${{ inputs.release_sha }}
+        run: |
+          case "$RELEASE_SHA" in
+            *[!0-9a-f]* | "") echo "release_sha must be lowercase hex" >&2; exit 1 ;;
+          esac
+          [ "${#RELEASE_SHA}" -eq 40 ] || { echo "release_sha must be 40 characters" >&2; exit 1; }
+          git fetch --depth=100 origin main
+          git merge-base --is-ancestor "$RELEASE_SHA" origin/main ||
+            { echo "$RELEASE_SHA is not an ancestor of origin/main" >&2; exit 1; }
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.20.0
+          cache: pnpm
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Fail here rather than halfway through a deploy if the revision was never
+      # published, which is the obvious way to misuse a dispatch-by-SHA release.
+      - name: Require the published image to exist
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}/api:sha-${{ inputs.release_sha }}
+        run: |
+          docker manifest inspect "$IMAGE" >/dev/null ||
+            { echo "no published image for this revision: $IMAGE" >&2; exit 1; }
+
+      - name: Release the verified revision
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          ZOOMIGO_API_BASE_URL: ${{ vars.ZOOMIGO_API_BASE_URL }}
+          ZOOMIGO_DEPLOY_SSH_KEY: ${{ secrets.ZOOMIGO_DEPLOY_SSH_KEY }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          BACKUP_S3_ENDPOINT: ${{ vars.BACKUP_S3_ENDPOINT }}
+          BACKUP_S3_BUCKET: ${{ vars.BACKUP_S3_BUCKET }}
+          BACKUP_S3_PROVIDER: ${{ vars.BACKUP_S3_PROVIDER }}
+          BACKUP_S3_REGION: ${{ vars.BACKUP_S3_REGION }}
+          BACKUP_S3_ACCESS_KEY_ID: ${{ secrets.BACKUP_S3_ACCESS_KEY_ID }}
+          BACKUP_S3_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_S3_SECRET_ACCESS_KEY }}
+        # pipefail so tee cannot mask a failing release; the log is captured so
+        # the next step can report what the host said without anyone reading the
+        # raw job output or opening an SSH session.
+        run: |
+          set -o pipefail
+          ./deploy/release/release.sh "${{ inputs.release_sha }}" 2>&1 | tee "$RUNNER_TEMP/release.log"
+
+      # production-check.sh already runs on the VM as the last thing deploy-vm.sh
+      # does, and a failure there fails the release. This only surfaces its
+      # verdict in the run summary.
+      - name: Summarize how the host took it
+        if: always()
+        run: |
+          log="$RUNNER_TEMP/release.log"
+          {
+            if [ "${{ job.status }}" = "success" ]; then
+              echo "### Release succeeded"
+            else
+              echo "### Release FAILED"
+            fi
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Revision | \`${{ inputs.release_sha }}\` |"
+            echo "| API image | \`ghcr.io/${{ github.repository }}/api:sha-${{ inputs.release_sha }}\` |"
+            echo "| VM host | \`${{ vars.DEPLOY_HOST }}\` as \`${{ vars.DEPLOY_USER }}\` |"
+            echo "| API | $(jq -r '"https://" + .apiHostname + "/readyz"' deploy/production.json) |"
+            echo "| PWA | $(jq -r '"https://" + .pwaHostname' deploy/production.json) |"
+            echo ""
+            if [ -f "$log" ]; then
+              echo "#### Host readiness checks"
+              echo ""
+              echo '```'
+              grep -E '^(Prepared|Installed|Created, verified|Pruned|Warning:|error:|Production readiness|Deployed)' "$log" \
+                || echo "(no recognized status lines; see the full log below)"
+              echo '```'
+              echo ""
+              echo "<details><summary>Last 60 lines of the release log</summary>"
+              echo ""
+              echo '```'
+              tail -60 "$log"
+              echo '```'
+              echo "</details>"
+            else
+              echo "The release step produced no log; it failed before running."
+            fi
+          } >>"$GITHUB_STEP_SUMMARY"
