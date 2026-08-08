@@ -200,17 +200,16 @@ chmod 0777 "$DATA_DIRECTORY" "$BACKUP_DIRECTORY" "$RESTORE_DIRECTORY" "$ADMIN_OU
 # A keypair that exists only for this run. The recipient must be a real age
 # public key or create-encrypted rejects it, and the drill has to hold the
 # matching identity to prove the archives can actually be opened again.
-KEYPAIR=$(age-keygen 2>/dev/null)
-BACKUP_RECIPIENT=$(printf '%s\n' "$KEYPAIR" | sed -n 's/^# public key: //p')
-# The backup CLI parses the whole identity file as one key, so the comment lines
-# age-keygen emits alongside the secret key must not reach it.
-DRILL_IDENTITY=$(printf '%s\n' "$KEYPAIR" | sed -n '/^AGE-SECRET-KEY-1/p')
+DRILL_IDENTITY=$(age-keygen 2>/dev/null)
+BACKUP_RECIPIENT=$(printf '%s\n' "$DRILL_IDENTITY" | sed -n 's/^# public key: //p')
 case "$BACKUP_RECIPIENT" in
 	age1*) ;;
 	*) fail "age-keygen did not produce an age1 recipient" ;;
 esac
+# Written unedited, comment lines and all, because that is the file a recovery
+# operator will actually hand to restore-drill.sh.
 case "$DRILL_IDENTITY" in
-	AGE-SECRET-KEY-1*) ;;
+	*AGE-SECRET-KEY-1*) ;;
 	*) fail "age-keygen did not produce an AGE-SECRET-KEY-1 identity" ;;
 esac
 
