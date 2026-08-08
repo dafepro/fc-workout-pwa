@@ -17,21 +17,37 @@ function Harness() {
 }
 
 describe("combined intensity controls", () => {
-  it("keeps effort and exhaustion as independent seven-step scalar values", () => {
+  it("uses independent seven-step sliders with three visual anchors", () => {
     render(<Harness />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Raise effort" }));
-    expect(
-      screen.getByRole("status", { name: "Hard, 5 of 7" }),
-    ).toBeInTheDocument();
+    const effort = screen.getByRole("slider", {
+      name: "How hard did you work?",
+    });
+    const tiredness = screen.getByRole("slider", {
+      name: "How tired were you after?",
+    });
 
-    fireEvent.click(screen.getByRole("button", { name: "Lower tiredness" }));
-    expect(
-      screen.getByRole("status", { name: "A little tired, 3 of 7" }),
-    ).toBeInTheDocument();
+    expect(effort).toHaveValue("4");
+    expect(tiredness).toHaveValue("4");
+    expect(effort).toHaveAttribute("min", "1");
+    expect(effort).toHaveAttribute("max", "7");
+    expect(effort).toHaveAttribute("step", "1");
+    expect(screen.getByTestId("effort-anchors")).toHaveTextContent("👌💪💥");
+    expect(screen.getByTestId("exhaustion-anchors")).toHaveTextContent(
+      "🙂😓🥵",
+    );
 
-    expect(screen.getAllByRole("radio")).toHaveLength(14);
-    expect(screen.getByText("5 · Hard")).toBeVisible();
-    expect(screen.getByText("3 · A little tired")).toBeVisible();
+    fireEvent.change(effort, { target: { value: "5" } });
+    fireEvent.change(tiredness, { target: { value: "3" } });
+
+    expect(effort).toHaveValue("5");
+    expect(tiredness).toHaveValue("3");
+    expect(effort).toHaveAttribute("aria-valuetext", "Hard, 5 of 7");
+    expect(tiredness).toHaveAttribute(
+      "aria-valuetext",
+      "A little tired, 3 of 7",
+    );
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 });
