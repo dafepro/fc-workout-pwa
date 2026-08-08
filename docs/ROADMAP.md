@@ -19,9 +19,10 @@ Team, Leaders, Home, and Record Training now use safe authoritative projections
 in connected mode, and daily backups produce both an encrypted SQLite snapshot
 and a versioned logical export. Production operations are codified and rehearsed;
 only operator-performed confirmations remain. The provisioned-player save
-regression is fixed, and the Record Training input pass is complete. The next
-implementation priority is credential administration; the next UX slice is the
-shared challenge and understandable Team cheers in `UX_GOALS.md`.
+regression is fixed, and the Record Training input pass is complete. The shared
+Team challenge and contextual cheer slice is also complete; the next UX
+decision is whether the full leaderboard earns its emotional cost in
+`UX_GOALS.md`.
 
 ### Provisioned-player training-entry regression
 
@@ -73,6 +74,23 @@ Status: **Implemented; targeted connected Docker verification complete 2026-08-0
   replay or escalate the assignment-completion animation.
 - Connected browser coverage proves the visible `2 of 3` to `3 of 3` transition,
   completed hero, non-escalating second save, and unchanged public effort score.
+
+### Shared Team challenge and contextual cheers
+
+Status: **Implemented; targeted Docker and 320-pixel browser verification complete 2026-08-08**
+
+- Team now projects the same active whole-team assignment as Home, including a
+  safe aggregate completion count and per-member completion state without raw
+  results or private feeling values.
+- Challenge completion, weekly Team progress, and approved leaderboard views
+  all remain valid places to cheer. The picker names the selected context and
+  gives every predefined reaction a short visible label.
+- Challenge cheers are accepted only for an active teammate who completed that
+  assignment. Existing Team-progress and leaderboard eligibility is unchanged.
+- Me labels and visually distinguishes Challenge, Team progress, and Leaderboard
+  cheers while keeping every reaction private and omitting raw performance.
+- The shared challenge uses a small completion pop and playful cheer affordances;
+  reduced-motion preferences receive the same state without animation.
 
 ## Recommended next work
 

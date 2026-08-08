@@ -133,6 +133,35 @@ class LocalReactionGateway implements ReactionGateway {
   async listReceived(): Promise<ReactionBadge[]> {
     return [
       {
+        id: "local-badge-liam-challenge",
+        sender: { id: "liam", displayName: "Liam J." },
+        reactionType: "strong",
+        emoji: "💪",
+        message: "Liam J. cheered your Hill Sprints challenge and sent you 💪.",
+        context: {
+          type: "challenge",
+          teamId: "team-hill-striders",
+          assignmentId: "prototype-hill-sprints",
+          activityName: "Hill Sprints",
+        },
+        createdAt: new Date().toISOString(),
+        readAt: null,
+      },
+      {
+        id: "local-badge-zoe-team",
+        sender: { id: "zoe", displayName: "Zoe T." },
+        reactionType: "clap",
+        emoji: "👏",
+        message: "Zoe T. cheered your weekly Team progress and sent you 👏.",
+        context: {
+          type: "team_progress",
+          teamId: "team-hill-striders",
+          period: "weekly",
+        },
+        createdAt: new Date(Date.now() - 60_000).toISOString(),
+        readAt: null,
+      },
+      {
         id: "local-badge-ava-effort",
         sender: { id: "ava", displayName: "Ava R." },
         reactionType: "fire",

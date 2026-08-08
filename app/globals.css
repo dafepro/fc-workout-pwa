@@ -1698,8 +1698,27 @@ h2 {
 .challenge-card h2 {
   font-size: clamp(2.2rem, 7vw, 3.7rem);
 }
-.challenge-card__due {
-  color: #d9deff;
+.challenge-card--empty {
+  align-items: center;
+}
+.challenge-card--empty h2 {
+  max-width: 18ch;
+  font-size: clamp(1.5rem, 6vw, 2.5rem);
+}
+.challenge-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0.45rem 0 0.8rem;
+}
+.challenge-card__meta span {
+  padding: 0.35rem 0.55rem;
+  border: 1px solid rgb(255 255 255 / 45%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 12%);
+  color: #eef0ff;
+  font-size: 0.72rem;
+  font-weight: 750;
 }
 .challenge-card__count {
   display: inline-flex;
@@ -1723,13 +1742,68 @@ h2 {
   font-size: 5rem;
   transform: rotate(-8deg);
 }
-.challenge-card__avatars {
-  display: flex;
+.challenge-participants {
+  display: grid;
+  width: 100%;
   grid-column: 1 / -1;
-  padding-left: 0.55rem;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  grid-template-columns: repeat(auto-fit, minmax(3.65rem, 1fr));
+  list-style: none;
 }
-.challenge-card__avatars .avatar {
-  margin-left: -0.55rem;
+.challenge-participants button,
+.challenge-participants li > div {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  min-height: 5.25rem;
+  align-content: center;
+  justify-items: center;
+  gap: 0.2rem;
+  padding: 0.45rem 0.2rem;
+  border: 1px solid rgb(255 255 255 / 30%);
+  border-radius: 0.85rem;
+  background: rgb(12 23 77 / 36%);
+  color: white;
+  font: inherit;
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+.challenge-participants button {
+  cursor: pointer;
+}
+.challenge-participants button:hover,
+.challenge-participants button:focus-visible {
+  border-color: var(--lime);
+  background: rgb(199 242 58 / 18%);
+  outline: 2px solid var(--lime);
+  transform: translateY(-2px) rotate(-1deg);
+}
+.challenge-participants .is-pending {
+  opacity: 0.58;
+}
+.challenge-participants small {
+  color: var(--lime);
+  font-size: 0.58rem;
+  text-transform: uppercase;
+}
+.challenge-participant__avatar {
+  position: relative;
+}
+.challenge-participant__check {
+  position: absolute;
+  right: -0.25rem;
+  bottom: -0.15rem;
+  display: grid;
+  width: 1rem;
+  height: 1rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--lime);
+  color: var(--ink);
+  font-size: 0.65rem;
+  animation: challenge-check-pop 280ms cubic-bezier(0.2, 1.7, 0.4, 1) both;
 }
 .badge-callout {
   padding: 0.5rem 0.7rem;
@@ -1772,14 +1846,40 @@ h2 {
   align-items: center;
   gap: 0.55rem;
   padding: 0.35rem 0;
-  grid-template-columns: auto minmax(5rem, 0.7fr) minmax(5rem, 2fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
 }
-.player-progress > strong {
+.player-progress__body {
+  display: grid;
+  min-width: 0;
+  gap: 0.3rem;
+}
+.player-progress__meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.player-progress__meta strong {
   font-size: 0.8rem;
 }
-.player-progress > span {
+.player-progress__meta small {
   color: var(--muted);
   font-size: 0.68rem;
+}
+.player-progress__cheer,
+.player-progress__you {
+  padding: 0.32rem 0.48rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 850;
+}
+.player-progress__cheer {
+  background: #ebe8ff;
+  color: #5641c7;
+}
+.player-progress__you {
+  background: #edf7c9;
+  color: #536f00;
 }
 .player-progress--reactable {
   width: 100%;
@@ -1804,6 +1904,7 @@ h2 {
   display: table;
   margin: 1rem auto 0;
   box-shadow: var(--shadow);
+  animation: cheer-toast-pop 320ms cubic-bezier(0.2, 1.6, 0.4, 1) both;
 }
 .reaction-picker-backdrop {
   position: fixed;
@@ -1831,6 +1932,12 @@ h2 {
 .reaction-picker h2 {
   margin: 0.15rem 0 0;
 }
+.reaction-picker__context {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
 .reaction-picker__close {
   display: grid;
   width: 2.7rem;
@@ -1851,13 +1958,22 @@ h2 {
   grid-template-columns: repeat(4, 1fr);
 }
 .reaction-picker__emojis button {
+  display: grid;
   min-width: 0;
   min-height: 4.25rem;
+  align-content: center;
+  justify-items: center;
+  gap: 0.2rem;
   border: 1px solid #ddd9f3;
   border-radius: 1rem;
   background: #faf9ff;
   cursor: pointer;
   font-size: 1.75rem;
+}
+.reaction-picker__emojis small {
+  color: var(--ink);
+  font-size: 0.62rem;
+  font-weight: 800;
 }
 .reaction-picker__emojis button:hover,
 .reaction-picker__emojis button:focus-visible {
@@ -2322,6 +2438,27 @@ h2 {
   background: white;
   grid-template-columns: auto 1fr;
 }
+.reaction-badge-list__item--challenge {
+  border-color: #cbe470;
+  background: linear-gradient(135deg, #fbffe9, #f2ffc8);
+}
+.reaction-badge-list__item--team_progress {
+  border-color: #9ddce8;
+  background: linear-gradient(135deg, #f4fdff, #e2f9ff);
+}
+.reaction-badge-list__item--leaderboard {
+  border-color: #cec7ff;
+  background: linear-gradient(135deg, #fbfaff, #f0edff);
+}
+.reaction-badge-list__context {
+  display: inline-flex;
+  margin-bottom: 0.2rem;
+  color: #5949b8;
+  font-size: 0.62rem;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
 .reaction-badge-list__emoji {
   display: grid;
   width: 3rem;
@@ -2427,10 +2564,7 @@ h2 {
     font-size: 0.78rem;
   }
   .player-progress {
-    grid-template-columns: auto 1fr auto;
-  }
-  .player-progress .progress {
-    grid-column: 2 / -1;
+    grid-template-columns: auto minmax(0, 1fr) auto;
   }
   .section-heading {
     align-items: flex-start;
@@ -2471,6 +2605,39 @@ h2 {
   }
   .reaction-picker-backdrop {
     padding: 0.65rem;
+  }
+}
+
+@keyframes challenge-check-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.2) rotate(-25deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes cheer-toast-pop {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.88) rotate(-2deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .challenge-participant__check,
+  .reaction-sent-status {
+    animation: none;
+  }
+  .challenge-participants button:hover,
+  .challenge-participants button:focus-visible {
+    transform: none;
   }
 }
 

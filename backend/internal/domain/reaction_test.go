@@ -75,3 +75,30 @@ func TestReactionValidationRejectsSelfAndUnapprovedContext(t *testing.T) {
 		t.Fatal("team progress context must not carry leaderboard metric data")
 	}
 }
+
+func TestChallengeReactionUsesSafeAssignmentContext(t *testing.T) {
+	request := ReactionRequest{
+		RecipientPlayerID: "recipient",
+		ReactionType:      ReactionClap,
+		Context: ReactionContext{
+			Type: ContextChallenge, TeamID: "team-1", AssignmentID: "assignment-hills",
+		},
+	}
+	if err := ValidateReactionRequest("sender", request); err != nil {
+		t.Fatalf("ValidateReactionRequest() error = %v", err)
+	}
+
+	request.Context.ActivityName = "Hill Sprints"
+	message, err := BadgeMessage("Ava R.", request.ReactionType, request.Context)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if message != "Ava R. cheered your Hill Sprints challenge and sent you 👏." {
+		t.Fatalf("unexpected message: %q", message)
+	}
+	for _, prohibited := range []string{"result", "exhaustion", "pace", "8 reps"} {
+		if strings.Contains(strings.ToLower(message), prohibited) {
+			t.Fatalf("message contains prohibited context %q", prohibited)
+		}
+	}
+}

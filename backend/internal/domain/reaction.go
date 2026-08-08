@@ -33,6 +33,7 @@ const (
 
 	ContextTeamProgress ReactionContextType = "team_progress"
 	ContextLeaderboard  ReactionContextType = "leaderboard"
+	ContextChallenge    ReactionContextType = "challenge"
 
 	PeriodWeekly     LeaderboardPeriod = "weekly"
 	PeriodThirtyDays LeaderboardPeriod = "thirty_days"
@@ -44,10 +45,12 @@ const (
 )
 
 type ReactionContext struct {
-	Type   ReactionContextType `json:"type"`
-	TeamID string              `json:"teamId"`
-	Period LeaderboardPeriod   `json:"period"`
-	Metric LeaderboardMetric   `json:"metric,omitempty"`
+	Type         ReactionContextType `json:"type"`
+	TeamID       string              `json:"teamId"`
+	Period       LeaderboardPeriod   `json:"period,omitempty"`
+	Metric       LeaderboardMetric   `json:"metric,omitempty"`
+	AssignmentID string              `json:"assignmentId,omitempty"`
+	ActivityName string              `json:"activityName,omitempty"`
 }
 
 type ReactionRequest struct {
@@ -75,11 +78,15 @@ func ValidateReactionRequest(senderPlayerID string, request ReactionRequest) err
 	}
 	switch request.Context.Type {
 	case ContextTeamProgress:
-		if request.Context.Period != PeriodWeekly || request.Context.Metric != "" {
+		if request.Context.Period != PeriodWeekly || request.Context.Metric != "" || request.Context.AssignmentID != "" || request.Context.ActivityName != "" {
 			return ErrInvalidContext
 		}
 	case ContextLeaderboard:
-		if !validPeriod(request.Context.Period) || !validMetric(request.Context.Metric) {
+		if !validPeriod(request.Context.Period) || !validMetric(request.Context.Metric) || request.Context.AssignmentID != "" || request.Context.ActivityName != "" {
+			return ErrInvalidContext
+		}
+	case ContextChallenge:
+		if request.Context.AssignmentID == "" || request.Context.Period != "" || request.Context.Metric != "" || request.Context.ActivityName != "" {
 			return ErrInvalidContext
 		}
 	default:
@@ -128,6 +135,11 @@ func BadgeMessage(senderDisplayName string, reactionType ReactionType, context R
 			return "", ErrInvalidContext
 		}
 		return fmt.Sprintf("%s saw you on the %s %s leaderboard and sent you %s.", senderDisplayName, periodLabel(context.Period), metricLabel(context.Metric), emoji), nil
+	case ContextChallenge:
+		if context.AssignmentID == "" || strings.TrimSpace(context.ActivityName) == "" || context.Period != "" || context.Metric != "" {
+			return "", ErrInvalidContext
+		}
+		return fmt.Sprintf("%s cheered your %s challenge and sent you %s.", senderDisplayName, context.ActivityName, emoji), nil
 	default:
 		return "", ErrInvalidContext
 	}

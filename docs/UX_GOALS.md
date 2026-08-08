@@ -310,13 +310,22 @@ second entry.
 
 ### P2 — Put the shared challenge and understandable cheers on Team
 
-Bring the current assignment/challenge into the authoritative Team projection,
-show challenge completion without raw results, mark “You,” and add short visible
-labels to the reaction choices. Keep the board finite and contextual.
+Status: Implemented and targeted-Docker-verified 2026-08-08.
 
-Verify that a save updates Home and Team, that only eligible teammates can be
-cheered, that the private recipient message identifies the context safely, and
-that no raw result reaches the social response.
+- The authoritative Team projection carries the active assignment, safe
+  completion total, and a completion flag for each active member. It never
+  carries recorded values, effort, tiredness, times, or assessments.
+- Challenge-completion, weekly Team-progress, and leaderboard cheers coexist.
+  The picker visibly names the context and labels each predefined reaction.
+- Team marks the current player as “You.” Challenge completion adds a distinct
+  cheer entry point without removing the existing progress-row or leaderboard
+  actions.
+- Private Me cards use a context label and distinct background for Challenge,
+  Team progress, and Leaderboard reactions. Challenge copy comes from the
+  trusted activity catalog rather than player-authored text.
+- The connected 320-pixel journey proves that saving updates Home and Team,
+  challenge eligibility is enforced by the API, and no raw result reaches a
+  social response.
 
 ### P2 — Decide whether the leaderboard earns its emotional cost
 

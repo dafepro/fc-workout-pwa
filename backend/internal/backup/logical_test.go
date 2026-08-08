@@ -62,8 +62,8 @@ func TestLogicalExportAndImportPreserveEveryTableExactly(t *testing.T) {
 	if manifest.CreatedAt != createdAt.Format(time.RFC3339) || manifest.ApplicationVersion != "logical-test" {
 		t.Fatalf("unexpected manifest metadata: %+v", manifest)
 	}
-	if len(manifest.Source.SchemaMigrations) != 6 {
-		t.Fatalf("source migrations = %v, want six applied", manifest.Source.SchemaMigrations)
+	if len(manifest.Source.SchemaMigrations) != 7 {
+		t.Fatalf("source migrations = %v, want seven applied", manifest.Source.SchemaMigrations)
 	}
 	exported := make([]string, 0, len(manifest.Tables))
 	for _, table := range manifest.Tables {
@@ -109,8 +109,8 @@ func TestLogicalExportAndImportPreserveEveryTableExactly(t *testing.T) {
 	if err := target.QueryRowContext(ctx, "SELECT COUNT(*) FROM schema_migrations").Scan(&ledger); err != nil {
 		t.Fatal(err)
 	}
-	if ledger != 6 {
-		t.Fatalf("imported migration ledger = %d, want the current 5", ledger)
+	if ledger != 7 {
+		t.Fatalf("imported migration ledger = %d, want the current 7", ledger)
 	}
 }
 
@@ -161,8 +161,8 @@ func TestLogicalExportFromAnOlderSchemaImportsIntoTheCurrentSchema(t *testing.T)
 	if err := target.QueryRowContext(ctx, "SELECT idempotency_key FROM training_entries WHERE id = 'entry-old'").Scan(&idempotencyKey); err != nil {
 		t.Fatal(err)
 	}
-	if entries != 1 || migrationsApplied != 6 {
-		t.Fatalf("entries=%d migrations=%d, want 1 and 6", entries, migrationsApplied)
+	if entries != 1 || migrationsApplied != 7 {
+		t.Fatalf("entries=%d migrations=%d, want 1 and 7", entries, migrationsApplied)
 	}
 	if idempotencyKey.Valid {
 		t.Fatalf("field added after the export defaulted to %q, want NULL", idempotencyKey.String)
@@ -389,6 +389,16 @@ func fullyPopulatedDatabase(t *testing.T, ctx context.Context) string {
 			'reaction-deleted', 'player-liam', 'player-mason', 'team-hill-striders', 'fire',
 			'leaderboard', 'season', 'effort', '2026-08-02', 'reaction-key-2',
 			'2026-08-02T12:00:00Z', NULL, '2026-08-03T00:00:00Z', 0
+		)`,
+		`INSERT INTO reactions (
+			id, sender_player_id, recipient_player_id, team_id, reaction_type,
+			context_type, context_period, context_metric, context_assignment_id,
+			team_day, idempotency_key, created_at, read_at, deleted_at,
+			remaining_after_send
+		) VALUES (
+			'reaction-challenge', 'player-ava', 'player-mason', 'team-hill-striders', 'strong',
+			'challenge', NULL, NULL, 'assignment-hill-sprints',
+			'2026-08-02', 'reaction-key-3', '2026-08-02T13:00:00Z', NULL, NULL, 4
 		)`,
 		`INSERT INTO auth_credentials (
 			id, account_id, selector_hash, verifier_salt, verifier_hash,

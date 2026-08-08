@@ -23,6 +23,9 @@ func TestTeamAndLeaderboardProjectionsArePrivateAndAuthorized(t *testing.T) {
 		if !strings.Contains(body, "player-ava") || !strings.Contains(body, "Hill Striders") {
 			t.Fatalf("projection did not include the authorized roster: %s", body)
 		}
+		if strings.Contains(path, "/activity") && (!strings.Contains(body, `"currentChallenge"`) || !strings.Contains(body, `"challengeCompleted"`)) {
+			t.Fatalf("Team projection omitted safe challenge state: %s", body)
+		}
 		for _, privateValue := range []string{"resultValue", "resultUnit", "exhaustionLevel", "occurredAt", "assessment"} {
 			if strings.Contains(body, privateValue) {
 				t.Fatalf("projection leaked %q: %s", privateValue, body)
