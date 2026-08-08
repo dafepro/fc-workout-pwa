@@ -11,12 +11,31 @@ Scrolling the form with a thumb that starts on or near a slider changes the
 value instead of moving the page. The effort and tiredness answers get quietly
 rewritten on the way to the Save button.
 
-**Claude - Addressed (2026-08-08):** The range inputs had no `touch-action`, so
-the browser handed every touch that began on them to the slider, vertical or
-not. `app/globals.css` now sets `touch-action: pan-y` on
-`.intensity-slider input`: the browser keeps vertical panning for the page and
-only horizontal gestures reach the thumb. Keyboard and mouse behaviour are
-unchanged.
+**Claude - Attempted (2026-08-08):** Added `touch-action: pan-y` to
+`.intensity-slider input`. **This did not fix it** — see the follow-up below.
+`touch-action` governs which gestures the browser reserves for panning, but a
+native range input still jumps its thumb to wherever a finger first lands, and
+that jump happens before any direction exists to classify.
+
+**Claude - Addressed (2026-08-08):** Replaced the interaction with
+`app/components/RangeSlider.tsx`. The native input is now inert to pointers
+(`pointer-events: none`) and a wrapper owns the gesture: it records where a
+finger lands, changes nothing yet, and commits a value only once travel is
+more horizontal than vertical by more than 8px — or the finger lifts without
+having moved, which is a deliberate tap. A vertical drag is abandoned and the
+page scrolls. Because the browser's own slider can no longer receive a touch at
+all, the whole class of failure is gone rather than tuned around.
+
+The input stays a real `<input type="range">`, so keyboard, focus, and
+assistive-technology behaviour are untouched. Eight unit tests in
+`RangeSlider.test.tsx` cover vertical, horizontal, cancelled, too-short, tap,
+and clamped gestures, plus the native keyboard path; `tests/setup.ts` now
+polyfills `PointerEvent`, which jsdom does not ship.
+
+Verification limit worth recording: headless Chromium does not reproduce the
+original defect even with a bare native range input and synthetic touch events,
+so the fix is argued structurally and by unit test, not by reproduction. A real
+device pass is still the check that matters.
 
 ## Activity selection
 
@@ -29,10 +48,14 @@ section — a purple panel wrapping the options.
 **Claude - Addressed (2026-08-08):** The options now render inside an
 `.activity-options` panel with a purple gradient, its own border, and a drop
 shadow, hung directly off the bottom edge of the selected-activity button (which
-squares off its lower corners while open, so the two read as one object). The
-panel carries a title, a one-line hint, and a `Done` button, and it opens with a
-short slide-down that the existing `prefers-reduced-motion` reset disables. Copy
-lives in `copy.log`, per the central-copy convention.
+squares off its lower corners while open, so the two read as one object). It
+opens with a short slide-down that the existing `prefers-reduced-motion` reset
+disables.
+
+A first pass gave the panel a "Choose your workout" title, a "Pick one for this
+session" hint, and a `Done` button. All three were cut on review: the panel is
+self-evident, and tapping an option or the activity above already closes it.
+Explaining an obvious control is worse than not labelling it.
 
 ## Entering the flow
 
@@ -50,6 +73,18 @@ the screen." The bubble stays for now and toggles; the grow-into-the-screen
 transition is still open. Logging is also still a route, not an overlay — the
 "legit overlay for fast activity entry" idea is recorded but not built, since it
 changes navigation and back-button behaviour rather than styling.
+
+### Touching a slider highlights or selects it
+
+A touch on the scale sometimes leaves the control looking selected — a tap
+highlight, or a text selection dragged across the emoji anchors.
+
+**Claude - Addressed (2026-08-08):** `.range-slider` sets
+`-webkit-tap-highlight-color: transparent` and `user-select: none`, both of
+which inherit to the track and the anchors. The focus outline is unaffected: it
+comes from `:focus-within`, and with the input inert to pointers only keyboard
+focus can now trigger it. Verified in a real browser against computed styles and
+`window.getSelection()` after dragging.
 
 ## Activity value entry
 

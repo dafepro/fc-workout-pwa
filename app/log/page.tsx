@@ -194,19 +194,6 @@ export default function LogPage() {
         </button>
         {showActivities ? (
           <div id="activity-options" className="activity-options">
-            <div className="activity-options__header">
-              <span className="activity-options__copy">
-                <strong>{copy.log.pickerTitle}</strong>
-                <small>{copy.log.pickerHint}</small>
-              </span>
-              <button
-                type="button"
-                className="activity-options__done"
-                onClick={() => setShowActivities(false)}
-              >
-                {copy.log.pickerDone}
-              </button>
-            </div>
             <ActivitySelector
               selected={activityId}
               onSelect={chooseActivity}
