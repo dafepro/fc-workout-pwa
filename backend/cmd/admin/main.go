@@ -14,6 +14,10 @@ import (
 	"os"
 	"strings"
 	"time"
+	// The runtime image carries no zoneinfo, and this command does not import
+	// internal/config, so it must embed the zone database itself. Without this,
+	// every --time-zone except UTC fails, including this command's own default.
+	_ "time/tzdata"
 
 	qrcode "github.com/skip2/go-qrcode"
 	"golang.org/x/term"
