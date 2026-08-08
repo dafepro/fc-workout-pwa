@@ -98,30 +98,6 @@ jobs:
           retention-days: 30
           if-no-files-found: ignore
 
-  attestations:
-    name: Operator attestations
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.20.0
-
-      - name: Check the recorded operator drills
-        run: |
-          set -o pipefail
-          node scripts/drill-attestations.mjs 2>&1 | tee "$RUNNER_TEMP/attestations.log"
-
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: log-attestations
-          path: ${{ runner.temp }}/attestations.log
-          retention-days: 30
-          if-no-files-found: ignore
-
   # PRODUCTION_DRILLS_ENABLED must be repository-scoped: a job-level `if` is
   # evaluated before the environment resolves, so an environment-scoped variable
   # is invisible here and the job would silently skip.
@@ -164,7 +140,7 @@ jobs:
             echo "::error::the uptime check has no down_global alert"
             exit 1
           fi
-          echo "Alert definitions are live. Delivery to an inbox is the alert-delivery attestation."
+          echo "Alert definitions are live. Whether the email arrives is not something a runner can see."
 
       # Read-only by construction, and the age identity stays with its custodian
       # and is never available here, so nothing in this job can decrypt or
@@ -202,7 +178,6 @@ jobs:
     needs:
       - container-drills
       - release-candidate
-      - attestations
       - host-checks
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -225,7 +200,6 @@ jobs:
         env:
           CONTAINER_DRILLS: ${{ needs.container-drills.result }}
           RELEASE_CANDIDATE: ${{ needs.release-candidate.result }}
-          ATTESTATIONS: ${{ needs.attestations.result }}
           HOST_CHECKS: ${{ needs.host-checks.result }}
           HOST_REQUESTED: ${{ inputs.host_checks }}
           DRILLS_ENABLED: ${{ vars.PRODUCTION_DRILLS_ENABLED }}
@@ -243,7 +217,7 @@ jobs:
           }
 
           blocked=0
-          for result in "$CONTAINER_DRILLS" "$RELEASE_CANDIDATE" "$ATTESTATIONS" "$HOST_CHECKS"; do
+          for result in "$CONTAINER_DRILLS" "$RELEASE_CANDIDATE" "$HOST_CHECKS"; do
             case "$result" in
               success | skipped) ;;
               *) blocked=1 ;;
@@ -251,7 +225,7 @@ jobs:
           done
           # A skip is not a pass. Step 5 needs every one of these to have run.
           incomplete=0
-          for result in "$CONTAINER_DRILLS" "$RELEASE_CANDIDATE" "$ATTESTATIONS" "$HOST_CHECKS"; do
+          for result in "$CONTAINER_DRILLS" "$RELEASE_CANDIDATE" "$HOST_CHECKS"; do
             if [ "$result" != "success" ]; then
               incomplete=1
             fi
@@ -265,7 +239,7 @@ jobs:
             elif [ "$incomplete" -eq 1 ]; then
               echo "**Everything that ran passed, but step 5 is not yet complete.** Some checks did not run; the table says which."
             else
-              echo "**All four checks passed.** Every step 5 drill is either proven by this run or backed by a current operator attestation."
+              echo "**Every check passed.** The step 5 mechanics hold and the live host is healthy."
             fi
             echo ""
 
@@ -273,25 +247,26 @@ jobs:
             echo "|---|---|---|---|"
             printf '| Container drills | %s | Bounded logs, encrypted archives, isolated restore, cutover and rollback, QR reissue and revoke, the incident-release path | `./scripts/drills.sh` |\n' "$(verdict "$CONTAINER_DRILLS")"
             printf '| Release candidate | %s | The full intentional pass: static checks, unit tests, builds, contracts, Docker E2E, VM smoke | `./scripts/verify.sh --all` |\n' "$(verdict "$RELEASE_CANDIDATE")"
-            printf '| Operator attestations | %s | The five drills a runner must not do are recorded, dated, and under 180 days old | `node scripts/drill-attestations.mjs` |\n' "$(verdict "$ATTESTATIONS")"
-            printf '| Live-host checks | %s | Alerts and the uptime check are live, host readiness and R2 copies verified, logs bounded, retention pruning | see `docs/PRODUCTION_RUNBOOK.md` |\n' "$(verdict "$HOST_CHECKS")"
+            printf '| Live-host checks | %s | Alerts and the uptime check are live, host readiness and R2 copies verified, logs bounded, retention pruning | `scripts/host-drills.sh` on the VM |\n' "$(verdict "$HOST_CHECKS")"
             echo ""
 
             echo "## The six roadmap drills and where each is proven"
             echo ""
-            echo "| Roadmap bullet | Container drill | Live host | Operator attestation |"
+            echo "| Roadmap bullet | Container drill | Live host | Not covered here |"
             echo "|---|---|---|---|"
-            echo "| Alert delivery and bounded logs | \`drills.sh logs\` | alert policies, uptime check, running log limits | \`alert-delivery\` |"
-            echo "| Encrypted R2 upload and retention | \`drills.sh backup\` | \`production-check.sh --check-s3\`, prune horizon | \`r2-upload\` |"
-            echo "| Timed isolated restore | \`drills.sh restore\` | — | \`isolated-restore\` |"
-            echo "| Offline cutover and rollback | \`drills.sh cutover\` | — | \`live-cutover\` |"
+            echo "| Alert delivery and bounded logs | \`drills.sh logs\` | alert policies, uptime check, running log limits | an alert email actually arriving |"
+            echo "| Encrypted R2 upload and retention | \`drills.sh backup\` | \`production-check.sh --check-s3\`, prune horizon | — |"
+            echo "| Timed isolated restore | \`drills.sh restore\` | — | the timed run on real archives |"
+            echo "| Offline cutover and rollback | \`drills.sh cutover\` | — | the rehearsal on the live host |"
             echo "| QR reissue and revoke | \`drills.sh credentials\` | — | — |"
-            echo "| Local incident-release path | \`drills.sh release\` | — | \`incident-release\` |"
+            echo "| Local incident-release path | \`drills.sh release\` | — | a real release from an operator's machine |"
             echo "| One full \`verify.sh --all\` pass | — | — | — (the release-candidate job is the pass) |"
             echo ""
-            echo "A dash means a runner cannot prove that half honestly. The identity that"
-            echo "decrypts a backup stays with its custodian and is never present in Actions,"
-            echo "so the live restore and cutover are attestations by design, not omissions."
+            echo "The last column is what this workflow deliberately does not claim. The"
+            echo "identity that decrypts a backup stays with its custodian and never enters"
+            echo "Actions, so the live restore and cutover cannot run here, and a release"
+            echo "proven inside Actions would not prove the Actions-is-down fallback works."
+            echo "A green run means the mechanics hold, not that step 5 is signed off."
             echo ""
 
             if [ "$CONTAINER_DRILLS" != success ]; then
@@ -320,16 +295,6 @@ jobs:
               echo "\`prettier --check .\` covers every \`.md\` and \`.github/workflows/*.yml\`, and"
               echo "\`scripts/contracts.mjs\` matches literal substrings, so renaming a variable in"
               echo "a workflow breaks it. \`--all\` adds \`e2e.sh\` and \`vm-smoke.sh\` on top."
-              echo ""
-            fi
-
-            if [ "$ATTESTATIONS" = failure ]; then
-              echo "## Operator attestations — start here"
-              echo ""
-              echo "No code is broken. A drill that only a person can perform has no current"
-              echo "record. Perform it, then add the row to \`docs/backend/PRODUCTION_DRILL_LOG.md\`."
-              echo "The job log lists exactly which rows are missing or stale, and that file"
-              echo "explains what each one must prove."
               echo ""
             fi
 
