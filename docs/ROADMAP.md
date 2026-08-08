@@ -91,6 +91,9 @@ Status: **Implemented; targeted Docker and 320-pixel browser verification comple
   assignment. Existing Team-progress and leaderboard eligibility is unchanged.
 - Me labels and visually distinguishes Challenge, Team progress, and Leaderboard
   cheers while keeping every reaction private and omitting raw performance.
+- Each sender can cheer a recipient five times across all contexts in a rolling
+  30-minute window. Successful sends use a simple confirmation with no quota
+  count; another attempt before the window advances gets an inline error only.
 - The shared challenge uses a small completion pop and playful cheer affordances;
   reduced-motion preferences receive the same state without animation.
 

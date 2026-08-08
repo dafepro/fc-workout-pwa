@@ -7,30 +7,26 @@ import (
 	"time"
 )
 
-func TestReactionDailyLimitUsesTeamLocalDay(t *testing.T) {
-	location, err := time.LoadLocation("America/Chicago")
-	if err != nil {
-		t.Fatal(err)
-	}
-	now := time.Date(2026, 8, 6, 4, 30, 0, 0, time.UTC) // Aug 5, 11:30 PM in Chicago.
+func TestReactionLimitUsesRollingThirtyMinuteWindow(t *testing.T) {
+	now := time.Date(2026, 8, 6, 4, 30, 0, 0, time.UTC)
 	existing := []Reaction{
-		{SenderPlayerID: "sender", RecipientPlayerID: "recipient", CreatedAt: now.Add(-time.Hour)},
-		{SenderPlayerID: "sender", RecipientPlayerID: "recipient", CreatedAt: now.Add(-2 * time.Hour)},
-		{SenderPlayerID: "sender", RecipientPlayerID: "recipient", CreatedAt: now.Add(-3 * time.Hour)},
-		{SenderPlayerID: "sender", RecipientPlayerID: "recipient", CreatedAt: now.Add(-4 * time.Hour)},
-		{SenderPlayerID: "sender", RecipientPlayerID: "recipient", CreatedAt: now.Add(-5 * time.Hour)},
+		{SenderPlayerID: "sender", RecipientPlayerID: "recipient", CreatedAt: now.Add(-time.Minute)},
+		{SenderPlayerID: "sender", RecipientPlayerID: "recipient", CreatedAt: now.Add(-5 * time.Minute)},
+		{SenderPlayerID: "sender", RecipientPlayerID: "recipient", CreatedAt: now.Add(-10 * time.Minute)},
+		{SenderPlayerID: "sender", RecipientPlayerID: "recipient", CreatedAt: now.Add(-20 * time.Minute)},
+		{SenderPlayerID: "sender", RecipientPlayerID: "recipient", CreatedAt: now.Add(-29*time.Minute - 59*time.Second)},
 		{SenderPlayerID: "sender", RecipientPlayerID: "someone-else", CreatedAt: now},
-		{SenderPlayerID: "sender", RecipientPlayerID: "recipient", CreatedAt: now.Add(-25 * time.Hour)},
+		{SenderPlayerID: "sender", RecipientPlayerID: "recipient", CreatedAt: now.Add(-30 * time.Minute)},
 	}
 
-	remaining, err := RemainingDailyReactions("sender", "recipient", existing[:6], now, location)
-	if !errors.Is(err, ErrDailyLimitReached) || remaining != 0 {
-		t.Fatalf("RemainingDailyReactions() = (%d, %v), want limit error", remaining, err)
+	remaining, err := RemainingReactionsInWindow("sender", "recipient", existing[:6], now)
+	if !errors.Is(err, ErrReactionLimitReached) || remaining != 0 {
+		t.Fatalf("RemainingReactionsInWindow() = (%d, %v), want limit error", remaining, err)
 	}
 
-	remaining, err = RemainingDailyReactions("sender", "recipient", existing[1:6], now, location)
+	remaining, err = RemainingReactionsInWindow("sender", "recipient", existing[1:], now)
 	if err != nil || remaining != 0 {
-		t.Fatalf("four same-pair reactions should allow one more; got (%d, %v)", remaining, err)
+		t.Fatalf("a reaction at the 30-minute boundary should expire; got (%d, %v)", remaining, err)
 	}
 }
 

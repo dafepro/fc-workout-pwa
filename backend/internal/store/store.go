@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	ErrDailyLimitReached    = errors.New("daily reaction limit reached")
+	ErrReactionLimitReached = errors.New("reaction limit reached")
 	ErrIdempotencyConflict  = errors.New("idempotency key was used for a different request")
 	ErrNotActiveTeammates   = errors.New("players are not active teammates")
 	ErrChallengeUnavailable = errors.New("challenge completion is unavailable")
@@ -32,9 +32,9 @@ type CreateReactionInput struct {
 }
 
 type CreateReactionResult struct {
-	ID                         string `json:"id"`
-	RemainingForRecipientToday int    `json:"remainingForRecipientToday"`
-	Replayed                   bool   `json:"-"`
+	ID                          string `json:"id"`
+	RemainingForRecipientWindow int    `json:"remainingForRecipientWindow"`
+	Replayed                    bool   `json:"-"`
 }
 
 type ReactionBadge struct {
@@ -131,21 +131,23 @@ func (store *Store) CreateReaction(ctx context.Context, input CreateReactionInpu
 	}
 
 	var count int
+	windowStart := input.Now.Add(-domain.ReactionLimitWindow).UTC().Format(time.RFC3339Nano)
 	err = connection.QueryRowContext(ctx, `
 		SELECT COUNT(*) FROM reactions
-		WHERE sender_player_id = ? AND recipient_player_id = ? AND team_day = ? AND deleted_at IS NULL`,
-		input.SenderPlayerID, input.Request.RecipientPlayerID, teamDay,
+		WHERE sender_player_id = ? AND recipient_player_id = ? AND deleted_at IS NULL
+		  AND julianday(created_at) > julianday(?)`,
+		input.SenderPlayerID, input.Request.RecipientPlayerID, windowStart,
 	).Scan(&count)
 	if err != nil {
-		return CreateReactionResult{}, fmt.Errorf("count daily reactions: %w", err)
+		return CreateReactionResult{}, fmt.Errorf("count reactions in window: %w", err)
 	}
-	if count >= domain.MaxDailyReactionsPerRecipient {
-		return CreateReactionResult{}, ErrDailyLimitReached
+	if count >= domain.MaxReactionsPerRecipient {
+		return CreateReactionResult{}, ErrReactionLimitReached
 	}
 
 	result = CreateReactionResult{
-		ID:                         newID("reaction"),
-		RemainingForRecipientToday: domain.MaxDailyReactionsPerRecipient - count - 1,
+		ID:                          newID("reaction"),
+		RemainingForRecipientWindow: domain.MaxReactionsPerRecipient - count - 1,
 	}
 	var metric any
 	if input.Request.Context.Metric != "" {
@@ -167,7 +169,7 @@ func (store *Store) CreateReaction(ctx context.Context, input CreateReactionInpu
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		result.ID, input.SenderPlayerID, input.Request.RecipientPlayerID, input.Request.Context.TeamID,
 		input.Request.ReactionType, input.Request.Context.Type, period, metric, assignmentID,
-		teamDay, input.IdempotencyKey, result.RemainingForRecipientToday, input.Now.UTC().Format(time.RFC3339Nano),
+		teamDay, input.IdempotencyKey, result.RemainingForRecipientWindow, input.Now.UTC().Format(time.RFC3339Nano),
 	)
 	if err != nil {
 		return CreateReactionResult{}, fmt.Errorf("insert reaction: %w", err)
@@ -204,7 +206,7 @@ func findIdempotentReaction(ctx context.Context, connection *sql.Conn, input Cre
 		assignmentID.String != input.Request.Context.AssignmentID {
 		return CreateReactionResult{}, false, ErrIdempotencyConflict
 	}
-	return CreateReactionResult{ID: id, RemainingForRecipientToday: remaining}, true, nil
+	return CreateReactionResult{ID: id, RemainingForRecipientWindow: remaining}, true, nil
 }
 
 func (store *Store) ListReactionBadges(ctx context.Context, recipientPlayerID string, limit int) ([]ReactionBadge, error) {

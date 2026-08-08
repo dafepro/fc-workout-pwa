@@ -72,22 +72,22 @@ func TestContextualReactionIsIdempotentRateLimitedAndPrivate(t *testing.T) {
 	first := api.do(t, http.MethodPost, "/v1/reactions", avaToken, "reaction-1", firstPayload)
 	assertStatus(t, first, http.StatusCreated)
 	var created struct {
-		ID                         string `json:"id"`
-		RemainingForRecipientToday int    `json:"remainingForRecipientToday"`
+		ID                          string `json:"id"`
+		RemainingForRecipientWindow int    `json:"remainingForRecipientWindow"`
 	}
 	decodeJSON(t, first, &created)
-	if created.ID == "" || created.RemainingForRecipientToday != 4 {
+	if created.ID == "" || created.RemainingForRecipientWindow != 4 {
 		t.Fatalf("unexpected create response: %+v", created)
 	}
 
 	replayed := api.do(t, http.MethodPost, "/v1/reactions", avaToken, "reaction-1", firstPayload)
 	assertStatus(t, replayed, http.StatusOK)
 	var replay struct {
-		ID                         string `json:"id"`
-		RemainingForRecipientToday int    `json:"remainingForRecipientToday"`
+		ID                          string `json:"id"`
+		RemainingForRecipientWindow int    `json:"remainingForRecipientWindow"`
 	}
 	decodeJSON(t, replayed, &replay)
-	if replay.ID != created.ID || replay.RemainingForRecipientToday != 4 {
+	if replay.ID != created.ID || replay.RemainingForRecipientWindow != 4 {
 		t.Fatalf("idempotent replay = %+v, want original result", replay)
 	}
 
@@ -104,11 +104,11 @@ func TestContextualReactionIsIdempotentRateLimitedAndPrivate(t *testing.T) {
 		response := api.do(t, http.MethodPost, "/v1/reactions", avaToken, fmt.Sprintf("reaction-%d", index), payload)
 		assertStatus(t, response, http.StatusCreated)
 		var result struct {
-			RemainingForRecipientToday int `json:"remainingForRecipientToday"`
+			RemainingForRecipientWindow int `json:"remainingForRecipientWindow"`
 		}
 		decodeJSON(t, response, &result)
-		if result.RemainingForRecipientToday != 5-index {
-			t.Fatalf("reaction %d remaining = %d, want %d", index, result.RemainingForRecipientToday, 5-index)
+		if result.RemainingForRecipientWindow != 5-index {
+			t.Fatalf("reaction %d remaining = %d, want %d", index, result.RemainingForRecipientWindow, 5-index)
 		}
 	}
 
@@ -116,7 +116,7 @@ func TestContextualReactionIsIdempotentRateLimitedAndPrivate(t *testing.T) {
 	assertStatus(t, sixth, http.StatusTooManyRequests)
 	var limitError apiError
 	decodeJSON(t, sixth, &limitError)
-	if limitError.Error.Code != "reaction_daily_limit_reached" {
+	if limitError.Error.Code != "reaction_rate_limit_reached" {
 		t.Fatalf("error code = %q", limitError.Error.Code)
 	}
 
@@ -233,7 +233,7 @@ func TestChallengeReactionRequiresCompletionAndBuildsPrivateSafeContext(t *testi
 	}
 }
 
-func TestConcurrentReactionWritesCannotExceedTheDailyLimit(t *testing.T) {
+func TestConcurrentReactionWritesCannotExceedTheRollingLimit(t *testing.T) {
 	api := newAPIClient(t)
 	api.reset(t)
 	payload, err := json.Marshal(map[string]any{

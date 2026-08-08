@@ -52,9 +52,9 @@ The backend foundation lives in `backend/` and the review contracts live in `doc
 - a dependency-light, cloud-hostable Go service with health/readiness endpoints and graceful shutdown;
 - configuration validation and safe HTTP defaults;
 - pure authorization rules for player, assigned-coach, and club-admin access;
-- predefined contextual-reaction rules and a five-per-recipient team-day limit;
+- predefined contextual-reaction rules and a five-per-recipient rolling 30-minute limit;
 - a CGo-free SQLite adapter, embedded versioned migrations, and a repository boundary suitable for a later Postgres move;
-- a first contextual-reaction API slice with idempotent writes, private inbox badges, and an authoritative daily limit;
+- a first contextual-reaction API slice with idempotent writes, private inbox badges, and an authoritative rolling rate limit;
 - safe, server-ranked Team and Leaderboard projections derived from active memberships and participation only;
 - private training-entry create/list/detail/delete endpoints with server-owned timestamps, structured activity validation, and the 24-hour player deletion rule;
 - a frontend gateway that uses the real API when configured and retains the milestone 1 device-local adapter as an unhosted fallback;

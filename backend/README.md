@@ -35,7 +35,7 @@ Health endpoints:
 | `PORT`                             | `8080`                  | HTTP listener port                                        |
 | `DATABASE_URL`                     | `file:data/zoomigo.db`  | SQLite connection string; never logged                    |
 | `ALLOWED_ORIGIN`                   | `http://localhost:3000` | Exact frontend origin allowed by CORS                     |
-| `TEAM_TIME_ZONE`                   | `America/Chicago`       | IANA zone used for team-local daily limits                |
+| `TEAM_TIME_ZONE`                   | `America/Chicago`       | IANA zone used for team-local calendar rules              |
 | `SHUTDOWN_TIMEOUT`                 | `10s`                   | Graceful HTTP shutdown deadline                           |
 | `LOGIN_ATTEMPTS_PER_MINUTE`        | `30`                    | Sign-in attempts allowed per client address; `0` disables |
 | `GLOBAL_LOGIN_ATTEMPTS_PER_MINUTE` | `120`                   | Sign-in attempts allowed across all clients; `0` disables |

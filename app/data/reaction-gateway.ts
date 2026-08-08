@@ -4,6 +4,7 @@ import type {
   ReactionType,
   SendReactionResult,
 } from "../domain/types";
+import { copy } from "../content/copy";
 
 export interface SendReactionInput {
   recipientPlayerId: string;
@@ -50,7 +51,7 @@ const appReactionType: Record<string, ReactionType> = {
 interface LocalSentReaction {
   id: string;
   recipientPlayerId: string;
-  sentOn: string;
+  sentAt: string;
 }
 
 interface APIBadge extends Omit<ReactionBadge, "reactionType"> {
@@ -102,23 +103,24 @@ class HTTPReactionGateway implements ReactionGateway {
 
 class LocalReactionGateway implements ReactionGateway {
   async send(input: SendReactionInput): Promise<SendReactionResult> {
-    const today = localDay(new Date());
+    const now = new Date();
+    const windowStart = now.getTime() - 30 * 60 * 1000;
     const current = readLocalReactions();
-    const sentToday = current.filter(
+    const sentInWindow = current.filter(
       (reaction) =>
         reaction.recipientPlayerId === input.recipientPlayerId &&
-        reaction.sentOn === today,
+        new Date(reaction.sentAt).getTime() > windowStart,
     ).length;
-    if (sentToday >= 5) {
+    if (sentInWindow >= 5) {
       throw new ReactionGatewayError(
-        "reaction_daily_limit_reached",
-        "You have sent today’s maximum to this teammate.",
+        "reaction_rate_limit_reached",
+        copy.cheers.limitReached,
       );
     }
     const reaction: LocalSentReaction = {
       id: crypto.randomUUID(),
       recipientPlayerId: input.recipientPlayerId,
-      sentOn: today,
+      sentAt: now.toISOString(),
     };
     window.localStorage.setItem(
       LOCAL_REACTIONS_KEY,
@@ -126,7 +128,7 @@ class LocalReactionGateway implements ReactionGateway {
     );
     return {
       id: reaction.id,
-      remainingForRecipientToday: 4 - sentToday,
+      remainingForRecipientWindow: 4 - sentInWindow,
     };
   }
 
@@ -183,13 +185,6 @@ class LocalReactionGateway implements ReactionGateway {
 
 export function createReactionGateway(connected = false): ReactionGateway {
   return connected ? new HTTPReactionGateway() : new LocalReactionGateway();
-}
-
-function localDay(value: Date): string {
-  const year = value.getFullYear();
-  const month = String(value.getMonth() + 1).padStart(2, "0");
-  const day = String(value.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
 }
 
 function readLocalReactions(): LocalSentReaction[] {

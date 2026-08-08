@@ -122,14 +122,9 @@ export default function TeamPage() {
   async function react(type: ReactionType, emoji: string) {
     if (!cheerSelection) return;
     const { player, context } = cheerSelection;
-    const result = await sendReaction(player.id, type, context);
-    setSentLabel(
-      copy.cheers.sent(
-        emoji,
-        player.firstName,
-        result.remainingForRecipientToday,
-      ),
-    );
+    setSentLabel("");
+    await sendReaction(player.id, type, context);
+    setSentLabel(copy.cheers.sent(emoji, player.firstName));
     setCheerSelection(null);
   }
 

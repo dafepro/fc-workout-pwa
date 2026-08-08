@@ -379,8 +379,8 @@ func (service *service) createReaction(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		switch {
-		case errors.Is(err, store.ErrDailyLimitReached):
-			writeError(w, r, http.StatusTooManyRequests, "reaction_daily_limit_reached", "You have sent the daily maximum to this teammate.")
+		case errors.Is(err, store.ErrReactionLimitReached):
+			writeError(w, r, http.StatusTooManyRequests, "reaction_rate_limit_reached", "You have sent five cheers to this teammate in the last 30 minutes. Try again soon.")
 		case errors.Is(err, store.ErrIdempotencyConflict):
 			writeError(w, r, http.StatusConflict, "idempotency_conflict", "That Idempotency-Key was already used for another request.")
 		case errors.Is(err, store.ErrNotActiveTeammates):

@@ -7,13 +7,16 @@ import (
 	"time"
 )
 
-const MaxDailyReactionsPerRecipient = 5
+const (
+	MaxReactionsPerRecipient = 5
+	ReactionLimitWindow      = 30 * time.Minute
+)
 
 var (
-	ErrSelfReaction      = errors.New("players cannot react to themselves")
-	ErrInvalidReaction   = errors.New("reaction type is not approved")
-	ErrInvalidContext    = errors.New("reaction context is not approved")
-	ErrDailyLimitReached = errors.New("daily reaction limit reached")
+	ErrSelfReaction         = errors.New("players cannot react to themselves")
+	ErrInvalidReaction      = errors.New("reaction type is not approved")
+	ErrInvalidContext       = errors.New("reaction context is not approved")
+	ErrReactionLimitReached = errors.New("reaction limit reached")
 )
 
 type ReactionType string
@@ -95,24 +98,24 @@ func ValidateReactionRequest(senderPlayerID string, request ReactionRequest) err
 	return nil
 }
 
-func RemainingDailyReactions(senderPlayerID, recipientPlayerID string, existing []Reaction, now time.Time, location *time.Location) (int, error) {
+func RemainingReactionsInWindow(senderPlayerID, recipientPlayerID string, existing []Reaction, now time.Time) (int, error) {
 	if senderPlayerID == recipientPlayerID {
 		return 0, ErrSelfReaction
 	}
-	today := TeamDay(now, location)
+	windowStart := now.Add(-ReactionLimitWindow)
 	count := 0
 	for _, reaction := range existing {
 		if reaction.Deleted || reaction.SenderPlayerID != senderPlayerID || reaction.RecipientPlayerID != recipientPlayerID {
 			continue
 		}
-		if TeamDay(reaction.CreatedAt, location) == today {
+		if reaction.CreatedAt.After(windowStart) {
 			count++
 		}
 	}
-	if count >= MaxDailyReactionsPerRecipient {
-		return 0, ErrDailyLimitReached
+	if count >= MaxReactionsPerRecipient {
+		return 0, ErrReactionLimitReached
 	}
-	return MaxDailyReactionsPerRecipient - count - 1, nil
+	return MaxReactionsPerRecipient - count - 1, nil
 }
 
 func TeamDay(value time.Time, location *time.Location) string {

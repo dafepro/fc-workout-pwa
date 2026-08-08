@@ -100,7 +100,9 @@ to resolve, not the implementing agent's.
 - A challenge cheer is eligible only when the recipient is an active teammate
   who completed that exact assignment. The private message may name the
   predefined activity but may not include the recorded value or feeling data.
-- First implementation limit: five reactions from one sender to one recipient per team-local calendar day, across all contexts.
+- Implemented limit: five reactions from one sender to one recipient in a
+  rolling 30-minute window, across all contexts. Successful UI confirmations do
+  not expose a remaining count; the next attempt shows a private inline error.
 - Whether reaction totals are visible.
 - Whether a private recipient badge may mention an exact approved leaderboard placement.
 
