@@ -33,10 +33,11 @@ These closed open items from `STAFF_CONSOLE_DESIGN.md` §8 and are recorded in
 | Phase                | Requirements                             | Status                                              |
 | -------------------- | ---------------------------------------- | --------------------------------------------------- |
 | 0 — sign-in entry    | REQ-101–105                              | Complete                                            |
-| 1 — staff identity   | REQ-106, 107, 201–208, 301–305, 401, 402 | Backend complete; console screens in progress       |
-| 2 — operator console | REQ-601–610, 701–704                     | Backend complete; console screens in progress       |
+| 1 — staff identity   | REQ-106, 107, 201–208, 301–305, 401, 402 | Complete                                            |
+| 2 — operator console | REQ-601–610, 701–704                     | Complete                                            |
 | Access gate          | REQ-402                                  | Interim passphrase gate live; Access blocked, below |
-| Release              | —                                        | Not started                                         |
+| Release              | —                                        | Released 2026-08-08 as `960f34e`                    |
+| First operator       | —                                        | Awaiting the bootstrap command on the host, below   |
 
 ## Blocked
 
@@ -52,6 +53,19 @@ Groups → Edit** to that token and re-run `infra.yml`, first `plan` and then
 Until then the gate is the interim passphrase in `worker/staff-gate.ts`,
 checked before the request reaches the application and failing closed when no
 key is configured. It is weak as a secret and is not pretending otherwise.
+
+**The first operator account has to be created by hand.** The console cannot
+create the account that signs into it, and the bootstrap runs on the host:
+
+```sh
+cd /opt/app/deploy/vm && sudo -n docker compose --env-file .env \
+  --profile operations run --rm --no-TTY admin \
+  create-operator --email '313492551+dafepro@users.noreply.github.com' \
+  --setup-url 'https://zoomigo.quicktrack.cc/staff/setup'
+```
+
+It prints a one-time setup link and a temporary password, once. See
+`PRODUCTION_RUNBOOK.md` for what to do with them.
 
 ## Log
 
@@ -191,3 +205,14 @@ closed, which is the direction to fail in.
 The phrase did reach Cloudflare as a plaintext var during the failed run.
 Removing the var takes it back out. It is worth rotating if the Cloudflare
 dashboard's audience is wider than the console's.
+
+### 2026-08-08 — released
+
+`960f34e` is in production. The API runs the new image, migration 8 applied to
+the real database, `readyz` is 200, the gate admits on the phrase and refuses
+without it, and `/staff` sends an unauthenticated browser to `/staff/sign-in`.
+All three console browser tests pass against the real Worker request path.
+
+Phases 0, 1, and 2 are done. What remains for this effort is the first operator
+account, which is a command on the host, and Cloudflare Access, which is
+waiting on token scopes.
