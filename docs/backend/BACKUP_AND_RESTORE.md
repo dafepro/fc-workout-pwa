@@ -67,7 +67,7 @@ zoomigo-backup create-encrypted \
 
 The command creates and verifies the protected payload, encrypts it, atomically publishes only the `.age` output, and removes its mode-`0600` temporary payload. The public recipient can remain on the VM. The matching `AGE-SECRET-KEY-...` identity must not.
 
-The identity file must contain the `AGE-SECRET-KEY-1...` line and nothing else. It is parsed as a single key, so the `# created:` and `# public key:` comments `age-keygen` writes alongside it fail with `malformed secret key: mixed case`. It must also be mode `0600` and owned by uid `65532`, the user the container runs as.
+The identity file is whatever `age-keygen` wrote; its `# created:` and `# public key:` comment lines are skipped. Exactly one key must remain, because one archive has one recovery key and a file holding several means the wrong file was supplied. The file must be mode `0600` and owned by uid `65532`, the user the container runs as.
 
 An authorized recovery operator can authenticate and verify the envelope with a temporarily supplied identity file:
 

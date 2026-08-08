@@ -71,6 +71,60 @@ func TestEncryptedArchiveRequiresTheOperatorIdentityToVerifyAndRestore(t *testin
 	}
 }
 
+// A recovery operator supplies whatever age-keygen wrote, and that file carries
+// two comment lines above the key. Rejecting it fails a real restore for a
+// cosmetic reason, which is the worst possible moment to be strict.
+func TestEncryptedArchiveAcceptsTheIdentityFileAgeKeygenWrites(t *testing.T) {
+	ctx := context.Background()
+	plainPath := filepath.Join(t.TempDir(), "zoomigo-backup.tar.gz")
+	if _, err := backup.Create(ctx, backup.CreateOptions{
+		DatabaseURL:        seededDatabase(t, ctx),
+		ArchivePath:        plainPath,
+		ApplicationVersion: "identity-format-test",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	identity, err := age.GenerateX25519Identity()
+	if err != nil {
+		t.Fatal(err)
+	}
+	encryptedPath := filepath.Join(t.TempDir(), "zoomigo-backup.tar.gz.age")
+	if err := backup.EncryptArchive(plainPath, encryptedPath, identity.Recipient().String()); err != nil {
+		t.Fatal(err)
+	}
+
+	keygenFile := "# created: 2026-08-08T00:00:00Z\n" +
+		"# public key: " + identity.Recipient().String() + "\n" +
+		identity.String() + "\n"
+	if _, err := backup.VerifyEncrypted(ctx, encryptedPath, keygenFile); err != nil {
+		t.Fatalf("verify with an age-keygen identity file: %v", err)
+	}
+	restoredPath := filepath.Join(t.TempDir(), "restored.db")
+	if _, err := backup.RestoreEncrypted(ctx, backup.RestoreOptions{
+		ArchivePath:  encryptedPath,
+		DatabasePath: restoredPath,
+	}, keygenFile); err != nil {
+		t.Fatalf("restore with an age-keygen identity file: %v", err)
+	}
+
+	second, err := age.GenerateX25519Identity()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// One archive has one recovery key. Two means the operator grabbed the wrong
+	// file, and guessing which key was meant is not this command's job.
+	refusals := map[string]string{
+		"two identities": identity.String() + "\n" + second.String() + "\n",
+		"only comments":  "# public key: " + identity.Recipient().String() + "\n",
+		"empty":          "\n\n",
+	}
+	for name, identityText := range refusals {
+		if _, err := backup.VerifyEncrypted(ctx, encryptedPath, identityText); err == nil {
+			t.Fatalf("verified an identity file with %s", name)
+		}
+	}
+}
+
 func TestCreateVerifyAndRestoreArchive(t *testing.T) {
 	ctx := context.Background()
 	databaseURL := seededDatabase(t, ctx)
