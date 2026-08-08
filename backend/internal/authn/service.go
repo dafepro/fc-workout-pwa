@@ -418,6 +418,26 @@ func (service *Service) issueCredential(ctx context.Context, accountID, pin, tok
 	return Credential{ID: id, Token: token}, nil
 }
 
+// GeneratePIN draws a PIN rather than letting anyone choose one, so no
+// operator can reuse a habitual value, and discards the tail that would not
+// divide evenly so every PIN is equally likely.
+func GeneratePIN() (string, error) {
+	for {
+		raw := make([]byte, 2)
+		if _, err := rand.Read(raw); err != nil {
+			return "", err
+		}
+		draw := int(raw[0])<<8 | int(raw[1])
+		if draw >= 60000 {
+			continue
+		}
+		pin := fmt.Sprintf("%04d", draw%10000)
+		if ValidatePIN(pin) == nil {
+			return pin, nil
+		}
+	}
+}
+
 func ValidatePIN(pin string) error {
 	if !pinPattern.MatchString(pin) {
 		return ErrInvalidPIN

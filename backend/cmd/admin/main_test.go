@@ -49,17 +49,17 @@ func provisionedTestPlayer(t *testing.T) (string, map[string]any) {
 func TestGeneratedPINIsAlwaysFourNonTrivialDigits(t *testing.T) {
 	seen := map[string]bool{}
 	for attempt := 0; attempt < 500; attempt++ {
-		pin, err := generatePIN()
+		pin, err := authn.GeneratePIN()
 		if err != nil {
 			t.Fatal(err)
 		}
 		if err := authn.ValidatePIN(pin); err != nil {
-			t.Fatalf("generatePIN() produced %q, which the service rejects: %v", pin, err)
+			t.Fatalf("authn.GeneratePIN() produced %q, which the service rejects: %v", pin, err)
 		}
 		seen[pin] = true
 	}
 	if len(seen) < 100 {
-		t.Fatalf("generatePIN() produced only %d distinct values in 500 draws", len(seen))
+		t.Fatalf("authn.GeneratePIN() produced only %d distinct values in 500 draws", len(seen))
 	}
 }
 

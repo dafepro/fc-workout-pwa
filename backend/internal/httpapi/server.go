@@ -42,6 +42,9 @@ type service struct {
 	authenticator authn.Authenticator
 	sessions      SessionManager
 	staff         StaffSessionManager
+	staffStore    StaffRepository
+	staffAccounts StaffAccountManager
+	credentials   CredentialManager
 	authFixtures  func(context.Context) error
 	now           func() time.Time
 }
@@ -116,6 +119,7 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	mux.Handle("POST /v1/auth/staff-setup", throttle.guard(http.HandlerFunc(service.staffSetup)))
 	mux.HandleFunc("GET /v1/auth/staff-session", service.getStaffSession)
 	mux.HandleFunc("DELETE /v1/auth/staff-session", service.revokeStaffSession)
+	service.registerStaffRoutes(mux)
 	mux.HandleFunc("POST /v1/reactions", service.createReaction)
 	mux.HandleFunc("GET /v1/me/reaction-badges", service.listReactionBadges)
 	mux.HandleFunc("GET /v1/me/training-entries", service.listTrainingEntries)

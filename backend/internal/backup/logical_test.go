@@ -45,6 +45,7 @@ var exportedTables = []string{
 	"staff_setup_tokens",
 	"staff_sessions",
 	"staff_sign_in_challenges",
+	"admin_audit_events",
 }
 
 func TestLogicalExportAndImportPreserveEveryTableExactly(t *testing.T) {
@@ -68,8 +69,8 @@ func TestLogicalExportAndImportPreserveEveryTableExactly(t *testing.T) {
 	if manifest.CreatedAt != createdAt.Format(time.RFC3339) || manifest.ApplicationVersion != "logical-test" {
 		t.Fatalf("unexpected manifest metadata: %+v", manifest)
 	}
-	if len(manifest.Source.SchemaMigrations) != 9 {
-		t.Fatalf("source migrations = %v, want nine applied", manifest.Source.SchemaMigrations)
+	if len(manifest.Source.SchemaMigrations) != 10 {
+		t.Fatalf("source migrations = %v, want ten applied", manifest.Source.SchemaMigrations)
 	}
 	exported := make([]string, 0, len(manifest.Tables))
 	for _, table := range manifest.Tables {
@@ -115,8 +116,8 @@ func TestLogicalExportAndImportPreserveEveryTableExactly(t *testing.T) {
 	if err := target.QueryRowContext(ctx, "SELECT COUNT(*) FROM schema_migrations").Scan(&ledger); err != nil {
 		t.Fatal(err)
 	}
-	if ledger != 9 {
-		t.Fatalf("imported migration ledger = %d, want the current 9", ledger)
+	if ledger != 10 {
+		t.Fatalf("imported migration ledger = %d, want the current 10", ledger)
 	}
 }
 
@@ -167,8 +168,8 @@ func TestLogicalExportFromAnOlderSchemaImportsIntoTheCurrentSchema(t *testing.T)
 	if err := target.QueryRowContext(ctx, "SELECT idempotency_key FROM training_entries WHERE id = 'entry-old'").Scan(&idempotencyKey); err != nil {
 		t.Fatal(err)
 	}
-	if entries != 1 || migrationsApplied != 9 {
-		t.Fatalf("entries=%d migrations=%d, want 1 and 9", entries, migrationsApplied)
+	if entries != 1 || migrationsApplied != 10 {
+		t.Fatalf("entries=%d migrations=%d, want 1 and 10", entries, migrationsApplied)
 	}
 	if idempotencyKey.Valid {
 		t.Fatalf("field added after the export defaulted to %q, want NULL", idempotencyKey.String)
@@ -458,6 +459,8 @@ func fullyPopulatedDatabase(t *testing.T, ctx context.Context) string {
 			'staff-session-operator', 'account-operator', X'ff11', '2026-08-03T00:00:00Z',
 			'2026-08-03T08:00:00Z', '2026-08-03T00:30:00Z', '2026-08-03T00:00:00Z', NULL
 		)`,
+		`INSERT INTO admin_audit_events (id, actor_account_id, action, target_type, target_id, detail_json, occurred_at)
+		 VALUES ('admin-audit-1', 'account-operator', 'team.create', 'team', 'team-hill-striders', '{"name":"Hill Striders"}', '2026-08-03T00:01:00Z')`,
 		`INSERT INTO staff_sign_in_challenges (
 			id, account_id, token_hash, purpose, created_at, expires_at, consumed_at
 		) VALUES (
