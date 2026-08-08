@@ -1,19 +1,12 @@
-import Link from "next/link";
-import { copy } from "../../content/copy";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { routes } from "../../content/routes";
+import { staffSessionFrom } from "../session";
+import { StaffSignIn } from "./StaffSignIn";
 
-export default function StaffSignInPage() {
-  return (
-    <main className="login-page">
-      <section className="login-card" aria-labelledby="staff-sign-in-title">
-        <p className="eyebrow">{copy.brand}</p>
-        <h1 id="staff-sign-in-title">{copy.staff.signInTitle}</h1>
-        <p>{copy.staff.signInIntro}</p>
-        <p className="login-help">{copy.staff.comingSoon}</p>
-        <p className="login-staff">
-          <Link href={routes.playerSignIn}>{copy.staff.playerLink}</Link>
-        </p>
-      </section>
-    </main>
-  );
+export default async function StaffSignInPage() {
+  const requestHeaders = await headers();
+  const who = await staffSessionFrom(requestHeaders.get("cookie") ?? "");
+  if (who) redirect(routes.staffConsoleHome);
+  return <StaffSignIn />;
 }

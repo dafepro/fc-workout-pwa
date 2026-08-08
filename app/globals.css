@@ -2839,3 +2839,323 @@ h2 {
 .login-staff a {
   color: #59617b;
 }
+
+/* ---------------------------------------------------------------------------
+   Staff console (/staff/*)
+   Deliberately plain and dense: this is a tool for an adult holding a phone at
+   the side of a pitch, not a child's app. Everything here works at 320px.
+   No player route uses any of it.
+   --------------------------------------------------------------------------- */
+
+.console {
+  min-height: 100dvh;
+  padding: 1rem 0.75rem 3rem;
+  background: var(--canvas);
+  color: var(--ink);
+}
+
+.console__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.console__title {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.2;
+}
+
+/* The device is often borrowed, so sign out is a full control on every screen
+   rather than an item inside a menu. */
+.console__sign-out {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.9rem;
+}
+
+.console__back,
+.console__who {
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.console__body {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.console__notice {
+  margin: 0;
+}
+
+.console-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.console-nav a {
+  min-height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  color: var(--purple);
+}
+
+.console-card {
+  padding: 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: var(--surface);
+}
+
+.console-card__title {
+  margin: 0 0 0.6rem;
+  font-size: 1rem;
+}
+
+.console-card--danger {
+  border-color: #e5a0a0;
+  background: #fff8f8;
+}
+
+.console-card--reveal,
+.console-card--step-up {
+  border-color: var(--gold);
+  background: #fffaf0;
+}
+
+.console-warning {
+  margin: 0 0 0.75rem;
+  padding: 0.6rem 0.7rem;
+  border-left: 4px solid var(--gold);
+  background: #fff6e2;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.console-hint {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.console-state {
+  margin: 0 0 0.6rem;
+  font-weight: 850;
+}
+
+.console-form {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.console-form label {
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.console-form input,
+.console-form select {
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.6rem 0.65rem;
+  border: 1px solid #cfd4e4;
+  border-radius: 0.6rem;
+  background: #f9faff;
+  color: var(--ink);
+  font: inherit;
+}
+
+.console-form .button {
+  min-height: 3rem;
+  justify-self: start;
+}
+
+.console-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.console-actions .button {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.9rem;
+}
+
+.console-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.console-list__item {
+  border-top: 1px solid var(--line);
+  padding-top: 0.5rem;
+}
+
+.console-list__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+  padding: 0.4rem 0;
+  border-top: 1px solid var(--line);
+  font-size: 0.88rem;
+}
+
+.console-list__item > .console-list__row {
+  border-top: 0;
+}
+
+.console-list__row > span {
+  color: var(--muted);
+}
+
+.console-facts {
+  display: grid;
+  grid-template-columns: minmax(7rem, auto) 1fr;
+  gap: 0.25rem 0.75rem;
+  margin: 0 0 0.6rem;
+  font-size: 0.88rem;
+}
+
+.console-facts dt {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.console-facts dd {
+  margin: 0;
+  min-width: 0;
+}
+
+/* Secrets and identifiers are copied by hand, so they must never be ambiguous
+   and must never overflow a narrow screen. */
+.console-facts__code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+.console-facts--light dd {
+  color: var(--ink);
+}
+
+.console-reveal__pin {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin: 0 0 0.75rem;
+}
+
+.console-reveal__pin strong {
+  font-size: 2rem;
+  letter-spacing: 0.25em;
+}
+
+.console-reveal__qr {
+  display: block;
+  width: min(100%, 13.75rem);
+  height: auto;
+  margin-bottom: 0.75rem;
+  background: white;
+}
+
+.console-codes {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0 0 1rem;
+  padding: 0.7rem;
+  border: 1px dashed var(--line);
+  border-radius: 0.6rem;
+  background: #f9faff;
+  list-style: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9rem;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.console-confirm {
+  width: 100%;
+  padding: 0.6rem;
+  border: 1px solid #e5a0a0;
+  border-radius: 0.6rem;
+  background: #fff8f8;
+  font-size: 0.88rem;
+}
+
+.console-confirm p {
+  margin: 0;
+}
+
+.console-edit {
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--line);
+}
+
+.console-edit h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.92rem;
+}
+
+.console-assign {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.5rem 0 0.75rem;
+  font-size: 0.85rem;
+}
+
+.console-assign select {
+  min-height: 2.75rem;
+  padding: 0.5rem;
+  border: 1px solid #cfd4e4;
+  border-radius: 0.6rem;
+  background: #f9faff;
+  font: inherit;
+}
+
+.console-table-scroll {
+  overflow-x: auto;
+}
+
+.console-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.console-table th,
+.console-table td {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.console-search input[type="search"] {
+  font-size: 1.05rem;
+}
+
+@media (min-width: 40rem) {
+  .console {
+    padding: 1.5rem 1.5rem 3rem;
+  }
+
+  .console__body {
+    max-width: 60rem;
+  }
+}
