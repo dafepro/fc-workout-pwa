@@ -385,6 +385,8 @@ func (service *service) createReaction(w http.ResponseWriter, r *http.Request) {
 			writeError(w, r, http.StatusConflict, "idempotency_conflict", "That Idempotency-Key was already used for another request.")
 		case errors.Is(err, store.ErrNotActiveTeammates):
 			writeError(w, r, http.StatusUnprocessableEntity, "reaction_recipient_unavailable", "The reaction recipient is unavailable.")
+		case errors.Is(err, store.ErrChallengeUnavailable):
+			writeError(w, r, http.StatusUnprocessableEntity, "reaction_context_unavailable", "That challenge cheer is unavailable.")
 		case errors.Is(err, domain.ErrSelfReaction), errors.Is(err, domain.ErrInvalidReaction), errors.Is(err, domain.ErrInvalidContext):
 			writeError(w, r, http.StatusUnprocessableEntity, "invalid_reaction", "The reaction is not allowed.")
 		default:

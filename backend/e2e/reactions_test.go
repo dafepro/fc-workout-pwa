@@ -182,6 +182,57 @@ func TestReactionRejectsMissingAuthAndPlayerAuthoredFields(t *testing.T) {
 	_ = unsafe.Body.Close()
 }
 
+func TestChallengeReactionRequiresCompletionAndBuildsPrivateSafeContext(t *testing.T) {
+	api := newAPIClient(t)
+	api.reset(t)
+
+	entry := validTrainingEntryPayload(time.Now().UTC().Add(-time.Hour))
+	entry["assignmentId"] = "assignment-hill-sprints"
+	completed := api.do(t, http.MethodPost, "/v1/me/training-entries", avaToken, "ava-challenge-entry", entry)
+	assertStatus(t, completed, http.StatusCreated)
+	_ = completed.Body.Close()
+
+	challengeContext := map[string]any{
+		"type":         "challenge",
+		"teamId":       "team-hill-striders",
+		"assignmentId": "assignment-hill-sprints",
+	}
+	created := api.do(t, http.MethodPost, "/v1/reactions", masonToken, "challenge-cheer", map[string]any{
+		"recipientPlayerId": "player-ava",
+		"reactionType":      "strong",
+		"context":           challengeContext,
+	})
+	assertStatus(t, created, http.StatusCreated)
+	_ = created.Body.Close()
+
+	ineligible := api.do(t, http.MethodPost, "/v1/reactions", masonToken, "challenge-cheer-ineligible", map[string]any{
+		"recipientPlayerId": "player-liam",
+		"reactionType":      "clap",
+		"context":           challengeContext,
+	})
+	assertStatus(t, ineligible, http.StatusUnprocessableEntity)
+	var unavailable apiError
+	decodeJSON(t, ineligible, &unavailable)
+	if unavailable.Error.Code != "reaction_context_unavailable" {
+		t.Fatalf("ineligible challenge error = %q", unavailable.Error.Code)
+	}
+
+	inbox := api.do(t, http.MethodGet, "/v1/me/reaction-badges", avaToken, "", nil)
+	assertStatus(t, inbox, http.StatusOK)
+	body := readBody(inbox)
+	_ = inbox.Body.Close()
+	for _, expected := range []string{`"type":"challenge"`, `"activityName":"Hill Sprints"`, "Mason C. cheered your Hill Sprints challenge"} {
+		if !strings.Contains(body, expected) {
+			t.Fatalf("challenge inbox missing %q: %s", expected, body)
+		}
+	}
+	for _, forbidden := range []string{"resultValue", "resultUnit", "exhaustionLevel", "8 reps"} {
+		if strings.Contains(body, forbidden) {
+			t.Fatalf("challenge inbox exposed %q: %s", forbidden, body)
+		}
+	}
+}
+
 func TestConcurrentReactionWritesCannotExceedTheDailyLimit(t *testing.T) {
 	api := newAPIClient(t)
 	api.reset(t)

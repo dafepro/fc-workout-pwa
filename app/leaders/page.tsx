@@ -81,7 +81,11 @@ export default function LeadersPage() {
       metric: apiMetric,
     });
     setSentLabel(
-      `${emoji} sent to ${teammate.firstName}! ${result.remainingForRecipientToday} left today.`,
+      copy.cheers.sent(
+        emoji,
+        teammate.firstName,
+        result.remainingForRecipientToday,
+      ),
     );
     setSelectedPlayer(null);
   }
@@ -235,6 +239,7 @@ export default function LeadersPage() {
       ) : null}
       <ReactionPicker
         recipient={selectedPlayer}
+        contextLabel={`${period} ${metric} leaderboard`}
         onClose={() => setSelectedPlayer(null)}
         onSend={react}
       />

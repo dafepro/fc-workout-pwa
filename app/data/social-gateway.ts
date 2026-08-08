@@ -7,7 +7,7 @@ import type {
   TeamGoalStatus,
   TeamMemberProjection,
 } from "../domain/types";
-import { players, TEAM_NAME, WEEKLY_GOAL } from "./mockData";
+import { activities, players, TEAM_NAME, WEEKLY_GOAL } from "./mockData";
 
 export interface SocialGateway {
   teamActivity(): Promise<TeamActivityProjection>;
@@ -35,6 +35,7 @@ interface APITeamMember {
   currentStreak: number;
   consistencyDays: number;
   goalStatus: TeamGoalStatus;
+  challengeCompleted: boolean;
 }
 
 interface APITeamActivity extends Omit<TeamActivityProjection, "members"> {
@@ -104,15 +105,18 @@ class LocalSocialGateway implements SocialGateway {
       ...player,
       consistencyDays: player.consistency,
       goalStatus: goalStatus(player.weeklySessions),
+      challengeCompleted: player.weeklySessions >= WEEKLY_GOAL,
     }));
+    const weekStart = daysFromMonday(new Date());
+    const challengeActivity = activities[0];
     return {
       team: {
         id: "team-hill-striders",
         name: TEAM_NAME,
         weeklyGoal: WEEKLY_GOAL,
       },
-      weekStart: localDate(daysFromMonday(new Date())),
-      weekEnd: localDate(addDays(daysFromMonday(new Date()), 6)),
+      weekStart: localDate(weekStart),
+      weekEnd: localDate(addDays(weekStart, 6)),
       teamSessions: members.reduce(
         (total, player) => total + player.weeklySessions,
         0,
@@ -120,6 +124,17 @@ class LocalSocialGateway implements SocialGateway {
       membersMeetingGoal: members.filter(
         (player) => player.weeklySessions >= WEEKLY_GOAL,
       ).length,
+      currentChallenge: {
+        id: "prototype-hill-sprints",
+        activityDefinitionId: challengeActivity.id,
+        activityName: challengeActivity.name,
+        targetValue: challengeActivity.defaultValue,
+        targetUnit: challengeActivity.unit,
+        startsOn: localDate(weekStart),
+        dueOn: localDate(addDays(weekStart, 6)),
+        completedCount: members.filter((player) => player.challengeCompleted)
+          .length,
+      },
       members,
     };
   }
@@ -192,6 +207,7 @@ function fromAPITeamMember(member: APITeamMember): TeamMemberProjection {
     consistency: member.consistencyDays,
     consistencyDays: member.consistencyDays,
     goalStatus: member.goalStatus,
+    challengeCompleted: member.challengeCompleted,
   };
 }
 

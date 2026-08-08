@@ -4,10 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Avatar } from "../components/Avatar";
 import { ProgressBar } from "../components/ProgressBar";
 import { ReactionPicker } from "../components/ReactionPicker";
+import { TeamChallengeCard } from "../components/TeamChallengeCard";
 import { copy } from "../content/copy";
 import { createSocialGateway } from "../data/social-gateway";
 import type {
   Player,
+  ReactionContext,
   ReactionType,
   TeamActivityProjection,
   TeamGoalStatus,
@@ -31,7 +33,11 @@ export default function TeamPage() {
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
     "loading",
   );
-  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [cheerSelection, setCheerSelection] = useState<{
+    player: Player;
+    context: ReactionContext;
+    contextLabel: string;
+  } | null>(null);
   const [sentLabel, setSentLabel] = useState("");
 
   const loadTeam = useCallback(async () => {
@@ -65,6 +71,19 @@ export default function TeamPage() {
       entries.filter((entry) => entry.playerId === currentPlayerID),
       7,
     ).length;
+    const challenge = projection.currentChallenge;
+    const challengeCompleted = challenge
+      ? entries.some(
+          (entry) =>
+            entry.playerId === currentPlayerID &&
+            entry.assignmentId === challenge.id &&
+            entry.unit === challenge.targetUnit &&
+            entry.value >= challenge.targetValue,
+        )
+      : false;
+    const wasChallengeCompleted = projection.members.some(
+      (member) => member.id === currentPlayerID && member.challengeCompleted,
+    );
     const members = projection.members.map((member) =>
       member.id === currentPlayerID
         ? {
@@ -74,6 +93,7 @@ export default function TeamPage() {
               weeklySessions,
               projection.team.weeklyGoal,
             ),
+            challengeCompleted,
           }
         : member,
     );
@@ -86,22 +106,31 @@ export default function TeamPage() {
       membersMeetingGoal: members.filter(
         (member) => member.weeklySessions >= projection.team.weeklyGoal,
       ).length,
+      currentChallenge: challenge
+        ? {
+            ...challenge,
+            completedCount:
+              challenge.completedCount +
+              Number(challengeCompleted) -
+              Number(wasChallengeCompleted),
+          }
+        : null,
       members,
     };
   }, [connected, currentPlayerID, entries, projection]);
 
   async function react(type: ReactionType, emoji: string) {
-    if (!selectedPlayer) return;
-    const teammate = selectedPlayer;
-    const result = await sendReaction(teammate.id, type, {
-      type: "team_progress",
-      teamId: teamID,
-      period: "weekly",
-    });
+    if (!cheerSelection) return;
+    const { player, context } = cheerSelection;
+    const result = await sendReaction(player.id, type, context);
     setSentLabel(
-      `${emoji} sent to ${teammate.firstName}! ${result.remainingForRecipientToday} left today.`,
+      copy.cheers.sent(
+        emoji,
+        player.firstName,
+        result.remainingForRecipientToday,
+      ),
     );
-    setSelectedPlayer(null);
+    setCheerSelection(null);
   }
 
   const groups = displayedProjection
@@ -157,33 +186,22 @@ export default function TeamPage() {
 
       {displayedProjection ? (
         <>
-          <section className="challenge-card">
-            <div>
-              <p className="eyebrow eyebrow--lime">{copy.social.weeklyGoal}</p>
-              <h2>{displayedProjection.team.weeklyGoal} sessions</h2>
-              <p className="challenge-card__due">{copy.social.dueSunday}</p>
-              <strong className="challenge-card__count">
-                <span>✓</span> {displayedProjection.membersMeetingGoal} of{" "}
-                {displayedProjection.members.length} teammates met the goal
-              </strong>
-            </div>
-            <div className="challenge-card__art" aria-hidden="true">
-              🏃
-            </div>
-            <div
-              className="challenge-card__avatars"
-              aria-label="Weekly goal participation"
-            >
-              {displayedProjection.members.slice(0, 9).map((player) => (
-                <Avatar
-                  key={player.id}
-                  player={player}
-                  size="small"
-                  completed={player.goalStatus === "completed"}
-                />
-              ))}
-            </div>
-          </section>
+          <TeamChallengeCard
+            challenge={displayedProjection.currentChallenge}
+            members={displayedProjection.members}
+            currentPlayerID={currentPlayerID}
+            onCheer={(player) =>
+              setCheerSelection({
+                player,
+                context: {
+                  type: "challenge",
+                  teamId: teamID,
+                  assignmentId: displayedProjection.currentChallenge!.id,
+                },
+                contextLabel: `${displayedProjection.currentChallenge!.activityName} challenge`,
+              })
+            }
+          />
 
           <section className="card team-progress-card">
             <div className="section-heading">
@@ -211,7 +229,17 @@ export default function TeamPage() {
                       player={player}
                       weeklyGoal={displayedProjection.team.weeklyGoal}
                       tone={group.tone}
-                      onCheer={() => setSelectedPlayer(player)}
+                      onCheer={() =>
+                        setCheerSelection({
+                          player,
+                          context: {
+                            type: "team_progress",
+                            teamId: teamID,
+                            period: "weekly",
+                          },
+                          contextLabel: copy.cheers.contextLabels.team_progress,
+                        })
+                      }
                       isCurrentPlayer={player.id === currentPlayerID}
                     />
                   ))}
@@ -227,8 +255,9 @@ export default function TeamPage() {
         </p>
       ) : null}
       <ReactionPicker
-        recipient={selectedPlayer}
-        onClose={() => setSelectedPlayer(null)}
+        recipient={cheerSelection?.player ?? null}
+        contextLabel={cheerSelection?.contextLabel ?? ""}
+        onClose={() => setCheerSelection(null)}
         onSend={react}
       />
     </div>
@@ -274,17 +303,28 @@ function PlayerProgressRow({
   const content = (
     <>
       <Avatar player={player} size="small" />
-      <strong>
-        {player.firstName} {player.lastInitial}
-      </strong>
-      <ProgressBar
-        value={player.weeklySessions}
-        max={weeklyGoal}
-        tone={tone}
-        label={`${player.firstName}'s weekly participation`}
-      />
-      <span>
-        {Math.min(player.weeklySessions, weeklyGoal)} of {weeklyGoal}
+      <span className="player-progress__body">
+        <span className="player-progress__meta">
+          <strong>
+            {player.firstName} {player.lastInitial}
+          </strong>
+          <small>
+            {Math.min(player.weeklySessions, weeklyGoal)} of {weeklyGoal}
+          </small>
+        </span>
+        <ProgressBar
+          value={player.weeklySessions}
+          max={weeklyGoal}
+          tone={tone}
+          label={`${player.firstName}'s weekly participation`}
+        />
+      </span>
+      <span
+        className={
+          isCurrentPlayer ? "player-progress__you" : "player-progress__cheer"
+        }
+      >
+        {isCurrentPlayer ? copy.social.you : copy.social.cheer}
       </span>
     </>
   );

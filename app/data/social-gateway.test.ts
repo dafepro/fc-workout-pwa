@@ -12,6 +12,16 @@ describe("connected social gateway", () => {
         weekEnd: "2026-08-16",
         teamSessions: 3,
         membersMeetingGoal: 1,
+        currentChallenge: {
+          id: "assignment-hills",
+          activityDefinitionId: "hill-sprints",
+          activityName: "Hill Sprints",
+          targetValue: 8,
+          targetUnit: "reps",
+          startsOn: "2026-08-10",
+          dueOn: "2026-08-16",
+          completedCount: 1,
+        },
         members: [
           {
             playerId: "player-ava",
@@ -22,6 +32,7 @@ describe("connected social gateway", () => {
             currentStreak: 2,
             consistencyDays: 2,
             goalStatus: "completed",
+            challengeCompleted: true,
           },
         ],
       }),
@@ -39,6 +50,11 @@ describe("connected social gateway", () => {
       lastInitial: "R.",
       initials: "AR",
       goalStatus: "completed",
+      challengeCompleted: true,
+    });
+    expect(result.currentChallenge).toMatchObject({
+      activityName: "Hill Sprints",
+      completedCount: 1,
     });
   });
 

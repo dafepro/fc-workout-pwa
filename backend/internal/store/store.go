@@ -13,9 +13,10 @@ import (
 )
 
 var (
-	ErrDailyLimitReached   = errors.New("daily reaction limit reached")
-	ErrIdempotencyConflict = errors.New("idempotency key was used for a different request")
-	ErrNotActiveTeammates  = errors.New("players are not active teammates")
+	ErrDailyLimitReached    = errors.New("daily reaction limit reached")
+	ErrIdempotencyConflict  = errors.New("idempotency key was used for a different request")
+	ErrNotActiveTeammates   = errors.New("players are not active teammates")
+	ErrChallengeUnavailable = errors.New("challenge completion is unavailable")
 )
 
 type Store struct {
@@ -111,6 +112,23 @@ func (store *Store) CreateReaction(ctx context.Context, input CreateReactionInpu
 	if teammateCount != 2 {
 		return CreateReactionResult{}, ErrNotActiveTeammates
 	}
+	if input.Request.Context.Type == domain.ContextChallenge {
+		var completed int
+		err = connection.QueryRowContext(ctx, `SELECT EXISTS (
+			SELECT 1 FROM assignments a
+			JOIN training_entries e ON e.assignment_id = a.id
+			WHERE a.id = ? AND a.team_id = ? AND e.player_id = ?
+			  AND e.deleted_at IS NULL AND e.result_unit = a.target_unit
+			  AND e.result_value >= a.target_value
+		)`, input.Request.Context.AssignmentID, input.Request.Context.TeamID,
+			input.Request.RecipientPlayerID).Scan(&completed)
+		if err != nil {
+			return CreateReactionResult{}, fmt.Errorf("verify challenge completion: %w", err)
+		}
+		if completed == 0 {
+			return CreateReactionResult{}, ErrChallengeUnavailable
+		}
+	}
 
 	var count int
 	err = connection.QueryRowContext(ctx, `
@@ -133,14 +151,22 @@ func (store *Store) CreateReaction(ctx context.Context, input CreateReactionInpu
 	if input.Request.Context.Metric != "" {
 		metric = input.Request.Context.Metric
 	}
+	var period any
+	if input.Request.Context.Period != "" {
+		period = input.Request.Context.Period
+	}
+	var assignmentID any
+	if input.Request.Context.AssignmentID != "" {
+		assignmentID = input.Request.Context.AssignmentID
+	}
 	_, err = connection.ExecContext(ctx, `
 		INSERT INTO reactions (
 			id, sender_player_id, recipient_player_id, team_id, reaction_type,
-			context_type, context_period, context_metric, team_day, idempotency_key,
+			context_type, context_period, context_metric, context_assignment_id, team_day, idempotency_key,
 			remaining_after_send, created_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		result.ID, input.SenderPlayerID, input.Request.RecipientPlayerID, input.Request.Context.TeamID,
-		input.Request.ReactionType, input.Request.Context.Type, input.Request.Context.Period, metric,
+		input.Request.ReactionType, input.Request.Context.Type, period, metric, assignmentID,
 		teamDay, input.IdempotencyKey, result.RemainingForRecipientToday, input.Now.UTC().Format(time.RFC3339Nano),
 	)
 	if err != nil {
@@ -154,16 +180,16 @@ func (store *Store) CreateReaction(ctx context.Context, input CreateReactionInpu
 
 func findIdempotentReaction(ctx context.Context, connection *sql.Conn, input CreateReactionInput) (CreateReactionResult, bool, error) {
 	var (
-		id, recipient, reactionType, teamID, contextType, period string
-		metric                                                   sql.NullString
-		remaining                                                int
+		id, recipient, reactionType, teamID, contextType string
+		period, metric, assignmentID                     sql.NullString
+		remaining                                        int
 	)
 	err := connection.QueryRowContext(ctx, `
 		SELECT id, recipient_player_id, reaction_type, team_id, context_type, context_period,
-		       context_metric, remaining_after_send
+		       context_metric, context_assignment_id, remaining_after_send
 		FROM reactions WHERE sender_player_id = ? AND idempotency_key = ?`,
 		input.SenderPlayerID, input.IdempotencyKey,
-	).Scan(&id, &recipient, &reactionType, &teamID, &contextType, &period, &metric, &remaining)
+	).Scan(&id, &recipient, &reactionType, &teamID, &contextType, &period, &metric, &assignmentID, &remaining)
 	if errors.Is(err, sql.ErrNoRows) {
 		return CreateReactionResult{}, false, nil
 	}
@@ -171,9 +197,11 @@ func findIdempotentReaction(ctx context.Context, connection *sql.Conn, input Cre
 		return CreateReactionResult{}, false, fmt.Errorf("find idempotent reaction: %w", err)
 	}
 	requestMetric := string(input.Request.Context.Metric)
+	requestPeriod := string(input.Request.Context.Period)
 	if recipient != input.Request.RecipientPlayerID || reactionType != string(input.Request.ReactionType) ||
 		teamID != input.Request.Context.TeamID || contextType != string(input.Request.Context.Type) ||
-		period != string(input.Request.Context.Period) || metric.String != requestMetric {
+		period.String != requestPeriod || metric.String != requestMetric ||
+		assignmentID.String != input.Request.Context.AssignmentID {
 		return CreateReactionResult{}, false, ErrIdempotencyConflict
 	}
 	return CreateReactionResult{ID: id, RemainingForRecipientToday: remaining}, true, nil
@@ -185,10 +213,12 @@ func (store *Store) ListReactionBadges(ctx context.Context, recipientPlayerID st
 	}
 	rows, err := store.db.QueryContext(ctx, `
 		SELECT r.id, r.reaction_type, r.context_type, r.team_id, r.context_period,
-		       r.context_metric, r.created_at, r.read_at,
+		       r.context_metric, r.context_assignment_id, d.name, r.created_at, r.read_at,
 		       p.id, p.first_name, p.last_initial
 		FROM reactions r
 		JOIN players p ON p.id = r.sender_player_id
+		LEFT JOIN assignments a ON a.id = r.context_assignment_id
+		LEFT JOIN activity_definitions d ON d.id = a.activity_definition_id
 		WHERE r.recipient_player_id = ? AND r.deleted_at IS NULL
 		ORDER BY r.created_at DESC, r.id DESC
 		LIMIT ?`, recipientPlayerID, limit)
@@ -200,18 +230,20 @@ func (store *Store) ListReactionBadges(ctx context.Context, recipientPlayerID st
 	badges := make([]ReactionBadge, 0)
 	for rows.Next() {
 		var (
-			badge                                    ReactionBadge
-			contextType, teamID, period, first, last string
-			metric, readAt                           sql.NullString
+			badge                                              ReactionBadge
+			contextType, teamID, first, last                   string
+			period, metric, assignmentID, activityName, readAt sql.NullString
 		)
 		if err := rows.Scan(&badge.ID, &badge.ReactionType, &contextType, &teamID, &period, &metric,
+			&assignmentID, &activityName,
 			&badge.CreatedAt, &readAt, &badge.Sender.ID, &first, &last); err != nil {
 			return nil, fmt.Errorf("scan reaction badge: %w", err)
 		}
 		badge.Sender.DisplayName = fmt.Sprintf("%s %s.", first, last)
 		badge.Context = domain.ReactionContext{
 			Type: domain.ReactionContextType(contextType), TeamID: teamID,
-			Period: domain.LeaderboardPeriod(period), Metric: domain.LeaderboardMetric(metric.String),
+			Period: domain.LeaderboardPeriod(period.String), Metric: domain.LeaderboardMetric(metric.String),
+			AssignmentID: assignmentID.String, ActivityName: activityName.String,
 		}
 		badge.Emoji, err = domain.ReactionEmoji(badge.ReactionType)
 		if err != nil {

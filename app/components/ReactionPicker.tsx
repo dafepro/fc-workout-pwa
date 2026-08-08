@@ -1,31 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { copy } from "../content/copy";
 import type { Player, ReactionType } from "../domain/types";
-
-const reactionOptions: Array<{
-  type: ReactionType;
-  emoji: string;
-  label: string;
-}> = [
-  { type: "clap", emoji: "👏", label: "Clap" },
-  { type: "fire", emoji: "🔥", label: "Fire" },
-  { type: "strong", emoji: "💪", label: "Strong" },
-  { type: "hustle", emoji: "⚡", label: "Hustle" },
-  { type: "runner", emoji: "🏃", label: "Runner" },
-  { type: "wind", emoji: "💨", label: "Wind" },
-  { type: "robot-leg", emoji: "🦿", label: "Robot leg" },
-  { type: "do-it", emoji: "✓", label: "Do it" },
-];
 
 interface ReactionPickerProps {
   recipient: Player | null;
+  contextLabel: string;
   onClose: () => void;
   onSend: (type: ReactionType, emoji: string) => Promise<void>;
 }
 
 export function ReactionPicker({
   recipient,
+  contextLabel,
   onClose,
   onSend,
 }: ReactionPickerProps) {
@@ -52,11 +40,7 @@ export function ReactionPicker({
     try {
       await onSend(type, emoji);
     } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : "That cheer could not be sent.",
-      );
+      setError(cause instanceof Error ? cause.message : copy.cheers.failed);
     } finally {
       setSending(false);
     }
@@ -77,13 +61,16 @@ export function ReactionPicker({
       >
         <header>
           <div>
-            <p className="eyebrow">Choose a cheer</p>
-            <h2>Cheer for {recipient.firstName}</h2>
+            <p className="eyebrow">{copy.cheers.pickerEyebrow}</p>
+            <h2>{copy.cheers.pickerTitle(recipient.firstName)}</h2>
+            <p className="reaction-picker__context">
+              {copy.cheers.pickerContext(contextLabel)}
+            </p>
           </div>
           <button
             type="button"
             className="reaction-picker__close"
-            aria-label="Close reaction picker"
+            aria-label={copy.cheers.close}
             disabled={sending}
             onClick={onClose}
           >
@@ -91,16 +78,19 @@ export function ReactionPicker({
           </button>
         </header>
         <div className="reaction-picker__emojis">
-          {reactionOptions.map((reaction, index) => (
+          {copy.cheers.options.map((reaction, index) => (
             <button
               ref={index === 0 ? firstButton : undefined}
               type="button"
               key={reaction.type}
               aria-label={`Send ${reaction.label} to ${recipient.firstName}`}
               disabled={sending}
-              onClick={() => send(reaction.type, reaction.emoji)}
+              onClick={() =>
+                send(reaction.type as ReactionType, reaction.emoji)
+              }
             >
-              {reaction.emoji}
+              <span aria-hidden="true">{reaction.emoji}</span>
+              <small>{reaction.label}</small>
             </button>
           ))}
         </div>
