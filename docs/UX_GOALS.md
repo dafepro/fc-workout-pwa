@@ -243,7 +243,7 @@ only on the current Desktop Chrome end-to-end configuration.
 
 ### P0 — Restore and prove the save path
 
-This is the next work I recommend starting.
+Status: Implemented and targeted-Docker-verified 2026-08-08.
 
 Reproduce the alpha failure using a disposable player created through the real
 admin provisioning path, not only the E2E fixture seeder. Add the failing test

@@ -33,6 +33,17 @@ Worth fixing regardless of root cause: "That team is unavailable" is misleading
 for what is really "no active membership matched for that date." It sends the
 reader toward team configuration rather than membership dates.
 
+**Codex - Addressed (2026-08-08):** Training-entry authorization used the API's
+legacy `TEAM_TIME_ZONE` while authentication used UTC and Team used the stored
+team time zone. At a date boundary, all three paths evaluated the same
+membership against different calendar days. Entry creation now loads the
+selected team's IANA zone before applying both the seven-day and membership
+rules, and admin provisioning stamps `active_from` in that same team-local
+calendar. Inactive membership has its own actionable API error. A Docker
+regression provisions a disposable player through `zoomigo-admin`, signs in via
+QR+PIN, and proves today/backdate/detail/delete/inactive behavior through the
+public HTTP surface.
+
 ## Feeling scale
 
 ### Reorder the faces and drop the open-mouth face

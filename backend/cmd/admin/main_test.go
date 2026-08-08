@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"testing"
+	"time"
 )
 
 func TestLoginLinkKeepsCredentialOutOfServerRequest(t *testing.T) {
@@ -54,5 +55,20 @@ func TestProvisioningGateAllowsTestAccountsButRequiresExplicitProductionApproval
 	}
 	if err := requireProvisioningApproval(false); err == nil {
 		t.Fatal("non-canonical production approval was accepted")
+	}
+}
+
+func TestProvisionedMembershipStartsOnTheTeamsLocalDate(t *testing.T) {
+	now := time.Date(2026, time.August, 8, 2, 0, 0, 0, time.UTC)
+
+	date, err := teamLocalDate(now, "America/Chicago")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if date != "2026-08-07" {
+		t.Fatalf("team-local membership date = %q, want 2026-08-07", date)
+	}
+	if _, err := teamLocalDate(now, "not/a-zone"); err == nil {
+		t.Fatal("invalid team time zone was accepted")
 	}
 }

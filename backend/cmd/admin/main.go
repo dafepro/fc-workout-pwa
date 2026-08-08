@@ -128,8 +128,8 @@ func provisionPlayer(ctx context.Context, arguments []string) error {
 		return err
 	}
 	defer db.Close()
-	var clubID string
-	if err = db.QueryRowContext(ctx, `SELECT club_id FROM teams WHERE id = ?`, *teamID).Scan(&clubID); err != nil {
+	var clubID, timeZone string
+	if err = db.QueryRowContext(ctx, `SELECT club_id, time_zone FROM teams WHERE id = ?`, *teamID).Scan(&clubID, &timeZone); err != nil {
 		return errors.New("team not found")
 	}
 	playerID, err := newID("player")
@@ -152,7 +152,11 @@ func provisionPlayer(ctx context.Context, arguments []string) error {
 	if _, err = tx.ExecContext(ctx, `INSERT INTO accounts (id,club_id,player_id,role,status,created_at) VALUES (?,?,?,'player','active',?)`, accountID, clubID, playerID, now.Format(time.RFC3339Nano)); err != nil {
 		return err
 	}
-	if _, err = tx.ExecContext(ctx, `INSERT INTO team_memberships (team_id,player_id,active_from) VALUES (?,?,?)`, *teamID, playerID, now.Format("2006-01-02")); err != nil {
+	activeFrom, err := teamLocalDate(now, timeZone)
+	if err != nil {
+		return err
+	}
+	if _, err = tx.ExecContext(ctx, `INSERT INTO team_memberships (team_id,player_id,active_from) VALUES (?,?,?)`, *teamID, playerID, activeFrom); err != nil {
 		return err
 	}
 	if err = tx.Commit(); err != nil {
@@ -302,6 +306,13 @@ func envOr(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+func teamLocalDate(now time.Time, timeZone string) (string, error) {
+	location, err := time.LoadLocation(timeZone)
+	if err != nil {
+		return "", errors.New("team has an invalid time zone")
+	}
+	return now.In(location).Format("2006-01-02"), nil
 }
 func requireProvisioningApproval(testOnly bool) error {
 	if testOnly || os.Getenv("PRODUCTION_DATA_APPROVED") == "true" {
