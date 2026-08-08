@@ -15,6 +15,7 @@ import (
 	"github.com/dafepro/fc-workout-pwa/backend/internal/config"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/httpapi"
+	"github.com/dafepro/fc-workout-pwa/backend/internal/staffauth"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/store"
 )
 
@@ -42,9 +43,23 @@ func run() error {
 	}
 	repository := store.New(db, cfg.TeamTimeZone)
 	sessions := authn.NewService(db)
+	// One Argon2 budget for both credential paths: each derivation reserves
+	// 64 MiB and the VM has 512 MiB, so two independent limits would be no
+	// limit at all.
+	staff := staffauth.NewService(db, cfg.StaffSecretKey, sessions.Slot())
+	if !staff.Configured() {
+		slog.Warn("staff sign in is disabled because STAFF_SECRET_KEY is not set")
+	}
 	authenticator, resetAuthFixtures := configuredAuthenticator(cfg, sessions)
 
-	handlerOptions := []httpapi.Option{httpapi.WithStore(repository), httpapi.WithAuthenticator(authenticator), httpapi.WithSessionManager(sessions)}
+	handlerOptions := []httpapi.Option{
+		httpapi.WithStore(repository),
+		// A staff bearer token resolves through the same interface as a player
+		// one, so authorization stays the single place that decides anything.
+		httpapi.WithAuthenticator(authn.Fallback{Primary: authenticator, Secondary: staff}),
+		httpapi.WithSessionManager(sessions),
+		httpapi.WithStaffSessionManager(staff),
+	}
 	if resetAuthFixtures != nil {
 		handlerOptions = append(handlerOptions, httpapi.WithAuthFixtureReset(resetAuthFixtures))
 	}

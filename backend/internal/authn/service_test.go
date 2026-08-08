@@ -21,8 +21,10 @@ func TestValidatePINRejectsWeakOrMalformedValues(t *testing.T) {
 }
 
 func TestCreateSessionRejectsConcurrentPasswordWork(t *testing.T) {
-	service := &Service{loginSlots: make(chan struct{}, 1)}
-	service.loginSlots <- struct{}{}
+	service := &Service{loginSlots: NewSlot()}
+	if _, acquired := service.loginSlots.Acquire(); !acquired {
+		t.Fatal("a fresh slot must be available")
+	}
 
 	_, err := service.CreateSession(
 		context.Background(),

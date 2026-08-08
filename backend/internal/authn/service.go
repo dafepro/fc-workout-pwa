@@ -35,10 +35,29 @@ var (
 	pinPattern            = regexp.MustCompile(`^[0-9]{4}$`)
 )
 
+// Slot admits one Argon2 derivation at a time. The VM has 512 MiB and each
+// derivation reserves 64 MiB, so this is a memory limit rather than a fairness
+// one, and it has to be shared by every credential path or the limit is
+// whatever the paths add up to.
+type Slot struct{ tokens chan struct{} }
+
+func NewSlot() *Slot { return &Slot{tokens: make(chan struct{}, 1)} }
+
+// Acquire never waits: a queue of sign-ins holding 64 MiB each is the failure
+// this exists to prevent. The caller turns a refusal into a retry-after.
+func (slot *Slot) Acquire() (release func(), acquired bool) {
+	select {
+	case slot.tokens <- struct{}{}:
+		return func() { <-slot.tokens }, true
+	default:
+		return nil, false
+	}
+}
+
 type Service struct {
 	db         *sql.DB
 	now        func() time.Time
-	loginSlots chan struct{}
+	loginSlots *Slot
 }
 
 type TeamProfile struct {
@@ -66,9 +85,15 @@ type Credential struct {
 	Token string
 }
 
-func NewService(db *sql.DB) *Service {
-	return &Service{db: db, now: time.Now, loginSlots: make(chan struct{}, 1)}
+func NewService(db *sql.DB) *Service { return NewServiceWithSlot(db, NewSlot()) }
+
+func NewServiceWithSlot(db *sql.DB, slot *Slot) *Service {
+	return &Service{db: db, now: time.Now, loginSlots: slot}
 }
+
+// Slot exposes the limiter so the staff path shares it rather than adding a
+// second 64 MiB budget beside this one.
+func (service *Service) Slot() *Slot { return service.loginSlots }
 
 func (service *Service) Authenticate(ctx context.Context, bearerToken string) (domain.Actor, error) {
 	session, actor, err := service.lookupSession(ctx, bearerToken)
@@ -85,12 +110,11 @@ func (service *Service) CreateSession(ctx context.Context, credentialToken, pin 
 	if !validCredentialToken(credentialToken) || !pinPattern.MatchString(pin) {
 		return Session{}, ErrInvalidLogin
 	}
-	select {
-	case service.loginSlots <- struct{}{}:
-		defer func() { <-service.loginSlots }()
-	default:
+	release, acquired := service.loginSlots.Acquire()
+	if !acquired {
 		return Session{}, ErrLoginBusy
 	}
+	defer release()
 
 	now := service.now().UTC()
 	selector := sha256.Sum256([]byte(credentialToken))
@@ -115,13 +139,25 @@ func (service *Service) CreateSession(ctx context.Context, credentialToken, pin 
 	var lockedUntil, revokedAt sql.NullString
 	err = connection.QueryRowContext(ctx, `SELECT id, account_id, verifier_salt, verifier_hash, failed_attempts, locked_until, revoked_at FROM auth_credentials WHERE selector_hash = ?`, selector[:]).Scan(&credentialID, &accountID, &salt, &expected, &failed, &lockedUntil, &revokedAt)
 	if errors.Is(err, sql.ErrNoRows) {
-		_, _ = connection.ExecContext(ctx, "ROLLBACK")
+		// Deriving against a throwaway salt costs exactly what a real check
+		// costs, which is the point: without it, "no such code" answers
+		// measurably faster than "wrong PIN" and enumerating valid QR codes
+		// becomes a timing measurement rather than a guess (REQ-105).
+		burnVerifierTime(credentialToken, pin)
+		if err = insertAudit(ctx, connection, "", "", "", "login_unknown_credential", "unknown_selector", now); err != nil {
+			return Session{}, err
+		}
+		if _, err = connection.ExecContext(ctx, "COMMIT"); err != nil {
+			return Session{}, err
+		}
+		committed = true
 		return Session{}, ErrInvalidLogin
 	}
 	if err != nil {
 		return Session{}, fmt.Errorf("find credential: %w", err)
 	}
 	if revokedAt.Valid {
+		burnVerifierTime(credentialToken, pin)
 		return Session{}, ErrInvalidLogin
 	}
 	if lockedUntil.Valid {
@@ -445,6 +481,16 @@ func (service *Service) lookupSession(ctx context.Context, token string) (sessio
 func deriveVerifier(token, pin string, salt []byte) []byte {
 	return argon2.IDKey([]byte(token+"\x00"+pin), salt, argonTime, argonMemory, argonThreads, argonKeyLength)
 }
+
+// A fixed salt is safe here because the result is discarded; what matters is
+// that the work happened. Marked used so no compiler is tempted to elide it.
+var timingSalt = []byte("zoomigo-timing-equalizer")
+
+func burnVerifierTime(token, pin string) {
+	if len(deriveVerifier(token, pin, timingSalt)) == 0 {
+		panic("empty verifier")
+	}
+}
 func lockDuration(failed int) time.Duration { return 15 * time.Minute * time.Duration(1<<(failed-5)) }
 
 func validCredentialToken(token string) bool {
@@ -476,14 +522,19 @@ func insertAudit(ctx context.Context, executor auditExecutor, accountID, credent
 	if err != nil {
 		return err
 	}
-	var c, s any
+	// An empty identifier is a genuine absence -- a failure against a credential
+	// nobody owns has no account -- so it is stored as NULL rather than as "".
+	var a, c, s any
+	if accountID != "" {
+		a = accountID
+	}
 	if credentialID != "" {
 		c = credentialID
 	}
 	if sessionID != "" {
 		s = sessionID
 	}
-	_, err = executor.ExecContext(ctx, `INSERT INTO auth_audit_events (id, account_id, credential_id, session_id, event_type, detail_code, occurred_at) VALUES (?, ?, ?, ?, ?, ?, ?)`, id, accountID, c, s, eventType, detail, now.Format(time.RFC3339Nano))
+	_, err = executor.ExecContext(ctx, `INSERT INTO auth_audit_events (id, account_id, credential_id, session_id, event_type, detail_code, occurred_at) VALUES (?, ?, ?, ?, ?, ?, ?)`, id, a, c, s, eventType, detail, now.Format(time.RFC3339Nano))
 	return err
 }
 

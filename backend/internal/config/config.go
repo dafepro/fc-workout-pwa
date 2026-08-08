@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/base64"
 	"fmt"
 	"strconv"
 	"strings"
@@ -32,6 +33,9 @@ type Config struct {
 	// Zero disables the corresponding login throttle.
 	LoginAttemptsPerMinute       int
 	GlobalLoginAttemptsPerMinute int
+	// Encrypts stored TOTP secrets. Absent, staff sign-in is refused rather
+	// than run without a second factor, and the player app is unaffected.
+	StaffSecretKey []byte
 }
 
 func Load(getenv func(string) string) (Config, error) {
@@ -82,6 +86,14 @@ func Load(getenv func(string) string) (Config, error) {
 	cfg.GlobalLoginAttemptsPerMinute, err = attemptRate(getenv, "GLOBAL_LOGIN_ATTEMPTS_PER_MINUTE", defaultGlobalLoginAttemptsPerMinute)
 	if err != nil {
 		return Config{}, err
+	}
+
+	if raw := strings.TrimSpace(getenv("STAFF_SECRET_KEY")); raw != "" {
+		key, decodeErr := base64.StdEncoding.DecodeString(raw)
+		if decodeErr != nil || len(key) != 32 {
+			return Config{}, fmt.Errorf("STAFF_SECRET_KEY must be 32 base64-encoded bytes")
+		}
+		cfg.StaffSecretKey = key
 	}
 
 	location, err := time.LoadLocation(cfg.TeamTimeZoneID)
