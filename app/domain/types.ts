@@ -110,6 +110,18 @@ export type TeamGoalStatus = "completed" | "one_away" | "keep_going";
 export interface TeamMemberProjection extends Player {
   consistencyDays: number;
   goalStatus: TeamGoalStatus;
+  challengeCompleted: boolean;
+}
+
+export interface TeamChallengeProjection {
+  id: string;
+  activityDefinitionId: ActivityId;
+  activityName: string;
+  targetValue: number;
+  targetUnit: ActivityDefinition["unit"];
+  startsOn: string;
+  dueOn: string;
+  completedCount: number;
 }
 
 export interface TeamActivityProjection {
@@ -118,6 +130,7 @@ export interface TeamActivityProjection {
   weekEnd: string;
   teamSessions: number;
   membersMeetingGoal: number;
+  currentChallenge: TeamChallengeProjection | null;
   members: TeamMemberProjection[];
 }
 
@@ -166,6 +179,12 @@ export type ReactionContext =
       type: "team_progress";
       teamId: string;
       period: "weekly";
+    }
+  | {
+      type: "challenge";
+      teamId: string;
+      assignmentId: string;
+      activityName?: string;
     }
   | {
       type: "leaderboard";

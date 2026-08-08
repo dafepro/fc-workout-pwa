@@ -16,13 +16,6 @@ func TestTrainingDashboardReturnsOwnedCatalogAssignmentAndSafeSummary(t *testing
 	repository, db := socialProjectionStore(t)
 	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
 	seedSocialProjection(t, db, now)
-	if _, err := db.Exec(`INSERT INTO assignments (
-		id, team_id, activity_definition_id, catalog_key, target_value, target_unit,
-		starts_on, due_on, created_at
-	) VALUES ('assignment-hills', 'team-one', 'hill-sprints', 'hill_sprints_8x6', 8, 'reps',
-		'2026-08-10', '2026-08-16', '2026-08-10T00:00:00Z')`); err != nil {
-		t.Fatal(err)
-	}
 
 	projection, err := repository.TrainingDashboard(context.Background(), domain.Actor{
 		Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-one",

@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { Avatar } from "../components/Avatar";
 import { SessionList } from "../components/SessionList";
+import { copy } from "../content/copy";
 import { TEAM_NAME } from "../data/mockData";
+import type { ReactionBadge } from "../domain/types";
 import { useTraining } from "../state/training-context";
 import { useAuth } from "../state/auth-context";
 
@@ -117,11 +119,19 @@ export default function MePage() {
         {reactionBadges.length > 0 ? (
           <ul className="reaction-badge-list">
             {reactionBadges.map((badge) => (
-              <li key={badge.id}>
+              <li
+                key={badge.id}
+                className={`reaction-badge-list__item reaction-badge-list__item--${badge.context.type}`}
+              >
                 <span className="reaction-badge-list__emoji" aria-hidden="true">
                   {badge.emoji}
                 </span>
-                <p>{badge.message}</p>
+                <div>
+                  <span className="reaction-badge-list__context">
+                    {reactionContextLabel(badge)}
+                  </span>
+                  <p>{badge.message}</p>
+                </div>
               </li>
             ))}
           </ul>
@@ -172,4 +182,13 @@ export default function MePage() {
       ) : null}
     </div>
   );
+}
+
+function reactionContextLabel(badge: ReactionBadge): string {
+  if (badge.context.type === "challenge") {
+    return badge.context.activityName
+      ? `${badge.context.activityName} challenge`
+      : copy.cheers.contextLabels.challenge;
+  }
+  return copy.cheers.contextLabels[badge.context.type];
 }

@@ -24,23 +24,36 @@ type SocialTeam struct {
 }
 
 type TeamMemberProjection struct {
-	PlayerID        string `json:"playerId"`
-	FirstName       string `json:"firstName"`
-	LastInitial     string `json:"lastInitial"`
-	WeeklySessions  int    `json:"weeklySessions"`
-	EffortPoints    int    `json:"effortPoints"`
-	CurrentStreak   int    `json:"currentStreak"`
-	ConsistencyDays int    `json:"consistencyDays"`
-	GoalStatus      string `json:"goalStatus"`
+	PlayerID           string `json:"playerId"`
+	FirstName          string `json:"firstName"`
+	LastInitial        string `json:"lastInitial"`
+	WeeklySessions     int    `json:"weeklySessions"`
+	EffortPoints       int    `json:"effortPoints"`
+	CurrentStreak      int    `json:"currentStreak"`
+	ConsistencyDays    int    `json:"consistencyDays"`
+	GoalStatus         string `json:"goalStatus"`
+	ChallengeCompleted bool   `json:"challengeCompleted"`
+}
+
+type TeamChallengeProjection struct {
+	ID                   string  `json:"id"`
+	ActivityDefinitionID string  `json:"activityDefinitionId"`
+	ActivityName         string  `json:"activityName"`
+	TargetValue          float64 `json:"targetValue"`
+	TargetUnit           string  `json:"targetUnit"`
+	StartsOn             string  `json:"startsOn"`
+	DueOn                string  `json:"dueOn"`
+	CompletedCount       int     `json:"completedCount"`
 }
 
 type TeamActivityProjection struct {
-	Team               SocialTeam             `json:"team"`
-	WeekStart          string                 `json:"weekStart"`
-	WeekEnd            string                 `json:"weekEnd"`
-	TeamSessions       int                    `json:"teamSessions"`
-	MembersMeetingGoal int                    `json:"membersMeetingGoal"`
-	Members            []TeamMemberProjection `json:"members"`
+	Team               SocialTeam               `json:"team"`
+	WeekStart          string                   `json:"weekStart"`
+	WeekEnd            string                   `json:"weekEnd"`
+	TeamSessions       int                      `json:"teamSessions"`
+	MembersMeetingGoal int                      `json:"membersMeetingGoal"`
+	CurrentChallenge   *TeamChallengeProjection `json:"currentChallenge"`
+	Members            []TeamMemberProjection   `json:"members"`
 }
 
 type LeaderboardItem struct {
@@ -92,11 +105,30 @@ func (store *Store) TeamActivity(ctx context.Context, actor domain.Actor, teamID
 	weekMetrics := domain.ParticipationMetrics(entries, now, weekStart, location)
 	seasonStart, _ := domain.LeaderboardPeriodStart(domain.PeriodSeason, now, team.CreatedAt, location)
 	seasonMetrics := domain.ParticipationMetrics(entries, now, seasonStart, location)
+	teamDay := now.In(location).Format("2006-01-02")
+	assignment, err := store.activeAssignment(ctx, team.ID, teamDay)
+	if err != nil {
+		return TeamActivityProjection{}, err
+	}
+	challengeCompletions := make(map[string]bool)
+	if assignment != nil {
+		challengeCompletions, err = store.assignmentCompletions(ctx, assignment.AssignmentProjection)
+		if err != nil {
+			return TeamActivityProjection{}, err
+		}
+	}
 	projection := TeamActivityProjection{
 		Team:      team.SocialTeam,
 		WeekStart: weekStart.Format("2006-01-02"),
 		WeekEnd:   weekStart.AddDate(0, 0, 6).Format("2006-01-02"),
 		Members:   make([]TeamMemberProjection, 0, len(members)),
+	}
+	if assignment != nil {
+		projection.CurrentChallenge = &TeamChallengeProjection{
+			ID: assignment.ID, ActivityDefinitionID: assignment.ActivityDefinitionID,
+			ActivityName: assignment.ActivityName, TargetValue: assignment.TargetValue,
+			TargetUnit: assignment.TargetUnit, StartsOn: assignment.StartsOn, DueOn: assignment.DueOn,
+		}
 	}
 	for _, member := range members {
 		value := weekMetrics[member.PlayerID]
@@ -113,9 +145,37 @@ func (store *Store) TeamActivity(ctx context.Context, actor domain.Actor, teamID
 			PlayerID: member.PlayerID, FirstName: member.FirstName, LastInitial: member.LastInitial,
 			WeeklySessions: value.Sessions, EffortPoints: value.EffortPoints,
 			CurrentStreak: longTerm.StreakDays, ConsistencyDays: longTerm.ConsistencyDays, GoalStatus: status,
+			ChallengeCompleted: challengeCompletions[member.PlayerID],
 		})
+		if challengeCompletions[member.PlayerID] {
+			projection.CurrentChallenge.CompletedCount++
+		}
 	}
 	return projection, nil
+}
+
+func (store *Store) assignmentCompletions(ctx context.Context, assignment AssignmentProjection) (map[string]bool, error) {
+	rows, err := store.db.QueryContext(ctx, `SELECT DISTINCT player_id
+		FROM training_entries
+		WHERE assignment_id = ? AND deleted_at IS NULL
+		  AND result_unit = ? AND result_value >= ?`,
+		assignment.ID, assignment.TargetUnit, assignment.TargetValue)
+	if err != nil {
+		return nil, fmt.Errorf("list assignment completions: %w", err)
+	}
+	defer rows.Close()
+	completed := make(map[string]bool)
+	for rows.Next() {
+		var playerID string
+		if err := rows.Scan(&playerID); err != nil {
+			return nil, fmt.Errorf("scan assignment completion: %w", err)
+		}
+		completed[playerID] = true
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate assignment completions: %w", err)
+	}
+	return completed, nil
 }
 
 func (store *Store) Leaderboard(ctx context.Context, actor domain.Actor, teamID string, period domain.LeaderboardPeriod, metric domain.LeaderboardMetric, now time.Time) (LeaderboardProjection, error) {

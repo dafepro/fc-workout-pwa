@@ -37,6 +37,11 @@ type AssignmentProjection struct {
 	Completed            bool    `json:"completed"`
 }
 
+type activeAssignmentRecord struct {
+	AssignmentProjection
+	ActivityName string
+}
+
 type PersonalActivityDay struct {
 	Date          string `json:"date"`
 	ActivityCount int    `json:"activityCount"`
@@ -151,16 +156,32 @@ func (store *Store) personalProjectionEntries(ctx context.Context, playerID, tea
 }
 
 func (store *Store) currentAssignment(ctx context.Context, playerID, teamID, teamDay string) (*AssignmentProjection, error) {
-	var item AssignmentProjection
-	err := store.db.QueryRowContext(ctx, `SELECT a.id, a.activity_definition_id, a.catalog_key, a.target_value,
-		a.target_unit, a.starts_on, a.due_on, EXISTS (
-			SELECT 1 FROM training_entries e WHERE e.assignment_id = a.id AND e.player_id = ?
-			AND e.deleted_at IS NULL AND e.result_unit = a.target_unit AND e.result_value >= a.target_value
-		)
-		FROM assignments a WHERE a.team_id = ? AND a.starts_on <= ? AND a.due_on >= ?
-		ORDER BY a.due_on, a.created_at DESC LIMIT 1`, playerID, teamID, teamDay, teamDay).Scan(
-		&item.ID, &item.ActivityDefinitionID, &item.CatalogKey, &item.TargetValue, &item.TargetUnit,
-		&item.StartsOn, &item.DueOn, &item.Completed)
+	record, err := store.activeAssignment(ctx, teamID, teamDay)
+	if err != nil || record == nil {
+		return nil, err
+	}
+	item := record.AssignmentProjection
+	err = store.db.QueryRowContext(ctx, `SELECT EXISTS (
+		SELECT 1 FROM training_entries e
+		WHERE e.assignment_id = ? AND e.player_id = ? AND e.deleted_at IS NULL
+		  AND e.result_unit = ? AND e.result_value >= ?
+	)`, item.ID, playerID, item.TargetUnit, item.TargetValue).Scan(&item.Completed)
+	if err != nil {
+		return nil, fmt.Errorf("load assignment completion: %w", err)
+	}
+	return &item, nil
+}
+
+func (store *Store) activeAssignment(ctx context.Context, teamID, teamDay string) (*activeAssignmentRecord, error) {
+	var item activeAssignmentRecord
+	err := store.db.QueryRowContext(ctx, `SELECT a.id, a.activity_definition_id, a.catalog_key,
+		a.target_value, a.target_unit, a.starts_on, a.due_on, d.name
+		FROM assignments a
+		JOIN activity_definitions d ON d.id = a.activity_definition_id
+		WHERE a.team_id = ? AND a.starts_on <= ? AND a.due_on >= ?
+		ORDER BY a.due_on, a.created_at DESC LIMIT 1`, teamID, teamDay, teamDay).Scan(
+		&item.ID, &item.ActivityDefinitionID, &item.CatalogKey, &item.TargetValue,
+		&item.TargetUnit, &item.StartsOn, &item.DueOn, &item.ActivityName)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}

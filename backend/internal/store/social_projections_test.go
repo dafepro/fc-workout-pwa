@@ -32,8 +32,17 @@ func TestTeamActivityUsesActiveRosterAndSafeParticipationOnly(t *testing.T) {
 	if len(projection.Members) != 2 || projection.MembersMeetingGoal != 1 {
 		t.Fatalf("unexpected active roster: %+v", projection.Members)
 	}
-	if projection.Members[0].PlayerID != "player-ava" || projection.Members[0].WeeklySessions != 3 || projection.Members[0].GoalStatus != "completed" {
+	if projection.CurrentChallenge == nil || projection.CurrentChallenge.ID != "assignment-hills" || projection.CurrentChallenge.CompletedCount != 1 {
+		t.Fatalf("unexpected challenge projection: %+v", projection.CurrentChallenge)
+	}
+	if projection.CurrentChallenge.ActivityName != "Hill Sprints" || projection.CurrentChallenge.TargetValue != 8 {
+		t.Fatalf("unexpected safe challenge details: %+v", projection.CurrentChallenge)
+	}
+	if projection.Members[0].PlayerID != "player-ava" || projection.Members[0].WeeklySessions != 3 || projection.Members[0].GoalStatus != "completed" || !projection.Members[0].ChallengeCompleted {
 		t.Fatalf("unexpected first member: %+v", projection.Members[0])
+	}
+	if projection.Members[1].ChallengeCompleted {
+		t.Fatalf("incomplete member marked complete: %+v", projection.Members[1])
 	}
 	encoded, err := json.Marshal(projection)
 	if err != nil {
@@ -106,6 +115,13 @@ func seedSocialProjection(t *testing.T, db *sql.DB, now time.Time) {
 			t.Fatal(err)
 		}
 	}
+	if _, err := db.ExecContext(ctx, `INSERT INTO assignments (
+		id, team_id, activity_definition_id, catalog_key, target_value, target_unit,
+		starts_on, due_on, created_at
+	) VALUES ('assignment-hills', 'team-one', 'hill-sprints', 'hill_sprints_8x6',
+		8, 'reps', '2026-08-10', '2026-08-16', '2026-08-10T00:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
 	entries := []struct {
 		id, playerID string
 		when         time.Time
@@ -126,5 +142,9 @@ func seedSocialProjection(t *testing.T, db *sql.DB, now time.Time) {
 			entry.id, entry.playerID, stamp, entry.effort, stamp, entry.when.Add(24*time.Hour).UTC().Format(time.RFC3339Nano)); err != nil {
 			t.Fatal(err)
 		}
+	}
+	if _, err := db.ExecContext(ctx, `UPDATE training_entries
+		SET assignment_id = 'assignment-hills' WHERE id = 'entry-ava-one'`); err != nil {
+		t.Fatal(err)
 	}
 }

@@ -105,6 +105,18 @@ test("connected Home and Record Training use the server assignment", async ({
     page.locator(".goal-card").getByRole("heading", { name: "3 of 3" }),
   ).toBeVisible();
 
+  await page.getByRole("link", { name: "See team progress" }).click();
+  const challenge = page.getByRole("region", { name: "Hill Sprints" });
+  await expect(
+    challenge.getByText("1 of 12 teammates completed"),
+  ).toBeVisible();
+  await expect(
+    challenge.locator(".challenge-participants").getByText("You", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(challenge.getByText(/tired|effort|result/i)).toHaveCount(0);
+
   const api = await request.newContext({ baseURL: apiBaseURL });
   const dashboard = await api.get(
     "/v1/me/training-dashboard?teamId=team-hill-striders",
