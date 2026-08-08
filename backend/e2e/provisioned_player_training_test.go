@@ -29,7 +29,7 @@ func TestProvisionedPlayerCanManageEntriesOnTheTeamsCalendar(t *testing.T) {
 		"--time-zone", "UTC",
 		"--weekly-goal", "3",
 	)
-	provisioned := runAdmin(t, "4826\n", "provision-player",
+	provisioned := runAdmin(t, "", "provision-player",
 		"--database-url", databaseURL,
 		"--team-id", team["teamId"],
 		"--first-name", "Test",
@@ -45,10 +45,14 @@ func TestProvisionedPlayerCanManageEntriesOnTheTeamsCalendar(t *testing.T) {
 	if credential == "" {
 		t.Fatalf("provisioning result omitted credential fragment: %+v", provisioned)
 	}
+	// The PIN is generated at issuance and revealed only in this result.
+	if provisioned["pin"] == "" {
+		t.Fatalf("provisioning result omitted the generated PIN: %+v", provisioned)
+	}
 
 	createdSession := api.do(t, http.MethodPost, "/v1/auth/sessions", "", "", map[string]any{
 		"credential": credential,
-		"pin":        "4826",
+		"pin":        provisioned["pin"],
 	})
 	assertStatus(t, createdSession, http.StatusCreated)
 	var session struct {
