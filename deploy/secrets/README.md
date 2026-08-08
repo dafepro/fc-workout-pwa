@@ -32,7 +32,7 @@ read them directly; nothing decrypts a file to reach them.
 | `SSH_SOURCE_ADDRESSES`                                                                | OpenTofu list literal. Normally `["0.0.0.0/0", "::/0"]` — neither the operator's laptop nor the CI runner has a stable IP, so SSH is protected by key-only auth instead of a source-IP allowlist. |
 | `ALERT_EMAIL_ADDRESSES`                                                               | OpenTofu list literal, e.g. `["ops@example.net"]`. One or more operator email addresses for CPU/memory/disk alerts.                                                                               |
 | `OPERATOR_SSH_PUBLIC_KEY`                                                             | Optional. Your own public key (not secret), authorized on the `zoomigo` user alongside the dedicated deploy key, for direct troubleshooting SSH access. Leave unset to skip.                      |
-| `PRODUCTION_DEPLOY_ENABLED`                                                           | Set to `true` only after the first manual release succeeds.                                                                                                                                       |
+| `PRODUCTION_DEPLOY_ENABLED`                                                           | Repository-scoped, not environment-scoped (a job-level `if` cannot see environment variables). Kill switch: releases also require dispatching the workflow with `deploy: true`, so `true` here never deploys on its own. Set to anything else to block all releases. |
 
 Set these with `gh secret set NAME --env production` and
 `gh variable set NAME --env production --body VALUE`.

@@ -12,6 +12,11 @@ on:
         required: false
         type: boolean
         default: false
+      deploy:
+        description: Release to production (VM + Cloudflare Worker). Leave unchecked to only verify and publish.
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: backend-image-${{ github.ref }}
@@ -90,9 +95,18 @@ jobs:
           provenance: mode=max
           sbom: true
 
+  # Releases are manual. Pushing to main verifies and publishes an image but
+  # never deploys; shipping requires explicitly dispatching this workflow with
+  # deploy: true. PRODUCTION_DEPLOY_ENABLED is therefore a kill switch rather
+  # than an auto-deploy enabler -- set it to anything but "true" to block every
+  # release without editing this workflow.
   deploy:
     name: Deploy VM and Cloudflare Worker
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.PRODUCTION_DEPLOY_ENABLED == 'true'
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      && inputs.deploy
+      && github.ref == 'refs/heads/main'
+      && vars.PRODUCTION_DEPLOY_ENABLED == 'true'
     needs: publish
     runs-on: ubuntu-24.04
     timeout-minutes: 20
