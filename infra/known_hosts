@@ -1,4 +1,1 @@
-# Populated by infra/digitalocean/adopt-host.mjs after the operator verifies
-# the Droplet's ED25519 host-key fingerprint out of band (DigitalOcean console).
-# This file is not secret; its security property is the fingerprint check,
-# not confidentiality of the host's public key.
+129.212.137.73 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGWs1wYrtuyr45dePhQFM4K5knY0/9bjpPTaHxOD/6aC
