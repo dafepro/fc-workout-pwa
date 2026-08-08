@@ -214,8 +214,7 @@ export const copy = {
       title: "Clubs",
       nameLabel: "Club name",
       create: "Create club",
-      teamCount: (count: number) =>
-        `${count} team${count === 1 ? "" : "s"}`,
+      teamCount: (count: number) => `${count} team${count === 1 ? "" : "s"}`,
       empty: "No clubs yet.",
     },
     teams: {
