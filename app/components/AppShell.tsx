@@ -18,6 +18,7 @@ const navigation = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { currentPlayer: player } = useAuth();
+  const logging = pathname === "/log";
 
   function navigationIcon(item: (typeof navigation)[number]) {
     if (item.href === "/me") {
@@ -104,11 +105,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
       <main className="main-content">{children}</main>
-      {pathname !== "/log" ? (
-        <Link className="training-fab" href="/log" aria-label="Record training">
-          <span aria-hidden="true">+</span>
-        </Link>
-      ) : null}
+      <Link
+        className={`training-fab ${logging ? "training-fab--close" : ""}`}
+        href={logging ? "/" : "/log"}
+        aria-label={logging ? "Close training entry" : "Record training"}
+      >
+        <span aria-hidden="true">{logging ? "−" : "+"}</span>
+      </Link>
       <nav className="bottom-nav" aria-label="Primary navigation">
         {navigation.map((item) => {
           const active = pathname === item.href;

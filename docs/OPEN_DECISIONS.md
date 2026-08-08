@@ -64,6 +64,14 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
   of the same activity does not complete it. Recurring, subgroup, and
   individual assignments remain deferred.
 - Whether effort and exhaustion are required for recovery sessions.
+- Whether logging becomes a true overlay instead of the `/log` route. Alpha 0.9
+  asked for one so entry feels instantaneous, and the FAB now toggles between
+  `+` and `−` over the route. An overlay changes back-button and deep-link
+  behavior, so it is deferred until that navigation contract is decided.
+- Implemented out-of-range entry handling: a value beyond an activity's
+  `min`/`max` is shown inline as an error and left as the player typed it
+  rather than silently clamped, so the guardrail is visible and the correction
+  stays the player's. Save still refuses the entry.
 
 ## Reactions
 
