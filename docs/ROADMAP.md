@@ -161,13 +161,30 @@ Status: **Planned before real-data launch**
 
 ### 8. Credential administration and abuse protection
 
-Status: **Planned before broader access**
+Status: **In progress; login throttling implemented 2026-08-08**
 
+- Coarse network-level throttling for login abuse is **implemented**. It sits in
+  front of the login route, so a throttled attempt costs nothing, and the
+  per-credential lockout and single Argon2 slot are unchanged beneath it. The
+  gap it closes is credential spraying: an unknown QR token is rejected before
+  any password work and leaves no lockout state, so nothing previously slowed a
+  spray of distinct tokens. Verified by targeted unit tests plus a Docker E2E
+  that sprays one client into a `429` while another client still signs in.
 - Provide a safe operator workflow for issuing, printing, revoking, and
-  reissuing QR+PIN credentials without logging secrets.
-- Add coarse network-level throttling for login abuse while preserving the
-  existing per-credential lockout and Argon2 concurrency limit.
-- Add security-event audit records and a secret/key rotation rehearsal.
+  reissuing QR+PIN credentials without logging secrets. **Blocked** on the QR/PIN
+  delivery decision in `OPEN_DECISIONS.md`, which determines who may know a
+  player's PIN and therefore what a printed hand-out may contain. The read-only
+  parts are not blocked: listing players and inspecting credential state
+  (issued, last used, failed attempts, locked, revoked) can be built now, and
+  the step 5 reissue/revoke drill needs them.
+- Add security-event audit records and a secret/key rotation rehearsal. The
+  `auth_audit_events` table already records issue, revoke, login success and
+  failure, and logout, and it is already carried in the logical export. What is
+  missing is an operator read path over it, the operator identity behind a
+  CLI-driven issue, and coverage for attempts against unknown credentials, which
+  return before any audit row is written and so leave enumeration invisible.
+  Adding an event type requires a table rebuild, because migration `000004`
+  constrains `event_type` with a `CHECK`.
 
 ### 9. Coach and club-admin foundation
 
