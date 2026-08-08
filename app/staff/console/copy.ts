@@ -1,5 +1,10 @@
-/** Console copy, kept out of `copy.ts` so the player bundle does not carry
- * wording only a coach or an operator will ever read (REQ-401). */
+/**
+ * Console copy, kept out of `copy.ts` so the player bundle does not carry
+ * wording only a coach or an operator will ever read (REQ-401).
+ *
+ * Two exports, split by surface: `staffCopy` is the way in — sign-in and
+ * first-run setup — and `consoleCopy` is everything behind it.
+ */
 export const staffCopy = {
   signInTitle: "Coach and staff sign in",
   signInIntro:

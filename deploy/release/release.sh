@@ -24,7 +24,12 @@ esac
 : "${BACKUP_S3_BUCKET:?BACKUP_S3_BUCKET is required}"
 : "${BACKUP_S3_ACCESS_KEY_ID:?BACKUP_S3_ACCESS_KEY_ID is required}"
 : "${BACKUP_S3_SECRET_ACCESS_KEY:?BACKUP_S3_SECRET_ACCESS_KEY is required}"
-case "$ZOOMIGO_API_BASE_URL" in https://*) ;; *) printf '%s\n' "error: ZOOMIGO_API_BASE_URL must use HTTPS" >&2; exit 1 ;; esac
+: "${STAFF_SECRET_KEY:?STAFF_SECRET_KEY is required; it protects stored staff second factors}"
+: "${PLAYER_LOGIN_URL:?PLAYER_LOGIN_URL is required}"
+: "${STAFF_SETUP_URL:?STAFF_SETUP_URL is required}"
+for console_url in "$ZOOMIGO_API_BASE_URL" "$PLAYER_LOGIN_URL" "$STAFF_SETUP_URL"; do
+	case "$console_url" in https://*) ;; *) printf '%s\n' "error: $console_url must use HTTPS" >&2; exit 1 ;; esac
+done
 
 cd "$REPOSITORY_ROOT"
 pnpm install --frozen-lockfile
@@ -49,6 +54,14 @@ mkdir -m 0700 -- "$secrets_directory"
 	BACKUP_S3_REGION='${BACKUP_S3_REGION:-auto}'
 	BACKUP_S3_ACCESS_KEY_ID='$BACKUP_S3_ACCESS_KEY_ID'
 	BACKUP_S3_SECRET_ACCESS_KEY='$BACKUP_S3_SECRET_ACCESS_KEY'
+	EOF
+	# Unquoted values, because set-console-settings.sh writes each line into the
+	# compose environment file verbatim and Compose does not strip quotes.
+	cat >"$secrets_directory/console.env" <<-EOF
+	STAFF_SECRET_KEY=$STAFF_SECRET_KEY
+	PLAYER_LOGIN_URL=$PLAYER_LOGIN_URL
+	STAFF_SETUP_URL=$STAFF_SETUP_URL
+	PRODUCTION_DATA_APPROVED=${PRODUCTION_DATA_APPROVED:-false}
 	EOF
 )
 "$SCRIPT_DIRECTORY/deploy-vm.sh" "$secrets_directory" "$release_sha"
