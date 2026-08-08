@@ -99,7 +99,8 @@ plan approval, and host-fingerprint comparison remain operator actions.
 
 ### 5. Prove production operations with test data
 
-Status: **Blocked on item 4**
+Status: **Codified; container drills pass, live-host and operator halves blocked
+on item 4**
 
 - Verify alert delivery and bounded logs on the 512 MiB Droplet.
 - Prove the first encrypted R2 upload and retention behavior.
@@ -108,6 +109,16 @@ Status: **Blocked on item 4**
 - Reissue and revoke a test QR credential; verify all old sessions fail.
 - Exercise the local incident-release path independently of GitHub Actions.
 - Run one intentional full `./scripts/verify.sh --all` release-candidate pass.
+
+The `Production operations drills` workflow is the gate for all six. Dispatch it
+manually; it never deploys or mutates production. `./scripts/drills.sh` rehearses
+the mechanics of every drill in containers and runs anywhere Docker does.
+`scripts/host-drills.sh` adds the read-only live-host checks, and the halves no
+runner can honestly prove — an alert reaching an inbox, a real R2 upload, the
+timed restore and cutover on real data, a release from an operator's own machine
+— are recorded in `docs/backend/PRODUCTION_DRILL_LOG.md` and checked by
+`node scripts/drill-attestations.mjs`. The workflow's summary explains each
+failure and how to reproduce it locally.
 
 ### 6. Complete production owner approvals
 

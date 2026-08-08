@@ -18,8 +18,10 @@ Active priorities and release gates are maintained in `docs/ROADMAP.md`.
 On macOS or Linux, `./scripts/verify.sh` runs every static, unit, build, and
 contract gate. For an intentional periodic or release-candidate pass, use
 `./scripts/verify.sh --all` to append the Docker API/browser E2E and VM
-backup/restore smoke suites. Unix shell is the only supported local automation
-environment.
+backup/restore smoke suites. `./scripts/drills.sh` rehearses the production
+operations drills — bounded logs, encrypted backups, isolated restore, cutover
+and rollback, QR reissue and revoke, the incident-release path — entirely in
+containers. Unix shell is the only supported local automation environment.
 
 ## Suggested prototype boundaries
 
