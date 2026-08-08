@@ -291,14 +291,22 @@ fixed-control overlap. Keep activity definitions as the single source of truth.
 
 ### P1 — Complete the reward loop without rewarding more volume
 
-Use the authoritative assignment completion flag after save. Change the Home
-hero from “Next workout” to a completed state, animate progress once, explain
-the team contribution, and end with a recovery-neutral closure such as “Nice
-work—you're done for today.” Preserve the existing reduced-motion behavior.
+Status: Implemented and targeted-Docker-verified 2026-08-08. The connected
+320-pixel journey covers the first assigned completion and a second same-day
+entry.
 
-The end-to-end assertion should be visible, not only an API check: saving the
-assigned workout must change the Home hero and weekly progress. A second entry
-must not earn another public daily score or produce escalating celebration.
+- Home now uses the authoritative assignment completion flag to replace “Next
+  workout” with “Done for today!”, name the completed activity, explain the team
+  contribution, and link to Team progress.
+- The first completion gets a brief card, star/check, and progress animation.
+  Reduced-motion preferences keep the finished visual state without motion.
+- A second same-day entry receives the ordinary saved confirmation without
+  replaying the assignment-completion animation or increasing the public daily
+  effort score.
+
+The connected end-to-end assertion verifies the visible Home hero and weekly
+progress change as well as the unchanged public effort projection after the
+second entry.
 
 ### P2 — Put the shared challenge and understandable cheers on Team
 
