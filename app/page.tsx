@@ -24,6 +24,7 @@ export default function HomePage() {
   } = useTraining();
   const { currentPlayerID } = useAuth();
   const [showSavedToast, setShowSavedToast] = useState(false);
+  const [celebrateCompletion, setCelebrateCompletion] = useState(false);
   const [showQuip, setShowQuip] = useState(false);
   const personalEntries = entries.filter(
     (entry) => entry.playerId === currentPlayerID,
@@ -41,6 +42,8 @@ export default function HomePage() {
   const assignmentActivity = dashboard?.activities.find(
     (activity) => activity.id === assignment?.activityDefinitionId,
   );
+  const assignmentComplete = assignment?.completed ?? false;
+  const isCelebrating = assignmentComplete && celebrateCompletion;
   const streakQuip = dashboard?.streakComparison.message;
 
   function revealStreakQuip() {
@@ -48,11 +51,15 @@ export default function HomePage() {
   }
 
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("saved") !== "1") {
+    const parameters = new URLSearchParams(window.location.search);
+    if (parameters.get("saved") !== "1") {
       return;
     }
     window.history.replaceState(null, "", "/");
-    const showTimer = window.setTimeout(() => setShowSavedToast(true), 0);
+    const showTimer = window.setTimeout(() => {
+      setShowSavedToast(true);
+      setCelebrateCompletion(parameters.get("completed") === "1");
+    }, 0);
     const hideTimer = window.setTimeout(() => setShowSavedToast(false), 4200);
     return () => {
       window.clearTimeout(showTimer);
@@ -95,44 +102,83 @@ export default function HomePage() {
         </div>
       ) : null}
 
-      <section className="hero-card" aria-labelledby="next-workout-title">
+      <section
+        className={`hero-card ${assignmentComplete ? "hero-card--complete" : ""} ${isCelebrating ? "is-celebrating" : ""}`}
+        aria-labelledby="assignment-title"
+        aria-live={assignmentComplete ? "polite" : undefined}
+      >
         <div className="hero-card__content">
           <p className="eyebrow eyebrow--lime">
-            {assignment
-              ? `Next workout · due ${assignment.dueOn}`
-              : "Approved training"}
+            {assignmentComplete
+              ? copy.completion.eyebrow
+              : assignment
+                ? `Next workout · due ${assignment.dueOn}`
+                : "Approved training"}
           </p>
-          <h1 id="next-workout-title">
-            {assignmentActivity?.name ?? "Choose a workout"}
+          <h1 id="assignment-title">
+            {assignmentComplete
+              ? copy.completion.title
+              : (assignmentActivity?.name ?? "Choose a workout")}
           </h1>
           <p className="hero-card__detail">
-            {assignment
-              ? `${assignment.targetValue} ${assignment.targetUnit}`
-              : "Pick from your team’s activity list"}
-            {assignment?.catalogKey === "hill_sprints_8x6" ? (
+            {assignmentComplete && assignmentActivity
+              ? copy.completion.activity(assignmentActivity.name)
+              : assignment
+                ? `${assignment.targetValue} ${assignment.targetUnit}`
+                : "Pick from your team’s activity list"}
+            {!assignmentComplete &&
+            assignment?.catalogKey === "hill_sprints_8x6" ? (
               <>
                 {" "}
                 <span>×</span> 6 seconds
               </>
             ) : null}
           </p>
-          <Link className="button button--lime" href="/log">
-            Log session <span aria-hidden="true">→</span>
-          </Link>
+          {assignmentComplete ? (
+            <>
+              <p className="hero-card__support">
+                {copy.completion.teamContribution(
+                  dashboard?.team.name ?? "your team",
+                )}
+              </p>
+              <Link className="button button--lime" href="/team">
+                {copy.completion.action} <span aria-hidden="true">→</span>
+              </Link>
+            </>
+          ) : (
+            <Link className="button button--lime" href="/log">
+              Log session <span aria-hidden="true">→</span>
+            </Link>
+          )}
         </div>
-        {assignmentActivity ? (
+        {assignmentActivity && !assignmentComplete ? (
           <WorkoutInstructions
             activityName={assignmentActivity.name}
             instructions={assignmentActivity.instructions}
           />
         ) : null}
-        <div className="hill-art" aria-hidden="true">
+        <div
+          className={`hill-art ${assignmentComplete ? "hill-art--complete" : ""}`}
+          aria-hidden="true"
+        >
           <span className="hill-art__sun">✦</span>
+          {assignmentComplete ? (
+            <>
+              <span className="completion-burst">
+                <i>✦</i>
+                <i>★</i>
+                <i>✦</i>
+              </span>
+              <span className="completion-check">✓</span>
+            </>
+          ) : null}
           <span className="hill-art__runner">🏃</span>
         </div>
       </section>
 
-      <section className="goal-card">
+      <section
+        className={`goal-card ${isCelebrating ? "goal-card--celebrating" : ""}`}
+      >
         <div>
           <p className="eyebrow">Weekly goal</p>
           <h2>

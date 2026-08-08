@@ -98,25 +98,33 @@ export default function LogPage() {
       return;
     }
     const occurredAt = new Date(`${date}T${time}:00`);
+    const assignmentId =
+      assignment?.activityDefinitionId === activityId &&
+      date >= assignment.startsOn &&
+      date <= assignment.dueOn
+        ? assignment.id
+        : undefined;
+    const completesAssignment = Boolean(
+      assignmentId &&
+        assignment &&
+        !assignment.completed &&
+        activity.unit === assignment.targetUnit &&
+        value >= assignment.targetValue,
+    );
     setSaving(true);
     setMessage(null);
     try {
       await addEntry({
         activityId,
         inputKind: activity.inputKind,
-        assignmentId:
-          assignment?.activityDefinitionId === activityId &&
-          date >= assignment.startsOn &&
-          date <= assignment.dueOn
-            ? assignment.id
-            : undefined,
+        assignmentId,
         occurredAt: occurredAt.toISOString(),
         value,
         unit: activity.unit,
         effortLevel: effort,
         exhaustionLevel: exhaustion,
       });
-      router.push("/?saved=1");
+      router.push(`/?saved=1${completesAssignment ? "&completed=1" : ""}`);
     } catch (cause) {
       setMessage(
         cause instanceof Error
