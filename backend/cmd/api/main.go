@@ -59,6 +59,9 @@ func run() error {
 		httpapi.WithAuthenticator(authn.Fallback{Primary: authenticator, Secondary: staff}),
 		httpapi.WithSessionManager(sessions),
 		httpapi.WithStaffSessionManager(staff),
+		httpapi.WithStaffRepository(store.NewStaffStore(db)),
+		httpapi.WithStaffAccountManager(staff),
+		httpapi.WithCredentialManager(sessions),
 	}
 	if resetAuthFixtures != nil {
 		handlerOptions = append(handlerOptions, httpapi.WithAuthFixtureReset(resetAuthFixtures))
