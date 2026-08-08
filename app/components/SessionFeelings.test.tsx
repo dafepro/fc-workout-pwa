@@ -8,14 +8,14 @@ describe("session feelings", () => {
 
     expect(
       screen.getByLabelText("How hard did you work? 2 of 7"),
-    ).toHaveTextContent("😊");
+    ).toHaveTextContent("🙂");
     expect(
       screen.getByLabelText("How tired were you after? 6 of 7"),
-    ).toHaveTextContent("😣");
+    ).toHaveTextContent("😫");
   });
 
   it("clamps unexpected values to the supported seven faces", () => {
-    expect(feelingFace(0)).toBe("🙂");
+    expect(feelingFace(0)).toBe("😊");
     expect(feelingFace(8)).toBe("🥵");
   });
 });

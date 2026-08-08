@@ -104,14 +104,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
       <main className="main-content">{children}</main>
-      <Link
-        className={`training-fab ${pathname === "/log" ? "is-active" : ""}`}
-        href="/log"
-        aria-label="Record training"
-        aria-current={pathname === "/log" ? "page" : undefined}
-      >
-        <span aria-hidden="true">+</span>
-      </Link>
+      {pathname !== "/log" ? (
+        <Link className="training-fab" href="/log" aria-label="Record training">
+          <span aria-hidden="true">+</span>
+        </Link>
+      ) : null}
       <nav className="bottom-nav" aria-label="Primary navigation">
         {navigation.map((item) => {
           const active = pathname === item.href;

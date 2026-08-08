@@ -131,6 +131,7 @@ var logicalTables = []logicalTable{
 			realField("minimum_value"),
 			realField("maximum_value"),
 			realField("step_value"),
+			withDefault(realField("default_value"), float64(1)),
 			integerField("approved_for_player_entry"),
 		},
 	},

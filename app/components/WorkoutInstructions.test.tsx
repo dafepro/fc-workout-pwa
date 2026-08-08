@@ -2,44 +2,57 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { WorkoutInstructions } from "./WorkoutInstructions";
 
+const instructions = ["Start easy.", "Finish with a slow walk."];
+
 afterEach(cleanup);
 
 describe("workout instructions", () => {
   it("keeps the same toggle available while open and dismisses outside", () => {
-    render(<WorkoutInstructions />);
+    render(
+      <WorkoutInstructions
+        activityName="Distance Run"
+        instructions={instructions}
+      />,
+    );
 
     fireEvent.click(
-      screen.getByRole("button", { name: "How to do Hill Sprints" }),
+      screen.getByRole("button", { name: "How to do Distance Run" }),
     );
     expect(
-      screen.getByRole("button", { name: "Close Hill Sprints instructions" }),
+      screen.getByRole("button", { name: "Close Distance Run instructions" }),
     ).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByText("How to do Hill Sprints")).toBeInTheDocument();
+    expect(screen.getByText("How to do Distance Run")).toBeInTheDocument();
+    expect(screen.getByText("Start easy.")).toBeInTheDocument();
 
     fireEvent.pointerDown(document.body);
     expect(
-      screen.queryByText("How to do Hill Sprints", { selector: "h2" }),
+      screen.queryByText("How to do Distance Run", { selector: "h2" }),
     ).not.toBeInTheDocument();
   });
 
   it("dismisses the open panel after a swipe gesture", () => {
-    render(<WorkoutInstructions />);
-    fireEvent.click(
-      screen.getByRole("button", { name: "How to do Hill Sprints" }),
+    render(
+      <WorkoutInstructions
+        activityName="Distance Run"
+        instructions={instructions}
+      />,
     );
-    const instructions = screen.getByText("How to do Hill Sprints", {
+    fireEvent.click(
+      screen.getByRole("button", { name: "How to do Distance Run" }),
+    );
+    const panel = screen.getByText("How to do Distance Run", {
       selector: "h2",
     }).parentElement!.parentElement!;
 
-    fireEvent.touchStart(instructions, {
+    fireEvent.touchStart(panel, {
       touches: [{ clientX: 10, clientY: 10 }],
     });
-    fireEvent.touchEnd(instructions, {
+    fireEvent.touchEnd(panel, {
       changedTouches: [{ clientX: 70, clientY: 10 }],
     });
 
     expect(
-      screen.queryByText("How to do Hill Sprints", { selector: "h2" }),
+      screen.queryByText("How to do Distance Run", { selector: "h2" }),
     ).not.toBeInTheDocument();
   });
 });
