@@ -1323,39 +1323,6 @@ h2 {
     transform: translateY(-0.4rem);
   }
 }
-.activity-options__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0 0.15rem 0.15rem;
-  color: white;
-}
-.activity-options__copy {
-  display: grid;
-  gap: 0.1rem;
-}
-.activity-options__copy strong {
-  font-size: 0.9rem;
-}
-.activity-options__copy small {
-  color: rgb(255 255 255 / 78%);
-  font-size: 0.7rem;
-}
-.activity-options__done {
-  flex: 0 0 auto;
-  min-height: 2.2rem;
-  padding: 0 0.95rem;
-  border: 1px solid rgb(255 255 255 / 55%);
-  border-radius: 99rem;
-  background: rgb(255 255 255 / 16%);
-  color: white;
-  font: inherit;
-  font-size: 0.78rem;
-  font-weight: 850;
-  cursor: pointer;
-}
-
 .activity-picker {
   min-width: 0;
   margin: 0;
@@ -1365,7 +1332,6 @@ h2 {
 .activity-picker__grid {
   display: grid;
   gap: 0.65rem;
-  margin-top: 0.75rem;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 .activity-choice {
@@ -1582,6 +1548,18 @@ h2 {
   font-size: 0.78rem;
   font-weight: 850;
 }
+/* The wrapper owns the gesture; see RangeSlider. Vertical drags stay with the
+   page, and nothing in the control can be highlighted or text-selected. */
+.range-slider {
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.range-slider > input {
+  pointer-events: none;
+}
+
 .intensity-slider {
   margin-top: 0.5rem;
   padding: 0 0.25rem;
@@ -1598,8 +1576,6 @@ h2 {
   appearance: none;
   background: transparent;
   cursor: pointer;
-  /* Vertical drags scroll the form instead of dragging the thumb. */
-  touch-action: pan-y;
 }
 .intensity-slider input::-webkit-slider-runnable-track {
   height: 0.65rem;

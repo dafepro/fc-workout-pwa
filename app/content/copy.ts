@@ -41,9 +41,6 @@ export const copy = {
     ],
   },
   log: {
-    pickerTitle: "Choose your workout",
-    pickerHint: "Pick one for this session.",
-    pickerDone: "Done",
     overMax: (max: number, unit: string) => `Max is ${max} ${unit}`,
     underMin: (min: number, unit: string) => `Min is ${min} ${unit}`,
   },
