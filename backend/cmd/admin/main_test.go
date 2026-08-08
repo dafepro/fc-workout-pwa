@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/dafepro/fc-workout-pwa/backend/internal/authn"
+	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
 )
 
 func adminDatabase(t *testing.T) string {
@@ -180,6 +181,74 @@ func TestAuditHonoursItsLimit(t *testing.T) {
 	audit := adminRun(t, databaseURL, "audit", "--player-id", playerID, "--limit", "1")
 	if events := audit["events"].([]any); len(events) != 1 {
 		t.Fatalf("audit --limit 1 returned %d events", len(events))
+	}
+}
+
+// A player who mistypes a PIN five times is locked, and the lock expiring still
+// leaves the counter one failure away from a longer lock. Unlocking has to clear
+// the counter, not just the deadline, and it must not touch the credential
+// itself: the point is that the player keeps the QR code they already have.
+func TestUnlockClearsTheFailureCounterWithoutReissuing(t *testing.T) {
+	databaseURL, player := provisionedTestPlayer(t)
+	playerID := player["playerId"].(string)
+
+	db, err := database.Open(t.Context(), databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	locked := time.Now().UTC().Add(30 * time.Minute).Format(time.RFC3339Nano)
+	if _, err = db.ExecContext(t.Context(),
+		`UPDATE auth_credentials SET failed_attempts = 5, locked_until = ?`, locked); err != nil {
+		t.Fatal(err)
+	}
+
+	before := adminRun(t, databaseURL, "credential-status", "--player-id", playerID)
+	if before["credentialState"] != "locked" {
+		t.Fatalf("the fixture is not locked: %+v", before)
+	}
+
+	unlocked := adminRun(t, databaseURL, "unlock-player-login", "--player-id", playerID)
+	if unlocked["status"] != "unlocked" {
+		t.Fatalf("unexpected unlock result: %+v", unlocked)
+	}
+
+	after := adminRun(t, databaseURL, "credential-status", "--player-id", playerID)
+	if after["credentialState"] != "active" {
+		t.Fatalf("credential state after unlock = %+v", after)
+	}
+	if after["failedAttempts"].(float64) != 0 {
+		t.Fatalf("unlock left the failure counter at %+v", after["failedAttempts"])
+	}
+	if after["issuedAt"] != before["issuedAt"] {
+		t.Fatal("unlock reissued the credential instead of leaving it in place")
+	}
+}
+
+func TestUnlockRejectsAPlayerWithNoActiveCredential(t *testing.T) {
+	databaseURL, player := provisionedTestPlayer(t)
+	playerID := player["playerId"].(string)
+	adminRun(t, databaseURL, "revoke-player-login", "--player-id", playerID)
+
+	var stdout bytes.Buffer
+	if err := run([]string{"unlock-player-login", "--player-id", playerID, "--database-url", databaseURL}, &stdout); err == nil {
+		t.Fatal("unlocking a revoked credential succeeded")
+	}
+}
+
+func TestListTeamsReportsTheTeamsAPlayerCanBeProvisionedInto(t *testing.T) {
+	databaseURL, _ := provisionedTestPlayer(t)
+	listed := adminRun(t, databaseURL, "list-teams")
+	teams, ok := listed["teams"].([]any)
+	if !ok || len(teams) != 1 {
+		t.Fatalf("list-teams returned %+v", listed)
+	}
+	team := teams[0].(map[string]any)
+	if team["teamId"] == "" || team["name"] != "Test Team" || team["timeZone"] != "America/Chicago" {
+		t.Fatalf("unexpected team entry: %+v", team)
+	}
+	if team["playerCount"].(float64) != 1 {
+		t.Fatalf("unexpected player count: %+v", team)
 	}
 }
 
