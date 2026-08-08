@@ -16,6 +16,7 @@ test.beforeEach(async () => {
 test("connected Home and Record Training use the server assignment", async ({
   page,
 }) => {
+  await page.setViewportSize({ width: 320, height: 700 });
   await openReadyPage(page, "/");
   await expect(
     page.getByRole("heading", { name: "Hill Sprints" }),
@@ -23,11 +24,21 @@ test("connected Home and Record Training use the server assignment", async ({
   await expect(page.getByText("of 3", { exact: true })).toBeVisible();
 
   await page.getByRole("link", { name: /Log session/i }).click();
+  await expect(page.getByRole("link", { name: "Record training" })).toHaveCount(
+    0,
+  );
   await expect(
     page
       .locator(".selected-activity")
       .getByText("Hill Sprints", { exact: true }),
   ).toBeVisible();
+  await page.locator(".selected-activity").click();
+  await expect(
+    page.getByRole("radio", { name: /Distance Run/i }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "How to do Distance Run" }).click();
+  await expect(page.getByText("How to do Distance Run")).toBeVisible();
+  await page.keyboard.press("Escape");
   const createResponse = page.waitForResponse(
     (response) =>
       response.url().includes("/api/zoomigo/v1/me/training-entries") &&

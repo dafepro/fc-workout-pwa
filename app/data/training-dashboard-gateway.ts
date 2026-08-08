@@ -10,6 +10,7 @@ import {
   currentStreak,
   entriesWithinDays,
 } from "../domain/rules";
+import { activityPresentation } from "../content/activities";
 
 export interface TrainingDashboardGateway {
   get(): Promise<TrainingDashboard>;
@@ -23,41 +24,12 @@ interface APIActivityDefinition {
   minimumValue: number;
   maximumValue: number;
   stepValue: number;
+  defaultValue: number;
 }
 
 interface APIDashboard extends Omit<TrainingDashboard, "activities"> {
   activities: APIActivityDefinition[];
 }
-
-const presentation: Record<
-  ActivityId,
-  Pick<ActivityDefinition, "shortName" | "icon" | "fieldLabel" | "description">
-> = {
-  "hill-sprints": {
-    shortName: "Sprints",
-    icon: "↗",
-    fieldLabel: "Reps completed",
-    description: "Coach pick · 8 reps × 6 sec",
-  },
-  "timed-run-walk": {
-    shortName: "Timed",
-    icon: "⏱",
-    fieldLabel: "Elapsed minutes",
-    description: "Record the total elapsed time",
-  },
-  "distance-run": {
-    shortName: "Distance",
-    icon: "◎",
-    fieldLabel: "Distance completed",
-    description: "Team unit · miles",
-  },
-  "recovery-walk-jog": {
-    shortName: "Recovery",
-    icon: "≈",
-    fieldLabel: "Elapsed minutes",
-    description: "Easy movement and recovery",
-  },
-};
 
 class HTTPTrainingDashboardGateway implements TrainingDashboardGateway {
   constructor(private readonly teamID: string) {}
@@ -74,7 +46,7 @@ class HTTPTrainingDashboardGateway implements TrainingDashboardGateway {
       ...body,
       activities: body.activities.map((activity) => ({
         ...activity,
-        ...presentation[activity.id],
+        ...activityPresentation[activity.id],
         min: activity.minimumValue,
         max: activity.maximumValue,
         step: activity.stepValue,

@@ -240,12 +240,6 @@ h2 {
   line-height: 1;
 }
 
-.training-fab.is-active {
-  box-shadow:
-    0 0 0 4px rgb(105 84 238 / 24%),
-    0 14px 28px rgb(11 18 61 / 26%);
-}
-
 .toast-overlay {
   position: fixed;
   z-index: 40;
@@ -534,6 +528,7 @@ h2 {
 }
 
 .workout-instructions.is-open {
+  z-index: 12;
   width: min(23rem, calc(100% - 2rem));
 }
 
@@ -1041,6 +1036,7 @@ h2 {
 
 .selected-activity {
   display: grid;
+  width: 100%;
   min-height: 4.5rem;
   overflow: hidden;
   align-items: center;
@@ -1049,7 +1045,11 @@ h2 {
   border-radius: 1.1rem;
   background: white;
   box-shadow: var(--shadow);
-  grid-template-columns: auto minmax(0, 1fr) 3.4rem;
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  grid-template-columns: auto minmax(0, 1fr) 2.75rem;
 }
 
 .selected-activity--hill-sprints {
@@ -1085,7 +1085,7 @@ h2 {
   font-weight: 950;
 }
 
-.selected-activity > div {
+.selected-activity__copy {
   display: grid;
   gap: 0.12rem;
   padding: 0.7rem;
@@ -1099,18 +1099,20 @@ h2 {
   text-transform: uppercase;
 }
 
-.selected-activity button {
+.selected-activity__copy small:last-child {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.selected-activity__chevron {
+  display: grid;
   align-self: stretch;
-  border: 0;
+  place-items: center;
   border-left: 1px solid var(--line);
   background: #f6f7fb;
   color: #4e3fd1;
-  cursor: pointer;
-  font-size: 0.68rem;
+  font-size: 1rem;
   font-weight: 900;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  writing-mode: vertical-rl;
 }
 .activity-picker {
   min-width: 0;
@@ -1126,16 +1128,23 @@ h2 {
 }
 .activity-choice {
   position: relative;
-  display: flex;
+  display: grid;
   min-width: 0;
   min-height: 6rem;
-  align-items: center;
-  gap: 0.8rem;
-  padding: 0.85rem;
+  align-items: stretch;
+  padding: 0;
   border: 1.5px solid var(--line);
   border-radius: 1.15rem;
   background: white;
   box-shadow: 0 8px 20px rgb(24 34 87 / 7%);
+  cursor: pointer;
+}
+.activity-choice > label {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.85rem 3.25rem 0.85rem 0.85rem;
   cursor: pointer;
 }
 .activity-choice:first-child {
@@ -1164,12 +1173,39 @@ h2 {
 .activity-choice strong {
   font-size: 0.9rem;
 }
+.activity-choice__copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+}
+.activity-choice__copy small {
+  color: var(--muted);
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
 .activity-choice__recommended {
   position: absolute;
   top: 0.65rem;
   right: 0.7rem;
   color: #6f9900;
   font-size: 0.9rem;
+}
+.activity-choice .workout-instructions {
+  top: auto;
+  right: 0.65rem;
+  bottom: 0.65rem;
+  width: 2.35rem;
+  height: 2.35rem;
+}
+.activity-choice .workout-instructions.is-open {
+  width: calc(100% - 1.3rem);
+}
+.activity-choice .workout-instructions__toggle {
+  width: 2.35rem;
+  height: 2.35rem;
+  border-color: #cfd4e4;
+  background: #f7f8fd;
+  color: #4e3fd1;
 }
 
 .form-grid {
@@ -1237,15 +1273,20 @@ h2 {
   border-color: #9ecd00;
   background: var(--lime);
 }
-.stepper strong {
-  text-align: center;
-  font-size: 2rem;
+.stepper button:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+.stepper .input-with-unit input {
+  padding-right: 3.25rem;
+  text-align: left;
+  font-size: 1.35rem;
 }
 
 .intensity-card {
   display: grid;
   overflow: hidden;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
 }
 .intensity-choice {
   min-width: 0;
@@ -1254,7 +1295,7 @@ h2 {
   border: 0;
 }
 .intensity-choice + .intensity-choice {
-  border-left: 1px solid var(--line);
+  border-top: 1px solid var(--line);
 }
 .intensity-choice legend {
   width: 100%;
@@ -1268,12 +1309,12 @@ h2 {
   align-items: center;
   gap: 0.35rem;
   margin-top: 0.65rem;
-  grid-template-columns: 2.35rem minmax(2.8rem, 1fr) 2.35rem;
+  grid-template-columns: 2.75rem minmax(3.5rem, 1fr) 2.75rem;
 }
 .intensity-mobile button {
   display: grid;
-  width: 2.35rem;
-  height: 2.35rem;
+  width: 2.75rem;
+  height: 2.75rem;
   place-items: center;
   border: 1px solid #d9ddec;
   border-radius: 50%;
@@ -1291,6 +1332,13 @@ h2 {
   min-height: 3.4rem;
   place-items: center;
   font-size: 2.6rem;
+}
+.intensity-mobile output small {
+  color: var(--muted);
+  font-size: 0.64rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
 }
 .intensity-desktop {
   display: none;
@@ -2075,7 +2123,7 @@ h2 {
     align-items: flex-start;
   }
   .activity-picker__grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
   .activity-choice:first-child {
     grid-column: auto;
@@ -2155,6 +2203,13 @@ h2 {
   }
   .intensity-mobile {
     display: none;
+  }
+  .intensity-card {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .intensity-choice + .intensity-choice {
+    border-top: 0;
+    border-left: 1px solid var(--line);
   }
   .intensity-desktop {
     display: grid;

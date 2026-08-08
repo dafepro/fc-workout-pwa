@@ -51,6 +51,10 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
 
 - Distance units by team or locale.
 - Minimum and maximum plausible values.
+- Implemented prototype entry defaults are 8 hill-sprint reps, 20 minutes for
+  timed run/walk, 1 mile for distance run, and 20 minutes for recovery
+  walk/jog. These are editable starting points, not targets or medical guidance;
+  an active coach assignment overrides the matching activity's default.
 - Implemented first-assignment rule: the current whole-team assignment is the
   earliest-due assignment whose team-local date window includes today. A
   session is attached only when the PWA submits that exact assignment ID with

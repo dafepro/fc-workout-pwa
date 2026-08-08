@@ -36,6 +36,9 @@ func TestTrainingDashboardReturnsOwnedCatalogAssignmentAndSafeSummary(t *testing
 	if len(projection.Activities) != 4 || projection.Activities[0].ID != "distance-run" {
 		t.Fatalf("unexpected activity catalog: %+v", projection.Activities)
 	}
+	if projection.Activities[0].MinimumValue != .25 || projection.Activities[0].StepValue != .25 || projection.Activities[0].DefaultValue != 1 {
+		t.Fatalf("distance activity should use kid-legible quarter-mile defaults: %+v", projection.Activities[0])
+	}
 	if projection.CurrentAssignment == nil || projection.CurrentAssignment.ID != "assignment-hills" || projection.CurrentAssignment.Completed {
 		t.Fatalf("unexpected assignment: %+v", projection.CurrentAssignment)
 	}

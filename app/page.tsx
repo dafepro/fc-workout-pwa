@@ -120,8 +120,11 @@ export default function HomePage() {
             Log session <span aria-hidden="true">→</span>
           </Link>
         </div>
-        {assignment?.catalogKey === "hill_sprints_8x6" ? (
-          <WorkoutInstructions />
+        {assignmentActivity ? (
+          <WorkoutInstructions
+            activityName={assignmentActivity.name}
+            instructions={assignmentActivity.instructions}
+          />
         ) : null}
         <div className="hill-art" aria-hidden="true">
           <span className="hill-art__sun">✦</span>

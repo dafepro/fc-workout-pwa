@@ -22,14 +22,16 @@ describe("combined intensity controls", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Raise effort" }));
     expect(
-      screen.getByRole("status", { name: "Very hard, 5 of 7" }),
+      screen.getByRole("status", { name: "Hard, 5 of 7" }),
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Lower tiredness" }));
     expect(
-      screen.getByRole("status", { name: "Somewhat tired, 3 of 7" }),
+      screen.getByRole("status", { name: "A little tired, 3 of 7" }),
     ).toBeInTheDocument();
 
     expect(screen.getAllByRole("radio")).toHaveLength(14);
+    expect(screen.getByText("5 · Hard")).toBeVisible();
+    expect(screen.getByText("3 · A little tired")).toBeVisible();
   });
 });

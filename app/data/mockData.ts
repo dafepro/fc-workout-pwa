@@ -4,6 +4,7 @@ import type {
   TrainingEntry,
 } from "../domain/types";
 import { createDeleteDeadline } from "../domain/rules";
+import { activityPresentation } from "../content/activities";
 
 export const CURRENT_PLAYER_ID = "mason";
 export const TEAM_NAME = "Hill Striders U12";
@@ -13,54 +14,46 @@ export const activities: ActivityDefinition[] = [
   {
     id: "hill-sprints",
     name: "Hill Sprints",
-    shortName: "Sprints",
-    icon: "↗",
     inputKind: "repetitions",
     unit: "reps",
     min: 1,
     max: 20,
     step: 1,
-    fieldLabel: "Reps completed",
-    description: "Coach pick · 8 reps × 6 sec",
+    defaultValue: 8,
+    ...activityPresentation["hill-sprints"],
   },
   {
     id: "timed-run-walk",
     name: "Timed Run / Walk",
-    shortName: "Timed",
-    icon: "⏱",
     inputKind: "duration",
     unit: "minutes",
     min: 1,
     max: 90,
     step: 1,
-    fieldLabel: "Elapsed minutes",
-    description: "Record the total elapsed time",
+    defaultValue: 20,
+    ...activityPresentation["timed-run-walk"],
   },
   {
     id: "distance-run",
     name: "Distance Run",
-    shortName: "Distance",
-    icon: "◎",
     inputKind: "distance",
     unit: "miles",
-    min: 0.1,
+    min: 0.25,
     max: 10,
-    step: 0.1,
-    fieldLabel: "Distance completed",
-    description: "Team unit · miles",
+    step: 0.25,
+    defaultValue: 1,
+    ...activityPresentation["distance-run"],
   },
   {
     id: "recovery-walk-jog",
     name: "Recovery Walk / Jog",
-    shortName: "Recovery",
-    icon: "≈",
     inputKind: "duration",
     unit: "minutes",
     min: 1,
     max: 90,
     step: 1,
-    fieldLabel: "Elapsed minutes",
-    description: "Easy movement and recovery",
+    defaultValue: 20,
+    ...activityPresentation["recovery-walk-jog"],
   },
 ];
 
