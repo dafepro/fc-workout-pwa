@@ -12,15 +12,6 @@ packages:
 
 users:
   - default
-  # TEMPORARY diagnostic root access for the first boot of a rebuilt host;
-  # revert this entry, disable_root, and PermitRootLogin below together once
-  # the bootstrap is confirmed working.
-  - name: root
-    ssh_authorized_keys:
-      - ${ssh_public_key}
-%{ if operator_ssh_public_key != "" }
-      - ${operator_ssh_public_key}
-%{ endif }
   - name: zoomigo
     groups: [sudo, docker]
     shell: /bin/bash
@@ -33,7 +24,7 @@ users:
 %{ endif }
 
 ssh_pwauth: false
-disable_root: false # TEMPORARY: see the root user entry above.
+disable_root: true
 
 # Swap must be created by the swap module, not by bootcmd. cloud-init runs
 # bootcmd in the init stage BEFORE growpart/resizefs, so on a fresh Droplet the
@@ -55,10 +46,7 @@ write_files:
     content: |
       PasswordAuthentication no
       KbdInteractiveAuthentication no
-      # TEMPORARY: prohibit-password still blocks all password-based login;
-      # this only allows root in with a key, same effective access zoomigo's
-      # NOPASSWD sudo already grants. Revert to "no" once confirmed working.
-      PermitRootLogin prohibit-password
+      PermitRootLogin no
   - path: /tmp/zoomigo-production.env
     owner: root:root
     permissions: "0600"
