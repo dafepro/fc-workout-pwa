@@ -25,6 +25,12 @@ services:
       PORT: "8080"
       SHUTDOWN_TIMEOUT: 15s
       TEAM_TIME_ZONE: ${TEAM_TIME_ZONE:-America/Chicago}
+      # Absent, staff sign-in refuses rather than running without a second
+      # factor. The player app is unaffected either way.
+      STAFF_SECRET_KEY: ${STAFF_SECRET_KEY:-}
+      PLAYER_LOGIN_URL: ${PLAYER_LOGIN_URL:-}
+      STAFF_SETUP_URL: ${STAFF_SETUP_URL:-}
+      PRODUCTION_DATA_APPROVED: ${PRODUCTION_DATA_APPROVED:-false}
     expose:
       - "8080"
     healthcheck:
@@ -152,6 +158,7 @@ services:
     environment:
       DATABASE_URL: file:/data/zoomigo.db
       PRODUCTION_DATA_APPROVED: ${PRODUCTION_DATA_APPROVED:-false}
+      STAFF_SECRET_KEY: ${STAFF_SECRET_KEY:-}
     volumes:
       - type: bind
         source: ${DATA_DIR:?DATA_DIR must be set}
