@@ -231,6 +231,8 @@ func (service *service) createTrainingEntry(w http.ResponseWriter, r *http.Reque
 			writeError(w, r, http.StatusUnprocessableEntity, "entry_result_not_allowed", "That activity result is not allowed.")
 		case errors.Is(err, store.ErrEntryTeamUnavailable):
 			writeError(w, r, http.StatusUnprocessableEntity, "entry_team_unavailable", "That team is unavailable.")
+		case errors.Is(err, store.ErrEntryMembershipInactive):
+			writeError(w, r, http.StatusUnprocessableEntity, "entry_membership_inactive", "You were not an active member of this team on that date. Choose another date or ask an adult for help.")
 		case errors.Is(err, store.ErrEntryAssignmentUnavailable):
 			writeError(w, r, http.StatusUnprocessableEntity, "entry_assignment_unavailable", "That assignment is unavailable.")
 		case errors.Is(err, store.ErrEntryLevelsNotAllowed):

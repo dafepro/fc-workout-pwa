@@ -15,6 +15,7 @@ var (
 	ErrEntryNotFound              = errors.New("training entry not found")
 	ErrEntryIdempotencyConflict   = errors.New("entry idempotency key was used for a different request")
 	ErrEntryTeamUnavailable       = errors.New("entry team is unavailable")
+	ErrEntryMembershipInactive    = errors.New("entry membership is inactive")
 	ErrEntryDateNotAllowed        = errors.New("entry date is not allowed")
 	ErrEntryResultNotAllowed      = errors.New("entry result is not allowed")
 	ErrEntryLevelsNotAllowed      = errors.New("entry effort or exhaustion is not allowed")
@@ -74,9 +75,6 @@ func (store *Store) CreateTrainingEntry(ctx context.Context, input CreateTrainin
 	}
 	now := input.Now.UTC()
 	occurredAt = occurredAt.UTC()
-	if !entryDateAllowed(occurredAt, now, store.location) {
-		return TrainingEntry{}, ErrEntryDateNotAllowed
-	}
 
 	tx, err := store.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -99,22 +97,36 @@ func (store *Store) CreateTrainingEntry(ctx context.Context, input CreateTrainin
 		return existing, nil
 	}
 
-	teamDay := occurredAt.In(store.location).Format("2006-01-02")
-	var clubID string
+	var clubID, timeZone string
 	err = tx.QueryRowContext(ctx, `
-		SELECT t.club_id
-		FROM teams t
-		JOIN team_memberships m ON m.team_id = t.id
-		WHERE t.id = ? AND m.player_id = ?
-		  AND m.active_from <= ?
-		  AND (m.active_to IS NULL OR m.active_to >= ?)`,
-		input.Request.TeamID, input.PlayerID, teamDay, teamDay,
-	).Scan(&clubID)
+		SELECT club_id, time_zone FROM teams WHERE id = ?`, input.Request.TeamID,
+	).Scan(&clubID, &timeZone)
 	if errors.Is(err, sql.ErrNoRows) {
 		return TrainingEntry{}, ErrEntryTeamUnavailable
 	}
 	if err != nil {
-		return TrainingEntry{}, fmt.Errorf("verify training entry team: %w", err)
+		return TrainingEntry{}, fmt.Errorf("load training entry team: %w", err)
+	}
+	location, err := time.LoadLocation(timeZone)
+	if err != nil {
+		return TrainingEntry{}, fmt.Errorf("load training entry team time zone: %w", err)
+	}
+	if !entryDateAllowed(occurredAt, now, location) {
+		return TrainingEntry{}, ErrEntryDateNotAllowed
+	}
+	teamDay := occurredAt.In(location).Format("2006-01-02")
+	var membershipCount int
+	err = tx.QueryRowContext(ctx, `
+		SELECT COUNT(*) FROM team_memberships
+		WHERE team_id = ? AND player_id = ? AND active_from <= ?
+		  AND (active_to IS NULL OR active_to >= ?)`,
+		input.Request.TeamID, input.PlayerID, teamDay, teamDay,
+	).Scan(&membershipCount)
+	if err != nil {
+		return TrainingEntry{}, fmt.Errorf("verify training entry membership: %w", err)
+	}
+	if membershipCount != 1 {
+		return TrainingEntry{}, ErrEntryMembershipInactive
 	}
 
 	var definition struct {
