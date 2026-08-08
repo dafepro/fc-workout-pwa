@@ -18,7 +18,8 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
 - Implemented baseline: normal sessions last 12 hours and explicitly remembered devices last 30 days. Reissuing or revoking a QR invalidates prior sessions.
 - Implemented baseline: sign-in attempts are throttled per client address and in total before any credential work, defaulting to 30 per address and 120 overall per minute. The per-address key is `CF-Connecting-IP`, trusted only from a loopback or private peer because the origin firewall admits Cloudflare ranges only. Throttled attempts are logged with the client address, which the privacy review should confirm is acceptable retention for an abuse signal.
 - Parent recovery flow.
-- Decide the approved physical/guardian delivery process for QR codes and PINs before real accounts are created. This also decides who may know a player's PIN: today an operator types it during `provision-player`, so the operator knows it. The alternatives are a system-generated PIN revealed once or a player-chosen PIN on first sign-in. The printable credential hand-out cannot be designed until this is settled.
+- Decided 2026-08-08: the system generates a player's PIN and reveals it exactly once, at provisioning or reissue. An operator no longer chooses PINs, so none can be reused or guessed from a habit, and the revealed value is what goes to the guardian. The operator still sees it while handing it over; removing that requires a player-chosen PIN on first sign-in, which is not being built now.
+- Still open: the approved physical/guardian delivery process for the QR code and that revealed PIN, before real accounts are created.
 
 ## Goals and workload
 

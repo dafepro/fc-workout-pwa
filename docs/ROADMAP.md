@@ -154,7 +154,9 @@ accounts containing real children's data.
 Status: **Planned before real-data launch**
 
 - Add adult-verified account deletion and export workflows.
-- Add audited admin deletion after the player's 24-hour self-delete window.
+- Add audited admin deletion after the player's 24-hour self-delete window. The
+  operator CLI deliberately stops at deactivation, so every erasure path lands
+  here rather than being invented alongside credential administration.
 - Add retention jobs for deleted entries, expired sessions, reactions, and audit
   events after the owner approves the periods.
 - Document how deletion is reapplied after disaster recovery.
@@ -170,13 +172,12 @@ Status: **In progress; login throttling implemented 2026-08-08**
   any password work and leaves no lockout state, so nothing previously slowed a
   spray of distinct tokens. Verified by targeted unit tests plus a Docker E2E
   that sprays one client into a `429` while another client still signs in.
-- Provide a safe operator workflow for issuing, printing, revoking, and
-  reissuing QR+PIN credentials without logging secrets. **Blocked** on the QR/PIN
-  delivery decision in `OPEN_DECISIONS.md`, which determines who may know a
-  player's PIN and therefore what a printed hand-out may contain. The read-only
-  parts are not blocked: listing players and inspecting credential state
-  (issued, last used, failed attempts, locked, revoked) can be built now, and
-  the step 5 reissue/revoke drill needs them.
+- Provide a safe operator workflow for issuing, revoking, and reissuing QR+PIN
+  credentials without logging secrets. This stays a CLI; the management UI is
+  recorded under item 9. PINs are now system-generated and revealed once, per
+  the decision in `OPEN_DECISIONS.md`. Add listing and credential-state
+  inspection, which the step 5 reissue/revoke drill needs, and deactivation.
+  Deactivation is the CLI's last word on an account: erasure belongs to item 7.
 - Add security-event audit records and a secret/key rotation rehearsal. The
   `auth_audit_events` table already records issue, revoke, login success and
   failure, and logout, and it is already carried in the logical export. What is
@@ -196,6 +197,19 @@ Status: **Planned; product decisions required**
   results.
 - Assigned-coach and club-admin views that preserve the authorization matrix.
 - No chat, comments, uploads, or free-form announcements.
+
+An operator-facing management UI is wanted here, covering what the credential
+CLI in item 8 does from a terminal: listing players, inspecting credential
+state, reissuing, revoking, and deactivating. It is deliberately not part of
+item 8, which stays a CLI. Building it requires decisions that item 8 does not:
+
+- Operator accounts need a real password credential. `CreateSession` accepts
+  only `role='player'` today, and a four-digit PIN is not defensible for an
+  account that can see every child in a club.
+- The console holds the whole roster, so its surface and exposure are a safety
+  decision. A separate hostname behind an independent access gate keeps admin
+  code out of the player bundle and puts two doors in front of the roster.
+- Deletion in the UI must land on item 7's audited deletion rules.
 
 ### 10. Player profile and brand completion
 
