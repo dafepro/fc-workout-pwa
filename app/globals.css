@@ -2829,3 +2829,13 @@ h2 {
   color: #59617b;
   font-size: 0.9rem;
 }
+
+/* Deliberately quiet: the staff door is secondary to the player help above it. */
+.login-staff {
+  margin-top: 1.75rem;
+  font-size: 0.85rem;
+}
+
+.login-staff a {
+  color: #59617b;
+}

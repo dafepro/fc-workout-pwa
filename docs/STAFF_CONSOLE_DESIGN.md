@@ -3,6 +3,8 @@
 Status: **Design and requirements only. No implementation.**
 Last reviewed: 2026-08-08
 Owner of execution: a separate implementing agent.
+Execution record: `STAFF_CONSOLE_PROGRESS.md`, which reports what has been built
+against these requirements and closes the open decisions in section 8.
 
 This document is the detail behind `ROADMAP.md` items 9 (coach and operator
 console) and 9a (sign-in entry states). Part 1 is the design:
