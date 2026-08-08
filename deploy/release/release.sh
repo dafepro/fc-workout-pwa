@@ -55,6 +55,13 @@ mkdir -m 0700 -- "$secrets_directory"
 
 : "${CLOUDFLARE_ACCOUNT_ID:?CLOUDFLARE_ACCOUNT_ID is required}"
 : "${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN is required}"
+: "${STAFF_CONSOLE_GATE_KEY:?STAFF_CONSOLE_GATE_KEY is required}"
 pnpm exec wrangler deploy --config dist/server/wrangler.json
+
+# After the deploy, because a secret needs the Worker to exist. The gate fails
+# closed without it, so a release that got this far but not here leaves the
+# console unreachable rather than open.
+printf '%s' "$STAFF_CONSOLE_GATE_KEY" |
+	pnpm exec wrangler secret put STAFF_CONSOLE_GATE_KEY --config dist/server/wrangler.json
 
 printf '%s\n' "Released ZoomiGo $release_sha to the VM and Cloudflare Worker."
