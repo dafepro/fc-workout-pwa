@@ -20,9 +20,11 @@ in connected mode, and daily backups produce both an encrypted SQLite snapshot
 and a versioned logical export. Production operations are codified and rehearsed;
 only operator-performed confirmations remain. The provisioned-player save
 regression is fixed, and the Record Training input pass is complete. The shared
-Team challenge and contextual cheer slice is also complete; the next UX
-decision is whether the full leaderboard earns its emotional cost in
-`UX_GOALS.md`.
+Team challenge and contextual cheer slice is also complete, and credential
+administration is implemented as a CLI. The next implementation priority is the
+coach and operator console in `docs/STAFF_CONSOLE_DESIGN.md`, starting with its
+phase 0 sign-in entry fixes; the next UX decision is whether the full
+leaderboard earns its emotional cost in `UX_GOALS.md`.
 
 ### Provisioned-player training-entry regression
 
@@ -249,29 +251,68 @@ so that means rebuilding the table. That is a schema change worth its own
 rehearsed release rather than a rider on this one. Throttled attempts are
 already visible in the application log in the meantime.
 
-### 9. Coach and club-admin foundation
+Update 2026-08-08: `account_id` turned out to be nullable already, so only the
+new event type remains, and item 9's phase 1 rebuilds that table anyway. This
+follow-up is now REQ-703 in `docs/STAFF_CONSOLE_DESIGN.md` and closes there
+rather than needing a release of its own.
 
-Status: **Planned; product decisions required**
+### 9. Coach and operator console
 
-- Structured roster and membership management.
-- Whole-team assignment creation from predefined activities.
-- Private assessment recording/history for sprint, distance-run, and shuttle
-  results.
-- Assigned-coach and club-admin views that preserve the authorization matrix.
-- No chat, comments, uploads, or free-form announcements.
+Status: **Designed 2026-08-08; ready to implement in phases**
 
-An operator-facing management UI is wanted here, covering what the credential
-CLI in item 8 does from a terminal: listing players, inspecting credential
-state, reissuing, revoking, and deactivating. It is deliberately not part of
-item 8, which stays a CLI. Building it requires decisions that item 8 does not:
+Full design and requirements: **`docs/STAFF_CONSOLE_DESIGN.md`**. That document
+owns the persona flows, the authority matrix, numbered requirements with
+acceptance criteria, the schema changes, and the phase order. Do not plan this
+item from the summary below.
 
-- Operator accounts need a real password credential. `CreateSession` accepts
-  only `role='player'` today, and a four-digit PIN is not defensible for an
-  account that can see every child in a club.
-- The console holds the whole roster, so its surface and exposure are a safety
-  decision. A separate hostname behind an independent access gate keeps admin
-  code out of the player bundle and puts two doors in front of the roster.
-- Deletion in the UI must land on item 7's audited deletion rules.
+Scope: structured roster and membership management, whole-team assignment
+creation from a predefined catalog, private assessment recording and history for
+sprint/distance-run/shuttle results, and staff views that preserve the
+authorization matrix. No chat, comments, uploads, or free-form announcements.
+
+Decisions taken with the product owner on 2026-08-08:
+
+- One team-scoped staff persona, **coach**, holding both coaching and
+  team-administration duties. A club-level manager for multi-team clubs is
+  deferred; `accounts.role` already reserves `club_admin` for it.
+- A **platform operator** role with global authority, plus the management UI it
+  needs. The operator must create teams, provision players, and repair a login
+  without opening an SSH session to production. This is the phase to ship first
+  after sign-in, because it is the persona in actual pain today.
+- The console is a **separate route tree on the same host with its own entry**,
+  code-split out of the player bundle, behind an independent access gate.
+- Staff sign in with **email, password, and mandatory TOTP**. Federated sign-in
+  is deferred. `CreateSession`'s `role='player'` refusal stays as-is; staff
+  sessions get a separate path, so a four-digit PIN can never mint a coach
+  session.
+
+Phases, each independently shippable: (0) sign-in entry fixes, no schema change;
+(1) staff identity, which carries the `accounts` and `auth_audit_events` table
+rebuilds and wants its own rehearsed release; (2) operator console; (3) coach
+console; (4) assessments.
+
+Two efficiencies the design found: the item 8 follow-up below closes as a rider
+on phase 1's audit-table rebuild, since `account_id` is already nullable and only
+the event type was blocking it. And moving `assignments.catalog_key` from a
+`CHECK` to an `assignment_catalog` table makes every future catalog addition a
+data change instead of a migration.
+
+Deletion in the UI must still land on item 7's audited deletion rules; the
+console's most destructive verb is deactivate.
+
+### 9a. Sign-in entry states
+
+Status: **Designed 2026-08-08; phase 0 of item 9**
+
+`/login` renders a PIN field unconditionally, so landing there without a QR
+fragment gives a child a password box that cannot work — the credential is a
+256-bit value delivered by QR, so there is nothing to type. There is also no
+door for staff. Requirements REQ-101 through REQ-107 in
+`docs/STAFF_CONSOLE_DESIGN.md` cover the corrected states: no PIN field without
+a credential, player help plus a secondary staff link, role-aware redirect for an
+already-valid session, indistinguishable failures for unknown/malformed/revoked/
+wrong-PIN, and the two-step staff form. The fragment-only handling of the
+credential must be preserved exactly.
 
 ### 10. Player profile and brand completion
 

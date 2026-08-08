@@ -20,6 +20,24 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
 - Parent recovery flow.
 - Decided 2026-08-08: the system generates a player's PIN and reveals it exactly once, at provisioning or reissue. An operator no longer chooses PINs, so none can be reused or guessed from a habit, and the revealed value is what goes to the guardian. The operator still sees it while handing it over; removing that requires a player-chosen PIN on first sign-in, which is not being built now.
 - Still open: the approved physical/guardian delivery process for the QR code and that revealed PIN, before real accounts are created.
+- Decided 2026-08-08: staff sign in with email, password, and mandatory TOTP on a route separate from the player QR+PIN path. `CreateSession`'s `role='player'` refusal stays, so a four-digit PIN can never mint a coach session. Federated sign-in is deferred.
+- Decided 2026-08-08: `/login` must not render a PIN field without a QR credential in the URL fragment. The corrected entry states are REQ-101 through REQ-107 in `STAFF_CONSOLE_DESIGN.md`.
+- Still open: how a player recovers on a device whose remembered 30-day session expired without the printed QR code to hand. Caching anything on the device that substitutes for the QR weakens the credential, so the interim behavior is help copy pointing at a parent or coach.
+
+## Staff access and the console
+
+All of these are raised by `STAFF_CONSOLE_DESIGN.md` and are the product owner's
+to resolve, not the implementing agent's.
+
+- Decided 2026-08-08: one team-scoped staff persona called coach, holding both coaching and team-administration duties. A club-level manager for multi-team clubs is deferred; `accounts.role` already reserves `club_admin`. A global `platform_admin` role is added for the operator.
+- Decided 2026-08-08: the console is a separate route tree on the same host with its own entry, code-split out of the player bundle, behind an independent access gate. The gate mechanism and who administers its membership remain open.
+- Decided 2026-08-08: the console's most destructive action is deactivation. Erasure stays with roadmap item 7.
+- Still open: whether a coach may provision players on their own team. The design recommends yes, because coaches are the people physically handing a printed code to a guardian, but it creates child accounts and belongs with the guardian-ownership approvals.
+- Still open: how a coach's one-time setup link and temporary password reach them, given no email infrastructure. Same shape as the QR/PIN delivery question above.
+- Still open: staff session lifetimes and the step-up re-authentication window. The design assumes 30 minutes idle, 8 hours absolute, and a 5-minute step-up window, with no remembered-device option for staff.
+- Still open: whether a coach may see raw entry and assessment values for their own team. `domain.CanViewSession` already says yes for an assigned coach and the design assumes that stands, but it is a youth-privacy decision.
+- Still open: whether the operator's global read across every club needs a stronger control than TOTP plus audit before real data exists.
+- Still open: plausible minimum and maximum values for sprint, distance-run, and shuttle assessments. These are UI guardrails, not standards.
 
 ## Goals and workload
 
