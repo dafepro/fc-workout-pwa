@@ -1,0 +1,397 @@
+name: Production operations drills
+
+# Roadmap step 5, "Prove production operations with test data", as a gate.
+# Nothing here deploys, mutates the production database, or uploads anything.
+# The container drills and the release-candidate pass need no secrets at all;
+# the live-host checks are read-only, gated by the production environment's
+# reviewer, and kill-switched by the repository variable PRODUCTION_DRILLS_ENABLED.
+
+on:
+  workflow_dispatch:
+    inputs:
+      full_verify:
+        description: Run the full ./scripts/verify.sh --all release-candidate pass
+        required: false
+        type: boolean
+        default: true
+      host_checks:
+        description: Also run read-only checks against the live production VM (requires roadmap step 4)
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: production-drills-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  container-drills:
+    name: Rehearse the drills in containers
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.20.0
+
+      - name: Install age
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends age
+
+      - name: Bounded logs, encrypted backups, restore, cutover, credentials, release path
+        run: |
+          set -o pipefail
+          ./scripts/drills.sh 2>&1 | tee "$RUNNER_TEMP/container-drills.log"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: log-container-drills
+          path: ${{ runner.temp }}/container-drills.log
+          retention-days: 30
+          if-no-files-found: ignore
+
+  release-candidate:
+    name: Release-candidate pass
+    if: inputs.full_verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.20.0
+          cache: pnpm
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: 1.10.10
+
+      # The one intentional full pass the roadmap asks for: static checks, unit
+      # tests, builds, contracts, plus the Docker E2E and VM smoke suites.
+      - name: ./scripts/verify.sh --all
+        run: |
+          set -o pipefail
+          ./scripts/verify.sh --all 2>&1 | tee "$RUNNER_TEMP/release-candidate.log"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: log-release-candidate
+          path: ${{ runner.temp }}/release-candidate.log
+          retention-days: 30
+          if-no-files-found: ignore
+
+  attestations:
+    name: Operator attestations
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.20.0
+
+      - name: Check the recorded operator drills
+        run: |
+          set -o pipefail
+          node scripts/drill-attestations.mjs 2>&1 | tee "$RUNNER_TEMP/attestations.log"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: log-attestations
+          path: ${{ runner.temp }}/attestations.log
+          retention-days: 30
+          if-no-files-found: ignore
+
+  # PRODUCTION_DRILLS_ENABLED must be repository-scoped: a job-level `if` is
+  # evaluated before the environment resolves, so an environment-scoped variable
+  # is invisible here and the job would silently skip.
+  host-checks:
+    name: Read-only checks on the production VM
+    if: inputs.host_checks && vars.PRODUCTION_DRILLS_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Confirm the DigitalOcean alerts and uptime check are live
+        env:
+          DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
+        run: |
+          set -euo pipefail
+          api() {
+            curl --fail --silent --show-error \
+              --header "Authorization: Bearer $DIGITALOCEAN_TOKEN" \
+              "https://api.digitalocean.com/v2/$1"
+          }
+          enabled_alerts=$(api "monitoring/alerts?per_page=200" |
+            jq '[.policies[] | select(.enabled) | select(.alerts.email | length > 0)] | length')
+          echo "Enabled resource alert policies with an email target: $enabled_alerts"
+          if [ "$enabled_alerts" -lt 3 ]; then
+            echo "::error::expected at least 3 enabled resource alerts (CPU, memory, disk), found $enabled_alerts"
+            exit 1
+          fi
+          check_id=$(api "uptime/checks?per_page=200" |
+            jq -r 'first(.checks[] | select(.enabled) | .id) // ""')
+          if [ -z "$check_id" ]; then
+            echo "::error::no enabled uptime check exists"
+            exit 1
+          fi
+          down_alerts=$(api "uptime/checks/$check_id/alerts" |
+            jq '[.alerts[] | select(.type == "down_global")] | length')
+          echo "Enabled uptime check $check_id with down_global alerts: $down_alerts"
+          if [ "$down_alerts" -lt 1 ]; then
+            echo "::error::the uptime check has no down_global alert"
+            exit 1
+          fi
+          echo "Alert definitions are live. Delivery to an inbox is the alert-delivery attestation."
+
+      # Read-only by construction, and the age identity stays with its custodian
+      # and is never available here, so nothing in this job can decrypt or
+      # restore anything. The script is piped in rather than run from the host's
+      # own checkout so this run tests this revision's checks.
+      - name: Host readiness, bounded logs, and retention horizon
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          ZOOMIGO_DEPLOY_SSH_KEY: ${{ secrets.ZOOMIGO_DEPLOY_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          identity="$RUNNER_TEMP/deploy_ssh_key"
+          trap 'rm -f -- "$identity"' EXIT
+          (umask 077 && printf '%s\n' "$ZOOMIGO_DEPLOY_SSH_KEY" >"$identity")
+          ssh -i "$identity" \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile=infra/known_hosts \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" sh -s -- /opt/app/deploy/vm \
+            <scripts/host-drills.sh 2>&1 | tee "$RUNNER_TEMP/host-checks.log"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: log-host-checks
+          path: ${{ runner.temp }}/host-checks.log
+          retention-days: 30
+          if-no-files-found: ignore
+
+  gate:
+    name: Step 5 gate
+    if: always()
+    needs:
+      - container-drills
+      - release-candidate
+      - attestations
+      - host-checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      # A job that died before writing its log leaves no artifact, and the
+      # summary is more useful than this step.
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          path: logs
+          pattern: log-*
+          merge-multiple: true
+
+      # Everything below is written for whoever opens a red run months from now
+      # and has no idea what these drills are: what each one proves, where it
+      # runs, the exact command that reproduces it, and what usually breaks it.
+      - name: Summarize and gate
+        env:
+          CONTAINER_DRILLS: ${{ needs.container-drills.result }}
+          RELEASE_CANDIDATE: ${{ needs.release-candidate.result }}
+          ATTESTATIONS: ${{ needs.attestations.result }}
+          HOST_CHECKS: ${{ needs.host-checks.result }}
+          HOST_REQUESTED: ${{ inputs.host_checks }}
+          DRILLS_ENABLED: ${{ vars.PRODUCTION_DRILLS_ENABLED }}
+        run: |
+          set -euo pipefail
+
+          verdict() {
+            case "$1" in
+              success) echo "PASS" ;;
+              failure) echo "FAIL" ;;
+              cancelled) echo "cancelled" ;;
+              skipped) echo "not run" ;;
+              *) echo "$1" ;;
+            esac
+          }
+
+          blocked=0
+          for result in "$CONTAINER_DRILLS" "$RELEASE_CANDIDATE" "$ATTESTATIONS" "$HOST_CHECKS"; do
+            case "$result" in
+              success | skipped) ;;
+              *) blocked=1 ;;
+            esac
+          done
+          # A skip is not a pass. Step 5 needs every one of these to have run.
+          incomplete=0
+          for result in "$CONTAINER_DRILLS" "$RELEASE_CANDIDATE" "$ATTESTATIONS" "$HOST_CHECKS"; do
+            if [ "$result" != "success" ]; then
+              incomplete=1
+            fi
+          done
+
+          {
+            echo "# Roadmap step 5 — prove production operations with test data"
+            echo ""
+            if [ "$blocked" -eq 1 ]; then
+              echo "**A drill failed.** Step 5 cannot be signed off. Start at the failing job below."
+            elif [ "$incomplete" -eq 1 ]; then
+              echo "**Everything that ran passed, but step 5 is not yet complete.** Some checks did not run; the table says which."
+            else
+              echo "**All four checks passed.** Every step 5 drill is either proven by this run or backed by a current operator attestation."
+            fi
+            echo ""
+
+            echo "| Check | Result | What it proves | Reproduce it |"
+            echo "|---|---|---|---|"
+            printf '| Container drills | %s | Bounded logs, encrypted archives, isolated restore, cutover and rollback, QR reissue and revoke, the incident-release path | `./scripts/drills.sh` |\n' "$(verdict "$CONTAINER_DRILLS")"
+            printf '| Release candidate | %s | The full intentional pass: static checks, unit tests, builds, contracts, Docker E2E, VM smoke | `./scripts/verify.sh --all` |\n' "$(verdict "$RELEASE_CANDIDATE")"
+            printf '| Operator attestations | %s | The five drills a runner must not do are recorded, dated, and under 180 days old | `node scripts/drill-attestations.mjs` |\n' "$(verdict "$ATTESTATIONS")"
+            printf '| Live-host checks | %s | Alerts and the uptime check are live, host readiness and R2 copies verified, logs bounded, retention pruning | see `docs/PRODUCTION_RUNBOOK.md` |\n' "$(verdict "$HOST_CHECKS")"
+            echo ""
+
+            echo "## The six roadmap drills and where each is proven"
+            echo ""
+            echo "| Roadmap bullet | Container drill | Live host | Operator attestation |"
+            echo "|---|---|---|---|"
+            echo "| Alert delivery and bounded logs | \`drills.sh logs\` | alert policies, uptime check, running log limits | \`alert-delivery\` |"
+            echo "| Encrypted R2 upload and retention | \`drills.sh backup\` | \`production-check.sh --check-s3\`, prune horizon | \`r2-upload\` |"
+            echo "| Timed isolated restore | \`drills.sh restore\` | — | \`isolated-restore\` |"
+            echo "| Offline cutover and rollback | \`drills.sh cutover\` | — | \`live-cutover\` |"
+            echo "| QR reissue and revoke | \`drills.sh credentials\` | — | — |"
+            echo "| Local incident-release path | \`drills.sh release\` | — | \`incident-release\` |"
+            echo "| One full \`verify.sh --all\` pass | — | — | — (the release-candidate job is the pass) |"
+            echo ""
+            echo "A dash means a runner cannot prove that half honestly. The identity that"
+            echo "decrypts a backup stays with its custodian and is never present in Actions,"
+            echo "so the live restore and cutover are attestations by design, not omissions."
+            echo ""
+
+            if [ "$CONTAINER_DRILLS" != success ]; then
+              echo "## Container drills — start here"
+              echo ""
+              echo "Reproduce the whole thing with \`./scripts/drills.sh\` (needs Docker and \`age\`),"
+              echo "or one drill at a time: \`./scripts/drills.sh credentials\`."
+              echo "The last \`drill FAILED:\` line in the log names the drill that broke."
+              echo "Locally the harness keeps its workspace under \`work/drills.*\` on failure."
+              echo ""
+              echo "Usual causes, in rough order of likelihood:"
+              echo ""
+              echo "- \`logs\`: a service was added to \`deploy/vm/compose.yaml\` without \`logging: *bounded-logging\`."
+              echo "- \`backup\`: the age recipient or identity handling in \`backend/internal/backup\` changed, or \`backup.sh\` started pruning before a successful upload."
+              echo "- \`restore\`: an archive format change that \`restore-drill.sh\` no longer routes correctly, or a migration the checked-out build cannot apply."
+              echo "- \`cutover\`: the compose service names or data paths in \`docs/backend/LIVE_RESTORE_RUNBOOK.md\` drifted from \`compose.yaml\`."
+              echo "- \`credentials\`: \`authn.IssueCredentialWithToken\` stopped revoking the prior credential and its sessions in the same transaction — the one thing this drill exists to catch."
+              echo "- \`release\`: an operator script lost its executable bit, gained a bash-ism, or stopped validating its inputs before touching production."
+              echo ""
+            fi
+
+            if [ "$RELEASE_CANDIDATE" = failure ]; then
+              echo "## Release candidate — start here"
+              echo ""
+              echo "Reproduce with \`./scripts/verify.sh --all\`. Two gates bite most often:"
+              echo "\`prettier --check .\` covers every \`.md\` and \`.github/workflows/*.yml\`, and"
+              echo "\`scripts/contracts.mjs\` matches literal substrings, so renaming a variable in"
+              echo "a workflow breaks it. \`--all\` adds \`e2e.sh\` and \`vm-smoke.sh\` on top."
+              echo ""
+            fi
+
+            if [ "$ATTESTATIONS" = failure ]; then
+              echo "## Operator attestations — start here"
+              echo ""
+              echo "No code is broken. A drill that only a person can perform has no current"
+              echo "record. Perform it, then add the row to \`docs/backend/PRODUCTION_DRILL_LOG.md\`."
+              echo "The job log lists exactly which rows are missing or stale, and that file"
+              echo "explains what each one must prove."
+              echo ""
+            fi
+
+            if [ "$HOST_CHECKS" = failure ]; then
+              echo "## Live-host checks — start here"
+              echo ""
+              echo "These need the environment from roadmap step 4 to exist and be healthy."
+              echo "Reproduce the main check by hand — connect as \`\$DEPLOY_USER\` with"
+              echo "\`-o UserKnownHostsFile=infra/known_hosts\` (see the operator hints in"
+              echo "\`AGENTS.md\`), then:"
+              echo ""
+              echo '```sh'
+              echo "cd /opt/app/deploy/vm && sudo ./scripts/production-check.sh .env --check-s3"
+              echo '```'
+              echo ""
+              echo "Usual causes: no backup in the last 26 hours (check \`systemctl status"
+              echo "zoomigo-backup.timer\`), the R2 credential in \`/etc/zoomigo/backup-s3.env\`"
+              echo "rotated or lost its 0600 root-owned mode, less than 1 GiB free on the data or"
+              echo "backup directory, a pending reboot, or a stale \`vars.DEPLOY_HOST\` after the"
+              echo "Reserved IP changed."
+              echo ""
+            fi
+
+            if [ "$HOST_CHECKS" = skipped ]; then
+              echo "## Live-host checks did not run"
+              echo ""
+              if [ "$HOST_REQUESTED" != true ]; then
+                echo "They were not requested. Dispatch this workflow again with \`host_checks\` checked."
+              else
+                echo "They were requested but \`vars.PRODUCTION_DRILLS_ENABLED\` is \`${DRILLS_ENABLED:-unset}\`, not \`true\`."
+                echo "It must be a **repository** variable, not an environment one: a job-level \`if\`"
+                echo "is evaluated before the environment resolves."
+              fi
+              echo ""
+            fi
+
+            if [ "$RELEASE_CANDIDATE" = skipped ]; then
+              echo "## The release-candidate pass did not run"
+              echo ""
+              echo "Step 5 asks for one intentional full pass. Dispatch this workflow again with"
+              echo "\`full_verify\` checked."
+              echo ""
+            fi
+
+            for log in logs/*.log; do
+              [ -f "$log" ] || continue
+              name=$(basename "$log" .log)
+              echo "<details><summary>Last 80 lines of $name</summary>"
+              echo ""
+              echo '```'
+              tail -80 "$log"
+              echo '```'
+              echo "</details>"
+              echo ""
+            done
+          } >>"$GITHUB_STEP_SUMMARY"
+
+          if [ "$blocked" -eq 1 ]; then
+            echo "::error::a step 5 drill failed; see the job summary"
+            exit 1
+          fi
+          if [ "$incomplete" -eq 1 ]; then
+            echo "::error::step 5 is not complete; see the job summary for what did not run"
+            exit 1
+          fi

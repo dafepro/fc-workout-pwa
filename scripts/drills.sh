@@ -1,0 +1,528 @@
+#!/bin/sh
+
+# Roadmap step 5 ("Prove production operations with test data") is six drills.
+# This harness runs the half of each one that a container can prove on its own,
+# against the real deploy/vm/compose.yaml stack and the real operator scripts --
+# never against a cloud service. The live-host and operator halves are recorded
+# in docs/backend/PRODUCTION_DRILL_LOG.md and checked by drill-attestations.mjs.
+
+set -eu
+
+SCRIPT_DIRECTORY=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
+REPOSITORY_ROOT=$(CDPATH='' cd -- "$SCRIPT_DIRECTORY/.." && pwd)
+VM_DIRECTORY="$REPOSITORY_ROOT/deploy/vm"
+COMPOSE_FILE="$VM_DIRECTORY/compose.yaml"
+WORK_ROOT="$REPOSITORY_ROOT/work"
+
+DRILL_NAMES="logs backup restore cutover credentials release"
+
+fail() {
+	printf '%s\n' "error: $*" >&2
+	exit 1
+}
+
+usage() {
+	printf '%s\n' "usage: ./scripts/drills.sh [$(printf '%s' "$DRILL_NAMES" | tr ' ' '|')]..." >&2
+	printf '%s\n' "Drills always run in the order above, whatever order they are named in." >&2
+	exit 1
+}
+
+REQUESTED=$*
+for requested_name in ${REQUESTED:-}; do
+	matched=false
+	for known_name in $DRILL_NAMES; do
+		if [ "$requested_name" = "$known_name" ]; then
+			matched=true
+		fi
+	done
+	if [ "$matched" = false ]; then
+		usage
+	fi
+done
+
+wanted() {
+	case "$REQUESTED" in
+		"") return 0 ;;
+	esac
+	for requested_name in $REQUESTED; do
+		if [ "$requested_name" = "$1" ]; then
+			return 0
+		fi
+	done
+	return 1
+}
+
+for command_name in age-keygen curl docker grep head mktemp node od sed tr; do
+	command -v "$command_name" >/dev/null 2>&1 || {
+		printf '%s\n' "error: $command_name is required" >&2
+		if [ "$command_name" = age-keygen ]; then
+			printf '%s\n' "install it with 'brew install age' or 'apt-get install age'" >&2
+		fi
+		exit 1
+	}
+done
+
+# Constants the assertions below refer to by name rather than by literal.
+IDENTITY_NAME=zoomigo-backup-identity.txt
+PLAYER_FIRST_NAME=Zephyrine
+PLAYER_PIN=2468
+ROTATED_PIN=1357
+LOGIN_BASE=https://drills.invalid/login
+RETENTION_DAYS=7
+# The container image runs as this uid, so anything it must read has to be owned
+# by it -- the age identity in particular, which the backup CLI requires to be
+# unreadable by group and others.
+RUNTIME_UID=65532
+
+mkdir -p "$WORK_ROOT"
+DRILL_ROOT=$(mktemp -d "$WORK_ROOT/drills.XXXXXX")
+ENV_FILE="$DRILL_ROOT/drills.env"
+DATA_DIRECTORY="$DRILL_ROOT/data"
+BACKUP_DIRECTORY="$DRILL_ROOT/backups"
+RESTORE_DIRECTORY="$DRILL_ROOT/restore"
+ADMIN_OUTPUT_DIRECTORY="$DRILL_ROOT/admin-output"
+RESPONSE_FILE="$DRILL_ROOT/response.json"
+CURRENT_DRILL=setup
+
+compose() {
+	docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
+}
+
+cleanup() {
+	status=$?
+	if [ "$status" -ne 0 ]; then
+		printf '%s\n' "drill FAILED: $CURRENT_DRILL" >&2
+	fi
+	if [ -f "$ENV_FILE" ]; then
+		compose logs --no-color --tail 60 api caddy >"$DRILL_ROOT/stack.log" 2>&1 || true
+		compose down --volumes --remove-orphans >/dev/null 2>&1 || true
+	fi
+	case "$DRILL_ROOT" in
+		"$WORK_ROOT"/drills.*)
+			if [ "$status" -eq 0 ]; then
+				rm -rf -- "$DRILL_ROOT"
+			else
+				# Everything here is throwaway test data and a throwaway age key,
+				# and it is the only evidence of what the drill actually saw.
+				printf '%s\n' "Kept the failed drill workspace at $DRILL_ROOT" >&2
+			fi
+			;;
+		*) printf '%s\n' "warning: refused to remove unexpected drill directory $DRILL_ROOT" >&2 ;;
+	esac
+	exit "$status"
+}
+trap cleanup EXIT HUP INT TERM
+
+free_port() {
+	node -e 'const server=require("node:net").createServer();server.listen(0,"127.0.0.1",()=>{console.log(server.address().port);server.close()})'
+}
+
+json_value() {
+	printf '%s' "$1" | node -e '
+		let raw = "";
+		process.stdin.on("data", (chunk) => (raw += chunk)).on("end", () => {
+			const lines = raw.trim().split("\n");
+			const value = JSON.parse(lines[lines.length - 1])[process.argv[1]];
+			if (typeof value !== "string" || value === "") {
+				process.exit(1);
+			}
+			process.stdout.write(value);
+		});
+	' "$2" || fail "expected a $2 in: $1"
+}
+
+wait_for_status() {
+	uri=$1
+	expected=$2
+	attempt=1
+	while [ "$attempt" -le 30 ]; do
+		if response=$(curl --fail --silent --show-error --max-time 2 "$uri" 2>/dev/null) &&
+			printf '%s' "$response" | grep -Eq '"status"[[:space:]]*:[[:space:]]*"'"$expected"'"'; then
+			return 0
+		fi
+		attempt=$((attempt + 1))
+		sleep 1
+	done
+	fail "$uri did not report status $expected"
+}
+
+request() {
+	method=$1
+	path=$2
+	bearer=$3
+	body=$4
+	set -- --silent --show-error --max-time 10 \
+		--output "$RESPONSE_FILE" --write-out '%{http_code}' \
+		--request "$method" "http://127.0.0.1:$HTTP_PORT$path"
+	if [ -n "$bearer" ]; then
+		set -- "$@" --header "Authorization: Bearer $bearer"
+	fi
+	if [ -n "$body" ]; then
+		set -- "$@" --header 'Content-Type: application/json' --data "$body"
+	fi
+	LAST_STATUS=$(curl "$@")
+	LAST_BODY=$(cat "$RESPONSE_FILE")
+}
+
+expect_status() {
+	[ "$LAST_STATUS" = "$1" ] || fail "$2 returned HTTP $LAST_STATUS, want $1"
+}
+
+sign_in() {
+	request POST /v1/auth/sessions "" \
+		"$(printf '{"credential":"%s","pin":"%s","rememberDevice":false}' "$1" "$2")"
+}
+
+newest_archive() {
+	name=$(ls -- "$BACKUP_DIRECTORY" | grep -E "^$1-[0-9TZ]+-v1\.tar\.gz\.age$" | sort | tail -n 1)
+	[ -n "$name" ] || fail "no $1 archive exists in $BACKUP_DIRECTORY"
+	printf '%s' "$name"
+}
+
+announce() {
+	CURRENT_DRILL=$1
+	printf '\n%s\n' "== drill $1: $2"
+}
+
+passed() {
+	printf '%s\n' "drill passed: $1"
+}
+
+# --- Shared stack ------------------------------------------------------------
+
+HTTP_PORT=$(free_port)
+HTTPS_PORT=$(free_port)
+[ "$HTTP_PORT" != "$HTTPS_PORT" ] || HTTPS_PORT=$(free_port)
+
+mkdir -p "$DATA_DIRECTORY" "$BACKUP_DIRECTORY" "$RESTORE_DIRECTORY" "$ADMIN_OUTPUT_DIRECTORY"
+chmod 0777 "$DATA_DIRECTORY" "$BACKUP_DIRECTORY" "$RESTORE_DIRECTORY" "$ADMIN_OUTPUT_DIRECTORY"
+
+# A keypair that exists only for this run. The recipient must be a real age
+# public key or create-encrypted rejects it, and the drill has to hold the
+# matching identity to prove the archives can actually be opened again.
+KEYPAIR=$(age-keygen 2>/dev/null)
+BACKUP_RECIPIENT=$(printf '%s\n' "$KEYPAIR" | sed -n 's/^# public key: //p')
+# The backup CLI parses the whole identity file as one key, so the comment lines
+# age-keygen emits alongside the secret key must not reach it.
+DRILL_IDENTITY=$(printf '%s\n' "$KEYPAIR" | sed -n '/^AGE-SECRET-KEY-1/p')
+case "$BACKUP_RECIPIENT" in
+	age1*) ;;
+	*) fail "age-keygen did not produce an age1 recipient" ;;
+esac
+case "$DRILL_IDENTITY" in
+	AGE-SECRET-KEY-1*) ;;
+	*) fail "age-keygen did not produce an AGE-SECRET-KEY-1 identity" ;;
+esac
+
+cat >"$ENV_FILE" <<EOF
+COMPOSE_PROJECT_NAME=zoomigo-drills
+API_IMAGE=zoomigo-api:drills
+APP_VERSION=drills
+BACKUP_AGE_RECIPIENT=$BACKUP_RECIPIENT
+BACKUP_S3_UPLOAD_ENABLED=false
+LOCAL_BACKUP_RETENTION_DAYS=$RETENTION_DAYS
+PRODUCTION_DATA_APPROVED=false
+CADDY_SITE_ADDRESS=http://127.0.0.1
+PWA_ORIGIN=http://localhost:3000
+TEAM_TIME_ZONE=America/Chicago
+DATA_DIR=$DATA_DIRECTORY
+BACKUP_DIR=$BACKUP_DIRECTORY
+RESTORE_DIR=$RESTORE_DIRECTORY
+ADMIN_OUTPUT_DIR=$ADMIN_OUTPUT_DIRECTORY
+HTTP_BIND_ADDRESS=127.0.0.1
+HTTP_PORT=$HTTP_PORT
+HTTPS_BIND_ADDRESS=127.0.0.1
+HTTPS_PORT=$HTTPS_PORT
+EOF
+
+compose config --quiet
+compose build api
+
+# Written through the image's own user so the backup CLI can read it: the file
+# must be mode 0600, which on Linux means it must also be owned by that uid.
+printf '%s\n' "$DRILL_IDENTITY" | docker run --rm --interactive \
+	--user "$RUNTIME_UID:$RUNTIME_UID" \
+	--env IDENTITY_NAME="$IDENTITY_NAME" \
+	--volume "$RESTORE_DIRECTORY:/restore" \
+	--entrypoint sh zoomigo-api:drills \
+	-c 'umask 077; cat >"/restore/$IDENTITY_NAME"'
+
+if ! compose up -d --wait --no-build api caddy; then
+	compose ps --all || true
+	compose logs --no-color --tail 100 api caddy || true
+	exit 1
+fi
+wait_for_status "http://127.0.0.1:$HTTP_PORT/readyz" ready
+
+# Every drill needs one disposable player, and its first name doubles as the
+# marker that must never be readable inside an encrypted archive.
+TEAM_ID=$(json_value "$(compose run --rm --no-TTY admin bootstrap-team \
+	--club-name 'Drill FC' --team-name 'Drill Team' --season-id drills \
+	--time-zone America/Chicago --weekly-goal 3)" teamId)
+PROVISIONED=$(printf '%s\n' "$PLAYER_PIN" | compose run --rm --no-TTY admin provision-player \
+	--team-id "$TEAM_ID" --first-name "$PLAYER_FIRST_NAME" --last-initial Q \
+	--login-url "$LOGIN_BASE" --qr-output /output/drill-player.png --test-only)
+PLAYER_ID=$(json_value "$PROVISIONED" playerId)
+CREDENTIAL=$(printf '%s' "$(json_value "$PROVISIONED" loginUrl)" | sed -n 's/^.*#credential=//p')
+[ -n "$CREDENTIAL" ] || fail "provision-player did not put a credential in the login URL fragment"
+
+SNAPSHOT_NAME=
+EXPORT_NAME=
+SNAPSHOT_RESTORED=
+
+ensure_archives() {
+	if [ -n "$SNAPSHOT_NAME" ]; then
+		return 0
+	fi
+	"$VM_DIRECTORY/scripts/backup.sh" "$ENV_FILE"
+	SNAPSHOT_NAME=$(newest_archive zoomigo-backup)
+	EXPORT_NAME=$(newest_archive zoomigo-export)
+}
+
+ensure_restored() {
+	if [ -n "$SNAPSHOT_RESTORED" ]; then
+		return 0
+	fi
+	ensure_archives
+	SNAPSHOT_RESTORED=$(restore_one "$SNAPSHOT_NAME")
+}
+
+# restore-drill.sh names its target from the current second, so two runs inside
+# the same second would collide on an existing file.
+restore_one() {
+	sleep 1
+	output=$("$VM_DIRECTORY/scripts/restore-drill.sh" "$ENV_FILE" "$1" "$IDENTITY_NAME")
+	printf '%s\n' "$output" >&2
+	restored=$(printf '%s\n' "$output" | sed -n 's|^.*RESTORE_DIR/\(restore-drill-[0-9TZ]*\.db\)\.$|\1|p')
+	[ -n "$restored" ] || fail "restore-drill.sh did not report the isolated database it created"
+	[ -s "$RESTORE_DIRECTORY/$restored" ] || fail "restore-drill.sh reported $restored but it is empty"
+	[ "$(head -c 15 "$RESTORE_DIRECTORY/$restored")" = "SQLite format 3" ] ||
+		fail "$restored is not a SQLite database"
+	printf '%s' "$restored"
+}
+
+# --- Drill: bounded container logging ----------------------------------------
+
+if wanted logs; then
+	announce logs "the running containers really carry the bounded log limits"
+	# contracts.mjs already asserts this for all four services in compose.yaml.
+	# What it cannot see is whether Docker applied them to the live containers,
+	# which is the property that keeps a 512 MiB Droplet from filling its disk.
+	for service in api caddy; do
+		container=$(compose ps --quiet "$service")
+		[ -n "$container" ] || fail "the $service container is not running"
+		applied=$(docker inspect --format \
+			'{{.HostConfig.LogConfig.Type}} {{index .HostConfig.LogConfig.Config "max-size"}} {{index .HostConfig.LogConfig.Config "max-file"}}' \
+			"$container")
+		[ "$applied" = "local 5m 3" ] ||
+			fail "the running $service container logs with '$applied', want 'local 5m 3'"
+	done
+	passed "logs -- api and caddy run with driver local, max-size 5m, max-file 3"
+fi
+
+# --- Drill: encrypted snapshot, logical export, retention interlock ----------
+
+if wanted backup; then
+	announce backup "encrypted archives, at-rest encryption, and the retention interlock"
+	ensure_archives
+
+	# BSD and GNU grep only agree about binary input under the C locale.
+	leaks_marker() {
+		LC_ALL=C grep -a -q -F "$PLAYER_FIRST_NAME" "$1"
+	}
+	# Without this control, "the name is not in the archive" could just mean the
+	# search never worked.
+	leaks_marker "$DATA_DIRECTORY/zoomigo.db" ||
+		fail "the plaintext marker search cannot even find $PLAYER_FIRST_NAME in the live database"
+
+	for archive_name in "$SNAPSHOT_NAME" "$EXPORT_NAME"; do
+		archive_path="$BACKUP_DIRECTORY/$archive_name"
+		[ -s "$archive_path" ] || fail "$archive_name was not created"
+		[ "$(head -c 21 "$archive_path")" = "age-encryption.org/v1" ] ||
+			fail "$archive_name is not an age envelope; it may be plaintext on disk"
+		if leaks_marker "$archive_path"; then
+			fail "$archive_name leaks the plaintext player name $PLAYER_FIRST_NAME"
+		fi
+	done
+
+	# The prune only ever runs after a successful upload. With uploads off there
+	# is exactly one copy of each archive, and it must survive regardless of age.
+	stale_name="zoomigo-backup-20200101T000000Z-v1.tar.gz.age"
+	cp -- "$BACKUP_DIRECTORY/$SNAPSHOT_NAME" "$BACKUP_DIRECTORY/$stale_name"
+	touch -t 202001010000 -- "$BACKUP_DIRECTORY/$stale_name"
+	# backup.sh names archives by the current second and refuses to overwrite one.
+	sleep 1
+	"$VM_DIRECTORY/scripts/backup.sh" "$ENV_FILE" >"$DRILL_ROOT/retention.log"
+	grep -q 'S3 upload is disabled' "$DRILL_ROOT/retention.log" ||
+		fail "backup.sh did not warn that the archive remains on a single host"
+	[ -f "$BACKUP_DIRECTORY/$stale_name" ] ||
+		fail "backup.sh pruned an archive older than $RETENTION_DAYS days that was never uploaded"
+	passed "backup -- both archives are age-encrypted and retention never deletes the only copy"
+fi
+
+# --- Drill: isolated restore of both archive kinds ---------------------------
+
+if wanted restore; then
+	announce restore "restoring a snapshot and importing an export without touching the live database"
+	ensure_archives
+	cp -- "$DATA_DIRECTORY/zoomigo.db" "$DRILL_ROOT/live-before-restore.db"
+
+	started=$(date +%s)
+	ensure_restored
+	imported=$(restore_one "$EXPORT_NAME")
+	elapsed=$(($(date +%s) - started))
+
+	cmp -s "$DRILL_ROOT/live-before-restore.db" "$DATA_DIRECTORY/zoomigo.db" ||
+		fail "the live database changed during an isolated restore"
+	[ "$SNAPSHOT_RESTORED" != "$imported" ] ||
+		fail "the snapshot restore and the export import collided on one filename"
+	printf '%s\n' "Isolated restore and import of both archive kinds took ${elapsed}s."
+	passed "restore -- snapshot restore and export import both verified, live database untouched"
+fi
+
+# --- Drill: offline cutover and rollback rehearsal ---------------------------
+
+if wanted cutover; then
+	announce cutover "the offline cutover and rollback sequence from LIVE_RESTORE_RUNBOOK.md"
+	ensure_restored
+	rollback_database="$DATA_DIRECTORY/zoomigo.pre-restore-drill.db"
+	[ ! -e "$rollback_database" ] || fail "a rollback database already exists: $rollback_database"
+
+	started=$(date +%s)
+	compose stop caddy api
+	if compose ps --status running --services | grep -Fqx api; then
+		fail "the api container is still running after stop"
+	fi
+	mv -- "$DATA_DIRECTORY/zoomigo.db" "$rollback_database"
+	for sidecar in -wal -shm; do
+		if [ -e "$DATA_DIRECTORY/zoomigo.db$sidecar" ]; then
+			mv -- "$DATA_DIRECTORY/zoomigo.db$sidecar" "$rollback_database$sidecar"
+		fi
+	done
+	# The runbook uses "install -o 65532 -g 65532" because it runs as root; a mv
+	# inside one filesystem is the unprivileged equivalent, preserving the owner
+	# and mode the backup container already gave the restored file.
+	mv -- "$RESTORE_DIRECTORY/$SNAPSHOT_RESTORED" "$DATA_DIRECTORY/zoomigo.db"
+	compose up -d --wait --no-build api caddy
+	wait_for_status "http://127.0.0.1:$HTTP_PORT/readyz" ready
+	request GET /v1/me/training-entries "" ""
+	expect_status 401 "the unauthenticated private route after cutover"
+	sign_in "$CREDENTIAL" "$PLAYER_PIN"
+	expect_status 201 "signing in against the restored database"
+	elapsed=$(($(date +%s) - started))
+	printf '%s\n' "Cutover to the restored database took ${elapsed}s."
+
+	compose stop caddy api
+	mv -- "$DATA_DIRECTORY/zoomigo.db" "$RESTORE_DIRECTORY/failed-cutover-drill.db"
+	mv -- "$rollback_database" "$DATA_DIRECTORY/zoomigo.db"
+	for sidecar in -wal -shm; do
+		if [ -e "$rollback_database$sidecar" ]; then
+			mv -- "$rollback_database$sidecar" "$DATA_DIRECTORY/zoomigo.db$sidecar"
+		fi
+	done
+	compose up -d --wait --no-build api caddy
+	wait_for_status "http://127.0.0.1:$HTTP_PORT/readyz" ready
+	request GET /v1/me/training-entries "" ""
+	expect_status 401 "the unauthenticated private route after rollback"
+	sign_in "$CREDENTIAL" "$PLAYER_PIN"
+	expect_status 201 "signing in against the rolled-back database"
+	passed "cutover -- cutover and rollback both served a ready API and a working sign-in"
+fi
+
+# --- Drill: QR credential reissue and revocation -----------------------------
+
+if wanted credentials; then
+	announce credentials "reissuing and revoking a test QR credential kills every prior session"
+	[ -s "$ADMIN_OUTPUT_DIRECTORY/drill-player.png" ] || fail "provision-player wrote no QR image"
+	magic=$(od -A n -N 4 -t x1 "$ADMIN_OUTPUT_DIRECTORY/drill-player.png" | tr -d ' \n')
+	[ "$magic" = 89504e47 ] || fail "the provisioned QR image is not a PNG"
+
+	sign_in "$CREDENTIAL" "$PLAYER_PIN"
+	expect_status 201 "signing in with the provisioned credential"
+	session_token=$(json_value "$LAST_BODY" token)
+	request GET /v1/auth/session "$session_token" ""
+	expect_status 200 "reading the session before reissue"
+	request GET /v1/me/training-entries "$session_token" ""
+	expect_status 200 "reading a private route before reissue"
+
+	# Overwriting the previous QR would destroy the record of what was handed out.
+	if printf '%s\n' "$ROTATED_PIN" | compose run --rm --no-TTY admin rotate-player-login \
+		--player-id "$PLAYER_ID" --login-url "$LOGIN_BASE" \
+		--qr-output /output/drill-player.png >/dev/null 2>&1; then
+		fail "rotate-player-login overwrote an existing QR image"
+	fi
+
+	ROTATED=$(printf '%s\n' "$ROTATED_PIN" | compose run --rm --no-TTY admin rotate-player-login \
+		--player-id "$PLAYER_ID" --login-url "$LOGIN_BASE" --qr-output /output/drill-player-2.png)
+	rotated_credential=$(printf '%s' "$(json_value "$ROTATED" loginUrl)" | sed -n 's/^.*#credential=//p')
+	[ -n "$rotated_credential" ] || fail "rotate-player-login issued no new credential"
+	[ "$rotated_credential" != "$CREDENTIAL" ] || fail "rotate-player-login reissued the same credential"
+
+	request GET /v1/auth/session "$session_token" ""
+	expect_status 401 "the session issued before the reissue"
+	request GET /v1/me/training-entries "$session_token" ""
+	expect_status 401 "a private route with the pre-reissue session"
+	sign_in "$CREDENTIAL" "$PLAYER_PIN"
+	expect_status 401 "signing in with the superseded QR credential"
+
+	sign_in "$rotated_credential" "$ROTATED_PIN"
+	expect_status 201 "signing in with the reissued credential"
+	rotated_token=$(json_value "$LAST_BODY" token)
+	request GET /v1/auth/session "$rotated_token" ""
+	expect_status 200 "reading the session created after the reissue"
+
+	compose run --rm --no-TTY admin revoke-player-login --player-id "$PLAYER_ID" >/dev/null
+	request GET /v1/auth/session "$rotated_token" ""
+	expect_status 401 "the session that existed at revocation"
+	sign_in "$rotated_credential" "$ROTATED_PIN"
+	expect_status 401 "signing in with a revoked credential"
+	passed "credentials -- reissue and revoke both invalidated every earlier session and QR"
+fi
+
+# --- Drill: the local incident-release path ----------------------------------
+
+if wanted release; then
+	announce release "the release path runs from a laptop and fails closed without its inputs"
+	for command_name in pnpm ssh; do
+		command -v "$command_name" >/dev/null 2>&1 ||
+			fail "$command_name is required to exercise the incident-release path"
+	done
+
+	# verify.sh runs no shellcheck, so this is the only syntax gate these
+	# operator scripts get, and they are the ones nobody runs until an incident.
+	script_count=0
+	for script_path in "$REPOSITORY_ROOT"/scripts/*.sh "$REPOSITORY_ROOT"/deploy/release/*.sh \
+		"$REPOSITORY_ROOT"/deploy/vm/scripts/*.sh "$REPOSITORY_ROOT"/infra/digitalocean/*.sh; do
+		[ -f "$script_path" ] || continue
+		sh -n "$script_path" || fail "$script_path is not valid POSIX shell"
+		[ -x "$script_path" ] || fail "$script_path is not executable"
+		script_count=$((script_count + 1))
+	done
+	[ "$script_count" -ge 15 ] || fail "only $script_count operator scripts were checked; expected more"
+
+	cd "$REPOSITORY_ROOT"
+	sha=0000000000000000000000000000000000000000
+	assert_refused() {
+		expected=$1
+		shift
+		if output=$("$@" 2>&1); then
+			fail "release.sh was accepted when it should have refused: $expected"
+		fi
+		printf '%s' "$output" | grep -q "$expected" ||
+			fail "release.sh refused without mentioning '$expected': $output"
+	}
+	assert_refused 'usage: release.sh RELEASE_SHA' ./deploy/release/release.sh
+	assert_refused 'PUBLISH_API_IMAGE must be true or false' \
+		env PUBLISH_API_IMAGE=yes ./deploy/release/release.sh "$sha"
+	assert_refused 'DEPLOY_HOST is required' \
+		env DEPLOY_HOST= ./deploy/release/release.sh "$sha"
+	assert_refused 'ZOOMIGO_API_BASE_URL must use HTTPS' \
+		env DEPLOY_HOST=host.invalid DEPLOY_USER=zoomigo \
+		ZOOMIGO_API_BASE_URL=http://api.invalid ZOOMIGO_DEPLOY_SSH_KEY=key \
+		BACKUP_S3_ENDPOINT=https://s3.invalid BACKUP_S3_BUCKET=bucket \
+		BACKUP_S3_ACCESS_KEY_ID=id BACKUP_S3_SECRET_ACCESS_KEY=secret \
+		./deploy/release/release.sh "$sha"
+	passed "release -- $script_count operator scripts parse and release.sh refuses incomplete input"
+fi
+
+printf '\n%s\n' "ZoomiGo production operations drills passed."
