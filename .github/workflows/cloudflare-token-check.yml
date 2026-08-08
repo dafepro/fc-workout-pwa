@@ -51,7 +51,9 @@ jobs:
           }
 
           : >"$RUNNER_TEMP/rows.md"
-          probe "Token is valid"      "/user/tokens/verify"                              "-"
+          probe "Token verify (user)" "/user/tokens/verify"                              "n/a for account-owned tokens"
+          probe "Token verify (acct)" "/accounts/${CF_ACCOUNT}/tokens/verify"            "-"
+          probe "Account ID resolves" "/accounts/${CF_ACCOUNT}"                          "Account / Account Settings / Read"
           probe "DNS read (control)"  "/zones/${CF_ZONE}/dns_records?per_page=1"          "Zone / DNS / Edit"
           probe "Workers scripts"     "/accounts/${CF_ACCOUNT}/workers/scripts"           "Account / Workers Scripts / Edit"
           probe "Worker service"      "/accounts/${CF_ACCOUNT}/workers/services/zoomigo-training" "Account / Workers Scripts / Edit"
