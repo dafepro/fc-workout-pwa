@@ -19,6 +19,25 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.ShutdownTimeout != 10*time.Second {
 		t.Fatalf("ShutdownTimeout = %s", cfg.ShutdownTimeout)
 	}
+	if cfg.LoginAttemptsPerMinute != defaultLoginAttemptsPerMinute {
+		t.Fatalf("LoginAttemptsPerMinute = %d, want %d", cfg.LoginAttemptsPerMinute, defaultLoginAttemptsPerMinute)
+	}
+	if cfg.GlobalLoginAttemptsPerMinute != defaultGlobalLoginAttemptsPerMinute {
+		t.Fatalf("GlobalLoginAttemptsPerMinute = %d, want %d", cfg.GlobalLoginAttemptsPerMinute, defaultGlobalLoginAttemptsPerMinute)
+	}
+}
+
+// Zero disables throttling for local work, so only negatives and non-numbers are
+// rejected.
+func TestLoadAcceptsDisabledLoginThrottle(t *testing.T) {
+	values := map[string]string{"LOGIN_ATTEMPTS_PER_MINUTE": "0", "GLOBAL_LOGIN_ATTEMPTS_PER_MINUTE": "0"}
+	cfg, err := Load(func(key string) string { return values[key] })
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.LoginAttemptsPerMinute != 0 || cfg.GlobalLoginAttemptsPerMinute != 0 {
+		t.Fatalf("login throttle was not disabled: %+v", cfg)
+	}
 }
 
 func TestLoadRejectsInvalidValues(t *testing.T) {
@@ -29,6 +48,9 @@ func TestLoadRejectsInvalidValues(t *testing.T) {
 		{"TEAM_TIME_ZONE": "Not/AZone"},
 		{"ENABLE_E2E_FIXTURES": "sometimes"},
 		{"ENABLE_E2E_FIXTURES": "true", "APP_ENV": "production", "E2E_RESET_KEY": "not-empty"},
+		{"LOGIN_ATTEMPTS_PER_MINUTE": "-1"},
+		{"LOGIN_ATTEMPTS_PER_MINUTE": "plenty"},
+		{"GLOBAL_LOGIN_ATTEMPTS_PER_MINUTE": "-1"},
 	}
 	for _, values := range tests {
 		_, err := Load(func(key string) string { return values[key] })
