@@ -16,8 +16,9 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
 - Implemented baseline: a unique reissuable 256-bit QR credential is combined with exactly four PIN digits and verified with Argon2id; only hashes/verifiers are stored. Trivial repeated/sequential PINs are rejected, malformed or unknown QR values avoid expensive password work, and only one Argon2 login runs at a time on the small VM.
 - Implemented baseline: five failures trigger a 15-minute lock, later failure windows double, and the tenth failure revokes the credential and all associated sessions.
 - Implemented baseline: normal sessions last 12 hours and explicitly remembered devices last 30 days. Reissuing or revoking a QR invalidates prior sessions.
+- Implemented baseline: sign-in attempts are throttled per client address and in total before any credential work, defaulting to 30 per address and 120 overall per minute. The per-address key is `CF-Connecting-IP`, trusted only from a loopback or private peer because the origin firewall admits Cloudflare ranges only. Throttled attempts are logged with the client address, which the privacy review should confirm is acceptable retention for an abuse signal.
 - Parent recovery flow.
-- Decide the approved physical/guardian delivery process for QR codes and PINs before real accounts are created.
+- Decide the approved physical/guardian delivery process for QR codes and PINs before real accounts are created. This also decides who may know a player's PIN: today an operator types it during `provision-player`, so the operator knows it. The alternatives are a system-generated PIN revealed once or a player-chosen PIN on first sign-in. The printable credential hand-out cannot be designed until this is settled.
 
 ## Goals and workload
 
