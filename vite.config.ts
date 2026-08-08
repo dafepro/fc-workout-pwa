@@ -11,15 +11,16 @@ const { d1, r2 } = hostingConfig;
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 
-const localBindingConfig = {
+const bindingConfig = (serving: boolean) => ({
   main: "./worker/index.ts",
   compatibility_flags: ["nodejs_compat"],
   vars: {
     ZOOMIGO_API_BASE_URL: process.env.ZOOMIGO_API_BASE_URL ?? "",
-    // The console gate fails closed, so local development needs some phrase.
-    // Production's lives in a Worker secret and never appears here.
-    STAFF_CONSOLE_GATE_KEY:
-      process.env.STAFF_CONSOLE_GATE_KEY ?? "local-staff-gate",
+    // The console gate fails closed, so `pnpm dev` needs some phrase to let the
+    // browser tests through. A built release deliberately carries none: the
+    // production phrase is a Worker secret, Cloudflare refuses to bind one name
+    // as both a var and a secret, and a var here would be the value that wins.
+    ...(serving ? { STAFF_CONSOLE_GATE_KEY: "local-staff-gate" } : {}),
   },
   d1_databases: d1
     ? [
@@ -38,9 +39,9 @@ const localBindingConfig = {
         },
       ]
     : [],
-};
+});
 
-export default defineConfig(async () => {
+export default defineConfig(async ({ command }) => {
   // Keep Wrangler and Miniflare state project-local. These are non-secret tool
   // settings; application environment belongs in ignored `.env*` files.
   process.env.WRANGLER_WRITE_LOGS ??= "false";
@@ -59,7 +60,7 @@ export default defineConfig(async () => {
       sites(),
       cloudflare({
         viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
-        config: localBindingConfig,
+        config: bindingConfig(command === "serve"),
       }),
     ],
   };
