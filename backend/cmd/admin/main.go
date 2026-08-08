@@ -59,6 +59,14 @@ func run(arguments []string, stdout io.Writer) error {
 		return listTeams(ctx, arguments[1:], stdout)
 	case "audit":
 		return auditEvents(ctx, arguments[1:], stdout)
+	case "create-operator":
+		return createOperator(ctx, arguments[1:], stdout)
+	case "create-coach":
+		return createCoach(ctx, arguments[1:], stdout)
+	case "reset-staff-credential":
+		return resetStaffCredential(ctx, arguments[1:], stdout)
+	case "list-staff":
+		return listStaff(ctx, arguments[1:], stdout)
 	default:
 		return usageError()
 	}
@@ -611,5 +619,5 @@ func requireProvisioningApproval(testOnly bool) error {
 	return errors.New("real player provisioning is locked; complete the production approval checklist and set PRODUCTION_DATA_APPROVED=true, or use --test-only for a disposable test identity")
 }
 func usageError() error {
-	return errors.New("usage: zoomigo-admin bootstrap-team|provision-player|rotate-player-login|revoke-player-login|list-players|credential-status|deactivate-player|unlock-player-login|list-teams|audit [flags]")
+	return errors.New("usage: zoomigo-admin bootstrap-team|provision-player|rotate-player-login|revoke-player-login|list-players|credential-status|deactivate-player|unlock-player-login|list-teams|audit|create-operator|create-coach|reset-staff-credential|list-staff [flags]")
 }
