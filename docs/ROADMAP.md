@@ -12,14 +12,16 @@ The PWA has connected QR+PIN authentication, private training-entry persistence,
 session detail/deletion, contextual reactions, and a private reaction inbox. The
 Go/SQLite service, encrypted backup path, single-VM deployment, Cloudflare Worker
 frontend, GitHub release workflow, and DigitalOcean/Cloudflare OpenTofu are
-implemented. Infrastructure has not yet been created from this repository.
+implemented. The test-only cloud environment has been created from this
+repository and serves the app end to end.
 
 Team, Leaders, Home, and Record Training now use safe authoritative projections
 in connected mode, and daily backups produce both an encrypted SQLite snapshot
-and a versioned logical export. The next priority is the test-only cloud
-environment, which is operator-assisted. The provisioned-player save regression
-is fixed; the next non-operator product slice is the Record Training input pass
-in `UX_GOALS.md`.
+and a versioned logical export. Production operations are codified and rehearsed;
+only operator-performed confirmations remain. The provisioned-player save
+regression is fixed. The next implementation priority is credential
+administration and abuse protection, with the Record Training input pass in
+`UX_GOALS.md` queued behind it.
 
 ### Provisioned-player training-entry regression
 
@@ -97,25 +99,17 @@ These tasks can proceed before approval for real youth data.
 
 ### 4. Plan and create the test-only cloud environment
 
-Status: **Operator-assisted; ready**
+Status: **Done**
 
-- On macOS, complete ignored `terraform.tfvars` and export the DigitalOcean
-  token without printing it.
-- Run `./infra/digitalocean/provision.sh plan`, review the saved plan, then run
-  the explicit apply command.
-- Verify the SSH host fingerprint through the DigitalOcean console and run
-  `./infra/digitalocean/adopt-host.sh`.
-- Publish the first immutable image and release the Worker/API using only a
-  disposable `--test-only` player.
-- Confirm `zoomigo.quicktrack.cc`, `api.quicktrack.cc/readyz`, login, private
-  routes, and logout.
-
-Codex can guide and diagnose every step, but cloud creation, token availability,
-plan approval, and host-fingerprint comparison remain operator actions.
+The test-only cloud environment has been provisioned from this repository. The
+Droplet and Cloudflare records exist, the host key was adopted after console
+fingerprint comparison, the first immutable image was published, and
+`zoomigo.quicktrack.cc`, `api.quicktrack.cc/readyz`, login, private routes, and
+logout were confirmed with a disposable `--test-only` player.
 
 ### 5. Prove production operations with test data
 
-Status: **Codified; container drills pass, live-host checks blocked on item 4**
+Status: **Mostly done; remaining manual steps deferred to the operator**
 
 - Verify alert delivery and bounded logs on the 512 MiB Droplet.
 - Prove the first encrypted R2 upload and retention behavior.
@@ -131,9 +125,12 @@ Dispatch it manually; it never deploys or mutates production.
 Docker does, and `scripts/host-drills.sh` adds the read-only live-host checks.
 Its summary explains each failure and how to reproduce it locally.
 
-A green run means the mechanics hold. It does not mean step 5 is signed off:
-an alert reaching an inbox, the timed restore and cutover on real archives, and
-one release driven from an operator's own machine still have to be done by hand.
+A green run means the mechanics hold. What remains is deliberately manual and is
+deferred to the operator, to be done directly rather than through this repository:
+confirming an alert actually reaches an inbox, performing and timing the restore
+and live cutover against real archives, and driving one release from the
+operator's own machine. Do not treat step 5 as signed off until those are done,
+but no further implementation work is queued behind them.
 
 ### 6. Complete production owner approvals
 
