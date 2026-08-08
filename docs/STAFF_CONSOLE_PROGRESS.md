@@ -168,3 +168,26 @@ with phases 0 and 2 is what turned a caught bug into an outage.
   deliberately wrong staff password. A 503 there means the key never reached
   the container, which would leave the console unusable while every other check
   looked healthy.
+
+### 2026-08-08 — the gate key was bound twice
+
+The re-release applied migration 8 to the production database cleanly, and then
+failed on the last step of all: `Binding name 'STAFF_CONSOLE_GATE_KEY' already
+in use [code: 10053]`.
+
+The build config carried the gate key as a plain Worker `var`, seeded from the
+environment so `pnpm dev` would have a phrase. The release step exports the real
+secret into that same environment, so the build baked the production phrase into
+`vars`, and `wrangler secret put` then refused to bind a name that was already
+taken.
+
+Two problems, not one. The obvious one is the failed release. The quieter one is
+that a var wins over a secret, so had the names not collided the console would
+have been gated by a value stored in plaintext on the Worker rather than as a
+secret. The build now emits that var only when Vite is serving; a released build
+carries none, and the secret is the only source. Absent both, the gate fails
+closed, which is the direction to fail in.
+
+The phrase did reach Cloudflare as a plaintext var during the failed run.
+Removing the var takes it back out. It is worth rotating if the Cloudflare
+dashboard's audience is wider than the console's.
