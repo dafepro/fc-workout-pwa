@@ -1,12 +1,12 @@
-# Backup and restore operations (format v1 + age envelope)
+# Backup and restore operations (snapshot v1, logical export v1, age envelope)
 
 ## Delivered boundary
 
-The `zoomigo-backup` Go command creates, verifies, age-encrypts, and restores a migration-aware flat-file archive. Cryptography and restore behavior are local and require no cloud service. The VM upload script sends only the encrypted envelope to a private Cloudflare R2 bucket.
+The `zoomigo-backup` Go command creates, verifies, age-encrypts, and restores a migration-aware SQLite snapshot archive, and produces and imports a versioned logical export. Cryptography and restore behavior are local and require no cloud service. The VM upload script sends only the encrypted envelope to a private Cloudflare R2 bucket.
 
 The command deliberately has no HTTP endpoint. Backup and restore paths are supplied only by an authorized host operator or scheduler, never by a player-facing request.
 
-## Archive format
+## SQLite snapshot format
 
 The verified payload is one gzip-compressed tar archive:
 
@@ -109,9 +109,81 @@ The Docker E2E suite:
 
 Focused real-SQLite tests additionally prove that an older snapshot receives current forward migrations and that an existing target cannot be overwritten.
 
+## Logical export (format v1)
+
+The SQLite snapshot above is a migration-aware _same-engine_ backup: restoring it requires SQLite and a schema whose migration ledger is a superset of the snapshot's. The logical export is the durable companion format. It carries the data, not the database file, so it survives a schema change that the migration runner cannot express and an eventual engine change.
+
+Both formats are produced by the same daily job and encrypted to the same age recipient. Keep both: the snapshot is the fast recovery path, the export is the durable one.
+
+### Export format
+
+```text
+zoomigo-export-20260808T190000Z-v1.tar.gz
+├── manifest.json
+├── tables/
+│   ├── clubs.jsonl
+│   ├── teams.jsonl
+│   └── ... one file per table, in foreign-key dependency order
+└── SHA256SUMS
+```
+
+Each `tables/<name>.jsonl` holds one JSON object per row, keys in the manifest's declared field order. Values encode as: text and dates as JSON strings, integers and reals as JSON numbers, `BLOB` as base64, SQL `NULL` as `null`. Rows are ordered by the table's primary key, so two exports of identical data are byte-identical archives.
+
+`manifest.json` records the export format version, the archive kind, the UTC creation timestamp, the application version, source provenance (engine, SQLite version, applied migrations), and for every table its path, field list, ordering, row count, SHA-256 hash, and byte size.
+
+The format version describes the file layout and value encoding only. It is **not** the schema version, and the source provenance is never read during an import — that is what keeps an export independent of the layout of the database that produced it.
+
+### Schema evolution rules
+
+The exported field set is owned by `backend/internal/backup/logical_schema.go`, not by the live SQLite schema. On import:
+
+- a field the export omits, because it did not exist yet, takes the default declared for it in the current build; a field with no declared default is a hard error rather than an invented value;
+- a table the export omits, because it did not exist yet, is left empty after forward migration;
+- a table or field the export contains that the current build does not know is rejected, because it can only mean the export came from a newer build and importing it would silently drop data.
+
+Adding a nullable column therefore needs only a new `nullable(...)` field. Adding a `NOT NULL` column needs a field with an explicit default. Neither changes the export format version.
+
+### Export, verify, and import
+
+```text
+zoomigo-backup export-encrypted \
+  --database-url file:/data/zoomigo.db \
+  --output /backups/zoomigo-export-20260808T190000Z-v1.tar.gz.age \
+  --recipient age1... \
+  --app-version <deployed-version>
+
+zoomigo-backup verify-export-encrypted \
+  --archive /backups/zoomigo-export-20260808T190000Z-v1.tar.gz.age \
+  --identity /restore/zoomigo-backup-identity.txt
+
+zoomigo-backup import-encrypted \
+  --archive /backups/zoomigo-export-20260808T190000Z-v1.tar.gz.age \
+  --identity /restore/zoomigo-backup-identity.txt \
+  --target /restore/zoomigo-imported.db
+```
+
+`export`, `verify-export`, and `import` are the plaintext equivalents, for local tests and format tooling.
+
+The export runs inside one deferred read transaction, so all thirteen tables come from a single consistent point in time while the API keeps serving. The source database is not modified. Publication mirrors the snapshot path: write to a temporary archive, re-extract and verify it, then rename.
+
+Verification is offline and needs no database. It checks the envelope shape, `SHA256SUMS`, the manifest against its checksum, each table file against its manifest digest and byte size, the declared dependency ordering, the declared row count, and that every row carries exactly the fields the manifest declares.
+
+Import never touches the live database. It creates a fresh database beside the target, migrates it to the current schema, loads every table in dependency order inside one transaction, reruns SQLite integrity and foreign-key checks, then checkpoints and atomically renames it into place. The target must not already exist. Rows a migration seeds — currently `activity_definitions` — are cleared before loading so the export stays authoritative rather than merging with the current seed.
+
+### What the export contains
+
+The export carries every table, including `auth_credentials` and `auth_sessions`. Those hold credential and session **hashes**, never plaintext QR secrets, PINs, or session tokens, but they are still private data. Treat a logical export exactly like a SQLite snapshot: it leaves the host only inside the age envelope.
+
+### Proven by
+
+- A focused real-SQLite round trip seeds every table, including nullable columns, `BLOB` columns and columns added by later migrations, exports, imports, and compares all thirteen tables row for row.
+- A second test exports from a two-migration schema and imports it into the current five-migration schema, asserting the later-added columns take their declared defaults and the later-added tables arrive empty.
+- Further tests cover byte-identical repeat exports, rejection of a tampered table without creating a target, rejection of an export from a newer build, refusal to overwrite an existing database, the age envelope, and that the two archive formats reject each other.
+- The Docker E2E suite exports from the live API's WAL database, imports it, starts a second API on the result, and compares the owner's private projections.
+
 ## Production operation and remaining approval
 
-The scheduled VM job creates one encrypted archive each day and uploads only that `.age` file to private S3-compatible storage through `rclone`. Cloudflare R2 is the first provider and the initial bucket is `zoomigo-backups`, but the runtime contract uses generic `BACKUP_S3_*` settings. After a successful upload it prunes local encrypted archives older than `LOCAL_BACKUP_RETENTION_DAYS` (seven by default); a failed upload never triggers pruning. Cloud credentials are external to Compose in root-readable `/etc/zoomigo/backup-s3.env`; default test commands never contact object storage. Cloudflare's current Standard free tier includes 10 GB-month, one million Class A operations, and ten million Class B operations per month, but usage and billing still need monitoring.
+The scheduled VM job creates one encrypted SQLite snapshot and one encrypted logical export each day and uploads only those `.age` files to private S3-compatible storage through `rclone`. Cloudflare R2 is the first provider and the initial bucket is `zoomigo-backups`, but the runtime contract uses generic `BACKUP_S3_*` settings. After both uploads succeed it prunes local encrypted archives of either kind older than `LOCAL_BACKUP_RETENTION_DAYS` (seven by default); a failed upload never triggers pruning. Cloud credentials are external to Compose in root-readable `/etc/zoomigo/backup-s3.env`; default test commands never contact object storage. Cloudflare's current Standard free tier includes 10 GB-month, one million Class A operations, and ten million Class B operations per month, but usage and billing still need monitoring.
 
 Before production persistence, approve and record:
 
@@ -122,5 +194,3 @@ Before production persistence, approve and record:
 - quarterly isolated drills and a drill before destructive migrations.
 
 See `PRODUCTION_APPROVAL_CHECKLIST.md` for recommended initial values and the exact owner decisions still required.
-
-Before replacing SQLite with Postgres, add a stable versioned logical export such as JSON Lines. The raw SQLite snapshot is a migration-aware same-engine backup, not a permanent cross-engine interchange format.
