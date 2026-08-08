@@ -1,4 +1,4 @@
-name: Verify and release ZoomiGo
+name: Verify and publish ZoomiGo
 
 on:
   pull_request:
@@ -9,11 +9,6 @@ on:
     inputs:
       run_e2e:
         description: Run the periodic Docker E2E and VM smoke suites
-        required: false
-        type: boolean
-        default: false
-      deploy:
-        description: Release to production (VM + Cloudflare Worker). Leave unchecked to only verify and publish.
         required: false
         type: boolean
         default: false
@@ -94,95 +89,3 @@ jobs:
           cache-to: type=gha,mode=max
           provenance: mode=max
           sbom: true
-
-  # Releases are manual. Pushing to main verifies and publishes an image but
-  # never deploys; shipping requires explicitly dispatching this workflow with
-  # deploy: true. PRODUCTION_DEPLOY_ENABLED is therefore a kill switch rather
-  # than an auto-deploy enabler -- set it to anything but "true" to block every
-  # release without editing this workflow.
-  deploy:
-    name: Deploy VM and Cloudflare Worker
-    if: >-
-      github.event_name == 'workflow_dispatch'
-      && inputs.deploy
-      && github.ref == 'refs/heads/main'
-      && vars.PRODUCTION_DEPLOY_ENABLED == 'true'
-    needs: publish
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    environment: production
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.17.1
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.20.0
-          cache: pnpm
-
-      - name: Release the verified revision
-        env:
-          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
-          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
-          ZOOMIGO_API_BASE_URL: ${{ vars.ZOOMIGO_API_BASE_URL }}
-          ZOOMIGO_DEPLOY_SSH_KEY: ${{ secrets.ZOOMIGO_DEPLOY_SSH_KEY }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          BACKUP_S3_ENDPOINT: ${{ vars.BACKUP_S3_ENDPOINT }}
-          BACKUP_S3_BUCKET: ${{ vars.BACKUP_S3_BUCKET }}
-          BACKUP_S3_PROVIDER: ${{ vars.BACKUP_S3_PROVIDER }}
-          BACKUP_S3_REGION: ${{ vars.BACKUP_S3_REGION }}
-          BACKUP_S3_ACCESS_KEY_ID: ${{ secrets.BACKUP_S3_ACCESS_KEY_ID }}
-          BACKUP_S3_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_S3_SECRET_ACCESS_KEY }}
-        # pipefail so tee cannot mask a failing release; the log is captured so
-        # the next step can report what the host said without anyone reading the
-        # raw job output or opening an SSH session.
-        run: |
-          set -o pipefail
-          ./deploy/release/release.sh "${{ github.sha }}" 2>&1 | tee "$RUNNER_TEMP/release.log"
-
-      # production-check.sh already runs on the VM as the last thing deploy-vm.sh
-      # does, and a failure there fails the release. This only surfaces its
-      # verdict in the run summary.
-      - name: Summarize how the host took it
-        if: always()
-        run: |
-          log="$RUNNER_TEMP/release.log"
-          {
-            if [ "${{ job.status }}" = "success" ]; then
-              echo "### Release succeeded"
-            else
-              echo "### Release FAILED"
-            fi
-            echo ""
-            echo "| | |"
-            echo "|---|---|"
-            echo "| Revision | \`${{ github.sha }}\` |"
-            echo "| API image | \`ghcr.io/${{ github.repository }}/api:sha-${{ github.sha }}\` |"
-            echo "| VM host | \`${{ vars.DEPLOY_HOST }}\` as \`${{ vars.DEPLOY_USER }}\` |"
-            echo "| API | $(jq -r '"https://" + .apiHostname + "/readyz"' deploy/production.json) |"
-            echo "| PWA | $(jq -r '"https://" + .pwaHostname' deploy/production.json) |"
-            echo ""
-            if [ -f "$log" ]; then
-              echo "#### Host readiness checks"
-              echo ""
-              echo '```'
-              grep -E '^(Prepared|Installed|Created, verified|Pruned|Warning:|error:|Production readiness|Deployed)' "$log" \
-                || echo "(no recognized status lines; see the full log below)"
-              echo '```'
-              echo ""
-              echo "<details><summary>Last 60 lines of the release log</summary>"
-              echo ""
-              echo '```'
-              tail -60 "$log"
-              echo '```'
-              echo "</details>"
-            else
-              echo "The release step produced no log; it failed before running."
-            fi
-          } >>"$GITHUB_STEP_SUMMARY"
