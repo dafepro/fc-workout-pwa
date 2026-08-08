@@ -1,7 +1,8 @@
 import { expect, test } from "@playwright/test";
 
-// The gate key the local Worker binding falls back to when the environment does
-// not set one; see `localBindingConfig` in vite.config.ts.
+// The gate phrase the Worker binding carries while Vite is serving, which is
+// what this suite runs against; see `bindingConfig` in vite.config.ts. A built
+// release carries no such variable and reads the phrase from a secret.
 const localGatePhrase = "local-staff-gate";
 
 // REQ-402: the gate is refused before the application renders anything, which
