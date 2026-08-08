@@ -202,13 +202,19 @@ Confirm both production URLs load and complete only test-identity QR+PIN flows.
 
 ## 5. Enable normal CI/CD
 
-Set repository/environment variable `PRODUCTION_DEPLOY_ENABLED=true` only
-after the first manual release and checks succeed.
+Set repository variable `PRODUCTION_DEPLOY_ENABLED=true`. It must be
+repository-scoped, not environment-scoped: a job-level `if` is evaluated before
+the environment is resolved, so an environment variable is not visible there.
 
-Thereafter a push to `main` runs static checks, targeted tests, and builds, then
-publishes an immutable API image, backs up and deploys the VM, then deploys the
-Worker — reading every credential straight from the `production` environment's
-secrets/variables. The same `release.sh` remains the incident fallback when
+Releases are manual. A push to `main` runs static checks, targeted tests, and
+builds, then publishes an immutable API image — and stops. It never deploys.
+
+To ship, dispatch "Verify and release ZoomiGo" with `deploy: true`. That job
+backs up and deploys the VM, then deploys the Worker, reading every credential
+straight from the `production` environment's secrets/variables, and is gated by
+that environment's reviewer. `PRODUCTION_DEPLOY_ENABLED` is a kill switch on top
+of all that: set it to anything but `true` to block every release without
+editing the workflow. The same `release.sh` remains the incident fallback when
 GitHub Actions is impaired. Trigger the workflow manually with `run_e2e`
 enabled for an intentional full Docker validation pass.
 
