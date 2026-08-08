@@ -40,6 +40,13 @@ export const copy = {
       "Drained",
     ],
   },
+  log: {
+    pickerTitle: "Choose your workout",
+    pickerHint: "Pick one for this session.",
+    pickerDone: "Done",
+    overMax: (max: number, unit: string) => `Max is ${max} ${unit}`,
+    underMin: (min: number, unit: string) => `Min is ${min} ${unit}`,
+  },
   allEffortCounts: "Every player’s effort counts.",
   recoveryNote:
     "Feeling worn out? Hydrate, take it easy, and check with a parent or coach.",
