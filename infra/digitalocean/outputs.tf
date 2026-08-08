@@ -22,3 +22,8 @@ output "pwa_hostname" {
   description = "Worker custom domain created by the first application release."
   value       = var.pwa_hostname
 }
+
+output "staff_console_url" {
+  description = "Gated entry point for the coach and operator console."
+  value       = "https://${var.pwa_hostname}/staff"
+}
