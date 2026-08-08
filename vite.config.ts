@@ -11,16 +11,11 @@ const { d1, r2 } = hostingConfig;
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 
-const bindingConfig = (serving: boolean) => ({
+const bindingConfig = () => ({
   main: "./worker/index.ts",
   compatibility_flags: ["nodejs_compat"],
   vars: {
     ZOOMIGO_API_BASE_URL: process.env.ZOOMIGO_API_BASE_URL ?? "",
-    // The console gate fails closed, so `pnpm dev` needs some phrase to let the
-    // browser tests through. A built release deliberately carries none: the
-    // production phrase is a Worker secret, Cloudflare refuses to bind one name
-    // as both a var and a secret, and a var here would be the value that wins.
-    ...(serving ? { STAFF_CONSOLE_GATE_KEY: "local-staff-gate" } : {}),
   },
   d1_databases: d1
     ? [
@@ -60,7 +55,7 @@ export default defineConfig(async ({ command }) => {
       sites(),
       cloudflare({
         viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
-        config: bindingConfig(command === "serve"),
+        config: bindingConfig(),
       }),
     ],
   };

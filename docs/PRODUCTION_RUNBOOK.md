@@ -115,18 +115,25 @@ local file. Set the remaining secrets (`CLOUDFLARE_API_TOKEN`,
 --body VALUE`. Require the desired human reviewer on the `production`
 environment now, before the first plan.
 
-The staff console needs three more. `STAFF_SECRET_KEY` encrypts stored second
+The staff console needs a few more. `STAFF_SECRET_KEY` encrypts stored second
 factors; rotating it makes every enrolled authenticator unreadable, so every
-staff account has to re-enrol. `STAFF_CONSOLE_GATE_KEY` is the interim access
-gate's passphrase, in force only until Cloudflare Access is applied.
+staff account has to re-enrol. `STAFF_CONSOLE_EMAIL_ADDRESSES` is the Access
+allowlist: Access admits by exact address and mails the one-time PIN there, so a
+wrong value locks the console rather than merely looking untidy.
 
 ```sh
 gh secret set STAFF_SECRET_KEY --env production --body "$(head -c 32 /dev/urandom | base64)"
-gh secret set STAFF_CONSOLE_GATE_KEY --env production --body 'three-easy-words'
 gh variable set PLAYER_LOGIN_URL --env production --body 'https://PWA_HOSTNAME/login'
 gh variable set STAFF_SETUP_URL --env production --body 'https://PWA_HOSTNAME/staff/setup'
 gh variable set STAFF_CONSOLE_EMAIL_ADDRESSES --env production --body '["operator@example.com"]'
 ```
+
+Cloudflare Zero Trust has to be enabled on the account by hand, once, before any
+Access resource applies: there is no API for that first onboarding step. Do it
+in the dashboard before the first `infra.yml` run. Doing so also creates the
+Zero Trust organization, which is why `STAFF_CONSOLE_TEAM_DOMAIN` is left unset
+— `access.tf` only creates an organization when that variable is non-empty, and
+a second one is refused.
 
 ## 2. Plan and apply infrastructure
 
