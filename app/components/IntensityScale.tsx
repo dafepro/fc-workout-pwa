@@ -2,94 +2,50 @@
 
 import { copy } from "../content/copy";
 
-const effortLabels = [
-  "Super easy",
-  "Easy",
-  "Moderate",
-  "Getting hard",
-  "Hard",
-  "Very hard",
-  "Max effort",
-];
-const exhaustionLabels = [
-  "Not tired",
-  "Barely tired",
-  "A little tired",
-  "Tired",
-  "Very tired",
-  "Really tired",
-  "Drained",
-];
-const faces = ["😊", "🙂", "😐", "😓", "😣", "😫", "🥵"];
+const scaleAnchors = {
+  effort: ["👌", "💪", "💥"],
+  exhaustion: ["🙂", "😓", "🥵"],
+} as const;
 
 function IntensityChoice({
   name,
   title,
-  controlLabel,
   value,
   labels,
+  anchors,
   onChange,
 }: {
-  name: string;
+  name: "effort" | "exhaustion";
   title: string;
-  controlLabel: string;
   value: number;
-  labels: string[];
+  labels: readonly string[];
+  anchors: readonly string[];
   onChange: (value: number) => void;
 }) {
-  const selectedLabel = labels[value - 1];
-
   return (
-    <fieldset className="intensity-choice">
+    <fieldset className={`intensity-choice intensity-choice--${name}`}>
       <legend>{title}</legend>
-      <div className="intensity-mobile">
-        <button
-          type="button"
-          aria-label={`Lower ${controlLabel}`}
-          disabled={value === 1}
-          onClick={() => onChange(Math.max(1, value - 1))}
+      <div className="intensity-slider">
+        <input
+          type="range"
+          name={name}
+          min="1"
+          max="7"
+          step="1"
+          value={value}
+          aria-label={title}
+          aria-valuetext={`${labels[value - 1]}, ${value} of 7`}
+          onChange={(event) => onChange(Number(event.target.value))}
+        />
+        <div
+          className="intensity-slider__anchors"
+          data-testid={`${name}-anchors`}
+          aria-hidden="true"
         >
-          −
-        </button>
-        <output
-          aria-live="polite"
-          aria-label={`${selectedLabel}, ${value} of 7`}
-        >
-          <span aria-hidden="true">{faces[value - 1]}</span>
-          <small aria-hidden="true">
-            {value} · {selectedLabel}
-          </small>
-        </output>
-        <button
-          type="button"
-          aria-label={`Raise ${controlLabel}`}
-          disabled={value === 7}
-          onClick={() => onChange(Math.min(7, value + 1))}
-        >
-          +
-        </button>
-      </div>
-      <div className="intensity-desktop" role="radiogroup" aria-label={title}>
-        {labels.map((label, index) => {
-          const level = index + 1;
-          return (
-            <label
-              key={label}
-              className={value === level ? "is-selected" : ""}
-              title={label}
-            >
-              <input
-                type="radio"
-                name={name}
-                value={level}
-                checked={value === level}
-                onChange={() => onChange(level)}
-                aria-label={`${label}, ${level} of 7`}
-              />
-              <span aria-hidden="true">{faces[index]}</span>
-            </label>
-          );
-        })}
+          {anchors.map((anchor) => (
+            <span key={anchor}>{anchor}</span>
+          ))}
+        </div>
       </div>
     </fieldset>
   );
@@ -111,17 +67,17 @@ export function IntensityControls({
       <IntensityChoice
         name="effort"
         title={copy.feelingQuestions.effort}
-        controlLabel="effort"
         value={effort}
-        labels={effortLabels}
+        labels={copy.intensityValues.effort}
+        anchors={scaleAnchors.effort}
         onChange={onEffortChange}
       />
       <IntensityChoice
         name="exhaustion"
         title={copy.feelingQuestions.exhaustion}
-        controlLabel="tiredness"
         value={exhaustion}
-        labels={exhaustionLabels}
+        labels={copy.intensityValues.exhaustion}
+        anchors={scaleAnchors.exhaustion}
         onChange={onExhaustionChange}
       />
     </section>

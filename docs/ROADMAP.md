@@ -49,8 +49,13 @@ Status: **Implemented; targeted Docker and 320-pixel browser verification comple
 - Server-owned activity definitions now include entry defaults. Distance Run
   defaults to one mile and uses quarter-mile steps; every activity supports
   direct numeric entry plus bounded minus/plus controls.
-- Feeling controls use a clearer face sequence, visible selected values and
-  labels on phones, and 44-pixel adjustment targets.
+- Feeling controls are always-stacked, touch-friendly seven-step sliders. Three
+  emoji anchors and distinct color gradients carry the visible meaning without
+  numeric or descriptive value text; accessible value text remains available
+  to assistive technology.
+- Session history and detail views preserve each saved effort and tiredness
+  step as a marker on a compact read-only gradient instead of mapping all seven
+  values to separate faces.
 - Connected browser coverage exercises the assigned path, picker, alternate
   instructions, fixed-control absence, and save flow at 320 CSS pixels.
 
