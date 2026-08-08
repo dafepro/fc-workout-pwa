@@ -94,6 +94,9 @@ Status: **Implemented; targeted Docker and 320-pixel browser verification comple
 - Each sender can cheer a recipient five times across all contexts in a rolling
   30-minute window. Successful sends use a simple confirmation with no quota
   count; another attempt before the window advances gets an inline error only.
+- Me projects the rolling last seven days of private cheers, initially showing
+  20 and progressively loading older cards with “More cheers.” The display
+  window is separate from reaction retention and never deletes a cheer.
 - The shared challenge uses a small completion pop and playful cheer affordances;
   reduced-motion preferences receive the same state without animation.
 

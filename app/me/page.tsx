@@ -25,7 +25,10 @@ export default function MePage() {
     refreshEntries,
     reactionBadges,
     reactionInboxStatus,
+    reactionInboxHasMore,
+    reactionInboxMoreStatus,
     refreshReactionBadges,
+    loadMoreReactionBadges,
     dashboard,
   } = useTraining();
   const [kitColor, setKitColor] = useState(basePlayer.avatarColor);
@@ -91,17 +94,17 @@ export default function MePage() {
       >
         <div className="section-heading">
           <div>
-            <p className="eyebrow">From your teammates</p>
-            <h2 id="reaction-inbox-title">Cheers for you</h2>
+            <p className="eyebrow">{copy.cheers.inboxEyebrow}</p>
+            <h2 id="reaction-inbox-title">{copy.cheers.inboxTitle}</h2>
           </div>
-          <span className="pill pill--lime">Private</span>
+          <span className="pill pill--lime">{copy.cheers.inboxPrivate}</span>
         </div>
         {reactionInboxStatus === "loading" ? (
-          <p className="reaction-inbox__state">Loading your cheers…</p>
+          <p className="reaction-inbox__state">{copy.cheers.inboxLoading}</p>
         ) : null}
         {reactionInboxStatus === "error" ? (
           <div className="reaction-inbox__state">
-            <p>Your cheers could not be loaded.</p>
+            <p>{copy.cheers.inboxFailed}</p>
             <button
               type="button"
               className="button button--outline"
@@ -112,9 +115,7 @@ export default function MePage() {
           </div>
         ) : null}
         {reactionInboxStatus === "ready" && reactionBadges.length === 0 ? (
-          <p className="reaction-inbox__state">
-            Teammate cheers will appear here.
-          </p>
+          <p className="reaction-inbox__state">{copy.cheers.inboxEmpty}</p>
         ) : null}
         {reactionBadges.length > 0 ? (
           <ul className="reaction-badge-list">
@@ -135,6 +136,24 @@ export default function MePage() {
               </li>
             ))}
           </ul>
+        ) : null}
+        {reactionInboxMoreStatus === "error" ? (
+          <p className="reaction-inbox__more-error" role="alert">
+            {copy.cheers.moreFailed}
+          </p>
+        ) : null}
+        {reactionInboxHasMore ? (
+          <button
+            type="button"
+            className="reaction-inbox__more"
+            disabled={reactionInboxMoreStatus === "loading"}
+            onClick={() => void loadMoreReactionBadges()}
+          >
+            <span aria-hidden="true">✨</span>
+            {reactionInboxMoreStatus === "loading"
+              ? copy.cheers.loadingMore
+              : copy.cheers.more}
+          </button>
         ) : null}
       </section>
       <section className="profile-grid">

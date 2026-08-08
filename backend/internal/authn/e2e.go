@@ -24,6 +24,15 @@ func NewE2EFixtures() E2EFixtures {
 		"e2e-player-liam": {
 			AccountID: "account-liam", Role: domain.RolePlayer, PlayerID: "player-liam", ClubID: "club-zoomigo",
 		},
+		"e2e-player-noah": {
+			AccountID: "account-noah", Role: domain.RolePlayer, PlayerID: "player-noah", ClubID: "club-zoomigo",
+		},
+		"e2e-player-zoe": {
+			AccountID: "account-zoe", Role: domain.RolePlayer, PlayerID: "player-zoe", ClubID: "club-zoomigo",
+		},
+		"e2e-player-jayden": {
+			AccountID: "account-jayden", Role: domain.RolePlayer, PlayerID: "player-jayden", ClubID: "club-zoomigo",
+		},
 		"e2e-coach-hill": {
 			AccountID: "account-coach-hill", Role: domain.RoleCoach, ClubID: "club-zoomigo", AssignedTeamIDs: []string{"team-hill-striders"},
 		},

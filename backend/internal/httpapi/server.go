@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -62,7 +63,7 @@ type Repository interface {
 	GetTrainingEntry(context.Context, string) (store.TrainingEntry, error)
 	DeleteTrainingEntry(context.Context, string, time.Time) (bool, error)
 	CreateReaction(context.Context, store.CreateReactionInput) (store.CreateReactionResult, error)
-	ListReactionBadges(context.Context, string, int) ([]store.ReactionBadge, error)
+	ListReactionBadges(context.Context, store.ListReactionBadgesInput) ([]store.ReactionBadge, error)
 	TeamActivity(context.Context, domain.Actor, string, time.Time) (store.TeamActivityProjection, error)
 	Leaderboard(context.Context, domain.Actor, string, domain.LeaderboardPeriod, domain.LeaderboardMetric, time.Time) (store.LeaderboardProjection, error)
 	TrainingDashboard(context.Context, domain.Actor, string, time.Time) (store.TrainingDashboardProjection, error)
@@ -427,15 +428,82 @@ func (service *service) listReactionBadges(w http.ResponseWriter, r *http.Reques
 		writeError(w, r, http.StatusServiceUnavailable, "not_ready", "The service is not ready.")
 		return
 	}
-	badges, err := service.store.ListReactionBadges(r.Context(), actor.PlayerID, 20)
+	limit := 20
+	if raw := r.URL.Query().Get("limit"); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil || parsed < 1 || parsed > 50 {
+			writeError(w, r, http.StatusBadRequest, "invalid_limit", "Limit must be from 1 through 50.")
+			return
+		}
+		limit = parsed
+	}
+	beforeCreatedAt, beforeID, err := decodeReactionBadgeCursor(r.URL.Query().Get("cursor"))
+	if err != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid_cursor", "That cheer page is unavailable.")
+		return
+	}
+	badges, err := service.store.ListReactionBadges(r.Context(), store.ListReactionBadgesInput{
+		RecipientPlayerID: actor.PlayerID,
+		Since:             service.now().UTC().Add(-7 * 24 * time.Hour),
+		Limit:             limit + 1,
+		BeforeCreatedAt:   beforeCreatedAt,
+		BeforeID:          beforeID,
+	})
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")
 		return
 	}
+	var nextCursor *string
+	if len(badges) > limit {
+		badges = badges[:limit]
+		encoded, err := encodeReactionBadgeCursor(badges[len(badges)-1])
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")
+			return
+		}
+		nextCursor = &encoded
+	}
 	writeJSON(w, http.StatusOK, struct {
 		Items      []store.ReactionBadge `json:"items"`
 		NextCursor *string               `json:"nextCursor"`
-	}{Items: badges})
+	}{Items: badges, NextCursor: nextCursor})
+}
+
+type reactionBadgeCursor struct {
+	CreatedAt string `json:"createdAt"`
+	ID        string `json:"id"`
+}
+
+func encodeReactionBadgeCursor(badge store.ReactionBadge) (string, error) {
+	value, err := json.Marshal(reactionBadgeCursor{CreatedAt: badge.CreatedAt, ID: badge.ID})
+	if err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(value), nil
+}
+
+func decodeReactionBadgeCursor(raw string) (string, string, error) {
+	if raw == "" {
+		return "", "", nil
+	}
+	if len(raw) > 512 {
+		return "", "", errors.New("reaction cursor is too long")
+	}
+	value, err := base64.RawURLEncoding.DecodeString(raw)
+	if err != nil {
+		return "", "", err
+	}
+	var cursor reactionBadgeCursor
+	if err := json.Unmarshal(value, &cursor); err != nil {
+		return "", "", err
+	}
+	if cursor.ID == "" {
+		return "", "", errors.New("reaction cursor has no id")
+	}
+	if _, err := time.Parse(time.RFC3339Nano, cursor.CreatedAt); err != nil {
+		return "", "", err
+	}
+	return cursor.CreatedAt, cursor.ID, nil
 }
 
 func (service *service) resetE2EFixtures(w http.ResponseWriter, r *http.Request) {

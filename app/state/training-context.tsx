@@ -30,6 +30,8 @@ interface TrainingState {
   reactions: Reaction[];
   reactionBadges: ReactionBadge[];
   reactionInboxStatus: "loading" | "ready" | "error";
+  reactionInboxHasMore: boolean;
+  reactionInboxMoreStatus: "idle" | "loading" | "error";
   dashboard: TrainingDashboard | null;
   dashboardStatus: "loading" | "ready" | "error";
   addEntry: (entry: TrainingEntryInput) => Promise<TrainingEntry>;
@@ -42,6 +44,7 @@ interface TrainingState {
     context: ReactionContext,
   ) => Promise<SendReactionResult>;
   refreshReactionBadges: () => Promise<void>;
+  loadMoreReactionBadges: () => Promise<void>;
   refreshDashboard: () => Promise<void>;
 }
 
@@ -67,6 +70,12 @@ export function TrainingProvider({
   const [reactionInboxStatus, setReactionInboxStatus] = useState<
     "loading" | "ready" | "error"
   >("loading");
+  const [reactionBadgeCursor, setReactionBadgeCursor] = useState<string | null>(
+    null,
+  );
+  const [reactionInboxMoreStatus, setReactionInboxMoreStatus] = useState<
+    "idle" | "loading" | "error"
+  >("idle");
   const [dashboard, setDashboard] = useState<TrainingDashboard | null>(null);
   const [dashboardStatus, setDashboardStatus] = useState<
     "loading" | "ready" | "error"
@@ -99,12 +108,34 @@ export function TrainingProvider({
 
   const refreshReactionBadges = useCallback(async () => {
     try {
-      setReactionBadges(await reactionGateway.listReceived());
+      const page = await reactionGateway.listReceived();
+      setReactionBadges(page.items);
+      setReactionBadgeCursor(page.nextCursor);
+      setReactionInboxMoreStatus("idle");
       setReactionInboxStatus("ready");
     } catch {
       setReactionInboxStatus("error");
     }
   }, [reactionGateway]);
+
+  const loadMoreReactionBadges = useCallback(async () => {
+    if (!reactionBadgeCursor || reactionInboxMoreStatus === "loading") return;
+    setReactionInboxMoreStatus("loading");
+    try {
+      const page = await reactionGateway.listReceived(reactionBadgeCursor);
+      setReactionBadges((current) => {
+        const existingIDs = new Set(current.map((badge) => badge.id));
+        return [
+          ...current,
+          ...page.items.filter((badge) => !existingIDs.has(badge.id)),
+        ];
+      });
+      setReactionBadgeCursor(page.nextCursor);
+      setReactionInboxMoreStatus("idle");
+    } catch {
+      setReactionInboxMoreStatus("error");
+    }
+  }, [reactionBadgeCursor, reactionGateway, reactionInboxMoreStatus]);
 
   const addEntry = useCallback(
     async (input: TrainingEntryInput) => {
@@ -171,9 +202,10 @@ export function TrainingProvider({
   useEffect(() => {
     let active = true;
     void reactionGateway.listReceived().then(
-      (badges) => {
+      (page) => {
         if (!active) return;
-        setReactionBadges(badges);
+        setReactionBadges(page.items);
+        setReactionBadgeCursor(page.nextCursor);
         setReactionInboxStatus("ready");
       },
       () => {
@@ -227,6 +259,8 @@ export function TrainingProvider({
       reactions,
       reactionBadges,
       reactionInboxStatus,
+      reactionInboxHasMore: reactionBadgeCursor !== null,
+      reactionInboxMoreStatus,
       dashboard,
       dashboardStatus,
       addEntry,
@@ -235,6 +269,7 @@ export function TrainingProvider({
       refreshEntries,
       sendReaction,
       refreshReactionBadges,
+      loadMoreReactionBadges,
       refreshDashboard,
     }),
     [
@@ -247,10 +282,13 @@ export function TrainingProvider({
       entriesStatus,
       getEntry,
       reactionBadges,
+      reactionBadgeCursor,
       reactionInboxStatus,
+      reactionInboxMoreStatus,
       reactions,
       refreshEntries,
       refreshReactionBadges,
+      loadMoreReactionBadges,
       refreshDashboard,
       sendReaction,
     ],

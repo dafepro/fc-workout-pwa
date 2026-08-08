@@ -207,6 +207,11 @@ export interface ReactionBadge {
   readAt: string | null;
 }
 
+export interface ReactionBadgePage {
+  items: ReactionBadge[];
+  nextCursor: string | null;
+}
+
 export interface SendReactionResult {
   id: string;
   remainingForRecipientWindow: number;

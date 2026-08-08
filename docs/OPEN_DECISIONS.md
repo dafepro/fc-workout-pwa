@@ -105,6 +105,9 @@ to resolve, not the implementing agent's.
 - Implemented limit: five reactions from one sender to one recipient in a
   rolling 30-minute window, across all contexts. Successful UI confirmations do
   not expose a remaining count; the next attempt shows a private inline error.
+- Implemented Me projection: cheers from the rolling last seven days are shown
+  newest first, 20 at a time behind an opaque “More cheers” cursor. This display
+  window does not delete reactions or define their storage retention.
 - Whether reaction totals are visible.
 - Whether a private recipient badge may mention an exact approved leaderboard placement.
 

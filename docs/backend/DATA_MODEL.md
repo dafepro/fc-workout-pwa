@@ -44,6 +44,12 @@ The server retains `team_day` as a useful team-local projection, but the cheer l
 
 The supporting indexes are not themselves sufficient to enforce a maximum count. SQLite writes use a transaction mode that prevents concurrent writers from both observing count 4. Postgres will use an advisory or row lock around the sender-recipient pair.
 
+The private Me inbox is a projection over stored reactions rather than a
+retention rule. It selects the recipient's non-deleted reactions from the
+rolling last seven days and pages them newest-first with a `(created_at, id)`
+keyset, 20 by default. Reactions outside that window remain stored until the
+separate youth-data retention policy is decided.
+
 ## Context vocabulary
 
 Allowed reaction types:

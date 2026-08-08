@@ -48,6 +48,14 @@ type ReactionBadge struct {
 	ReadAt       *string                `json:"readAt"`
 }
 
+type ListReactionBadgesInput struct {
+	RecipientPlayerID string
+	Since             time.Time
+	Limit             int
+	BeforeCreatedAt   string
+	BeforeID          string
+}
+
 type BadgeSender struct {
 	ID          string `json:"id"`
 	DisplayName string `json:"displayName"`
@@ -209,11 +217,11 @@ func findIdempotentReaction(ctx context.Context, connection *sql.Conn, input Cre
 	return CreateReactionResult{ID: id, RemainingForRecipientWindow: remaining}, true, nil
 }
 
-func (store *Store) ListReactionBadges(ctx context.Context, recipientPlayerID string, limit int) ([]ReactionBadge, error) {
-	if limit < 1 || limit > 50 {
-		limit = 20
+func (store *Store) ListReactionBadges(ctx context.Context, input ListReactionBadgesInput) ([]ReactionBadge, error) {
+	if input.Limit < 1 || input.Limit > 51 {
+		input.Limit = 20
 	}
-	rows, err := store.db.QueryContext(ctx, `
+	query := `
 		SELECT r.id, r.reaction_type, r.context_type, r.team_id, r.context_period,
 		       r.context_metric, r.context_assignment_id, d.name, r.created_at, r.read_at,
 		       p.id, p.first_name, p.last_initial
@@ -222,8 +230,18 @@ func (store *Store) ListReactionBadges(ctx context.Context, recipientPlayerID st
 		LEFT JOIN assignments a ON a.id = r.context_assignment_id
 		LEFT JOIN activity_definitions d ON d.id = a.activity_definition_id
 		WHERE r.recipient_player_id = ? AND r.deleted_at IS NULL
-		ORDER BY r.created_at DESC, r.id DESC
-		LIMIT ?`, recipientPlayerID, limit)
+		  AND julianday(r.created_at) >= julianday(?)`
+	arguments := []any{input.RecipientPlayerID, input.Since.UTC().Format(time.RFC3339Nano)}
+	if input.BeforeCreatedAt != "" && input.BeforeID != "" {
+		query += ` AND (
+			julianday(r.created_at) < julianday(?)
+			OR (julianday(r.created_at) = julianday(?) AND r.id < ?)
+		)`
+		arguments = append(arguments, input.BeforeCreatedAt, input.BeforeCreatedAt, input.BeforeID)
+	}
+	query += ` ORDER BY julianday(r.created_at) DESC, r.id DESC LIMIT ?`
+	arguments = append(arguments, input.Limit)
+	rows, err := store.db.QueryContext(ctx, query, arguments...)
 	if err != nil {
 		return nil, fmt.Errorf("list reaction badges: %w", err)
 	}

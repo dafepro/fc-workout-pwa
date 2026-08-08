@@ -340,6 +340,15 @@ positive bands as safer alternatives to a complete rank order.
 
 ### P3 — Make Me playful and useful
 
+Status: First cheer-inbox slice implemented and targeted-Docker-verified
+2026-08-08.
+
+The private inbox now keeps the newest cheers calm and scannable: it shows the
+rolling last seven days, renders 20 cards first, and uses a lightly animated
+“More cheers” control for older cards in that window. Reduced-motion users get
+the same progressive disclosure without the sparkle motion. This is a display
+projection only; stored reactions do not expire after seven days.
+
 Persist approved avatar configuration, rename the invitation to “Choose your
 look,” and decide the smallest fun option set that does not depend on unapproved
 mascot art. Give Home and Me distinct session-history roles. Replace placeholders
