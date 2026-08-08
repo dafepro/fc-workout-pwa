@@ -211,6 +211,51 @@ test("received contextual reactions appear privately on Me", async ({
   ).toBeVisible();
 });
 
+test("Me shows twenty recent cheers before playfully loading more", async ({
+  page,
+}) => {
+  const api = await request.newContext({ baseURL: apiBaseURL });
+  const senders = [
+    "e2e-player-ava",
+    "e2e-player-liam",
+    "e2e-player-noah",
+    "e2e-player-zoe",
+    "e2e-player-jayden",
+  ];
+  for (let index = 0; index < 21; index += 1) {
+    const response = await api.post("/v1/reactions", {
+      headers: {
+        Authorization: `Bearer ${senders[Math.floor(index / 5)]}`,
+        "Idempotency-Key": `browser-paged-cheer-${index}`,
+      },
+      data: {
+        recipientPlayerId: "player-mason",
+        reactionType: "clap",
+        context: {
+          type: "team_progress",
+          teamId: "team-hill-striders",
+          period: "weekly",
+        },
+      },
+    });
+    expect(response.status()).toBe(201);
+  }
+  await api.dispose();
+
+  await page.setViewportSize({ width: 320, height: 700 });
+  await openReadyPage(page, "/me");
+
+  const cheers = page.locator(".reaction-badge-list__item");
+  await expect(page.getByText(/Last 7 days/)).toBeVisible();
+  await expect(cheers).toHaveCount(20);
+  const more = page.getByRole("button", { name: /More cheers/ });
+  await expect(more).toBeVisible();
+  await more.click();
+
+  await expect(cheers).toHaveCount(21);
+  await expect(more).toHaveCount(0);
+});
+
 function challengeEntry() {
   return {
     teamId: "team-hill-striders",

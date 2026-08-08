@@ -30,6 +30,25 @@ describe("connected reaction gateway", () => {
       "player_opaque_123",
     );
   });
+
+  it("carries the opaque cursor between twenty-item inbox pages", async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      Response.json({
+        items: [],
+        nextCursor: "opaque-next-page",
+      }),
+    );
+    vi.stubGlobal("fetch", fetch);
+
+    const page = await createReactionGateway(true).listReceived(
+      "opaque-current-page",
+    );
+
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/zoomigo/v1/me/reaction-badges?limit=20&cursor=opaque-current-page",
+    );
+    expect(page).toEqual({ items: [], nextCursor: "opaque-next-page" });
+  });
 });
 
 describe("local reaction gateway", () => {

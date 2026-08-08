@@ -2473,6 +2473,47 @@ h2 {
   font-size: 0.78rem;
   line-height: 1.45;
 }
+.reaction-inbox__more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  min-height: 2.8rem;
+  margin-top: 0.75rem;
+  border: 1px solid #bfb5ff;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ffffff, #eeeaff);
+  color: #4935b4;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 850;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+.reaction-inbox__more:hover,
+.reaction-inbox__more:focus-visible {
+  box-shadow: 0 0.4rem 1rem rgb(78 57 177 / 14%);
+  transform: translateY(-2px);
+}
+.reaction-inbox__more:active {
+  transform: translateY(0) scale(0.98);
+}
+.reaction-inbox__more:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+.reaction-inbox__more span {
+  animation: more-cheers-sparkle 1.4s ease-in-out infinite;
+}
+.reaction-inbox__more-error {
+  margin: 0.7rem 0 0;
+  color: #9b342f;
+  font-size: 0.76rem;
+  text-align: center;
+}
 
 @media (max-width: 430px) {
   .page {
@@ -2630,9 +2671,16 @@ h2 {
   }
 }
 
+@keyframes more-cheers-sparkle {
+  50% {
+    transform: rotate(12deg) scale(1.14);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .challenge-participant__check,
-  .reaction-sent-status {
+  .reaction-sent-status,
+  .reaction-inbox__more span {
     animation: none;
   }
   .challenge-participants button:hover,

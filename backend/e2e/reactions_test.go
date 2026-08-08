@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -180,6 +181,60 @@ func TestReactionRejectsMissingAuthAndPlayerAuthoredFields(t *testing.T) {
 	})
 	assertStatus(t, unsafe, http.StatusBadRequest)
 	_ = unsafe.Body.Close()
+}
+
+func TestReactionInboxPagesTheLastSevenDaysTwentyAtATime(t *testing.T) {
+	api := newAPIClient(t)
+	api.reset(t)
+	senders := []string{
+		avaToken,
+		liamToken,
+		"e2e-player-noah",
+		"e2e-player-zoe",
+		"e2e-player-jayden",
+	}
+	for index := 0; index < 21; index++ {
+		response := api.do(t, http.MethodPost, "/v1/reactions", senders[index/5], fmt.Sprintf("paged-reaction-%02d", index), map[string]any{
+			"recipientPlayerId": "player-mason",
+			"reactionType":      "clap",
+			"context": map[string]any{
+				"type":   "team_progress",
+				"teamId": "team-hill-striders",
+				"period": "weekly",
+			},
+		})
+		assertStatus(t, response, http.StatusCreated)
+		_ = response.Body.Close()
+	}
+
+	first := api.do(t, http.MethodGet, "/v1/me/reaction-badges?limit=20", masonToken, "", nil)
+	assertStatus(t, first, http.StatusOK)
+	var firstPage struct {
+		Items      []store.ReactionBadge `json:"items"`
+		NextCursor *string               `json:"nextCursor"`
+	}
+	decodeJSON(t, first, &firstPage)
+	if len(firstPage.Items) != 20 || firstPage.NextCursor == nil {
+		t.Fatalf("first page count=%d cursor=%v, want 20 and a cursor", len(firstPage.Items), firstPage.NextCursor)
+	}
+
+	second := api.do(t, http.MethodGet, "/v1/me/reaction-badges?limit=20&cursor="+url.QueryEscape(*firstPage.NextCursor), masonToken, "", nil)
+	assertStatus(t, second, http.StatusOK)
+	var secondPage struct {
+		Items      []store.ReactionBadge `json:"items"`
+		NextCursor *string               `json:"nextCursor"`
+	}
+	decodeJSON(t, second, &secondPage)
+	if len(secondPage.Items) != 1 || secondPage.NextCursor != nil {
+		t.Fatalf("second page count=%d cursor=%v, want 1 and no cursor", len(secondPage.Items), secondPage.NextCursor)
+	}
+	if secondPage.Items[0].ID == firstPage.Items[len(firstPage.Items)-1].ID {
+		t.Fatal("keyset page repeated its boundary reaction")
+	}
+
+	invalid := api.do(t, http.MethodGet, "/v1/me/reaction-badges?cursor=not-a-cursor", masonToken, "", nil)
+	assertStatus(t, invalid, http.StatusBadRequest)
+	_ = invalid.Body.Close()
 }
 
 func TestChallengeReactionRequiresCompletionAndBuildsPrivateSafeContext(t *testing.T) {
