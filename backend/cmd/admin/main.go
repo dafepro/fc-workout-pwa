@@ -53,6 +53,8 @@ func run(arguments []string, stdout io.Writer) error {
 		return credentialStatus(ctx, arguments[1:], stdout)
 	case "deactivate-player":
 		return deactivatePlayer(ctx, arguments[1:], stdout)
+	case "audit":
+		return auditEvents(ctx, arguments[1:], stdout)
 	default:
 		return usageError()
 	}
@@ -338,6 +340,76 @@ func credentialStatus(ctx context.Context, arguments []string, stdout io.Writer)
 	})
 }
 
+type auditEvent struct {
+	OccurredAt   string `json:"occurredAt"`
+	EventType    string `json:"eventType"`
+	DetailCode   string `json:"detailCode"`
+	PlayerID     string `json:"playerId"`
+	CredentialID string `json:"credentialId"`
+	SessionID    string `json:"sessionId"`
+}
+
+// The identifiers here are opaque row keys, never the QR token, PIN, or session
+// token, none of which the database stores in recoverable form.
+func auditEvents(ctx context.Context, arguments []string, stdout io.Writer) error {
+	flags := flag.NewFlagSet("audit", flag.ContinueOnError)
+	databaseURL := flags.String("database-url", envOr("DATABASE_URL", "file:data/zoomigo.db"), "")
+	playerID := flags.String("player-id", "", "restrict the trail to one player")
+	since := flags.String("since", "", "only events at or after this RFC3339 time")
+	limit := flags.Int("limit", 100, "maximum events to return, newest first")
+	if err := flags.Parse(arguments); err != nil {
+		return err
+	}
+	if *limit < 1 {
+		return errors.New("limit must be at least 1")
+	}
+	if *since != "" {
+		if _, err := time.Parse(time.RFC3339, *since); err != nil {
+			return errors.New("since must be an RFC3339 time")
+		}
+	}
+	db, err := open(ctx, *databaseURL)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	query := `SELECT e.occurred_at, e.event_type, e.detail_code, a.player_id, e.credential_id, e.session_id
+		FROM auth_audit_events e
+		JOIN accounts a ON a.id = e.account_id
+		WHERE 1 = 1`
+	parameters := []any{}
+	if *playerID != "" {
+		query += ` AND a.player_id = ?`
+		parameters = append(parameters, *playerID)
+	}
+	if *since != "" {
+		query += ` AND e.occurred_at >= ?`
+		parameters = append(parameters, *since)
+	}
+	query += ` ORDER BY e.occurred_at DESC, e.id DESC LIMIT ?`
+	parameters = append(parameters, *limit)
+	rows, err := db.QueryContext(ctx, query, parameters...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	events := []auditEvent{}
+	for rows.Next() {
+		var event auditEvent
+		var detail, player, credential, session sql.NullString
+		if err = rows.Scan(&event.OccurredAt, &event.EventType, &detail, &player, &credential, &session); err != nil {
+			return err
+		}
+		event.DetailCode, event.PlayerID = detail.String, player.String
+		event.CredentialID, event.SessionID = credential.String, session.String
+		events = append(events, event)
+	}
+	if err = rows.Err(); err != nil {
+		return err
+	}
+	return json.NewEncoder(stdout).Encode(map[string]any{"events": events})
+}
+
 func credentialState(credentialID, lockedUntil sql.NullString, now time.Time) string {
 	if !credentialID.Valid {
 		return "none"
@@ -461,5 +533,5 @@ func requireProvisioningApproval(testOnly bool) error {
 	return errors.New("real player provisioning is locked; complete the production approval checklist and set PRODUCTION_DATA_APPROVED=true, or use --test-only for a disposable test identity")
 }
 func usageError() error {
-	return errors.New("usage: zoomigo-admin bootstrap-team|provision-player|rotate-player-login|revoke-player-login|list-players|credential-status|deactivate-player [flags]")
+	return errors.New("usage: zoomigo-admin bootstrap-team|provision-player|rotate-player-login|revoke-player-login|list-players|credential-status|deactivate-player|audit [flags]")
 }
