@@ -1,9 +1,8 @@
 "use client";
 
-import { staffCopy } from "./copy";
+import { consoleCopy, staffCopy } from "./copy";
 
 import { useState } from "react";
-import { copy } from "../../content/copy";
 
 /** Destructive console actions ask in the page rather than in a browser dialog,
  * so the question can say exactly what the action does and undoes. */
@@ -62,7 +61,7 @@ export function ConfirmButton({
           disabled={busy}
           onClick={() => setAsking(false)}
         >
-          {copy.console.cancel}
+          {consoleCopy.cancel}
         </button>
       </div>
     </div>

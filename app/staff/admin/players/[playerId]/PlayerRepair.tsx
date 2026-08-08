@@ -1,7 +1,7 @@
 "use client";
 
+import { consoleCopy } from "../../../console/copy";
 import { FormEvent, useState } from "react";
-import { copy } from "../../../../content/copy";
 import { routes } from "../../../../content/routes";
 import { ConsoleChrome, ConsoleNotice } from "../../../console/ConsoleChrome";
 import { ConfirmButton } from "../../../console/ConfirmButton";
@@ -56,17 +56,17 @@ export function PlayerRepair({ playerId }: { playerId: string }) {
   const detail = player.data;
   const name = detail
     ? `${detail.player.firstName} ${detail.player.lastInitial}`
-    : copy.console.player.title;
+    : consoleCopy.player.title;
 
   return (
     <ConsoleChrome
       title={name}
       back={{
         href: routes.staffAdmin,
-        label: copy.console.admin.backToSearch,
+        label: consoleCopy.admin.backToSearch,
       }}
     >
-      {player.loading ? <p>{copy.console.loading}</p> : null}
+      {player.loading ? <p>{consoleCopy.loading}</p> : null}
       {player.error ? <ConsoleNotice message={player.error} /> : null}
       {error ? <ConsoleNotice message={error} /> : null}
 
@@ -93,30 +93,30 @@ export function PlayerRepair({ playerId }: { playerId: string }) {
       {detail ? (
         <>
           <dl className="console-facts">
-            <dt>{copy.console.player.club}</dt>
+            <dt>{consoleCopy.player.club}</dt>
             <dd>{detail.clubName}</dd>
           </dl>
 
           <section
             className="console-card"
-            aria-label={copy.console.credential.heading}
+            aria-label={consoleCopy.credential.heading}
           >
             <h2 className="console-card__title">
-              {copy.console.credential.heading}
+              {consoleCopy.credential.heading}
             </h2>
             <p className="console-state">
-              {copy.console.credential.state[detail.credential.state]}
+              {consoleCopy.credential.state[detail.credential.state]}
             </p>
             <dl className="console-facts">
-              <dt>{copy.console.credential.issued}</dt>
+              <dt>{consoleCopy.credential.issued}</dt>
               <dd>{detail.credential.issuedAt ?? "—"}</dd>
-              <dt>{copy.console.credential.lastUsed}</dt>
+              <dt>{consoleCopy.credential.lastUsed}</dt>
               <dd>{detail.credential.lastUsedAt ?? "—"}</dd>
-              <dt>{copy.console.credential.lockedUntil}</dt>
+              <dt>{consoleCopy.credential.lockedUntil}</dt>
               <dd>{detail.credential.lockedUntil ?? "—"}</dd>
-              <dt>{copy.console.credential.failedAttempts}</dt>
+              <dt>{consoleCopy.credential.failedAttempts}</dt>
               <dd>{detail.credential.failedAttempts}</dd>
-              <dt>{copy.console.credential.activeSessions}</dt>
+              <dt>{consoleCopy.credential.activeSessions}</dt>
               <dd>{detail.credential.activeSessions}</dd>
             </dl>
             <div className="console-actions">
@@ -126,16 +126,16 @@ export function PlayerRepair({ playerId }: { playerId: string }) {
                 disabled={detail.credential.state !== "locked"}
                 onClick={credentialAction("unlock")}
               >
-                {copy.console.credential.unlock}
+                {consoleCopy.credential.unlock}
               </button>
               <ConfirmButton
-                label={copy.console.credential.reissue}
-                question={copy.console.credential.reissueConfirm}
+                label={consoleCopy.credential.reissue}
+                question={consoleCopy.credential.reissueConfirm}
                 onConfirm={reissue}
               />
               <ConfirmButton
-                label={copy.console.credential.revoke}
-                question={copy.console.credential.revokeConfirm}
+                label={consoleCopy.credential.revoke}
+                question={consoleCopy.credential.revokeConfirm}
                 disabled={detail.credential.state === "revoked"}
                 onConfirm={credentialAction("revoke")}
               />
@@ -144,29 +144,29 @@ export function PlayerRepair({ playerId }: { playerId: string }) {
 
           <section
             className="console-card"
-            aria-label={copy.console.player.memberships}
+            aria-label={consoleCopy.player.memberships}
           >
             <h2 className="console-card__title">
-              {copy.console.player.memberships}
+              {consoleCopy.player.memberships}
             </h2>
             {detail.memberships.length === 0 ? (
-              <p>{copy.console.player.noMemberships}</p>
+              <p>{consoleCopy.player.noMemberships}</p>
             ) : null}
             <ul className="console-list">
               {detail.memberships.map((membership) => (
                 <li key={membership.teamId} className="console-list__row">
                   <strong>{membership.teamName}</strong>
                   <span>
-                    {copy.console.player.from} {membership.activeFrom}
+                    {consoleCopy.player.from} {membership.activeFrom}
                   </span>
                   {membership.activeTo ? (
                     <span>
-                      {copy.console.player.to} {membership.activeTo}
+                      {consoleCopy.player.to} {membership.activeTo}
                     </span>
                   ) : (
                     <ConfirmButton
-                      label={copy.console.player.endMembership}
-                      question={copy.console.player.endMembershipConfirm}
+                      label={consoleCopy.player.endMembership}
+                      question={consoleCopy.player.endMembershipConfirm}
                       onConfirm={() =>
                         act(async () => {
                           await consoleRequest<void>(
@@ -185,13 +185,11 @@ export function PlayerRepair({ playerId }: { playerId: string }) {
 
           <section
             className="console-card"
-            aria-label={copy.console.player.events}
+            aria-label={consoleCopy.player.events}
           >
-            <h2 className="console-card__title">
-              {copy.console.player.events}
-            </h2>
+            <h2 className="console-card__title">{consoleCopy.player.events}</h2>
             {detail.recentAuthEvents.length === 0 ? (
-              <p>{copy.console.player.noEvents}</p>
+              <p>{consoleCopy.player.noEvents}</p>
             ) : (
               <ul className="console-list">
                 {detail.recentAuthEvents.map((event, index) => (
@@ -254,7 +252,7 @@ function DeactivatePanel({
           caught instanceof ConsoleError &&
           caught.code === "confirmation_mismatch"
         ) {
-          setError(copy.console.player.deactivateMismatch);
+          setError(consoleCopy.player.deactivateMismatch);
           return;
         }
         throw caught;
@@ -268,18 +266,18 @@ function DeactivatePanel({
   return (
     <section
       className="console-card console-card--danger"
-      aria-label={copy.console.player.deactivateHeading}
+      aria-label={consoleCopy.player.deactivateHeading}
     >
       <h2 className="console-card__title">
-        {copy.console.player.deactivateHeading}
+        {consoleCopy.player.deactivateHeading}
       </h2>
-      <p>{copy.console.player.deactivateBody}</p>
+      <p>{consoleCopy.player.deactivateBody}</p>
       {done ? (
-        <p className="console-state">{copy.console.player.deactivated}</p>
+        <p className="console-state">{consoleCopy.player.deactivated}</p>
       ) : null}
       <form onSubmit={submit} noValidate className="console-form">
         <label htmlFor="confirm-name">
-          {copy.console.player.deactivateLabel}
+          {consoleCopy.player.deactivateLabel}
         </label>
         <input
           id="confirm-name"
@@ -300,7 +298,7 @@ function DeactivatePanel({
           className="button button--danger"
           disabled={!confirmName.trim()}
         >
-          {copy.console.player.deactivate}
+          {consoleCopy.player.deactivate}
         </button>
       </form>
     </section>

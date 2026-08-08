@@ -1,4 +1,4 @@
-import { copy } from "../../content/copy";
+import { consoleCopy } from "./copy";
 
 /** Every console request goes through the same-origin gateway under `/staff/`,
  * which is the only thing that holds the session token. */
@@ -60,7 +60,7 @@ async function send<T>(url: string, options: RequestOptions): Promise<T> {
         options.body === undefined ? undefined : JSON.stringify(options.body),
     });
   } catch {
-    throw new ConsoleError(0, "unreachable", copy.console.loadFailed);
+    throw new ConsoleError(0, "unreachable", consoleCopy.loadFailed);
   }
   const text = await response.text();
   let parsed: unknown = undefined;
@@ -77,7 +77,7 @@ async function send<T>(url: string, options: RequestOptions): Promise<T> {
     throw new ConsoleError(
       response.status,
       error?.code ?? "error",
-      error?.message ?? copy.console.actionFailed,
+      error?.message ?? consoleCopy.actionFailed,
     );
   }
   return parsed as T;
@@ -96,5 +96,5 @@ function queryString(query: RequestOptions["query"]): string {
 export function messageFor(error: unknown): string {
   return error instanceof ConsoleError
     ? error.message
-    : copy.console.actionFailed;
+    : consoleCopy.actionFailed;
 }

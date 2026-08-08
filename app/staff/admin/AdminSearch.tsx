@@ -1,10 +1,9 @@
 "use client";
 
-import { staffCopy } from "../console/copy";
+import { consoleCopy, staffCopy } from "../console/copy";
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { copy } from "../../content/copy";
 import { routes } from "../../content/routes";
 import { ConsoleChrome, ConsoleNotice } from "../console/ConsoleChrome";
 import { consoleRequest, messageFor } from "../console/api";
@@ -52,15 +51,15 @@ export function AdminSearch() {
     results.teams.length === 0;
 
   return (
-    <ConsoleChrome title={copy.console.admin.title}>
+    <ConsoleChrome title={consoleCopy.admin.title}>
       <AdminNav />
-      <p>{copy.console.admin.intro}</p>
+      <p>{consoleCopy.admin.intro}</p>
       <form
         onSubmit={submit}
         noValidate
         className="console-form console-search"
       >
-        <label htmlFor="console-search">{copy.console.admin.searchLabel}</label>
+        <label htmlFor="console-search">{consoleCopy.admin.searchLabel}</label>
         <input
           id="console-search"
           name="q"
@@ -73,23 +72,23 @@ export function AdminSearch() {
           required
         />
         <p id="console-search-hint" className="console-hint">
-          {copy.console.admin.searchHint}
+          {consoleCopy.admin.searchHint}
         </p>
         <button className="button button--lime" disabled={busy}>
-          {busy ? staffCopy.working : copy.console.admin.searchAction}
+          {busy ? staffCopy.working : consoleCopy.admin.searchAction}
         </button>
       </form>
 
       {error ? <ConsoleNotice message={error} /> : null}
-      {empty ? <p>{copy.console.admin.searchEmpty}</p> : null}
+      {empty ? <p>{consoleCopy.admin.searchEmpty}</p> : null}
 
       {results && results.players.length > 0 ? (
         <section
           className="console-card"
-          aria-label={copy.console.admin.playersHeading}
+          aria-label={consoleCopy.admin.playersHeading}
         >
           <h2 className="console-card__title">
-            {copy.console.admin.playersHeading}
+            {consoleCopy.admin.playersHeading}
           </h2>
           <ul className="console-list">
             {results.players.map((player) => (
@@ -98,7 +97,7 @@ export function AdminSearch() {
                   {player.firstName} {player.lastInitial}
                 </Link>
                 <span>
-                  {copy.console.credential.state[player.credentialState]}
+                  {consoleCopy.credential.state[player.credentialState]}
                 </span>
                 <span>{player.accountStatus}</span>
               </li>
@@ -110,17 +109,17 @@ export function AdminSearch() {
       {results && results.teams.length > 0 ? (
         <section
           className="console-card"
-          aria-label={copy.console.admin.teamsHeading}
+          aria-label={consoleCopy.admin.teamsHeading}
         >
           <h2 className="console-card__title">
-            {copy.console.admin.teamsHeading}
+            {consoleCopy.admin.teamsHeading}
           </h2>
           <ul className="console-list">
             {results.teams.map((team) => (
               <li key={team.id} className="console-list__row">
                 <Link href={routes.staffAdminTeam(team.id)}>{team.name}</Link>
                 <span>{team.clubName}</span>
-                <span>{copy.console.teams.playerCount(team.playerCount)}</span>
+                <span>{consoleCopy.teams.playerCount(team.playerCount)}</span>
               </li>
             ))}
           </ul>
