@@ -26,8 +26,13 @@ API A record. Wrangler manages the Worker custom domain during release.
   downloads and applies only that exact reviewed plan artifact and is gated by
   the protected `production` GitHub Environment reviewer.
 - The Droplet, Reserved IP, and firewall have `prevent_destroy` protection.
-- SSH trust is not established from `ssh-keyscan` alone. Adoption requires the
-  host's ED25519 fingerprint copied independently from the DigitalOcean console.
+- SSH trust is pinned automatically. `infra.yml`'s `apply` action scans the new
+  host's ED25519 key seconds after it boots, commits it to `infra/known_hosts`,
+  and releases then run with `StrictHostKeyChecking=yes` against that file. The
+  anchor is the DigitalOcean API, which this workflow already trusts to choose
+  the address and provision the image; copying a fingerprint out of the
+  DigitalOcean console was never a stronger check against DigitalOcean itself.
+  `adopt-host.sh --expected-fingerprint` remains available to re-pin by hand.
 
 Do not put a token, identity, private key, PIN, or QR credential in a command
 argument, a commit, or a file this runbook does not explicitly require.
