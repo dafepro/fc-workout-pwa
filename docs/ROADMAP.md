@@ -180,7 +180,7 @@ Status: **Planned before real-data launch**
 
 ### 8. Credential administration and abuse protection
 
-Status: **In progress; login throttling implemented 2026-08-08**
+Status: **Implemented 2026-08-08; one follow-up recorded below**
 
 - Coarse network-level throttling for login abuse is **implemented**. It sits in
   front of the login route, so a throttled attempt costs nothing, and the
@@ -195,14 +195,21 @@ Status: **In progress; login throttling implemented 2026-08-08**
   the decision in `OPEN_DECISIONS.md`. Add listing and credential-state
   inspection, which the step 5 reissue/revoke drill needs, and deactivation.
   Deactivation is the CLI's last word on an account: erasure belongs to item 7.
-- Add security-event audit records and a secret/key rotation rehearsal. The
-  `auth_audit_events` table already records issue, revoke, login success and
-  failure, and logout, and it is already carried in the logical export. What is
-  missing is an operator read path over it, the operator identity behind a
-  CLI-driven issue, and coverage for attempts against unknown credentials, which
-  return before any audit row is written and so leave enumeration invisible.
-  Adding an event type requires a table rebuild, because migration `000004`
-  constrains `event_type` with a `CHECK`.
+- Security-event audit records and a key-rotation rehearsal are **implemented**.
+  `auth_audit_events` already recorded issue, revoke, login success and failure,
+  and logout, and is already carried in the logical export; `zoomigo-admin audit`
+  now reads it back, filtered by player and time, carrying only opaque row keys.
+  The `rotation` drill retires a backup recipient and proves both halves of what
+  makes rotation safe: the new archive needs the new identity, and archives
+  written before the rotation still open with the retired one.
+
+Follow-up, deliberately not done here: a sign-in attempt against an unknown QR
+credential returns before any audit row is written, so credential enumeration
+leaves no trace in the trail. Recording it needs a nullable `account_id` and a
+new event type, and migration `000004` constrains `event_type` with a `CHECK`,
+so that means rebuilding the table. That is a schema change worth its own
+rehearsed release rather than a rider on this one. Throttled attempts are
+already visible in the application log in the meantime.
 
 ### 9. Coach and club-admin foundation
 
