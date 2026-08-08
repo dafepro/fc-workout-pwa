@@ -177,6 +177,7 @@ async function deploymentContract() {
     backupScript,
     [
       "create-encrypted",
+      "export-encrypted",
       "upload-backup-s3.sh",
       "LOCAL_BACKUP_RETENTION_DAYS",
       "set -eu",

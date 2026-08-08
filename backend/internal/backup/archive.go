@@ -170,7 +170,11 @@ func Create(ctx context.Context, options CreateOptions) (Manifest, error) {
 		return Manifest{}, fmt.Errorf("close temporary archive: %w", err)
 	}
 	defer os.Remove(temporaryPath)
-	if err := writeArchive(temporaryPath, snapshotPath, manifestBytes, checksums, now().UTC()); err != nil {
+	if err := writeTarGzArchive(temporaryPath, []archiveEntry{
+		{name: manifestName, contents: manifestBytes},
+		{name: databaseName, sourcePath: snapshotPath},
+		{name: checksumsName, contents: checksums},
+	}, now().UTC()); err != nil {
 		return Manifest{}, err
 	}
 	verified, err := extractAndVerify(ctx, temporaryPath)
@@ -387,124 +391,144 @@ func readCounts(ctx context.Context, db *sql.DB) (ValidationCounts, error) {
 	return counts, nil
 }
 
-func writeArchive(path, snapshotPath string, manifest, checksums []byte, createdAt time.Time) error {
+type archiveEntry struct {
+	name string
+	// Exactly one of contents or sourcePath is set.
+	contents   []byte
+	sourcePath string
+}
+
+func writeTarGzArchive(path string, entries []archiveEntry, modifiedAt time.Time) error {
 	file, err := os.OpenFile(path, os.O_WRONLY|os.O_TRUNC, archiveFileMode)
 	if err != nil {
 		return fmt.Errorf("open temporary archive: %w", err)
 	}
 	gzipWriter := gzip.NewWriter(file)
 	tarWriter := tar.NewWriter(gzipWriter)
-	writeBytes := func(name string, contents []byte) error {
-		if err := tarWriter.WriteHeader(&tar.Header{Name: name, Mode: archiveFileMode, Size: int64(len(contents)), ModTime: createdAt}); err != nil {
-			return err
-		}
-		_, err := tarWriter.Write(contents)
+	fail := func(err error) error {
+		_ = file.Close()
 		return err
 	}
-	writeFile := func(name, source string) error {
-		info, err := os.Stat(source)
+	for _, entry := range entries {
+		size := int64(len(entry.contents))
+		if entry.sourcePath != "" {
+			info, err := os.Stat(entry.sourcePath)
+			if err != nil {
+				return fail(err)
+			}
+			size = info.Size()
+		}
+		if err := tarWriter.WriteHeader(&tar.Header{Name: entry.name, Mode: archiveFileMode, Size: size, ModTime: modifiedAt}); err != nil {
+			return fail(fmt.Errorf("write archive entry %q: %w", entry.name, err))
+		}
+		if entry.sourcePath == "" {
+			if _, err := tarWriter.Write(entry.contents); err != nil {
+				return fail(fmt.Errorf("write archive entry %q: %w", entry.name, err))
+			}
+			continue
+		}
+		source, err := os.Open(entry.sourcePath)
 		if err != nil {
-			return err
+			return fail(err)
 		}
-		if err := tarWriter.WriteHeader(&tar.Header{Name: name, Mode: archiveFileMode, Size: info.Size(), ModTime: createdAt}); err != nil {
-			return err
+		_, copyErr := io.Copy(tarWriter, source)
+		if closeErr := source.Close(); copyErr == nil {
+			copyErr = closeErr
 		}
-		sourceFile, err := os.Open(source)
-		if err != nil {
-			return err
+		if copyErr != nil {
+			return fail(fmt.Errorf("write archive entry %q: %w", entry.name, copyErr))
 		}
-		defer sourceFile.Close()
-		_, err = io.Copy(tarWriter, sourceFile)
-		return err
-	}
-	if err := writeBytes(manifestName, manifest); err != nil {
-		_ = file.Close()
-		return fmt.Errorf("write backup manifest: %w", err)
-	}
-	if err := writeFile(databaseName, snapshotPath); err != nil {
-		_ = file.Close()
-		return fmt.Errorf("write sqlite snapshot: %w", err)
-	}
-	if err := writeBytes(checksumsName, checksums); err != nil {
-		_ = file.Close()
-		return fmt.Errorf("write backup checksums: %w", err)
 	}
 	if err := tarWriter.Close(); err != nil {
-		_ = file.Close()
-		return fmt.Errorf("finish tar archive: %w", err)
+		return fail(fmt.Errorf("finish tar archive: %w", err))
 	}
 	if err := gzipWriter.Close(); err != nil {
-		_ = file.Close()
-		return fmt.Errorf("finish compressed archive: %w", err)
+		return fail(fmt.Errorf("finish compressed archive: %w", err))
 	}
 	if err := file.Sync(); err != nil {
-		_ = file.Close()
-		return fmt.Errorf("sync backup archive: %w", err)
+		return fail(fmt.Errorf("sync archive: %w", err))
 	}
 	if err := file.Close(); err != nil {
-		return fmt.Errorf("close backup archive: %w", err)
+		return fmt.Errorf("close archive: %w", err)
 	}
 	return nil
 }
 
-func extractAndVerify(ctx context.Context, archivePath string) (extractedArchive, error) {
-	if strings.TrimSpace(archivePath) == "" {
-		return extractedArchive{}, errors.New("archive path is required")
-	}
-	directory, err := os.MkdirTemp("", "zoomigo-backup-verify-*")
+// extractTarGzArchive extracts only the entries named in allowed, each within
+// its size limit, into a fresh temporary directory.
+func extractTarGzArchive(archivePath string, allowed map[string]int64, subdirectories []string) (string, map[string]bool, error) {
+	directory, err := os.MkdirTemp("", "zoomigo-archive-verify-*")
 	if err != nil {
-		return extractedArchive{}, fmt.Errorf("create verification directory: %w", err)
+		return "", nil, fmt.Errorf("create verification directory: %w", err)
 	}
-	fail := func(err error) (extractedArchive, error) {
+	fail := func(err error) (string, map[string]bool, error) {
 		_ = os.RemoveAll(directory)
-		return extractedArchive{}, err
+		return "", nil, err
+	}
+	for _, name := range subdirectories {
+		if err := os.Mkdir(filepath.Join(directory, name), archiveDirectoryMode); err != nil {
+			return fail(fmt.Errorf("create verification subdirectory: %w", err))
+		}
 	}
 	file, err := os.Open(archivePath)
 	if err != nil {
-		return fail(fmt.Errorf("open backup archive: %w", err))
+		return fail(fmt.Errorf("open archive: %w", err))
 	}
 	defer file.Close()
 	gzipReader, err := gzip.NewReader(file)
 	if err != nil {
-		return fail(fmt.Errorf("open compressed backup: %w", err))
+		return fail(fmt.Errorf("open compressed archive: %w", err))
 	}
 	defer gzipReader.Close()
 	tarReader := tar.NewReader(gzipReader)
-	expected := map[string]int64{
-		manifestName:  maxManifestBytes,
-		databaseName:  maxDatabaseBytes,
-		checksumsName: maxChecksumsBytes,
-	}
-	seen := make(map[string]bool, len(expected))
+	seen := map[string]bool{}
 	for {
 		header, err := tarReader.Next()
 		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
-			return fail(fmt.Errorf("read backup archive: %w", err))
+			return fail(fmt.Errorf("read archive: %w", err))
 		}
-		maximum, allowed := expected[header.Name]
-		if !allowed || seen[header.Name] || header.Typeflag != tar.TypeReg {
-			return fail(fmt.Errorf("backup contains an unexpected entry %q", header.Name))
+		maximum, permitted := allowed[header.Name]
+		if !permitted || seen[header.Name] || header.Typeflag != tar.TypeReg {
+			return fail(fmt.Errorf("archive contains an unexpected entry %q", header.Name))
 		}
 		if header.Size < 0 || header.Size > maximum {
-			return fail(fmt.Errorf("backup entry %q has invalid size %d", header.Name, header.Size))
+			return fail(fmt.Errorf("archive entry %q has invalid size %d", header.Name, header.Size))
 		}
-		destinationPath := filepath.Join(directory, header.Name)
-		destination, err := os.OpenFile(destinationPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, archiveFileMode)
+		destination, err := os.OpenFile(filepath.Join(directory, filepath.FromSlash(header.Name)), os.O_CREATE|os.O_EXCL|os.O_WRONLY, archiveFileMode)
 		if err != nil {
-			return fail(fmt.Errorf("create extracted backup entry: %w", err))
+			return fail(fmt.Errorf("create extracted entry: %w", err))
 		}
 		written, copyErr := io.CopyN(destination, tarReader, header.Size)
-		closeErr := destination.Close()
-		if copyErr != nil || written != header.Size {
-			return fail(fmt.Errorf("extract backup entry %q: %w", header.Name, copyErr))
+		if closeErr := destination.Close(); copyErr == nil {
+			copyErr = closeErr
 		}
-		if closeErr != nil {
-			return fail(fmt.Errorf("close backup entry %q: %w", header.Name, closeErr))
+		if copyErr != nil || written != header.Size {
+			return fail(fmt.Errorf("extract archive entry %q: %w", header.Name, copyErr))
 		}
 		seen[header.Name] = true
+	}
+	return directory, seen, nil
+}
+
+func extractAndVerify(ctx context.Context, archivePath string) (extractedArchive, error) {
+	if strings.TrimSpace(archivePath) == "" {
+		return extractedArchive{}, errors.New("archive path is required")
+	}
+	expected := map[string]int64{
+		manifestName:  maxManifestBytes,
+		databaseName:  maxDatabaseBytes,
+		checksumsName: maxChecksumsBytes,
+	}
+	directory, seen, err := extractTarGzArchive(archivePath, expected, nil)
+	if err != nil {
+		return extractedArchive{}, err
+	}
+	fail := func(err error) (extractedArchive, error) {
+		_ = os.RemoveAll(directory)
+		return extractedArchive{}, err
 	}
 	for name := range expected {
 		if !seen[name] {
@@ -598,10 +622,7 @@ func parseChecksums(contents []byte) (map[string]string, error) {
 		if len(fields) != 2 || (fields[1] != databaseName && fields[1] != manifestName) {
 			return nil, errors.New("backup checksum file is invalid")
 		}
-		if len(fields[0]) != sha256.Size*2 {
-			return nil, errors.New("backup checksum has an invalid digest")
-		}
-		if _, err := hex.DecodeString(fields[0]); err != nil {
+		if !isHexDigest(fields[0]) {
 			return nil, errors.New("backup checksum has an invalid digest")
 		}
 		if _, exists := checksums[fields[1]]; exists {
@@ -670,6 +691,14 @@ func hashFile(path string) (string, int64, error) {
 func hashBytes(contents []byte) string {
 	hash := sha256.Sum256(contents)
 	return hex.EncodeToString(hash[:])
+}
+
+func isHexDigest(value string) bool {
+	if len(value) != sha256.Size*2 {
+		return false
+	}
+	_, err := hex.DecodeString(value)
+	return err == nil
 }
 
 func copyFile(sourcePath, destinationPath string) error {

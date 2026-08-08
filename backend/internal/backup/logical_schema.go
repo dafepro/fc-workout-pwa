@@ -1,0 +1,253 @@
+package backup
+
+// Owned here rather than derived from the live schema: an older export must
+// import into a newer schema, so absent fields fall back to a default here.
+
+type fieldKind int
+
+const (
+	fieldText fieldKind = iota
+	fieldInteger
+	fieldReal
+	fieldBlob
+)
+
+// A field with no default that an export omits is an error; there is no safe
+// value to invent.
+type logicalField struct {
+	Name       string
+	Kind       fieldKind
+	Nullable   bool
+	HasDefault bool
+	Default    any
+}
+
+// Declaration order is foreign-key dependency order, so one pass never
+// references a row that has not been written yet.
+type logicalTable struct {
+	Name   string
+	Fields []logicalField
+	// Always the primary key, so two exports of the same data are byte-identical.
+	OrderBy []string
+	// Rows a migration inserts, cleared on import so the export stays authoritative.
+	Seeded bool
+}
+
+func textField(name string) logicalField    { return logicalField{Name: name, Kind: fieldText} }
+func integerField(name string) logicalField { return logicalField{Name: name, Kind: fieldInteger} }
+func realField(name string) logicalField    { return logicalField{Name: name, Kind: fieldReal} }
+func blobField(name string) logicalField    { return logicalField{Name: name, Kind: fieldBlob} }
+
+func nullable(field logicalField) logicalField {
+	field.Nullable = true
+	field.HasDefault = true
+	field.Default = nil
+	return field
+}
+
+func withDefault(field logicalField, value any) logicalField {
+	field.HasDefault = true
+	field.Default = value
+	return field
+}
+
+// Do not reorder: this is also the import order and referential integrity relies on it.
+var logicalTables = []logicalTable{
+	{
+		Name:    "clubs",
+		OrderBy: []string{"id"},
+		Fields: []logicalField{
+			textField("id"),
+			textField("name"),
+			textField("created_at"),
+		},
+	},
+	{
+		Name:    "teams",
+		OrderBy: []string{"id"},
+		Fields: []logicalField{
+			textField("id"),
+			textField("club_id"),
+			textField("name"),
+			textField("season_id"),
+			integerField("weekly_default_goal"),
+			textField("time_zone"),
+			textField("created_at"),
+		},
+	},
+	{
+		Name:    "players",
+		OrderBy: []string{"id"},
+		Fields: []logicalField{
+			textField("id"),
+			textField("club_id"),
+			textField("first_name"),
+			textField("last_initial"),
+			textField("avatar_configuration_json"),
+			textField("created_at"),
+		},
+	},
+	{
+		Name:    "accounts",
+		OrderBy: []string{"id"},
+		Fields: []logicalField{
+			textField("id"),
+			textField("club_id"),
+			nullable(textField("player_id")),
+			textField("role"),
+			textField("status"),
+			textField("created_at"),
+		},
+	},
+	{
+		Name:    "team_memberships",
+		OrderBy: []string{"team_id", "player_id", "active_from"},
+		Fields: []logicalField{
+			textField("team_id"),
+			textField("player_id"),
+			textField("active_from"),
+			nullable(textField("active_to")),
+		},
+	},
+	{
+		Name:    "coach_team_assignments",
+		OrderBy: []string{"team_id", "account_id", "active_from"},
+		Fields: []logicalField{
+			textField("team_id"),
+			textField("account_id"),
+			textField("active_from"),
+			nullable(textField("active_to")),
+		},
+	},
+	{
+		Name:    "activity_definitions",
+		OrderBy: []string{"id"},
+		Seeded:  true,
+		Fields: []logicalField{
+			textField("id"),
+			textField("name"),
+			textField("input_kind"),
+			textField("unit"),
+			realField("minimum_value"),
+			realField("maximum_value"),
+			realField("step_value"),
+			integerField("approved_for_player_entry"),
+		},
+	},
+	{
+		Name:    "assignments",
+		OrderBy: []string{"id"},
+		Fields: []logicalField{
+			textField("id"),
+			textField("team_id"),
+			textField("activity_definition_id"),
+			textField("catalog_key"),
+			realField("target_value"),
+			textField("target_unit"),
+			textField("starts_on"),
+			textField("due_on"),
+			textField("created_at"),
+		},
+	},
+	{
+		Name:    "training_entries",
+		OrderBy: []string{"id"},
+		Fields: []logicalField{
+			textField("id"),
+			textField("player_id"),
+			textField("team_id"),
+			textField("activity_definition_id"),
+			nullable(textField("assignment_id")),
+			textField("occurred_at"),
+			realField("result_value"),
+			textField("result_unit"),
+			integerField("effort_level"),
+			integerField("exhaustion_level"),
+			textField("created_at"),
+			textField("delete_eligible_until"),
+			nullable(textField("deleted_at")),
+			nullable(textField("idempotency_key")),
+		},
+	},
+	{
+		Name:    "reactions",
+		OrderBy: []string{"id"},
+		Fields: []logicalField{
+			textField("id"),
+			textField("sender_player_id"),
+			textField("recipient_player_id"),
+			textField("team_id"),
+			textField("reaction_type"),
+			textField("context_type"),
+			textField("context_period"),
+			nullable(textField("context_metric")),
+			textField("team_day"),
+			textField("idempotency_key"),
+			textField("created_at"),
+			nullable(textField("read_at")),
+			nullable(textField("deleted_at")),
+			withDefault(integerField("remaining_after_send"), int64(0)),
+		},
+	},
+	{
+		Name:    "auth_credentials",
+		OrderBy: []string{"id"},
+		Fields: []logicalField{
+			textField("id"),
+			textField("account_id"),
+			blobField("selector_hash"),
+			blobField("verifier_salt"),
+			blobField("verifier_hash"),
+			integerField("failed_attempts"),
+			nullable(textField("locked_until")),
+			textField("issued_at"),
+			nullable(textField("last_used_at")),
+			nullable(textField("revoked_at")),
+		},
+	},
+	{
+		Name:    "auth_sessions",
+		OrderBy: []string{"id"},
+		Fields: []logicalField{
+			textField("id"),
+			textField("account_id"),
+			textField("credential_id"),
+			blobField("token_hash"),
+			textField("created_at"),
+			textField("expires_at"),
+			textField("last_seen_at"),
+			nullable(textField("revoked_at")),
+		},
+	},
+	{
+		Name:    "auth_audit_events",
+		OrderBy: []string{"id"},
+		Fields: []logicalField{
+			textField("id"),
+			nullable(textField("account_id")),
+			nullable(textField("credential_id")),
+			nullable(textField("session_id")),
+			textField("event_type"),
+			nullable(textField("detail_code")),
+			textField("occurred_at"),
+		},
+	},
+}
+
+func logicalTableByName(name string) (logicalTable, bool) {
+	for _, table := range logicalTables {
+		if table.Name == name {
+			return table, true
+		}
+	}
+	return logicalTable{}, false
+}
+
+func (table logicalTable) field(name string) (logicalField, bool) {
+	for _, candidate := range table.Fields {
+		if candidate.Name == name {
+			return candidate, true
+		}
+	}
+	return logicalField{}, false
+}

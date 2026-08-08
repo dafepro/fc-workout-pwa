@@ -21,22 +21,34 @@ case "$retention_days" in
 esac
 [ "$retention_days" -ge 1 ] && [ "$retention_days" -le 90 ] || fail "LOCAL_BACKUP_RETENTION_DAYS must be an integer from 1 through 90"
 
-archive_name="zoomigo-backup-$(date -u +%Y%m%dT%H%M%SZ)-v1.tar.gz.age"
-archive_path="/backups/${archive_name}"
+timestamp=$(date -u +%Y%m%dT%H%M%SZ)
+archive_name="zoomigo-backup-${timestamp}-v1.tar.gz.age"
+export_name="zoomigo-export-${timestamp}-v1.tar.gz.age"
 
+# The SQLite snapshot is the fast same-engine recovery path; the logical export
+# is the one that survives a schema or engine change.
 compose run --rm backup create-encrypted \
 	--database-url file:/data/zoomigo.db \
-	--output "$archive_path" \
+	--output "/backups/${archive_name}" \
 	--recipient "$backup_recipient" \
 	--app-version "$application_version"
 
-printf '%s\n' "Created, verified, and age-encrypted $archive_name."
+compose run --rm backup export-encrypted \
+	--database-url file:/data/zoomigo.db \
+	--output "/backups/${export_name}" \
+	--recipient "$backup_recipient" \
+	--app-version "$application_version"
+
+printf '%s\n' "Created, verified, and age-encrypted $archive_name and $export_name."
 
 upload_enabled=$(env_value BACKUP_S3_UPLOAD_ENABLED)
 case "$upload_enabled" in
 	true)
 		"$SCRIPT_DIRECTORY/upload-backup-s3.sh" "$ENV_FILE" "$archive_name"
-		find "$backup_directory" -maxdepth 1 -type f -name 'zoomigo-backup-*-v1.tar.gz.age' -mtime "+$retention_days" -delete
+		"$SCRIPT_DIRECTORY/upload-backup-s3.sh" "$ENV_FILE" "$export_name"
+		find "$backup_directory" -maxdepth 1 -type f \
+			\( -name 'zoomigo-backup-*-v1.tar.gz.age' -o -name 'zoomigo-export-*-v1.tar.gz.age' \) \
+			-mtime "+$retention_days" -delete
 		printf '%s\n' "Pruned local encrypted backups older than $retention_days days after the successful S3 upload."
 		;;
 	false|"") printf '%s\n' "Warning: S3 upload is disabled; this backup remains on one host." ;;

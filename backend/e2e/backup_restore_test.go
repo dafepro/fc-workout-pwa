@@ -61,7 +61,7 @@ func TestBackupRestorePreservesPrivateAPIProjections(t *testing.T) {
 
 	restoredPath := filepath.Join(workDir, "restored.db")
 	runBackupCommand(t, "restore-encrypted", "--archive", archivePath, "--identity", identityPath, "--target", restoredPath)
-	restoredAPI := startRestoredAPI(t, restoredPath)
+	restoredAPI := startRestoredAPI(t, restoredPath, "18081")
 	if got := projection(t, restoredAPI, "/v1/me/training-entries", masonToken); !reflect.DeepEqual(got, expectedEntries) {
 		t.Fatalf("restored training projection differs\n got: %#v\nwant: %#v", got, expectedEntries)
 	}
@@ -85,6 +85,43 @@ func TestBackupRestorePreservesPrivateAPIProjections(t *testing.T) {
 	}
 	if _, err := os.Stat(rejectedTarget); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("corrupt restore created its target: %v", err)
+	}
+}
+
+func TestLogicalExportPreservesPrivateAPIProjections(t *testing.T) {
+	if os.Getenv("E2E_BASE_URL") == "" {
+		t.Skip("the logical export drill runs in the Docker E2E environment")
+	}
+	databaseURL := os.Getenv("E2E_DATABASE_URL")
+	if databaseURL == "" {
+		t.Fatal("E2E_DATABASE_URL is required for the Docker export drill")
+	}
+	api := newAPIClient(t)
+	api.reset(t)
+
+	created := api.do(t, http.MethodPost, "/v1/me/training-entries", masonToken, "export-entry", validTrainingEntryPayload(time.Now().UTC().Add(-time.Hour)))
+	assertStatus(t, created, http.StatusCreated)
+	_ = created.Body.Close()
+
+	expectedEntries := projection(t, api, "/v1/me/training-entries", masonToken)
+	workDir := t.TempDir()
+	identity, err := age.GenerateX25519Identity()
+	if err != nil {
+		t.Fatal(err)
+	}
+	identityPath := filepath.Join(workDir, "export-identity.txt")
+	if err := os.WriteFile(identityPath, []byte(identity.String()+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	exportPath := filepath.Join(workDir, "zoomigo-export.tar.gz.age")
+	runBackupCommand(t, "export-encrypted", "--database-url", databaseURL, "--output", exportPath, "--recipient", identity.Recipient().String(), "--app-version", "docker-e2e")
+	runBackupCommand(t, "verify-export-encrypted", "--archive", exportPath, "--identity", identityPath)
+
+	importedPath := filepath.Join(workDir, "imported.db")
+	runBackupCommand(t, "import-encrypted", "--archive", exportPath, "--identity", identityPath, "--target", importedPath)
+	importedAPI := startRestoredAPI(t, importedPath, "18082")
+	if got := projection(t, importedAPI, "/v1/me/training-entries", masonToken); !reflect.DeepEqual(got, expectedEntries) {
+		t.Fatalf("imported training projection differs\n got: %#v\nwant: %#v", got, expectedEntries)
 	}
 }
 
@@ -112,9 +149,8 @@ func backupBinary() string {
 	return valueOrDefault(os.Getenv("E2E_BACKUP_BINARY"), "/out/zoomigo-backup")
 }
 
-func startRestoredAPI(t *testing.T, databasePath string) apiClient {
+func startRestoredAPI(t *testing.T, databasePath, port string) apiClient {
 	t.Helper()
-	port := "18081"
 	command := exec.Command(valueOrDefault(os.Getenv("E2E_API_BINARY"), "/out/zoomigo-api"))
 	var output bytes.Buffer
 	command.Stdout = &output

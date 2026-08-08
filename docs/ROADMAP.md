@@ -1,6 +1,6 @@
 # ZoomiGo delivery roadmap
 
-Last reviewed: 2026-08-06
+Last reviewed: 2026-08-08
 
 This is the authoritative execution backlog. The numbered alpha-feedback files
 are historical records, while `OPEN_DECISIONS.md` records choices that have not
@@ -15,8 +15,9 @@ frontend, GitHub release workflow, and DigitalOcean/Cloudflare OpenTofu are
 implemented. Infrastructure has not yet been created from this repository.
 
 Team, Leaders, Home, and Record Training now use safe authoritative projections
-in connected mode. The next engineering priority is the versioned logical
-backup export, followed by the test-only cloud environment.
+in connected mode, and daily backups produce both an encrypted SQLite snapshot
+and a versioned logical export. The next priority is the test-only cloud
+environment, which is operator-assisted.
 
 ## Recommended next work
 
@@ -61,17 +62,18 @@ configured hosted session.
 
 ### 3. Add a versioned logical export for durable backups
 
-Status: **Recommended next engineering task**
+Status: **Implemented; targeted verification complete**
 
-The existing encrypted SQLite archive is a strong same-engine recovery format,
-but it is intentionally coupled to SQLite. Add a stable, versioned logical
-export—preferably manifest plus JSON Lines—with documented ordering, schema
-versions, checksums, import validation, and round-trip tests. Keep raw SQLite
-snapshots for fast disaster recovery.
-
-Definition of done: a logical export produced from an older schema imports into
-the current schema without relying on the old database layout, and private data
-never appears unencrypted off-host.
+Logical export format v1 is a manifest plus one JSON Lines file per table, with
+documented primary-key ordering, per-table checksums, and offline verification.
+The exported field set is owned by `backend/internal/backup/logical_schema.go`
+rather than the live SQLite schema, so an older export imports under the current
+schema: absent fields take declared defaults, absent tables arrive empty, and an
+export from a newer build is rejected instead of silently losing data. The
+`zoomigo-backup` command gained `export`, `verify-export`, and `import` plus
+their `-encrypted` forms, and the daily job now produces and uploads both an
+encrypted snapshot and an encrypted export. Raw SQLite snapshots remain the fast
+disaster-recovery path.
 
 ## Test-only production runway
 

@@ -41,10 +41,18 @@ private_status=$(curl --silent --output /dev/null --write-out '%{http_code}' "ht
 systemctl is-enabled --quiet zoomigo-backup.timer || fail "the backup timer is not enabled"
 systemctl is-active --quiet zoomigo-backup.timer || fail "the backup timer is not active"
 
-latest_record=$(find "$backup_directory" -maxdepth 1 -type f -name 'zoomigo-backup-*-v1.tar.gz.age' -printf '%T@ %f\n' | sort -nr | head -n 1)
-[ -n "$latest_record" ] || fail "no encrypted local backup exists"
-latest_name=${latest_record#* }
-find "$backup_directory" -maxdepth 1 -type f -name "$latest_name" -mmin -1560 -print -quit | grep . >/dev/null || fail "the newest encrypted backup is more than 26 hours old"
+newest_archive() {
+	record=$(find "$backup_directory" -maxdepth 1 -type f -name "$1-*-v1.tar.gz.age" -printf '%T@ %f\n' | sort -nr | head -n 1)
+	[ -n "$record" ] || fail "no encrypted local $1 archive exists"
+	printf '%s' "${record#* }"
+}
+
+# The SQLite snapshot and the logical export are both required daily outputs.
+latest_name=$(newest_archive zoomigo-backup)
+latest_export=$(newest_archive zoomigo-export)
+for archive_name in "$latest_name" "$latest_export"; do
+	find "$backup_directory" -maxdepth 1 -type f -name "$archive_name" -mmin -1560 -print -quit | grep . >/dev/null || fail "$archive_name is more than 26 hours old"
+done
 
 if [ "$check_s3" = true ]; then
 	require_command rclone
@@ -70,9 +78,11 @@ if [ "$check_s3" = true ]; then
 	export RCLONE_CONFIG_ZOOMIGO_ENDPOINT="$backup_s3_endpoint"
 	export RCLONE_CONFIG_ZOOMIGO_REGION="${BACKUP_S3_REGION:-auto}"
 	export RCLONE_CONFIG_ZOOMIGO_ACL=private
-	rclone lsjson "zoomigo:${backup_s3_bucket}/daily/${latest_name}" --stat --files-only --s3-no-check-bucket >/dev/null || fail "the newest encrypted backup is missing from S3-compatible storage"
+	for archive_name in "$latest_name" "$latest_export"; do
+		rclone lsjson "zoomigo:${backup_s3_bucket}/daily/${archive_name}" --stat --files-only --s3-no-check-bucket >/dev/null || fail "$archive_name is missing from S3-compatible storage"
+	done
 fi
 
 [ ! -f /var/run/reboot-required ] || fail "the VM requires a reboot for installed updates"
 
-printf '%s\n' "Production readiness checks passed with encrypted backup $latest_name."
+printf '%s\n' "Production readiness checks passed with encrypted backup $latest_name and export $latest_export."
