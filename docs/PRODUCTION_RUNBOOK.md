@@ -115,6 +115,19 @@ local file. Set the remaining secrets (`CLOUDFLARE_API_TOKEN`,
 --body VALUE`. Require the desired human reviewer on the `production`
 environment now, before the first plan.
 
+The staff console needs three more. `STAFF_SECRET_KEY` encrypts stored second
+factors; rotating it makes every enrolled authenticator unreadable, so every
+staff account has to re-enrol. `STAFF_CONSOLE_GATE_KEY` is the interim access
+gate's passphrase, in force only until Cloudflare Access is applied.
+
+```sh
+gh secret set STAFF_SECRET_KEY --env production --body "$(head -c 32 /dev/urandom | base64)"
+gh secret set STAFF_CONSOLE_GATE_KEY --env production --body 'three-easy-words'
+gh variable set PLAYER_LOGIN_URL --env production --body 'https://PWA_HOSTNAME/login'
+gh variable set STAFF_SETUP_URL --env production --body 'https://PWA_HOSTNAME/staff/setup'
+gh variable set STAFF_CONSOLE_EMAIL_ADDRESSES --env production --body '["operator@example.com"]'
+```
+
 ## 2. Plan and apply infrastructure
 
 Trigger the `infra.yml` GitHub Actions workflow with `action: plan`. It reads
@@ -234,6 +247,31 @@ and time the isolated restore and the offline cutover rehearsal from
 `docs/backend/LIVE_RESTORE_RUNBOOK.md` against real archives, and drive one
 release with `./deploy/release/release.sh` from an operator's own machine so the
 Actions-is-down fallback is known to work.
+
+## Creating the first operator account
+
+The console cannot create the account that signs into it, so the first
+`platform_admin` comes from the CLI on the host. `zoomigo-admin` lives behind a
+Compose profile, so the invocation needs all of it:
+
+```sh
+cd /opt/app/deploy/vm
+sudo -n docker compose --env-file .env --profile operations run --rm --no-TTY admin \
+  create-operator --email 'operator@example.com' \
+  --setup-url 'https://PWA_HOSTNAME/staff/setup'
+```
+
+It prints a setup URL carrying a single-use token in its fragment, and a
+temporary password, both exactly once. Hand them over by whatever channel is
+already trusted; there is no email infrastructure and inventing one to deliver
+this is a larger decision than it looks. The account can reach nothing but the
+setup page until it has chosen a password and enrolled a second factor.
+
+`reset-staff-credential --email ...` issues a fresh pair and ends every session
+that account holds. `list-staff` shows who exists and whether they finished
+setup. These are the break-glass path: the console offers the same actions, and
+must never be the only way to perform one, because it depends on the very
+service an operator may be trying to repair.
 
 ## Routine infrastructure changes
 
