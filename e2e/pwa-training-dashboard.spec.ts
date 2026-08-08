@@ -51,11 +51,15 @@ test("connected Home and Record Training use the server assignment", async ({
     0,
   );
   await expect(
+    page.getByRole("link", { name: "Close training entry" }),
+  ).toBeVisible();
+  await expect(
     page
       .locator(".selected-activity")
       .getByText("Hill Sprints", { exact: true }),
   ).toBeVisible();
   await page.locator(".selected-activity").click();
+  await expect(page.locator(".activity-options")).toBeVisible();
   await expect(
     page.getByRole("radio", { name: /Distance Run/i }),
   ).toBeVisible();

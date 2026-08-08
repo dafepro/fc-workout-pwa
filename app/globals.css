@@ -240,6 +240,12 @@ h2 {
   line-height: 1;
 }
 
+.training-fab--close {
+  border-color: rgb(255 255 255 / 85%);
+  background: var(--ink);
+  color: white;
+}
+
 .toast-overlay {
   position: fixed;
   z-index: 40;
@@ -1297,6 +1303,59 @@ h2 {
   font-size: 1rem;
   font-weight: 900;
 }
+/* The picker is a bounded, temporary surface hanging off the selected activity. */
+.selected-activity.is-open {
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.activity-options {
+  margin-top: calc(-1rem - 1px); /* close the log-form grid gap */
+  border: 1.5px solid #4e3fd1;
+  border-radius: 0 0 1.1rem 1.1rem;
+  padding: 0.85rem;
+  background: linear-gradient(160deg, #4e3fd1, #6b4fe0 55%, #7d5ae8);
+  box-shadow: 0 18px 34px rgb(46 32 140 / 28%);
+  animation: activity-options-open 0.16s ease-out;
+}
+@keyframes activity-options-open {
+  from {
+    opacity: 0;
+    transform: translateY(-0.4rem);
+  }
+}
+.activity-options__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0 0.15rem 0.15rem;
+  color: white;
+}
+.activity-options__copy {
+  display: grid;
+  gap: 0.1rem;
+}
+.activity-options__copy strong {
+  font-size: 0.9rem;
+}
+.activity-options__copy small {
+  color: rgb(255 255 255 / 78%);
+  font-size: 0.7rem;
+}
+.activity-options__done {
+  flex: 0 0 auto;
+  min-height: 2.2rem;
+  padding: 0 0.95rem;
+  border: 1px solid rgb(255 255 255 / 55%);
+  border-radius: 99rem;
+  background: rgb(255 255 255 / 16%);
+  color: white;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
 .activity-picker {
   min-width: 0;
   margin: 0;
@@ -1401,12 +1460,13 @@ h2 {
 .field-card label {
   display: block;
   margin-bottom: 0.55rem;
+  text-align: center;
   font-size: 0.82rem;
   font-weight: 850;
 }
 .field-card input[type="date"],
 .field-card input[type="time"],
-.input-with-unit input {
+.value-entry input {
   width: 100%;
   min-height: 3rem;
   padding: 0.65rem 0.75rem;
@@ -1417,24 +1477,61 @@ h2 {
 }
 .field-card__context {
   margin: 0.55rem 0 0;
+  text-align: center;
   color: var(--muted);
   font-size: 0.7rem;
 }
-.input-with-unit {
-  position: relative;
-}
-.input-with-unit input {
-  padding-right: 5.5rem;
-  font-size: 1.2rem;
+.field-card__limit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin: 0.6rem 0 0;
+  color: var(--danger);
+  font-size: 0.76rem;
   font-weight: 850;
 }
-.input-with-unit span {
-  position: absolute;
-  top: 50%;
-  right: 1rem;
+.field-card__limit > span {
+  display: grid;
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--danger);
+  color: white;
+  font-size: 0.7rem;
+}
+
+/* The unit sits under the number so the number itself never shifts. */
+.value-entry {
+  display: grid;
+  justify-items: center;
+  gap: 0.15rem;
+}
+.value-entry input {
+  padding: 0.5rem;
+  text-align: center;
+  font-size: 1.45rem;
+  font-weight: 850;
+  appearance: textfield;
+}
+.value-entry input::-webkit-outer-spin-button,
+.value-entry input::-webkit-inner-spin-button {
+  margin: 0;
+  appearance: none;
+}
+.value-entry__unit {
   color: var(--muted);
-  font-size: 0.78rem;
-  transform: translateY(-50%);
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.value-entry.is-over-limit input {
+  border-color: var(--danger);
+  background: #fff5f6;
+  color: var(--danger);
 }
 .stepper {
   display: grid;
@@ -1459,11 +1556,6 @@ h2 {
 .stepper button:disabled {
   cursor: default;
   opacity: 0.35;
-}
-.stepper .input-with-unit input {
-  padding-right: 3.25rem;
-  text-align: left;
-  font-size: 1.35rem;
 }
 
 .intensity-card {
@@ -1506,6 +1598,8 @@ h2 {
   appearance: none;
   background: transparent;
   cursor: pointer;
+  /* Vertical drags scroll the form instead of dragging the thumb. */
+  touch-action: pan-y;
 }
 .intensity-slider input::-webkit-slider-runnable-track {
   height: 0.65rem;

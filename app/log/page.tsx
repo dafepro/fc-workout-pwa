@@ -174,7 +174,7 @@ export default function LogPage() {
       <form className="log-form" onSubmit={submit}>
         <button
           type="button"
-          className={`selected-activity selected-activity--${activityId}`}
+          className={`selected-activity selected-activity--${activityId} ${showActivities ? "is-open" : ""}`}
           aria-label={`Selected workout: ${selectedActivity.name}. ${showActivities ? "Close activity choices" : "Choose another activity"}`}
           aria-expanded={showActivities}
           aria-controls="activity-options"
@@ -193,7 +193,20 @@ export default function LogPage() {
           </span>
         </button>
         {showActivities ? (
-          <div id="activity-options">
+          <div id="activity-options" className="activity-options">
+            <div className="activity-options__header">
+              <span className="activity-options__copy">
+                <strong>{copy.log.pickerTitle}</strong>
+                <small>{copy.log.pickerHint}</small>
+              </span>
+              <button
+                type="button"
+                className="activity-options__done"
+                onClick={() => setShowActivities(false)}
+              >
+                {copy.log.pickerDone}
+              </button>
+            </div>
             <ActivitySelector
               selected={activityId}
               onSelect={chooseActivity}

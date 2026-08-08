@@ -81,4 +81,58 @@ describe("activity-specific form", () => {
       expect(screen.getByLabelText("Distance completed")).toHaveValue(1),
     );
   });
+
+  it("lets the field be cleared instead of forcing a leading zero", async () => {
+    render(<Harness />);
+    const repetitions = screen.getByLabelText("Reps completed");
+
+    fireEvent.change(repetitions, { target: { value: "" } });
+    await waitFor(() =>
+      expect(screen.getByLabelText("Reps completed")).toHaveValue(null),
+    );
+
+    fireEvent.change(repetitions, { target: { value: "5" } });
+    await waitFor(() =>
+      expect(screen.getByLabelText("Reps completed")).toHaveValue(5),
+    );
+  });
+
+  it("restores the last valid value when the field is left empty", async () => {
+    render(<Harness />);
+    const repetitions = screen.getByLabelText("Reps completed");
+
+    fireEvent.change(repetitions, { target: { value: "" } });
+    fireEvent.blur(repetitions);
+    await waitFor(() =>
+      expect(screen.getByLabelText("Reps completed")).toHaveValue(8),
+    );
+  });
+
+  it("flags values outside the allowed range for the activity", async () => {
+    render(<Harness />);
+    const repetitions = screen.getByLabelText("Reps completed");
+
+    fireEvent.change(repetitions, { target: { value: "25" } });
+    await waitFor(() =>
+      expect(screen.getByText("Max is 20 reps")).toBeInTheDocument(),
+    );
+    expect(screen.getByLabelText("Reps completed")).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
+
+    fireEvent.change(repetitions, { target: { value: "0" } });
+    await waitFor(() =>
+      expect(screen.getByText("Min is 1 rep")).toBeInTheDocument(),
+    );
+
+    fireEvent.change(repetitions, { target: { value: "12" } });
+    await waitFor(() =>
+      expect(screen.queryByText(/^Max is/)).not.toBeInTheDocument(),
+    );
+    expect(screen.getByLabelText("Reps completed")).toHaveAttribute(
+      "aria-invalid",
+      "false",
+    );
+  });
 });
