@@ -323,6 +323,9 @@ Status: Implemented and targeted-Docker-verified 2026-08-08.
 - Private Me cards use a context label and distinct background for Challenge,
   Team progress, and Leaderboard reactions. Challenge copy comes from the
   trusted activity catalog rather than player-authored text.
+- Cheer feedback uses a lightweight success confirmation without exposing quota
+  math. The sixth cheer to one recipient in a rolling 30-minute window remains
+  in the picker and shows only an inline recovery message.
 - The connected 320-pixel journey proves that saving updates Home and Team,
   challenge eligibility is enforced by the API, and no raw result reaches a
   social response.

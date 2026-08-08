@@ -209,7 +209,7 @@ export interface ReactionBadge {
 
 export interface SendReactionResult {
   id: string;
-  remainingForRecipientToday: number;
+  remainingForRecipientWindow: number;
 }
 
 export interface SocialEntryProjection {

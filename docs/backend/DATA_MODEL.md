@@ -32,17 +32,17 @@ Club
 - `training_entries`: private structured result, effort/exhaustion, trusted timestamps, and soft deletion
 - `reactions`: predefined type, recipient, safe context snapshot, team-local day, read state, and idempotency key
 
-## Reaction daily limit
+## Reaction rolling limit
 
-The server resolves the team's IANA time zone and computes `team_day` as the calendar date containing `created_at` in that zone. Within one transaction it:
+The server retains `team_day` as a useful team-local projection, but the cheer limit uses `created_at` and a rolling 30-minute window. Within one transaction it:
 
 1. confirms sender/recipient membership and context authorization;
 2. checks for an existing `(sender, idempotency_key)` result;
-3. counts active reactions for `(sender, recipient, team_day)`;
+3. counts active reactions for `(sender, recipient)` newer than 30 minutes;
 4. rejects count 5 or greater;
 5. inserts the reaction with the computed `team_day`.
 
-The supporting composite index is not itself sufficient to enforce a maximum count. SQLite writes must use a transaction mode that prevents concurrent writers from both observing count 4; the repository implementation will use an immediate write transaction. Postgres will use an advisory or row lock around a per-pair/day quota record.
+The supporting indexes are not themselves sufficient to enforce a maximum count. SQLite writes use a transaction mode that prevents concurrent writers from both observing count 4. Postgres will use an advisory or row lock around the sender-recipient pair.
 
 ## Context vocabulary
 

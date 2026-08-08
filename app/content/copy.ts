@@ -85,10 +85,11 @@ export const copy = {
     pickerEyebrow: "Choose a cheer",
     pickerTitle: (name: string) => `Cheer for ${name}`,
     pickerContext: (context: string) => `For ${context}`,
-    sent: (emoji: string, name: string, remaining: number) =>
-      `${emoji} sent to ${name}! ${remaining} left today.`,
+    sent: (emoji: string, name: string) => `${emoji} sent to ${name}!`,
     close: "Close reaction picker",
     failed: "That cheer could not be sent.",
+    limitReached:
+      "You have sent five cheers to this teammate in the last 30 minutes. Try again soon.",
     contextLabels: {
       challenge: "Challenge",
       team_progress: "Team progress",

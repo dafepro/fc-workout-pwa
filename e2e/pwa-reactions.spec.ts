@@ -31,6 +31,7 @@ test("a teammate can be cheered from Team with labeled, contextual choices", asy
   await fire.click();
 
   await expect(page.getByRole("status")).toContainText("sent to Liam");
+  await expect(page.getByRole("status")).not.toContainText(/left|remaining/i);
   await expect
     .poll(() =>
       page
@@ -105,6 +106,29 @@ test("the picker is usable for a second teammate after a successful cheer", asyn
 
   await expect(page.getByRole("status")).toContainText("sent to Noah");
   await expect(secondPicker).toBeHidden();
+});
+
+test("the sixth cheer to one teammate within 30 minutes shows only the limit error", async ({
+  page,
+}) => {
+  await openReadyPage(page, "/team");
+
+  for (let index = 0; index < 5; index += 1) {
+    await page.getByRole("button", { name: /Cheer for Liam J\./ }).click();
+    const picker = page.getByRole("dialog", { name: "Cheer for Liam" });
+    await picker.getByRole("button", { name: "Send Fire to Liam" }).click();
+    await expect(picker).toBeHidden();
+  }
+
+  await page.getByRole("button", { name: /Cheer for Liam J\./ }).click();
+  const picker = page.getByRole("dialog", { name: "Cheer for Liam" });
+  await picker.getByRole("button", { name: "Send Fire to Liam" }).click();
+
+  await expect(picker.getByRole("alert")).toHaveText(
+    "You have sent five cheers to this teammate in the last 30 minutes. Try again soon.",
+  );
+  await expect(picker).toBeVisible();
+  await expect(page.getByRole("status")).toHaveCount(0);
 });
 
 test("leader cards retain leaderboard context and the current player is not reactable", async ({

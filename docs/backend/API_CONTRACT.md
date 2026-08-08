@@ -18,8 +18,8 @@ This contract is the review boundary between the ZoomiGo PWA and the milestone 2
 ```json
 {
   "error": {
-    "code": "reaction_daily_limit_reached",
-    "message": "You have sent the daily maximum to this teammate.",
+    "code": "reaction_rate_limit_reached",
+    "message": "You have sent five cheers to this teammate in the last 30 minutes. Try again soon.",
     "requestId": "req_opaque"
   }
 }
@@ -33,7 +33,7 @@ Expected status mapping:
 - `404` resource absent or intentionally concealed
 - `409` idempotency conflict
 - `422` valid JSON that violates a domain rule
-- `429` reaction daily limit reached
+- `429` reaction rolling rate limit reached
 - `500` unexpected server error with no sensitive detail
 
 ## Service health
@@ -204,10 +204,10 @@ Rules:
 
 - sender and recipient must be different active players on the same team;
 - reaction and context values must be predefined enums;
-- one sender may send at most five reactions to one recipient per team-local calendar day across all contexts;
+- one sender may send at most five reactions to one recipient in a rolling 30-minute window across all contexts;
 - the server snapshots only the approved context enum values, never raw rank or performance;
-- response includes `remainingForRecipientToday` from 0 through 4;
-- a sixth reaction returns `429 reaction_daily_limit_reached`;
+- response includes `remainingForRecipientWindow` from 0 through 4;
+- another reaction before the oldest counted reaction expires returns `429 reaction_rate_limit_reached`;
 - replaying a successful idempotency key returns the original result without consuming another allowance.
 - a newly created reaction returns `201`; a successful idempotency replay returns `200`.
 
