@@ -36,8 +36,41 @@ test("a player signs in from a QR fragment, stays signed in, and logs out", asyn
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page).toHaveURL(/\/login$/);
   await expect(
-    page.getByRole("heading", { name: "Player sign in" }),
+    page.getByRole("heading", { name: "Scan your QR code to sign in" }),
   ).toBeVisible();
+});
+
+// REQ-101 and REQ-102: without a scanned credential there is nothing a child
+// could type, so the page offers no PIN box at all -- only help and a quiet
+// staff door.
+test("landing on the sign-in page without a QR code offers no PIN field", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 720 });
+  await page.goto("/login");
+  await page.locator("html[data-app-ready='true']").waitFor();
+
+  await expect(page.locator("input[name='pin']")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Sign in" })).toHaveCount(0);
+  await expect(page.getByText("Ask a parent or coach")).toBeVisible();
+
+  const staffLink = page.getByRole("link", {
+    name: "Coaches and staff sign in",
+  });
+  await expect(staffLink).toHaveCount(1);
+  await staffLink.click();
+  await expect(
+    page.getByRole("heading", { name: "Coach and staff sign in" }),
+  ).toBeVisible();
+});
+
+// REQ-104: a live session should never be shown a sign-in page again.
+test("a signed-in player who reopens the sign-in page is sent home", async ({
+  page,
+}) => {
+  await loginAsMason(page);
+  await page.goto("/login");
+  await expect(page).toHaveURL(/\/$/);
 });
 
 test("the PIN field accepts exactly four digits before sending a login", async ({

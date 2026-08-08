@@ -34,14 +34,29 @@ export function sessionCookieName(request: Request): string {
     : LOCAL_SESSION_COOKIE;
 }
 
-export function readSessionCookie(request: Request): string | null {
-  const name = sessionCookieName(request);
-  const cookies = request.headers.get("cookie") ?? "";
-  for (const part of cookies.split(";")) {
+export function readCookie(cookieHeader: string, name: string): string | null {
+  for (const part of cookieHeader.split(";")) {
     const [key, ...value] = part.trim().split("=");
     if (key === name) return decodeURIComponent(value.join("="));
   }
   return null;
+}
+
+export function readSessionCookie(request: Request): string | null {
+  return readCookie(
+    request.headers.get("cookie") ?? "",
+    sessionCookieName(request),
+  );
+}
+
+// A server component has no Request, so it cannot tell the secure cookie name
+// from the local one the way sessionCookieName does. Both names are ours and
+// only one is ever set, so reading either is unambiguous.
+export function readAnySessionCookie(cookieHeader: string): string | null {
+  return (
+    readCookie(cookieHeader, SESSION_COOKIE) ??
+    readCookie(cookieHeader, LOCAL_SESSION_COOKIE)
+  );
 }
 
 export function setSessionCookie(

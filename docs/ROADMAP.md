@@ -261,12 +261,13 @@ rather than needing a release of its own.
 
 ### 9. Coach and operator console
 
-Status: **Designed 2026-08-08; ready to implement in phases**
+Status: **Designed 2026-08-08; phases 0–2 in progress**
 
 Full design and requirements: **`docs/STAFF_CONSOLE_DESIGN.md`**. That document
 owns the persona flows, the authority matrix, numbered requirements with
 acceptance criteria, the schema changes, and the phase order. Do not plan this
-item from the summary below.
+item from the summary below. Execution progress against it, and the decisions
+taken while implementing, are in **`docs/STAFF_CONSOLE_PROGRESS.md`**.
 
 Scope: structured roster and membership management, whole-team assignment
 creation from a predefined catalog, private assessment recording and history for

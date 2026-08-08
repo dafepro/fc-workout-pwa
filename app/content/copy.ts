@@ -57,9 +57,25 @@ export const copy = {
     loginIntro: "Scan your personal QR code, then enter your four-digit PIN.",
     pinLabel: "Four-digit PIN",
     remember: "Remember this device for 30 days",
-    missingQR: "Scan your player QR code first.",
     invalidPIN: "Enter the four-digit PIN from your parent or coach.",
     help: "Need help? Ask a parent or coach to reissue your QR code.",
+    // Landing here without a scan is not an error the child can type their way
+    // out of: the credential is the QR code, so the page offers no input at all.
+    scanTitle: "Scan your QR code to sign in",
+    scanBody:
+      "Your printed QR code is what signs you in. Point a phone camera at your own code and it will bring you back here.",
+    // Every sign-in failure says this, whatever actually went wrong, so that
+    // guessing at codes tells an attacker nothing.
+    signInFailed:
+      "That did not work. Ask a parent or coach to reissue your QR code.",
+    staffLink: "Coaches and staff sign in",
+  },
+  staff: {
+    signInTitle: "Coach and staff sign in",
+    signInIntro:
+      "This page is for coaches and staff. Players sign in by scanning their QR code.",
+    playerLink: "Player sign in",
+    comingSoon: "Staff sign in opens with the console.",
   },
   social: {
     teamLoading: "Loading team progress…",
