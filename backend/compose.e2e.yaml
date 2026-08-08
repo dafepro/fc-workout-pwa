@@ -11,6 +11,12 @@ services:
       ENABLE_E2E_FIXTURES: "true"
       E2E_RESET_KEY: local-e2e-reset-only
       TEAM_TIME_ZONE: America/Chicago
+      # The console needs a key for staff second factors and the URLs it builds
+      # a QR link and a setup link from. Test values only.
+      STAFF_SECRET_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+      PLAYER_LOGIN_URL: https://zoomigo.example/login
+      STAFF_SETUP_URL: https://zoomigo.example/staff/setup
+      PRODUCTION_DATA_APPROVED: "true"
       # Low enough that a test can trip it quickly, high enough that the browser
       # and API suites never collide with it.
       LOGIN_ATTEMPTS_PER_MINUTE: "20"
@@ -62,6 +68,7 @@ services:
       E2E_BACKUP_BINARY: /out/zoomigo-backup
       E2E_DATABASE_URL: file:/data/zoomigo-e2e.db
       E2E_RESET_KEY: local-e2e-reset-only
+      STAFF_SECRET_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
     volumes:
       - e2e-data:/data
 
