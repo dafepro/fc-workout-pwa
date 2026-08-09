@@ -335,3 +335,32 @@ operator with the Cloudflare token, and for a few hours it made the console
 unreachable rather than merely unprotected.
 
 What remains is in **Owed** above.
+
+### 2026-08-08 — enrolment by QR, and fresh operator credentials
+
+The enrolment step asked for a base32 secret and the whole otpauth URI to be
+read as text. On a phone that meant hand-copying a long string, and the URI was
+long enough to push the card wider than the screen. It is now a QR, encoded
+server-side beside the URI it draws, with manual entry behind a collapsed
+`<details>` — which is what actually removes the overflow, since the long
+strings are no longer laid out unless asked for.
+
+The encoder returns an empty string rather than an error when it fails, and the
+page renders the manual fallback unconditionally, so a failed encode is a worse
+enrolment rather than a stuck one. Both paths are covered: the Go test decodes
+the base64 as a PNG rather than checking it is non-empty, because a non-PNG
+string would render as a broken image and strand the enrolment.
+
+Released as `871b6b8` and verified against the live API, which returns a
+1149-byte PNG for a real setup token.
+
+The operator's credentials were reissued with `reset-staff-credential`, which
+revokes the previous setup token and temporary password. Those had been printed
+into an assistant transcript, and the account had never completed setup, so
+there was nothing to preserve. The account ID is unchanged: the CLI has
+`create-*` and `reset-staff-credential` but no delete verb, so "a new operator"
+here means new credentials on the same account rather than a new row.
+
+Also removed the `command` parameter in `vite.config.ts`, dead since `3eb0ff3`.
+It had been reported as clean by a filtered lint run; the unfiltered one showed
+the warning.
