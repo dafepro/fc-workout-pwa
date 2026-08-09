@@ -15,6 +15,8 @@ interface Enrollment {
   email: string;
   secret: string;
   provisioningUri: string;
+  /** Absent when the server could not encode it; the setup key is the fallback. */
+  qrPngBase64?: string;
 }
 
 type Step =
@@ -186,18 +188,33 @@ function EnrollStep({
     <>
       <h2>{staffCopy.setup.enrollTitle}</h2>
       <p className="login-help">{staffCopy.setup.enrollIntro}</p>
-      <dl className="console-facts console-facts--light">
-        <dt>{staffCopy.setup.accountLabel}</dt>
-        <dd>{enrollment.email}</dd>
-        <dt>{staffCopy.setup.secretLabel}</dt>
-        <dd className="console-facts__code">{enrollment.secret}</dd>
-        <dt>{staffCopy.setup.uriLabel}</dt>
-        {/* Rendered as text as well as a link: a phone can follow it, and a
-            desktop can be read from while typing into a phone. */}
-        <dd className="console-facts__code">
-          <a href={enrollment.provisioningUri}>{enrollment.provisioningUri}</a>
-        </dd>
-      </dl>
+      {/* Rendered from the response bytes, as the player QR is: the page adds
+          no QR dependency, and a data URL must not be routed through the image
+          optimizer. Absent when the encoding failed, which is why the manual
+          fallback below is always present rather than conditional on it. */}
+      {enrollment.qrPngBase64 ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          className="setup-qr"
+          src={`data:image/png;base64,${enrollment.qrPngBase64}`}
+          alt={staffCopy.setup.qrAlt}
+          width={512}
+          height={512}
+        />
+      ) : null}
+      <details className="setup-manual">
+        <summary>{staffCopy.setup.manualTitle}</summary>
+        <p className="console-hint">{staffCopy.setup.manualIntro}</p>
+        <p>
+          <a href={enrollment.provisioningUri}>{staffCopy.setup.uriLink}</a>
+        </p>
+        <dl className="console-facts console-facts--light">
+          <dt>{staffCopy.setup.accountLabel}</dt>
+          <dd>{enrollment.email}</dd>
+          <dt>{staffCopy.setup.secretLabel}</dt>
+          <dd className="console-facts__code">{enrollment.secret}</dd>
+        </dl>
+      </details>
       <form onSubmit={submit} noValidate data-step="enroll">
         <label htmlFor="new-password">{staffCopy.setup.newPasswordLabel}</label>
         <input

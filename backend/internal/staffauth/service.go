@@ -93,6 +93,8 @@ type Enrollment struct {
 	Email           string `json:"email"`
 	Secret          string `json:"secret"`
 	ProvisioningURI string `json:"provisioningUri"`
+	// Empty when the encoding failed; the page falls back to the setup key.
+	QRPngBase64 string `json:"qrPngBase64,omitempty"`
 }
 
 type SetupResult struct {
@@ -401,7 +403,13 @@ func (service *Service) BeginSetup(ctx context.Context, setupToken, temporaryPas
 	if err = tx.Commit(); err != nil {
 		return Enrollment{}, err
 	}
-	return Enrollment{Email: email, Secret: totpSecretBase32(secret), ProvisioningURI: totpProvisioningURI(email, secret)}, nil
+	uri := totpProvisioningURI(email, secret)
+	return Enrollment{
+		Email:           email,
+		Secret:          totpSecretBase32(secret),
+		ProvisioningURI: uri,
+		QRPngBase64:     totpProvisioningQR(uri),
+	}, nil
 }
 
 // CompleteSetup sets the chosen password, confirms the enrolment, spends the

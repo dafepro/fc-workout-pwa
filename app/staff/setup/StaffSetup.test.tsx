@@ -20,7 +20,7 @@ vi.mock("next/link", () => ({
   }) => <a href={href}>{children}</a>,
 }));
 
-function stubBackend() {
+function stubBackend({ withoutQr = false }: { withoutQr?: boolean } = {}) {
   const calls: Record<string, unknown>[] = [];
   vi.stubGlobal(
     "fetch",
@@ -34,6 +34,8 @@ function stubBackend() {
             secret: "JBSWY3DPEHPK3PXP",
             provisioningUri:
               "otpauth://totp/ZoomiGo:coach@example.test?secret=x",
+            // Omitted exactly as the service omits it when encoding failed.
+            ...(withoutQr ? {} : { qrPngBase64: "aVZCT1J3MEtHZ28=" }),
           },
           { status: 200 },
         );
@@ -55,7 +57,8 @@ function openWithFragment(fragment: string) {
   return render(<StaffSetup />);
 }
 
-async function reachEnrollStep() {
+async function reachEnrollStep({ withoutQr = false } = {}) {
+  if (withoutQr) stubBackend({ withoutQr: true });
   openWithFragment("#setup=one-time-setup-token");
   fireEvent.change(await screen.findByLabelText("Temporary password"), {
     target: { value: "handed-over-in-person" },
@@ -115,15 +118,30 @@ describe("staff setup", () => {
     expect(calls).toHaveLength(0);
   });
 
-  it("shows the enrollment key and the otpauth URI as readable text", async () => {
+  it("offers the QR to scan, with the key and URI still reachable behind it", async () => {
     await reachEnrollStep();
 
+    const qr = screen.getByRole("img", { name: "Authenticator setup QR code" });
+    expect(qr).toHaveAttribute("src", "data:image/png;base64,aVZCT1J3MEtHZ28=");
+
+    // The fallback is collapsed but present in the document, so a phone that
+    // cannot scan is never stranded.
     expect(screen.getByText("JBSWY3DPEHPK3PXP")).toBeInTheDocument();
     expect(
-      screen.getByRole("link", {
-        name: "otpauth://totp/ZoomiGo:coach@example.test?secret=x",
-      }),
-    ).toBeInTheDocument();
+      screen.getByRole("link", { name: "Open in your authenticator app" }),
+    ).toHaveAttribute(
+      "href",
+      "otpauth://totp/ZoomiGo:coach@example.test?secret=x",
+    );
+  });
+
+  it("still enrolls when the server could not encode the QR", async () => {
+    await reachEnrollStep({ withoutQr: true });
+
+    expect(
+      screen.queryByRole("img", { name: "Authenticator setup QR code" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("JBSWY3DPEHPK3PXP")).toBeInTheDocument();
   });
 
   it("rejects a password under twelve characters without sending it", async () => {
