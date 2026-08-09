@@ -18,6 +18,11 @@ const (
 	// they leave credential spraying far too slow to be useful.
 	defaultLoginAttemptsPerMinute       = 30
 	defaultGlobalLoginAttemptsPerMinute = 120
+	// Staff counts a handful of coaches and operators rather than a squad's
+	// worth of parents, so its own ceiling is far lower. It is separate from the
+	// player ceiling so a flood against the public player endpoint cannot spend
+	// the budget console sign-in needs.
+	defaultStaffGlobalLoginAttemptsPerMinute = 30
 )
 
 type Config struct {
@@ -31,8 +36,9 @@ type Config struct {
 	EnableE2EFixtures bool
 	E2EResetKey       string
 	// Zero disables the corresponding login throttle.
-	LoginAttemptsPerMinute       int
-	GlobalLoginAttemptsPerMinute int
+	LoginAttemptsPerMinute            int
+	GlobalLoginAttemptsPerMinute      int
+	StaffGlobalLoginAttemptsPerMinute int
 	// Absolute https URL the console builds a player's QR link from. Absent,
 	// the console can still provision but cannot reveal a scannable code.
 	PlayerLoginURL string
@@ -96,6 +102,10 @@ func Load(getenv func(string) string) (Config, error) {
 		return Config{}, err
 	}
 	cfg.GlobalLoginAttemptsPerMinute, err = attemptRate(getenv, "GLOBAL_LOGIN_ATTEMPTS_PER_MINUTE", defaultGlobalLoginAttemptsPerMinute)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.StaffGlobalLoginAttemptsPerMinute, err = attemptRate(getenv, "STAFF_GLOBAL_LOGIN_ATTEMPTS_PER_MINUTE", defaultStaffGlobalLoginAttemptsPerMinute)
 	if err != nil {
 		return Config{}, err
 	}

@@ -36,9 +36,15 @@ var (
 )
 
 // Slot admits one Argon2 derivation at a time. The VM has 512 MiB and each
-// derivation reserves 64 MiB, so this is a memory limit rather than a fairness
-// one, and it has to be shared by every credential path or the limit is
-// whatever the paths add up to.
+// derivation reserves 64 MiB, so this is first a memory limit.
+//
+// Player and staff sign-in hold one of these each rather than sharing a single
+// one. Sharing kept the ceiling at 64 MiB, but it also meant the two paths
+// competed: the player endpoint is necessarily public, and a flood against it
+// took the only slot and left every coach's console sign-in answering "staff
+// login busy". Two slots put the ceiling at 128 MiB, which the 512 MiB VM
+// carries, and neither path can starve the other. Widening either one past a
+// single token is what the memory budget actually forbids.
 type Slot struct{ tokens chan struct{} }
 
 func NewSlot() *Slot { return &Slot{tokens: make(chan struct{}, 1)} }
@@ -90,10 +96,6 @@ func NewService(db *sql.DB) *Service { return NewServiceWithSlot(db, NewSlot()) 
 func NewServiceWithSlot(db *sql.DB, slot *Slot) *Service {
 	return &Service{db: db, now: time.Now, loginSlots: slot}
 }
-
-// Slot exposes the limiter so the staff path shares it rather than adding a
-// second 64 MiB budget beside this one.
-func (service *Service) Slot() *Slot { return service.loginSlots }
 
 func (service *Service) Authenticate(ctx context.Context, bearerToken string) (domain.Actor, error) {
 	session, actor, err := service.lookupSession(ctx, bearerToken)

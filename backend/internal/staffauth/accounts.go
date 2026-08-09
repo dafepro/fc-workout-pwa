@@ -311,15 +311,28 @@ func issueSetupToken(ctx context.Context, tx executor, accountID string, now tim
 	return StaffInvitation{SetupToken: token, ExpiresAt: stamp(expires)}, nil
 }
 
-// The token rides in the fragment, exactly as the player QR credential does, so
-// it never reaches a server log, an access log, or a Referer header.
+// The token rides in the query rather than the fragment, unlike the player QR
+// credential, because /staff sits behind Cloudflare Access. Access answers the
+// first request with a redirect to its one-time-PIN flow, and a fragment does
+// not survive that round trip: it never reaches Access to be echoed back, and
+// the cross-origin PIN form POST breaks the redirect chain the browser would
+// otherwise use to reattach it. The invitee landed on the setup page with no
+// token and was told to reopen a link that had already been spent.
+//
+// The cost is that the token now appears in edge and proxy access logs. It is
+// single-use, expires in a week, and is worthless without the temporary
+// password, and the people who can read those logs can already mint a new one
+// with the operator CLI. StaffSetup strips it from history on load.
 func setupLink(raw, token string) (string, error) {
 	parsed, err := url.Parse(raw)
 	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil {
 		return "", errors.New("setup URL must be an absolute https URL")
 	}
 	parsed.RawFragment = ""
-	parsed.Fragment = "setup=" + token
+	parsed.Fragment = ""
+	query := parsed.Query()
+	query.Set("setup", token)
+	parsed.RawQuery = query.Encode()
 	return parsed.String(), nil
 }
 

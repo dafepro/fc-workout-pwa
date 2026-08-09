@@ -43,10 +43,11 @@ func run() error {
 	}
 	repository := store.New(db, cfg.TeamTimeZone)
 	sessions := authn.NewService(db)
-	// One Argon2 budget for both credential paths: each derivation reserves
-	// 64 MiB and the VM has 512 MiB, so two independent limits would be no
-	// limit at all.
-	staff := staffauth.NewService(db, cfg.StaffSecretKey, sessions.Slot())
+	// A separate Argon2 slot from the player path. Sharing one held the
+	// ceiling at 64 MiB but let a flood against the public player endpoint
+	// starve console sign-in; 128 MiB of ceiling is the price of keeping the
+	// two independent, and the 512 MiB VM carries it.
+	staff := staffauth.NewService(db, cfg.StaffSecretKey, authn.NewSlot())
 	if !staff.Configured() {
 		slog.Warn("staff sign in is disabled because STAFF_SECRET_KEY is not set")
 	}
