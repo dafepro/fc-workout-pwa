@@ -242,8 +242,10 @@ otherwise use to reattach it. The invitee arrived at `/staff/setup` with no
 token and was told to reopen a link that had already been spent. The token is
 therefore in edge and proxy logs; it is single-use, expires in a week, is
 useless without the temporary password, and anyone who can read those logs can
-already mint a replacement with the operator CLI. The page still accepts a
-fragment so invitations issued before this change keep working.
+already mint a replacement with the operator CLI. The page does not read a
+fragment at all: one that reached the page could not still hold a token, and
+accepting both forms only invited someone to make the fragment primary again
+and rediscover that it cannot cross the gate.
 
 **F-S9 — Staff loses their second factor.** Only the operator can reset a staff
 password or TOTP enrollment, and the reset revokes every existing session for

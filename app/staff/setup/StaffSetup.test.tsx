@@ -118,14 +118,16 @@ describe("staff setup", () => {
     expect(calls).toHaveLength(0);
   });
 
-  // Cloudflare Access drops the fragment across its one-time-PIN redirect, so
-  // the query is the live form. Invitations issued before the change are good
-  // for a week and still arrive with a fragment.
-  it("still accepts a token in the fragment, and strips that too", async () => {
+  // Cloudflare Access drops the fragment across its one-time-PIN redirect, so a
+  // fragment link cannot have reached this page with a token intact. Refusing
+  // it keeps the query the only form anyone can build against.
+  it("refuses a token in the fragment", async () => {
     openWith("#setup=one-time-setup-token");
 
-    await screen.findByLabelText("Temporary password");
-    await waitFor(() => expect(window.location.hash).toBe(""));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "This page needs the one-time setup link.",
+    );
+    expect(screen.queryByLabelText("Temporary password")).toBeNull();
   });
 
   it("keeps any other query parameter while removing the token", async () => {

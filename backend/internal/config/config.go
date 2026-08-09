@@ -18,11 +18,18 @@ const (
 	// they leave credential spraying far too slow to be useful.
 	defaultLoginAttemptsPerMinute       = 30
 	defaultGlobalLoginAttemptsPerMinute = 120
-	// Staff counts a handful of coaches and operators rather than a squad's
-	// worth of parents, so its own ceiling is far lower. It is separate from the
-	// player ceiling so a flood against the public player endpoint cannot spend
-	// the budget console sign-in needs.
-	defaultStaffGlobalLoginAttemptsPerMinute = 30
+	// Separate from the player ceiling so a flood against the player endpoint
+	// cannot spend the budget console sign-in needs.
+	//
+	// Not lower than the player ceiling, though staff is a handful of people
+	// rather than a squad's worth of parents. A global bucket is a backstop
+	// against a spray spread over too many addresses for the per-address limit
+	// to see, and it is shared-fate by construction: whoever empties it locks
+	// out everyone on that path. The staff endpoints answer on the public API
+	// hostname, not behind the console's edge gate, so sizing this to real
+	// staff volume would have handed an attacker a coach lockout for 30
+	// requests a minute.
+	defaultStaffGlobalLoginAttemptsPerMinute = 120
 )
 
 type Config struct {
