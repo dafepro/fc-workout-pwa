@@ -1,0 +1,12 @@
+# The staff console answers on the same hostname as the player app. Access used
+# to cover all of /staff and kept crawlers out as a side effect; it now covers
+# only /staff/admin, so the coach console and the setup page are reachable and
+# have to say this for themselves. Sitting a password form on a crawlable path
+# is also how a small domain earns a Safe Browsing interstitial.
+#
+# This is a request, not a control. The pages carry `noindex` as well, and
+# neither is what keeps anyone out -- that is staff sign-in and the API's
+# per-request authorization.
+User-agent: *
+Disallow: /staff
+Disallow: /login

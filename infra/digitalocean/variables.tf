@@ -121,7 +121,7 @@ variable "cloudflare_account_id" {
 }
 
 variable "staff_console_email_addresses" {
-  description = "Email addresses allowed through the staff console access gate. Named addresses only: this surface can read every child in every club."
+  description = "Email addresses allowed through the admin console access gate at /staff/admin. Named addresses only: this surface can read every child in every club. Coaches do not belong here and do not need an entry to be invited."
   type        = list(string)
   sensitive   = true
 

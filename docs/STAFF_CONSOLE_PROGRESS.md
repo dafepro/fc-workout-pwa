@@ -53,8 +53,8 @@ completes it, the coach sees the completion — is still owed against the releas
 build.
 
 **REQ-402 no longer has a test.** Its evidence is now a production check
-(`/staff/*` redirects to the Access login, `/` does not), recorded in the log
-below and repeatable by hand, rather than anything CI runs.
+(`/staff/admin` redirects to the Access login, `/staff/sign-in` and `/` do not),
+recorded in the log below and repeatable by hand, rather than anything CI runs.
 
 **CLI deactivation is unaudited.** `deactivate-staff` and `deactivate-player`
 both write no audit row, because `admin_audit_events` requires an actor account
@@ -63,10 +63,20 @@ should leave a trace. The fix is an actor concept for CLI invocations, or a
 nullable actor with a source column; neither belongs in a change made to unblock
 a release.
 
-**Inviting staff means two systems.** A new account also needs its address in
-`STAFF_CONSOLE_EMAIL_ADDRESSES` and an `infra.yml` apply, or Access refuses them
-before the console is ever reached. The console gives no hint that this second
-step exists, so it will be forgotten.
+**Inviting a platform admin still means two systems.** Their address also needs
+to be in `STAFF_CONSOLE_EMAIL_ADDRESSES` with an `infra.yml` apply, or Access
+refuses them at `/staff/admin`. The console gives no hint that this second step
+exists, so it will be forgotten; the symptom is a staff sign-in that works and
+operator screens that bounce. Coaches no longer need it — the gate narrowed to
+`/staff/admin` for exactly this reason — so what is left is a smaller, rarer
+version of the same trap rather than a fixed one.
+
+**The console data gateway is role-blind.** `app/staff/api/backend/[...path]`
+allowlists methods and paths, not roles, and it now sits outside the Access
+application. A coach's browser can call the operator endpoints through it and
+gets a 403 from the backend rather than from the proxy. An operator-only
+gateway under `/staff/admin/api/` would move that refusal a layer earlier and
+back inside the gate.
 
 ## Log
 

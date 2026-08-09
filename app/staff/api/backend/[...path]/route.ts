@@ -8,10 +8,19 @@ import { readStaffCookie } from "../../staff-cookie";
 import { backendOrResponse, unavailable } from "../../upstream";
 
 /**
- * The console's data gateway. It lives under `/staff/api/` deliberately: the
- * Cloudflare Access application in `infra/digitalocean/access.tf` covers
- * `/staff/*` only, so a gateway anywhere else would sit outside it and lose one
- * of SEC-5's three layers.
+ * The console's data gateway, shared by coach and operator screens.
+ *
+ * It used to sit inside the Access application's coverage, which reached all of
+ * `/staff/*`. That application now covers `/staff/admin` only, so this gateway
+ * is outside it and the edge no longer stands in front of these calls. Little
+ * changes in practice: it proxies to the API hostname, which Access never
+ * covered, and the backend authorizes every request on its own — an operator
+ * path reached with a coach's cookie answers 403 whichever side of the gate the
+ * proxy sits on (REQ-301, SEC-5).
+ *
+ * Splitting an operator-only gateway under `/staff/admin/api/` would put these
+ * calls back behind the gate and filter by role a layer earlier. It is worth
+ * doing and is not done; the allowlist below is role-blind.
  *
  * Only these exact shapes are proxied. An arbitrary backend path is never
  * reachable through the browser.
