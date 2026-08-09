@@ -524,10 +524,25 @@ a player route.
 _AC:_ a production build shows no console module in the entry graph reachable
 from `/`, `/log`, `/team`, `/leaders`, or `/me`.
 
-**REQ-402.** An independent access gate sits in front of the console path,
-separate from and in addition to application authentication.
-_AC:_ an unauthenticated request to a console path is refused by the gate before
+**REQ-402.** An independent access gate sits in front of the operator console
+path, separate from and in addition to application authentication.
+_AC:_ an unauthenticated request to `/staff/admin` is refused by the gate before
 the application renders anything. The gate mechanism is an open decision.
+
+The gate covers `/staff/admin`, not all of `/staff`. It covered the whole prefix
+first, and that made an infra apply a prerequisite for inviting a coach: the
+allowlist is named addresses, so a new coach could not open their own setup link
+until Terraform had run, and nothing in the console said so. Narrowing it also
+costs less than the shape suggests. The staff API answers on the API hostname,
+which this gate does not cover and never did, so what sat behind it was the
+browser bundle rather than the roster. Coach screens rest on staff sign-in,
+TOTP, and per-request authorization, which is where enforcement already lived;
+the named-address gate stays over the screens that can reach every club.
+
+The consequence to hold onto: `/staff/sign-in` and `/staff/setup` are now
+publicly reachable, so the login throttle and the per-account lockout are what
+stands in front of staff credentials, not the edge. Both paths carry `noindex`
+and a `robots.txt` entry, which is hygiene rather than a control.
 
 **REQ-403.** The console is usable at 320 CSS pixels and with a keyboard and
 screen reader, using semantic HTML and native controls, per `AGENTS.md`.

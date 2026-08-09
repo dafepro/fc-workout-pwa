@@ -121,6 +121,11 @@ staff account has to re-enrol. `STAFF_CONSOLE_EMAIL_ADDRESSES` is the Access
 allowlist: Access admits by exact address and mails the one-time PIN there, so a
 wrong value locks the console rather than merely looking untidy.
 
+That allowlist covers `/staff/admin` only. Platform admins need an entry before
+they can open the operator screens; coaches need none, and adding one for a
+coach grants them nothing the console would not already give them. Inviting a
+coach is an application act with no infra step — see "Inviting staff" below.
+
 ```sh
 gh secret set STAFF_SECRET_KEY --env production --body "$(head -c 32 /dev/urandom | base64)"
 gh variable set PLAYER_LOGIN_URL --env production --body 'https://PWA_HOSTNAME/login'
@@ -275,10 +280,27 @@ this is a larger decision than it looks. The account can reach nothing but the
 setup page until it has chosen a password and enrolled a second factor.
 
 Pass the whole URL along unaltered. The token is in the query rather than the
-fragment because `/staff` sits behind Access, and Access's one-time-PIN
-redirect cannot carry a fragment back to the page that needs it; an invitee
-who went through the PIN flow used to land on the setup page with no token and
-be told to reopen a link they had already spent.
+fragment because a fragment cannot cross an Access redirect: it never reaches
+Cloudflare to be echoed back, and the cross-origin PIN form POST breaks the
+chain a browser would otherwise use to reattach it. An invitee who went through
+the PIN flow used to land on the setup page with no token and be told to reopen
+a link they had already spent. `/staff/setup` no longer sits behind Access, so
+a coach meets no PIN prompt at all, but a platform admin still crosses the gate
+on their way to `/staff/admin` and the query form is what survives it.
+
+## Inviting staff
+
+A coach needs no infra change. Create the account — `create-operator` for the
+CLI, or Accounts in the admin console — hand over the setup URL and temporary
+password, and they are done. `/staff`, `/staff/sign-in`, and `/staff/setup` are
+not behind Access.
+
+A platform admin needs one more step, and it is easy to forget because the
+console cannot tell you: add their address to `STAFF_CONSOLE_EMAIL_ADDRESSES`
+and run `infra.yml` with `action: apply`. Until that lands they can finish setup
+and sign in, but `/staff/admin` answers with the Access PIN prompt and refuses
+the address. Symptom to recognise: a working staff sign-in that bounces at the
+operator screens.
 
 `reset-staff-credential --email ...` issues a fresh pair and ends every session
 that account holds. `list-staff` shows who exists and whether they finished
