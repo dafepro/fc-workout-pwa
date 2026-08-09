@@ -32,8 +32,9 @@ type Step =
  * stripped from history on load, so it leaves the back button and any `Referer`
  * even though the edge has already logged it.
  *
- * The fragment is still read as a fallback: invitations issued before the query
- * form landed are valid for a week and have to keep working.
+ * A fragment is not read. Every link that carried one has been spent or
+ * reissued, and accepting both forms only invited someone to reintroduce the
+ * fragment as the primary and rediscover that it cannot cross the gate.
  */
 export function StaffSetup() {
   const router = useRouter();
@@ -42,8 +43,7 @@ export function StaffSetup() {
 
   useEffect(() => {
     const query = new URLSearchParams(location.search);
-    const fragment = new URLSearchParams(location.hash.slice(1));
-    const setupToken = query.get("setup") ?? fragment.get("setup") ?? "";
+    const setupToken = query.get("setup") ?? "";
     query.delete("setup");
     const rest = query.toString();
     history.replaceState(

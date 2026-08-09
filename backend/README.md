@@ -39,7 +39,7 @@ Health endpoints:
 | `SHUTDOWN_TIMEOUT`                       | `10s`                   | Graceful HTTP shutdown deadline                           |
 | `LOGIN_ATTEMPTS_PER_MINUTE`              | `30`                    | Sign-in attempts allowed per client address; `0` disables |
 | `GLOBAL_LOGIN_ATTEMPTS_PER_MINUTE`       | `120`                   | Player sign-in attempts across all clients; `0` disables  |
-| `STAFF_GLOBAL_LOGIN_ATTEMPTS_PER_MINUTE` | `30`                    | Staff sign-in attempts across all clients; `0` disables   |
+| `STAFF_GLOBAL_LOGIN_ATTEMPTS_PER_MINUTE` | `120`                   | Staff sign-in attempts across all clients; `0` disables   |
 
 The login throttle keys on `CF-Connecting-IP`, and honours it only when the
 request arrives from a loopback or private peer. The DigitalOcean firewall opens
@@ -50,7 +50,11 @@ for a spray spread across many addresses, which per-address budgets cannot see.
 Player and staff sign-in count against separate global budgets. One shared
 budget let a flood against the public player endpoint spend what console
 sign-in needed, so a coach was refused before reaching a handler. The
-per-address limit is the same for both.
+per-address limit is the same for both, and so is the global one: a global
+bucket is shared-fate, so sizing the staff one to real staff volume would only
+have made a coach lockout cheaper to buy. Both staff and player endpoints
+answer on this public API hostname; the console's edge gate covers the browser
+UI on the PWA hostname, not these.
 
 `ENABLE_E2E_FIXTURES` and `E2E_RESET_KEY` exist only for the local E2E stack. Fixtures require all of an `e2e`-tagged binary, `APP_ENV=e2e`, and the explicit enable flag. A normal production build rejects them.
 
