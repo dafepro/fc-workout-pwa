@@ -323,9 +323,10 @@ recorded above, which is weaker and worth knowing.
 Released `3eb0ff3`, which carried both the gate removal and phase 3. Verified
 after the deploy: `/staff` still redirects to the Access login, the player app
 still returns 200, and the API is ready. `STAFF_CONSOLE_GATE_KEY` is deleted
-from the `production` environment; the Worker secret of the same name is now
-orphaned — nothing reads it, and it can be dropped with `wrangler secret delete`
-whenever someone next holds the Cloudflare token.
+from the `production` environment, and the orphaned Worker secret of the same
+name was deleted the same day, so no trace of the interim gate remains in
+either place it lived. Deleting it republishes the Worker; `/staff`, `/login`,
+the player app, and the API were all re-checked afterwards and unaffected.
 
 The old phrase was never recovered and did not need to be. That is worth
 recording as the argument against interim shared secrets generally: it was
