@@ -31,28 +31,30 @@ These closed open items from `STAFF_CONSOLE_DESIGN.md` §8 and are recorded in
 
 ## Phase status
 
-| Phase                | Requirements                             | Status                                                                       |
-| -------------------- | ---------------------------------------- | ---------------------------------------------------------------------------- |
-| 0 — sign-in entry    | REQ-101–105                              | Complete                                                                     |
-| 1 — staff identity   | REQ-106, 107, 201–208, 301–305, 401, 402 | Complete                                                                     |
-| 2 — operator console | REQ-601–610, 701–704                     | Complete                                                                     |
-| 3 — coach console    | Migration D, REQ-501–506, 403, 404       | Built; not yet released, below                                               |
-| Access gate          | REQ-402                                  | Cloudflare Access applied 2026-08-08; interim gate removed, awaiting release |
-| Release              | —                                        | Phases 0–2 released 2026-08-08 as `960f34e`; phase 3 awaits its own release  |
-| First operator       | —                                        | Created 2026-08-08 for the project operator; setup link not yet redeemed     |
+| Phase                | Requirements                             | Status                                                                   |
+| -------------------- | ---------------------------------------- | ------------------------------------------------------------------------ |
+| 0 — sign-in entry    | REQ-101–105                              | Complete                                                                 |
+| 1 — staff identity   | REQ-106, 107, 201–208, 301–305, 401, 402 | Complete                                                                 |
+| 2 — operator console | REQ-601–610, 701–704                     | Complete                                                                 |
+| 3 — coach console    | Migration D, REQ-501–506, 403, 404       | Released 2026-08-08 as `3eb0ff3`, E2E pass still owed, below             |
+| Access gate          | REQ-402                                  | Cloudflare Access live 2026-08-08; interim gate removed and released     |
+| Release              | —                                        | Phases 0–3 released 2026-08-08 as `3eb0ff3`                              |
+| First operator       | —                                        | Created 2026-08-08 for the project operator; setup link not yet redeemed |
 
-## Blocked
+## Owed
 
-**The console is unreachable until the next release ships.** Access is live at
-the edge, but the deployed Worker still carries the interim passphrase gate,
-and the phrase itself is not recoverable — it exists only as a GitHub secret and
-a Worker secret, both write-only by design. So a browser today clears Access and
-is then asked for a phrase nobody holds. The commit that removes the gate is on
-`main`; releasing it clears this.
+**Phase 3 shipped without its full-seam Docker E2E pass.** It rode the release
+that removed the interim gate, because that removal was what made the console
+reachable at all and the two could not be separated without diverging `main`
+from production. That was a deliberate call with one alpha user, not an
+oversight. The pass phase 3's own section describes — operator creates a coach,
+the coach completes setup, provisions a player, sets an assignment, the player
+completes it, the coach sees the completion — is still owed against the released
+build.
 
-That release also ships phase 3, which has not had the full-seam Docker E2E pass
-its own section says it owes. Phase 3's release and this fix are now the same
-release, and that is the thing to decide before dispatching it.
+**REQ-402 no longer has a test.** Its evidence is now a production check
+(`/staff/*` redirects to the Access login, `/` does not), recorded in the log
+below and repeatable by hand, rather than anything CI runs.
 
 ## Log
 
@@ -315,3 +317,20 @@ equivalent, so there is nothing to point it at. The remaining tests now start at
 `/staff/admin` and land on `/staff/sign-in`, which is what a browser past Access
 actually sees. REQ-402's evidence moves from the suite to the production check
 recorded above, which is weaker and worth knowing.
+
+### 2026-08-08 — released, and the console is reachable
+
+Released `3eb0ff3`, which carried both the gate removal and phase 3. Verified
+after the deploy: `/staff` still redirects to the Access login, the player app
+still returns 200, and the API is ready. `STAFF_CONSOLE_GATE_KEY` is deleted
+from the `production` environment; the Worker secret of the same name is now
+orphaned — nothing reads it, and it can be dropped with `wrangler secret delete`
+whenever someone next holds the Cloudflare token.
+
+The old phrase was never recovered and did not need to be. That is worth
+recording as the argument against interim shared secrets generally: it was
+write-only in both places it lived, so the only ways out were a release or an
+operator with the Cloudflare token, and for a few hours it made the console
+unreachable rather than merely unprotected.
+
+What remains is in **Owed** above.
