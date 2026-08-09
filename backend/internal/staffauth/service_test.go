@@ -121,6 +121,79 @@ func TestEnrollmentCarriesAScannableQR(t *testing.T) {
 	}
 }
 
+// Deactivation has to end access and free the address. The address half is the
+// one that breaks quietly: email_identity is UNIQUE regardless of revoked_at
+// and CreateStaffAccount refuses an address any row still holds, so revoking
+// alone would make the address unusable forever.
+func TestDeactivatingStaffEndsAccessAndFreesTheAddress(t *testing.T) {
+	now := time.Date(2026, time.August, 8, 12, 0, 0, 0, time.UTC)
+	service, _ := newService(t, &now)
+	ctx := context.Background()
+	accountID, password, secret := enrolledOperator(t, service, &now)
+
+	now = now.Add(time.Minute)
+	session := signIn(t, service, password, secret, now)
+
+	summary, err := service.DeactivateStaff(ctx, accountID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if summary.Email != "operator@example.test" || summary.Status != "disabled" {
+		t.Fatalf("summary = %+v, want the disabled operator with its address intact", summary)
+	}
+
+	// The live session dies with the account, not at its own expiry.
+	if _, err = service.Authenticate(ctx, session.Token); err == nil {
+		t.Fatal("a session outlived the account it belonged to")
+	}
+	// And the password no longer opens anything.
+	if _, err = service.BeginSignIn(ctx, "operator@example.test", password); err == nil {
+		t.Fatal("the password still starts a sign-in after deactivation")
+	}
+
+	// The point of the tombstone: the same person can be re-created.
+	invitation, err := service.CreateStaffAccount(ctx, domain.RolePlatformAdmin, "", "Operator@Example.test", "")
+	if err != nil {
+		t.Fatalf("the address was not freed: %v", err)
+	}
+	if invitation.AccountID == accountID {
+		t.Fatal("re-creating reused the disabled account rather than making a new one")
+	}
+	// Nothing was erased: the disabled row is still there.
+	var disabled int
+	if err = service.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM accounts WHERE id = ? AND status = 'disabled'`, accountID).Scan(&disabled); err != nil {
+		t.Fatal(err)
+	}
+	if disabled != 1 {
+		t.Fatal("the deactivated account row was erased rather than disabled")
+	}
+}
+
+// A deactivated account must not be listed as staff, or it reads as usable.
+func TestDeactivatedStaffLeavesTheRoster(t *testing.T) {
+	now := time.Date(2026, time.August, 8, 12, 0, 0, 0, time.UTC)
+	service, _ := newService(t, &now)
+	ctx := context.Background()
+	accountID, _, _ := enrolledOperator(t, service, &now)
+
+	if _, err := service.DeactivateStaff(ctx, accountID); err != nil {
+		t.Fatal(err)
+	}
+	staff, err := service.ListStaff(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(staff) != 0 {
+		t.Fatalf("list-staff = %+v, want the deactivated account gone", staff)
+	}
+	// And it cannot be deactivated twice, which would otherwise re-tombstone
+	// an already-tombstoned address.
+	if _, err = service.DeactivateStaff(ctx, accountID); err == nil {
+		t.Fatal("deactivating twice succeeded")
+	}
+}
+
 // REQ-106: a password alone is never a session, however correct it is.
 func TestAPasswordAloneMintsNoSession(t *testing.T) {
 	now := time.Date(2026, time.August, 8, 12, 0, 0, 0, time.UTC)
