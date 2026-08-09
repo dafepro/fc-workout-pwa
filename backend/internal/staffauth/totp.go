@@ -8,12 +8,15 @@ import (
 	"crypto/sha1"
 	"crypto/subtle"
 	"encoding/base32"
+	"encoding/base64"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"net/url"
 	"strings"
 	"time"
+
+	qrcode "github.com/skip2/go-qrcode"
 )
 
 // RFC 6238 with the parameters every authenticator app assumes by default:
@@ -84,6 +87,23 @@ func totpProvisioningURI(email string, secret []byte) string {
 	query.Set("digits", fmt.Sprint(totpDigits))
 	query.Set("period", fmt.Sprint(int(totpStepLength.Seconds())))
 	return "otpauth://totp/" + label + "?" + query.Encode()
+}
+
+// The same URI as a PNG, so enrolment is a scan rather than a hand-copied
+// secret. Encoded here, next to the URI it draws, for the reason the player
+// login QR is encoded server-side: the image is built from the value the
+// service just stored, and no QR library ships to the page that also handles
+// the secret.
+//
+// An encoding failure returns the empty string rather than an error. The setup
+// key and the URI beside it are a complete fallback, so a missing image is a
+// worse enrolment, not a broken one.
+func totpProvisioningQR(uri string) string {
+	png, err := qrcode.Encode(uri, qrcode.Medium, 512)
+	if err != nil {
+		return ""
+	}
+	return base64.StdEncoding.EncodeToString(png)
 }
 
 // The secret is encrypted rather than hashed because verifying a time-based

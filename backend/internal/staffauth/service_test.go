@@ -1,10 +1,14 @@
 package staffauth
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"errors"
+	"image/png"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -86,6 +90,34 @@ func TestAnOperatorSetsUpAndSignsIn(t *testing.T) {
 	}
 	if actor.Role != domain.RolePlatformAdmin || actor.ClubID != "" {
 		t.Fatalf("actor = %+v, want a clubless platform_admin", actor)
+	}
+}
+
+// The enrolment carries a scannable image of the same URI it prints, so adding
+// the account is a scan rather than a hand-copied secret. Decoding it here
+// rather than checking it is non-empty is the point: a string that is not a PNG
+// would render as a broken image and strand the enrolment.
+func TestEnrollmentCarriesAScannableQR(t *testing.T) {
+	now := time.Date(2026, time.August, 8, 12, 0, 0, 0, time.UTC)
+	service, _ := newService(t, &now)
+	ctx := context.Background()
+	invitation, err := service.CreateStaffAccount(ctx, domain.RolePlatformAdmin, "", "Operator@Example.test", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	enrollment, err := service.BeginSetup(ctx, invitation.SetupToken, invitation.TemporaryPassword)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(enrollment.ProvisioningURI, "otpauth://totp/") {
+		t.Fatalf("provisioning URI = %q, want an otpauth URI", enrollment.ProvisioningURI)
+	}
+	raw, err := base64.StdEncoding.DecodeString(enrollment.QRPngBase64)
+	if err != nil {
+		t.Fatalf("QR is not base64: %v", err)
+	}
+	if _, err = png.Decode(bytes.NewReader(raw)); err != nil {
+		t.Fatalf("QR is not a decodable PNG: %v", err)
 	}
 }
 

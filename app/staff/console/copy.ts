@@ -36,10 +36,14 @@ export const staffCopy = {
     temporaryPasswordLabel: "Temporary password",
     enrollTitle: "Add ZoomiGo to your authenticator",
     enrollIntro:
-      "Add this account to your authenticator app using the setup key below, then choose a password and enter the code the app shows.",
+      "Scan this with your authenticator app, then choose a password and enter the code the app shows.",
+    qrAlt: "Authenticator setup QR code",
+    manualTitle: "Cannot scan it?",
+    manualIntro:
+      "On the same phone, open the link. On another device, type the setup key in by hand.",
+    uriLink: "Open in your authenticator app",
     accountLabel: "Account",
     secretLabel: "Setup key",
-    uriLabel: "Or open this in your authenticator app",
     newPasswordLabel: "New password",
     confirmPasswordLabel: "Repeat new password",
     passwordRule: "Use at least 12 characters.",

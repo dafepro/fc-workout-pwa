@@ -3121,6 +3121,36 @@ h2 {
   background: white;
 }
 
+/* The enrolment QR. White plate regardless of theme, because a scanner needs
+   the quiet zone light, and centred at a size a phone camera reads from a
+   comfortable distance without the card having to scroll. */
+.setup-qr {
+  display: block;
+  width: min(100%, 15rem);
+  height: auto;
+  margin: 0 auto 1rem;
+  padding: 0.75rem;
+  border-radius: 0.6rem;
+  background: white;
+}
+
+/* Manual entry is the fallback, so it is collapsed by default: the long setup
+   key and otpauth URI were what pushed this card wider than a phone. */
+.setup-manual {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+}
+
+.setup-manual summary {
+  cursor: pointer;
+  font-weight: 800;
+  padding: 0.35rem 0;
+}
+
+.setup-manual a {
+  overflow-wrap: anywhere;
+}
+
 .console-codes {
   display: grid;
   gap: 0.3rem;
