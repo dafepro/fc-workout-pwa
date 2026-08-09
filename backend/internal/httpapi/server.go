@@ -112,12 +112,19 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	mux.Handle("POST /v1/auth/sessions", throttle.guard(http.HandlerFunc(service.createSession)))
 	mux.HandleFunc("GET /v1/auth/session", service.getSession)
 	mux.HandleFunc("DELETE /v1/auth/session", service.revokeSession)
-	// The same throttle instance, so the staff path shares one budget with the
-	// player path rather than adding a second one beside it (SEC-6).
-	mux.Handle("POST /v1/auth/staff-sessions", throttle.guard(http.HandlerFunc(service.beginStaffSession)))
-	mux.Handle("POST /v1/auth/staff-sessions/totp", throttle.guard(http.HandlerFunc(service.completeStaffSession)))
-	mux.Handle("POST /v1/auth/staff-sessions/step-up", throttle.guard(http.HandlerFunc(service.staffStepUp)))
-	mux.Handle("POST /v1/auth/staff-setup", throttle.guard(http.HandlerFunc(service.staffSetup)))
+	// A throttle of its own rather than the player one (revising SEC-6). Sharing
+	// meant sharing the global bucket, and that bucket is what a distributed
+	// flood empties: enough addresses to slip past the per-client limit spent
+	// the whole budget on the public player endpoint, and every coach's console
+	// sign-in was refused before it reached a handler. The per-client limit is
+	// the same on both; only the global ceiling is now counted separately, and
+	// staff volume is a handful of people rather than a squad's worth of
+	// parents, so it gets the smaller share.
+	staffThrottle := newLoginThrottle(cfg.LoginAttemptsPerMinute, cfg.StaffGlobalLoginAttemptsPerMinute, service.now)
+	mux.Handle("POST /v1/auth/staff-sessions", staffThrottle.guard(http.HandlerFunc(service.beginStaffSession)))
+	mux.Handle("POST /v1/auth/staff-sessions/totp", staffThrottle.guard(http.HandlerFunc(service.completeStaffSession)))
+	mux.Handle("POST /v1/auth/staff-sessions/step-up", staffThrottle.guard(http.HandlerFunc(service.staffStepUp)))
+	mux.Handle("POST /v1/auth/staff-setup", staffThrottle.guard(http.HandlerFunc(service.staffSetup)))
 	mux.HandleFunc("GET /v1/auth/staff-session", service.getStaffSession)
 	mux.HandleFunc("DELETE /v1/auth/staff-session", service.revokeStaffSession)
 	service.registerStaffRoutes(mux)

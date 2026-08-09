@@ -176,6 +176,42 @@ func TestThrottledLoginIsRefusedBeforeReachingTheSessionManager(t *testing.T) {
 	}
 }
 
+// The player endpoint is public and the staff one is not, so a flood lands on
+// the player path. While the two shared a global budget, emptying it there
+// refused every coach's console sign-in as well (SEC-6).
+func TestExhaustingThePlayerBudgetLeavesStaffSignInReachable(t *testing.T) {
+	handler := NewHandler(
+		config.Config{
+			AllowedOrigin:                     "https://zoomigo.example",
+			LoginAttemptsPerMinute:            0,
+			GlobalLoginAttemptsPerMinute:      2,
+			StaffGlobalLoginAttemptsPerMinute: 5,
+		},
+		WithSessionManager(&countingSessionManager{}),
+	)
+	post := func(path, body, client string) int {
+		request := httptest.NewRequest(http.MethodPost, path, strings.NewReader(body))
+		request.RemoteAddr = "172.18.0.4:5000"
+		request.Header.Set(cloudflareClientIPHeader, client)
+		request.Header.Set("Content-Type", "application/json")
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+		return response.Code
+	}
+	// Distinct addresses, so only the global budget can stop this.
+	drained := false
+	for attempt := 0; attempt < 12 && !drained; attempt++ {
+		client := "198.51.100." + strconv.Itoa(attempt+1)
+		drained = post("/v1/auth/sessions", `{"credential":"x","pin":"1111"}`, client) == http.StatusTooManyRequests
+	}
+	if !drained {
+		t.Fatal("the player global budget never ran out, so the test proves nothing")
+	}
+	if got := post("/v1/auth/staff-sessions", `{"email":"coach@example.test","password":"x"}`, "203.0.113.9"); got == http.StatusTooManyRequests {
+		t.Fatal("staff sign-in was rate limited by the player path's budget")
+	}
+}
+
 type countingSessionManager struct{ calls int }
 
 func (manager *countingSessionManager) CreateSession(context.Context, string, string, bool) (authn.Session, error) {

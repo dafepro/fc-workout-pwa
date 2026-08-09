@@ -52,14 +52,14 @@ function stubBackend({ withoutQr = false }: { withoutQr?: boolean } = {}) {
   return calls;
 }
 
-function openWithFragment(fragment: string) {
-  window.history.replaceState(null, "", `/staff/setup${fragment}`);
+function openWith(suffix: string) {
+  window.history.replaceState(null, "", `/staff/setup${suffix}`);
   return render(<StaffSetup />);
 }
 
 async function reachEnrollStep({ withoutQr = false } = {}) {
   if (withoutQr) stubBackend({ withoutQr: true });
-  openWithFragment("#setup=one-time-setup-token");
+  openWith("?setup=one-time-setup-token");
   fireEvent.change(await screen.findByLabelText("Temporary password"), {
     target: { value: "handed-over-in-person" },
   });
@@ -101,7 +101,7 @@ afterEach(() => {
 
 describe("staff setup", () => {
   it("refuses to start without the one-time link, and asks for nothing", async () => {
-    openWithFragment("");
+    openWith("");
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "This page needs the one-time setup link.",
@@ -111,11 +111,28 @@ describe("staff setup", () => {
 
   it("strips the setup token from history before anything is sent", async () => {
     const calls = stubBackend();
-    openWithFragment("#setup=one-time-setup-token");
+    openWith("?setup=one-time-setup-token");
+
+    await screen.findByLabelText("Temporary password");
+    await waitFor(() => expect(window.location.search).toBe(""));
+    expect(calls).toHaveLength(0);
+  });
+
+  // Cloudflare Access drops the fragment across its one-time-PIN redirect, so
+  // the query is the live form. Invitations issued before the change are good
+  // for a week and still arrive with a fragment.
+  it("still accepts a token in the fragment, and strips that too", async () => {
+    openWith("#setup=one-time-setup-token");
 
     await screen.findByLabelText("Temporary password");
     await waitFor(() => expect(window.location.hash).toBe(""));
-    expect(calls).toHaveLength(0);
+  });
+
+  it("keeps any other query parameter while removing the token", async () => {
+    openWith("?ref=email&setup=one-time-setup-token");
+
+    await screen.findByLabelText("Temporary password");
+    await waitFor(() => expect(window.location.search).toBe("?ref=email"));
   });
 
   it("offers the QR to scan, with the key and URI still reachable behind it", async () => {

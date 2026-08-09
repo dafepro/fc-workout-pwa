@@ -27,9 +27,13 @@ type Step =
   | { name: "recovery"; codes: string[] };
 
 /**
- * F-S8. The setup token arrives in the fragment exactly as the player QR
- * credential does, and is stripped from history before anything is sent, so it
- * never reaches an access log, a `Referer`, or the back button.
+ * F-S8. The setup token arrives in the query, because a fragment does not
+ * survive the Cloudflare Access one-time-PIN redirect that guards /staff. It is
+ * stripped from history on load, so it leaves the back button and any `Referer`
+ * even though the edge has already logged it.
+ *
+ * The fragment is still read as a fallback: invitations issued before the query
+ * form landed are valid for a week and have to keep working.
  */
 export function StaffSetup() {
   const router = useRouter();
@@ -37,9 +41,16 @@ export function StaffSetup() {
   const [step, setStep] = useState<Step>({ name: "reading" });
 
   useEffect(() => {
+    const query = new URLSearchParams(location.search);
     const fragment = new URLSearchParams(location.hash.slice(1));
-    const setupToken = fragment.get("setup") ?? "";
-    history.replaceState(null, "", `${location.pathname}${location.search}`);
+    const setupToken = query.get("setup") ?? fragment.get("setup") ?? "";
+    query.delete("setup");
+    const rest = query.toString();
+    history.replaceState(
+      null,
+      "",
+      `${location.pathname}${rest ? `?${rest}` : ""}`,
+    );
     const settle = window.setTimeout(() => {
       setToken(setupToken);
       setStep(setupToken ? { name: "password" } : { name: "missing" });

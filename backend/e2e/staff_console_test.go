@@ -36,7 +36,7 @@ func TestOperatorBuildsAClubAndAPlayerSignsIn(t *testing.T) {
 		"--email", "operator@zoomigo.test",
 		"--setup-url", "https://zoomigo.example/staff/setup",
 	)
-	setupToken := fragmentValue(t, invitation["setupUrl"], "setup=")
+	setupToken := queryValue(t, invitation["setupUrl"], "setup")
 	if setupToken == "" || setupToken != invitation["setupToken"] {
 		t.Fatalf("setup link did not carry the token in its fragment: %+v", invitation)
 	}
@@ -288,6 +288,17 @@ func runAdminWithEnvironment(t *testing.T, arguments ...string) map[string]strin
 	t.Helper()
 	t.Setenv("STAFF_SECRET_KEY", staffE2ESecretKey)
 	return runAdmin(t, "", arguments...)
+}
+
+// The staff setup token travels in the query, not the fragment, because it has
+// to survive the Cloudflare Access redirect that guards /staff.
+func queryValue(t *testing.T, raw, key string) string {
+	t.Helper()
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		t.Fatalf("parse %q: %v", raw, err)
+	}
+	return parsed.Query().Get(key)
 }
 
 func fragmentValue(t *testing.T, raw, prefix string) string {

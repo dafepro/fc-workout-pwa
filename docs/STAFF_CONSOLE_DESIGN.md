@@ -233,6 +233,18 @@ forced to set a password and enroll TOTP before reaching any roster data. This
 deliberately avoids introducing email-sending infrastructure; the delivery
 channel is an open decision, same as the QR/PIN handoff.
 
+The setup token travels in the link's query, not its fragment, which is the one
+place this flow deliberately departs from the player QR handoff. `/staff` sits
+behind the REQ-402 access gate, and the gate's one-time-PIN redirect cannot
+carry a fragment: the fragment never reaches Cloudflare to be echoed back, and
+the cross-origin PIN form POST breaks the redirect chain a browser would
+otherwise use to reattach it. The invitee arrived at `/staff/setup` with no
+token and was told to reopen a link that had already been spent. The token is
+therefore in edge and proxy logs; it is single-use, expires in a week, is
+useless without the temporary password, and anyone who can read those logs can
+already mint a replacement with the operator CLI. The page still accepts a
+fragment so invitations issued before this change keep working.
+
 **F-S9 — Staff loses their second factor.** Only the operator can reset a staff
 password or TOTP enrollment, and the reset revokes every existing session for
 that account. There is no self-service recovery.
@@ -729,7 +741,12 @@ application authentication, plus per-request authorization (REQ-301). No single
 one of the three is the boundary.
 
 **SEC-6.** Rate limiting and lockout apply to the staff path, the TOTP step, and
-the setup-token path, not only to the initial password check.
+the setup-token path, not only to the initial password check. The staff path
+counts against its own global budget and its own Argon2 slot rather than the
+player path's. Sharing them was the earlier reading of this requirement, and it
+inverted the intent: the player endpoint is necessarily public, so a flood
+against it emptied the shared budget and refused console sign-in. Per-client
+limits stay identical on both paths; only the global ceilings are separate.
 
 **SEC-7.** The `PRODUCTION_DATA_APPROVED` gate applies to the console exactly as
 it does to the CLI. A browser UI must not become the way real children's data
