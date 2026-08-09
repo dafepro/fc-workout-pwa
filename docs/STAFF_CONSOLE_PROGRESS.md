@@ -56,6 +56,18 @@ build.
 (`/staff/*` redirects to the Access login, `/` does not), recorded in the log
 below and repeatable by hand, rather than anything CI runs.
 
+**CLI deactivation is unaudited.** `deactivate-staff` and `deactivate-player`
+both write no audit row, because `admin_audit_events` requires an actor account
+a CLI invocation does not have. Ending an account is exactly the action that
+should leave a trace. The fix is an actor concept for CLI invocations, or a
+nullable actor with a source column; neither belongs in a change made to unblock
+a release.
+
+**Inviting staff means two systems.** A new account also needs its address in
+`STAFF_CONSOLE_EMAIL_ADDRESSES` and an `infra.yml` apply, or Access refuses them
+before the console is ever reached. The console gives no hint that this second
+step exists, so it will be forgotten.
+
 ## Log
 
 ### 2026-08-08 — planning
@@ -364,3 +376,34 @@ here means new credentials on the same account rather than a new row.
 Also removed the `command` parameter in `vite.config.ts`, dead since `3eb0ff3`.
 It had been reported as clean by a filtered lint run; the unfiltered one showed
 the warning.
+
+### 2026-08-08 — deactivate-staff
+
+The CLI could create and reset staff but never end one, so `reset-staff-credential`
+was the only way to "replace" an operator and the account id necessarily
+survived. `deactivate-staff --email ...` closes that: credentials, sessions,
+enrolments, recovery codes, setup tokens, and pending challenges all stop, and
+the account row is disabled rather than erased, matching `deactivate-player`
+and F-O9.
+
+Freeing the email address is the substantive part rather than a detail.
+`auth_password_credentials.email_identity` is `UNIQUE` without regard to
+`revoked_at`, and `CreateStaffAccount` refuses an address any row still holds,
+so revoking alone would have made that address permanently unusable — including
+for the same person returning. Deactivation folds the old value into a
+tombstone keyed by the credential id, which frees the address while keeping the
+row honest about who held it. The test asserts the re-creation rather than the
+tombstone's shape, because reuse is the behaviour that matters.
+
+No audit row, matching `deactivate-player`: `admin_audit_events.actor_account_id`
+is `NOT NULL` and a CLI invocation has no actor, while `auth_audit_events` is
+CHECK-constrained, so a new event type there would mean rebuilding the
+authentication trail — the exact problem migration 10 exists to stop. A CLI
+deactivation is therefore unaudited, which is a real gap and is listed in
+**Owed**.
+
+Released as `e9eb12a` and confirmed present in the deployed CLI's usage line.
+It was not used: the account it was built to remove had by then completed setup
+and become the working login, so removing it would have meant re-enrolling
+through the setup page that Safe Browsing is currently blocking. `list-staff`
+shows one active, complete operator and no half-finished account.
