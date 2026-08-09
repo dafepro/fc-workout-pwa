@@ -276,7 +276,18 @@ setup page until it has chosen a password and enrolled a second factor.
 
 `reset-staff-credential --email ...` issues a fresh pair and ends every session
 that account holds. `list-staff` shows who exists and whether they finished
-setup. These are the break-glass path: the console offers the same actions, and
+setup.
+
+`deactivate-staff --email ...` ends an account for good: every credential,
+session, enrolment, recovery code, and outstanding setup token stops working,
+and the account row stays rather than being erased. It also frees the email
+address, so the same person can later be given a genuinely new account —
+without that, the address would be permanently unusable, because a credential
+row holds its address whether revoked or not. A deactivated account disappears
+from `list-staff`. There is no guard against disabling the last operator: the
+CLI can always create another, which is the point of it.
+
+These are the break-glass path: the console offers the same actions, and
 must never be the only way to perform one, because it depends on the very
 service an operator may be trying to repair.
 

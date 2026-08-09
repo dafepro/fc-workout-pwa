@@ -99,6 +99,41 @@ func resetStaffCredential(ctx context.Context, arguments []string, stdout io.Wri
 	return json.NewEncoder(stdout).Encode(invitation)
 }
 
+// deactivateStaff ends a staff account's access and frees its email address for
+// a new account. It asks for the address rather than the account id because that
+// is what an operator has in front of them, and it refuses an ambiguous match by
+// only ever matching an unrevoked credential.
+func deactivateStaff(ctx context.Context, arguments []string, stdout io.Writer) error {
+	flags := flag.NewFlagSet("deactivate-staff", flag.ContinueOnError)
+	databaseURL := flags.String("database-url", envOr("DATABASE_URL", "file:data/zoomigo.db"), "SQLite database URL")
+	email := flags.String("email", "", "staff email address")
+	if err := flags.Parse(arguments); err != nil {
+		return err
+	}
+	if strings.TrimSpace(*email) == "" {
+		return errors.New("email is required")
+	}
+	db, err := open(ctx, *databaseURL)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	var accountID string
+	if err = db.QueryRowContext(ctx, `SELECT account_id FROM auth_password_credentials WHERE email_identity = ? AND revoked_at IS NULL`,
+		strings.ToLower(strings.TrimSpace(*email))).Scan(&accountID); err != nil {
+		return errors.New("no active staff account with that email")
+	}
+	service, err := staffService(db)
+	if err != nil {
+		return err
+	}
+	summary, err := service.DeactivateStaff(ctx, accountID)
+	if err != nil {
+		return err
+	}
+	return json.NewEncoder(stdout).Encode(summary)
+}
+
 func listStaff(ctx context.Context, arguments []string, stdout io.Writer) error {
 	flags := flag.NewFlagSet("list-staff", flag.ContinueOnError)
 	databaseURL := flags.String("database-url", envOr("DATABASE_URL", "file:data/zoomigo.db"), "SQLite database URL")

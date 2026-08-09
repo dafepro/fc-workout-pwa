@@ -188,6 +188,73 @@ func (service *Service) ResetStaffCredential(ctx context.Context, accountID, set
 	return invitation, nil
 }
 
+// DeactivateStaff is the CLI's last word on a staff account: everything it can
+// authenticate with stops working, and the account row itself stays, so this
+// ends access without erasing history (F-O9, matching deactivate-player).
+//
+// It also frees the email address, which is the part that is easy to get wrong.
+// `auth_password_credentials.email_identity` is UNIQUE without regard to
+// `revoked_at`, and CreateStaffAccount refuses an address any row still holds
+// -- revoked or not. Merely revoking would therefore burn that address forever,
+// including for the same person coming back. The old value is folded into the
+// tombstone rather than dropped, so the row still records who it belonged to,
+// and the credential's own id keeps the tombstone unique.
+//
+// There is deliberately no guard against disabling the last operator. It would
+// have to be overridable to be useful, and the CLI is the break-glass path: an
+// account that can create another operator is exactly what it offers.
+func (service *Service) DeactivateStaff(ctx context.Context, accountID string) (StaffSummary, error) {
+	if !service.Configured() {
+		return StaffSummary{}, ErrUnavailable
+	}
+	now := service.now().UTC()
+	var credentialID, email, role, status string
+	if err := service.db.QueryRowContext(ctx, `SELECT c.id, c.email_identity, a.role, a.status
+		FROM auth_password_credentials c JOIN accounts a ON a.id = c.account_id
+		WHERE c.account_id = ? AND c.revoked_at IS NULL`, accountID).Scan(&credentialID, &email, &role, &status); err != nil {
+		return StaffSummary{}, errors.New("no active staff account with that identifier")
+	}
+	if role == string(domain.RolePlayer) {
+		return StaffSummary{}, errors.New("that is a player account; use deactivate-player")
+	}
+
+	tx, err := service.db.BeginTx(ctx, nil)
+	if err != nil {
+		return StaffSummary{}, err
+	}
+	defer tx.Rollback()
+	if _, err = tx.ExecContext(ctx, `UPDATE accounts SET status = 'disabled' WHERE id = ?`, accountID); err != nil {
+		return StaffSummary{}, err
+	}
+	if _, err = tx.ExecContext(ctx, `UPDATE auth_password_credentials
+		SET revoked_at = ?, email_identity = ? WHERE id = ?`,
+		stamp(now), "disabled:"+credentialID+":"+email, credentialID); err != nil {
+		return StaffSummary{}, err
+	}
+	if _, err = tx.ExecContext(ctx, `UPDATE auth_totp_enrollments SET revoked_at = ? WHERE account_id = ? AND revoked_at IS NULL`, stamp(now), accountID); err != nil {
+		return StaffSummary{}, err
+	}
+	if _, err = tx.ExecContext(ctx, `UPDATE auth_recovery_codes SET used_at = ? WHERE account_id = ? AND used_at IS NULL`, stamp(now), accountID); err != nil {
+		return StaffSummary{}, err
+	}
+	if _, err = tx.ExecContext(ctx, `UPDATE staff_sessions SET revoked_at = ? WHERE account_id = ? AND revoked_at IS NULL`, stamp(now), accountID); err != nil {
+		return StaffSummary{}, err
+	}
+	if _, err = tx.ExecContext(ctx, `UPDATE staff_setup_tokens SET consumed_at = ? WHERE account_id = ? AND consumed_at IS NULL`, stamp(now), accountID); err != nil {
+		return StaffSummary{}, err
+	}
+	if _, err = tx.ExecContext(ctx, `UPDATE staff_sign_in_challenges SET consumed_at = ? WHERE account_id = ? AND consumed_at IS NULL`, stamp(now), accountID); err != nil {
+		return StaffSummary{}, err
+	}
+	if err = tx.Commit(); err != nil {
+		return StaffSummary{}, err
+	}
+	// No audit row, matching deactivate-player: admin_audit_events requires an
+	// actor account and a CLI invocation has none, while auth_audit_events is
+	// CHECK-constrained and a new type there would mean rebuilding it.
+	return StaffSummary{AccountID: accountID, Email: email, Role: role, Status: "disabled"}, nil
+}
+
 type StaffSummary struct {
 	AccountID string `json:"accountId"`
 	Email     string `json:"email"`
