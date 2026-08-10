@@ -4,7 +4,6 @@ package e2e_test
 
 import (
 	"net/http"
-	"os"
 	"testing"
 )
 
@@ -72,12 +71,9 @@ func TestAvatarSaveIsScopedToTheCallerAndValidated(t *testing.T) {
 }
 
 // GET /v1/auth/session resolves through the real session manager rather than the
-// fixture authenticator, which the local harness does not wire, so the read-back
-// half of the round trip only runs against the Docker environment.
+// fixture authenticator, so this is the one avatar path a fixture token cannot
+// reach.
 func TestPlayerReadsTheSavedAvatarBackFromTheSession(t *testing.T) {
-	if os.Getenv("E2E_BASE_URL") == "" {
-		t.Skip("the session projection needs the real session manager the Docker E2E environment wires")
-	}
 	api := newAPIClient(t)
 	api.reset(t)
 

@@ -8,19 +8,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/http/httptest"
 	"net/url"
-	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/dafepro/fc-workout-pwa/backend/internal/authn"
-	"github.com/dafepro/fc-workout-pwa/backend/internal/config"
-	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
-	"github.com/dafepro/fc-workout-pwa/backend/internal/httpapi"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/store"
 )
 
@@ -29,19 +22,6 @@ const (
 	avaToken   = "e2e-player-ava"
 	liamToken  = "e2e-player-liam"
 )
-
-type apiClient struct {
-	baseURL  string
-	resetKey string
-	client   *http.Client
-}
-
-type apiError struct {
-	Error struct {
-		Code    string `json:"code"`
-		Message string `json:"message"`
-	} `json:"error"`
-}
 
 func TestHealthAndDatabaseReadiness(t *testing.T) {
 	api := newAPIClient(t)
@@ -393,128 +373,4 @@ func TestBrowserFixturePlayerCanSendAndReceiveReactions(t *testing.T) {
 		t.Fatalf("Mason inbox did not contain the safe contextual badge: %s", body)
 	}
 	_ = inbox.Body.Close()
-}
-
-func newAPIClient(t *testing.T) apiClient {
-	t.Helper()
-	baseURL := os.Getenv("E2E_BASE_URL")
-	if baseURL == "" {
-		baseURL = startLocalAPI(t)
-	}
-	return apiClient{
-		baseURL:  strings.TrimRight(baseURL, "/"),
-		resetKey: valueOrDefault(os.Getenv("E2E_RESET_KEY"), "local-e2e-reset-only"),
-		client:   &http.Client{Timeout: 10 * time.Second},
-	}
-}
-
-func startLocalAPI(t *testing.T) string {
-	t.Helper()
-	location, err := time.LoadLocation("America/Chicago")
-	if err != nil {
-		t.Fatal(err)
-	}
-	databaseURL := "file:" + filepath.ToSlash(filepath.Join(t.TempDir(), "zoomigo-e2e.db"))
-	db, err := database.Open(t.Context(), databaseURL)
-	if err != nil {
-		t.Fatalf("open local E2E database: %v", err)
-	}
-	t.Cleanup(func() { _ = db.Close() })
-	if err := database.Migrate(t.Context(), db); err != nil {
-		t.Fatalf("migrate local E2E database: %v", err)
-	}
-	cfg := config.Config{
-		Environment:       "e2e",
-		AllowedOrigin:     "http://pwa.invalid",
-		TeamTimeZone:      location,
-		TeamTimeZoneID:    "America/Chicago",
-		EnableE2EFixtures: true,
-		E2EResetKey:       "local-e2e-reset-only",
-		// Match compose.e2e.yaml so the throttle is exercised on both E2E paths.
-		LoginAttemptsPerMinute:       20,
-		GlobalLoginAttemptsPerMinute: 1000,
-	}
-	repository := store.New(db, location)
-	server := httptest.NewServer(httpapi.NewHandler(
-		cfg,
-		httpapi.WithStore(repository),
-		httpapi.WithAuthenticator(authn.NewE2EFixtures()),
-	))
-	t.Cleanup(server.Close)
-	return server.URL
-}
-
-func (api apiClient) reset(t *testing.T) {
-	t.Helper()
-	request, err := http.NewRequest(http.MethodPost, api.baseURL+"/__e2e/reset", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	request.Header.Set("X-E2E-Reset-Key", api.resetKey)
-	response, err := api.client.Do(request)
-	if err != nil {
-		t.Fatalf("reset fixture: %v", err)
-	}
-	defer response.Body.Close()
-	if response.StatusCode != http.StatusNoContent {
-		t.Fatalf("reset status = %d, want 204; body=%s", response.StatusCode, readBody(response))
-	}
-}
-
-func (api apiClient) do(t *testing.T, method, path, token, idempotencyKey string, body any) *http.Response {
-	t.Helper()
-	var reader io.Reader
-	if body != nil {
-		encoded, err := json.Marshal(body)
-		if err != nil {
-			t.Fatal(err)
-		}
-		reader = bytes.NewReader(encoded)
-	}
-	request, err := http.NewRequest(method, api.baseURL+path, reader)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if body != nil {
-		request.Header.Set("Content-Type", "application/json")
-	}
-	if token != "" {
-		request.Header.Set("Authorization", "Bearer "+token)
-	}
-	if idempotencyKey != "" {
-		request.Header.Set("Idempotency-Key", idempotencyKey)
-	}
-	response, err := api.client.Do(request)
-	if err != nil {
-		t.Fatalf("%s %s: %v", method, path, err)
-	}
-	return response
-}
-
-func assertStatus(t *testing.T, response *http.Response, expected int) {
-	t.Helper()
-	if response.StatusCode != expected {
-		defer response.Body.Close()
-		t.Fatalf("status = %d, want %d; body=%s", response.StatusCode, expected, readBody(response))
-	}
-}
-
-func decodeJSON(t *testing.T, response *http.Response, destination any) {
-	t.Helper()
-	defer response.Body.Close()
-	if err := json.NewDecoder(response.Body).Decode(destination); err != nil {
-		t.Fatalf("decode JSON: %v", err)
-	}
-}
-
-func readBody(response *http.Response) string {
-	body, _ := io.ReadAll(response.Body)
-	return string(body)
-}
-
-func valueOrDefault(value, fallback string) string {
-	if value == "" {
-		return fallback
-	}
-	return value
 }

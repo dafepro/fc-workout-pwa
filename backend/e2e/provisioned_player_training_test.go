@@ -119,7 +119,7 @@ func TestProvisionedPlayerCanManageEntriesOnTheTeamsCalendar(t *testing.T) {
 
 func runAdmin(t *testing.T, stdin string, arguments ...string) map[string]string {
 	t.Helper()
-	command := exec.Command(valueOrDefault(os.Getenv("E2E_ADMIN_BINARY"), "/out/zoomigo-admin"), arguments...)
+	command := exec.Command(adminBinary(t), arguments...)
 	command.Stdin = strings.NewReader(stdin)
 	var stdout, stderr bytes.Buffer
 	command.Stdout = &stdout
