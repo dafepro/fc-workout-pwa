@@ -23,6 +23,10 @@ operations drills — bounded logs, encrypted backups, isolated restore, cutover
 and rollback, QR reissue and revoke, the incident-release path — entirely in
 containers. Unix shell is the only supported local automation environment.
 
+Run `./scripts/install-git-hooks.sh` once per clone. It points `core.hooksPath`
+at `scripts/git-hooks`, whose `pre-commit` hook rejects a commit whose staged
+files would fail the `pnpm format` gate in CI.
+
 ## Suggested prototype boundaries
 
 - Player-facing experience only.
