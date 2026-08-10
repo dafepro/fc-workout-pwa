@@ -171,7 +171,7 @@ export default function LogPage() {
         </div>
       ) : null}
 
-      <form className="log-form" onSubmit={submit}>
+      <form method="post" className="log-form" onSubmit={submit}>
         <button
           type="button"
           className={`selected-activity selected-activity--${activityId} ${showActivities ? "is-open" : ""}`}

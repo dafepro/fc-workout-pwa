@@ -283,7 +283,7 @@ function DeactivatePanel({
       {done ? (
         <p className="console-state">{consoleCopy.player.deactivated}</p>
       ) : null}
-      <form onSubmit={submit} noValidate className="console-form">
+      <form method="post" onSubmit={submit} noValidate className="console-form">
         <label htmlFor="confirm-name">
           {consoleCopy.player.deactivateLabel}
         </label>

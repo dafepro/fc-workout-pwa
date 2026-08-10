@@ -167,7 +167,7 @@ function CreateAccount({
   return (
     <section className="console-card" aria-label={consoleCopy.accounts.create}>
       <h2 className="console-card__title">{consoleCopy.accounts.create}</h2>
-      <form onSubmit={submit} noValidate className="console-form">
+      <form method="post" onSubmit={submit} noValidate className="console-form">
         <label htmlFor="account-email">{consoleCopy.accounts.emailLabel}</label>
         <input
           id="account-email"

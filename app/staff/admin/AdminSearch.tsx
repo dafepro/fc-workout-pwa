@@ -55,6 +55,7 @@ export function AdminSearch() {
       <AdminNav />
       <p>{consoleCopy.admin.intro}</p>
       <form
+        method="post"
         onSubmit={submit}
         noValidate
         className="console-form console-search"

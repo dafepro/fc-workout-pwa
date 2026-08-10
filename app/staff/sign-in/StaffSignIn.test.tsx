@@ -5,6 +5,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { StaffSignIn } from "./StaffSignIn";
 
@@ -59,6 +60,20 @@ afterEach(() => {
 });
 
 describe("staff sign in", () => {
+  // A click that beats hydration used to submit the form the browser's own way.
+  // The form declares no method, so that was a GET, and a GET serialises the
+  // fields it names into the query string: the staff password ended up in the
+  // address bar, in history, in the Referer, and in every access log along the
+  // way. The markup has to be safe before React is listening.
+  it("cannot submit the password through the URL before hydration", () => {
+    const markup = renderToStaticMarkup(<StaffSignIn />);
+
+    expect(markup).toMatch(/<form[^>]+method="post"/);
+    // Inert until hydration, so a fast click does nothing rather than
+    // navigating away from a form that never sent anything.
+    expect(markup).toMatch(/<button[^>]+disabled=""/);
+  });
+
   it("names who the page is for and offers no remembered-device control", () => {
     render(<StaffSignIn />);
 

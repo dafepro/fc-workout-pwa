@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { copy } from "../../content/copy";
 import { routes } from "../../content/routes";
+import { useHydrated } from "../../components/useHydrated";
 import { ConsoleError, consoleAuthRequest } from "../console/api";
 
 type Step =
@@ -27,6 +28,9 @@ interface PasswordResult {
  */
 export function StaffSignIn() {
   const router = useRouter();
+  // Both steps carry a secret, so neither may reach the browser's own submit
+  // path: that is a GET, and a GET puts every named field in the URL.
+  const hydrated = useHydrated();
   const [step, setStep] = useState<Step>({ name: "password" });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -103,7 +107,12 @@ export function StaffSignIn() {
           <>
             <h2>{staffCopy.codeTitle}</h2>
             <p className="login-help">{staffCopy.codeIntro}</p>
-            <form onSubmit={submitCode} noValidate data-step="code">
+            <form
+              method="post"
+              onSubmit={submitCode}
+              noValidate
+              data-step="code"
+            >
               <label htmlFor="staff-code">{staffCopy.codeLabel}</label>
               <input
                 id="staff-code"
@@ -125,7 +134,10 @@ export function StaffSignIn() {
                   {error}
                 </p>
               ) : null}
-              <button className="button button--lime" disabled={busy}>
+              <button
+                className="button button--lime"
+                disabled={busy || !hydrated}
+              >
                 {busy ? staffCopy.working : staffCopy.signIn}
               </button>
               <button
@@ -143,7 +155,12 @@ export function StaffSignIn() {
             </form>
           </>
         ) : (
-          <form onSubmit={submitPassword} noValidate data-step="password">
+          <form
+            method="post"
+            onSubmit={submitPassword}
+            noValidate
+            data-step="password"
+          >
             <label htmlFor="staff-email">{staffCopy.emailLabel}</label>
             <input
               id="staff-email"
@@ -171,7 +188,10 @@ export function StaffSignIn() {
                 {error}
               </p>
             ) : null}
-            <button className="button button--lime" disabled={busy}>
+            <button
+              className="button button--lime"
+              disabled={busy || !hydrated}
+            >
               {busy ? staffCopy.working : staffCopy.continue}
             </button>
           </form>

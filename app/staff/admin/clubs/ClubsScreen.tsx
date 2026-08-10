@@ -46,7 +46,12 @@ export function ClubsScreen() {
 
       <section className="console-card" aria-label={consoleCopy.clubs.create}>
         <h2 className="console-card__title">{consoleCopy.clubs.create}</h2>
-        <form onSubmit={submit} noValidate className="console-form">
+        <form
+          method="post"
+          onSubmit={submit}
+          noValidate
+          className="console-form"
+        >
           <label htmlFor="club-name">{consoleCopy.clubs.nameLabel}</label>
           <input
             id="club-name"

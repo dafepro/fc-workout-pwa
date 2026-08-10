@@ -124,7 +124,12 @@ function TemporaryPasswordStep({
   return (
     <>
       <p>{staffCopy.setup.intro}</p>
-      <form onSubmit={submit} noValidate data-step="temporary-password">
+      <form
+        method="post"
+        onSubmit={submit}
+        noValidate
+        data-step="temporary-password"
+      >
         <label htmlFor="temporary-password">
           {staffCopy.setup.temporaryPasswordLabel}
         </label>
@@ -226,7 +231,7 @@ function EnrollStep({
           <dd className="console-facts__code">{enrollment.secret}</dd>
         </dl>
       </details>
-      <form onSubmit={submit} noValidate data-step="enroll">
+      <form method="post" onSubmit={submit} noValidate data-step="enroll">
         <label htmlFor="new-password">{staffCopy.setup.newPasswordLabel}</label>
         <input
           id="new-password"

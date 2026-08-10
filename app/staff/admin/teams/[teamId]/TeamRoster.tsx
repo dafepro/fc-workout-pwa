@@ -279,7 +279,7 @@ function AssignmentPanel({ teamId }: { teamId: string }) {
         ))}
       </ul>
 
-      <form onSubmit={submit} noValidate className="console-form">
+      <form method="post" onSubmit={submit} noValidate className="console-form">
         <p className="console-hint">{consoleCopy.assignments.createHint}</p>
         <label htmlFor="assignment-catalog">
           {consoleCopy.assignments.catalogLabel}
@@ -435,7 +435,7 @@ function AddExistingPlayer({
       aria-label={consoleCopy.roster.addExisting}
     >
       <h2 className="console-card__title">{consoleCopy.roster.addExisting}</h2>
-      <form onSubmit={search} noValidate className="console-form">
+      <form method="post" onSubmit={search} noValidate className="console-form">
         <label htmlFor="roster-search">{consoleCopy.roster.addExisting}</label>
         <input
           id="roster-search"
@@ -523,7 +523,7 @@ function ProvisionPlayer({
     <section className="console-card" aria-label={consoleCopy.roster.provision}>
       <h2 className="console-card__title">{consoleCopy.roster.provision}</h2>
       <p className="console-hint">{consoleCopy.roster.provisionHint}</p>
-      <form onSubmit={submit} noValidate className="console-form">
+      <form method="post" onSubmit={submit} noValidate className="console-form">
         <label htmlFor="provision-first-name">
           {consoleCopy.roster.firstNameLabel}
         </label>

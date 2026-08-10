@@ -77,7 +77,7 @@ export function StepUpForm({
     <section className="console-card console-card--step-up">
       <h2 className="console-card__title">{consoleCopy.stepUp.title}</h2>
       <p>{consoleCopy.stepUp.body}</p>
-      <form onSubmit={submit} noValidate className="console-form">
+      <form method="post" onSubmit={submit} noValidate className="console-form">
         <label htmlFor="step-up-password">{staffCopy.passwordLabel}</label>
         <input
           id="step-up-password"
