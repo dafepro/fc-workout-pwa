@@ -68,7 +68,7 @@ func seededDatabaseURL(t *testing.T) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := store.New(db, location).ResetE2EFixtures(ctx); err != nil {
+	if err := store.New(db, location).ResetE2EFixtures(ctx, time.Now().UTC()); err != nil {
 		t.Fatal(err)
 	}
 	return databaseURL

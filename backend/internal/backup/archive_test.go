@@ -299,7 +299,7 @@ func seededDatabase(t *testing.T, ctx context.Context) string {
 		_ = db.Close()
 		t.Fatal(err)
 	}
-	if err := store.New(db, location).ResetE2EFixtures(ctx); err != nil {
+	if err := store.New(db, location).ResetE2EFixtures(ctx, time.Now().UTC()); err != nil {
 		_ = db.Close()
 		t.Fatal(err)
 	}
