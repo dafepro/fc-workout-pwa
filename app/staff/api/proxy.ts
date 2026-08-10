@@ -1,4 +1,9 @@
-import { forwardedHeaders, jsonError, limitedBody, sameOrigin } from "../../api/backend";
+import {
+  forwardedHeaders,
+  jsonError,
+  limitedBody,
+  sameOrigin,
+} from "../../api/backend";
 import { readStaffCookie } from "./staff-cookie";
 import { backendOrResponse, unavailable } from "./upstream";
 import { allows, type ConsoleRoute } from "./console-routes";
