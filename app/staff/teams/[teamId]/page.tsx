@@ -16,6 +16,7 @@ export default async function CoachTeamPage({
       backHref={routes.staffConsoleHome}
       backLabel={consoleCopy.home.teams}
       playerHref={routes.staffPlayer}
+      operator={false}
     />
   );
 }

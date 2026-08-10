@@ -31,11 +31,17 @@ export function TeamRoster({
   backHref = routes.staffAdminTeams,
   backLabel = consoleCopy.teams.title,
   playerHref = routes.staffAdminPlayer,
+  operator = true,
 }: {
   teamId: string;
   backHref?: string;
   backLabel?: string;
   playerHref?: (playerId: string) => string;
+  /** Adding an existing player needs the platform-wide player search, which is
+   * operator-only in the API and behind the Access gate in the console. A coach
+   * was already refused it; hiding the panel is what stops the refusal from
+   * arriving as a login page they cannot use. */
+  operator?: boolean;
 }) {
   const team = useResource<TeamSummary>(`v1/staff/teams/${teamId}`);
   const roster = useResource<{ roster: RosterEntry[] }>(
@@ -129,13 +135,15 @@ export function TeamRoster({
         </ul>
       </section>
 
-      <AddExistingPlayer
-        teamId={teamId}
-        onAdded={() => {
-          roster.reload();
-          team.reload();
-        }}
-      />
+      {operator ? (
+        <AddExistingPlayer
+          teamId={teamId}
+          onAdded={() => {
+            roster.reload();
+            team.reload();
+          }}
+        />
+      ) : null}
 
       <ProvisionPlayer
         teamId={teamId}
