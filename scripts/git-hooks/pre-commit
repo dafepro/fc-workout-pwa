@@ -1,0 +1,37 @@
+#!/bin/sh
+
+# Blocks a commit whose staged files would fail `pnpm format` in CI.
+
+set -eu
+
+SCRIPT_DIRECTORY=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
+REPOSITORY_ROOT=$(CDPATH='' cd -- "$SCRIPT_DIRECTORY/../.." && pwd)
+
+cd "$REPOSITORY_ROOT"
+
+command -v pnpm >/dev/null 2>&1 || {
+	printf '%s\n' "error: pnpm is required by the pre-commit hook" >&2
+	exit 1
+}
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -n "$staged" ] || exit 0
+
+set --
+while IFS= read -r staged_file; do
+	[ -n "$staged_file" ] || continue
+	set -- "$@" "$staged_file"
+done <<STAGED
+$staged
+STAGED
+
+unformatted=$(pnpm exec prettier --ignore-unknown --list-different -- "$@") || true
+
+[ -z "$unformatted" ] || {
+	printf '%s\n' \
+		"error: prettier formatting is required for:" \
+		"$unformatted" \
+		"" \
+		"Fix with: pnpm format:write, then stage the files again." >&2
+	exit 1
+}
