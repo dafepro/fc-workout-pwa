@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AvatarBuilder } from "../avatar/AvatarBuilder";
 import { Avatar } from "../components/Avatar";
 import { SessionList } from "../components/SessionList";
 import { copy } from "../content/copy";
@@ -9,15 +10,15 @@ import type { ReactionBadge } from "../domain/types";
 import { useTraining } from "../state/training-context";
 import { useAuth } from "../state/auth-context";
 
-const kitColors = ["#c7f23a", "#7459ff", "#34cbb2", "#ff9a62"];
-
 export default function MePage() {
   const {
     connected,
     signOut,
-    currentPlayer: basePlayer,
+    currentPlayer: player,
     currentPlayerID,
     session,
+    avatarConfig,
+    saveAvatar,
   } = useAuth();
   const {
     entries,
@@ -31,9 +32,7 @@ export default function MePage() {
     loadMoreReactionBadges,
     dashboard,
   } = useTraining();
-  const [kitColor, setKitColor] = useState(basePlayer.avatarColor);
   const [builderOpen, setBuilderOpen] = useState(false);
-  const player = { ...basePlayer, avatarColor: kitColor };
   const personalEntries = entries.filter(
     (entry) => entry.playerId === currentPlayerID,
   );
@@ -42,7 +41,7 @@ export default function MePage() {
   return (
     <div className="page page--me">
       <header className="profile-hero">
-        <Avatar player={player} size="large" />
+        <Avatar player={player} size="large" config={avatarConfig} />
         <div>
           <p className="eyebrow">Player profile</p>
           <h1>
@@ -55,7 +54,7 @@ export default function MePage() {
           type="button"
           onClick={() => setBuilderOpen((open) => !open)}
         >
-          {builderOpen ? "Close builder" : "Avatar builder"}
+          {builderOpen ? copy.avatar.close : copy.avatar.open}
         </button>
         {connected ? (
           <button
@@ -68,25 +67,11 @@ export default function MePage() {
         ) : null}
       </header>
       {builderOpen ? (
-        <section className="card avatar-builder">
-          <div>
-            <p className="eyebrow">Locked avatar options</p>
-            <h2>Choose a kit color</h2>
-            <p>No photo upload or custom text is available.</p>
-          </div>
-          <div className="swatches" role="group" aria-label="Kit color">
-            {kitColors.map((color) => (
-              <button
-                key={color}
-                type="button"
-                className={kitColor === color ? "is-selected" : ""}
-                style={{ background: color }}
-                aria-label={`Choose ${color} kit`}
-                onClick={() => setKitColor(color)}
-              />
-            ))}
-          </div>
-        </section>
+        <AvatarBuilder
+          player={player}
+          config={avatarConfig}
+          onSave={saveAvatar}
+        />
       ) : null}
       <section
         className="card reaction-inbox"

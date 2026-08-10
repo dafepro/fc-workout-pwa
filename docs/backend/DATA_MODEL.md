@@ -24,7 +24,7 @@ Club
 
 - `clubs`: organization boundary
 - `teams`: club ownership, season, weekly goal, and IANA time zone
-- `players`: locked display identity and avatar configuration
+- `players`: locked display identity and avatar configuration. `avatar_configuration_json` is written by `PUT /v1/me/avatar` and read by the session projection; it always holds a JSON object, `{}` when nothing has been saved. The server stores the bytes it re-serialized itself, never the client's, and validates shape rather than catalog membership because the option catalog lives in the client
 - `accounts`: authenticated principal and role; player accounts reference one player
 - `team_memberships`: active player/team relationship with date bounds
 - `coach_team_assignments`: active coach/team authorization with date bounds

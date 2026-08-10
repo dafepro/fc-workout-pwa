@@ -3,6 +3,10 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AppShell } from "../components/AppShell";
+import { playerColor } from "../avatar/color";
+import { defaultAvatar } from "../avatar/config";
+import type { AvatarConfiguration } from "../avatar/types";
+import { createAvatarGateway } from "../data/avatar-gateway";
 import { CURRENT_PLAYER_ID, players } from "../data/mockData";
 import type { Player } from "../domain/types";
 import { TrainingProvider } from "./training-context";
@@ -17,6 +21,7 @@ interface SessionProfile {
     firstName: string;
     lastInitial: string;
     teams: { id: string; name: string }[];
+    avatarConfiguration?: AvatarConfiguration;
   } | null;
 }
 
@@ -25,6 +30,8 @@ interface AuthState {
   session: SessionProfile | null;
   currentPlayerID: string;
   currentPlayer: Player;
+  avatarConfig: AvatarConfiguration;
+  saveAvatar(config: AvatarConfiguration): Promise<void>;
   signOut(): Promise<void>;
 }
 
@@ -39,6 +46,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     | { status: "connected"; session: SessionProfile }
     | { status: "unavailable" }
   >({ status: "checking" });
+  const [avatarConfig, setAvatarConfig] =
+    useState<AvatarConfiguration>(defaultAvatar());
 
   useEffect(() => {
     if (outsideThePlayerApp(pathname)) {
@@ -76,6 +85,21 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     };
   }, [pathname, router]);
 
+  useEffect(() => {
+    if (state.status !== "connected" && state.status !== "local") return;
+    const gateway = createAvatarGateway(
+      state.status === "connected",
+      state.status === "connected"
+        ? (state.session.player?.avatarConfiguration ?? {})
+        : {},
+    );
+    let active = true;
+    void gateway.load().then((config) => active && setAvatarConfig(config));
+    return () => {
+      active = false;
+    };
+  }, [state]);
+
   if (outsideThePlayerApp(pathname)) return <>{children}</>;
   if (state.status === "checking") {
     return <main className="auth-state">{copy.auth.opening}</main>;
@@ -107,7 +131,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         lastInitial: `${session.player.lastInitial.replace(/\.$/, "")}.`,
         initials:
           `${session.player.firstName[0] ?? ""}${session.player.lastInitial[0] ?? ""}`.toUpperCase(),
-        avatarColor: connectedAvatarColor(currentPlayerID),
+        avatarColor: playerColor(currentPlayerID),
         weeklySessions: 0,
         effortPoints: 0,
         currentStreak: 0,
@@ -120,6 +144,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     session,
     currentPlayerID,
     currentPlayer,
+    avatarConfig,
+    async saveAvatar(config) {
+      setAvatarConfig(await createAvatarGateway(connected).save(config));
+    },
     async signOut() {
       await fetch("/api/auth/session", { method: "DELETE" });
       router.replace(routes.playerSignIn);
@@ -150,13 +178,4 @@ function outsideThePlayerApp(pathname: string): boolean {
   return (
     pathname === routes.playerSignIn || pathname.startsWith(routes.staffPrefix)
   );
-}
-
-function connectedAvatarColor(id: string): string {
-  const palette = ["#c7f23a", "#7be3d2", "#ffca63", "#a9b7ff"];
-  const hash = [...id].reduce(
-    (total, character) => total + character.charCodeAt(0),
-    0,
-  );
-  return palette[hash % palette.length];
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/dafepro/fc-workout-pwa/backend/internal/config"
@@ -75,5 +76,8 @@ func TestConfiguredOriginPreflight(t *testing.T) {
 	}
 	if response.Header().Get("Access-Control-Allow-Headers") != "Authorization, Content-Type, Idempotency-Key" {
 		t.Fatal("preflight should allow only the API's structured headers")
+	}
+	if !strings.Contains(response.Header().Get("Access-Control-Allow-Methods"), http.MethodPut) {
+		t.Fatalf("preflight must allow the full-replacement writes: %q", response.Header().Get("Access-Control-Allow-Methods"))
 	}
 }

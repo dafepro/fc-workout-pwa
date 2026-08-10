@@ -7,7 +7,13 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
 - Product name selected: `ZoomiGo`.
 - Final logo, type, color tokens, and icon set remain open.
 - Approved Zoomi mascot artwork is required before mascot integration; Rover
-  still needs an approved visual direction or asset.
+  still needs an approved visual direction or asset. **Narrowed 2026-08-10:**
+  this gate covers branded Zoomi/Rover moments — hero art, loading states,
+  celebration illustrations. It no longer blocks player-chosen avatar parts. The
+  product owner lifted the art gate for the avatar builder, so
+  `app/avatar/art/` ships hand-authored inline SVG faces a player picks for
+  themselves. If approved mascot artwork later replaces a face, it is one entry
+  in one registry.
 - Native `zoomigo` cookie, database, archive, route, cache, binary, project,
   and service identifiers are the supported runtime contract.
 
@@ -178,3 +184,33 @@ to resolve, not the implementing agent's.
   returns server-generated copy. The local prototype keeps a fixed predefined
   comparison; player-authored copy is never accepted.
 - Milestone 1 session-detail routes filter to the current mock player. The production Go API must authorize each detail request for only the entry owner, an assigned coach, or an authorized club administrator; route knowledge alone must never grant access.
+
+## Avatar builder (2026-08-10)
+
+- The avatar is a layer system, not a fixed portrait. `app/avatar/catalog.ts` is
+  the single source of truth for which parts exist; adding a frame, animated
+  effect, or shader later means one union member, one catalog entry, and one art
+  registry entry, all inside `app/avatar/`.
+- Server validation is deliberately **shape only**: an object of
+  `layer key -> option slug`, capped at 12 keys and 512 bytes of canonical JSON.
+  Membership is not checked, so a well-formed but unknown slug is stored and
+  renders as that layer's default. The server takes over allowlisting when
+  unlocks or currency give it a reason to know the catalog.
+- Stored configurations carry **no version field**. Keys are the version signal:
+  new layer kinds are additive and unknown keys are ignored on read. Today's
+  `'{}'` column value therefore normalizes to every default with no backfill.
+- An absent `background` means "use the hashed player color", so the default and
+  a deliberate choice stay distinguishable in storage.
+- The two divergent hashed avatar palettes are now one shared
+  `app/avatar/color.ts` `playerColor(id)` keeping the richer eight-color set. It
+  tints the initials fallback and doubles as the default avatar background, so a
+  player is no longer one color in the nav and another in the team list.
+- The `player` face ships one deliberately non-naturalistic ZoomiGo-purple tone
+  for everyone. Asking an 11-year-old to pick a skin color from a few swatches is
+  worse than shipping none, so a researched skin layer is deferred to its own
+  change rather than approximated here.
+- Avatars are rendered on the player's own surfaces only — the builder, the `/me`
+  hero, and the nav. Team and leaderboard rows keep initials, so no teammate's
+  chosen look can appear in a row that is not theirs.
+- Unlocks and currency remain out of scope. Catalog entries are object-shaped so
+  an `unlock` field is additive.

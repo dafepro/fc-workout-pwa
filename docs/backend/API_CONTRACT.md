@@ -94,6 +94,34 @@ Soft-deletes an entry only when the authenticated player owns it and the trusted
 
 An owner outside the window receives `422 entry_delete_window_closed`. Other callers receive concealed `404` responses.
 
+## Avatar
+
+### `PUT /v1/me/avatar`
+
+Replaces the authenticated player's whole avatar configuration. The player is taken from the session, never from the path or body, so a player can only write their own. Full replacement makes the call idempotent, so no `Idempotency-Key` is required.
+
+```json
+{
+  "configuration": { "head": "cheetah", "background": "sky", "eyewear": "none" }
+}
+```
+
+`configuration` is required and must be a flat object of at most 12 layers whose names match `^[a-z][a-z0-9]{0,23}$` and whose option slugs match `^[a-z0-9-]{1,24}$`, re-serializing to at most 512 bytes. Anything else returns `400 invalid_avatar_configuration`. A staff caller receives `403 forbidden`.
+
+`{ "configuration": {} }` is valid and clears every layer, but a null or absent `configuration` is rejected: under full replacement the field is the whole instruction, so a request without one is a client bug rather than a replacement. Answering it with `200` would let a client that drops the key wipe a saved look and receive a success response.
+
+Validation is shape only, not membership: the option catalog lives in the client, so a well-formed slug the server has never heard of is stored and resolves to a default part when a client cannot render it. This keeps a saved look from being destroyed by a release that ships the catalog and the server out of step.
+
+`200` returns the canonical stored form with its layer names sorted, so the client adopts exactly what the column holds.
+
+```json
+{
+  "configuration": { "background": "sky", "eyewear": "none", "head": "cheetah" }
+}
+```
+
+Reading rides on `GET /v1/auth/session`; there is no separate avatar `GET`.
+
 ## Safe Team and leaderboard projections
 
 ### `GET /v1/teams/{teamId}/activity`
@@ -256,7 +284,7 @@ total, ahead of the handler, and a refused attempt receives
 `429 login_rate_limited` with a `Retry-After` reflecting the refill. PINs are
 generated at issuance and revealed exactly once, so no operator chooses them.
 
-`GET /v1/auth/session` returns the authenticated account, player profile, active teams, and expiry. `DELETE /v1/auth/session` revokes that session. Ordinary sessions expire after 12 hours; remembered sessions expire after 30 days. The database stores SHA-256 selectors/session hashes and an Argon2id verifier for the QR+PIN combination, never the raw credential, PIN, or session token.
+`GET /v1/auth/session` returns the authenticated account, player profile, active teams, and expiry. The player profile carries `avatarConfiguration`, the object saved by `PUT /v1/me/avatar`, always an object and `{}` when nothing has been saved; a stored value the server cannot parse is projected as `{}` so a bad row costs cosmetics rather than the session. `DELETE /v1/auth/session` revokes that session. Ordinary sessions expire after 12 hours; remembered sessions expire after 30 days. The database stores SHA-256 selectors/session hashes and an Argon2id verifier for the QR+PIN combination, never the raw credential, PIN, or session token.
 
 The hosted PWA exposes these through same-origin `/api/auth/session`. Its worker stores the bearer in a `Secure`, `HttpOnly`, `SameSite=Strict`, host-only cookie and never returns it to browser JavaScript. QR credentials are placed in the login URL fragment and the login page removes the fragment immediately.
 
