@@ -284,7 +284,7 @@ func (store *Store) ListReactionBadges(ctx context.Context, input ListReactionBa
 	return badges, nil
 }
 
-func (store *Store) ResetE2EFixtures(ctx context.Context) error {
+func (store *Store) ResetE2EFixtures(ctx context.Context, now time.Time) error {
 	tx, err := store.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -351,7 +351,7 @@ func (store *Store) ResetE2EFixtures(ctx context.Context) error {
 			return fmt.Errorf("seed e2e fixture: %w", err)
 		}
 	}
-	now := time.Now().UTC()
+	now = now.UTC()
 	teamToday := now.In(store.location).Format("2006-01-02")
 	teamDue := now.In(store.location).AddDate(0, 0, 6).Format("2006-01-02")
 	if _, err := tx.ExecContext(ctx, `INSERT INTO assignments (
@@ -361,11 +361,20 @@ func (store *Store) ResetE2EFixtures(ctx context.Context) error {
 		'hill_sprints_8x6', 8, 'reps', ?, ?, ?)`, teamToday, teamDue, now.Format(time.RFC3339Nano)); err != nil {
 		return fmt.Errorf("seed e2e assignment: %w", err)
 	}
+	// Mason owes two sessions this week: one still inside its delete window and
+	// one past it. Weekly counts start at the team-local Monday, so an offset
+	// measured back from now walks out of the week every Monday — clamp both
+	// occurrences into the current week. What the entries suite reads is the
+	// delete deadline, which stays measured from now.
+	weekStart, err := domain.LeaderboardPeriodStart(domain.PeriodWeekly, now, time.Time{}, store.location)
+	if err != nil {
+		return fmt.Errorf("seed e2e training entry: %w", err)
+	}
 	entries := []struct {
 		id, occurredAt, createdAt, deadline string
 	}{
-		{"entry-mason-recent", now.Add(-2 * time.Hour).Format(time.RFC3339Nano), now.Add(-2 * time.Hour).Format(time.RFC3339Nano), now.Add(22 * time.Hour).Format(time.RFC3339Nano)},
-		{"entry-mason-expired", now.Add(-25 * time.Hour).Format(time.RFC3339Nano), now.Add(-25 * time.Hour).Format(time.RFC3339Nano), now.Add(-time.Hour).Format(time.RFC3339Nano)},
+		{"entry-mason-recent", withinWeek(now.Add(-2*time.Hour), weekStart), now.Add(-2 * time.Hour).Format(time.RFC3339Nano), now.Add(22 * time.Hour).Format(time.RFC3339Nano)},
+		{"entry-mason-expired", withinWeek(now.Add(-25*time.Hour), weekStart), now.Add(-25 * time.Hour).Format(time.RFC3339Nano), now.Add(-time.Hour).Format(time.RFC3339Nano)},
 	}
 	for _, entry := range entries {
 		if _, err := tx.ExecContext(ctx, `INSERT INTO training_entries (
@@ -377,6 +386,15 @@ func (store *Store) ResetE2EFixtures(ctx context.Context) error {
 		}
 	}
 	return tx.Commit()
+}
+
+// withinWeek keeps a fixture occurrence no earlier than the start of the
+// team-local week the projections count from.
+func withinWeek(occurredAt, weekStart time.Time) string {
+	if occurredAt.Before(weekStart) {
+		occurredAt = weekStart
+	}
+	return occurredAt.Format(time.RFC3339Nano)
 }
 
 func newID(prefix string) string {

@@ -70,7 +70,7 @@ type Repository interface {
 }
 
 type fixtureResetter interface {
-	ResetE2EFixtures(context.Context) error
+	ResetE2EFixtures(context.Context, time.Time) error
 }
 
 type Option func(*service)
@@ -523,7 +523,7 @@ func (service *service) resetE2EFixtures(w http.ResponseWriter, r *http.Request)
 		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
 		return
 	}
-	if err := resetter.ResetE2EFixtures(r.Context()); err != nil {
+	if err := resetter.ResetE2EFixtures(r.Context(), service.now().UTC()); err != nil {
 		writeError(w, r, http.StatusInternalServerError, "internal_error", "The fixture could not be reset.")
 		return
 	}
