@@ -124,4 +124,47 @@ export const copy = {
       { type: "do-it", emoji: "✓", label: "Do it" },
     ],
   },
+  avatar: {
+    eyebrow: "Your look",
+    title: "Choose your look",
+    intro:
+      "Mix a face, a background, and shades. Swap them as often as you like.",
+    open: "Avatar builder",
+    close: "Close builder",
+    preview: "Your avatar so far",
+    save: "Save my look",
+    saving: "Saving…",
+    saved: "Look saved!",
+    failed: "Your look could not be saved. Try again.",
+    cancel: "Start over",
+    legends: {
+      background: "Background",
+      head: "Face",
+      eyewear: "Sunglasses",
+    },
+    options: {
+      background: {
+        kit: "My team color",
+        sky: "Sky blue",
+        lime: "Lime",
+        grape: "Grape",
+        sunrise: "Sunrise",
+        ocean: "Deep ocean",
+        mint: "Mint",
+        coral: "Coral",
+        night: "Night",
+      },
+      head: {
+        dog: "Rover the dog",
+        cheetah: "Zoomi the cheetah",
+        player: "Team player",
+      },
+      eyewear: {
+        none: "No shades",
+        aviators: "Aviators",
+        round: "Round shades",
+        visor: "Sport visor",
+      },
+    },
+  },
 } as const;

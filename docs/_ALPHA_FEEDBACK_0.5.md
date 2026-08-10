@@ -24,6 +24,8 @@ The source feedback included personal email, local SSH-key paths, and Droplet ne
 
 **Codex · Asset blocked (2026-08-06):** No mascot image arrived with this feedback packet. Do not invent a replacement illustration or ship temporary generative art. Resume visual integration when the approved Zoomi asset is attached; Rover still needs an approved visual direction or asset.
 
+**Codex · Superseded for avatar parts (2026-08-10):** The product owner lifted the art gate for the avatar builder, so the note above no longer covers avatar faces a player chooses for themselves. `app/avatar/art/` now ships hand-authored inline SVG heads — a dog, a cheetah, and a neutral team player — with backgrounds and sunglasses, all composed in one 64×64 viewBox. These are player cosmetics, not branded mascot moments: the gate still stands for Zoomi and Rover hero art, loading states, and celebration illustrations. Approved mascot artwork can later replace a head as one entry in one registry.
+
 ## Progression, skins, and simplification
 
 - Start with a calmer default interface and a smaller initial emoji/style set.

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
+import { Avatar } from "./Avatar";
 import { copy } from "../content/copy";
 import { useAuth } from "../state/auth-context";
 
@@ -17,18 +18,16 @@ const navigation = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { currentPlayer: player } = useAuth();
+  const { currentPlayer: player, avatarConfig } = useAuth();
   const logging = pathname === "/log";
 
   function navigationIcon(item: (typeof navigation)[number]) {
     if (item.href === "/me") {
+      // The link already says "Me", so the avatar's own label would be a second
+      // accessible name for the same target.
       return (
-        <span
-          className="nav-user-avatar"
-          style={{ background: player.avatarColor }}
-          aria-hidden="true"
-        >
-          {player.initials}
+        <span className="nav-user-avatar" aria-hidden="true">
+          <Avatar player={player} size="small" config={avatarConfig} />
         </span>
       );
     }

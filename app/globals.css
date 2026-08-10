@@ -188,17 +188,18 @@ h2 {
   line-height: 1;
 }
 
+/* Only a sizing box now: the circle, border, and shadow come from .avatar. */
 .nav-user-avatar {
   display: inline-grid !important;
-  width: 1.75rem;
-  height: 1.75rem;
   place-items: center;
-  border: 2px solid white;
-  border-radius: 50%;
+}
+
+.nav-user-avatar .avatar {
+  width: 1.85rem;
+  height: 1.85rem;
+  border-width: 2px;
   box-shadow: 0 2px 8px rgb(11 18 61 / 18%);
-  color: var(--ink);
-  font-size: 0.55rem !important;
-  letter-spacing: -0.04em;
+  font-size: 0.55rem;
 }
 
 .bottom-nav a small {
@@ -2380,9 +2381,7 @@ h2 {
   font-size: 0.75rem;
 }
 .avatar-builder {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
   gap: 1rem;
 }
 .avatar-builder h2 {
@@ -2393,20 +2392,120 @@ h2 {
   color: var(--muted);
   font-size: 0.76rem;
 }
-.swatches {
+.avatar-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* Decoration only: it must never become the pointer target over a control. */
+  pointer-events: none;
+  border-radius: 50%;
+}
+.avatar-builder__preview {
+  display: grid;
+  padding: 0.9rem;
+  justify-items: center;
+  border-radius: 1.15rem;
+  background: linear-gradient(135deg, #f7ffdc, var(--canvas));
+}
+.avatar-builder__preview .avatar {
+  width: 6.5rem;
+  height: 6.5rem;
+}
+.avatar-builder__layer {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.avatar-builder__layer legend {
+  padding: 0 0 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+.avatar-builder__swatches {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.55rem;
 }
-.swatches button {
+.avatar-builder__cards {
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+}
+.avatar-builder__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.avatar-builder__actions .button {
+  flex: 1 1 8rem;
+}
+.avatar-builder__status {
+  margin: 0;
+  color: #5d7f00;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+.avatar-choice {
+  position: relative;
+}
+/* The input fills the choice so the whole card or swatch is one hit target. */
+.avatar-choice input {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.avatar-choice > label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+.avatar-builder__cards .avatar-choice {
+  border: 1.5px solid var(--line);
+  border-radius: 1.15rem;
+  background: white;
+  box-shadow: 0 8px 20px rgb(24 34 87 / 7%);
+}
+.avatar-builder__cards .avatar-choice > label {
+  flex-direction: column;
+  padding: 0.7rem 0.5rem;
+  gap: 0.4rem;
+  text-align: center;
+}
+.avatar-builder__cards .avatar-choice.is-selected {
+  border-color: #9ed000;
+  background: linear-gradient(135deg, #f7ffdc, white);
+  box-shadow: 0 0 0 2px rgb(200 245 42 / 25%);
+}
+.avatar-choice__icon .avatar {
+  width: 3.1rem;
+  height: 3.1rem;
+}
+.avatar-choice__label {
+  font-size: 0.72rem;
+  font-weight: 750;
+  line-height: 1.2;
+}
+.avatar-choice__swatch {
+  display: block;
   width: 2.7rem;
   height: 2.7rem;
   border: 3px solid white;
   border-radius: 50%;
   box-shadow: 0 0 0 1px #cfd4e3;
-  cursor: pointer;
 }
-.swatches button.is-selected {
+.avatar-choice.is-selected .avatar-choice__swatch {
   box-shadow: 0 0 0 3px var(--ink);
+}
+.avatar-choice input:focus-visible ~ .avatar-choice__swatch,
+.avatar-choice input:focus-visible ~ .avatar-choice__icon {
+  outline: 3px solid rgb(62 112 238 / 42%);
+  outline-offset: 3px;
 }
 .reaction-inbox {
   padding: 1rem;
@@ -2639,10 +2738,6 @@ h2 {
   }
   .profile-hero .button {
     width: 100%;
-  }
-  .avatar-builder {
-    align-items: flex-start;
-    flex-direction: column;
   }
   .reaction-picker-backdrop {
     padding: 0.65rem;

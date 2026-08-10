@@ -67,6 +67,7 @@ type Repository interface {
 	TeamActivity(context.Context, domain.Actor, string, time.Time) (store.TeamActivityProjection, error)
 	Leaderboard(context.Context, domain.Actor, string, domain.LeaderboardPeriod, domain.LeaderboardMetric, time.Time) (store.LeaderboardProjection, error)
 	TrainingDashboard(context.Context, domain.Actor, string, time.Time) (store.TrainingDashboardProjection, error)
+	UpdatePlayerAvatarConfiguration(context.Context, string, string) error
 }
 
 type fixtureResetter interface {
@@ -133,6 +134,7 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	mux.HandleFunc("GET /v1/me/training-entries", service.listTrainingEntries)
 	mux.HandleFunc("GET /v1/me/training-dashboard", service.getTrainingDashboard)
 	mux.HandleFunc("POST /v1/me/training-entries", service.createTrainingEntry)
+	mux.HandleFunc("PUT /v1/me/avatar", service.updateAvatar)
 	mux.HandleFunc("GET /v1/training-entries/{entryId}", service.getTrainingEntry)
 	mux.HandleFunc("DELETE /v1/training-entries/{entryId}", service.deleteTrainingEntry)
 	mux.HandleFunc("GET /v1/teams/{teamId}/activity", service.getTeamActivity)
@@ -647,7 +649,7 @@ func securityHeaders(allowedOrigin string, next http.Handler) http.Handler {
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		if origin := r.Header.Get("Origin"); origin != "" && origin == allowedOrigin {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, Idempotency-Key")
 			w.Header().Set("Vary", "Origin")
 			if r.Method == http.MethodOptions {

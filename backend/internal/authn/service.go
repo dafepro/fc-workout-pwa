@@ -7,6 +7,7 @@ import (
 	"crypto/subtle"
 	"database/sql"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
@@ -72,10 +73,11 @@ type TeamProfile struct {
 }
 
 type PlayerProfile struct {
-	ID          string        `json:"id"`
-	FirstName   string        `json:"firstName"`
-	LastInitial string        `json:"lastInitial"`
-	Teams       []TeamProfile `json:"teams"`
+	ID                  string            `json:"id"`
+	FirstName           string            `json:"firstName"`
+	LastInitial         string            `json:"lastInitial"`
+	AvatarConfiguration map[string]string `json:"avatarConfiguration"`
+	Teams               []TeamProfile     `json:"teams"`
 }
 
 type Session struct {
@@ -256,8 +258,17 @@ func (service *Service) Session(ctx context.Context, token string) (Session, err
 	view := Session{ExpiresAt: row.expiresAt.Format(time.RFC3339Nano), AccountID: actor.AccountID, Role: actor.Role}
 	if actor.PlayerID != "" {
 		var player PlayerProfile
-		if err := service.db.QueryRowContext(ctx, `SELECT id, first_name, last_initial FROM players WHERE id = ?`, actor.PlayerID).Scan(&player.ID, &player.FirstName, &player.LastInitial); err != nil {
+		// database/sql cannot assign a TEXT column to a json.RawMessage, so the
+		// column arrives as a string and is decoded here.
+		var avatarConfiguration string
+		if err := service.db.QueryRowContext(ctx, `SELECT id, first_name, last_initial, avatar_configuration_json FROM players WHERE id = ?`, actor.PlayerID).Scan(&player.ID, &player.FirstName, &player.LastInitial, &avatarConfiguration); err != nil {
 			return Session{}, err
+		}
+		// A row nobody can parse costs the player their cosmetics, not their whole
+		// session, and an initialized map keeps the field an object rather than null.
+		player.AvatarConfiguration = map[string]string{}
+		if err := json.Unmarshal([]byte(avatarConfiguration), &player.AvatarConfiguration); err != nil {
+			player.AvatarConfiguration = map[string]string{}
 		}
 		player.Teams = []TeamProfile{}
 		today := service.now().UTC().Format("2006-01-02")

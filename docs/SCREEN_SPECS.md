@@ -120,7 +120,7 @@ Make the top positions feel special, but show a clear message that every player'
 
 ## 5. Me / profile placeholder
 
-- avatar builder entry point
+- avatar builder entry point (satisfied: opens the layered avatar builder)
 - player name and team memberships
 - personal assessment history link
 - session history link

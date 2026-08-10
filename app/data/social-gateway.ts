@@ -1,3 +1,4 @@
+import { playerColor } from "../avatar/color";
 import type {
   LeaderboardItem,
   LeaderboardProjection,
@@ -239,26 +240,8 @@ function socialIdentity(identity: {
     lastInitial,
     initials:
       `${identity.firstName[0] ?? ""}${lastInitial[0] ?? ""}`.toUpperCase(),
-    avatarColor: avatarColor(id),
+    avatarColor: playerColor(id),
   };
-}
-
-function avatarColor(id: string): string {
-  const palette = [
-    "#c7f23a",
-    "#7be3d2",
-    "#ffca63",
-    "#a9b7ff",
-    "#ff8f79",
-    "#c99cff",
-    "#66d0ff",
-    "#ffd76e",
-  ];
-  const value = [...id].reduce(
-    (total, character) => total + character.charCodeAt(0),
-    0,
-  );
-  return palette[value % palette.length];
 }
 
 function goalStatus(sessions: number): TeamGoalStatus {

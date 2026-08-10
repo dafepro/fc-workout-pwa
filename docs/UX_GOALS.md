@@ -225,8 +225,11 @@ only on the current Desktop Chrome end-to-end configuration.
 
 #### Me, PWA trust, and test coverage
 
-- The avatar builder changes only a local kit color and does not persist. Its
-  “locked options” copy describes a restriction rather than inviting play.
+- ~~The avatar builder changes only a local kit color and does not persist. Its
+  “locked options” copy describes a restriction rather than inviting play.~~
+  Resolved 2026-08-10: the builder composes a layered SVG avatar from a
+  predefined catalog, persists per player, and is introduced as “Choose your
+  look.”
 - Assessment and security placeholders occupy prominent space without yet
   offering a player action. Me risks becoming a roadmap page instead of a useful
   private home.
@@ -349,9 +352,13 @@ rolling last seven days, renders 20 cards first, and uses a lightly animated
 the same progressive disclosure without the sparkle motion. This is a display
 projection only; stored reactions do not expire after seven days.
 
-Persist approved avatar configuration, rename the invitation to “Choose your
-look,” and decide the smallest fun option set that does not depend on unapproved
-mascot art. Give Home and Me distinct session-history roles. Replace placeholders
+Avatar configuration now persists and the invitation reads “Choose your look.”
+The shipped option set is deliberately small and mascot-independent: nine
+backgrounds, three faces, and four sunglasses, all hand-authored inline SVG in
+`app/avatar/art/`, so nothing here waits on approved mascot artwork. The layer
+registry makes a frame, an animated effect, or a shader additive later.
+
+Still open: give Home and Me distinct session-history roles. Replace placeholders
 only when the assessment and credential workflows have real player actions.
 
 ### P3 — Add PWA confidence and a mobile quality gate

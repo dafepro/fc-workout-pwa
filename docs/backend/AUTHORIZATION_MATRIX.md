@@ -13,6 +13,7 @@ The API denies by default. Resource IDs and route knowledge never grant access. 
 | Send predefined reaction                  | To another active teammate | To another active teammate | Deny initially      | Deny initially      | Deny                         |
 | View received reaction badges             | Own only                   | Own only                   | Allow when assigned | Allow within club   | Deny/conceal                 |
 | Moderate/delete reactions                 | Deny                       | Deny                       | Future audited flow | Future audited flow | Deny                         |
+| Save avatar configuration                 | Own only                   | Own only                   | Deny                | Deny                | Deny                         |
 
 ## Enforcement rules
 
@@ -34,6 +35,12 @@ The API denies by default. Resource IDs and route knowledge never grant access. 
 - rate limiting is checked and inserted in one database transaction;
 - received badges are visible only to the recipient, assigned coaches, and same-club admins;
 - exact negative grouping or rank labels are not stored or generated.
+
+## Avatar-specific checks
+
+- the target player is derived from the authenticated session, never from the path or body, so there is no cross-player write to conceal;
+- a staff caller has no avatar of their own and is refused with `403` rather than a concealed `404`, because the route names no resource whose existence could leak;
+- a save replaces the whole configuration, so no partial merge can preserve a layer the player removed.
 
 ## Audit events required before production
 

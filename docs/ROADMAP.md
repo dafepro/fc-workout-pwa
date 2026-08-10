@@ -325,7 +325,9 @@ credential must be preserved exactly.
 
 Status: **Planned**
 
-- Persist avatar configuration from locked options.
+- ~~Persist avatar configuration from locked options.~~ Done: a layered SVG
+  avatar (background, face, sunglasses) composed in `app/avatar/` and persisted
+  per player through `PUT /v1/me/avatar`.
 - Replace placeholder assessment and credential-management cards as their
   workflows become available.
 - Approve final logo, type, colors, icons, and mascot artwork before replacing

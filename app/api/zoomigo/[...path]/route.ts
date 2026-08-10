@@ -14,6 +14,7 @@ const allowed = [
   { method: "POST", pattern: /^v1\/me\/training-entries$/ },
   { method: "GET", pattern: /^v1\/me\/reaction-badges$/ },
   { method: "POST", pattern: /^v1\/reactions$/ },
+  { method: "PUT", pattern: /^v1\/me\/avatar$/ },
   { method: "GET", pattern: /^v1\/training-entries\/[^/]+$/ },
   { method: "DELETE", pattern: /^v1\/training-entries\/[^/]+$/ },
   { method: "GET", pattern: /^v1\/teams\/[^/]+\/activity$/ },
@@ -24,6 +25,9 @@ export async function GET(request: Request) {
   return proxy(request);
 }
 export async function POST(request: Request) {
+  return proxy(request);
+}
+export async function PUT(request: Request) {
   return proxy(request);
 }
 export async function DELETE(request: Request) {
