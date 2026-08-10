@@ -97,6 +97,7 @@ export function AuditScreen() {
               <tr>
                 <th scope="col">{consoleCopy.audit.occurredAt}</th>
                 <th scope="col">{consoleCopy.audit.actor}</th>
+                <th scope="col">{consoleCopy.audit.sourceLabel}</th>
                 <th scope="col">{consoleCopy.audit.action}</th>
                 <th scope="col">{consoleCopy.audit.target}</th>
                 <th scope="col">{consoleCopy.audit.detail}</th>
@@ -106,7 +107,13 @@ export function AuditScreen() {
               {events.map((entry, index) => (
                 <tr key={`${entry.occurredAt}-${index}`}>
                   <td>{entry.occurredAt}</td>
-                  <td>{entry.actorAccountId}</td>
+                  <td>
+                    {entry.actorAccountId || consoleCopy.audit.unattributed}
+                  </td>
+                  <td>
+                    {consoleCopy.audit.source[entry.actorSource] ??
+                      entry.actorSource}
+                  </td>
                   <td>{entry.action}</td>
                   <td>
                     {entry.targetType}/{entry.targetId}

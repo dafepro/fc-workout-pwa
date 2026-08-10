@@ -70,8 +70,8 @@ func TestLogicalExportAndImportPreserveEveryTableExactly(t *testing.T) {
 	if manifest.CreatedAt != createdAt.Format(time.RFC3339) || manifest.ApplicationVersion != "logical-test" {
 		t.Fatalf("unexpected manifest metadata: %+v", manifest)
 	}
-	if len(manifest.Source.SchemaMigrations) != 11 {
-		t.Fatalf("source migrations = %v, want ten applied", manifest.Source.SchemaMigrations)
+	if len(manifest.Source.SchemaMigrations) != 12 {
+		t.Fatalf("source migrations = %v, want 12 applied", manifest.Source.SchemaMigrations)
 	}
 	exported := make([]string, 0, len(manifest.Tables))
 	for _, table := range manifest.Tables {
@@ -117,8 +117,8 @@ func TestLogicalExportAndImportPreserveEveryTableExactly(t *testing.T) {
 	if err := target.QueryRowContext(ctx, "SELECT COUNT(*) FROM schema_migrations").Scan(&ledger); err != nil {
 		t.Fatal(err)
 	}
-	if ledger != 11 {
-		t.Fatalf("imported migration ledger = %d, want the current 11", ledger)
+	if ledger != 12 {
+		t.Fatalf("imported migration ledger = %d, want the current 12", ledger)
 	}
 }
 
@@ -169,8 +169,8 @@ func TestLogicalExportFromAnOlderSchemaImportsIntoTheCurrentSchema(t *testing.T)
 	if err := target.QueryRowContext(ctx, "SELECT idempotency_key FROM training_entries WHERE id = 'entry-old'").Scan(&idempotencyKey); err != nil {
 		t.Fatal(err)
 	}
-	if entries != 1 || migrationsApplied != 11 {
-		t.Fatalf("entries=%d migrations=%d, want 1 and 11", entries, migrationsApplied)
+	if entries != 1 || migrationsApplied != 12 {
+		t.Fatalf("entries=%d migrations=%d, want 1 and 12", entries, migrationsApplied)
 	}
 	if idempotencyKey.Valid {
 		t.Fatalf("field added after the export defaulted to %q, want NULL", idempotencyKey.String)
@@ -460,8 +460,12 @@ func fullyPopulatedDatabase(t *testing.T, ctx context.Context) string {
 			'staff-session-operator', 'account-operator', X'ff11', '2026-08-03T00:00:00Z',
 			'2026-08-03T08:00:00Z', '2026-08-03T00:30:00Z', '2026-08-03T00:00:00Z', NULL
 		)`,
-		`INSERT INTO admin_audit_events (id, actor_account_id, action, target_type, target_id, detail_json, occurred_at)
-		 VALUES ('admin-audit-1', 'account-operator', 'team.create', 'team', 'team-hill-striders', '{"name":"Hill Striders"}', '2026-08-03T00:01:00Z')`,
+		`INSERT INTO admin_audit_events (id, actor_account_id, actor_source, action, target_type, target_id, detail_json, occurred_at)
+		 VALUES ('admin-audit-1', 'account-operator', 'console', 'team.create', 'team', 'team-hill-striders', '{"name":"Hill Striders"}', '2026-08-03T00:01:00Z')`,
+		// The actorless row is seeded too, so a round trip that silently drops a
+		// NULL actor fails here rather than in a restored production trail.
+		`INSERT INTO admin_audit_events (id, actor_account_id, actor_source, action, target_type, target_id, detail_json, occurred_at)
+		 VALUES ('admin-audit-2', NULL, 'cli', 'staff.deactivate', 'account', 'account-operator', '{}', '2026-08-03T00:02:00Z')`,
 		`INSERT INTO staff_sign_in_challenges (
 			id, account_id, token_hash, purpose, created_at, expires_at, consumed_at
 		) VALUES (

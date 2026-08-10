@@ -92,10 +92,13 @@ type AuthEvent struct {
 type AdminAuditEntry struct {
 	OccurredAt string `json:"occurredAt"`
 	Actor      string `json:"actorAccountId"`
-	Action     string `json:"action"`
-	TargetType string `json:"targetType"`
-	TargetID   string `json:"targetId"`
-	Detail     string `json:"detail"`
+	// Where the action came from. An entry with no actor is only readable with
+	// this alongside it, so it is on every entry rather than only the new ones.
+	ActorSource string `json:"actorSource"`
+	Action      string `json:"action"`
+	TargetType  string `json:"targetType"`
+	TargetID    string `json:"targetId"`
+	Detail      string `json:"detail"`
 }
 
 // StaffStore is a thin wrapper so the console's queries stay out of the
@@ -857,11 +860,13 @@ func (staff *StaffStore) Audit(ctx context.Context, filter AuditFilter) ([]Admin
 			return nil, err
 		}
 		entry.TargetType, entry.TargetID = "account", entry.Actor
+		// An authentication event is the account's own act, not an operator's.
+		entry.ActorSource = ActorSourceSelf
 		entries = append(entries, entry)
 	}
 	rows.Close()
 
-	adminQuery := `SELECT occurred_at, actor_account_id, action, target_type, target_id, detail_json FROM admin_audit_events WHERE 1 = 1`
+	adminQuery := `SELECT occurred_at, COALESCE(actor_account_id, ''), actor_source, action, target_type, target_id, detail_json FROM admin_audit_events WHERE 1 = 1`
 	parameters = parameters[:0]
 	if filter.AccountID != "" {
 		adminQuery += ` AND (actor_account_id = ? OR target_id = ?)`
@@ -879,7 +884,7 @@ func (staff *StaffStore) Audit(ctx context.Context, filter AuditFilter) ([]Admin
 	defer adminRows.Close()
 	for adminRows.Next() {
 		var entry AdminAuditEntry
-		if err = adminRows.Scan(&entry.OccurredAt, &entry.Actor, &entry.Action, &entry.TargetType, &entry.TargetID, &entry.Detail); err != nil {
+		if err = adminRows.Scan(&entry.OccurredAt, &entry.Actor, &entry.ActorSource, &entry.Action, &entry.TargetType, &entry.TargetID, &entry.Detail); err != nil {
 			return nil, err
 		}
 		entries = append(entries, entry)
@@ -894,10 +899,34 @@ func (staff *StaffStore) Audit(ctx context.Context, filter AuditFilter) ([]Admin
 	return entries, nil
 }
 
+// Where a recorded action came from. The column takes any value; these are the
+// two this code writes, and the pairing with the actor is enforced below rather
+// than by a CHECK the schema would have to be rebuilt to extend.
+const (
+	ActorSourceConsole = "console"
+	ActorSourceCLI     = "cli"
+	// Never stored: the authentication trail has no actor column, and its
+	// events are always the account acting on itself. It is set on the way out
+	// so one merged list has one meaning for the field.
+	ActorSourceSelf = "self"
+)
+
 // RecordAdminAction is REQ-701: one row per successful mutation, naming the
 // actor, the action, the target, and the time. The detail is structured
 // context and never a secret (REQ-702).
 func (staff *StaffStore) RecordAdminAction(ctx context.Context, actorAccountID, action, targetType, targetID string, detail map[string]any) error {
+	return staff.recordAction(ctx, ActorSourceConsole, actorAccountID, action, targetType, targetID, detail)
+}
+
+// RecordCLIAction is the same trail for the break-glass path (F-O11). A CLI
+// invocation has no signed-in account, so the row names the source instead of
+// an actor -- which is what the NOT NULL on actor_account_id used to prevent,
+// leaving `deactivate-staff` and `deactivate-player` with no trace at all.
+func (staff *StaffStore) RecordCLIAction(ctx context.Context, action, targetType, targetID string, detail map[string]any) error {
+	return staff.recordAction(ctx, ActorSourceCLI, "", action, targetType, targetID, detail)
+}
+
+func (staff *StaffStore) recordAction(ctx context.Context, source, actorAccountID, action, targetType, targetID string, detail map[string]any) error {
 	id, err := newStaffID("adminaudit")
 	if err != nil {
 		return err
@@ -908,8 +937,15 @@ func (staff *StaffStore) RecordAdminAction(ctx context.Context, actorAccountID, 
 			return err
 		}
 	}
-	_, err = staff.db.ExecContext(ctx, `INSERT INTO admin_audit_events (id, actor_account_id, action, target_type, target_id, detail_json, occurred_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?)`, id, actorAccountID, action, targetType, targetID, string(encoded), stampNow(staff.now))
+	// The invariant the schema no longer states: a console row names an
+	// account, and any other source stores NULL rather than an empty string a
+	// later reader would mistake for an identifier.
+	var actor any
+	if source == ActorSourceConsole {
+		actor = actorAccountID
+	}
+	_, err = staff.db.ExecContext(ctx, `INSERT INTO admin_audit_events (id, actor_account_id, actor_source, action, target_type, target_id, detail_json, occurred_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, id, actor, source, action, targetType, targetID, string(encoded), stampNow(staff.now))
 	return err
 }
 

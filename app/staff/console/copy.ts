@@ -257,5 +257,13 @@ export const consoleCopy = {
     action: "Action",
     target: "Target",
     detail: "Detail",
+    sourceLabel: "Source",
+    // A row with no actor is only honest if it says why there is none.
+    source: {
+      console: "Console",
+      cli: "Command line",
+      self: "The account itself",
+    } as Record<string, string>,
+    unattributed: "No signed-in account",
   },
 } as const;

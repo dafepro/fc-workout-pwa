@@ -65,6 +65,9 @@ func createStaff(ctx context.Context, databaseURL string, role domain.Role, club
 	if err != nil {
 		return err
 	}
+	// The role and club, never the setup token or temporary password (REQ-702).
+	recordAction(ctx, db, "staff.create", "account", invitation.AccountID,
+		map[string]any{"role": string(role), "clubId": clubID})
 	warnOnce()
 	return json.NewEncoder(stdout).Encode(invitation)
 }
@@ -95,6 +98,7 @@ func resetStaffCredential(ctx context.Context, arguments []string, stdout io.Wri
 	if err != nil {
 		return err
 	}
+	recordAction(ctx, db, "staff.reset", "account", accountID, nil)
 	warnOnce()
 	return json.NewEncoder(stdout).Encode(invitation)
 }
@@ -131,6 +135,9 @@ func deactivateStaff(ctx context.Context, arguments []string, stdout io.Writer) 
 	if err != nil {
 		return err
 	}
+	// The address is deliberately absent: the account row is a tombstone now,
+	// and the trail should not be the place the freed address survives.
+	recordAction(ctx, db, "staff.deactivate", "account", accountID, nil)
 	return json.NewEncoder(stdout).Encode(summary)
 }
 
