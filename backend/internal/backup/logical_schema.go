@@ -336,7 +336,11 @@ var logicalTables = []logicalTable{
 		OrderBy: []string{"id"},
 		Fields: []logicalField{
 			textField("id"),
-			textField("actor_account_id"),
+			// Absent on any action with no signed-in account behind it, which
+			// actor_source names instead. An export that dropped either would
+			// restore a trail that misattributes CLI work to nobody at all.
+			nullable(textField("actor_account_id")),
+			textField("actor_source"),
 			textField("action"),
 			textField("target_type"),
 			textField("target_id"),

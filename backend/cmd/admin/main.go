@@ -23,6 +23,7 @@ import (
 
 	"github.com/dafepro/fc-workout-pwa/backend/internal/authn"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
+	"github.com/dafepro/fc-workout-pwa/backend/internal/store"
 )
 
 func main() {
@@ -119,6 +120,9 @@ func bootstrapTeam(ctx context.Context, arguments []string, stdout io.Writer) er
 	if err = tx.Commit(); err != nil {
 		return err
 	}
+	recordAction(ctx, db, "club.create", "club", clubID, map[string]any{"name": strings.TrimSpace(*clubName)})
+	recordAction(ctx, db, "team.create", "team", teamID, map[string]any{
+		"clubId": clubID, "name": strings.TrimSpace(*teamName), "timeZone": *timeZone, "weeklyGoal": *weeklyGoal})
 	return json.NewEncoder(stdout).Encode(map[string]string{"clubId": clubID, "teamId": teamID})
 }
 
@@ -183,6 +187,7 @@ func provisionPlayer(ctx context.Context, arguments []string, stdout io.Writer) 
 	if err = tx.Commit(); err != nil {
 		return err
 	}
+	recordAction(ctx, db, "player.provision", "player", playerID, map[string]any{"teamId": *teamID, "testOnly": *testOnly})
 	return issueLogin(ctx, db, accountID, pin, *loginURL, *qrOutput, stdout, map[string]string{"accountId": accountID, "playerId": playerID})
 }
 
@@ -208,7 +213,11 @@ func rotatePlayer(ctx context.Context, arguments []string, stdout io.Writer) err
 	if err = db.QueryRowContext(ctx, `SELECT id FROM accounts WHERE player_id = ? AND status='active'`, *playerID).Scan(&accountID); err != nil {
 		return errors.New("active player account not found")
 	}
-	return issueLogin(ctx, db, accountID, pin, *loginURL, *qrOutput, stdout, map[string]string{"accountId": accountID, "playerId": *playerID})
+	if err = issueLogin(ctx, db, accountID, pin, *loginURL, *qrOutput, stdout, map[string]string{"accountId": accountID, "playerId": *playerID}); err != nil {
+		return err
+	}
+	recordAction(ctx, db, "credential.reissue", "player", *playerID, nil)
+	return nil
 }
 
 func revokePlayer(ctx context.Context, arguments []string, stdout io.Writer) error {
@@ -230,6 +239,7 @@ func revokePlayer(ctx context.Context, arguments []string, stdout io.Writer) err
 	if err = authn.NewService(db).RevokeAccountCredentials(ctx, accountID); err != nil {
 		return err
 	}
+	recordAction(ctx, db, "credential.revoke", "player", *playerID, nil)
 	return json.NewEncoder(stdout).Encode(map[string]string{"status": "revoked", "playerId": *playerID})
 }
 
@@ -257,6 +267,7 @@ func deactivatePlayer(ctx context.Context, arguments []string, stdout io.Writer)
 	if _, err = db.ExecContext(ctx, `UPDATE accounts SET status = 'disabled' WHERE id = ?`, accountID); err != nil {
 		return err
 	}
+	recordAction(ctx, db, "player.deactivate", "player", *playerID, nil)
 	return json.NewEncoder(stdout).Encode(map[string]string{"status": "deactivated", "playerId": *playerID})
 }
 
@@ -292,6 +303,7 @@ func unlockPlayer(ctx context.Context, arguments []string, stdout io.Writer) err
 	if changed == 0 {
 		return errors.New("the player has no active credential to unlock; reissue one with rotate-player-login")
 	}
+	recordAction(ctx, db, "credential.unlock", "player", *playerID, nil)
 	return json.NewEncoder(stdout).Encode(map[string]string{"status": "unlocked", "playerId": *playerID})
 }
 
@@ -495,7 +507,71 @@ func auditEvents(ctx context.Context, arguments []string, stdout io.Writer) erro
 	if err = rows.Err(); err != nil {
 		return err
 	}
-	return json.NewEncoder(stdout).Encode(map[string]any{"events": events})
+	actions, err := managementActions(ctx, db, *playerID, *since, *limit)
+	if err != nil {
+		return err
+	}
+	return json.NewEncoder(stdout).Encode(map[string]any{"events": events, "actions": actions})
+}
+
+type managementAction struct {
+	OccurredAt string `json:"occurredAt"`
+	// Empty when the action came from a CLI invocation, which has no account
+	// behind it. Read it with actorSource, never alone.
+	ActorAccountID string `json:"actorAccountId"`
+	ActorSource    string `json:"actorSource"`
+	Action         string `json:"action"`
+	TargetType     string `json:"targetType"`
+	TargetID       string `json:"targetId"`
+	Detail         string `json:"detail"`
+}
+
+// The management trail sits beside the authentication one rather than merged
+// into it: the two have different columns and different meanings for "actor",
+// and flattening them would need a shape that lies about both. A CLI that could
+// write rows it could not read would be a new gap in place of the old one.
+func managementActions(ctx context.Context, db *sql.DB, playerID, since string, limit int) ([]managementAction, error) {
+	query := `SELECT occurred_at, actor_account_id, actor_source, action, target_type, target_id, detail_json
+		FROM admin_audit_events WHERE 1 = 1`
+	parameters := []any{}
+	if playerID != "" {
+		query += ` AND target_type = 'player' AND target_id = ?`
+		parameters = append(parameters, playerID)
+	}
+	if since != "" {
+		query += ` AND occurred_at >= ?`
+		parameters = append(parameters, since)
+	}
+	query += ` ORDER BY occurred_at DESC, id DESC LIMIT ?`
+	rows, err := db.QueryContext(ctx, query, append(parameters, limit)...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	actions := []managementAction{}
+	for rows.Next() {
+		var action managementAction
+		var actor sql.NullString
+		if err = rows.Scan(&action.OccurredAt, &actor, &action.ActorSource, &action.Action,
+			&action.TargetType, &action.TargetID, &action.Detail); err != nil {
+			return nil, err
+		}
+		action.ActorAccountID = actor.String
+		actions = append(actions, action)
+	}
+	return actions, rows.Err()
+}
+
+// recordAction writes the same trail the console writes, so the break-glass
+// path (F-O11) is no longer the one that leaves no trace. The mutation has
+// already happened by the time this runs, so a failure here warns rather than
+// failing the command -- reporting an error for work that succeeded would send
+// the operator to undo something that is already done. It is loud on stderr
+// because an audit gap that recurs silently is the problem this closes.
+func recordAction(ctx context.Context, db *sql.DB, action, targetType, targetID string, detail map[string]any) {
+	if err := store.NewStaffStore(db).RecordCLIAction(ctx, action, targetType, targetID, detail); err != nil {
+		fmt.Fprintf(os.Stderr, "admin: the %s succeeded but was not recorded in the audit trail: %v\n", action, err)
+	}
 }
 
 func credentialState(credentialID, lockedUntil sql.NullString, now time.Time) string {

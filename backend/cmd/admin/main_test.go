@@ -173,6 +173,58 @@ func TestAuditReportsCredentialLifecycleWithoutSecrets(t *testing.T) {
 	}
 }
 
+// Ending an account is exactly the action that must leave a trace, and for a
+// while it left none: admin_audit_events demanded an actor account and a CLI
+// invocation has none, so the break-glass path wrote nothing at all. The
+// assertion is on `audit` rather than on the table, because a row the CLI can
+// write but not read would be the same gap wearing a different shape.
+func TestDeactivationFromTheCLIIsRecordedAndAttributedToTheCLI(t *testing.T) {
+	databaseURL, player := provisionedTestPlayer(t)
+	playerID := player["playerId"].(string)
+
+	adminRun(t, databaseURL, "deactivate-player", "--player-id", playerID)
+
+	audit := adminRun(t, databaseURL, "audit", "--player-id", playerID)
+	actions, ok := audit["actions"].([]any)
+	if !ok {
+		t.Fatalf("audit reported no management actions at all: %+v", audit)
+	}
+	var found map[string]any
+	for _, raw := range actions {
+		action := raw.(map[string]any)
+		if action["action"] == "player.deactivate" {
+			found = action
+		}
+	}
+	if found == nil {
+		t.Fatalf("the deactivation left no trace; actions = %+v", actions)
+	}
+	// The source is what makes an absent actor readable rather than a hole, so
+	// both halves are asserted: no actor, and a source saying why.
+	if found["actorSource"] != "cli" || found["actorAccountId"] != "" {
+		t.Fatalf("deactivation recorded with the wrong attribution: %+v", found)
+	}
+	if found["targetType"] != "player" || found["targetId"] != playerID || found["occurredAt"] == "" {
+		t.Fatalf("incomplete management action: %+v", found)
+	}
+}
+
+// The provisioning path writes the same trail, so the record of who exists is
+// not split between the console's actions and the CLI's silence.
+func TestProvisioningFromTheCLIIsRecorded(t *testing.T) {
+	databaseURL, player := provisionedTestPlayer(t)
+	playerID := player["playerId"].(string)
+
+	audit := adminRun(t, databaseURL, "audit", "--player-id", playerID)
+	actions := audit["actions"].([]any)
+	for _, raw := range actions {
+		if raw.(map[string]any)["action"] == "player.provision" {
+			return
+		}
+	}
+	t.Fatalf("provisioning left no trace; actions = %+v", actions)
+}
+
 func TestAuditHonoursItsLimit(t *testing.T) {
 	databaseURL, player := provisionedTestPlayer(t)
 	playerID := player["playerId"].(string)

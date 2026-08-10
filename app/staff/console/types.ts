@@ -103,7 +103,10 @@ export interface StaffInvitation {
 
 export interface AuditEvent {
   occurredAt: string;
+  /** Empty for anything with no signed-in account behind it, which is every
+   * break-glass CLI action. Read it with actorSource, never alone. */
   actorAccountId: string;
+  actorSource: string;
   action: string;
   targetType: string;
   targetId: string;
