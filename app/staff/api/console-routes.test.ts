@@ -10,10 +10,7 @@ import {
   gatewayFor,
 } from "./console-routes";
 
-const STAFF_HANDLERS = join(
-  process.cwd(),
-  "backend/internal/httpapi/staff.go",
-);
+const STAFF_HANDLERS = join(process.cwd(), "backend/internal/httpapi/staff.go");
 
 /**
  * Reads the backend's own division of these paths: the route table, and for
@@ -33,7 +30,9 @@ function backendOperatorPaths(): Map<string, boolean> {
       continue;
     }
     if (!handler) continue;
-    const gate = line.match(/service\.(operatorActor|staffActor|teamActor|playerActor)\(/);
+    const gate = line.match(
+      /service\.(operatorActor|staffActor|teamActor|playerActor)\(/,
+    );
     if (gate) {
       gateOf.set(handler, gate[1]);
       handler = "";
