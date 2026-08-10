@@ -47,6 +47,7 @@ type service struct {
 	staffAccounts StaffAccountManager
 	credentials   CredentialManager
 	authFixtures  func(context.Context) error
+	throttles     []*loginThrottle
 	now           func() time.Time
 }
 
@@ -122,6 +123,7 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	// staff volume is a handful of people rather than a squad's worth of
 	// parents, so it gets the smaller share.
 	staffThrottle := newLoginThrottle(cfg.LoginAttemptsPerMinute, cfg.StaffGlobalLoginAttemptsPerMinute, service.now)
+	service.throttles = []*loginThrottle{throttle, staffThrottle}
 	mux.Handle("POST /v1/auth/staff-sessions", staffThrottle.guard(http.HandlerFunc(service.beginStaffSession)))
 	mux.Handle("POST /v1/auth/staff-sessions/totp", staffThrottle.guard(http.HandlerFunc(service.completeStaffSession)))
 	mux.Handle("POST /v1/auth/staff-sessions/step-up", staffThrottle.guard(http.HandlerFunc(service.staffStepUp)))
@@ -534,6 +536,11 @@ func (service *service) resetE2EFixtures(w http.ResponseWriter, r *http.Request)
 			writeError(w, r, http.StatusInternalServerError, "internal_error", "The fixture could not be reset.")
 			return
 		}
+	}
+	// A suite signing the same fixture player in once per test shares one client
+	// address, so its own volume would throttle it. The limits are untouched.
+	for _, throttle := range service.throttles {
+		throttle.reset()
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
