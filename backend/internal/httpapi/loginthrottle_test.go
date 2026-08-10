@@ -50,6 +50,47 @@ func TestLoginThrottleRefillsAfterWaiting(t *testing.T) {
 	}
 }
 
+// Every browser E2E test signs a fixture player in, and they all arrive from the
+// one address the PWA container proxies through, so a suite of them empties a
+// single client budget and later tests fail on 429 rather than on their subject.
+// Clearing the buckets belongs to the fixture reset the suite already calls: the
+// limits themselves stay exactly as production sets them.
+func TestLoginThrottleForgetsEverySpentBudgetOnFixtureReset(t *testing.T) {
+	throttle, _ := fixedThrottle(1, 100, time.Unix(0, 0).UTC())
+	for _, client := range []string{"198.51.100.7", "198.51.100.8"} {
+		throttle.allow(client)
+		if allowed, _ := throttle.allow(client); allowed {
+			t.Fatalf("%s kept a second token at one per minute", client)
+		}
+	}
+
+	throttle.reset()
+
+	for _, client := range []string{"198.51.100.7", "198.51.100.8"} {
+		if allowed, _ := throttle.allow(client); !allowed {
+			t.Fatalf("%s was still throttled after a fixture reset", client)
+		}
+	}
+	if tracked := throttle.tracked(); tracked != 2 {
+		t.Fatalf("tracked = %d, want the 2 clients that spent a token since the reset", tracked)
+	}
+}
+
+func TestLoginThrottleForgetsTheGlobalBackstopOnFixtureReset(t *testing.T) {
+	throttle, _ := fixedThrottle(100, 2, time.Unix(0, 0).UTC())
+	throttle.allow("198.51.100.7")
+	throttle.allow("198.51.100.8")
+	if allowed, _ := throttle.allow("198.51.100.9"); allowed {
+		t.Fatal("the global backstop was not exhausted")
+	}
+
+	throttle.reset()
+
+	if allowed, _ := throttle.allow("198.51.100.9"); !allowed {
+		t.Fatal("the global backstop survived a fixture reset")
+	}
+}
+
 func TestLoginThrottleTracksClientsIndependently(t *testing.T) {
 	throttle, _ := fixedThrottle(1, 100, time.Unix(0, 0).UTC())
 	if allowed, _ := throttle.allow("198.51.100.7"); !allowed {

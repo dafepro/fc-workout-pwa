@@ -17,8 +17,10 @@ services:
       PLAYER_LOGIN_URL: https://zoomigo.example/login
       STAFF_SETUP_URL: https://zoomigo.example/staff/setup
       PRODUCTION_DATA_APPROVED: "true"
-      # Low enough that a test can trip it quickly, high enough that the browser
-      # and API suites never collide with it.
+      # Low enough that a test can trip it on purpose. The browser suite used to
+      # trip it by accident -- every test signs a fixture player in and they all
+      # reach the API from this one container's address -- so `/__e2e/reset` now
+      # clears the buckets and no suite has to budget for the others.
       LOGIN_ATTEMPTS_PER_MINUTE: "20"
       GLOBAL_LOGIN_ATTEMPTS_PER_MINUTE: "1000"
     healthcheck:

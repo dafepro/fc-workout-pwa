@@ -137,6 +137,17 @@ func waitFor(perMinute, tokens float64) time.Duration {
 	return time.Duration(math.Ceil(seconds)) * time.Second
 }
 
+// reset returns every budget to full. It serves the E2E fixture reset, which is
+// registered only when ENABLE_E2E_FIXTURES is set: a suite that signs the same
+// fixture player in once per test arrives from a single address and would
+// otherwise spend a budget meant to describe one real person's behaviour.
+func (throttle *loginThrottle) reset() {
+	throttle.mu.Lock()
+	defer throttle.mu.Unlock()
+	throttle.clients = make(map[string]*attemptBudget)
+	throttle.global = attemptBudget{tokens: throttle.globalPerMinute, updated: throttle.now()}
+}
+
 func (throttle *loginThrottle) tracked() int {
 	throttle.mu.Lock()
 	defer throttle.mu.Unlock()
