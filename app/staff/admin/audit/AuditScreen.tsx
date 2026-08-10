@@ -50,7 +50,7 @@ export function AuditScreen() {
       back={{ href: routes.staffAdmin, label: consoleCopy.admin.backToSearch }}
     >
       <AdminNav />
-      <form onSubmit={submit} noValidate className="console-form">
+      <form method="post" onSubmit={submit} noValidate className="console-form">
         <label htmlFor="audit-account">{consoleCopy.audit.accountLabel}</label>
         <input
           id="audit-account"

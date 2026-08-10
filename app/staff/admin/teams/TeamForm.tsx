@@ -77,7 +77,7 @@ export function TeamForm({
   const fieldPrefix = team ? `team-${team.id}` : "new-team";
 
   return (
-    <form onSubmit={submit} noValidate className="console-form">
+    <form method="post" onSubmit={submit} noValidate className="console-form">
       <label htmlFor={`${fieldPrefix}-club`}>
         {consoleCopy.teams.clubLabel}
       </label>

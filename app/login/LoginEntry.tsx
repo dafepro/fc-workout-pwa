@@ -114,7 +114,12 @@ function PINForm({
     <>
       <h1 id="login-title">{copy.auth.loginTitle}</h1>
       <p>{copy.auth.loginIntro}</p>
-      <form onSubmit={submit} noValidate data-credential-ready="true">
+      <form
+        method="post"
+        onSubmit={submit}
+        noValidate
+        data-credential-ready="true"
+      >
         <label htmlFor="player-pin">{copy.auth.pinLabel}</label>
         <input
           id="player-pin"
