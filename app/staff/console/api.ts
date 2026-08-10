@@ -1,8 +1,5 @@
 import { consoleCopy } from "./copy";
-
-/** Every console request goes through the same-origin gateway under `/staff/`,
- * which is the only thing that holds the session token. */
-const GATEWAY = "/staff/api/backend/";
+import { gatewayFor } from "../api/console-routes";
 
 export class ConsoleError extends Error {
   constructor(
@@ -30,11 +27,19 @@ interface RequestOptions {
   query?: Record<string, string | undefined>;
 }
 
+/**
+ * Every console request goes through a same-origin gateway under `/staff/`,
+ * which is the only thing that holds the session token. Which of the two it
+ * goes through is a property of the path, looked up rather than passed in: a
+ * screen shared by the coach and operator consoles calls the same function
+ * either way, and no caller has to know its own role to reach the right gate.
+ */
 export async function consoleRequest<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  return send<T>(`${GATEWAY}${path}${queryString(options.query)}`, options);
+  const gateway = gatewayFor(options.method ?? "GET", path);
+  return send<T>(`${gateway}${path}${queryString(options.query)}`, options);
 }
 
 /** The auth routes sit beside the gateway rather than behind it, because they
