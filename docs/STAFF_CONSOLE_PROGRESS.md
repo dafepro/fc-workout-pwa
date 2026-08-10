@@ -56,13 +56,6 @@ build.
 (`/staff/admin` redirects to the Access login, `/staff/sign-in` and `/` do not),
 recorded in the log below and repeatable by hand, rather than anything CI runs.
 
-**CLI deactivation is unaudited.** `deactivate-staff` and `deactivate-player`
-both write no audit row, because `admin_audit_events` requires an actor account
-a CLI invocation does not have. Ending an account is exactly the action that
-should leave a trace. The fix is an actor concept for CLI invocations, or a
-nullable actor with a source column; neither belongs in a change made to unblock
-a release.
-
 **Inviting a platform admin still means two systems.** Their address also needs
 to be in `STAFF_CONSOLE_EMAIL_ADDRESSES` with an `infra.yml` apply, or Access
 refuses them at `/staff/admin`. The console gives no hint that this second step
@@ -71,12 +64,20 @@ operator screens that bounce. Coaches no longer need it — the gate narrowed to
 `/staff/admin` for exactly this reason — so what is left is a smaller, rarer
 version of the same trap rather than a fixed one.
 
-**The console data gateway is role-blind.** `app/staff/api/backend/[...path]`
-allowlists methods and paths, not roles, and it now sits outside the Access
-application. A coach's browser can call the operator endpoints through it and
-gets a 403 from the backend rather than from the proxy. An operator-only
-gateway under `/staff/admin/api/` would move that refusal a layer earlier and
-back inside the gate.
+**A coach cannot add an existing player to their own team.** The API lets them
+start a membership on a team they manage, but finding the player to add needs
+`v1/staff/search`, which is operator-only. The panel is now hidden for coaches
+rather than left to fail; whether a coach should be able to search beyond their
+own roster is a product question, not a plumbing one.
+
+**Phase 3's assignment card never worked in the released build.** The gateway
+allowlist was missing `v1/staff/assignment-catalog` and the two
+`v1/staff/teams/{id}/assignments` shapes, so the panel that sets and watches a
+team's assignment — F-C7 and F-C8, the point of phase 3 — answered 404 to its
+own proxy on every load, for coach and operator alike. The entries are there
+now, and the routing test derives the table from the backend so an omission of
+that shape fails rather than ships. It has not been seen working against the
+released build; that is part of the phase 3 E2E pass still owed above.
 
 ## Log
 
@@ -417,3 +418,67 @@ It was not used: the account it was built to remove had by then completed setup
 and become the working login, so removing it would have meant re-enrolling
 through the setup page that Safe Browsing is currently blocking. `list-staff`
 shows one active, complete operator and no half-finished account.
+
+### 2026-08-10 — the gateway split, and the CLI joins the audit trail
+
+Two items from **Owed** are closed, and the first of them exposed a third
+problem that had been shipped and unnoticed.
+
+`app/staff/api/backend/[...path]` allowlisted methods and paths but not roles,
+and since the Access application narrowed to `/staff/admin` it sat outside the
+gate as well. The operator paths now go through a second gateway at
+`/staff/admin/api/backend/`, which is inside the Access application and
+resolves the session's role before it forwards anything. A coach's browser is
+refused there rather than at the backend.
+
+The division between the two is the backend's own: a path is operator-only
+exactly when its handler calls `operatorActor`. That is asserted rather than
+restated — `console-routes.test.ts` reads `backend/internal/httpapi/staff.go`,
+extracts each route's gate, and fails if a proxied path sits behind the wrong
+gateway. Moving `v1/staff/audit` to the staff table was tried and does fail it.
+A hand-copied table would have drifted, and the drift is a gateway that admits
+what the backend refuses.
+
+Which gateway a call uses is a property of the path, not of the caller. The
+browser client looks it up, so `TeamRoster` — one component serving both
+consoles — calls the same function either way and never has to know its own
+role. Neither gateway is the boundary; the backend still authorizes every
+request (REQ-301, SEC-5). What the split buys is that the refusal no longer
+depends on the allowlist being right about a path's role.
+
+Writing that table is what surfaced the third problem: the old allowlist had no
+entry for `v1/staff/assignment-catalog` or either `assignments` shape, so
+phase 3's assignment card — F-C7 and F-C8 — had been answering 404 at its own
+proxy since it was released. It is listed in **Owed** rather than called fixed,
+because the fix has not been seen working against a real build.
+
+`AddExistingPlayer` is now hidden for coaches. It needs `v1/staff/search`,
+which is operator-only, so a coach was already refused it; before the split
+that arrived as a 403 they could read past, and after it would have arrived as
+an Access login page for an address Access does not admit. Hiding a panel that
+never worked for them is the smaller lie.
+
+The CLI's audit gap is closed by migration 12, which makes
+`admin_audit_events.actor_account_id` nullable and adds `actor_source`. The
+column carries no CHECK, for the same reason `action` carries none: this table
+exists so a new value never means rebuilding an audit trail. The pairing —
+console rows name an account, other sources do not — is enforced in
+`store.StaffStore`, which is the only writer. The rebuild needs no
+`table-rebuild` directive, because nothing references this table.
+
+Every mutating CLI verb records now, not only the deactivations, and reuses the
+console's action names so one trail reads as one trail. A failed write warns on
+stderr and does not fail the command: the mutation has already happened by
+then, and reporting an error for work that succeeded would send an operator to
+undo something already done.
+
+`zoomigo-admin audit` grew an `actions` array beside `events`. A CLI that could
+write rows it could not read would have been the same gap in a new shape. The
+two stay separate rather than merged, because "actor" means different things in
+each and a flattened row would lie about both. The console's audit screen gained
+a Source column for the same reason: a row with no actor is only honest if it
+says why there is none.
+
+Safe Browsing turned out not to block the setup page in practice — it was worked
+around without a change to the app — so it is recorded here and not carried as
+owed work.
