@@ -23,7 +23,7 @@ class HTTPAvatarGateway implements AvatarGateway {
   /** GET /v1/auth/session already carried the configuration, so this keeps the
    * interface uniform without a second round trip. */
   async load(): Promise<AvatarConfiguration> {
-    return normalizeAvatar(this.fromSession);
+    return this.fromSession;
   }
 
   async save(config: AvatarConfiguration): Promise<AvatarConfiguration> {
@@ -36,7 +36,7 @@ class HTTPAvatarGateway implements AvatarGateway {
     const body = (await response.json()) as {
       configuration?: AvatarConfiguration;
     };
-    return normalizeAvatar(body.configuration ?? {});
+    return body.configuration ?? {};
   }
 }
 
@@ -44,11 +44,9 @@ class LocalAvatarGateway implements AvatarGateway {
   async load(): Promise<AvatarConfiguration> {
     try {
       const stored = window.localStorage.getItem(LOCAL_AVATAR_KEY);
-      return normalizeAvatar(
-        stored ? (JSON.parse(stored) as AvatarConfiguration) : {},
-      );
+      return stored ? (JSON.parse(stored) as AvatarConfiguration) : {};
     } catch {
-      return normalizeAvatar({});
+      return {};
     }
   }
 

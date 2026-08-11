@@ -13,12 +13,7 @@ function Aviators() {
         strokeLinecap="round"
         fill="none"
       />
-      <path
-        d={`M18.5 ${BROW}H45.5`}
-        stroke={INK}
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
+      <path d={`M18.5 ${BROW}H45.5`} stroke={INK} strokeWidth="1.8" />
       {[LEFT_EYE_X, RIGHT_EYE_X].map((x) => (
         <path
           key={x}
@@ -27,25 +22,13 @@ function Aviators() {
           opacity="0.85"
         />
       ))}
-      <path
-        d={`M${LEFT_EYE_X + 6} ${BROW + 1.2}h${RIGHT_EYE_X - LEFT_EYE_X - 12}`}
-        stroke={INK}
-        strokeWidth="1.6"
-      />
     </>
   );
 }
 
-function RoundShades() {
+function RoundGlasses() {
   return (
     <>
-      <path
-        d={`M${LEFT_EYE_X - 6} ${EYE_LINE - 1}L14.5 ${EYE_LINE - 3.5}M${RIGHT_EYE_X + 6} ${EYE_LINE - 1}L49.5 ${EYE_LINE - 3.5}`}
-        stroke="#f3ad16"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        fill="none"
-      />
       <path
         d={`M${LEFT_EYE_X + 6} ${EYE_LINE}h${RIGHT_EYE_X - LEFT_EYE_X - 12}`}
         stroke="#f3ad16"
@@ -57,9 +40,30 @@ function RoundShades() {
           cx={x}
           cy={EYE_LINE}
           r="6"
-          fill={INK}
-          opacity="0.82"
+          fill="none"
           stroke="#f3ad16"
+          strokeWidth="2"
+        />
+      ))}
+    </>
+  );
+}
+
+function AquaGoggles() {
+  return (
+    <>
+      <path d={`M13 ${EYE_LINE - 1}h38`} stroke="#184d72" strokeWidth="2.2" />
+      {[LEFT_EYE_X, RIGHT_EYE_X].map((x) => (
+        <rect
+          key={x}
+          x={x - 6.5}
+          y={EYE_LINE - 5}
+          width="13"
+          height="10"
+          rx="4.5"
+          fill="#70e2f2"
+          fillOpacity="0.75"
+          stroke="#184d72"
           strokeWidth="1.8"
         />
       ))}
@@ -67,27 +71,21 @@ function RoundShades() {
   );
 }
 
-function SportVisor() {
+function StarGlasses() {
+  const star = "M0-7 2-2 7-2.2 3 1 4.5 6 0 3-4.5 6-3-1-7-2.2-2-2z";
   return (
     <>
-      <path
-        d={`M13 ${BROW + 1.5}Q32 ${BROW - 15} 51 ${BROW + 1.5}Z`}
-        fill="#c8f52a"
-      />
-      <path
-        d={`M13 ${BROW + 1.5}Q32 ${BROW - 15} 51 ${BROW + 1.5}`}
-        stroke="#88bd00"
-        strokeWidth="1.4"
-        fill="none"
-      />
-      <rect
-        x="12"
-        y={BROW - 0.5}
-        width="40"
-        height="4.2"
-        rx="2.1"
-        fill="#88bd00"
-      />
+      <path d={`M17 ${EYE_LINE - 1}h30`} stroke="#f3ad16" strokeWidth="2" />
+      {[LEFT_EYE_X, RIGHT_EYE_X].map((x) => (
+        <path
+          key={x}
+          d={star}
+          transform={`translate(${x} ${EYE_LINE})`}
+          fill="#f3ad16"
+          stroke={INK}
+          strokeWidth="1.1"
+        />
+      ))}
     </>
   );
 }
@@ -95,6 +93,7 @@ function SportVisor() {
 export const EYEWEAR_ART: Record<string, ReactNode> = {
   none: null,
   aviators: <Aviators />,
-  round: <RoundShades />,
-  visor: <SportVisor />,
+  round: <RoundGlasses />,
+  goggles: <AquaGoggles />,
+  stars: <StarGlasses />,
 };

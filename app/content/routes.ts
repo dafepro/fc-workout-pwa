@@ -2,6 +2,7 @@
  * name the staff entry without importing any console code. */
 export const routes = {
   playerHome: "/",
+  playerAvatar: "/me/avatar",
   playerSignIn: "/login",
   staffPrefix: "/staff",
   staffSignIn: "/staff/sign-in",

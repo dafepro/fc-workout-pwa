@@ -2,12 +2,15 @@
 
 import { useState } from "react";
 import { copy } from "../content/copy";
-import type { Player } from "../domain/types";
-import { AvatarArt } from "./AvatarArt";
-import { AVATAR_LAYERS } from "./catalog";
-import { playerColor } from "./color";
-import { normalizeAvatar } from "./config";
+import { AvatarArt, AvatarPartArt } from "./AvatarArt";
+import { AVATAR_CATEGORIES, AVATAR_LAYERS } from "./catalog";
+import {
+  defaultAvatar,
+  isAvatarConfiguration,
+  normalizeAvatar,
+} from "./config";
 import type {
+  AvatarCategoryKind,
   AvatarConfiguration,
   AvatarLayerDefinition,
   AvatarOption,
@@ -16,28 +19,35 @@ import type {
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 export function AvatarBuilder({
-  player,
   config,
   onSave,
 }: {
-  player: Player;
   config: AvatarConfiguration;
   onSave(config: AvatarConfiguration): Promise<void>;
 }) {
-  const saved = normalizeAvatar(config);
-  const [draft, setDraft] = useState<AvatarConfiguration>(saved);
+  const startingConfig = isAvatarConfiguration(config)
+    ? normalizeAvatar(config)
+    : defaultAvatar();
+  const [saved, setSaved] = useState<AvatarConfiguration>(startingConfig);
+  const [draft, setDraft] = useState<AvatarConfiguration>(startingConfig);
+  const [activeCategory, setActiveCategory] =
+    useState<AvatarCategoryKind>("head");
   const [status, setStatus] = useState<SaveStatus>("idle");
-  const fallbackBackground = playerColor(player.id);
+  const category = AVATAR_CATEGORIES.find(({ id }) => id === activeCategory)!;
+  const dirty = configurationKey(draft) !== configurationKey(saved);
 
-  function choose(kind: string, optionID: string) {
-    setDraft((current) => ({ ...current, [kind]: optionID }));
+  function update(key: string, value: string) {
+    setDraft((current) => ({ ...current, [key]: value }));
     setStatus("idle");
   }
 
   async function save() {
+    const next = normalizeAvatar(draft);
     setStatus("saving");
     try {
-      await onSave(draft);
+      await onSave(next);
+      setSaved(next);
+      setDraft(next);
       setStatus("saved");
     } catch {
       setStatus("error");
@@ -50,37 +60,62 @@ export function AvatarBuilder({
       aria-labelledby="avatar-builder-title"
     >
       <div className="avatar-builder__intro">
-        <p className="eyebrow">{copy.avatar.eyebrow}</p>
-        <h2 id="avatar-builder-title">{copy.avatar.title}</h2>
-        <p>{copy.avatar.intro}</p>
+        <h1 id="avatar-builder-title">{copy.avatar.title}</h1>
       </div>
-      <div className="avatar-builder__preview">
-        <span className="avatar avatar--large" aria-label={copy.avatar.preview}>
-          <AvatarArt config={draft} fallbackBackground={fallbackBackground} />
+
+      <div
+        className="avatar-builder__preview"
+        role="img"
+        aria-label={copy.avatar.preview}
+      >
+        <span className="avatar-builder__portrait" aria-hidden="true">
+          <AvatarArt config={draft} framing="studio" />
         </span>
       </div>
-      {AVATAR_LAYERS.map((layer) => (
-        <fieldset key={layer.kind} className="avatar-builder__layer">
-          <legend>{layer.legend}</legend>
-          <div className={controlClass(layer)}>
-            {layer.options.map((option) => (
-              <Choice
-                key={option.id}
+
+      <nav
+        className="avatar-builder__categories"
+        aria-label="Avatar categories"
+      >
+        {AVATAR_CATEGORIES.map(({ id, label }) => (
+          <button
+            key={id}
+            type="button"
+            className={activeCategory === id ? "is-active" : ""}
+            aria-pressed={activeCategory === id}
+            onClick={() => setActiveCategory(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+
+      <div className="avatar-builder__layer">
+        {activeCategory === "colors" ? (
+          <ColorControls draft={draft} onChange={update} />
+        ) : (
+          category.layerKinds.map((kind) => {
+            const layer = AVATAR_LAYERS.find(
+              (candidate) => candidate.kind === kind,
+            )!;
+            return (
+              <LayerPicker
+                key={kind}
                 layer={layer}
-                option={option}
                 draft={draft}
-                fallbackBackground={fallbackBackground}
-                onChoose={() => choose(layer.kind, option.id)}
+                showLegend={activeCategory === "gear"}
+                onChoose={(optionID) => update(kind, optionID)}
               />
-            ))}
-          </div>
-        </fieldset>
-      ))}
+            );
+          })
+        )}
+      </div>
+
       <div className="avatar-builder__actions">
         <button
           type="button"
           className="button button--lime"
-          disabled={status === "saving"}
+          disabled={status === "saving" || !dirty}
           onClick={() => void save()}
         >
           {status === "saving" ? copy.avatar.saving : copy.avatar.save}
@@ -88,14 +123,16 @@ export function AvatarBuilder({
         <button
           type="button"
           className="button button--outline"
+          disabled={!dirty}
           onClick={() => {
             setDraft(saved);
             setStatus("idle");
           }}
         >
-          {copy.avatar.cancel}
+          {copy.avatar.reset}
         </button>
       </div>
+
       {status === "saved" ? (
         <p className="avatar-builder__status" role="status">
           {copy.avatar.saved}
@@ -110,62 +147,123 @@ export function AvatarBuilder({
   );
 }
 
+function LayerPicker({
+  layer,
+  draft,
+  showLegend,
+  onChoose,
+}: {
+  layer: AvatarLayerDefinition;
+  draft: AvatarConfiguration;
+  showLegend: boolean;
+  onChoose(optionID: string): void;
+}) {
+  return (
+    <fieldset className="avatar-builder__sublayer">
+      <legend className={showLegend ? "" : "sr-only"}>{layer.legend}</legend>
+      <div className="avatar-builder__tray">
+        {layer.options.map((option) => (
+          <Choice
+            key={option.id}
+            layer={layer}
+            option={option}
+            draft={draft}
+            onChoose={() => onChoose(option.id)}
+          />
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
 function Choice({
   layer,
   option,
   draft,
-  fallbackBackground,
   onChoose,
 }: {
   layer: AvatarLayerDefinition;
   option: AvatarOption;
   draft: AvatarConfiguration;
-  fallbackBackground: string;
   onChoose(): void;
 }) {
   const selected = draft[layer.kind] === option.id;
+  const locked = option.unlock === "advancement";
+  const accessibleName = locked
+    ? `${option.label}, ${copy.avatar.locked}`
+    : option.label;
+
   return (
-    <div className={`avatar-choice ${selected ? "is-selected" : ""}`}>
-      <label title={option.label}>
+    <div
+      className={`avatar-choice${selected ? " is-selected" : ""}${locked ? " is-locked" : ""}`}
+    >
+      <label title={accessibleName}>
         <input
           type="radio"
           name={`avatar-${layer.kind}`}
           value={option.id}
           checked={selected}
+          disabled={locked}
+          aria-label={accessibleName}
           onChange={onChoose}
         />
-        {layer.control === "swatch" ? (
-          <span
-            className="avatar-choice__swatch"
-            style={{ background: option.color ?? fallbackBackground }}
-            aria-hidden="true"
-          />
-        ) : (
-          <span className="avatar-choice__icon" aria-hidden="true">
-            <span className="avatar avatar--small">
-              {/* The card previews the option against the rest of the draft, so a
-                  choice is judged in the look it will actually appear in. */}
-              <AvatarArt
-                config={{ ...draft, [layer.kind]: option.id }}
-                fallbackBackground={fallbackBackground}
-              />
-            </span>
-          </span>
-        )}
-        <span
-          className={
-            layer.control === "swatch" ? "sr-only" : "avatar-choice__label"
-          }
-        >
-          {option.label}
+        <span className="avatar-choice__icon" aria-hidden="true">
+          <AvatarPartArt kind={layer.kind} option={option} config={draft} />
         </span>
+        {locked ? (
+          <span className="avatar-choice__lock" aria-hidden="true">
+            🔒
+          </span>
+        ) : null}
       </label>
     </div>
   );
 }
 
-function controlClass(layer: AvatarLayerDefinition): string {
-  return layer.control === "swatch"
-    ? "avatar-builder__swatches"
-    : "avatar-builder__cards";
+function ColorControls({
+  draft,
+  onChange,
+}: {
+  draft: AvatarConfiguration;
+  onChange(key: string, color: string): void;
+}) {
+  const colors = [
+    {
+      key: "avatarColor",
+      label: copy.avatar.colors.avatar,
+      shortLabel: "Avatar",
+    },
+    {
+      key: "accentColor",
+      label: copy.avatar.colors.accent,
+      shortLabel: "Accent",
+    },
+    {
+      key: "backgroundColor",
+      label: copy.avatar.colors.background,
+      shortLabel: "Solid",
+    },
+  ] as const;
+
+  return (
+    <fieldset className="avatar-builder__colors">
+      <legend className="sr-only">{copy.avatar.categories.colors}</legend>
+      {colors.map(({ key, label, shortLabel }) => (
+        <label key={key}>
+          <span aria-hidden="true">{shortLabel}</span>
+          <span className="sr-only">{label}</span>
+          <input
+            type="color"
+            value={draft[key]}
+            aria-label={label}
+            onChange={(event) => onChange(key, event.currentTarget.value)}
+          />
+        </label>
+      ))}
+    </fieldset>
+  );
+}
+
+function configurationKey(config: AvatarConfiguration): string {
+  return JSON.stringify(normalizeAvatar(config));
 }
