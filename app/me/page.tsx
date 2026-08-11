@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { AvatarBuilder } from "../avatar/AvatarBuilder";
+import Link from "next/link";
 import { Avatar } from "../components/Avatar";
 import { SessionList } from "../components/SessionList";
+import { TransientQueryToast } from "../components/TransientQueryToast";
 import { copy } from "../content/copy";
+import { routes } from "../content/routes";
 import { TEAM_NAME } from "../data/mockData";
 import type { ReactionBadge } from "../domain/types";
 import { useTraining } from "../state/training-context";
@@ -18,7 +19,6 @@ export default function MePage() {
     currentPlayerID,
     session,
     avatarConfig,
-    saveAvatar,
   } = useAuth();
   const {
     entries,
@@ -32,7 +32,6 @@ export default function MePage() {
     loadMoreReactionBadges,
     dashboard,
   } = useTraining();
-  const [builderOpen, setBuilderOpen] = useState(false);
   const personalEntries = entries.filter(
     (entry) => entry.playerId === currentPlayerID,
   );
@@ -40,6 +39,11 @@ export default function MePage() {
 
   return (
     <div className="page page--me">
+      <TransientQueryToast
+        parameter="avatar"
+        value="saved"
+        message={copy.avatar.saveSuccess}
+      />
       <header className="profile-hero">
         <Avatar player={player} size="large" config={avatarConfig} />
         <div>
@@ -49,13 +53,9 @@ export default function MePage() {
           </h1>
           <p>{teamName}</p>
         </div>
-        <button
-          className="button button--outline"
-          type="button"
-          onClick={() => setBuilderOpen((open) => !open)}
-        >
-          {builderOpen ? copy.avatar.close : copy.avatar.open}
-        </button>
+        <Link className="button button--outline" href={routes.playerAvatar}>
+          {copy.avatar.open}
+        </Link>
         {connected ? (
           <button
             className="button button--outline"
@@ -66,13 +66,6 @@ export default function MePage() {
           </button>
         ) : null}
       </header>
-      {builderOpen ? (
-        <AvatarBuilder
-          player={player}
-          config={avatarConfig}
-          onSave={saveAvatar}
-        />
-      ) : null}
       <section
         className="card reaction-inbox"
         aria-labelledby="reaction-inbox-title"

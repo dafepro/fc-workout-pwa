@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { normalizeAvatar } from "../avatar/config";
 import type { AvatarConfiguration } from "../avatar/types";
 import { AvatarGatewayError, createAvatarGateway } from "./avatar-gateway";
 
@@ -9,26 +10,29 @@ afterEach(() => {
 
 describe("connected avatar gateway", () => {
   it("PUTs the canonical configuration and adopts the server's reply", async () => {
+    const serverReply = normalizeAvatar({
+      head: "person-tall",
+      hat: "cap",
+      eyewear: "round",
+    });
     const fetchMock = vi.fn().mockResolvedValue(
       Response.json({
-        configuration: { background: "sky", eyewear: "none", head: "cheetah" },
+        configuration: serverReply,
       }),
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const saved = await createAvatarGateway(true, {}).save({ head: "cheetah" });
+    const saved = await createAvatarGateway(true, {}).save({
+      head: "person-tall",
+    });
 
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe("/api/zoomigo/v1/me/avatar");
     expect(init.method).toBe("PUT");
     expect(JSON.parse(init.body)).toEqual({
-      configuration: { background: "kit", head: "cheetah", eyewear: "none" },
+      configuration: normalizeAvatar({ head: "person-tall" }),
     });
-    expect(saved).toEqual({
-      background: "sky",
-      eyewear: "none",
-      head: "cheetah",
-    });
+    expect(saved).toEqual(serverReply);
   });
 
   // The server rejects an absent or null wrapper with a 400 rather than quietly
@@ -64,11 +68,7 @@ describe("connected avatar gateway", () => {
 
     const loaded = await createAvatarGateway(true, { head: "player" }).load();
 
-    expect(loaded).toEqual({
-      background: "kit",
-      head: "player",
-      eyewear: "none",
-    });
+    expect(loaded).toEqual({ head: "player" });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -114,21 +114,21 @@ describe("local avatar gateway", () => {
   it("round-trips through localStorage", async () => {
     const gateway = createAvatarGateway(false, {});
 
-    await gateway.save({ head: "cheetah", background: "night" });
-
-    expect(await createAvatarGateway(false, {}).load()).toEqual({
-      background: "night",
-      head: "cheetah",
-      eyewear: "none",
+    await gateway.save({
+      head: "person-curls",
+      backgroundColor: "#112233",
     });
+
+    expect(await createAvatarGateway(false, {}).load()).toEqual(
+      normalizeAvatar({
+        head: "person-curls",
+        backgroundColor: "#112233",
+      }),
+    );
   });
 
-  it("starts from the defaults with nothing stored", async () => {
-    expect(await createAvatarGateway(false, {}).load()).toEqual({
-      background: "kit",
-      head: "dog",
-      eyewear: "none",
-    });
+  it("leaves an empty store invalid so the UI renders initials", async () => {
+    expect(await createAvatarGateway(false, {}).load()).toEqual({});
   });
 
   it("uses its own key so the training-entry store cannot clobber it", async () => {
@@ -137,17 +137,19 @@ describe("local avatar gateway", () => {
       JSON.stringify({ entries: [] }),
     );
 
-    await createAvatarGateway(false, {}).save({ head: "player" });
+    await createAvatarGateway(false, {}).save({ head: "person-curls" });
 
     expect(
       JSON.parse(window.localStorage.getItem("zoomigo-milestone-1")!),
     ).toEqual({ entries: [] });
-    expect(window.localStorage.getItem("zoomigo-avatar")).toContain("player");
+    expect(window.localStorage.getItem("zoomigo-avatar")).toContain(
+      "person-curls",
+    );
   });
 
-  it("recovers from a corrupt stored value", async () => {
+  it("leaves a corrupt stored value invalid so the UI renders initials", async () => {
     window.localStorage.setItem("zoomigo-avatar", "{not json");
 
-    expect((await createAvatarGateway(false, {}).load()).head).toBe("dog");
+    expect(await createAvatarGateway(false, {}).load()).toEqual({});
   });
 });

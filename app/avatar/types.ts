@@ -1,31 +1,45 @@
-export type AvatarLayerKind = "background" | "head" | "eyewear";
+export type AvatarLayerKind =
+  | "background"
+  | "effect"
+  | "kit"
+  | "head"
+  | "hat"
+  | "eyewear";
+
+export type AvatarCategoryKind = "head" | "kit" | "gear" | "background";
+
+export type AvatarPaletteKey =
+  | "headPalette"
+  | "kitPalette"
+  | "hatPalette"
+  | "eyewearPalette";
 
 export interface AvatarOption {
   id: string;
-  /** Catalog-owned. Never derived from a stored value, so a stale slug cannot
-   * become label text. */
   label: string;
-  /** Solid fill for background options. Absent means "use the player color". */
   color?: string;
+  unlock?: "advancement";
 }
 
 export interface AvatarLayerDefinition {
   kind: AvatarLayerKind;
   legend: string;
-  control: "swatch" | "card";
-  /** Paint order, low to high. */
   z: number;
   defaultOptionID: string;
+  paletteKey?: AvatarPaletteKey;
   options: readonly AvatarOption[];
 }
 
-/** Stored shape: layer kind -> option id. Unknown keys and unknown ids are
- * ignored on read, which is what makes adding a layer kind additive. */
+export interface AvatarCategoryDefinition {
+  id: AvatarCategoryKind;
+  label: string;
+  layerKinds: readonly AvatarLayerKind[];
+}
+
 export type AvatarConfiguration = Readonly<Record<string, string>>;
 
 export interface ResolvedLayer {
   kind: AvatarLayerKind;
-  /** Always a catalog object, never a raw stored slug. */
   option: AvatarOption;
   z: number;
 }

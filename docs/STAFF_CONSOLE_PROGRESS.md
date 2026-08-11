@@ -31,15 +31,15 @@ These closed open items from `STAFF_CONSOLE_DESIGN.md` §8 and are recorded in
 
 ## Phase status
 
-| Phase                | Requirements                             | Status                                                                   |
-| -------------------- | ---------------------------------------- | ------------------------------------------------------------------------ |
-| 0 — sign-in entry    | REQ-101–105                              | Complete                                                                 |
-| 1 — staff identity   | REQ-106, 107, 201–208, 301–305, 401, 402 | Complete                                                                 |
-| 2 — operator console | REQ-601–610, 701–704                     | Complete                                                                 |
-| 3 — coach console    | Migration D, REQ-501–506, 403, 404       | Released 2026-08-08 as `3eb0ff3`, E2E pass still owed, below             |
-| Access gate          | REQ-402                                  | Cloudflare Access live 2026-08-08; interim gate removed and released     |
-| Release              | —                                        | Phases 0–3 released 2026-08-08 as `3eb0ff3`                              |
-| First operator       | —                                        | Placeholder: `staff-admin@example.com`; status varies by deployment      |
+| Phase                | Requirements                             | Status                                                               |
+| -------------------- | ---------------------------------------- | -------------------------------------------------------------------- |
+| 0 — sign-in entry    | REQ-101–105                              | Complete                                                             |
+| 1 — staff identity   | REQ-106, 107, 201–208, 301–305, 401, 402 | Complete                                                             |
+| 2 — operator console | REQ-601–610, 701–704                     | Complete                                                             |
+| 3 — coach console    | Migration D, REQ-501–506, 403, 404       | Released 2026-08-08 as `3eb0ff3`, E2E pass still owed, below         |
+| Access gate          | REQ-402                                  | Cloudflare Access live 2026-08-08; interim gate removed and released |
+| Release              | —                                        | Phases 0–3 released 2026-08-08 as `3eb0ff3`                          |
+| First operator       | —                                        | Placeholder: `staff-admin@example.com`; status varies by deployment  |
 
 ## Owed
 

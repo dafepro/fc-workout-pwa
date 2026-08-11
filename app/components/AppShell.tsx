@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { Avatar } from "./Avatar";
 import { copy } from "../content/copy";
 import { useAuth } from "../state/auth-context";
+import { routes } from "../content/routes";
 
 const SERVICE_WORKER_URL = "/sw.js?v=4";
 
@@ -20,6 +21,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { currentPlayer: player, avatarConfig } = useAuth();
   const logging = pathname === "/log";
+  const focused = pathname === routes.playerAvatar;
 
   function navigationIcon(item: (typeof navigation)[number]) {
     if (item.href === "/me") {
@@ -71,7 +73,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${focused ? "app-shell--focused" : ""}`}>
       <aside className="sidebar">
         <Link className="brand" href="/" aria-label={`${copy.brand} home`}>
           <span className="brand__mark" aria-hidden="true">
@@ -84,7 +86,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </Link>
         <nav className="navigation" aria-label="Primary navigation">
           {navigation.map((item) => {
-            const active = pathname === item.href;
+            const active = isActivePath(pathname, item.href);
             return (
               <Link
                 key={item.href}
@@ -104,29 +106,37 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
       <main className="main-content">{children}</main>
-      <Link
-        className={`training-fab ${logging ? "training-fab--close" : ""}`}
-        href={logging ? "/" : "/log"}
-        aria-label={logging ? "Close training entry" : "Record training"}
-      >
-        <span aria-hidden="true">{logging ? "−" : "+"}</span>
-      </Link>
-      <nav className="bottom-nav" aria-label="Primary navigation">
-        {navigation.map((item) => {
-          const active = pathname === item.href;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={active ? "is-active" : ""}
-              aria-current={active ? "page" : undefined}
-            >
-              {navigationIcon(item)}
-              <small>{item.label}</small>
-            </Link>
-          );
-        })}
-      </nav>
+      {!focused ? (
+        <>
+          <Link
+            className={`training-fab ${logging ? "training-fab--close" : ""}`}
+            href={logging ? "/" : "/log"}
+            aria-label={logging ? "Close training entry" : "Record training"}
+          >
+            <span aria-hidden="true">{logging ? "−" : "+"}</span>
+          </Link>
+          <nav className="bottom-nav" aria-label="Primary navigation">
+            {navigation.map((item) => {
+              const active = isActivePath(pathname, item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={active ? "is-active" : ""}
+                  aria-current={active ? "page" : undefined}
+                >
+                  {navigationIcon(item)}
+                  <small>{item.label}</small>
+                </Link>
+              );
+            })}
+          </nav>
+        </>
+      ) : null}
     </div>
   );
+}
+
+function isActivePath(pathname: string, href: string): boolean {
+  return pathname === href || (href === "/me" && pathname.startsWith("/me/"));
 }

@@ -194,11 +194,13 @@ to resolve, not the implementing agent's.
 - Server validation is deliberately **shape only**: an object of
   `layer key -> option slug`, capped at 12 keys and 512 bytes of canonical JSON.
   Membership is not checked, so a well-formed but unknown slug is stored and
-  renders as that layer's default. The server takes over allowlisting when
-  unlocks or currency give it a reason to know the catalog.
-- Stored configurations carry **no version field**. Keys are the version signal:
-  new layer kinds are additive and unknown keys are ignored on read. Today's
-  `'{}'` column value therefore normalizes to every default with no backfill.
+  the client treats the complete configuration as invalid and renders initials.
+  The server takes over allowlisting when unlocks or currency give it a reason
+  to know the catalog.
+- Avatar Studio configurations require `version: "2"` plus every current layer.
+  Legacy, partial, unknown, or malformed configurations intentionally render as
+  the player's initials on their hashed-color background. Opening the Studio
+  from that fallback starts a new default v2 draft; there is no data backfill.
 - An absent `background` means "use the hashed player color", so the default and
   a deliberate choice stay distinguishable in storage.
 - The two divergent hashed avatar palettes are now one shared
@@ -214,3 +216,43 @@ to resolve, not the implementing agent's.
   chosen look can appear in a row that is not theirs.
 - Unlocks and currency remain out of scope. Catalog entries are object-shaped so
   an `unlock` field is additive.
+
+## Avatar Studio foundation (2026-08-11)
+
+- Avatar editing uses the focused `/me/avatar` route. Player navigation and the
+  record-training action are hidden on the mobile editing surface so they cannot
+  cover category choices or save controls.
+- Avatar configuration v3 intentionally invalidates v2. Invalid or older saved
+  values render initials and open as the new three-person default.
+- Gear is one visible category with independent hat and glasses paint layers;
+  replacing an item affects only its own sublayer.
+- Three people are available initially. The dog, cheetah, and fox are shown as
+  advancement-locked proofs; their exact requirements and inventory source are
+  deferred and must not be treated as finalized progression rules.
+- The only background style is a user-selected solid color. Avatar primary and
+  accent colors use the same native color-control pattern and default to blue
+  with a dark violet accent.
+- The orbit effect proves composable animation and stops under reduced-motion
+  preferences. Saved looks, rarity, currency, and unlock celebrations remain
+  later work.
+- The Studio preview uses a taller 64-by-82 portrait crop so the complete kit is
+  visible. Profile and navigation avatars keep the compact 64-by-64 icon crop.
+- The expanded prototype catalog (six heroes, eight kits, seven gear choices,
+  and twelve backdrops) demonstrates dense browsing with predefined options;
+  availability and unlock rules are intentionally not represented yet.
+
+## Avatar Studio palette and save pass (2026-08-11)
+
+- Avatar configuration v4 intentionally invalidates v3. Four compact
+  `primary:accent` layer palettes plus one background color keep the complete
+  configuration at the server's existing 12-key limit.
+- Color belongs to the layer it paints: person, kit, hat, and glasses each keep
+  independent primary and accent values. Background keeps one independent solid
+  color. Native color inputs sit inside small swatch popovers.
+- Background is one top-level category with Color and FX sublayers. Orbit and a
+  brightness pulse prove that effects remain independently composable.
+- Saving is complete only after the profile owns the result: the Studio returns
+  to `/me`, and that caller shows and clears a transient query-driven toast.
+  The editor has no persistent success state or reset action.
+- All kit options share one symmetric shoulder-and-collar geometry. Pattern art
+  changes independently without moving the outfit's silhouette.
