@@ -39,7 +39,7 @@ These closed open items from `STAFF_CONSOLE_DESIGN.md` §8 and are recorded in
 | 3 — coach console    | Migration D, REQ-501–506, 403, 404       | Released 2026-08-08 as `3eb0ff3`, E2E pass still owed, below             |
 | Access gate          | REQ-402                                  | Cloudflare Access live 2026-08-08; interim gate removed and released     |
 | Release              | —                                        | Phases 0–3 released 2026-08-08 as `3eb0ff3`                              |
-| First operator       | —                                        | Created 2026-08-08 for the project operator; setup link not yet redeemed |
+| First operator       | —                                        | Placeholder: `staff-admin@example.com`; status varies by deployment      |
 
 ## Owed
 
@@ -301,11 +301,11 @@ the moment Access took over — `worker/staff-gate.ts`, its wiring in
 the production environment all go together — but removing it now would leave
 `/staff/*` open, so it is deliberately untouched.
 
-The bootstrap command now uses the project's designated address. It matches
-`STAFF_CONSOLE_EMAIL_ADDRESSES` to `ALERT_EMAIL_ADDRESSES`, which matters more
-than tidiness: Access admits by exact address and one-time PIN mails the code
-there, so the wrong value in that variable is a lockout rather than a
-cosmetic error.
+Documentation uses `staff-admin@example.com` as the staff-admin placeholder.
+Each deployment must replace it with its designated address and keep
+`STAFF_CONSOLE_EMAIL_ADDRESSES` aligned with `ALERT_EMAIL_ADDRESSES`. Access
+admits by exact address and sends its one-time PIN there, so a mismatch causes
+a lockout rather than a cosmetic error.
 
 The first `platform_admin` now exists — `list-staff` returned an empty set
 beforehand, so it is genuinely the first. Its setup link is single use and

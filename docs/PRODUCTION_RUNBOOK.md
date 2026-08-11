@@ -130,7 +130,7 @@ coach is an application act with no infra step — see "Inviting staff" below.
 gh secret set STAFF_SECRET_KEY --env production --body "$(head -c 32 /dev/urandom | base64)"
 gh variable set PLAYER_LOGIN_URL --env production --body 'https://PWA_HOSTNAME/login'
 gh variable set STAFF_SETUP_URL --env production --body 'https://PWA_HOSTNAME/staff/setup'
-gh variable set STAFF_CONSOLE_EMAIL_ADDRESSES --env production --body '["operator@example.com"]'
+gh variable set STAFF_CONSOLE_EMAIL_ADDRESSES --env production --body '["staff-admin@example.com"]'
 ```
 
 Cloudflare Zero Trust has to be enabled on the account by hand, once, before any
@@ -269,7 +269,7 @@ Compose profile, so the invocation needs all of it:
 ```sh
 cd /opt/app/deploy/vm
 sudo -n docker compose --env-file .env --profile operations run --rm --no-TTY admin \
-  create-operator --email 'operator@example.com' \
+  create-operator --email 'staff-admin@example.com' \
   --setup-url 'https://PWA_HOSTNAME/staff/setup'
 ```
 
