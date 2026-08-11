@@ -146,6 +146,15 @@ to resolve, not the implementing agent's.
 - Still open: guardian notice/consent or other approved basis, final retention,
   operator single-player lookup, aggregate handling after erasure, and the date
   production collection may be explicitly enabled.
+- Planning assumption: analytics mounts inside the existing platform-operator
+  console rather than creating another admin surface. Its capacity card should
+  track actual Worker requests, D1 reads/writes/storage, events per active player,
+  and projected free-tier headroom.
+- Proposed scale policy: keep business outcomes unsampled; summarize route time by
+  visit; step raw retention from 90 to an approved 60/30 days before D1 reaches
+  70%; and deterministically sample only high-volume route/time events if needed.
+  Still open: the exact alert/step-down thresholds after two weeks of measured
+  production coefficients replace the planning estimates.
 
 ## Backup operations
 

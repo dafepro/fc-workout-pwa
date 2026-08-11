@@ -243,9 +243,11 @@ still requires product-owner/privacy approval.
 
 ## Dashboard v1
 
-`/staff/admin/analytics` is available only to the platform operator and remains
-behind both Cloudflare Access and the existing application role check. Coaches do
-not receive behavioral analytics about children.
+Analytics is not a new console. Add an **Analytics** destination to the existing
+platform-operator dashboard navigation and render `/staff/admin/analytics` inside
+its current layout, cards, responsive shell, search patterns, Cloudflare Access
+gate, and application role check. Coaches do not receive behavioral analytics
+about children.
 
 The first dashboard has five tabs:
 
@@ -281,8 +283,9 @@ reviewable and leave analytics disabled when its backing resource is absent.
    batching, failed delivery, and PWA display mode.
 5. **Authoritative outcomes and ad hoc events.** Instrument the auth and ZoomiGo
    proxy seams plus the small number of intent/filter interactions listed above.
-6. **Operator dashboard.** Add predefined query functions, privacy thresholds,
-   loading/empty/error states, operator guards, central copy, and responsive UI.
+6. **Operator dashboard.** Extend the existing admin navigation and shell with
+   predefined query functions, privacy thresholds, loading/empty/error states,
+   operator guards, central copy, and responsive analytics views.
 7. **Operations.** Add the scheduled rollup/retention handler, D1 resource/binding
    configuration, secret/feature-flag runbook, cost checks, and recovery-erasure
    instructions.
@@ -321,6 +324,7 @@ app/
   content/copy.ts                         # dashboard copy
   content/routes.ts                       # analytics route constant
   staff/admin/
+    AdminNav.tsx                            # add Analytics to the existing console
     analytics/
       AnalyticsDashboard.tsx
       page.tsx
@@ -359,20 +363,156 @@ function.
   longitudinal identity unless a controlled migration is performed.
 - Use local D1 for all default tests. No default test contacts Cloudflare or needs
   credentials.
-- Check D1 row/storage metrics monthly and alert before included limits. Do not
-  add a payment method solely for analytics until usage justifies it.
-- Estimate at alpha scale: 20–40 events per active visit. Even 1,000 monthly
-  active players with eight visits/month is roughly 160,000–320,000 event rows,
-  before index-write accounting, and remains far below paid-plan included usage.
+- Check D1 row/storage metrics weekly once usage exceeds 50% of any free limit.
+  Alert at 50%, 70%, and 85%; do not discover the limit through dropped writes.
+- Give analytics an explicit budget: at most 10 stored event records and two
+  analytics HTTP flushes per normal active player-day before sampling.
 - Disable collection rather than degrade the player experience if quota or cost
   guardrails are reached.
+
+## Free-tier scale projection
+
+Capacity is governed by the busiest UTC day, not registered users or monthly
+active users. Soccer challenges may synchronize usage onto one day, so planning
+uses **peak DAU** and keeps 15–20% headroom.
+
+Current Cloudflare Free limits checked on 2026-08-11:
+
+- Workers: 100,000 Worker-script requests/day and 10 ms CPU/request. Static Asset
+  requests are free and unlimited when they bypass the Worker script.
+- D1: 100,000 rows written/day, 5 million rows read/day, 500 MB per database,
+  5 GB total account storage, and 7-day Time Travel.
+- A secondary index adds a billed row write when its indexed columns are written.
+  The three planned raw-event indexes therefore make one event approximately four
+  billed writes before roughly 10% maintenance/rollup overhead.
+
+These are projections, not promises. The implementation must measure actual
+Worker invocations per active player, D1 `rows_written`, `rows_read`, and database
+growth for at least two representative weeks, then replace the assumptions below
+with observed coefficients.
+
+### D1 write and storage ceilings
+
+The model uses:
+
+```text
+write ceiling DAU = 100,000 / (events per active day × 4 writes × 1.10 overhead)
+storage ceiling DAU = 500 MiB / (events per active day × retention days × bytes per event)
+```
+
+Storage estimates assume 650–750 bytes per validated event including index
+overhead. Daily aggregates are small but retain a 15–20% reserve in the practical
+planning ceiling.
+
+| Collection mode               | Stored events per active player-day | Raw retention | Write ceiling | Storage ceiling | Practical peak DAU | Approximate MAU at 25% peak DAU/MAU |
+| ----------------------------- | ----------------------------------: | ------------: | ------------: | --------------: | -----------------: | ----------------------------------: |
+| Naive page/action stream      |                                  30 |       90 days |          ~750 |            ~250 |           **~250** |                              ~1,000 |
+| Recommended initial summaries |                                  10 |       90 days |        ~2,250 |            ~800 |       **~700–900** |                        ~2,800–3,600 |
+| Scale mode                    |                                  10 |       30 days |        ~2,250 |          ~2,400 |   **~2,000–2,250** |                        ~8,000–9,000 |
+| Lean, sampled navigation/time |                                   6 |       30 days |        ~3,750 |          ~4,000 |         **~3,500** |                             ~14,000 |
+
+The 13-month anonymous daily aggregates remain in every mode. Shortening raw
+retention reduces the window for individual journey debugging, not the executive
+scorecard, D30 retention, funnels, or long-term trends; those are materialized
+before raw rows expire.
+
+D1 reads should not be the first limit. An incremental rollup reads each new raw
+event once, and the operator dashboard reads compact aggregate rows. Repeatedly
+scanning 90 days of raw events could consume the 5-million-row allowance in only
+a few dashboard refreshes, so raw-table scans are forbidden in normal dashboard
+queries.
+
+### Workers request ceiling
+
+Static JS, CSS, images, and other matching assets are free and unlimited when
+served directly by Workers Static Assets. Dynamic page/SSR, auth, API, and
+analytics requests count against the account's 100,000/day Worker limit.
+
+| Dynamic Worker requests per active player-day | Peak DAU at the hard limit | Planning ceiling with 20% reserve |
+| --------------------------------------------: | -------------------------: | --------------------------------: |
+|              20 (efficient, mostly one visit) |                      5,000 |                            ~4,000 |
+|                         30 (working estimate) |                      3,333 |                            ~2,650 |
+|                 60 (heavy navigation/retries) |                      1,667 |                            ~1,300 |
+
+Analytics should add only one or two requests per normal player-day. Server-owned
+outcome events piggyback on the existing API proxy invocation, and client events
+flush as one batch at hidden/exit plus at most one bounded mid-visit flush. Batch
+size reduces Worker requests but does **not** reduce D1 row writes.
+
+The 10 ms Workers Free CPU limit is per invocation, not a user-count quota. Auth
+and SSR workloads can use 10–20 ms, so p95 CPU must be measured in Cloudflare.
+Precomputed dashboard aggregates, prepared D1 queries, small payloads, and no
+large JSON transformations keep the analytics path below the limit. A consistent
+CPU overage requires optimization or Workers Paid regardless of DAU.
+
+### How to stay free longer without losing the useful metrics
+
+Apply these in order:
+
+1. **Summarize a visit, not every gesture.** Store one route summary per distinct
+   route/visit with total active time. Collapse repeated visits to the same route
+   and do not store heartbeats.
+2. **Keep business outcomes at 100%.** Never sample successful entry creation,
+   deletion, reaction, avatar save, sign-in success, or approved failure codes.
+   These power activation, retention, funnels, and reliability.
+3. **Sample only high-volume experience events.** At 70% of the projected budget,
+   deterministically retain 50%, then 25%, of route/navigation/time summaries by
+   HMAC subject and day. Store the sample weight so aggregate queries remain
+   correct; omit sampled events from individual journeys rather than pretending
+   they are complete.
+4. **Pre-aggregate once.** Incrementally materialize daily/cohort/funnel facts and
+   have the admin dashboard query those rows. Never recompute a 90-day dashboard
+   from raw events on each view.
+5. **Use adjustable raw retention.** Start at 90 days; prepare reviewed 60-day and
+   30-day modes. Step down before the database reaches 70%, while retaining
+   13-month non-personal aggregates.
+6. **Piggyback and batch.** Record server outcomes during existing proxy requests;
+   send client intent/time data in one or two batches per active day.
+7. **Make assets bypass the Worker.** Keep Static Assets routing out of broad
+   `run_worker_first` patterns so app bundles and images remain free/unlimited.
+8. **Prune properties and indexes.** Keep bounded enums/booleans, no duplicated
+   base fields, and only indexes justified by measured queries. Fewer bytes extend
+   storage; fewer indexes extend the daily write budget.
+9. **Degrade analytics before the app.** A remote feature flag first disables
+   sampled route/time events, then all client analytics, while server-owned core
+   outcomes continue if budget remains. D1 errors are swallowed at the analytics
+   boundary.
+10. **Measure ratios in the admin console.** Add a small operator-only capacity
+    card showing seven-day average and peak Worker requests, D1 reads/writes,
+    database bytes, events per active player, and projected days/headroom.
+    Cloudflare account metrics require a dedicated read-only Account Analytics
+    token; never place the deployment token in the application runtime. If that
+    narrow token is not approved, show D1-local measurements and link the operator
+    to Cloudflare for Worker-request usage rather than weakening the secret model.
+
+Monthly raw-event D1 sharding could use more of the free account's ten databases
+and 5 GB total allowance, but it complicates queries, erasure, bindings, and
+restore. It is a last resort, not the recommended bridge. The simpler bridge is
+30-day raw retention plus sampling, followed by Workers Paid before reliability
+depends on staying below a hard daily cap.
+
+### Low-cost paid escape hatch
+
+Workers Paid currently starts at $5/month and includes 10 million Worker requests,
+50 million D1 row writes, 25 billion D1 row reads, and 5 GB-month of D1 storage.
+At the working assumptions of 30 dynamic requests and 10 analytics events per
+active player-day, the included Worker request allowance supports roughly 11,000
+average DAU; Worker requests would become the first included-usage boundary.
+
+Upgrade before a seven-day peak exceeds 70% of the lower observed Workers/D1
+limit. Free D1 stops answering queries until midnight UTC after a daily cap, and
+Workers Free can return an error after its account request cap. The existing
+DigitalOcean API/SQLite host may become the product's bottleneck before these paid
+analytics allowances, so this is an analytics projection—not a whole-system load
+claim.
 
 ## Decisions required before enabling production collection
 
 1. Approve Cloudflare D1 as the product-analytics processor/storage location.
 2. Approve the lawful/guardian notice or consent basis for child-linked product
    analytics. This plan is technical guidance, not legal advice.
-3. Approve 90-day raw and 13-month anonymous aggregate retention.
+3. Approve a maximum 90-day raw and 13-month anonymous aggregate retention, plus
+   reviewed 60/30-day scale modes before a storage cap is reached.
 4. Approve platform-operator-only single-player lookup; coaches receive no access.
 5. Approve whether aggregate counts remain unchanged after a player erasure.
 6. Approve the primary metric definition: at least one successfully saved entry
@@ -389,6 +529,8 @@ function.
 - No forbidden field can be inserted through the public metrics endpoint.
 - The dashboard answers the scorecard, funnel, retention, route, player-frequency,
   and time-of-day questions above with documented definitions.
+- The existing operator console includes analytics navigation and a capacity card;
+  no parallel admin shell is introduced.
 - Coaches cannot access product analytics; the platform operator can.
 - Player lookup stores no name or raw ID in D1 and resolves only one searched
   player at a time.
@@ -402,6 +544,9 @@ function.
 
 - [Cloudflare D1 pricing](https://developers.cloudflare.com/d1/platform/pricing/)
 - [Cloudflare D1 limits](https://developers.cloudflare.com/d1/platform/limits/)
+- [Cloudflare Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/)
+- [Cloudflare Workers limits](https://developers.cloudflare.com/workers/platform/limits/)
+- [Workers Static Assets billing](https://developers.cloudflare.com/workers/static-assets/billing-and-limitations/)
 - [Workers Analytics Engine pricing](https://developers.cloudflare.com/analytics/analytics-engine/pricing/)
 - [Workers Analytics Engine limits and retention](https://developers.cloudflare.com/analytics/analytics-engine/limits/)
 - [PostHog product pricing](https://posthog.com/pricing)
