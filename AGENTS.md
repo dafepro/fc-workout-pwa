@@ -31,6 +31,7 @@ Before planning or editing, read:
 - Rank and reward effort, participation, consistency, streaks, and challenge completion only.
 - Do not add chat, comments, announcements, or direct messaging.
 - Do not invent product requirements silently. Record assumptions in `docs/OPEN_DECISIONS.md`.
+- Keep personal and unnecessary operational data out of docs, tracked files, and commit messages: use reserved placeholders instead of real emails, session IDs, host details, fingerprints, credentials, or secrets. Commit required public trust material only in its designated runtime file, without repeating it in prose.
 - Add tests for business rules, especially visibility and entry deletion limits.
 - Run formatting, linting, type checks, tests, and the production build before declaring work complete.
 
