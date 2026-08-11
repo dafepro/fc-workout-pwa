@@ -3,37 +3,95 @@ import type {
   AvatarConfiguration,
   AvatarLayerDefinition,
   AvatarOption,
+  AvatarPaletteKey,
   ResolvedLayer,
 } from "./types";
 
-/** The one place a stored slug is turned into a part. Every miss lands on the
- * layer default, so an option retired from the catalog degrades to a working
- * avatar instead of a blank one. */
-export function resolveAvatar(
-  config: AvatarConfiguration,
-  fallbackBackground: string,
-): ResolvedLayer[] {
+export const AVATAR_CONFIG_VERSION = "4";
+
+export const DEFAULT_AVATAR_PALETTES = {
+  headPalette: "#66d0ff:#302c61",
+  kitPalette: "#6954ee:#c8f52a",
+  hatPalette: "#302c61:#66d0ff",
+  eyewearPalette: "#f3ad16:#241d3d",
+} as const;
+
+export const DEFAULT_BACKGROUND_COLOR = "#755ee8";
+
+const PALETTE_KEYS = Object.keys(DEFAULT_AVATAR_PALETTES) as AvatarPaletteKey[];
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+const PALETTE = /^#[0-9a-f]{6}:#[0-9a-f]{6}$/i;
+
+export interface LayerPalette {
+  color: string;
+  accent: string;
+}
+
+export function isAvatarConfiguration(
+  config: unknown,
+): config is AvatarConfiguration {
+  if (!config || typeof config !== "object" || Array.isArray(config)) {
+    return false;
+  }
+
+  const values = config as Record<string, unknown>;
+  const expectedKeys = [
+    "version",
+    ...AVATAR_LAYERS.map(({ kind }) => kind),
+    ...PALETTE_KEYS,
+    "backgroundColor",
+  ];
+
+  if (
+    values.version !== AVATAR_CONFIG_VERSION ||
+    Object.keys(values).length !== expectedKeys.length ||
+    expectedKeys.some((key) => typeof values[key] !== "string") ||
+    PALETTE_KEYS.some((key) => !PALETTE.test(values[key] as string)) ||
+    !HEX_COLOR.test(values.backgroundColor as string)
+  ) {
+    return false;
+  }
+
+  return AVATAR_LAYERS.every((layer) =>
+    layer.options.some((option) => option.id === values[layer.kind]),
+  );
+}
+
+export function resolveAvatar(config: AvatarConfiguration): ResolvedLayer[] {
+  const normalized = normalizeAvatar(config);
   return [...AVATAR_LAYERS]
     .sort((left, right) => left.z - right.z)
     .map((layer) => ({
       kind: layer.kind,
-      option: paint(layer, resolveOption(layer, config), fallbackBackground),
+      option: paint(layer, resolveOption(layer, normalized), normalized),
       z: layer.z,
     }));
 }
 
-/** The canonical form we save: every layer stated once, unknown keys dropped.
- * Matches what the server marshals back, so a save leaves no drift. */
 export function normalizeAvatar(
   config: AvatarConfiguration,
 ): AvatarConfiguration {
-  return Object.fromEntries(
-    AVATAR_LAYERS.map((layer) => [layer.kind, resolveOption(layer, config).id]),
-  );
+  return Object.fromEntries([
+    ["version", AVATAR_CONFIG_VERSION],
+    ...AVATAR_LAYERS.map((layer) => [
+      layer.kind,
+      resolveOption(layer, config).id,
+    ]),
+    ...PALETTE_KEYS.map((key) => [key, normalizePalette(config[key], key)]),
+    ["backgroundColor", normalizeColor(config.backgroundColor)],
+  ]);
 }
 
 export function defaultAvatar(): AvatarConfiguration {
   return normalizeAvatar({});
+}
+
+export function layerPalette(
+  config: AvatarConfiguration,
+  key: AvatarPaletteKey,
+): LayerPalette {
+  const [color, accent] = normalizePalette(config[key], key).split(":");
+  return { color, accent };
 }
 
 function resolveOption(
@@ -47,13 +105,26 @@ function resolveOption(
   );
 }
 
-/** A background option with no color of its own means "use the player color", so
- * the hashed default and a deliberate choice stay distinguishable in storage. */
+function normalizePalette(
+  palette: string | undefined,
+  key: AvatarPaletteKey,
+): string {
+  return palette && PALETTE.test(palette)
+    ? palette.toLowerCase()
+    : DEFAULT_AVATAR_PALETTES[key];
+}
+
+function normalizeColor(color: string | undefined): string {
+  return color && HEX_COLOR.test(color)
+    ? color.toLowerCase()
+    : DEFAULT_BACKGROUND_COLOR;
+}
+
 function paint(
   layer: AvatarLayerDefinition,
   option: AvatarOption,
-  fallbackBackground: string,
+  config: AvatarConfiguration,
 ): AvatarOption {
-  if (layer.kind !== "background" || option.color) return option;
-  return { ...option, color: fallbackBackground };
+  if (layer.kind !== "background") return option;
+  return { ...option, color: config.backgroundColor };
 }

@@ -4,7 +4,6 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AppShell } from "../components/AppShell";
 import { playerColor } from "../avatar/color";
-import { defaultAvatar } from "../avatar/config";
 import type { AvatarConfiguration } from "../avatar/types";
 import { createAvatarGateway } from "../data/avatar-gateway";
 import { CURRENT_PLAYER_ID, players } from "../data/mockData";
@@ -47,8 +46,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     | { status: "connected"; session: SessionProfile }
     | { status: "unavailable" }
   >({ status: "checking" });
-  const [avatarConfig, setAvatarConfig] =
-    useState<AvatarConfiguration>(defaultAvatar());
+  const [avatarConfig, setAvatarConfig] = useState<AvatarConfiguration>({});
 
   useEffect(() => {
     if (outsideThePlayerApp(pathname)) {

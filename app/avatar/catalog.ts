@@ -1,53 +1,100 @@
 import { copy } from "../content/copy";
-import type { AvatarLayerDefinition } from "./types";
+import type { AvatarCategoryDefinition, AvatarLayerDefinition } from "./types";
 
 const labels = copy.avatar.options;
 
-/** The single source of truth for avatar parts. The server validates shape only,
- * so this list decides what actually exists. Kept free of JSX so the resolver
- * and its tests can import pure data. */
 export const AVATAR_LAYERS: readonly AvatarLayerDefinition[] = [
   {
     kind: "background",
     legend: copy.avatar.legends.background,
-    control: "swatch",
     z: 0,
-    defaultOptionID: "kit",
+    defaultOptionID: "solid",
+    options: [{ id: "solid", label: labels.background.solid }],
+  },
+  {
+    kind: "effect",
+    legend: copy.avatar.legends.effect,
+    z: 5,
+    defaultOptionID: "none",
     options: [
-      { id: "kit", label: labels.background.kit },
-      { id: "sky", label: labels.background.sky, color: "#66d0ff" },
-      { id: "lime", label: labels.background.lime, color: "#c7f23a" },
-      { id: "grape", label: labels.background.grape, color: "#c99cff" },
-      { id: "sunrise", label: labels.background.sunrise, color: "#ffca63" },
-      { id: "ocean", label: labels.background.ocean, color: "#3e70ee" },
-      { id: "mint", label: labels.background.mint, color: "#7be3d2" },
-      { id: "coral", label: labels.background.coral, color: "#ff8f79" },
-      { id: "night", label: labels.background.night, color: "#3b3f6b" },
+      { id: "none", label: labels.effect.none },
+      { id: "orbit", label: labels.effect.orbit },
+      { id: "pulse", label: labels.effect.pulse },
+    ],
+  },
+  {
+    kind: "kit",
+    legend: copy.avatar.legends.kit,
+    z: 10,
+    defaultOptionID: "violet",
+    paletteKey: "kitPalette",
+    options: [
+      { id: "violet", label: labels.kit.violet },
+      { id: "ocean", label: labels.kit.ocean },
+      { id: "coral", label: labels.kit.coral },
+      { id: "lime", label: labels.kit.lime },
+      { id: "midnight", label: labels.kit.midnight },
+      { id: "keeper", label: labels.kit.keeper },
+      { id: "sunset", label: labels.kit.sunset },
+      { id: "classic", label: labels.kit.classic },
     ],
   },
   {
     kind: "head",
     legend: copy.avatar.legends.head,
-    control: "card",
-    z: 10,
-    defaultOptionID: "dog",
+    z: 20,
+    defaultOptionID: "person-round",
+    paletteKey: "headPalette",
     options: [
-      { id: "dog", label: labels.head.dog },
-      { id: "cheetah", label: labels.head.cheetah },
-      { id: "player", label: labels.head.player },
+      { id: "person-round", label: labels.head.personRound },
+      { id: "person-tall", label: labels.head.personTall },
+      { id: "person-curls", label: labels.head.personCurls },
+      { id: "dog", label: labels.head.dog, unlock: "advancement" },
+      { id: "cheetah", label: labels.head.cheetah, unlock: "advancement" },
+      { id: "fox", label: labels.head.fox, unlock: "advancement" },
+    ],
+  },
+  {
+    kind: "hat",
+    legend: copy.avatar.legends.hat,
+    z: 25,
+    defaultOptionID: "none",
+    paletteKey: "hatPalette",
+    options: [
+      { id: "none", label: labels.hat.none },
+      { id: "cap", label: labels.hat.cap },
+      { id: "beanie", label: labels.hat.beanie },
+      { id: "headband", label: labels.hat.headband },
+      { id: "crown", label: labels.hat.crown },
     ],
   },
   {
     kind: "eyewear",
     legend: copy.avatar.legends.eyewear,
-    control: "card",
-    z: 20,
+    z: 30,
     defaultOptionID: "none",
+    paletteKey: "eyewearPalette",
     options: [
       { id: "none", label: labels.eyewear.none },
       { id: "aviators", label: labels.eyewear.aviators },
       { id: "round", label: labels.eyewear.round },
-      { id: "visor", label: labels.eyewear.visor },
+      { id: "goggles", label: labels.eyewear.goggles },
+      { id: "stars", label: labels.eyewear.stars },
     ],
+  },
+];
+
+export const AVATAR_CATEGORIES: readonly AvatarCategoryDefinition[] = [
+  { id: "head", label: copy.avatar.categories.head, layerKinds: ["head"] },
+  { id: "kit", label: copy.avatar.categories.kit, layerKinds: ["kit"] },
+  {
+    id: "gear",
+    label: copy.avatar.categories.gear,
+    layerKinds: ["hat", "eyewear"],
+  },
+  {
+    id: "background",
+    label: copy.avatar.categories.background,
+    layerKinds: ["background", "effect"],
   },
 ];

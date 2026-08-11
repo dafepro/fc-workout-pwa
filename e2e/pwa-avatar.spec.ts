@@ -13,44 +13,78 @@ test.beforeEach(async () => {
   await api.dispose();
 });
 
-test("a player's chosen look survives a reload and reaches the nav", async ({
+test("a player builds a v4 look with independent Gear sublayers", async ({
   page,
 }) => {
   await openReadyPage(page, "/me");
-  await page.getByRole("button", { name: "Avatar builder" }).click();
 
-  await page.getByRole("radio", { name: "Zoomi the cheetah" }).check();
-  await page.getByRole("radio", { name: "Aviators" }).check();
-  await page.getByRole("radio", { name: "Deep ocean" }).check();
-  await page.getByRole("button", { name: "Save my look" }).click();
+  await expect(page.locator(".profile-hero .avatar-art")).toHaveCount(0);
+  await expect(page.locator(".profile-hero .avatar")).toContainText("MC");
+  await page.getByRole("link", { name: "Customize avatar" }).click();
+  await expect(page).toHaveURL(/\/me\/avatar$/);
+  await expect(page.getByRole("link", { name: "Record training" })).toHaveCount(
+    0,
+  );
 
-  await expect(page.getByText("Look saved!")).toBeVisible();
+  await expect(
+    page.getByRole("radio", { name: /Rover the dog.*locked/i }),
+  ).toBeDisabled();
+  await page.getByRole("radio", { name: "Tall person" }).check();
+  await page.getByRole("button", { name: "Person colors" }).click();
+  await page.getByLabel("Person color").fill("#22aacc");
+  await page.getByLabel("Person accent").fill("#112233");
+  await page.getByRole("button", { name: "Kit" }).click();
+  await expect(
+    page.getByRole("group", { name: "Kits" }).getByRole("radio"),
+  ).toHaveCount(8);
+  await expect(
+    page.locator(".avatar-builder__preview .avatar-art"),
+  ).toHaveAttribute("viewBox", "0 0 64 82");
+  await expect(page.locator(".avatar-choice .avatar-art")).toHaveCount(0);
+  await page.getByRole("radio", { name: "Chevron kit" }).check();
+  await page.getByRole("button", { name: "Kit colors" }).click();
+  await page.getByLabel("Kit color").fill("#ff806f");
 
-  // The profile hero and the nav both read the same auth state, so the stub's
-  // failure to propagate would show up here.
-  const heroArt = page.locator(".profile-hero .avatar-art");
-  const navArt = page.locator(".nav-user-avatar .avatar-art").first();
-  await expect(heroArt).toBeVisible();
-  await expect(navArt).toBeVisible();
+  await page.getByRole("button", { name: "Gear" }).click();
+  await page.getByRole("radio", { name: "Cap" }).check();
+  await page.getByRole("radio", { name: "Round glasses" }).check();
+  await expect(page.getByRole("radio", { name: "Cap" })).toBeChecked();
+  await expect(
+    page.getByRole("radio", { name: "Round glasses" }),
+  ).toBeChecked();
+
+  await page.getByRole("button", { name: "Background" }).click();
+  await page.getByRole("button", { name: "Background color" }).click();
+  await page.getByLabel("Background color").fill("#ffeeaa");
+  await page.getByRole("radio", { name: "Pulse effect" }).check();
+  await expect(page.locator(".avatar-effect--pulse")).toBeVisible();
+  await page.getByRole("button", { name: "Save" }).click();
+
+  await expect(page).toHaveURL(/\/me$/);
+  await expect(page.getByRole("status")).toContainText("Avatar saved");
+  await expect(page.locator(".profile-hero .avatar-art")).toBeVisible();
 
   await page.reload();
   await page.locator("html[data-app-ready='true']").waitFor();
-
-  await expect(page.locator(".profile-hero .avatar-art")).toBeVisible();
-  await page.getByRole("button", { name: "Avatar builder" }).click();
+  await page.getByRole("link", { name: "Customize avatar" }).click();
+  await page.getByRole("button", { name: "Gear" }).click();
+  await expect(page.getByRole("radio", { name: "Cap" })).toBeChecked();
   await expect(
-    page.getByRole("radio", { name: "Zoomi the cheetah" }),
+    page.getByRole("radio", { name: "Round glasses" }),
   ).toBeChecked();
-  await expect(page.getByRole("radio", { name: "Aviators" })).toBeChecked();
-  await expect(page.getByRole("radio", { name: "Deep ocean" })).toBeChecked();
+  await page.getByRole("button", { name: "Background" }).click();
+  await expect(page.getByRole("radio", { name: "Pulse effect" })).toBeChecked();
 });
 
-test("the builder offers no free text or upload control", async ({ page }) => {
-  await openReadyPage(page, "/me");
-  await page.getByRole("button", { name: "Avatar builder" }).click();
+test("the Studio uses compact accessible controls without open text or upload", async ({
+  page,
+}) => {
+  await openReadyPage(page, "/me/avatar");
 
   const builder = page.locator(".avatar-builder");
   await expect(builder.locator("input[type='text']")).toHaveCount(0);
   await expect(builder.locator("input[type='file']")).toHaveCount(0);
   await expect(builder.locator("textarea")).toHaveCount(0);
+  await expect(builder.locator(".avatar-choice__label")).toHaveCount(0);
+  await expect(builder.locator(".avatar-builder__tray")).toBeVisible();
 });

@@ -108,6 +108,10 @@ h2 {
   padding-bottom: 6.4rem;
 }
 
+.app-shell--focused .main-content {
+  padding-bottom: 0;
+}
+
 .page {
   width: min(100%, 74rem);
   margin: 0 auto;
@@ -2387,15 +2391,13 @@ h2 {
 }
 .avatar-builder {
   display: grid;
-  gap: 1rem;
+  gap: 0.8rem;
+  overflow: hidden;
+  padding: 0.85rem;
 }
-.avatar-builder h2 {
-  margin-bottom: 0.2rem;
-}
-.avatar-builder p {
+.avatar-builder h1 {
   margin: 0;
-  color: var(--muted);
-  font-size: 0.76rem;
+  font-size: clamp(1.65rem, 7vw, 2.3rem);
 }
 .avatar-art {
   display: block;
@@ -2405,36 +2407,184 @@ h2 {
   pointer-events: none;
   border-radius: 50%;
 }
+.avatar-art--studio {
+  border-radius: 1.4rem;
+}
+.avatar-effect--animated {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: avatar-orbit 5s linear infinite;
+}
+.avatar-effect--pulse {
+  animation: avatar-pulse 2.4s ease-in-out infinite;
+}
+@keyframes avatar-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes avatar-pulse {
+  0%,
+  100% {
+    opacity: 0.03;
+  }
+  50% {
+    opacity: 0.24;
+  }
+}
 .avatar-builder__preview {
   display: grid;
-  padding: 0.9rem;
+  overflow: hidden;
+  min-height: 17rem;
+  align-content: center;
   justify-items: center;
   border-radius: 1.15rem;
-  background: linear-gradient(135deg, #f7ffdc, var(--canvas));
+  background: linear-gradient(160deg, #302c61, #211d43);
+  color: white;
 }
-.avatar-builder__preview .avatar {
-  width: 6.5rem;
-  height: 6.5rem;
+.avatar-builder__portrait {
+  display: block;
+  width: clamp(10rem, 52vw, 13rem);
+  overflow: hidden;
+  aspect-ratio: 64 / 82;
+  margin: 0.85rem;
+  border-radius: 1.4rem;
+  box-shadow: 0 1.2rem 2.5rem rgb(5 7 30 / 35%);
+}
+.avatar-builder__categories {
+  display: flex;
+  overflow-x: auto;
+  gap: 0.35rem;
+  padding: 0.3rem;
+  border-radius: 1rem;
+  background: #eeecfa;
+  scrollbar-width: none;
+}
+.avatar-builder__categories button {
+  flex: 1 0 2.9rem;
+  min-height: 2.8rem;
+  padding: 0.4rem 0.25rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+.avatar-builder__categories button.is-active {
+  background: white;
+  box-shadow: 0 0.35rem 0.9rem rgb(11 18 61 / 10%);
+  color: var(--ink);
+}
+.avatar-builder__categories button:focus-visible {
+  outline: 3px solid rgb(62 112 238 / 42%);
+  outline-offset: 1px;
 }
 .avatar-builder__layer {
+  display: grid;
+  min-width: 0;
+  gap: 0.8rem;
+}
+.avatar-builder__sublayer {
+  min-width: 0;
   margin: 0;
   padding: 0;
   border: 0;
 }
-.avatar-builder__layer legend {
-  padding: 0 0 0.5rem;
-  font-size: 0.8rem;
+.avatar-builder__sublayer legend {
+  padding: 0 0 0.25rem;
+  font-size: 0.78rem;
   font-weight: 800;
 }
-.avatar-builder__swatches {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
-}
-.avatar-builder__cards {
+.avatar-builder__tray {
   display: grid;
-  gap: 0.6rem;
-  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  overflow-x: auto;
+  gap: 0.55rem;
+  grid-auto-columns: 4.25rem;
+  grid-auto-flow: column;
+  padding: 0.2rem 0.25rem 0.65rem;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+.avatar-builder__tray::-webkit-scrollbar,
+.avatar-builder__categories::-webkit-scrollbar {
+  display: none;
+}
+.avatar-palette {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  min-height: 2.75rem;
+  justify-content: flex-end;
+  margin: 0 0 0.2rem auto;
+}
+.avatar-palette__button {
+  position: relative;
+  display: block;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 5px 12px rgb(24 34 87 / 10%);
+  cursor: pointer;
+}
+.avatar-palette__button > span {
+  position: absolute;
+  width: 1.45rem;
+  height: 1.45rem;
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgb(24 34 87 / 20%);
+}
+.avatar-palette__button > span:first-child {
+  top: 0.42rem;
+  left: 0.42rem;
+}
+.avatar-palette__button > span:last-child {
+  right: 0.42rem;
+  bottom: 0.42rem;
+}
+.avatar-palette__button--single > span {
+  inset: 0.48rem;
+  width: auto;
+  height: auto;
+}
+.avatar-palette__popover {
+  position: absolute;
+  z-index: 4;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  display: grid;
+  width: 7.4rem;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: white;
+  box-shadow: 0 0.9rem 2rem rgb(24 34 87 / 18%);
+}
+.avatar-palette__popover--single {
+  width: 4.15rem;
+  grid-template-columns: 1fr;
+}
+.avatar-palette__popover label {
+  display: block;
+}
+.avatar-palette__popover input {
+  display: block;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0.12rem;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
 }
 .avatar-builder__actions {
   display: flex;
@@ -2444,14 +2594,20 @@ h2 {
 .avatar-builder__actions .button {
   flex: 1 1 8rem;
 }
-.avatar-builder__status {
-  margin: 0;
-  color: #5d7f00;
-  font-size: 0.8rem;
-  font-weight: 800;
+.avatar-builder__actions .button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+  box-shadow: none;
 }
 .avatar-choice {
   position: relative;
+  overflow: hidden;
+  aspect-ratio: 1;
+  border: 1.5px solid var(--line);
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 6px 14px rgb(24 34 87 / 8%);
+  scroll-snap-align: start;
 }
 /* The input fills the choice so the whole card or swatch is one hit target. */
 .avatar-choice input {
@@ -2465,52 +2621,62 @@ h2 {
   cursor: pointer;
 }
 .avatar-choice > label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  padding: 0.4rem;
   cursor: pointer;
 }
-.avatar-builder__cards .avatar-choice {
-  border: 1.5px solid var(--line);
-  border-radius: 1.15rem;
-  background: white;
-  box-shadow: 0 8px 20px rgb(24 34 87 / 7%);
-}
-.avatar-builder__cards .avatar-choice > label {
-  flex-direction: column;
-  padding: 0.7rem 0.5rem;
-  gap: 0.4rem;
-  text-align: center;
-}
-.avatar-builder__cards .avatar-choice.is-selected {
+.avatar-choice.is-selected {
   border-color: #9ed000;
   background: linear-gradient(135deg, #f7ffdc, white);
   box-shadow: 0 0 0 2px rgb(200 245 42 / 25%);
 }
-.avatar-choice__icon .avatar {
-  width: 3.1rem;
-  height: 3.1rem;
+.avatar-choice.is-locked {
+  opacity: 0.58;
 }
-.avatar-choice__label {
-  font-size: 0.72rem;
-  font-weight: 750;
-  line-height: 1.2;
+.avatar-choice.is-locked label,
+.avatar-choice.is-locked input {
+  cursor: not-allowed;
 }
-.avatar-choice__swatch {
+.avatar-choice__icon,
+.avatar-part-art {
   display: block;
-  width: 2.7rem;
-  height: 2.7rem;
-  border: 3px solid white;
+  width: 100%;
+  height: 100%;
+}
+.avatar-choice__lock {
+  position: absolute;
+  right: 0.25rem;
+  bottom: 0.15rem;
+  display: grid;
+  width: 1.35rem;
+  height: 1.35rem;
+  place-items: center;
   border-radius: 50%;
-  box-shadow: 0 0 0 1px #cfd4e3;
+  background: white;
+  font-size: 0.65rem;
+  box-shadow: 0 2px 6px rgb(11 18 61 / 20%);
 }
-.avatar-choice.is-selected .avatar-choice__swatch {
-  box-shadow: 0 0 0 3px var(--ink);
-}
-.avatar-choice input:focus-visible ~ .avatar-choice__swatch,
 .avatar-choice input:focus-visible ~ .avatar-choice__icon {
   outline: 3px solid rgb(62 112 238 / 42%);
-  outline-offset: 3px;
+  outline-offset: -2px;
+  border-radius: 50%;
+}
+.avatar-studio__back {
+  display: inline-flex;
+  width: 2.75rem;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+.page--avatar-studio {
+  max-width: 70rem;
 }
 .reaction-inbox {
   padding: 1rem;
@@ -2813,6 +2979,53 @@ h2 {
   }
   .profile-grid {
     grid-template-columns: repeat(3, 1fr);
+  }
+  .avatar-builder {
+    grid-template-areas:
+      "intro intro"
+      "preview categories"
+      "preview layer"
+      "preview actions"
+      "preview status";
+    grid-template-columns: minmax(15rem, 0.85fr) minmax(18rem, 1.15fr);
+    align-items: start;
+    padding: 1.4rem;
+  }
+  .avatar-builder__intro {
+    grid-area: intro;
+  }
+  .avatar-builder__preview {
+    position: sticky;
+    top: 2rem;
+    grid-area: preview;
+  }
+  .avatar-builder__categories {
+    grid-area: categories;
+  }
+  .avatar-builder__layer {
+    grid-area: layer;
+  }
+  .avatar-builder__actions {
+    grid-area: actions;
+  }
+  .avatar-builder > .notice {
+    grid-area: status;
+  }
+  .avatar-builder__tray {
+    overflow: visible;
+    grid-template-columns: repeat(auto-fill, 4.25rem);
+    grid-auto-flow: row;
+    justify-content: start;
+  }
+  .avatar-builder__portrait {
+    width: clamp(11.5rem, 18vw, 14rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avatar-effect--animated,
+  .avatar-effect--pulse {
+    animation: none;
   }
 }
 
