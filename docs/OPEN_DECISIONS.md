@@ -127,6 +127,26 @@ to resolve, not the implementing agent's.
 - Audit trail and deletion requests.
 - Applicable youth privacy requirements before production use.
 
+## Product analytics (proposed 2026-08-11)
+
+- Planning assumption, not yet approved: use a dedicated Cloudflare D1 database
+  behind a first-party, same-origin, typed event API. Keep analytics disabled by
+  default until its privacy basis and production retention are approved. See
+  `USER_METRICS_PLAN.md`.
+- Proposed retention: 90 days for pseudonymous raw events and 13 months for
+  non-personal daily aggregates, with immediate subject deletion plus a bounded
+  tombstone that reapplies deletion after a D1 Time Travel restore.
+- Proposed access: platform operators may view aggregate product analytics and
+  deliberately resolve one searched player's pseudonymous journey. Coaches do
+  not receive behavioral analytics about children, and D1 stores no roster.
+- Proposed primary product metric: weekly meaningful active players, defined as
+  distinct players who successfully save at least one approved training entry
+  in a calendar week. This measures adoption without rewarding workout volume or
+  athletic performance.
+- Still open: guardian notice/consent or other approved basis, final retention,
+  operator single-player lookup, aggregate handling after erasure, and the date
+  production collection may be explicitly enabled.
+
 ## Backup operations
 
 - Recovery-point and recovery-time objectives.
