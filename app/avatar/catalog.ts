@@ -19,6 +19,7 @@ export const AVATAR_LAYERS: readonly AvatarLayerDefinition[] = [
     options: [
       { id: "none", label: labels.effect.none },
       { id: "orbit", label: labels.effect.orbit },
+      { id: "pulse", label: labels.effect.pulse },
     ],
   },
   {
@@ -26,6 +27,7 @@ export const AVATAR_LAYERS: readonly AvatarLayerDefinition[] = [
     legend: copy.avatar.legends.kit,
     z: 10,
     defaultOptionID: "violet",
+    paletteKey: "kitPalette",
     options: [
       { id: "violet", label: labels.kit.violet },
       { id: "ocean", label: labels.kit.ocean },
@@ -42,6 +44,7 @@ export const AVATAR_LAYERS: readonly AvatarLayerDefinition[] = [
     legend: copy.avatar.legends.head,
     z: 20,
     defaultOptionID: "person-round",
+    paletteKey: "headPalette",
     options: [
       { id: "person-round", label: labels.head.personRound },
       { id: "person-tall", label: labels.head.personTall },
@@ -56,6 +59,7 @@ export const AVATAR_LAYERS: readonly AvatarLayerDefinition[] = [
     legend: copy.avatar.legends.hat,
     z: 25,
     defaultOptionID: "none",
+    paletteKey: "hatPalette",
     options: [
       { id: "none", label: labels.hat.none },
       { id: "cap", label: labels.hat.cap },
@@ -69,6 +73,7 @@ export const AVATAR_LAYERS: readonly AvatarLayerDefinition[] = [
     legend: copy.avatar.legends.eyewear,
     z: 30,
     defaultOptionID: "none",
+    paletteKey: "eyewearPalette",
     options: [
       { id: "none", label: labels.eyewear.none },
       { id: "aviators", label: labels.eyewear.aviators },
@@ -87,10 +92,9 @@ export const AVATAR_CATEGORIES: readonly AvatarCategoryDefinition[] = [
     label: copy.avatar.categories.gear,
     layerKinds: ["hat", "eyewear"],
   },
-  { id: "colors", label: copy.avatar.categories.colors, layerKinds: [] },
   {
-    id: "effect",
-    label: copy.avatar.categories.effect,
-    layerKinds: ["effect"],
+    id: "background",
+    label: copy.avatar.categories.background,
+    layerKinds: ["background", "effect"],
   },
 ];

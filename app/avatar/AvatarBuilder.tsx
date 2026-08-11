@@ -7,6 +7,7 @@ import { AVATAR_CATEGORIES, AVATAR_LAYERS } from "./catalog";
 import {
   defaultAvatar,
   isAvatarConfiguration,
+  layerPalette,
   normalizeAvatar,
 } from "./config";
 import type {
@@ -14,9 +15,10 @@ import type {
   AvatarConfiguration,
   AvatarLayerDefinition,
   AvatarOption,
+  AvatarPaletteKey,
 } from "./types";
 
-type SaveStatus = "idle" | "saving" | "saved" | "error";
+type SaveStatus = "idle" | "saving" | "error";
 
 export function AvatarBuilder({
   config,
@@ -28,13 +30,32 @@ export function AvatarBuilder({
   const startingConfig = isAvatarConfiguration(config)
     ? normalizeAvatar(config)
     : defaultAvatar();
-  const [saved, setSaved] = useState<AvatarConfiguration>(startingConfig);
+
+  return (
+    <AvatarBuilderEditor
+      key={configurationKey(startingConfig)}
+      startingConfig={startingConfig}
+      onSave={onSave}
+    />
+  );
+}
+
+function AvatarBuilderEditor({
+  startingConfig,
+  onSave,
+}: {
+  startingConfig: AvatarConfiguration;
+  onSave(config: AvatarConfiguration): Promise<void>;
+}) {
   const [draft, setDraft] = useState<AvatarConfiguration>(startingConfig);
   const [activeCategory, setActiveCategory] =
     useState<AvatarCategoryKind>("head");
+  const [openPalette, setOpenPalette] = useState<
+    AvatarPaletteKey | "backgroundColor" | null
+  >(null);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const category = AVATAR_CATEGORIES.find(({ id }) => id === activeCategory)!;
-  const dirty = configurationKey(draft) !== configurationKey(saved);
+  const dirty = configurationKey(draft) !== configurationKey(startingConfig);
 
   function update(key: string, value: string) {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -42,13 +63,10 @@ export function AvatarBuilder({
   }
 
   async function save() {
-    const next = normalizeAvatar(draft);
     setStatus("saving");
     try {
-      await onSave(next);
-      setSaved(next);
-      setDraft(next);
-      setStatus("saved");
+      await onSave(normalizeAvatar(draft));
+      setStatus("idle");
     } catch {
       setStatus("error");
     }
@@ -83,7 +101,10 @@ export function AvatarBuilder({
             type="button"
             className={activeCategory === id ? "is-active" : ""}
             aria-pressed={activeCategory === id}
-            onClick={() => setActiveCategory(id)}
+            onClick={() => {
+              setActiveCategory(id);
+              setOpenPalette(null);
+            }}
           >
             {label}
           </button>
@@ -91,8 +112,17 @@ export function AvatarBuilder({
       </nav>
 
       <div className="avatar-builder__layer">
-        {activeCategory === "colors" ? (
-          <ColorControls draft={draft} onChange={update} />
+        {activeCategory === "background" ? (
+          <BackgroundControls
+            draft={draft}
+            openPalette={openPalette}
+            onTogglePalette={() =>
+              setOpenPalette((current) =>
+                current === "backgroundColor" ? null : "backgroundColor",
+              )
+            }
+            onChange={update}
+          />
         ) : (
           category.layerKinds.map((kind) => {
             const layer = AVATAR_LAYERS.find(
@@ -104,6 +134,15 @@ export function AvatarBuilder({
                 layer={layer}
                 draft={draft}
                 showLegend={activeCategory === "gear"}
+                paletteOpen={openPalette === layer.paletteKey}
+                onTogglePalette={() =>
+                  setOpenPalette((current) =>
+                    current === layer.paletteKey
+                      ? null
+                      : (layer.paletteKey ?? null),
+                  )
+                }
+                onChange={update}
                 onChoose={(optionID) => update(kind, optionID)}
               />
             );
@@ -120,24 +159,8 @@ export function AvatarBuilder({
         >
           {status === "saving" ? copy.avatar.saving : copy.avatar.save}
         </button>
-        <button
-          type="button"
-          className="button button--outline"
-          disabled={!dirty}
-          onClick={() => {
-            setDraft(saved);
-            setStatus("idle");
-          }}
-        >
-          {copy.avatar.reset}
-        </button>
       </div>
 
-      {status === "saved" ? (
-        <p className="avatar-builder__status" role="status">
-          {copy.avatar.saved}
-        </p>
-      ) : null}
       {status === "error" ? (
         <div className="notice notice--error" role="alert">
           <strong>{copy.avatar.failed}</strong>
@@ -151,16 +174,31 @@ function LayerPicker({
   layer,
   draft,
   showLegend,
+  paletteOpen,
+  onTogglePalette,
+  onChange,
   onChoose,
 }: {
   layer: AvatarLayerDefinition;
   draft: AvatarConfiguration;
   showLegend: boolean;
+  paletteOpen: boolean;
+  onTogglePalette(): void;
+  onChange(key: string, value: string): void;
   onChoose(optionID: string): void;
 }) {
   return (
     <fieldset className="avatar-builder__sublayer">
       <legend className={showLegend ? "" : "sr-only"}>{layer.legend}</legend>
+      {layer.paletteKey ? (
+        <LayerPaletteControl
+          paletteKey={layer.paletteKey}
+          draft={draft}
+          open={paletteOpen}
+          onToggle={onTogglePalette}
+          onChange={onChange}
+        />
+      ) : null}
       <div className="avatar-builder__tray">
         {layer.options.map((option) => (
           <Choice
@@ -173,6 +211,123 @@ function LayerPicker({
         ))}
       </div>
     </fieldset>
+  );
+}
+
+function LayerPaletteControl({
+  paletteKey,
+  draft,
+  open,
+  onToggle,
+  onChange,
+}: {
+  paletteKey: AvatarPaletteKey;
+  draft: AvatarConfiguration;
+  open: boolean;
+  onToggle(): void;
+  onChange(key: string, value: string): void;
+}) {
+  const palette = layerPalette(draft, paletteKey);
+  const layerName = paletteName(paletteKey);
+
+  function change(part: keyof typeof palette, value: string) {
+    const next = { ...palette, [part]: value };
+    onChange(paletteKey, `${next.color}:${next.accent}`);
+  }
+
+  return (
+    <div className="avatar-palette">
+      <button
+        type="button"
+        className="avatar-palette__button"
+        aria-label={`${layerName} colors`}
+        aria-expanded={open}
+        onClick={onToggle}
+      >
+        <span style={{ backgroundColor: palette.color }} />
+        <span style={{ backgroundColor: palette.accent }} />
+      </button>
+      {open ? (
+        <fieldset className="avatar-palette__popover">
+          <legend className="sr-only">{`${layerName} colors`}</legend>
+          <label>
+            <span className="sr-only">{`${layerName} color`}</span>
+            <input
+              type="color"
+              value={palette.color}
+              aria-label={`${layerName} color`}
+              onChange={(event) => change("color", event.currentTarget.value)}
+            />
+          </label>
+          <label>
+            <span className="sr-only">{`${layerName} accent`}</span>
+            <input
+              type="color"
+              value={palette.accent}
+              aria-label={`${layerName} accent`}
+              onChange={(event) => change("accent", event.currentTarget.value)}
+            />
+          </label>
+        </fieldset>
+      ) : null}
+    </div>
+  );
+}
+
+function BackgroundControls({
+  draft,
+  openPalette,
+  onTogglePalette,
+  onChange,
+}: {
+  draft: AvatarConfiguration;
+  openPalette: AvatarPaletteKey | "backgroundColor" | null;
+  onTogglePalette(): void;
+  onChange(key: string, value: string): void;
+}) {
+  const effect = AVATAR_LAYERS.find(({ kind }) => kind === "effect")!;
+  return (
+    <>
+      <fieldset className="avatar-builder__sublayer">
+        <legend>{copy.avatar.legends.background}</legend>
+        <div className="avatar-palette">
+          <button
+            type="button"
+            className="avatar-palette__button avatar-palette__button--single"
+            aria-label="Background color"
+            aria-expanded={openPalette === "backgroundColor"}
+            onClick={onTogglePalette}
+          >
+            <span style={{ backgroundColor: draft.backgroundColor }} />
+          </button>
+          {openPalette === "backgroundColor" ? (
+            <fieldset className="avatar-palette__popover avatar-palette__popover--single">
+              <legend className="sr-only">Background color</legend>
+              <label>
+                <span className="sr-only">Background color</span>
+                <input
+                  type="color"
+                  value={draft.backgroundColor}
+                  aria-label="Background color"
+                  onChange={(event) =>
+                    onChange("backgroundColor", event.currentTarget.value)
+                  }
+                />
+              </label>
+            </fieldset>
+          ) : null}
+        </div>
+      </fieldset>
+      <LayerPicker
+        layer={effect}
+        draft={draft}
+        showLegend
+        paletteOpen={false}
+        onTogglePalette={() => undefined}
+        onChange={onChange}
+        onChoose={(optionID) => onChange("effect", optionID)}
+      />
+    </>
   );
 }
 
@@ -212,7 +367,7 @@ function Choice({
         </span>
         {locked ? (
           <span className="avatar-choice__lock" aria-hidden="true">
-            🔒
+            &#128274;
           </span>
         ) : null}
       </label>
@@ -220,48 +375,14 @@ function Choice({
   );
 }
 
-function ColorControls({
-  draft,
-  onChange,
-}: {
-  draft: AvatarConfiguration;
-  onChange(key: string, color: string): void;
-}) {
-  const colors = [
-    {
-      key: "avatarColor",
-      label: copy.avatar.colors.avatar,
-      shortLabel: "Avatar",
-    },
-    {
-      key: "accentColor",
-      label: copy.avatar.colors.accent,
-      shortLabel: "Accent",
-    },
-    {
-      key: "backgroundColor",
-      label: copy.avatar.colors.background,
-      shortLabel: "Solid",
-    },
-  ] as const;
-
-  return (
-    <fieldset className="avatar-builder__colors">
-      <legend className="sr-only">{copy.avatar.categories.colors}</legend>
-      {colors.map(({ key, label, shortLabel }) => (
-        <label key={key}>
-          <span aria-hidden="true">{shortLabel}</span>
-          <span className="sr-only">{label}</span>
-          <input
-            type="color"
-            value={draft[key]}
-            aria-label={label}
-            onChange={(event) => onChange(key, event.currentTarget.value)}
-          />
-        </label>
-      ))}
-    </fieldset>
-  );
+function paletteName(key: AvatarPaletteKey): string {
+  const names = copy.avatar.palette;
+  return {
+    headPalette: names.head,
+    kitPalette: names.kit,
+    hatPalette: names.hat,
+    eyewearPalette: names.eyewear,
+  }[key];
 }
 
 function configurationKey(config: AvatarConfiguration): string {

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { layerPalette } from "../config";
 import type { AvatarConfiguration } from "../types";
 import { INK, LEFT_EYE_X, RIGHT_EYE_X, EYE_LINE } from "./geometry";
 
@@ -125,9 +126,10 @@ interface Palette {
 }
 
 function palette(config: AvatarConfiguration): Palette {
+  const { color, accent } = layerPalette(config, "headPalette");
   return {
-    primary: config.avatarColor,
-    accent: config.accentColor,
+    primary: color,
+    accent,
   };
 }
 

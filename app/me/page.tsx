@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Avatar } from "../components/Avatar";
 import { SessionList } from "../components/SessionList";
+import { TransientQueryToast } from "../components/TransientQueryToast";
 import { copy } from "../content/copy";
 import { routes } from "../content/routes";
 import { TEAM_NAME } from "../data/mockData";
@@ -38,6 +39,11 @@ export default function MePage() {
 
   return (
     <div className="page page--me">
+      <TransientQueryToast
+        parameter="avatar"
+        value="saved"
+        message={copy.avatar.saveSuccess}
+      />
       <header className="profile-hero">
         <Avatar player={player} size="large" config={avatarConfig} />
         <div>

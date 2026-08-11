@@ -20,4 +20,15 @@ export const EFFECT_ART: Record<string, ReactNode> = {
       <circle cx="43" cy="58" r="2" fill="#7be3d2" />
     </g>
   ),
+  pulse: (
+    <rect
+      className="avatar-effect avatar-effect--pulse"
+      x="0"
+      y="0"
+      width="64"
+      height="82"
+      fill="white"
+      opacity="0.04"
+    />
+  ),
 };

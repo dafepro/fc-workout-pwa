@@ -13,7 +13,7 @@ test.beforeEach(async () => {
   await api.dispose();
 });
 
-test("a player builds a v3 look with independent Gear sublayers", async ({
+test("a player builds a v4 look with independent Gear sublayers", async ({
   page,
 }) => {
   await openReadyPage(page, "/me");
@@ -30,6 +30,9 @@ test("a player builds a v3 look with independent Gear sublayers", async ({
     page.getByRole("radio", { name: /Rover the dog.*locked/i }),
   ).toBeDisabled();
   await page.getByRole("radio", { name: "Tall person" }).check();
+  await page.getByRole("button", { name: "Person colors" }).click();
+  await page.getByLabel("Person color").fill("#22aacc");
+  await page.getByLabel("Person accent").fill("#112233");
   await page.getByRole("button", { name: "Kit" }).click();
   await expect(
     page.getByRole("group", { name: "Kits" }).getByRole("radio"),
@@ -38,7 +41,9 @@ test("a player builds a v3 look with independent Gear sublayers", async ({
     page.locator(".avatar-builder__preview .avatar-art"),
   ).toHaveAttribute("viewBox", "0 0 64 82");
   await expect(page.locator(".avatar-choice .avatar-art")).toHaveCount(0);
-  await page.getByRole("radio", { name: "Coral charge kit" }).check();
+  await page.getByRole("radio", { name: "Chevron kit" }).check();
+  await page.getByRole("button", { name: "Kit colors" }).click();
+  await page.getByLabel("Kit color").fill("#ff806f");
 
   await page.getByRole("button", { name: "Gear" }).click();
   await page.getByRole("radio", { name: "Cap" }).check();
@@ -48,17 +53,15 @@ test("a player builds a v3 look with independent Gear sublayers", async ({
     page.getByRole("radio", { name: "Round glasses" }),
   ).toBeChecked();
 
-  await page.getByRole("button", { name: "Color" }).click();
-  await page.getByLabel("Avatar color").fill("#22aacc");
-  await page.getByLabel("Accent color").fill("#112233");
-  await page.getByLabel("Solid background").fill("#ffeeaa");
-  await page.getByRole("button", { name: "FX" }).click();
-  await page.getByRole("radio", { name: "Orbit effect" }).check();
-  await expect(page.locator(".avatar-effect--animated")).toBeVisible();
+  await page.getByRole("button", { name: "Background" }).click();
+  await page.getByRole("button", { name: "Background color" }).click();
+  await page.getByLabel("Background color").fill("#ffeeaa");
+  await page.getByRole("radio", { name: "Pulse effect" }).check();
+  await expect(page.locator(".avatar-effect--pulse")).toBeVisible();
   await page.getByRole("button", { name: "Save" }).click();
 
-  await expect(page.getByText("Saved")).toBeVisible();
-  await page.getByRole("link", { name: "Back to profile" }).click();
+  await expect(page).toHaveURL(/\/me$/);
+  await expect(page.getByRole("status")).toContainText("Avatar saved");
   await expect(page.locator(".profile-hero .avatar-art")).toBeVisible();
 
   await page.reload();
@@ -69,8 +72,8 @@ test("a player builds a v3 look with independent Gear sublayers", async ({
   await expect(
     page.getByRole("radio", { name: "Round glasses" }),
   ).toBeChecked();
-  await page.getByRole("button", { name: "FX" }).click();
-  await expect(page.getByRole("radio", { name: "Orbit effect" })).toBeChecked();
+  await page.getByRole("button", { name: "Background" }).click();
+  await expect(page.getByRole("radio", { name: "Pulse effect" })).toBeChecked();
 });
 
 test("the Studio uses compact accessible controls without open text or upload", async ({

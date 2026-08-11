@@ -1,34 +1,47 @@
 import type { ReactNode } from "react";
+import { layerPalette } from "../config";
+import type { AvatarConfiguration } from "../types";
 import { INK } from "./geometry";
 
-type KitPattern = "bolt" | "stripe" | "hoops" | "keeper" | "split" | "classic";
+type KitPattern =
+  | "bolt"
+  | "stripe"
+  | "chevron"
+  | "diagonal"
+  | "hoops"
+  | "keeper"
+  | "split"
+  | "classic";
 
 function Kit({
   body,
   accent,
-  secondary = body,
   pattern = "bolt",
 }: {
   body: string;
   accent: string;
-  secondary?: string;
   pattern?: KitPattern;
 }) {
   return (
     <>
       <path
-        d="M3 82V61c0-7 7-12.5 18-15.5h22C54 48.5 61 54 61 61v21z"
+        className="avatar-kit__body"
+        d="M3 82V61Q3 52 21 47L27 45.5Q32 51 37 45.5L43 47Q61 52 61 61V82Z"
         fill={body}
         stroke={INK}
         strokeWidth="1.5"
       />
       <path
-        d="M3 62q7-10 17-13v16H3zM61 62q-7-10-17-13v16h17z"
-        fill={secondary}
+        d="M3 61Q3 52 21 47v18H3zM61 61Q61 52 43 47v18h18z"
+        fill={accent}
+        opacity="0.3"
       />
-      <path d="M20 45.5 32 55l12-9.5z" fill={accent} />
-      <path d="M27 47.5 32 54l5-6.5z" fill="white" opacity="0.9" />
-      <KitPatternArt pattern={pattern} accent={accent} secondary={secondary} />
+      <path
+        d="M21 47 27 45.5Q32 51 37 45.5L43 47Q39 55 32 56T21 47Z"
+        fill={accent}
+      />
+      <path d="M27 47.5Q32 52 37 47.5L32 55Z" fill="white" opacity="0.88" />
+      <KitPatternArt pattern={pattern} accent={accent} />
     </>
   );
 }
@@ -36,26 +49,30 @@ function Kit({
 function KitPatternArt({
   pattern,
   accent,
-  secondary,
 }: {
   pattern: KitPattern;
   accent: string;
-  secondary: string;
 }) {
   if (pattern === "stripe") {
-    return <path d="M27 54h10v28H27z" fill={accent} opacity="0.9" />;
+    return <path d="M27 55h10v27H27z" fill={accent} opacity="0.9" />;
   }
   if (pattern === "hoops") {
     return (
-      <>
-        <path d="M17 58h30v5H17zM13 70h38v5H13z" fill={accent} opacity="0.9" />
-      </>
+      <path d="M17 58h30v5H17zM13 70h38v5H13z" fill={accent} opacity="0.9" />
     );
+  }
+  if (pattern === "chevron") {
+    return (
+      <path d="m14 59 18 9 18-9v6l-18 9-18-9z" fill={accent} opacity="0.9" />
+    );
+  }
+  if (pattern === "diagonal") {
+    return <path d="m16 82 23-27h9L25 82z" fill={accent} opacity="0.9" />;
   }
   if (pattern === "keeper") {
     return (
       <>
-        <path d="M17 56h30v21H17z" fill={accent} opacity="0.32" />
+        <path d="M17 56h30v21H17z" fill={accent} opacity="0.3" />
         <path
           d="M22 60h20v13H22z"
           fill="none"
@@ -67,13 +84,13 @@ function KitPatternArt({
     );
   }
   if (pattern === "split") {
-    return <path d="M32 54h18l5 28H32z" fill={secondary} opacity="0.95" />;
+    return <path d="M32 55h18l5 27H32z" fill={accent} opacity="0.72" />;
   }
   if (pattern === "classic") {
     return (
       <>
-        <path d="m16 80 23-26h8L24 82z" fill={accent} opacity="0.9" />
-        <path d="M10 73h44" stroke={secondary} strokeWidth="2" opacity="0.8" />
+        <path d="m16 80 23-25h8L24 82z" fill={accent} opacity="0.9" />
+        <path d="M10 73h44" stroke={accent} strokeWidth="2" opacity="0.55" />
       </>
     );
   }
@@ -82,24 +99,21 @@ function KitPatternArt({
   );
 }
 
-export const KIT_ART: Record<string, ReactNode> = {
-  violet: <Kit body="#6f5bd3" accent="#c8f52a" />,
-  ocean: <Kit body="#3e70ee" accent="#7be3d2" pattern="stripe" />,
-  coral: <Kit body="#ff806f" accent="#ffca63" />,
-  lime: <Kit body="#c8f52a" accent="#6954ee" secondary="#a8da16" />,
-  midnight: <Kit body="#24234f" accent="#a99af5" pattern="hoops" />,
-  keeper: (
-    <Kit body="#22a87a" accent="#c8f52a" secondary="#167e60" pattern="keeper" />
-  ),
-  sunset: (
-    <Kit body="#ff806f" accent="#ffca63" secondary="#6954ee" pattern="split" />
-  ),
-  classic: (
-    <Kit
-      body="#f7f8ff"
-      accent="#3e70ee"
-      secondary="#cfd4e3"
-      pattern="classic"
-    />
-  ),
+function renderKit(config: AvatarConfiguration, pattern: KitPattern = "bolt") {
+  const { color, accent } = layerPalette(config, "kitPalette");
+  return <Kit body={color} accent={accent} pattern={pattern} />;
+}
+
+export const KIT_ART: Record<
+  string,
+  (config: AvatarConfiguration) => ReactNode
+> = {
+  violet: (config) => renderKit(config),
+  ocean: (config) => renderKit(config, "stripe"),
+  coral: (config) => renderKit(config, "chevron"),
+  lime: (config) => renderKit(config, "diagonal"),
+  midnight: (config) => renderKit(config, "hoops"),
+  keeper: (config) => renderKit(config, "keeper"),
+  sunset: (config) => renderKit(config, "split"),
+  classic: (config) => renderKit(config, "classic"),
 };

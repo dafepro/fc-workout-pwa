@@ -184,6 +184,32 @@ describe("the catalog and the art registry", () => {
     )!;
     const effect = AVATAR_LAYERS.find((layer) => layer.kind === "effect")!;
     expect(background.options.map(({ id }) => id)).toEqual(["solid"]);
-    expect(effect.options.map(({ id }) => id)).toContain("orbit");
+    expect(effect.options.map(({ id }) => id)).toEqual([
+      "none",
+      "orbit",
+      "pulse",
+    ]);
+  });
+
+  it("uses a symmetric kit shoulder path", () => {
+    const { container } = render(<AvatarArt config={defaultAvatar()} />);
+    expect(container.querySelector(".avatar-kit__body")).toHaveAttribute(
+      "d",
+      "M3 82V61Q3 52 21 47L27 45.5Q32 51 37 45.5L43 47Q61 52 61 61V82Z",
+    );
+  });
+
+  it("keeps every kit visually distinct when colors are customized", () => {
+    const kit = AVATAR_LAYERS.find((layer) => layer.kind === "kit")!;
+    const signatures = kit.options.map((option) => {
+      const { container, unmount } = render(
+        <AvatarPartArt kind="kit" option={option} config={defaultAvatar()} />,
+      );
+      const signature = container.innerHTML;
+      unmount();
+      return signature;
+    });
+
+    expect(new Set(signatures)).toHaveProperty("size", kit.options.length);
   });
 });

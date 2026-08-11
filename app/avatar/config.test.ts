@@ -15,7 +15,7 @@ function byKind(config: Parameters<typeof resolveAvatar>[0]) {
 }
 
 describe("isAvatarConfiguration", () => {
-  it("accepts only a complete version 3 catalog configuration", () => {
+  it("accepts only a complete version 4 catalog configuration", () => {
     expect(isAvatarConfiguration(defaultAvatar())).toBe(true);
   });
 
@@ -28,15 +28,15 @@ describe("isAvatarConfiguration", () => {
     ["a missing layer", { ...defaultAvatar(), kit: undefined }],
     ["an unknown option", { ...defaultAvatar(), head: "dragon" }],
     ["an unknown key", { ...defaultAvatar(), frame: "gold" }],
-    ["a legacy version", { ...defaultAvatar(), version: "2" }],
-    ["an invalid color", { ...defaultAvatar(), avatarColor: "blue" }],
+    ["a legacy version", { ...defaultAvatar(), version: "3" }],
+    ["an invalid palette", { ...defaultAvatar(), headPalette: "blue" }],
   ])("rejects %s", (_name, config) => {
     expect(isAvatarConfiguration(config)).toBe(false);
   });
 });
 
 describe("resolveAvatar", () => {
-  it("resolves every version 3 layer", () => {
+  it("resolves every version 4 layer", () => {
     const layers = byKind(defaultAvatar());
     expect(layers.background.id).toBe("solid");
     expect(layers.effect.id).toBe("none");
@@ -75,7 +75,7 @@ describe("resolveAvatar", () => {
 });
 
 describe("normalizeAvatar", () => {
-  it("creates the canonical version 3 shape", () => {
+  it("creates the canonical version 4 shape within the server key limit", () => {
     expect(normalizeAvatar({ head: "person-tall" })).toEqual({
       version: AVATAR_CONFIG_VERSION,
       background: "solid",
@@ -84,10 +84,13 @@ describe("normalizeAvatar", () => {
       head: "person-tall",
       hat: "none",
       eyewear: "none",
+      headPalette: "#66d0ff:#302c61",
+      kitPalette: "#6954ee:#c8f52a",
+      hatPalette: "#302c61:#66d0ff",
+      eyewearPalette: "#f3ad16:#241d3d",
       backgroundColor: "#755ee8",
-      avatarColor: "#66d0ff",
-      accentColor: "#302c61",
     });
+    expect(Object.keys(defaultAvatar())).toHaveLength(12);
   });
 
   it("drops unknown keys and replaces unknown ids with defaults", () => {
@@ -102,5 +105,23 @@ describe("normalizeAvatar", () => {
       kit: "ocean",
     });
     expect(normalizeAvatar(once)).toEqual(once);
+  });
+});
+
+describe("layerPalette", () => {
+  it("keeps each layer palette independent", async () => {
+    const { layerPalette } = await import("./config");
+    const config = normalizeAvatar({
+      headPalette: "#112233:#445566",
+      kitPalette: "#abcdef:#123456",
+    });
+    expect(layerPalette(config, "headPalette")).toEqual({
+      color: "#112233",
+      accent: "#445566",
+    });
+    expect(layerPalette(config, "kitPalette")).toEqual({
+      color: "#abcdef",
+      accent: "#123456",
+    });
   });
 });

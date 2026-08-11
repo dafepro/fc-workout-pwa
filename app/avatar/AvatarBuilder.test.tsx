@@ -31,6 +31,11 @@ describe("AvatarBuilder", () => {
   it("shows one category at a time and keeps hats and glasses inside Gear", () => {
     renderBuilder();
     expect(
+      screen
+        .getByRole("navigation", { name: "Avatar categories" })
+        .querySelectorAll("button"),
+    ).toHaveLength(4);
+    expect(
       screen.getByRole("group", { name: copy.avatar.legends.head }),
     ).toBeInTheDocument();
 
@@ -87,53 +92,59 @@ describe("AvatarBuilder", () => {
     fireEvent.click(screen.getByRole("button", { name: copy.avatar.save }));
 
     expect(onSave).toHaveBeenCalledWith({
-      version: "3",
+      version: "4",
       background: "solid",
       effect: "none",
       kit: "violet",
       head: "person-round",
       hat: "cap",
       eyewear: "round",
+      headPalette: "#66d0ff:#302c61",
+      kitPalette: "#6954ee:#c8f52a",
+      hatPalette: "#302c61:#66d0ff",
+      eyewearPalette: "#f3ad16:#241d3d",
       backgroundColor: "#755ee8",
-      avatarColor: "#66d0ff",
-      accentColor: "#302c61",
     });
-    await waitFor(() =>
-      expect(screen.getByText(copy.avatar.saved)).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText("Saved")).not.toBeInTheDocument();
   });
 
-  it("changes avatar, accent, and solid background colors", async () => {
+  it("opens a simple color popover for one layer without changing another", async () => {
     const { onSave } = renderBuilder();
-    openCategory(copy.avatar.categories.colors);
-    fireEvent.change(screen.getByLabelText(copy.avatar.colors.avatar), {
+    fireEvent.click(screen.getByRole("button", { name: "Person colors" }));
+    fireEvent.change(screen.getByLabelText("Person color"), {
       target: { value: "#22aacc" },
     });
-    fireEvent.change(screen.getByLabelText(copy.avatar.colors.accent), {
+    fireEvent.change(screen.getByLabelText("Person accent"), {
       target: { value: "#112233" },
     });
-    fireEvent.change(screen.getByLabelText(copy.avatar.colors.background), {
-      target: { value: "#ffeeaa" },
-    });
+
+    openCategory(copy.avatar.categories.kit);
+    fireEvent.click(screen.getByRole("button", { name: "Kit colors" }));
+    expect(screen.getByLabelText("Kit color")).toHaveValue("#6954ee");
+
     fireEvent.click(screen.getByRole("button", { name: copy.avatar.save }));
 
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({
-        avatarColor: "#22aacc",
-        accentColor: "#112233",
-        backgroundColor: "#ffeeaa",
+        headPalette: "#22aacc:#112233",
+        kitPalette: "#6954ee:#c8f52a",
       }),
     );
   });
 
-  it("applies the animated background effect", () => {
+  it("groups Color and FX under Background and applies pulse", () => {
     const { container } = renderBuilder();
-    openCategory(copy.avatar.categories.effect);
-    pick(copy.avatar.options.effect.orbit);
+    openCategory(copy.avatar.categories.background);
     expect(
-      container.querySelector(
-        ".avatar-builder__preview .avatar-effect--animated",
-      ),
+      screen.getByRole("group", { name: copy.avatar.legends.background }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("group", { name: copy.avatar.legends.effect }),
+    ).toBeInTheDocument();
+    pick(copy.avatar.options.effect.pulse);
+    expect(
+      container.querySelector(".avatar-builder__preview .avatar-effect--pulse"),
     ).toBeInTheDocument();
   });
 
@@ -148,7 +159,7 @@ describe("AvatarBuilder", () => {
   it("uses minimal action and preview copy", () => {
     renderBuilder();
     expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Reset" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reset" })).toBeNull();
     expect(screen.queryByText("Live preview")).not.toBeInTheDocument();
     expect(screen.queryByText(/Mason's look/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Save look" })).toBeNull();
@@ -165,16 +176,7 @@ describe("AvatarBuilder", () => {
     ).toBeChecked();
   });
 
-  it("resets the draft to the saved look", () => {
-    renderBuilder();
-    pick(copy.avatar.options.head.personTall);
-    fireEvent.click(screen.getByRole("button", { name: copy.avatar.reset }));
-    expect(
-      screen.getByRole("radio", { name: copy.avatar.options.head.personRound }),
-    ).toBeChecked();
-  });
-
-  it("starts an old configuration from the v3 people default", () => {
+  it("starts an old configuration from the v4 people default", () => {
     render(
       <AvatarBuilder
         config={{ version: "2", head: "cheetah" }}
@@ -184,5 +186,24 @@ describe("AvatarBuilder", () => {
     expect(
       screen.getByRole("radio", { name: copy.avatar.options.head.personRound }),
     ).toBeChecked();
+  });
+
+  it("adopts a valid configuration that finishes loading after mount", () => {
+    const onSave = vi.fn();
+    const { rerender } = render(<AvatarBuilder config={{}} onSave={onSave} />);
+    const loaded = {
+      ...defaultAvatar(),
+      head: "person-tall",
+      effect: "pulse",
+    };
+
+    rerender(<AvatarBuilder config={loaded} onSave={onSave} />);
+
+    expect(
+      screen.getByRole("radio", { name: copy.avatar.options.head.personTall }),
+    ).toBeChecked();
+    expect(
+      screen.getByRole("button", { name: copy.avatar.save }),
+    ).toBeDisabled();
   });
 });

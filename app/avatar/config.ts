@@ -3,21 +3,29 @@ import type {
   AvatarConfiguration,
   AvatarLayerDefinition,
   AvatarOption,
+  AvatarPaletteKey,
   ResolvedLayer,
 } from "./types";
 
-export const AVATAR_CONFIG_VERSION = "3";
+export const AVATAR_CONFIG_VERSION = "4";
 
-export const DEFAULT_AVATAR_COLORS = {
-  backgroundColor: "#755ee8",
-  avatarColor: "#66d0ff",
-  accentColor: "#302c61",
+export const DEFAULT_AVATAR_PALETTES = {
+  headPalette: "#66d0ff:#302c61",
+  kitPalette: "#6954ee:#c8f52a",
+  hatPalette: "#302c61:#66d0ff",
+  eyewearPalette: "#f3ad16:#241d3d",
 } as const;
 
-const COLOR_KEYS = Object.keys(DEFAULT_AVATAR_COLORS) as Array<
-  keyof typeof DEFAULT_AVATAR_COLORS
->;
+export const DEFAULT_BACKGROUND_COLOR = "#755ee8";
+
+const PALETTE_KEYS = Object.keys(DEFAULT_AVATAR_PALETTES) as AvatarPaletteKey[];
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+const PALETTE = /^#[0-9a-f]{6}:#[0-9a-f]{6}$/i;
+
+export interface LayerPalette {
+  color: string;
+  accent: string;
+}
 
 export function isAvatarConfiguration(
   config: unknown,
@@ -30,13 +38,16 @@ export function isAvatarConfiguration(
   const expectedKeys = [
     "version",
     ...AVATAR_LAYERS.map(({ kind }) => kind),
-    ...COLOR_KEYS,
+    ...PALETTE_KEYS,
+    "backgroundColor",
   ];
+
   if (
     values.version !== AVATAR_CONFIG_VERSION ||
     Object.keys(values).length !== expectedKeys.length ||
     expectedKeys.some((key) => typeof values[key] !== "string") ||
-    COLOR_KEYS.some((key) => !HEX_COLOR.test(values[key] as string))
+    PALETTE_KEYS.some((key) => !PALETTE.test(values[key] as string)) ||
+    !HEX_COLOR.test(values.backgroundColor as string)
   ) {
     return false;
   }
@@ -47,11 +58,12 @@ export function isAvatarConfiguration(
 }
 
 export function resolveAvatar(config: AvatarConfiguration): ResolvedLayer[] {
+  const normalized = normalizeAvatar(config);
   return [...AVATAR_LAYERS]
     .sort((left, right) => left.z - right.z)
     .map((layer) => ({
       kind: layer.kind,
-      option: paint(layer, resolveOption(layer, config), config),
+      option: paint(layer, resolveOption(layer, normalized), normalized),
       z: layer.z,
     }));
 }
@@ -65,12 +77,21 @@ export function normalizeAvatar(
       layer.kind,
       resolveOption(layer, config).id,
     ]),
-    ...COLOR_KEYS.map((key) => [key, normalizeColor(config[key], key)]),
+    ...PALETTE_KEYS.map((key) => [key, normalizePalette(config[key], key)]),
+    ["backgroundColor", normalizeColor(config.backgroundColor)],
   ]);
 }
 
 export function defaultAvatar(): AvatarConfiguration {
   return normalizeAvatar({});
+}
+
+export function layerPalette(
+  config: AvatarConfiguration,
+  key: AvatarPaletteKey,
+): LayerPalette {
+  const [color, accent] = normalizePalette(config[key], key).split(":");
+  return { color, accent };
 }
 
 function resolveOption(
@@ -84,13 +105,19 @@ function resolveOption(
   );
 }
 
-function normalizeColor(
-  color: string | undefined,
-  key: keyof typeof DEFAULT_AVATAR_COLORS,
+function normalizePalette(
+  palette: string | undefined,
+  key: AvatarPaletteKey,
 ): string {
+  return palette && PALETTE.test(palette)
+    ? palette.toLowerCase()
+    : DEFAULT_AVATAR_PALETTES[key];
+}
+
+function normalizeColor(color: string | undefined): string {
   return color && HEX_COLOR.test(color)
     ? color.toLowerCase()
-    : DEFAULT_AVATAR_COLORS[key];
+    : DEFAULT_BACKGROUND_COLOR;
 }
 
 function paint(
@@ -99,8 +126,5 @@ function paint(
   config: AvatarConfiguration,
 ): AvatarOption {
   if (layer.kind !== "background") return option;
-  return {
-    ...option,
-    color: normalizeColor(config.backgroundColor, "backgroundColor"),
-  };
+  return { ...option, color: config.backgroundColor };
 }

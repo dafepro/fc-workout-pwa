@@ -17,8 +17,8 @@ export const LAYER_ART: Record<
 > = {
   background: (option) => renderBackground(option),
   effect: (option) => EFFECT_ART[option.id] ?? null,
-  kit: (option) => KIT_ART[option.id] ?? null,
+  kit: (option, config) => KIT_ART[option.id]?.(config) ?? null,
   head: (option, config) => HEAD_ART[option.id]?.(config) ?? null,
   hat: (option, config) => HAT_ART[option.id]?.(config) ?? null,
-  eyewear: (option) => EYEWEAR_ART[option.id] ?? null,
+  eyewear: (option, config) => EYEWEAR_ART[option.id]?.(config) ?? null,
 };

@@ -6,7 +6,13 @@ export type AvatarLayerKind =
   | "hat"
   | "eyewear";
 
-export type AvatarCategoryKind = "head" | "kit" | "gear" | "colors" | "effect";
+export type AvatarCategoryKind = "head" | "kit" | "gear" | "background";
+
+export type AvatarPaletteKey =
+  | "headPalette"
+  | "kitPalette"
+  | "hatPalette"
+  | "eyewearPalette";
 
 export interface AvatarOption {
   id: string;
@@ -20,6 +26,7 @@ export interface AvatarLayerDefinition {
   legend: string;
   z: number;
   defaultOptionID: string;
+  paletteKey?: AvatarPaletteKey;
   options: readonly AvatarOption[];
 }
 

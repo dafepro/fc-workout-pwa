@@ -240,3 +240,19 @@ to resolve, not the implementing agent's.
 - The expanded prototype catalog (six heroes, eight kits, seven gear choices,
   and twelve backdrops) demonstrates dense browsing with predefined options;
   availability and unlock rules are intentionally not represented yet.
+
+## Avatar Studio palette and save pass (2026-08-11)
+
+- Avatar configuration v4 intentionally invalidates v3. Four compact
+  `primary:accent` layer palettes plus one background color keep the complete
+  configuration at the server's existing 12-key limit.
+- Color belongs to the layer it paints: person, kit, hat, and glasses each keep
+  independent primary and accent values. Background keeps one independent solid
+  color. Native color inputs sit inside small swatch popovers.
+- Background is one top-level category with Color and FX sublayers. Orbit and a
+  brightness pulse prove that effects remain independently composable.
+- Saving is complete only after the profile owns the result: the Studio returns
+  to `/me`, and that caller shows and clears a transient query-driven toast.
+  The editor has no persistent success state or reset action.
+- All kit options share one symmetric shoulder-and-collar geometry. Pattern art
+  changes independently without moving the outfit's silhouette.
