@@ -5,10 +5,11 @@ import { staffCopy } from "../console/copy";
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { copy } from "../../content/copy";
 import { routes } from "../../content/routes";
 import { useHydrated } from "../../components/useHydrated";
+import { LoginMasthead } from "../../components/LoginMasthead";
 import { ConsoleError, consoleAuthRequest } from "../console/api";
+import { CodeInput } from "../console/CodeInput";
 
 type Step =
   | { name: "password" }
@@ -92,7 +93,7 @@ export function StaffSignIn() {
   return (
     <main className="login-page">
       <section className="login-card" aria-labelledby="staff-sign-in-title">
-        <p className="eyebrow">{copy.brand}</p>
+        <LoginMasthead />
         {/* F-S7: the heading names who the page is for, so a player who lands
             here can see at once that it is the wrong door. */}
         <h1 id="staff-sign-in-title">{staffCopy.signInTitle}</h1>
@@ -113,21 +114,11 @@ export function StaffSignIn() {
               noValidate
               data-step="code"
             >
-              <label htmlFor="staff-code">{staffCopy.codeLabel}</label>
-              <input
+              <CodeInput
                 id="staff-code"
-                name="code"
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                pattern="[0-9]{6}"
-                maxLength={6}
-                autoFocus
                 value={code}
-                onChange={(event) =>
-                  setCode(event.target.value.replace(/\D/g, "").slice(0, 6))
-                }
-                required
+                onChange={setCode}
+                autoFocus
               />
               {error ? (
                 <p className="notice notice--error" role="alert">

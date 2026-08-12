@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { copy } from "../content/copy";
+import { LoginMasthead } from "../components/LoginMasthead";
 import { routes } from "../content/routes";
 
 type Entry =
@@ -37,10 +38,7 @@ export function LoginEntry() {
   return (
     <main className="login-page">
       <section className="login-card" aria-labelledby="login-title">
-        <div className="brand__mark" aria-hidden="true">
-          Z
-        </div>
-        <p className="eyebrow">{copy.brand}</p>
+        <LoginMasthead />
         {entry.state === "credential" ? (
           <PINForm
             credential={entry.credential}

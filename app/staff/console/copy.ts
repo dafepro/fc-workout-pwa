@@ -19,6 +19,8 @@ export const staffCopy = {
   codeIntro:
     "Open the authenticator app you enrolled and enter the six-digit code it shows for ZoomiGo.",
   codeLabel: "Six-digit code",
+  pasteCode: "Paste code",
+  pasteFailed: "Could not read the clipboard. Type the code in instead.",
   signIn: "Sign in",
   // One message for every failure, so that guessing at addresses never
   // reveals which staff accounts exist (REQ-106).

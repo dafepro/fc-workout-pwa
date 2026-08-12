@@ -5,9 +5,10 @@ import { staffCopy } from "../console/copy";
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { copy } from "../../content/copy";
 import { routes } from "../../content/routes";
+import { LoginMasthead } from "../../components/LoginMasthead";
 import { consoleAuthRequest, messageFor } from "../console/api";
+import { CodeInput } from "../console/CodeInput";
 
 const MINIMUM_PASSWORD_LENGTH = 12;
 
@@ -27,14 +28,17 @@ type Step =
   | { name: "recovery"; codes: string[] };
 
 /**
- * F-S8. The setup token arrives in the query, because a fragment does not
- * survive the Cloudflare Access one-time-PIN redirect that guards /staff. It is
- * stripped from history on load, so it leaves the back button and any `Referer`
- * even though the edge has already logged it.
+ * F-S8. The setup token arrives in the query. That was forced by the Cloudflare
+ * Access one-time-PIN redirect, which a fragment could not survive; the gate is
+ * gone, so the constraint is too, and the token could move to the fragment and
+ * out of the edge and proxy logs. Moving it means reissuing every live link and
+ * changing the operator CLI that mints them, so it is recorded in
+ * `docs/OPEN_DECISIONS.md` rather than done here.
  *
- * A fragment is not read. Every link that carried one has been spent or
- * reissued, and accepting both forms only invited someone to reintroduce the
- * fragment as the primary and rediscover that it cannot cross the gate.
+ * It is stripped from history on load, so it leaves the back button and any
+ * `Referer` even though the edge has already logged it. A fragment is not read:
+ * accepting both forms only invites someone to reintroduce one form while the
+ * other is still the primary.
  */
 export function StaffSetup() {
   const router = useRouter();
@@ -61,7 +65,7 @@ export function StaffSetup() {
   return (
     <main className="login-page">
       <section className="login-card" aria-labelledby="staff-setup-title">
-        <p className="eyebrow">{copy.brand}</p>
+        <LoginMasthead />
         <h1 id="staff-setup-title">{staffCopy.setup.title}</h1>
         {step.name === "reading" ? null : step.name === "missing" ? (
           <p className="login-help" role="alert">
@@ -259,21 +263,7 @@ function EnrollStep({
           onChange={(event) => setConfirmation(event.target.value)}
           required
         />
-        <label htmlFor="setup-code">{staffCopy.codeLabel}</label>
-        <input
-          id="setup-code"
-          name="code"
-          type="text"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          pattern="[0-9]{6}"
-          maxLength={6}
-          value={code}
-          onChange={(event) =>
-            setCode(event.target.value.replace(/\D/g, "").slice(0, 6))
-          }
-          required
-        />
+        <CodeInput id="setup-code" value={code} onChange={setCode} />
         {error ? (
           <p className="notice notice--error" role="alert">
             {error}

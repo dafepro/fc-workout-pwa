@@ -2910,11 +2910,15 @@ h2 {
   }
 }
 /* Connected sign-in */
+/* `safe` centering, because the setup card carrying a QR and ten recovery codes
+   is taller than a phone in landscape: plain `center` overflows in both
+   directions at once and puts the top of the card out of reach. */
 .auth-state,
 .login-page {
   min-height: 100dvh;
   display: grid;
-  place-content: center;
+  place-content: safe center;
+  justify-items: center;
   padding: 1.25rem;
   background: #0b123d;
   color: white;
@@ -2945,15 +2949,39 @@ h2 {
   text-align: left;
 }
 
-.login-card input[type="password"] {
+/* Every field on a login card, not only the password one. Styling that single
+   selector left the staff email and the six-digit code at the browser's default
+   width, so they sat short and ragged beside a full-width button. */
+.login-card input {
   width: 100%;
   min-height: 3.25rem;
   border: 2px solid #cad0e0;
   border-radius: 0.75rem;
   padding: 0.75rem;
   font: inherit;
+}
+
+/* Secrets entered a character at a time read better spaced out; an email
+   address does not. */
+.login-card input[type="password"],
+.login-card .code-field input {
   font-size: 1.4rem;
   letter-spacing: 0.35em;
+}
+
+/* The paste button sits with the field rather than under it, so the code step
+   stays one row tall on a phone. */
+.code-field {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.code-field__paste {
+  flex: none;
+  align-self: stretch;
+  padding-inline: 0.9rem;
+  white-space: nowrap;
 }
 
 .login-remember {
@@ -2962,9 +2990,11 @@ h2 {
   gap: 0.65rem;
 }
 
+/* The checkbox is the one field on these cards that keeps its own size. */
 .login-remember input {
   width: 1.25rem;
   height: 1.25rem;
+  min-height: 0;
 }
 
 .login-help {

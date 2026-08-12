@@ -4,6 +4,7 @@ import { consoleCopy, staffCopy } from "./copy";
 
 import { FormEvent, useCallback, useState } from "react";
 import { ConsoleError, consoleAuthRequest, messageFor } from "./api";
+import { CodeInput } from "./CodeInput";
 
 type Action = () => Promise<void>;
 
@@ -88,21 +89,7 @@ export function StepUpForm({
           onChange={(event) => setPassword(event.target.value)}
           required
         />
-        <label htmlFor="step-up-code">{staffCopy.codeLabel}</label>
-        <input
-          id="step-up-code"
-          name="code"
-          type="text"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          pattern="[0-9]{6}"
-          maxLength={6}
-          value={code}
-          onChange={(event) =>
-            setCode(event.target.value.replace(/\D/g, "").slice(0, 6))
-          }
-          required
-        />
+        <CodeInput id="step-up-code" value={code} onChange={setCode} />
         {error ? (
           <p className="notice notice--error" role="alert">
             {error}
