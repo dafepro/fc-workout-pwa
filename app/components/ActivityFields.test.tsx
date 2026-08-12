@@ -1,17 +1,9 @@
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import type { ActivityId } from "../domain/types";
 import { ActivitySelector, ActivitySpecificFields } from "./ActivityFields";
 import { activities } from "../data/mockData";
-
-afterEach(cleanup);
 
 function Harness() {
   const [activity, setActivity] = useState<ActivityId>("hill-sprints");

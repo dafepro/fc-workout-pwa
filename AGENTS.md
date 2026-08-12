@@ -126,9 +126,23 @@ alone will fool you.
 
 **CI gates that bite.** `prettier --check .` covers everything, including
 `.github/workflows/*.yml` and every `.md` — a long markdown table cell breaks the
-build. `scripts/contracts.mjs` matches literal _substrings_, so a commented-out
-line still satisfies it; the guard is weaker than it looks. `scripts/verify.sh`
-runs no shellcheck; `sh -n` is the only shell syntax gate.
+build. `scripts/contracts.mjs` matches literal _substrings_ of the file with its
+whole-line comments stripped, so a commented-out line no longer satisfies a
+requirement — but a match inside a string or a trailing comment still does.
+`scripts/verify.sh` runs no shellcheck; `sh -n` is the only shell syntax gate.
+
+**Testing Library cleanup is global, and has to be.** `vitest.config.ts` does not
+set `globals`, so Testing Library cannot register its own `afterEach(cleanup)`
+and every render used to survive into the next test. `tests/setup.ts` registers it
+for the suite; do not add a per-file `afterEach(cleanup)` beside it, and do not
+remove it. Leaked renders do not fail loudly — they turn "there is one of these
+on the page" into a race that only loses under CI's load.
+
+**Waiting on the wrong element.** `/login` and `/staff/setup` read their secret
+from the fragment a tick after mount, and both render their heading before that
+settles. A `findBy` on the heading resolves immediately and proves nothing; wait
+on something that exists only in the settled state, or the test passes locally
+and fails in CI about once a day.
 
 **Cloudflare.** The API token is account-owned, so `/user/tokens/verify` returns
 `401 Invalid API Token` even when the token is fine — use

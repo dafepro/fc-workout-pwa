@@ -51,9 +51,28 @@ function run(command, args, options = {}) {
   return options.capture ? result.stdout : "";
 }
 
+/**
+ * Drops whole-line comments, so a requirement cannot be satisfied by a line that
+ * is commented out. Every file matched this way is shell, YAML, or a systemd
+ * unit, all of which comment with a leading `#`.
+ *
+ * Only lines that are entirely a comment go: a trailing `#` is not reliably a
+ * comment in shell, and guessing wrong would drop a line that really does
+ * satisfy the contract. Absence checks deliberately keep reading the raw text --
+ * a mention in a comment cannot satisfy a requirement, but it is still worth
+ * knowing about when the rule is that something must not appear at all.
+ */
+function code(contents) {
+  return contents
+    .split("\n")
+    .filter((line) => !line.trimStart().startsWith("#"))
+    .join("\n");
+}
+
 function containsEvery(contents, required, label) {
+  const source = code(contents);
   for (const value of required) {
-    requireCondition(contents.includes(value), `${label} is missing ${value}`);
+    requireCondition(source.includes(value), `${label} is missing ${value}`);
   }
 }
 
@@ -187,8 +206,8 @@ async function deploymentContract() {
     "Backup script",
   );
   requireCondition(
-    backupScript.indexOf('find "$backup_directory"') >
-      backupScript.indexOf("upload-backup-s3.sh"),
+    code(backupScript).indexOf('find "$backup_directory"') >
+      code(backupScript).indexOf("upload-backup-s3.sh"),
     "A failed S3 upload must stop before local pruning.",
   );
   containsEvery(
@@ -312,7 +331,8 @@ async function releaseContract() {
     "Release script",
   );
   requireCondition(
-    release.indexOf("publish-image.sh") < release.indexOf("deploy-vm.sh"),
+    code(release).indexOf("publish-image.sh") <
+      code(release).indexOf("deploy-vm.sh"),
     "The fallback must publish the image before deploying it to the VM.",
   );
   containsEvery(
@@ -327,8 +347,8 @@ async function releaseContract() {
   );
   const vmDeploy = await text("deploy/release/deploy-vm.sh");
   requireCondition(
-    vmDeploy.indexOf("git checkout") >
-      vmDeploy.indexOf("systemctl start zoomigo-backup.service"),
+    code(vmDeploy).indexOf("git checkout") >
+      code(vmDeploy).indexOf("systemctl start zoomigo-backup.service"),
     "VM release must back up before checkout.",
   );
   containsEvery(

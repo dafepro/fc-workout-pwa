@@ -1,10 +1,4 @@
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { StaffSetup } from "./StaffSetup";
 
@@ -94,7 +88,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  cleanup();
   vi.unstubAllGlobals();
   window.history.replaceState(null, "", "/staff/setup");
 });

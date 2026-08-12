@@ -2,11 +2,12 @@
 
 import { staffCopy } from "../console/copy";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { routes } from "../../content/routes";
 import { LoginMasthead } from "../../components/LoginMasthead";
+import { useFragmentSecret } from "../../components/useFragmentSecret";
 import { consoleAuthRequest, messageFor } from "../console/api";
 import { CodeInput } from "../console/CodeInput";
 
@@ -20,68 +21,48 @@ interface Enrollment {
   qrPngBase64?: string;
 }
 
+// Only the steps the invitee advances into. Which of the first two the page
+// opens on is not state: it is whether the fragment held a token.
 type Step =
-  | { name: "reading" }
-  | { name: "missing" }
-  | { name: "password" }
   | { name: "enroll"; enrollment: Enrollment }
   | { name: "recovery"; codes: string[] };
 
 /**
- * F-S8. The setup token arrives in the fragment, exactly as the player QR
- * credential does: a browser never sends one, so the token reaches no server,
- * appears in no request log, and is in no `Referer`. It is stripped from
- * history before anything else runs, so a back button or a shared screen cannot
- * surface it either.
- *
- * It spent a while in the query, which the Cloudflare Access one-time-PIN
- * redirect forced because a fragment could not survive that round trip. The
- * gate is gone. A token in the query is now refused rather than read as a
- * fallback: honouring the old shape would keep minting the exposure the move
- * exists to remove. A link issued in that form has to be reissued with
- * `reset-staff-credential`.
+ * F-S8. The setup token arrives in the fragment and is read by
+ * `useFragmentSecret`, which is also how the player QR credential arrives; the
+ * reasoning for the fragment, and for refusing the query, lives there. A link
+ * issued in the old query form has to be reissued with `reset-staff-credential`.
  */
 export function StaffSetup() {
   const router = useRouter();
-  const [token, setToken] = useState("");
-  const [step, setStep] = useState<Step>({ name: "reading" });
-
-  useEffect(() => {
-    const fragment = new URLSearchParams(location.hash.slice(1));
-    const setupToken = fragment.get("setup") ?? "";
-    history.replaceState(null, "", `${location.pathname}${location.search}`);
-    const settle = window.setTimeout(() => {
-      setToken(setupToken);
-      setStep(setupToken ? { name: "password" } : { name: "missing" });
-    }, 0);
-    return () => window.clearTimeout(settle);
-  }, []);
+  const { secret: token, settled } = useFragmentSecret("setup");
+  const [step, setStep] = useState<Step | null>(null);
 
   return (
     <main className="login-page">
       <section className="login-card" aria-labelledby="staff-setup-title">
         <LoginMasthead />
         <h1 id="staff-setup-title">{staffCopy.setup.title}</h1>
-        {step.name === "reading" ? null : step.name === "missing" ? (
-          <p className="login-help" role="alert">
-            {staffCopy.setup.missingToken}
-          </p>
-        ) : step.name === "password" ? (
-          <TemporaryPasswordStep
-            token={token}
-            onEnrolled={(enrollment) => setStep({ name: "enroll", enrollment })}
-          />
-        ) : step.name === "enroll" ? (
+        {step?.name === "enroll" ? (
           <EnrollStep
             token={token}
             enrollment={step.enrollment}
             onComplete={(codes) => setStep({ name: "recovery", codes })}
           />
-        ) : (
+        ) : step?.name === "recovery" ? (
           <RecoveryStep
             codes={step.codes}
             onContinue={() => router.replace(routes.staffConsoleHome)}
           />
+        ) : !settled ? null : token ? (
+          <TemporaryPasswordStep
+            token={token}
+            onEnrolled={(enrollment) => setStep({ name: "enroll", enrollment })}
+          />
+        ) : (
+          <p className="login-help" role="alert">
+            {staffCopy.setup.missingToken}
+          </p>
         )}
         <p className="login-staff">
           <Link href={routes.staffSignIn}>{staffCopy.signInTitle}</Link>

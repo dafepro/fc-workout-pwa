@@ -5,47 +5,34 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { copy } from "../content/copy";
 import { LoginMasthead } from "../components/LoginMasthead";
+import { useFragmentSecret } from "../components/useFragmentSecret";
 import { routes } from "../content/routes";
-
-type Entry =
-  | { state: "reading" }
-  | { state: "scan" }
-  | { state: "credential"; credential: string };
 
 export function LoginEntry() {
   const router = useRouter();
-  const [entry, setEntry] = useState<Entry>({ state: "reading" });
+  const { secret: credential, settled } = useFragmentSecret("credential");
 
-  // The QR value arrives only in the fragment, which is never sent to a server,
-  // never logged, and never in a Referer. It is stripped from history before
-  // anything else runs so a back button or a shared screen cannot leak it.
+  // Playwright waits on this rather than on any one element, so it must appear
+  // only once the fragment has been read and the page is what it will stay.
   useEffect(() => {
-    const fragment = new URLSearchParams(location.hash.slice(1));
-    const credential = fragment.get("credential") ?? "";
-    history.replaceState(null, "", `${location.pathname}${location.search}`);
-    const settle = window.setTimeout(() => {
-      setEntry(
-        credential ? { state: "credential", credential } : { state: "scan" },
-      );
-      document.documentElement.dataset.appReady = "true";
-    }, 0);
+    if (!settled) return;
+    document.documentElement.dataset.appReady = "true";
     return () => {
-      window.clearTimeout(settle);
       delete document.documentElement.dataset.appReady;
     };
-  }, []);
+  }, [settled]);
 
   return (
     <main className="login-page">
       <section className="login-card" aria-labelledby="login-title">
         <LoginMasthead />
-        {entry.state === "credential" ? (
+        {credential ? (
           <PINForm
-            credential={entry.credential}
+            credential={credential}
             onSignedIn={() => router.replace(routes.playerHome)}
           />
         ) : (
-          <ScanPrompt busy={entry.state === "reading"} />
+          <ScanPrompt busy={!settled} />
         )}
       </section>
     </main>

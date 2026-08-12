@@ -3,8 +3,12 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -88,14 +92,8 @@ func TestListPlayersReportsCredentialStateWithoutSecrets(t *testing.T) {
 	if entry["accountStatus"] != "active" || entry["credentialState"] != "active" {
 		t.Fatalf("unexpected state: %+v", entry)
 	}
-	raw, err := json.Marshal(listed)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, secret := range []string{player["pin"].(string), "credential="} {
-		if strings.Contains(string(raw), secret) {
-			t.Fatalf("list-players leaked %q", secret)
-		}
+	if leak := findSecret("players", listed, player["pin"].(string), "credential="); leak != "" {
+		t.Fatalf("list-players leaked a secret: %s", leak)
 	}
 }
 
@@ -164,12 +162,110 @@ func TestAuditReportsCredentialLifecycleWithoutSecrets(t *testing.T) {
 			t.Fatalf("audit omitted %q; saw %v", want, types)
 		}
 	}
-	raw, err := json.Marshal(audit)
-	if err != nil {
-		t.Fatal(err)
+	if leak := findSecret("audit", audit, player["pin"].(string), "credential="); leak != "" {
+		t.Fatalf("audit leaked a secret: %s", leak)
 	}
-	if strings.Contains(string(raw), player["pin"].(string)) || strings.Contains(string(raw), "credential=") {
-		t.Fatal("audit leaked a secret")
+}
+
+// Walks every value in a decoded document and describes the first that carries
+// a secret, rather than searching the marshalled form as one string.
+//
+// A PIN is four digits, and a substring search over the whole document searches
+// every timestamp in it too. A normal audit carries about thirteen distinct
+// four-digit windows in its RFC3339 stamps, so roughly one run in eight hundred
+// failed on a PIN that had never been near the output -- and a PIN of "2026"
+// would have failed every run this year. Timestamps are skipped by shape rather
+// than by field name, so a stamp added later needs no maintenance here.
+//
+// Everything else is still searched for the secret anywhere inside it, the
+// nested JSON in `detail` included, because a leak into the middle of a value is
+// exactly what this is for. Numbers are compared whole: digits inside a larger
+// number are the same coincidence as digits inside a timestamp.
+func findSecret(path string, value any, secrets ...string) string {
+	switch typed := value.(type) {
+	case map[string]any:
+		for _, key := range slices.Sorted(maps.Keys(typed)) {
+			if leak := findSecret(path+"."+key, typed[key], secrets...); leak != "" {
+				return leak
+			}
+		}
+	case []any:
+		for index, nested := range typed {
+			if leak := findSecret(fmt.Sprintf("%s[%d]", path, index), nested, secrets...); leak != "" {
+				return leak
+			}
+		}
+	case string:
+		if _, err := time.Parse(time.RFC3339Nano, typed); err == nil {
+			return ""
+		}
+		for _, secret := range secrets {
+			if strings.Contains(typed, secret) {
+				return fmt.Sprintf("%s = %q contains %q", path, typed, secret)
+			}
+		}
+	case float64:
+		for _, secret := range secrets {
+			if strconv.FormatFloat(typed, 'f', -1, 64) == secret {
+				return fmt.Sprintf("%s = %s", path, secret)
+			}
+		}
+	}
+	return ""
+}
+
+// The guard above replaced one that raised a false alarm on a timestamp, so it
+// has to be shown doing both halves of its job: catching a secret wherever it
+// sits, and staying quiet about digits that only look like one.
+func TestAuditSecretScanFindsLeaksAndIgnoresTimestampDigits(t *testing.T) {
+	const pin = "2026"
+	for _, testCase := range []struct {
+		name     string
+		document map[string]any
+		wantLeak bool
+	}{
+		{
+			name:     "a timestamp whose digits happen to match",
+			document: map[string]any{"occurredAt": "2026-08-12T20:34:49.242347Z"},
+			wantLeak: false,
+		},
+		{
+			name:     "the PIN alone in a field",
+			document: map[string]any{"pin": pin},
+			wantLeak: true,
+		},
+		{
+			name:     "the PIN inside a nested detail blob",
+			document: map[string]any{"detail": `{"note":"pin was 2026"}`},
+			wantLeak: true,
+		},
+		{
+			name:     "the PIN in an element of a nested array",
+			document: map[string]any{"events": []any{map[string]any{"note": "x2026y"}}},
+			wantLeak: true,
+		},
+		{
+			name:     "the PIN as a number",
+			document: map[string]any{"pin": float64(2026)},
+			wantLeak: true,
+		},
+		{
+			name:     "a larger number that merely contains the digits",
+			document: map[string]any{"count": float64(120261)},
+			wantLeak: false,
+		},
+		{
+			name:     "a credential link",
+			document: map[string]any{"url": "https://x.test/login#credential=abc"},
+			wantLeak: true,
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			leak := findSecret("doc", testCase.document, pin, "credential=")
+			if gotLeak := leak != ""; gotLeak != testCase.wantLeak {
+				t.Fatalf("findSecret = %q, want a leak: %v", leak, testCase.wantLeak)
+			}
+		})
 	}
 }
 

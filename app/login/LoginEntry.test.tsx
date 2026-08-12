@@ -1,4 +1,10 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LoginEntry } from "./LoginEntry";
 
@@ -28,17 +34,20 @@ afterEach(() => {
 });
 
 describe("sign-in entry states", () => {
+  // Wait on the staff link, not the heading: the heading renders while the
+  // fragment is still being read, so it settles nothing. The link is the first
+  // thing that proves the scan state was reached.
   it("offers no PIN field and a single staff link when no code was scanned", async () => {
     openWithFragment("");
 
-    await screen.findByRole("heading", {
-      name: "Scan your QR code to sign in",
-    });
+    expect(
+      await screen.findAllByRole("link", { name: "Coaches and staff sign in" }),
+    ).toHaveLength(1);
+    expect(
+      screen.getByRole("heading", { name: "Scan your QR code to sign in" }),
+    ).toBeInTheDocument();
     expect(document.querySelector("input[name='pin']")).toBeNull();
     expect(screen.queryByRole("button", { name: "Sign in" })).toBeNull();
-    expect(
-      screen.getAllByRole("link", { name: "Coaches and staff sign in" }),
-    ).toHaveLength(1);
   });
 
   it("shows the PIN field only for a scanned credential, and strips it from history", async () => {
@@ -64,16 +73,14 @@ describe("sign-in entry states", () => {
       const form = pin.closest("form")!;
       (pin as HTMLInputElement).focus();
 
-      const { fireEvent } = await import("@testing-library/react");
       fireEvent.change(pin, { target: { value: "2468" } });
       fireEvent.submit(form);
 
-      const alert = await screen.findByRole("alert");
-      expect(alert).toHaveTextContent(
+      expect(await screen.findByRole("alert")).toHaveTextContent(
         "That did not work. Ask a parent or coach to reissue your QR code.",
       );
-      screen.getByRole("alert").remove();
-      document.body.innerHTML = "";
+      // Three renders inside one test, so this one unmounts its own.
+      cleanup();
     }
     vi.unstubAllGlobals();
   });

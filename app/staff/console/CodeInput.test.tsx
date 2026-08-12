@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CodeInput } from "./CodeInput";
@@ -18,7 +18,6 @@ function withClipboard(readText: () => Promise<string>) {
 }
 
 afterEach(() => {
-  cleanup();
   vi.unstubAllGlobals();
 });
 

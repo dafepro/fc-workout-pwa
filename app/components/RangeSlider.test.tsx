@@ -1,9 +1,7 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { RangeSlider } from "./RangeSlider";
-
-afterEach(cleanup);
 
 // 1..7 across 700px puts each step 100px apart, so positions map to whole steps.
 const TRACK = { left: 0, width: 700 };

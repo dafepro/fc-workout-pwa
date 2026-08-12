@@ -1,10 +1,8 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { WorkoutInstructions } from "./WorkoutInstructions";
 
 const instructions = ["Start easy.", "Finish with a slow walk."];
-
-afterEach(cleanup);
 
 describe("workout instructions", () => {
   it("keeps the same toggle available while open and dismisses outside", () => {

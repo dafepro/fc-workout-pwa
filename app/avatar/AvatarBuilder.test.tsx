@@ -1,18 +1,10 @@
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { copy } from "../content/copy";
 import type { Player } from "../domain/types";
 import { AvatarBuilder } from "./AvatarBuilder";
 import { playerColor } from "./color";
 import { defaultAvatar } from "./config";
-
-afterEach(cleanup);
 
 const player: Player = {
   id: "player-mason",

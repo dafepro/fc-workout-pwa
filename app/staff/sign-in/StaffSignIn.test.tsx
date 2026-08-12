@@ -1,10 +1,4 @@
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { StaffSignIn } from "./StaffSignIn";
@@ -55,7 +49,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  cleanup();
   vi.unstubAllGlobals();
 });
 

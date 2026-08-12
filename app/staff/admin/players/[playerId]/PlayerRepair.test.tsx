@@ -1,10 +1,4 @@
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PlayerRepair } from "./PlayerRepair";
 
@@ -70,7 +64,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  cleanup();
   vi.unstubAllGlobals();
 });
 

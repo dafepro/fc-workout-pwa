@@ -1,10 +1,4 @@
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CredentialRevealPanel, InvitationPanel } from "./RevealOnce";
@@ -45,7 +39,6 @@ function stubShare(share: (data: ShareData) => Promise<void>) {
 }
 
 afterEach(() => {
-  cleanup();
   Reflect.deleteProperty(navigator, "clipboard");
   Reflect.deleteProperty(navigator, "share");
   vi.restoreAllMocks();

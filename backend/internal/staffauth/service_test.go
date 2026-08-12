@@ -314,6 +314,69 @@ func TestRepeatedWrongPasswordsLockAndThenRelease(t *testing.T) {
 
 // SEC-3: step-up expires on its own, so a session cannot drift into being
 // trusted for a destructive action.
+// The window is two days, and it is pinned on both sides of the boundary and in
+// what the invitation promises. It was a week until it was shortened in one
+// line, and no test noticed either the old value or the new one: a setup link is
+// handed over in a conversation and redeemed in minutes, so the rest of the
+// window was only time for an unredeemed token to sit somewhere it should not.
+// An expired one costs a `reset-staff-credential`, which reissues both halves.
+func TestSetupTokenLastsFortyEightHoursAndNotLonger(t *testing.T) {
+	issued := time.Date(2026, time.August, 8, 12, 0, 0, 0, time.UTC)
+	now := issued
+	service, _ := newService(t, &now)
+	ctx := context.Background()
+
+	invitation, err := service.CreateStaffAccount(ctx, domain.RolePlatformAdmin, "", "Operator@Example.test", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := stamp(issued.Add(48 * time.Hour)); invitation.ExpiresAt != want {
+		t.Fatalf("invitation expires at %q, want %q", invitation.ExpiresAt, want)
+	}
+
+	// A second inside the window still redeems. BeginSetup does not consume the
+	// token -- only CompleteSetup does -- so the same one can be offered again
+	// past the boundary below.
+	now = issued.Add(48*time.Hour - time.Second)
+	if _, err = service.BeginSetup(ctx, invitation.SetupToken, invitation.TemporaryPassword); err != nil {
+		t.Fatalf("setup was refused a second inside its window: %v", err)
+	}
+
+	now = issued.Add(48 * time.Hour)
+	if _, err = service.BeginSetup(ctx, invitation.SetupToken, invitation.TemporaryPassword); !errors.Is(err, ErrInvalidStaffLogin) {
+		t.Fatalf("error at the boundary = %v, want ErrInvalidStaffLogin", err)
+	}
+	now = issued.Add(48*time.Hour + time.Second)
+	if _, err = service.BeginSetup(ctx, invitation.SetupToken, invitation.TemporaryPassword); !errors.Is(err, ErrInvalidStaffLogin) {
+		t.Fatalf("error past the window = %v, want ErrInvalidStaffLogin", err)
+	}
+}
+
+// An expired link must not be completable either, or the expiry would only
+// gate the first half of a setup an invitee could still finish.
+func TestExpiredSetupTokenCannotCompleteSetup(t *testing.T) {
+	issued := time.Date(2026, time.August, 8, 12, 0, 0, 0, time.UTC)
+	now := issued
+	service, _ := newService(t, &now)
+	ctx := context.Background()
+
+	invitation, err := service.CreateStaffAccount(ctx, domain.RolePlatformAdmin, "", "Operator@Example.test", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	enrollment, err := service.BeginSetup(ctx, invitation.SetupToken, invitation.TemporaryPassword)
+	if err != nil {
+		t.Fatal(err)
+	}
+	secret := decodeSecret(t, enrollment.Secret)
+
+	now = issued.Add(48*time.Hour + time.Second)
+	_, err = service.CompleteSetup(ctx, invitation.SetupToken, "a-long-enough-password", totpCode(secret, totpStep(now)))
+	if !errors.Is(err, ErrInvalidStaffLogin) {
+		t.Fatalf("error = %v, want ErrInvalidStaffLogin", err)
+	}
+}
+
 func TestStepUpExpiresAfterItsWindow(t *testing.T) {
 	now := time.Date(2026, time.August, 8, 12, 0, 0, 0, time.UTC)
 	service, _ := newService(t, &now)
