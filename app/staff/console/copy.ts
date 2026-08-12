@@ -123,6 +123,13 @@ export const consoleCopy = {
     qrAlt: "Personal sign-in QR code",
     linkLabel: "Sign-in link",
     done: "I have saved this",
+    copy: "Copy",
+    copied: "Copied",
+    copyFailed: "Could not copy. Select the text and copy it by hand.",
+    share: "Share",
+    shareFailed: "Could not share. Copy it instead.",
+    shareSubject: "Your ZoomiGo sign-in",
+    invitationShareSubject: "Your ZoomiGo staff account",
   },
   player: {
     title: "Player",

@@ -3190,10 +3190,25 @@ h2 {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.82rem;
   overflow-wrap: anywhere;
+  /* One press takes the whole value and nothing else. Left to its own
+     devices Android Chrome picks a word out of the middle of a hyphenated
+     URL and then runs the selection on past the card into the roster, so
+     what gets pasted is either a fragment or the page. */
+  -webkit-user-select: all;
+  user-select: all;
 }
 
 .console-facts--light dd {
   color: var(--ink);
+}
+
+/* Holds its line whether or not there is a message, so the acknowledgement
+   button does not jump under the operator's thumb when one appears. */
+.console-reveal__note {
+  min-height: 1.2rem;
+  margin: 0.35rem 0 0.6rem;
+  font-size: 0.85rem;
+  color: var(--muted);
 }
 
 .console-reveal__pin {
