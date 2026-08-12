@@ -96,7 +96,7 @@ describe("console gateway routing", () => {
     }
   });
 
-  it("sends operator paths to the gateway inside the Access application", () => {
+  it("sends operator paths to the operator gateway", () => {
     expect(gatewayFor("GET", "v1/staff/audit")).toBe(OPERATOR_GATEWAY);
     expect(gatewayFor("GET", "v1/staff/search")).toBe(OPERATOR_GATEWAY);
     expect(gatewayFor("POST", "v1/staff/accounts")).toBe(OPERATOR_GATEWAY);

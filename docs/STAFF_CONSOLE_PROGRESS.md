@@ -31,15 +31,15 @@ These closed open items from `STAFF_CONSOLE_DESIGN.md` §8 and are recorded in
 
 ## Phase status
 
-| Phase                | Requirements                             | Status                                                                   |
-| -------------------- | ---------------------------------------- | ------------------------------------------------------------------------ |
-| 0 — sign-in entry    | REQ-101–105                              | Complete                                                                 |
-| 1 — staff identity   | REQ-106, 107, 201–208, 301–305, 401, 402 | Complete                                                                 |
-| 2 — operator console | REQ-601–610, 701–704                     | Complete                                                                 |
-| 3 — coach console    | Migration D, REQ-501–506, 403, 404       | Released 2026-08-08 as `3eb0ff3`, E2E pass still owed, below             |
-| Access gate          | REQ-402                                  | Cloudflare Access live 2026-08-08; interim gate removed and released     |
-| Release              | —                                        | Phases 0–3 released 2026-08-08 as `3eb0ff3`                              |
-| First operator       | —                                        | Created 2026-08-08 for `3bigdave@gmail.com`; setup link not yet redeemed |
+| Phase                | Requirements                        | Status                                                                   |
+| -------------------- | ----------------------------------- | ------------------------------------------------------------------------ |
+| 0 — sign-in entry    | REQ-101–105                         | Complete                                                                 |
+| 1 — staff identity   | REQ-106, 107, 201–208, 301–305, 401 | Complete                                                                 |
+| 2 — operator console | REQ-601–610, 701–704                | Complete                                                                 |
+| 3 — coach console    | Migration D, REQ-501–506, 403, 404  | Released 2026-08-08 as `3eb0ff3`, E2E pass still owed, below             |
+| Access gate          | REQ-402                             | Withdrawn 2026-08-12; app sign-in and TOTP are the only code gate        |
+| Release              | —                                   | Phases 0–3 released 2026-08-08 as `3eb0ff3`                              |
+| First operator       | —                                   | Created 2026-08-08 for `3bigdave@gmail.com`; setup link not yet redeemed |
 
 ## Owed
 
@@ -52,17 +52,10 @@ the coach completes setup, provisions a player, sets an assignment, the player
 completes it, the coach sees the completion — is still owed against the released
 build.
 
-**REQ-402 no longer has a test.** Its evidence is now a production check
-(`/staff/admin` redirects to the Access login, `/staff/sign-in` and `/` do not),
-recorded in the log below and repeatable by hand, rather than anything CI runs.
-
-**Inviting a platform admin still means two systems.** Their address also needs
-to be in `STAFF_CONSOLE_EMAIL_ADDRESSES` with an `infra.yml` apply, or Access
-refuses them at `/staff/admin`. The console gives no hint that this second step
-exists, so it will be forgotten; the symptom is a staff sign-in that works and
-operator screens that bounce. Coaches no longer need it — the gate narrowed to
-`/staff/admin` for exactly this reason — so what is left is a smaller, rarer
-version of the same trap rather than a fixed one.
+**The setup token is still in the query.** The Access redirect that forced it
+is gone, so the fragment is available again and would keep the token out of edge
+and proxy logs. Moving it means reissuing live links and changing the CLI that
+mints them, so it is recorded in `docs/OPEN_DECISIONS.md` rather than done.
 
 **A coach cannot add an existing player to their own team.** The API lets them
 start a membership on a team they manage, but finding the player to add needs
@@ -482,3 +475,32 @@ says why there is none.
 Safe Browsing turned out not to block the setup page in practice — it was worked
 around without a change to the app — so it is recorded here and not carried as
 owed work.
+
+### 2026-08-12 — the Access gate withdrawn (issue #8)
+
+REQ-402 is withdrawn and `infra/digitalocean/access.tf` deleted, along with
+`cloudflare_account_id`, `staff_console_email_addresses`, and
+`staff_console_team_domain` in `variables.tf` and the `-var` lines that fed them
+in `infra.yml`. The `CLOUDFLARE_ACCOUNT_ID` secret stays: `release.yml` still
+needs it for the Worker deploy.
+
+The gate was a second code prompt over the same people, and the report that
+closed it was a third symptom rather than the first: its eight-hour session ran
+on its own clock, so it expired underneath an operator who was already working
+in the console and asked for a Cloudflare email code mid-session. It did that to
+XHRs as well, because `/staff/admin/api/backend/` sits inside the gated path —
+a lapsed edge session turned an operator action into a cross-origin redirect
+where JSON was expected. What remains is staff sign-in, TOTP, the operator
+gateway's own role check, and the backend's per-request authorization.
+
+`STAFF_CONSOLE_EMAIL_ADDRESSES` was deleted from the `production` environment
+after the push, in that order, so no plan run could land in a window where the
+workflow still passed a `-var` for a variable that no longer existed.
+
+Shipped in the same change: one `CodeInput` for the three places that had
+hand-rolled the TOTP field, carrying a paste button because
+`autocomplete="one-time-code"` does nothing for a code read out of an
+authenticator app and Android Chrome left a long press as the only way in. And
+`.login-card` styles every input rather than only `input[type="password"]`,
+which had left the staff email and the code field at the browser's default width
+beside a full-width button.

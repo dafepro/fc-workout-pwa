@@ -36,8 +36,8 @@ export async function proxyToBackend(
   if (!token) return jsonError(401, "unauthenticated", "Sign in is required.");
 
   if (options.operatorOnly) {
-    // The refusal the backend would issue anyway, one layer earlier and inside
-    // the Access application. It costs a session lookup per call, which these
+    // The refusal the backend would issue anyway, one layer earlier. It costs
+    // a session lookup per call, which these
     // screens can afford: an operator console is not a hot path. The check is
     // the same one the backend makes -- platform operator, nothing wider -- so
     // it cannot refuse a request the backend would have allowed.

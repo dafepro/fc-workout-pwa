@@ -3,13 +3,12 @@ import { proxyToBackend } from "../../proxy";
 
 /**
  * The staff gateway: the paths any signed-in staff account may reach, which is
- * every coach screen. It sits outside the Access application, which now covers
- * `/staff/admin` only, and that is deliberate -- a coach is admitted by their
- * console sign-in, not by an address on the Access allowlist.
+ * every coach screen. A coach is admitted by their console sign-in and nothing
+ * else.
  *
- * The operator paths are not here. They moved to `/staff/admin/api/backend/`,
- * which is inside the gate and checks the role before forwarding. See
- * `console-routes.ts` for the division and why it matches the backend's own.
+ * The operator paths are not here. They live at `/staff/admin/api/backend/`,
+ * which checks the role before forwarding. See `console-routes.ts` for the
+ * division and why it matches the backend's own.
  */
 const MARKER = "/staff/api/backend/";
 

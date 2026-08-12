@@ -1,10 +1,8 @@
 import { expect, test } from "@playwright/test";
 
-// REQ-402 is no longer observable from here. The console's edge gate is
-// Cloudflare Access, which runs in front of the deployed Worker and has no
-// local equivalent, so this suite starts from an already-admitted request --
-// exactly what a browser past Access sees. The gate itself is verified against
-// production by checking that `/staff/*` redirects to the Access login.
+// REQ-402 is retired: there is no edge gate in front of the console any more,
+// so what this suite exercises locally is now the whole of what production
+// serves rather than the part behind an admitted request.
 
 // REQ-106 and REQ-403 for the surfaces phases 0-2 ship: the staff door names
 // who it is for, asks for a password before a code, offers no remembered

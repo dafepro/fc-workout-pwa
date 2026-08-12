@@ -13,10 +13,10 @@ function pagesUnder(directory: string): string[] {
 }
 
 /**
- * The operator segment is the one surface that reads every club, and since the
- * Access gate narrowed to /staff/admin it is also the only one the edge still
- * checks. A page added here without its own `requireOperator` would render a
- * coach the admin screens; the API would still answer 403, so nothing leaks,
+ * The operator segment is the one surface that reads every club, and with the
+ * Access gate gone nothing checks it before the application does. A page added
+ * here without its own `requireOperator` would render a coach the admin
+ * screens; the API would still answer 403, so nothing leaks,
  * but the UI would be lying about what they can do. The layout is a second
  * check rather than a substitute, because Next does not re-run it when moving
  * between sibling routes.

@@ -70,8 +70,7 @@ mkdir -m 0700 -- "$secrets_directory"
 : "${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN is required}"
 pnpm exec wrangler deploy --config dist/server/wrangler.json
 
-# The console's edge gate is Cloudflare Access, provisioned in
-# `infra/digitalocean/access.tf` and applied by `infra.yml`, so a release no
-# longer puts any gate secret on the Worker.
+# The console gates on staff sign-in and TOTP, in the application, so a release
+# puts no gate secret on the Worker and no gate in front of it.
 
 printf '%s\n' "Released ZoomiGo $release_sha to the VM and Cloudflare Worker."

@@ -290,8 +290,8 @@ func runAdminWithEnvironment(t *testing.T, arguments ...string) map[string]strin
 	return runAdmin(t, "", arguments...)
 }
 
-// The staff setup token travels in the query, not the fragment, because it has
-// to survive the Cloudflare Access redirect that guards /staff.
+// The staff setup token travels in the query, not the fragment. The Access
+// redirect that forced that is gone; the link format has not moved yet.
 func queryValue(t *testing.T, raw, key string) string {
 	t.Helper()
 	parsed, err := url.Parse(raw)

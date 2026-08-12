@@ -38,9 +38,9 @@ export function TeamRoster({
   backLabel?: string;
   playerHref?: (playerId: string) => string;
   /** Adding an existing player needs the platform-wide player search, which is
-   * operator-only in the API and behind the Access gate in the console. A coach
+   * operator-only in the API and on the operator gateway in the console. A coach
    * was already refused it; hiding the panel is what stops the refusal from
-   * arriving as a login page they cannot use. */
+   * arriving as an error they can do nothing about. */
   operator?: boolean;
 }) {
   const team = useResource<TeamSummary>(`v1/staff/teams/${teamId}`);

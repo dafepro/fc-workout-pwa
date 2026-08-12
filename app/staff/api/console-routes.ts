@@ -2,14 +2,15 @@
  * The console's two gateways, and which backend path belongs to which.
  *
  * There used to be one gateway under `/staff/api/backend/`. It allowlisted
- * methods and paths but not roles, and once the Access application narrowed to
- * `/staff/admin` it sat outside the gate as well. A coach's browser could call
- * an operator endpoint through it and was refused by the backend rather than by
- * the proxy -- correct, but as late as a refusal can be.
+ * methods and paths but not roles. A coach's browser could call an operator
+ * endpoint through it and was refused by the backend rather than by the proxy
+ * -- correct, but as late as a refusal can be.
  *
- * The split moves the operator paths to `/staff/admin/api/backend/`, which is
- * inside the Access application and checks the session's role before it
- * forwards anything. The division is the backend's own: a path lands in
+ * The split moves the operator paths to `/staff/admin/api/backend/`, which
+ * checks the session's role before it forwards anything. The path once sat
+ * inside a Cloudflare Access application as well; that gate is gone, and the
+ * role check is what the split was always worth. The division is the backend's
+ * own: a path lands in
  * OPERATOR_ROUTES exactly when its handler calls `operatorActor`, so the two
  * gates agree by construction and the proxy never permits what the backend
  * would refuse, or refuses what it would permit.

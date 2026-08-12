@@ -118,9 +118,10 @@ describe("staff setup", () => {
     expect(calls).toHaveLength(0);
   });
 
-  // Cloudflare Access drops the fragment across its one-time-PIN redirect, so a
-  // fragment link cannot have reached this page with a token intact. Refusing
-  // it keeps the query the only form anyone can build against.
+  // No link has ever carried a token in the fragment: the Access redirect that
+  // shaped this flow dropped fragments, and every issued link uses the query.
+  // Refusing one keeps the query the only form anyone can build against, until
+  // the move to a fragment is made deliberately end to end.
   it("refuses a token in the fragment", async () => {
     openWith("#setup=one-time-setup-token");
 

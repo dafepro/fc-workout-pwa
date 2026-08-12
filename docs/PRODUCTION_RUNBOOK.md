@@ -117,28 +117,18 @@ environment now, before the first plan.
 
 The staff console needs a few more. `STAFF_SECRET_KEY` encrypts stored second
 factors; rotating it makes every enrolled authenticator unreadable, so every
-staff account has to re-enrol. `STAFF_CONSOLE_EMAIL_ADDRESSES` is the Access
-allowlist: Access admits by exact address and mails the one-time PIN there, so a
-wrong value locks the console rather than merely looking untidy.
-
-That allowlist covers `/staff/admin` only. Platform admins need an entry before
-they can open the operator screens; coaches need none, and adding one for a
-coach grants them nothing the console would not already give them. Inviting a
-coach is an application act with no infra step — see "Inviting staff" below.
+staff account has to re-enrol.
 
 ```sh
 gh secret set STAFF_SECRET_KEY --env production --body "$(head -c 32 /dev/urandom | base64)"
 gh variable set PLAYER_LOGIN_URL --env production --body 'https://PWA_HOSTNAME/login'
 gh variable set STAFF_SETUP_URL --env production --body 'https://PWA_HOSTNAME/staff/setup'
-gh variable set STAFF_CONSOLE_EMAIL_ADDRESSES --env production --body '["operator@example.com"]'
 ```
 
-Cloudflare Zero Trust has to be enabled on the account by hand, once, before any
-Access resource applies: there is no API for that first onboarding step. Do it
-in the dashboard before the first `infra.yml` run. Doing so also creates the
-Zero Trust organization, which is why `STAFF_CONSOLE_TEAM_DOMAIN` is left unset
-— `access.tf` only creates an organization when that variable is non-empty, and
-a second one is refused.
+There is no Cloudflare Zero Trust step. The console used to sit behind an Access
+application, which meant enabling Zero Trust by hand and keeping an address
+allowlist in a GitHub variable; both are gone, and staff sign-in plus TOTP is the
+only code gate. Nothing here needs an infra apply to admit a person.
 
 ## 2. Plan and apply infrastructure
 
@@ -280,27 +270,21 @@ this is a larger decision than it looks. The account can reach nothing but the
 setup page until it has chosen a password and enrolled a second factor.
 
 Pass the whole URL along unaltered. The token is in the query rather than the
-fragment because a fragment cannot cross an Access redirect: it never reaches
-Cloudflare to be echoed back, and the cross-origin PIN form POST breaks the
-chain a browser would otherwise use to reattach it. An invitee who went through
-the PIN flow used to land on the setup page with no token and be told to reopen
-a link they had already spent. `/staff/setup` no longer sits behind Access, so
-a coach meets no PIN prompt at all, but a platform admin still crosses the gate
-on their way to `/staff/admin` and the query form is what survives it.
+fragment, which was forced by the Access redirect: a fragment never reached
+Cloudflare to be echoed back, so an invitee landed on the setup page with no
+token and was told to reopen a link they had already spent. No redirect stands
+in the way now, so the token could move to the fragment and out of the edge and
+proxy logs. That means reissuing every live link and changing the CLI that mints
+them, so it is an open decision rather than a change already made.
 
 ## Inviting staff
 
-A coach needs no infra change. Create the account — `create-operator` for the
-CLI, or Accounts in the admin console — hand over the setup URL and temporary
-password, and they are done. `/staff`, `/staff/sign-in`, and `/staff/setup` are
-not behind Access.
-
-A platform admin needs one more step, and it is easy to forget because the
-console cannot tell you: add their address to `STAFF_CONSOLE_EMAIL_ADDRESSES`
-and run `infra.yml` with `action: apply`. Until that lands they can finish setup
-and sign in, but `/staff/admin` answers with the Access PIN prompt and refuses
-the address. Symptom to recognise: a working staff sign-in that bounces at the
-operator screens.
+Nobody needs an infra change, coach or platform admin. Create the account —
+`create-operator` for the CLI, or Accounts in the admin console — hand over the
+setup URL and temporary password, and they are done. A platform admin used to
+need their address added to an Access allowlist and an `infra.yml` apply before
+`/staff/admin` would open; that gate is gone, so the role on the account is the
+whole of it.
 
 `reset-staff-credential --email ...` issues a fresh pair and ends every session
 that account holds. `list-staff` shows who exists and whether they finished

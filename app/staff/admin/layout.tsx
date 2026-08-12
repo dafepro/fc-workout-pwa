@@ -11,8 +11,8 @@ import { requireOperator } from "./guard";
  * window before anyone notices the missing call, and the API answers 403 on its
  * own regardless of what the browser renders (REQ-301, SEC-5).
  *
- * Access covers this path at the edge as well (REQ-402), which is the layer a
- * coach never reaches. It does not cover the coach console at /staff.
+ * Nothing stands in front of this path at the edge any more, so these checks and
+ * the backend's are the whole of it.
  */
 export default async function AdminLayout({
   children,

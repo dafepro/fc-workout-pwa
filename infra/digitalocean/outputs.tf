@@ -24,6 +24,6 @@ output "pwa_hostname" {
 }
 
 output "staff_console_url" {
-  description = "Gated entry point for the coach and operator console."
+  description = "Entry point for the coach and operator console."
   value       = "https://${var.pwa_hostname}/staff"
 }

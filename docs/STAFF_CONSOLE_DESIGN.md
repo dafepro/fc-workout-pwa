@@ -234,13 +234,13 @@ deliberately avoids introducing email-sending infrastructure; the delivery
 channel is an open decision, same as the QR/PIN handoff.
 
 The setup token travels in the link's query, not its fragment, which is the one
-place this flow deliberately departs from the player QR handoff. `/staff` sits
-behind the REQ-402 access gate, and the gate's one-time-PIN redirect cannot
-carry a fragment: the fragment never reaches Cloudflare to be echoed back, and
-the cross-origin PIN form POST breaks the redirect chain a browser would
-otherwise use to reattach it. The invitee arrived at `/staff/setup` with no
-token and was told to reopen a link that had already been spent. The token is
-therefore in edge and proxy logs; it is single-use, expires in a week, is
+place this flow deliberately departs from the player QR handoff. The REQ-402
+gate forced it: its one-time-PIN redirect could not carry a fragment, so the
+invitee arrived at `/staff/setup` with no token and was told to reopen a link
+that had already been spent. With the gate withdrawn the fragment is available
+again, and moving the token there would take it out of edge and proxy logs; it
+is an open decision because it means reissuing live links and changing the CLI
+that mints them. Meanwhile the token is single-use, expires in a week, is
 useless without the temporary password, and anyone who can read those logs can
 already mint a replacement with the operator CLI. The page does not read a
 fragment at all: one that reached the page could not still hold a token, and
@@ -524,20 +524,25 @@ a player route.
 _AC:_ a production build shows no console module in the entry graph reachable
 from `/`, `/log`, `/team`, `/leaders`, or `/me`.
 
-**REQ-402.** An independent access gate sits in front of the operator console
-path, separate from and in addition to application authentication.
-_AC:_ an unauthenticated request to `/staff/admin` is refused by the gate before
-the application renders anything. The gate mechanism is an open decision.
+**REQ-402. Withdrawn 2026-08-12.** It required an independent access gate in
+front of the operator console path, separate from and in addition to application
+authentication. Cloudflare Access filled it from 2026-08-08 until it was removed.
 
-The gate covers `/staff/admin`, not all of `/staff`. It covered the whole prefix
-first, and that made an infra apply a prerequisite for inviting a coach: the
-allowlist is named addresses, so a new coach could not open their own setup link
-until Terraform had run, and nothing in the console said so. Narrowing it also
-costs less than the shape suggests. The staff API answers on the API hostname,
-which this gate does not cover and never did, so what sat behind it was the
-browser bundle rather than the roster. Coach screens rest on staff sign-in,
-TOTP, and per-request authorization, which is where enforcement already lived;
-the named-address gate stays over the screens that can reach every club.
+The requirement asked for a layer; what it bought in practice was a second code
+prompt over the same people. Three things decided it. The gate admits by named
+address, so it narrowed from `/staff` to `/staff/admin` early on because an
+infra apply had become a prerequisite for inviting a coach. It never covered the
+data: the staff API answers on the API hostname, so what sat behind the gate was
+the browser bundle rather than the roster. And its session expired on its own
+eight-hour clock, independent of the application's, which put a Cloudflare email
+code in front of an operator who was already working in the console — including
+in front of the XHRs to `/staff/admin/api/backend/`, which sat inside the
+application's path.
+
+The console now gates on staff sign-in, TOTP, and per-request authorization. The
+operator gateway keeps its own role check, which is what the path split was
+actually worth. Reinstating an edge gate means solving the session-alignment
+problem first; do not reintroduce one that expires independently.
 
 The consequence to hold onto: `/staff/sign-in` and `/staff/setup` are now
 publicly reachable, so the login throttle and the per-account lockout are what
@@ -753,9 +758,11 @@ last full authentication is older than the window.
 reveals are single-use, are not re-readable, and appear in no log or audit
 detail.
 
-**SEC-5.** The console is defense in depth: the access gate (REQ-402), plus
-application authentication, plus per-request authorization (REQ-301). No single
-one of the three is the boundary.
+**SEC-5.** The console is defense in depth: application authentication with a
+mandatory second factor, the console gateway's own role check, and per-request
+authorization in the backend (REQ-301). No single one of the three is the
+boundary. An edge access gate was a fourth until REQ-402 was withdrawn; the
+backend's authorization was the boundary before it existed and remains so.
 
 **SEC-6.** Rate limiting and lockout apply to the staff path, the TOTP step, and
 the setup-token path, not only to the initial password check. The staff path
@@ -812,7 +819,7 @@ Each phase is independently shippable and leaves the product working.
 no schema change, and is the smallest useful slice. Ship first.
 
 **Phase 1 — staff identity.** Migrations A and B, REQ-201 through REQ-208,
-REQ-301 through REQ-305, REQ-401, REQ-402, REQ-106, REQ-107. A coach can sign in
+REQ-301 through REQ-305, REQ-401, REQ-106, REQ-107. A coach can sign in
 and see an empty console. This is the phase with the schema rebuilds, so it
 wants its own rehearsed release and a restore drill beforehand, per the
 runbook's guidance on destructive migrations.

@@ -39,10 +39,12 @@ const worker = {
   ): Promise<Response> {
     const url = new URL(request.url);
 
-    // Nothing guards `/staff/*` here any more. Cloudflare Access does it at the
-    // edge (`infra/digitalocean/access.tf`), so an unadmitted request is turned
-    // back before it ever reaches this Worker -- which is what the interim
-    // passphrase gate that used to sit here was standing in for.
+    // Nothing guards `/staff/*` here, and nothing does at the edge either. The
+    // console gates on staff sign-in, TOTP, and per-request authorization, all
+    // of which live in the application. The Cloudflare Access gate that briefly
+    // sat in front of `/staff/admin` was a second code prompt over the same
+    // people, and its own session expiring mid-console bounced an operator to an
+    // email code; it is gone.
     if (url.pathname === "/_vinext/image") {
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
       return handleImageOptimization(
