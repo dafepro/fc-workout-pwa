@@ -129,7 +129,27 @@ export const consoleCopy = {
     teams: "Teams",
     accounts: "Staff accounts",
     audit: "Audit trail",
+    analytics: "Product analytics",
     backToSearch: "Back to search",
+  },
+  analytics: {
+    title: "Product analytics",
+    privacyNote:
+      "Counts use pseudonymous player keys. This view never shows names, workout values, effort, exhaustion, IP addresses, or raw URLs.",
+    notConfiguredTitle: "Analytics is off",
+    notConfiguredBody:
+      "Collection stays off until the D1 database, subject-key secret, and production feature flag are configured.",
+    unavailableTitle: "Analytics could not be loaded",
+    unavailableBody:
+      "The player app is unaffected. Check the analytics database and try again.",
+    capacityTitle: "Free-tier capacity",
+    capacityHint:
+      "At 80%, switch route summaries to sampling or shorten raw retention before adding infrastructure.",
+    routesTitle: "Where players spend active time",
+    hoursTitle: "When players are active",
+    empty: "No product events have arrived yet.",
+    smallCohort:
+      "This breakdown appears after at least five players are active, so one child's pattern is not singled out.",
   },
   credential: {
     heading: "Login",
