@@ -12,6 +12,7 @@ import type { Player } from "../domain/types";
 import { TrainingProvider } from "./training-context";
 import { copy } from "../content/copy";
 import { routes } from "../content/routes";
+import { AnalyticsProvider } from "../../lib/analytics/AnalyticsProvider";
 
 interface SessionProfile {
   accountId: string;
@@ -20,7 +21,7 @@ interface SessionProfile {
     id: string;
     firstName: string;
     lastInitial: string;
-    teams: { id: string; name: string }[];
+    teams: { id: string; name: string; timeZone: string }[];
     avatarConfiguration?: AvatarConfiguration;
   } | null;
 }
@@ -155,13 +156,15 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   };
   return (
     <AuthContext.Provider value={auth}>
-      <TrainingProvider
-        connected={connected}
-        currentPlayerID={currentPlayerID}
-        currentTeamID={currentTeamID}
-      >
-        <AppShell>{children}</AppShell>
-      </TrainingProvider>
+      <AnalyticsProvider enabled={connected}>
+        <TrainingProvider
+          connected={connected}
+          currentPlayerID={currentPlayerID}
+          currentTeamID={currentTeamID}
+        >
+          <AppShell>{children}</AppShell>
+        </TrainingProvider>
+      </AnalyticsProvider>
     </AuthContext.Provider>
   );
 }

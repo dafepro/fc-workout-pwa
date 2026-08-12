@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { Avatar } from "./Avatar";
 import { copy } from "../content/copy";
 import { useAuth } from "../state/auth-context";
+import { useAnalytics } from "../../lib/analytics/AnalyticsProvider";
 
 const SERVICE_WORKER_URL = "/sw.js?v=4";
 
@@ -19,6 +20,7 @@ const navigation = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { currentPlayer: player, avatarConfig } = useAuth();
+  const analytics = useAnalytics();
   const logging = pathname === "/log";
 
   function navigationIcon(item: (typeof navigation)[number]) {
@@ -108,6 +110,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         className={`training-fab ${logging ? "training-fab--close" : ""}`}
         href={logging ? "/" : "/log"}
         aria-label={logging ? "Close training entry" : "Record training"}
+        onClick={() => {
+          if (!logging) {
+            analytics.track("training_entry_started", {
+              source: "fab",
+              defaulted_activity: true,
+            });
+          }
+        }}
       >
         <span aria-hidden="true">{logging ? "−" : "+"}</span>
       </Link>

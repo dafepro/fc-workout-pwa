@@ -13,6 +13,7 @@ import {
 } from "../domain/rules";
 import type { ActivityId } from "../domain/types";
 import { useTraining } from "../state/training-context";
+import { useAnalytics } from "../../lib/analytics/AnalyticsProvider";
 
 function currentTimeInput(): string {
   return new Date().toTimeString().slice(0, 5);
@@ -39,6 +40,7 @@ function compactTimeLabel(timeValue: string): string {
 
 export default function LogPage() {
   const router = useRouter();
+  const analytics = useAnalytics();
   const { addEntry, dashboard, dashboardStatus, refreshDashboard } =
     useTraining();
   const activities = useMemo(() => dashboard?.activities ?? [], [dashboard]);
@@ -77,6 +79,10 @@ export default function LogPage() {
         : (nextActivity?.defaultValue ?? 1),
     );
     setMessage(null);
+    analytics.track("training_activity_selected", {
+      activity: next,
+      defaulted_activity: false,
+    });
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {

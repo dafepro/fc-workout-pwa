@@ -7,6 +7,8 @@ import {
   readSessionCookie,
   sameOrigin,
 } from "../../backend";
+import { proxyEvents } from "../../../../lib/analytics/proxy-events";
+import { recordServerEventsForRequest } from "../../../../lib/analytics/server";
 
 const allowed = [
   { method: "GET", pattern: /^v1\/me\/training-entries$/ },
@@ -75,6 +77,7 @@ async function proxy(request: Request) {
     }
   }
   let response: Response;
+  const startedAt = Date.now();
   try {
     response = await fetch(`${baseURL}/${path}${incoming.search}`, {
       method: request.method,
@@ -88,7 +91,18 @@ async function proxy(request: Request) {
       "ZoomiGo is temporarily unavailable.",
     );
   }
-  return new Response(await response.text(), {
+  const responseBody = await response.text();
+  await recordServerEventsForRequest(
+    request,
+    proxyEvents(
+      request.method,
+      path,
+      body,
+      response.status,
+      Date.now() - startedAt,
+    ),
+  );
+  return new Response(responseBody, {
     status: response.status,
     headers: forwardedHeaders(response),
   });

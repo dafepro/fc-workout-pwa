@@ -68,8 +68,9 @@ type Service struct {
 }
 
 type TeamProfile struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	TimeZone string `json:"timeZone"`
 }
 
 type PlayerProfile struct {
@@ -272,14 +273,14 @@ func (service *Service) Session(ctx context.Context, token string) (Session, err
 		}
 		player.Teams = []TeamProfile{}
 		today := service.now().UTC().Format("2006-01-02")
-		rows, err := service.db.QueryContext(ctx, `SELECT t.id, t.name FROM teams t JOIN team_memberships m ON m.team_id = t.id WHERE m.player_id = ? AND m.active_from <= ? AND (m.active_to IS NULL OR m.active_to >= ?) ORDER BY t.name`, actor.PlayerID, today, today)
+		rows, err := service.db.QueryContext(ctx, `SELECT t.id, t.name, t.time_zone FROM teams t JOIN team_memberships m ON m.team_id = t.id WHERE m.player_id = ? AND m.active_from <= ? AND (m.active_to IS NULL OR m.active_to >= ?) ORDER BY t.name`, actor.PlayerID, today, today)
 		if err != nil {
 			return Session{}, err
 		}
 		defer rows.Close()
 		for rows.Next() {
 			var team TeamProfile
-			if err := rows.Scan(&team.ID, &team.Name); err != nil {
+			if err := rows.Scan(&team.ID, &team.Name, &team.TimeZone); err != nil {
 				return Session{}, err
 			}
 			player.Teams = append(player.Teams, team)
