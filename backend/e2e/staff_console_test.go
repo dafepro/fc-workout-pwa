@@ -36,7 +36,7 @@ func TestOperatorBuildsAClubAndAPlayerSignsIn(t *testing.T) {
 		"--email", "operator@zoomigo.test",
 		"--setup-url", "https://zoomigo.example/staff/setup",
 	)
-	setupToken := queryValue(t, invitation["setupUrl"], "setup")
+	setupToken := fragmentValue(t, invitation["setupUrl"], "setup")
 	if setupToken == "" || setupToken != invitation["setupToken"] {
 		t.Fatalf("setup link did not carry the token in its fragment: %+v", invitation)
 	}
@@ -127,7 +127,7 @@ func TestOperatorBuildsAClubAndAPlayerSignsIn(t *testing.T) {
 	if provisioned.PIN == "" || provisioned.QRBase64 == "" {
 		t.Fatalf("provisioning revealed no PIN or QR: %+v", provisioned)
 	}
-	credential := fragmentValue(t, provisioned.LoginURL, "credential=")
+	credential := fragmentValue(t, provisioned.LoginURL, "credential")
 
 	// The whole point of the seam: the code the console just printed works.
 	playerSession := staffPost[struct {
@@ -290,24 +290,22 @@ func runAdminWithEnvironment(t *testing.T, arguments ...string) map[string]strin
 	return runAdmin(t, "", arguments...)
 }
 
-// The staff setup token travels in the query, not the fragment. The Access
-// redirect that forced that is gone; the link format has not moved yet.
-func queryValue(t *testing.T, raw, key string) string {
+// Both handoff links -- the staff setup token and the player QR credential --
+// carry their secret in the fragment, which a browser never sends. Read from
+// the raw link the way the page reads it: everything after the first "#",
+// decoded exactly once, as URLSearchParams does. Going through url.URL.Fragment
+// would decode a second time and accept a link no browser could use.
+func fragmentValue(t *testing.T, raw, key string) string {
 	t.Helper()
-	parsed, err := url.Parse(raw)
-	if err != nil {
-		t.Fatalf("parse %q: %v", raw, err)
+	_, encoded, found := strings.Cut(raw, "#")
+	if !found {
+		t.Fatalf("link %q has no fragment", raw)
 	}
-	return parsed.Query().Get(key)
-}
-
-func fragmentValue(t *testing.T, raw, prefix string) string {
-	t.Helper()
-	parsed, err := url.Parse(raw)
+	values, err := url.ParseQuery(encoded)
 	if err != nil {
-		t.Fatalf("parse %q: %v", raw, err)
+		t.Fatalf("parse fragment of %q: %v", raw, err)
 	}
-	return strings.TrimPrefix(parsed.Fragment, prefix)
+	return values.Get(key)
 }
 
 func decodeTOTPSecret(t *testing.T, encoded string) []byte {

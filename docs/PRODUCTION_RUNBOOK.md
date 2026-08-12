@@ -263,19 +263,25 @@ sudo -n docker compose --env-file .env --profile operations run --rm --no-TTY ad
   --setup-url 'https://PWA_HOSTNAME/staff/setup'
 ```
 
-It prints a setup URL carrying a single-use token in its query string, and a
+It prints a setup URL carrying a single-use token in its fragment, and a
 temporary password, both exactly once. Hand them over by whatever channel is
 already trusted; there is no email infrastructure and inventing one to deliver
 this is a larger decision than it looks. The account can reach nothing but the
 setup page until it has chosen a password and enrolled a second factor.
 
-Pass the whole URL along unaltered. The token is in the query rather than the
-fragment, which was forced by the Access redirect: a fragment never reached
-Cloudflare to be echoed back, so an invitee landed on the setup page with no
-token and was told to reopen a link they had already spent. No redirect stands
-in the way now, so the token could move to the fragment and out of the edge and
-proxy logs. That means reissuing every live link and changing the CLI that mints
-them, so it is an open decision rather than a change already made.
+**Pass the whole URL along unaltered, including everything after the `#`.** The
+token is in the fragment, which a browser keeps to itself, so it reaches no
+server and lands in no log — but it also means any tool that "tidies" a link by
+dropping the fragment silently destroys it. The symptom is an invitee who
+reaches `/staff/setup` and is told the page needs the one-time link.
+
+The token expires in 48 hours and is single-use. A link that has expired, been
+spent, or been mangled is not recoverable: issue a fresh one with
+`reset-staff-credential --email ...`, which reissues both halves and ends every
+session for that account.
+
+Links issued before 2026-08-12 carried the token in the query and are no longer
+readable — the page does not look there. Reissue them the same way.
 
 ## Inviting staff
 

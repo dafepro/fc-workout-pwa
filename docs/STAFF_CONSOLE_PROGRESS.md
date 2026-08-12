@@ -52,11 +52,6 @@ the coach completes setup, provisions a player, sets an assignment, the player
 completes it, the coach sees the completion — is still owed against the released
 build.
 
-**The setup token is still in the query.** The Access redirect that forced it
-is gone, so the fragment is available again and would keep the token out of edge
-and proxy logs. Moving it means reissuing live links and changing the CLI that
-mints them, so it is recorded in `docs/OPEN_DECISIONS.md` rather than done.
-
 **A coach cannot add an existing player to their own team.** The API lets them
 start a membership on a team they manage, but finding the player to add needs
 `v1/staff/search`, which is operator-only. The panel is now hidden for coaches
@@ -504,3 +499,28 @@ authenticator app and Android Chrome left a long press as the only way in. And
 `.login-card` styles every input rather than only `input[type="password"]`,
 which had left the staff email and the code field at the browser's default width
 beside a full-width button.
+
+### 2026-08-12 — the setup token moves to the fragment, and its window halves
+
+Follow-on from the Access removal. `setupLink` now emits
+`…/staff/setup#setup=<token>` and `StaffSetup` reads `location.hash`; the query
+form is refused rather than accepted as a fallback, because reading it would
+keep minting the exposure the move exists to remove. Any link issued before this
+needs `reset-staff-credential`. `setupLifetime` drops from seven days to 48
+hours.
+
+What the query form actually cost, stated properly for once: `/staff/setup` is a
+Worker route and the deployed script sets `observability.enabled`, so the token
+was landing in Workers Logs on every load. Not the vague "edge and proxy logs"
+the old comments claimed, and not the VM — Caddy never sees this path, and the
+backend only ever received the token in a POST body.
+
+One trap worth recording. Assigning a pre-encoded string to Go's
+`url.URL.Fragment` double-escapes it, because that field holds the _decoded_
+form and `String()` escapes it again: a token of `a+b/c=d&e` came out as
+`#setup=a%252Bb%252Fc%253Dd%2526e`. Every round-trip test still passed, because
+they decoded as many times as the builder had encoded, and no browser would have
+read it. The link is now assembled by appending `"#" + url.Values{…}.Encode()`
+to the URL, and `TestSetupLinkEscapesTheTokenExactlyOnce` pins the literal so a
+symmetric test can never hide it again. `fragmentValue` in the Go E2E helpers
+was rewritten for the same reason and now serves both handoff links.

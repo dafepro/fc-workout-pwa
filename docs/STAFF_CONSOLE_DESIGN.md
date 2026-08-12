@@ -233,19 +233,22 @@ forced to set a password and enroll TOTP before reaching any roster data. This
 deliberately avoids introducing email-sending infrastructure; the delivery
 channel is an open decision, same as the QR/PIN handoff.
 
-The setup token travels in the link's query, not its fragment, which is the one
-place this flow deliberately departs from the player QR handoff. The REQ-402
-gate forced it: its one-time-PIN redirect could not carry a fragment, so the
-invitee arrived at `/staff/setup` with no token and was told to reopen a link
-that had already been spent. With the gate withdrawn the fragment is available
-again, and moving the token there would take it out of edge and proxy logs; it
-is an open decision because it means reissuing live links and changing the CLI
-that mints them. Meanwhile the token is single-use, expires in a week, is
-useless without the temporary password, and anyone who can read those logs can
-already mint a replacement with the operator CLI. The page does not read a
-fragment at all: one that reached the page could not still hold a token, and
-accepting both forms only invited someone to make the fragment primary again
-and rediscover that it cannot cross the gate.
+The setup token travels in the link's fragment, matching the player QR handoff.
+A browser never sends a fragment, so the token reaches no server, appears in no
+request log, and is in no `Referer`; the page strips it from history on load.
+
+It sat in the query from 2026-08-08 until 2026-08-12, because the REQ-402 gate's
+one-time-PIN redirect could not carry a fragment — the invitee arrived at
+`/staff/setup` with no token and was told to reopen a link that had already been
+spent. In the query the token reached the Worker, whose deployed script has
+observability enabled, so it was landing in Workers Logs. Withdrawing the gate
+removed the reason, and the token moved back.
+
+The query form is refused rather than read as a fallback: honouring it would
+keep minting the exposure the move removes. A link issued in that shape has to
+be reissued with `reset-staff-credential`. Beyond the format, the token is
+single-use, expires in 48 hours, and is useless without the temporary password,
+which travels out of band and is never in a URL at all.
 
 **F-S9 — Staff loses their second factor.** Only the operator can reset a staff
 password or TOTP enrollment, and the reset revokes every existing session for

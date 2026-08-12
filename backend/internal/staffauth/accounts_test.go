@@ -2,13 +2,15 @@ package staffauth
 
 import (
 	"net/url"
+	"strings"
 	"testing"
 )
 
-// The setup token moved out of the fragment and into the query because /staff
-// sits behind Cloudflare Access, whose one-time-PIN redirect cannot carry a
-// fragment back to the page that needs it.
-func TestSetupLinkCarriesTheTokenInTheQuery(t *testing.T) {
+// The token rides in the fragment, which a browser never sends, so it reaches
+// no server and lands in no request log. It spent a while in the query because
+// Cloudflare Access's one-time-PIN redirect could not carry a fragment back to
+// the page that needed it; that gate is gone.
+func TestSetupLinkCarriesTheTokenInTheFragment(t *testing.T) {
 	link, err := setupLink("https://example.test/staff/setup", "one-time-token")
 	if err != nil {
 		t.Fatalf("setupLink: %v", err)
@@ -17,11 +19,43 @@ func TestSetupLinkCarriesTheTokenInTheQuery(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse %q: %v", link, err)
 	}
-	if got := parsed.Query().Get("setup"); got != "one-time-token" {
-		t.Fatalf("setup query = %q, want the token", got)
+	if got := fragmentToken(t, link); got != "one-time-token" {
+		t.Fatalf("setup fragment = %q, want the token", got)
 	}
-	if parsed.Fragment != "" {
-		t.Fatalf("fragment = %q, want empty", parsed.Fragment)
+	if parsed.RawQuery != "" {
+		t.Fatalf("query = %q, want empty: the token must reach no server", parsed.RawQuery)
+	}
+}
+
+// Read from the raw link exactly as the page reads it: everything after the
+// first "#", decoded once, the way URLSearchParams does it. Going through
+// url.URL.Fragment instead would decode a second time and hide a link that had
+// been escaped twice.
+func fragmentToken(t *testing.T, link string) string {
+	t.Helper()
+	_, raw, found := strings.Cut(link, "#")
+	if !found {
+		t.Fatalf("link %q has no fragment", link)
+	}
+	values, err := url.ParseQuery(raw)
+	if err != nil {
+		t.Fatalf("parse fragment %q: %v", raw, err)
+	}
+	return values.Get("setup")
+}
+
+// Pinned as a literal because the round-trip assertions above cannot see a
+// double escape: they decode as many times as the builder encoded. Assigning
+// pre-encoded text to url.URL.Fragment produced "%252B" here, which every
+// symmetric test still passed and no browser would have read correctly.
+func TestSetupLinkEscapesTheTokenExactlyOnce(t *testing.T) {
+	link, err := setupLink("https://example.test/staff/setup", "a+b/c=d&e")
+	if err != nil {
+		t.Fatalf("setupLink: %v", err)
+	}
+	const want = "https://example.test/staff/setup#setup=a%2Bb%2Fc%3Dd%26e"
+	if link != want {
+		t.Fatalf("link = %q, want %q", link, want)
 	}
 }
 
@@ -33,12 +67,8 @@ func TestSetupLinkEscapesTheToken(t *testing.T) {
 	if err != nil {
 		t.Fatalf("setupLink: %v", err)
 	}
-	parsed, err := url.Parse(link)
-	if err != nil {
-		t.Fatalf("parse %q: %v", link, err)
-	}
-	if got := parsed.Query().Get("setup"); got != token {
-		t.Fatalf("setup query = %q, want %q", got, token)
+	if got := fragmentToken(t, link); got != token {
+		t.Fatalf("setup fragment = %q, want %q", got, token)
 	}
 }
 
@@ -53,11 +83,11 @@ func TestSetupLinkReplacesExistingTokens(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse %q: %v", link, err)
 	}
-	if got := parsed.Query().Get("setup"); got != "fresh" {
-		t.Fatalf("setup query = %q, want the fresh token", got)
+	if got := fragmentToken(t, link); got != "fresh" {
+		t.Fatalf("setup fragment = %q, want the fresh token", got)
 	}
-	if parsed.Fragment != "" {
-		t.Fatalf("fragment = %q, want empty", parsed.Fragment)
+	if parsed.Query().Has("setup") {
+		t.Fatalf("query = %q, still carries a token", parsed.RawQuery)
 	}
 	if got := parsed.Query().Get("ref"); got != "email" {
 		t.Fatalf("ref query = %q, want it preserved", got)

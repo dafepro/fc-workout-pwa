@@ -59,7 +59,7 @@ function openWith(suffix: string) {
 
 async function reachEnrollStep({ withoutQr = false } = {}) {
   if (withoutQr) stubBackend({ withoutQr: true });
-  openWith("?setup=one-time-setup-token");
+  openWith("#setup=one-time-setup-token");
   fireEvent.change(await screen.findByLabelText("Temporary password"), {
     target: { value: "handed-over-in-person" },
   });
@@ -111,19 +111,18 @@ describe("staff setup", () => {
 
   it("strips the setup token from history before anything is sent", async () => {
     const calls = stubBackend();
-    openWith("?setup=one-time-setup-token");
+    openWith("#setup=one-time-setup-token");
 
     await screen.findByLabelText("Temporary password");
-    await waitFor(() => expect(window.location.search).toBe(""));
+    await waitFor(() => expect(window.location.hash).toBe(""));
     expect(calls).toHaveLength(0);
   });
 
-  // No link has ever carried a token in the fragment: the Access redirect that
-  // shaped this flow dropped fragments, and every issued link uses the query.
-  // Refusing one keeps the query the only form anyone can build against, until
-  // the move to a fragment is made deliberately end to end.
-  it("refuses a token in the fragment", async () => {
-    openWith("#setup=one-time-setup-token");
+  // The query is the old format. Reading it as a fallback would keep minting a
+  // reason for a token to reach a server, which is the whole point of the move,
+  // so a link in the old shape is refused and has to be reissued.
+  it("refuses a token in the query", async () => {
+    openWith("?setup=one-time-setup-token");
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "This page needs the one-time setup link.",
@@ -131,11 +130,27 @@ describe("staff setup", () => {
     expect(screen.queryByLabelText("Temporary password")).toBeNull();
   });
 
-  it("keeps any other query parameter while removing the token", async () => {
-    openWith("?ref=email&setup=one-time-setup-token");
+  it("keeps the rest of the URL while removing the token", async () => {
+    openWith("?ref=email#setup=one-time-setup-token");
 
     await screen.findByLabelText("Temporary password");
-    await waitFor(() => expect(window.location.search).toBe("?ref=email"));
+    await waitFor(() => expect(window.location.hash).toBe(""));
+    expect(window.location.search).toBe("?ref=email");
+  });
+
+  // The fragment is the one part of a URL a browser keeps to itself, so a token
+  // that has escapes in it must survive being read back out of it.
+  it("reads a token that had to be escaped", async () => {
+    const calls = stubBackend();
+    openWith("#setup=a%2Bb%2Fc%3Dd%26e");
+
+    fireEvent.change(await screen.findByLabelText("Temporary password"), {
+      target: { value: "handed-over-in-person" },
+    });
+    fireEvent.submit(screen.getByRole("button", { name: "Continue" }));
+
+    await waitFor(() => expect(calls).toHaveLength(1));
+    expect(calls[0]).toMatchObject({ setupToken: "a+b/c=d&e" });
   });
 
   it("offers the QR to scan, with the key and URI still reachable behind it", async () => {

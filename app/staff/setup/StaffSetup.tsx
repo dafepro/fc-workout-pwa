@@ -28,17 +28,18 @@ type Step =
   | { name: "recovery"; codes: string[] };
 
 /**
- * F-S8. The setup token arrives in the query. That was forced by the Cloudflare
- * Access one-time-PIN redirect, which a fragment could not survive; the gate is
- * gone, so the constraint is too, and the token could move to the fragment and
- * out of the edge and proxy logs. Moving it means reissuing every live link and
- * changing the operator CLI that mints them, so it is recorded in
- * `docs/OPEN_DECISIONS.md` rather than done here.
+ * F-S8. The setup token arrives in the fragment, exactly as the player QR
+ * credential does: a browser never sends one, so the token reaches no server,
+ * appears in no request log, and is in no `Referer`. It is stripped from
+ * history before anything else runs, so a back button or a shared screen cannot
+ * surface it either.
  *
- * It is stripped from history on load, so it leaves the back button and any
- * `Referer` even though the edge has already logged it. A fragment is not read:
- * accepting both forms only invites someone to reintroduce one form while the
- * other is still the primary.
+ * It spent a while in the query, which the Cloudflare Access one-time-PIN
+ * redirect forced because a fragment could not survive that round trip. The
+ * gate is gone. A token in the query is now refused rather than read as a
+ * fallback: honouring the old shape would keep minting the exposure the move
+ * exists to remove. A link issued in that form has to be reissued with
+ * `reset-staff-credential`.
  */
 export function StaffSetup() {
   const router = useRouter();
@@ -46,15 +47,9 @@ export function StaffSetup() {
   const [step, setStep] = useState<Step>({ name: "reading" });
 
   useEffect(() => {
-    const query = new URLSearchParams(location.search);
-    const setupToken = query.get("setup") ?? "";
-    query.delete("setup");
-    const rest = query.toString();
-    history.replaceState(
-      null,
-      "",
-      `${location.pathname}${rest ? `?${rest}` : ""}`,
-    );
+    const fragment = new URLSearchParams(location.hash.slice(1));
+    const setupToken = fragment.get("setup") ?? "";
+    history.replaceState(null, "", `${location.pathname}${location.search}`);
     const settle = window.setTimeout(() => {
       setToken(setupToken);
       setStep(setupToken ? { name: "password" } : { name: "missing" });

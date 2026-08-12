@@ -311,29 +311,34 @@ func issueSetupToken(ctx context.Context, tx executor, accountID string, now tim
 	return StaffInvitation{SetupToken: token, ExpiresAt: stamp(expires)}, nil
 }
 
-// The token rides in the query rather than the fragment, unlike the player QR
-// credential. Cloudflare Access forced that: it answered the first request with
-// a redirect to its one-time-PIN flow, and a fragment did not survive the round
-// trip, so the invitee landed on the setup page with no token and was told to
-// reopen a link that had already been spent.
+// The token rides in the fragment, as the player QR credential does: a browser
+// never sends it, so it reaches no server, appears in no request log, and is in
+// no Referer. It sat in the query for as long as Cloudflare Access stood in
+// front of /staff, because that gate answered the first request with a redirect
+// to its one-time-PIN flow and a fragment did not survive the round trip -- the
+// invitee landed on the setup page with no token and was told to reopen a link
+// they had already spent. The gate is gone and so is the reason.
 //
-// That gate is gone, so the constraint is too -- see `docs/OPEN_DECISIONS.md`.
-// Until the link format moves, the token reaches the Worker as part of the URL
-// and so appears in Workers Logs, which the deployed script has enabled. It is
-// single-use, expires in a week, and is worthless without the temporary
-// password, and the people who can read those logs can already mint a new one
-// with the operator CLI. StaffSetup strips it from history on load.
+// Any token issued in the query form before this change is not readable here:
+// the page no longer looks there. Reissue with `reset-staff-credential`.
+//
+// A stale token in either position of the configured base URL is dropped rather
+// than carried forward, so a mistyped STAFF_SETUP_URL cannot mint a link
+// carrying someone else's credential.
 func setupLink(raw, token string) (string, error) {
 	parsed, err := url.Parse(raw)
 	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil {
 		return "", errors.New("setup URL must be an absolute https URL")
 	}
+	query := parsed.Query()
+	query.Del("setup")
+	parsed.RawQuery = query.Encode()
 	parsed.RawFragment = ""
 	parsed.Fragment = ""
-	query := parsed.Query()
-	query.Set("setup", token)
-	parsed.RawQuery = query.Encode()
-	return parsed.String(), nil
+	// Appended rather than assigned to parsed.Fragment, which holds the decoded
+	// form: handing it pre-encoded text makes String() escape it a second time,
+	// and the page would read a token with the escapes still in it.
+	return parsed.String() + "#" + url.Values{"setup": {token}}.Encode(), nil
 }
 
 // Long and random rather than memorable: it is copied once and then replaced.

@@ -38,7 +38,11 @@ const (
 	stepUpWindow     = 5 * time.Minute
 
 	challengeLifetime = 5 * time.Minute
-	setupLifetime     = 7 * 24 * time.Hour
+	// Two days, not the week this used to be. A setup link is handed over in a
+	// conversation and redeemed in the next few minutes; the rest of the window
+	// was time for an unredeemed token to sit somewhere it should not. An
+	// expired one costs a `reset-staff-credential`, which reissues both halves.
+	setupLifetime     = 48 * time.Hour
 	recoveryCodeCount = 8
 
 	minimumPasswordLength = 12
