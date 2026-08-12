@@ -70,6 +70,29 @@ func TestAvatarSaveIsScopedToTheCallerAndValidated(t *testing.T) {
 	_ = unauthenticated.Body.Close()
 }
 
+func TestPlayerCanSaveTheCompleteV4AvatarConfiguration(t *testing.T) {
+	api := newAPIClient(t)
+	api.reset(t)
+	look := map[string]string{
+		"version":         "4",
+		"background":      "solid",
+		"effect":          "pulse",
+		"kit":             "violet",
+		"head":            "person-round",
+		"hat":             "cap",
+		"eyewear":         "round",
+		"headPalette":     "#66d0ff:#302c61",
+		"kitPalette":      "#6954ee:#c8f52a",
+		"hatPalette":      "#302c61:#66d0ff",
+		"eyewearPalette":  "#f3ad16:#241d3d",
+		"backgroundColor": "#755ee8",
+	}
+
+	saved := api.do(t, http.MethodPut, "/v1/me/avatar", masonToken, "", map[string]any{"configuration": look})
+	assertStatus(t, saved, http.StatusOK)
+	assertAvatarConfiguration(t, saved, look)
+}
+
 // GET /v1/auth/session resolves through the real session manager rather than the
 // fixture authenticator, so this is the one avatar path a fixture token cannot
 // reach.
