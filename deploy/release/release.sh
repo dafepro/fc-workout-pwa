@@ -37,7 +37,8 @@ pnpm build
 node "$SCRIPT_DIRECTORY/configure-worker.mjs" \
 	"$REPOSITORY_ROOT/dist/server/wrangler.json" \
 	"$REPOSITORY_ROOT/deploy/production.json" \
-	"$ZOOMIGO_API_BASE_URL"
+	"$ZOOMIGO_API_BASE_URL" \
+	"${ANALYTICS_D1_DATABASE_ID:-}"
 
 private_root=$(mktemp -d)
 secrets_directory="$private_root/secrets"
@@ -68,7 +69,14 @@ mkdir -m 0700 -- "$secrets_directory"
 
 : "${CLOUDFLARE_ACCOUNT_ID:?CLOUDFLARE_ACCOUNT_ID is required}"
 : "${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN is required}"
+if [ -n "${ANALYTICS_D1_DATABASE_ID:-}" ]; then
+	: "${ANALYTICS_SUBJECT_KEY:?ANALYTICS_SUBJECT_KEY is required when analytics is enabled}"
+	pnpm exec wrangler d1 migrations apply ANALYTICS_DB --remote --config dist/server/wrangler.json
+fi
 pnpm exec wrangler deploy --config dist/server/wrangler.json
+if [ -n "${ANALYTICS_D1_DATABASE_ID:-}" ]; then
+	printf '%s' "$ANALYTICS_SUBJECT_KEY" | pnpm exec wrangler secret put ANALYTICS_SUBJECT_KEY --config dist/server/wrangler.json
+fi
 
 # The console gates on staff sign-in and TOTP, in the application, so a release
 # puts no gate secret on the Worker and no gate in front of it.

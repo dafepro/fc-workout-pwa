@@ -5,9 +5,12 @@ import {
   DEFAULT_IMAGE_SIZES,
 } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
+import { pruneAnalytics } from "../lib/analytics/storage";
 
 interface Env {
   ASSETS: Fetcher;
+  ANALYTICS_DB?: D1Database;
+  PRODUCT_ANALYTICS_ENABLED?: string;
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -64,6 +67,15 @@ const worker = {
     }
 
     return handler.fetch(request, env, ctx);
+  },
+  async scheduled(
+    _event: ScheduledEvent,
+    env: Env,
+    ctx: ExecutionContext,
+  ): Promise<void> {
+    if (env.PRODUCT_ANALYTICS_ENABLED === "true" && env.ANALYTICS_DB) {
+      ctx.waitUntil(pruneAnalytics(env.ANALYTICS_DB));
+    }
   },
 };
 

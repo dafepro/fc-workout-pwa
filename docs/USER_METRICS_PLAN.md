@@ -1,6 +1,14 @@
 # User metrics plan
 
-Status: proposed for product-owner review before implementation.
+Status: first implementation slice prepared for review; production collection
+remains disabled pending the decisions at the end of this document.
+
+The first slice includes the typed catalog, first-party ingestion, HMAC
+identities, 90-day bounded raw storage, route/active-time summaries,
+authoritative product outcomes, the operator dashboard, a capacity card, and
+disabled-by-default deployment wiring. Cohort materialization, subject
+erasure/tombstones, and deterministic sampling remain follow-up scale work
+before production exceeds the initial free-tier envelope.
 
 This plan adds first-party product analytics without sending children's behavior
 to a general-purpose analytics vendor. It is deliberately separate from player
@@ -294,64 +302,50 @@ reviewable and leave analytics disabled when its backing resource is absent.
    coverage for the authenticated ingestion and operator authorization workflows,
    but reserve the full suite for a release-candidate pass.
 
-## Proposed file tree
+## Implemented file tree
 
 ```text
-analytics/
-  migrations/
-    0001_product_analytics.sql
-app/
+drizzle/
+  0001_product_analytics.sql
+lib/
   analytics/
     AnalyticsProvider.tsx
-    AnalyticsProvider.test.tsx
     catalog.ts
     catalog.test.ts
     client.ts
+    client.test.ts
+    identity.ts
+    proxy-events.ts
+    proxy-events.test.ts
     route.ts
     route.test.ts
     server.ts
+    server.test.ts
     storage.ts
     storage.test.ts
-    queries.ts
-    queries.test.ts
+app/
   api/
     metrics/
       route.ts
-      route.test.ts
     auth/session/route.ts                 # authoritative auth outcomes
     zoomigo/[...path]/route.ts            # authoritative product outcomes
   components/AppShell.tsx                 # one provider mount
-  content/copy.ts                         # dashboard copy
   content/routes.ts                       # analytics route constant
   staff/admin/
-    AdminNav.tsx                            # add Analytics to the existing console
+    AdminNav.tsx                          # extend the existing console
     analytics/
-      AnalyticsDashboard.tsx
       page.tsx
-      page.test.tsx
     guards.test.ts
 backend/
   internal/authn/
-    service.go                            # include team time zone in session projection
-    service_test.go
+    service.go                            # project team time zone into sessions
 deploy/
-  production.json                         # binding name only; no runtime IDs
   release/
     configure-worker.mjs
     configure-worker.test.mjs
 docs/
-  OPEN_DECISIONS.md
-  PRODUCTION_RUNBOOK.md
   USER_METRICS_PLAN.md
-scripts/
-  contracts.mjs
-vite.config.ts                            # local D1 binding
-worker/index.ts                           # scheduled retention/rollup handler
 ```
-
-The exact tree may shrink during implementation if adjacent modules naturally
-collapse. In particular, do not create separate files that only re-export one
-function.
 
 ## Deployment and cost guardrails
 
@@ -396,31 +390,34 @@ with observed coefficients.
 The model uses:
 
 ```text
-write ceiling DAU = 100,000 / (events per active day × 4 writes × 1.10 overhead)
+initial write ceiling DAU = 100,000 / (events per active day × 4 writes × 1.10 overhead)
+steady write ceiling DAU = 100,000 / (events per active day × 8 writes × 1.10 overhead)
 storage ceiling DAU = 500 MiB / (events per active day × retention days × bytes per event)
 ```
 
 Storage estimates assume 650–750 bytes per validated event including index
-overhead. Daily aggregates are small but retain a 15–20% reserve in the practical
-planning ceiling.
+overhead. After the retention window fills, expiring a row also removes its
+three index entries, so steady-state write capacity is about half the initial
+write-only ceiling. Daily aggregates are small, and the practical planning
+ceiling keeps a 15–20% reserve.
 
-| Collection mode               | Stored events per active player-day | Raw retention | Write ceiling | Storage ceiling | Practical peak DAU | Approximate MAU at 25% peak DAU/MAU |
-| ----------------------------- | ----------------------------------: | ------------: | ------------: | --------------: | -----------------: | ----------------------------------: |
-| Naive page/action stream      |                                  30 |       90 days |          ~750 |            ~250 |           **~250** |                              ~1,000 |
-| Recommended initial summaries |                                  10 |       90 days |        ~2,250 |            ~800 |       **~700–900** |                        ~2,800–3,600 |
-| Scale mode                    |                                  10 |       30 days |        ~2,250 |          ~2,400 |   **~2,000–2,250** |                        ~8,000–9,000 |
-| Lean, sampled navigation/time |                                   6 |       30 days |        ~3,750 |          ~4,000 |         **~3,500** |                             ~14,000 |
+| Collection mode               | Events/player-day | Raw retention | Initial write ceiling | Steady write ceiling | Storage ceiling | Practical peak DAU | Approximate MAU at 25% peak DAU/MAU |
+| ----------------------------- | ----------------: | ------------: | --------------------: | -------------------: | --------------: | -----------------: | ----------------------------------: |
+| Naive page/action stream      |                30 |       90 days |                  ~750 |                 ~375 |            ~250 |           **~250** |                              ~1,000 |
+| Recommended initial summaries |                10 |       90 days |                ~2,250 |               ~1,100 |            ~800 |       **~700–800** |                        ~2,800–3,200 |
+| Scale mode                    |                10 |       30 days |                ~2,250 |               ~1,100 |          ~2,400 |     **~900–1,100** |                        ~3,600–4,400 |
+| Lean, sampled navigation/time |                 6 |       30 days |                ~3,750 |               ~1,900 |          ~4,000 |   **~1,500–1,800** |                        ~6,000–7,200 |
 
 The 13-month anonymous daily aggregates remain in every mode. Shortening raw
 retention reduces the window for individual journey debugging, not the executive
 scorecard, D30 retention, funnels, or long-term trends; those are materialized
 before raw rows expire.
 
-D1 reads should not be the first limit. An incremental rollup reads each new raw
-event once, and the operator dashboard reads compact aggregate rows. Repeatedly
-scanning 90 days of raw events could consume the 5-million-row allowance in only
-a few dashboard refreshes, so raw-table scans are forbidden in normal dashboard
-queries.
+D1 reads should not be the first limit. The initial dashboard bounds scans to 30
+days and caches each overview for five minutes inside a Worker isolate. Before
+the capacity card reaches 70%, incremental rollups must replace those raw-table
+queries; repeatedly scanning a mature raw table would otherwise consume the
+5-million-row allowance in only a few dashboard refreshes.
 
 ### Workers request ceiling
 
