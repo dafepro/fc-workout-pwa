@@ -311,7 +311,8 @@ to resolve, not the implementing agent's.
   configuration at the server's existing 12-key limit.
 - Color belongs to the layer it paints: person, kit, hat, and glasses each keep
   independent primary and accent values. Background keeps one independent solid
-  color. Native color inputs sit inside small swatch popovers.
+  color. Each swatch opens a preset wheel that updates the preview immediately;
+  a pencil keeps the native custom-color control as a secondary path.
 - Background is one top-level category with Color and FX sublayers. Orbit and a
   brightness pulse prove that effects remain independently composable.
 - Saving is complete only after the profile owns the result: the Studio returns
@@ -319,3 +320,12 @@ to resolve, not the implementing agent's.
   The editor has no persistent success state or reset action.
 - All kit options share one symmetric shoulder-and-collar geometry. Pattern art
   changes independently without moving the outfit's silhouette.
+
+## Avatar Studio production save hotfix (2026-08-11)
+
+- The server continues to store a small flat configuration rather than owning
+  the client catalog. Safe values are now precisely one of: a lowercase option
+  slug, a six-digit hex color, or two six-digit hex colors separated by a colon.
+- Layer keys may contain camelCase after their initial lowercase character.
+  This matches v4's `headPalette` and `backgroundColor` keys while still
+  rejecting punctuation, spaces, and uppercase-leading keys.

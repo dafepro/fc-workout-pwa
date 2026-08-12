@@ -15,7 +15,9 @@ const (
 var (
 	ErrInvalidAvatarConfiguration = errors.New("avatar configuration is not well formed")
 	avatarSlug                    = regexp.MustCompile(`^[a-z0-9-]{1,24}$`)
-	avatarLayerKey                = regexp.MustCompile(`^[a-z][a-z0-9]{0,23}$`)
+	avatarHexColor                = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
+	avatarPalette                 = regexp.MustCompile(`^#[0-9a-fA-F]{6}:#[0-9a-fA-F]{6}$`)
+	avatarLayerKey                = regexp.MustCompile(`^[a-z][A-Za-z0-9]{0,23}$`)
 )
 
 // NormalizeAvatarConfiguration checks shape rather than membership, and returns
@@ -35,7 +37,7 @@ func NormalizeAvatarConfiguration(raw map[string]string) (string, error) {
 		if !avatarLayerKey.MatchString(key) {
 			return "", fmt.Errorf("%w: layer name %q", ErrInvalidAvatarConfiguration, key)
 		}
-		if !avatarSlug.MatchString(value) {
+		if !avatarSlug.MatchString(value) && !avatarHexColor.MatchString(value) && !avatarPalette.MatchString(value) {
 			return "", fmt.Errorf("%w: layer %q option", ErrInvalidAvatarConfiguration, key)
 		}
 		layers[key] = value

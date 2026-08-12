@@ -109,28 +109,47 @@ describe("AvatarBuilder", () => {
     expect(screen.queryByText("Saved")).not.toBeInTheDocument();
   });
 
-  it("opens a simple color popover for one layer without changing another", async () => {
+  it("applies preset colors live from a two-tap wheel without an Apply step", async () => {
     const { onSave } = renderBuilder();
-    fireEvent.click(screen.getByRole("button", { name: "Person colors" }));
-    fireEvent.change(screen.getByLabelText("Person color"), {
-      target: { value: "#22aacc" },
-    });
-    fireEvent.change(screen.getByLabelText("Person accent"), {
-      target: { value: "#112233" },
-    });
+    fireEvent.click(screen.getByRole("button", { name: "Person color" }));
+    fireEvent.click(screen.getByRole("button", { name: "Aqua" }));
+
+    expect(
+      document.querySelector(
+        '.avatar-builder__preview .avatar-art__layer--head [fill="#22aacc"]',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /apply/i })).toBeNull();
+    expect(screen.getByRole("dialog", { name: "Person color" })).toBeVisible();
+
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+    expect(screen.queryByRole("dialog", { name: "Person color" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Person accent" }));
+    fireEvent.click(screen.getByRole("button", { name: "Ink" }));
 
     openCategory(copy.avatar.categories.kit);
-    fireEvent.click(screen.getByRole("button", { name: "Kit colors" }));
-    expect(screen.getByLabelText("Kit color")).toHaveValue("#6954ee");
+    fireEvent.click(screen.getByRole("button", { name: "Kit color" }));
+    expect(screen.getByRole("dialog", { name: "Kit color" })).toBeVisible();
 
     fireEvent.click(screen.getByRole("button", { name: copy.avatar.save }));
 
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({
-        headPalette: "#22aacc:#112233",
+        headPalette: "#22aacc:#241d3d",
         kitPalette: "#6954ee:#c8f52a",
       }),
     );
+  });
+
+  it("closes the live color wheel when tapping outside", () => {
+    renderBuilder();
+    fireEvent.click(screen.getByRole("button", { name: "Person color" }));
+    expect(screen.getByRole("dialog", { name: "Person color" })).toBeVisible();
+
+    fireEvent.pointerDown(document.body);
+
+    expect(screen.queryByRole("dialog", { name: "Person color" })).toBeNull();
   });
 
   it("groups Color and FX under Background and applies pulse", () => {

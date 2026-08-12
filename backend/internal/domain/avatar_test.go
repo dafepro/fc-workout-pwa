@@ -20,8 +20,13 @@ func TestNormalizeAvatarConfiguration(t *testing.T) {
 		{name: "empty configuration keeps an object", raw: map[string]string{}, want: "{}", valid: true},
 		{name: "nil configuration keeps an object", raw: nil, want: "{}", valid: true},
 		{name: "unknown but well-formed slug is stored", raw: map[string]string{"head": "future-part"}, want: `{"head":"future-part"}`, valid: true},
+		{name: "v4 client configuration", raw: v4AvatarConfiguration(), valid: true},
+		{name: "camel case color key", raw: map[string]string{"backgroundColor": "#755ee8"}, want: `{"backgroundColor":"#755ee8"}`, valid: true},
+		{name: "two color palette", raw: map[string]string{"headPalette": "#66d0ff:#302c61"}, want: `{"headPalette":"#66d0ff:#302c61"}`, valid: true},
 		{name: "value with uppercase", raw: map[string]string{"head": "Cheetah"}},
 		{name: "value with a space", raw: map[string]string{"head": "big cat"}},
+		{name: "short hex color", raw: map[string]string{"backgroundColor": "#fff"}},
+		{name: "unsafe palette punctuation", raw: map[string]string{"headPalette": "#66d0ff;<script>"}},
 		{name: "empty value", raw: map[string]string{"head": ""}},
 		{name: "value over 24 characters", raw: map[string]string{"head": strings.Repeat("a", 25)}},
 		{name: "key with a hyphen", raw: map[string]string{"head-part": "cheetah"}},
@@ -48,6 +53,23 @@ func TestNormalizeAvatarConfiguration(t *testing.T) {
 				t.Fatalf("stored value is not JSON: %s", stored)
 			}
 		})
+	}
+}
+
+func v4AvatarConfiguration() map[string]string {
+	return map[string]string{
+		"version":         "4",
+		"background":      "solid",
+		"effect":          "pulse",
+		"kit":             "violet",
+		"head":            "person-round",
+		"hat":             "cap",
+		"eyewear":         "round",
+		"headPalette":     "#66d0ff:#302c61",
+		"kitPalette":      "#6954ee:#c8f52a",
+		"hatPalette":      "#302c61:#66d0ff",
+		"eyewearPalette":  "#f3ad16:#241d3d",
+		"backgroundColor": "#755ee8",
 	}
 }
 

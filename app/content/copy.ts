@@ -154,6 +154,18 @@ export const copy = {
       hat: "Hats",
       eyewear: "Glasses",
       background: "Background",
+      done: "Done",
+      custom: (target: string) => `Custom ${target}`,
+      colors: {
+        aqua: "Aqua",
+        sky: "Sky",
+        violet: "Violet",
+        ink: "Ink",
+        lime: "Lime",
+        gold: "Gold",
+        coral: "Coral",
+        green: "Green",
+      },
     },
     options: {
       kit: {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { copy } from "../content/copy";
 import { AvatarArt, AvatarPartArt } from "./AvatarArt";
 import { AVATAR_CATEGORIES, AVATAR_LAYERS } from "./catalog";
@@ -50,9 +50,6 @@ function AvatarBuilderEditor({
   const [draft, setDraft] = useState<AvatarConfiguration>(startingConfig);
   const [activeCategory, setActiveCategory] =
     useState<AvatarCategoryKind>("head");
-  const [openPalette, setOpenPalette] = useState<
-    AvatarPaletteKey | "backgroundColor" | null
-  >(null);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const category = AVATAR_CATEGORIES.find(({ id }) => id === activeCategory)!;
   const dirty = configurationKey(draft) !== configurationKey(startingConfig);
@@ -101,10 +98,7 @@ function AvatarBuilderEditor({
             type="button"
             className={activeCategory === id ? "is-active" : ""}
             aria-pressed={activeCategory === id}
-            onClick={() => {
-              setActiveCategory(id);
-              setOpenPalette(null);
-            }}
+            onClick={() => setActiveCategory(id)}
           >
             {label}
           </button>
@@ -113,16 +107,7 @@ function AvatarBuilderEditor({
 
       <div className="avatar-builder__layer">
         {activeCategory === "background" ? (
-          <BackgroundControls
-            draft={draft}
-            openPalette={openPalette}
-            onTogglePalette={() =>
-              setOpenPalette((current) =>
-                current === "backgroundColor" ? null : "backgroundColor",
-              )
-            }
-            onChange={update}
-          />
+          <BackgroundControls draft={draft} onChange={update} />
         ) : (
           category.layerKinds.map((kind) => {
             const layer = AVATAR_LAYERS.find(
@@ -134,14 +119,6 @@ function AvatarBuilderEditor({
                 layer={layer}
                 draft={draft}
                 showLegend={activeCategory === "gear"}
-                paletteOpen={openPalette === layer.paletteKey}
-                onTogglePalette={() =>
-                  setOpenPalette((current) =>
-                    current === layer.paletteKey
-                      ? null
-                      : (layer.paletteKey ?? null),
-                  )
-                }
                 onChange={update}
                 onChoose={(optionID) => update(kind, optionID)}
               />
@@ -174,16 +151,12 @@ function LayerPicker({
   layer,
   draft,
   showLegend,
-  paletteOpen,
-  onTogglePalette,
   onChange,
   onChoose,
 }: {
   layer: AvatarLayerDefinition;
   draft: AvatarConfiguration;
   showLegend: boolean;
-  paletteOpen: boolean;
-  onTogglePalette(): void;
   onChange(key: string, value: string): void;
   onChoose(optionID: string): void;
 }) {
@@ -194,8 +167,6 @@ function LayerPicker({
         <LayerPaletteControl
           paletteKey={layer.paletteKey}
           draft={draft}
-          open={paletteOpen}
-          onToggle={onTogglePalette}
           onChange={onChange}
         />
       ) : null}
@@ -217,14 +188,10 @@ function LayerPicker({
 function LayerPaletteControl({
   paletteKey,
   draft,
-  open,
-  onToggle,
   onChange,
 }: {
   paletteKey: AvatarPaletteKey;
   draft: AvatarConfiguration;
-  open: boolean;
-  onToggle(): void;
   onChange(key: string, value: string): void;
 }) {
   const palette = layerPalette(draft, paletteKey);
@@ -237,52 +204,25 @@ function LayerPaletteControl({
 
   return (
     <div className="avatar-palette">
-      <button
-        type="button"
-        className="avatar-palette__button"
-        aria-label={`${layerName} colors`}
-        aria-expanded={open}
-        onClick={onToggle}
-      >
-        <span style={{ backgroundColor: palette.color }} />
-        <span style={{ backgroundColor: palette.accent }} />
-      </button>
-      {open ? (
-        <fieldset className="avatar-palette__popover">
-          <legend className="sr-only">{`${layerName} colors`}</legend>
-          <label>
-            <span className="sr-only">{`${layerName} color`}</span>
-            <input
-              type="color"
-              value={palette.color}
-              aria-label={`${layerName} color`}
-              onChange={(event) => change("color", event.currentTarget.value)}
-            />
-          </label>
-          <label>
-            <span className="sr-only">{`${layerName} accent`}</span>
-            <input
-              type="color"
-              value={palette.accent}
-              aria-label={`${layerName} accent`}
-              onChange={(event) => change("accent", event.currentTarget.value)}
-            />
-          </label>
-        </fieldset>
-      ) : null}
+      <ColorSwatchPicker
+        name={`${layerName} color`}
+        value={palette.color}
+        onChange={(value) => change("color", value)}
+      />
+      <ColorSwatchPicker
+        name={`${layerName} accent`}
+        value={palette.accent}
+        onChange={(value) => change("accent", value)}
+      />
     </div>
   );
 }
 
 function BackgroundControls({
   draft,
-  openPalette,
-  onTogglePalette,
   onChange,
 }: {
   draft: AvatarConfiguration;
-  openPalette: AvatarPaletteKey | "backgroundColor" | null;
-  onTogglePalette(): void;
   onChange(key: string, value: string): void;
 }) {
   const effect = AVATAR_LAYERS.find(({ kind }) => kind === "effect")!;
@@ -291,43 +231,112 @@ function BackgroundControls({
       <fieldset className="avatar-builder__sublayer">
         <legend>{copy.avatar.legends.background}</legend>
         <div className="avatar-palette">
-          <button
-            type="button"
-            className="avatar-palette__button avatar-palette__button--single"
-            aria-label="Background color"
-            aria-expanded={openPalette === "backgroundColor"}
-            onClick={onTogglePalette}
-          >
-            <span style={{ backgroundColor: draft.backgroundColor }} />
-          </button>
-          {openPalette === "backgroundColor" ? (
-            <fieldset className="avatar-palette__popover avatar-palette__popover--single">
-              <legend className="sr-only">Background color</legend>
-              <label>
-                <span className="sr-only">Background color</span>
-                <input
-                  type="color"
-                  value={draft.backgroundColor}
-                  aria-label="Background color"
-                  onChange={(event) =>
-                    onChange("backgroundColor", event.currentTarget.value)
-                  }
-                />
-              </label>
-            </fieldset>
-          ) : null}
+          <ColorSwatchPicker
+            name="Background color"
+            value={draft.backgroundColor}
+            onChange={(value) => onChange("backgroundColor", value)}
+          />
         </div>
       </fieldset>
       <LayerPicker
         layer={effect}
         draft={draft}
         showLegend
-        paletteOpen={false}
-        onTogglePalette={() => undefined}
         onChange={onChange}
         onChoose={(optionID) => onChange("effect", optionID)}
       />
     </>
+  );
+}
+
+const COLOR_PRESETS = [
+  { value: "#22aacc", label: copy.avatar.palette.colors.aqua },
+  { value: "#66d0ff", label: copy.avatar.palette.colors.sky },
+  { value: "#6954ee", label: copy.avatar.palette.colors.violet },
+  { value: "#241d3d", label: copy.avatar.palette.colors.ink },
+  { value: "#c8f52a", label: copy.avatar.palette.colors.lime },
+  { value: "#f3ad16", label: copy.avatar.palette.colors.gold },
+  { value: "#ff806f", label: copy.avatar.palette.colors.coral },
+  { value: "#22a87a", label: copy.avatar.palette.colors.green },
+] as const;
+
+function ColorSwatchPicker({
+  name,
+  value,
+  onChange,
+}: {
+  name: string;
+  value: string;
+  onChange(value: string): void;
+}) {
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function closeOutside(event: PointerEvent) {
+      if (!root.current?.contains(event.target as Node)) setOpen(false);
+    }
+    function closeWithEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("pointerdown", closeOutside);
+    document.addEventListener("keydown", closeWithEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOutside);
+      document.removeEventListener("keydown", closeWithEscape);
+    };
+  }, [open]);
+
+  return (
+    <div className="avatar-color-picker" ref={root}>
+      <button
+        type="button"
+        className="avatar-color-picker__swatch"
+        style={{ backgroundColor: value }}
+        aria-label={name}
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+      />
+      {open ? (
+        <div className="avatar-color-wheel" role="dialog" aria-label={name}>
+          {COLOR_PRESETS.map((preset, index) => (
+            <button
+              key={preset.value}
+              type="button"
+              className={`avatar-color-wheel__choice avatar-color-wheel__choice--${index + 1}`}
+              style={{ backgroundColor: preset.value }}
+              aria-label={preset.label}
+              aria-pressed={value === preset.value}
+              onClick={() => onChange(preset.value)}
+            >
+              {value === preset.value ? (
+                <span aria-hidden="true">✓</span>
+              ) : null}
+            </button>
+          ))}
+          <button
+            type="button"
+            className="avatar-color-wheel__done"
+            aria-label={copy.avatar.palette.done}
+            onClick={() => setOpen(false)}
+          >
+            <span aria-hidden="true">✓</span>
+          </button>
+          <label className="avatar-color-wheel__custom">
+            <span aria-hidden="true">✎</span>
+            <span className="sr-only">{copy.avatar.palette.custom(name)}</span>
+            <input
+              type="color"
+              value={value}
+              aria-label={copy.avatar.palette.custom(name)}
+              onInput={(event) => onChange(event.currentTarget.value)}
+            />
+          </label>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
