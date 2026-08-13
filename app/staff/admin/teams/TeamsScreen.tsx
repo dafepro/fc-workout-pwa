@@ -51,7 +51,10 @@ export function TeamsScreen() {
                 <span>{team.seasonId}</span>
                 <span>{team.timeZone}</span>
                 <span>{consoleCopy.teams.playerCount(team.playerCount)}</span>
-                <Link href={routes.staffAdminTeam(team.id)}>
+                <Link
+                  className="console-link"
+                  href={routes.staffAdminTeam(team.id)}
+                >
                   {consoleCopy.teams.openRoster}
                 </Link>
                 <button

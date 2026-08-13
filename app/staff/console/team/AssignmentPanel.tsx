@@ -17,8 +17,8 @@ import type {
 } from "../types";
 
 /** F-C7 and F-C8: set the team's assignment from the approved catalog, and
- * watch who has completed it using the Completed / One Away / Keep Going
- * grouping from UX_AND_SAFETY_RULES.md -- never a raw value. */
+ * watch who has done it using the Done / Under way / Not started grouping from
+ * UX_AND_SAFETY_RULES.md -- never a raw value. */
 export function AssignmentPanel({ teamId }: { teamId: string }) {
   const catalog = useResource<{ catalog: AssignmentCatalogEntry[] }>(
     "v1/staff/assignment-catalog",
@@ -96,6 +96,13 @@ export function AssignmentPanel({ teamId }: { teamId: string }) {
   }
 
   const current = assignments.data?.current;
+  // "3 of 11" is the count that answers "how is the team doing"; a bare "3"
+  // does not, and the three groups are the only place the roster size appears.
+  const total = current
+    ? current.completed.length +
+      current.oneAway.length +
+      current.keepGoing.length
+    : 0;
 
   return (
     <section
@@ -108,25 +115,44 @@ export function AssignmentPanel({ teamId }: { teamId: string }) {
 
       {current && current.assignment ? (
         <>
-          <p>
-            {current.assignment.activityName}{" "}
+          {/* The assignment the groups below are about, stated once and in
+              full. A coach reading "Under way" needs to know under way towards
+              what, and the target is the answer. */}
+          <p className="console-state">{current.assignment.activityName}</p>
+          <p className="console-hint">
+            {consoleCopy.assignments.target(
+              current.assignment.targetValue,
+              current.assignment.targetUnit,
+            )}{" "}
+            ·{" "}
             {consoleCopy.assignments.window(
               current.assignment.startsOn,
               current.assignment.dueOn,
             )}
           </p>
-          <CompletionGroup
-            label={consoleCopy.assignments.completed}
-            players={current.completed}
-          />
-          <CompletionGroup
-            label={consoleCopy.assignments.oneAway}
-            players={current.oneAway}
-          />
-          <CompletionGroup
-            label={consoleCopy.assignments.keepGoing}
-            players={current.keepGoing}
-          />
+          <div className="completion-groups">
+            <CompletionGroup
+              label={consoleCopy.assignments.completed}
+              hint={consoleCopy.assignments.completedHint(
+                current.assignment.targetValue,
+                current.assignment.targetUnit,
+              )}
+              players={current.completed}
+              total={total}
+            />
+            <CompletionGroup
+              label={consoleCopy.assignments.underWay}
+              hint={consoleCopy.assignments.underWayHint}
+              players={current.oneAway}
+              total={total}
+            />
+            <CompletionGroup
+              label={consoleCopy.assignments.notStarted}
+              hint={consoleCopy.assignments.notStartedHint}
+              players={current.keepGoing}
+              total={total}
+            />
+          </div>
         </>
       ) : (
         <p>{consoleCopy.assignments.noneLive}</p>
@@ -369,18 +395,33 @@ function AssignmentRow({
   );
 }
 
+/**
+ * One of the three groups, with the rule that put its players in it printed
+ * underneath the name. The count reads "2 of 11" so the group's size is legible
+ * against the team rather than on its own, and the three sit side by side so the
+ * split is visible before any name is read.
+ */
 function CompletionGroup({
   label,
+  hint,
   players,
+  total,
 }: {
   label: string;
+  hint: string;
   players: PlayerCompletion[];
+  total: number;
 }) {
   return (
-    <section className="console-card" aria-label={label}>
-      <h3 className="console-card__title">
-        {label} ({players.length})
-      </h3>
+    <section
+      className="console-card completion-group"
+      aria-label={`${label}: ${players.length} of ${total}`}
+    >
+      <h3 className="console-card__title">{label}</h3>
+      <p className="completion-group__count">
+        <strong>{players.length}</strong> of {total}
+      </p>
+      <p className="console-hint">{hint}</p>
       {players.length === 0 ? (
         <p>{consoleCopy.assignments.noPlayers}</p>
       ) : (

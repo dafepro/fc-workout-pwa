@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { consoleCopy } from "./console/copy";
 import { ConsoleChrome, ConsoleNotice } from "./console/ConsoleChrome";
+import { ConsoleRowLink } from "./console/ConsoleRowLink";
 import { useResource } from "./console/useResource";
 import { routes } from "../content/routes";
 import type { TeamSummary } from "./console/types";
@@ -25,12 +25,15 @@ export function CoachHome({ email }: { email: string }) {
         ) : null}
         <ul className="console-list">
           {(teams.data?.teams ?? []).map((team) => (
-            <li key={team.id} className="console-list__row">
-              <Link href={routes.staffTeam(team.id)}>{team.name}</Link>
+            <ConsoleRowLink
+              key={team.id}
+              href={routes.staffTeam(team.id)}
+              name={team.name}
+            >
               <span>{team.clubName}</span>
               <span>{consoleCopy.teams.playerCount(team.playerCount)}</span>
               <span>{team.timeZone}</span>
-            </li>
+            </ConsoleRowLink>
           ))}
         </ul>
       </section>

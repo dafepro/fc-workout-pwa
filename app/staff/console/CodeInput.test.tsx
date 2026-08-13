@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { CodeInput } from "./CodeInput";
 
 function Harness({ id = "code" }: { id?: string }) {
@@ -13,69 +13,49 @@ function Harness({ id = "code" }: { id?: string }) {
   );
 }
 
-function withClipboard(readText: () => Promise<string>) {
-  vi.stubGlobal("navigator", { clipboard: { readText } });
-}
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
-
 describe("the authenticator code field", () => {
   it("keeps the attributes that let a keyboard offer the code", () => {
-    withClipboard(async () => "");
     render(<Harness />);
 
     const field = screen.getByLabelText("Six-digit code");
-    expect(field).toHaveAttribute("inputmode", "numeric");
     expect(field).toHaveAttribute("autocomplete", "one-time-code");
+    expect(field).toHaveAttribute("pattern", "[0-9]{6}");
     expect(field).toHaveAttribute("maxlength", "6");
   });
 
-  // The whole point of the button: on Android Chrome a code copied out of an
-  // authenticator app could only be entered by long-pressing the field.
-  it("fills the field from the clipboard", async () => {
-    withClipboard(async () => "123456");
+  // Alpha 1.1. inputMode="numeric" asks Android for the numeric keypad, and
+  // that keypad has no suggestion strip -- which is the only place Gboard's
+  // clipboard chip can appear. Asserted as an absence because the attribute
+  // being set is exactly the bug, and it is a one-word change to reintroduce.
+  it("does not force a numeric keypad, which would hide the keyboard's clipboard suggestion", () => {
     render(<Harness />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Paste code" }));
-
-    expect(await screen.findByTestId("value")).toHaveTextContent("123456");
-  });
-
-  it("takes the digits out of a clipboard that carries more than the code", async () => {
-    withClipboard(async () => " 123 456 \n");
-    render(<Harness />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Paste code" }));
-
-    expect(await screen.findByTestId("value")).toHaveTextContent("123456");
-  });
-
-  it("says so rather than silently doing nothing when the clipboard is refused", async () => {
-    withClipboard(async () => {
-      throw new Error("denied");
-    });
-    render(<Harness />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Paste code" }));
-
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Could not read the clipboard. Type the code in instead.",
+    expect(screen.getByLabelText("Six-digit code")).not.toHaveAttribute(
+      "inputmode",
     );
   });
 
-  // Offering a control that cannot work is worse than not offering it.
-  it("offers no paste button where the clipboard cannot be read", () => {
-    vi.stubGlobal("navigator", {});
+  // The paste button this replaced was a control on the page; the clipboard
+  // chip belongs to the keyboard, so there is nothing here to click.
+  it("offers no paste button of its own", () => {
     render(<Harness />);
 
-    expect(screen.getByLabelText("Six-digit code")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Paste code" })).toBeNull();
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  // Whatever the keyboard pastes arrives as an ordinary change event, so the
+  // sanitizing still has to hold for a whole "Your code is 123 456".
+  it("takes the digits out of a paste that carries more than the code", () => {
+    render(<Harness />);
+
+    fireEvent.change(screen.getByLabelText("Six-digit code"), {
+      target: { value: "Your code is 123 456" },
+    });
+
+    expect(screen.getByTestId("value")).toHaveTextContent("123456");
   });
 
   it("never lets anything but six digits reach the form", () => {
-    withClipboard(async () => "");
     render(<Harness />);
 
     fireEvent.change(screen.getByLabelText("Six-digit code"), {

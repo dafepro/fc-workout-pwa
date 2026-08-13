@@ -70,7 +70,10 @@ export function RosterPanel({
         <ul className="console-list">
           {(roster.data?.roster ?? []).map((entry) => (
             <li key={entry.playerId} className="console-list__row">
-              <Link href={`${playerBase}/${entry.playerId}`}>
+              <Link
+                className="console-link"
+                href={`${playerBase}/${entry.playerId}`}
+              >
                 {entry.firstName} {entry.lastInitial}
               </Link>
               <span>{consoleCopy.credential.state[entry.credentialState]}</span>

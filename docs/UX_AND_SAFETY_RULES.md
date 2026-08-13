@@ -92,10 +92,33 @@ Teammates must not see:
 
 ## Positive grouping
 
-Team progress can group players as:
+Grouping players is allowed. Ranking them is not: avoid labels such as bottom,
+behind, failing, worst, or inactive, and never order a group by who is doing
+least.
 
-- Completed
-- One Away
-- Keep Going
+A group's label must be neutral or encouraging **and** true of everyone in it.
+Alpha 1.1 revised the original three, because two of them failed the second
+half of that rule and coaches could not tell what either meant:
 
-Avoid labels such as bottom, behind, failing, worst, or inactive.
+| Question            | Group                        | Who is in it                            |
+| ------------------- | ---------------------------- | --------------------------------------- |
+| Current assignment  | Done                         | Logged the target or more               |
+|                     | Under way                    | Logged a session, not yet at the target |
+|                     | Not started                  | No session logged against it            |
+| Weekly session goal | Reached the _n_-session goal | Sessions ≥ the goal                     |
+|                     | One session away             | Exactly one short                       |
+|                     | Working towards it           | More than one short                     |
+
+"One Away" was the specific failure: on the assignment it meant _started but not
+finished_, however far off, and on the weekly goal it meant _exactly one
+session short_. One phrase, two meanings, neither stated on screen.
+
+Two rules follow from that, and both are load-bearing:
+
+- **A label is never the only thing carrying the meaning.** The rule that puts a
+  player in a group is printed with the group, and the thing being measured --
+  the assignment's target, or the week's session goal -- is stated above it.
+- **The two questions do not share vocabulary.** Whether a player has done the
+  assignment and whether they have hit the weekly goal are different questions,
+  so they get different words. Reusing a phrase across both is what made each
+  ambiguous.

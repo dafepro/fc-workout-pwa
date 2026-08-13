@@ -596,3 +596,37 @@ The fixture assignment now opens its window yesterday rather than today. A suite
 run just after midnight in the team's zone logged entries an hour back, before
 an assignment that started that morning, and the API refused them correctly —
 a flake that reads as a defect in whatever changed most recently.
+
+## Alpha 1.1: four pieces of coach feedback, one of them not a defect
+
+`docs/_ALPHA_FEEDBACK_1.1.md` carries the detail. Three shipped-UI defects and
+one release-process failure, all from the first hour after the 2026-08-13
+production release.
+
+Two of the three had the same shape: a CSS reset and an input attribute, each
+doing exactly what it said, each defeating a platform affordance nobody had
+thought to check. `app/globals.css` resets every anchor to `color: inherit` and
+no underline, which is right for the player's card-shaped screens and leaves a
+console result's team name reading as plain text; `inputMode="numeric"` on the
+TOTP field asks Android for the numeric keypad, and that keypad has no suggestion
+strip, which is the only place Gboard's clipboard chip can appear. Neither was
+visible in a unit test, because both are about what the platform does with
+correct markup.
+
+The label work is the substantial change. "One Away" meant _started but not at
+the target_ on the assignment panel and _exactly one session short_ on the
+progress screen — one phrase, two meanings, and "Keep Going" was addressed to
+players who had not begun. The assignment groups are Done / Under way / Not
+started, the weekly-goal groups name the goal, each group prints the rule that
+puts a player in it, and the assignment's target is stated above its groups.
+`UX_AND_SAFETY_RULES.md`'s positive-grouping section is rewritten around two new
+rules: a label must be true of everyone in its group, and the two questions may
+not share vocabulary.
+
+The fourth item — "why are hill sprints still the only assignable thing" —
+needed no code. That fix was `5e624ec`, and the release live when the feedback
+was written was `742536f`, seventeen hours older. Releases are manual, so "fixed"
+and "fixed in production" drifted far enough for a test pass to be spent
+re-reporting a solved problem. The guard that would have caught a real regression
+here, `TestListAssignmentCatalogCoversEveryActivityInPickerOrder`, was green the
+whole time.

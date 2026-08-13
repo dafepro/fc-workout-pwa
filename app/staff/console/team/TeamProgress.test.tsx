@@ -5,14 +5,22 @@ import { TeamProgress } from "./TeamProgress";
 
 // useResource sends an expired session back to the door, so it needs a router.
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn() }) }));
+// Spreads the rest of the props: a row link carries an aria-label, and a mock
+// that quietly dropped it would have this suite asserting a different anchor
+// than the one that ships.
 vi.mock("next/link", () => ({
   default: ({
     href,
     children,
+    ...rest
   }: {
     href: string;
     children: React.ReactNode;
-  }) => <a href={href}>{children}</a>,
+  }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  ),
 }));
 
 const progress = {
@@ -70,12 +78,54 @@ describe("team progress", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Hill Sprints · 2 completed")).toBeInTheDocument();
 
-    expect(screen.getByText("Goal met")).toBeInTheDocument();
-    expect(screen.getByText("One away")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Ada B" })).toHaveAttribute(
       "href",
       "/staff/p1",
     );
+  });
+
+  // Alpha 1.1. The complaint was that "One away" and "Keep going" did not say
+  // what they were about, so each heading has to name the weekly goal, and the
+  // number beside a player has to say what it counts.
+  it("groups players under headings that name the goal they are about", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json(progress)),
+    );
+
+    render(<TeamProgress teamId="t1" playerBase="/staff" />);
+
+    const met = await screen.findByRole("region", {
+      name: "Reached the 3-session goal",
+    });
+    expect(met).toHaveTextContent("Ada B");
+    expect(met).toHaveTextContent("1 of 2");
+
+    const oneAway = screen.getByRole("region", { name: "One session away" });
+    expect(oneAway).toHaveTextContent("Nia K");
+    expect(oneAway).toHaveTextContent("Sessions: 2/3");
+
+    // Empty groups keep their heading: "nobody is here yet" is a fact, and a
+    // group that disappears reads as though the screen is still loading.
+    expect(
+      screen.getByRole("region", { name: "Working towards it" }),
+    ).toHaveTextContent("No players in this group.");
+  });
+
+  // The two questions a coach asks are different questions, and sharing one
+  // vocabulary across both is what made each of them ambiguous.
+  it("does not reuse the assignment panel's wording for the weekly goal", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json(progress)),
+    );
+
+    const { container } = render(
+      <TeamProgress teamId="t1" playerBase="/staff" />,
+    );
+    await screen.findByText("1 of 2 have reached 3 sessions this week");
+
+    expect(container.textContent).not.toMatch(/One away|Keep going|Under way/i);
   });
 
   it("says nothing about assessments, which no team-shaped screen may carry", async () => {

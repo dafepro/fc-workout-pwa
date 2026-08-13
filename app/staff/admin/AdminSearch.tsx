@@ -3,9 +3,9 @@
 import { consoleCopy, staffCopy } from "../console/copy";
 
 import { FormEvent, useState } from "react";
-import Link from "next/link";
 import { routes } from "../../content/routes";
 import { ConsoleChrome, ConsoleNotice } from "../console/ConsoleChrome";
+import { ConsoleRowLink } from "../console/ConsoleRowLink";
 import { consoleRequest, messageFor } from "../console/api";
 import type { RosterEntry, TeamSummary } from "../console/types";
 import { AdminNav } from "./AdminNav";
@@ -93,15 +93,16 @@ export function AdminSearch() {
           </h2>
           <ul className="console-list">
             {results.players.map((player) => (
-              <li key={player.playerId} className="console-list__row">
-                <Link href={routes.staffAdminPlayer(player.playerId)}>
-                  {player.firstName} {player.lastInitial}
-                </Link>
+              <ConsoleRowLink
+                key={player.playerId}
+                href={routes.staffAdminPlayer(player.playerId)}
+                name={`${player.firstName} ${player.lastInitial}`}
+              >
                 <span>
                   {consoleCopy.credential.state[player.credentialState]}
                 </span>
                 <span>{player.accountStatus}</span>
-              </li>
+              </ConsoleRowLink>
             ))}
           </ul>
         </section>
@@ -117,11 +118,14 @@ export function AdminSearch() {
           </h2>
           <ul className="console-list">
             {results.teams.map((team) => (
-              <li key={team.id} className="console-list__row">
-                <Link href={routes.staffAdminTeam(team.id)}>{team.name}</Link>
+              <ConsoleRowLink
+                key={team.id}
+                href={routes.staffAdminTeam(team.id)}
+                name={team.name}
+              >
                 <span>{team.clubName}</span>
                 <span>{consoleCopy.teams.playerCount(team.playerCount)}</span>
-              </li>
+              </ConsoleRowLink>
             ))}
           </ul>
         </section>

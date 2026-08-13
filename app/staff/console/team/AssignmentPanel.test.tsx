@@ -211,7 +211,7 @@ describe("coach assignment panel", () => {
     expect(calls.some((call) => call.url.endsWith("/end"))).toBe(true);
   });
 
-  it("groups the live assignment as Completed, One Away, and Keep Going, with no raw values", async () => {
+  it("groups the live assignment as Done, Under way, and Not started, saying what puts a player in each", async () => {
     const current = {
       assignments: [
         {
@@ -252,9 +252,37 @@ describe("coach assignment panel", () => {
     expect(await screen.findByText("Ada B")).toBeInTheDocument();
     expect(screen.getByText("Nia K")).toBeInTheDocument();
     expect(screen.getByText("Sam R")).toBeInTheDocument();
-    expect(screen.getByText(/Completed/)).toBeInTheDocument();
-    expect(screen.getByText(/One Away/)).toBeInTheDocument();
-    expect(screen.getByText(/Keep Going/)).toBeInTheDocument();
+
+    // Alpha 1.1: the label alone is never the meaning. Each group is addressed
+    // by "n of total" and states the rule that put its players in it, and the
+    // target those rules are measured against is on the panel above them.
+    const done = screen.getByRole("region", { name: "Done: 1 of 3" });
+    expect(done).toHaveTextContent("Ada B");
+    expect(done).toHaveTextContent(
+      "Logged 6 reps or more against this assignment.",
+    );
+
+    const underWay = screen.getByRole("region", { name: "Under way: 1 of 3" });
+    expect(underWay).toHaveTextContent("Nia K");
+    expect(underWay).toHaveTextContent(
+      "Logged a session for it, not yet at the target.",
+    );
+
+    const notStarted = screen.getByRole("region", {
+      name: "Not started: 1 of 3",
+    });
+    expect(notStarted).toHaveTextContent("Sam R");
+    expect(notStarted).toHaveTextContent(
+      "Has not logged a session for this assignment yet.",
+    );
+
+    expect(
+      screen.getByText("Target: 6 reps · 2026-08-05 – 2026-08-12"),
+    ).toBeInTheDocument();
+
+    // "One Away" meant "started, not finished" here and "exactly one session
+    // short" on the progress screen. Neither screen may use it again.
+    expect(document.body.textContent).not.toMatch(/One Away|Keep Going/i);
 
     // UX_AND_SAFETY_RULES.md's positive grouping: a coach may see a raw
     // target on their own team, but the group labels themselves must never

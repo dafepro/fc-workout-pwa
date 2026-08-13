@@ -2969,24 +2969,11 @@ h2 {
 /* Secrets entered a character at a time read better spaced out; an email
    address does not. */
 .login-card input[type="password"],
-.login-card .code-field input {
+/* Alpha 1.1 dropped the paste button that used to sit beside this field, so the
+   input is the whole row now and carries the code's own type size. */
+.login-card .code-input {
   font-size: 1.4rem;
   letter-spacing: 0.35em;
-}
-
-/* The paste button sits with the field rather than under it, so the code step
-   stays one row tall on a phone. */
-.code-field {
-  display: flex;
-  gap: 0.5rem;
-  align-items: stretch;
-}
-
-.code-field__paste {
-  flex: none;
-  align-self: stretch;
-  padding-inline: 0.9rem;
-  white-space: nowrap;
 }
 
 .login-remember {
@@ -3199,6 +3186,120 @@ h2 {
 
 .console-list__row > span {
   color: var(--muted);
+}
+
+/* The base reset makes every anchor inherit its colour and drop its underline,
+   which left a console result reading as plain text that happened to navigate.
+   These two classes put the affordance back. */
+
+/* A row that is entirely one destination: the whole thing is the target, so the
+   pointer, the hover shade, and the chevron all agree, and the touch target is
+   the row rather than the few characters of a name. */
+.console-row-link {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+  min-height: 2.75rem;
+  padding: 0.45rem 0.5rem;
+  border-top: 1px solid var(--line);
+  border-radius: 0.45rem;
+  font-size: 0.88rem;
+  color: inherit;
+  cursor: pointer;
+}
+
+.console-list__item > .console-row-link,
+.console-list > li:first-child > .console-row-link {
+  border-top: 0;
+}
+
+.console-row-link > span {
+  color: var(--muted);
+}
+
+.console-row-link__name {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+}
+
+/* Pushed to the far end so a scanning eye reads one column of chevrons and can
+   tell at a glance which rows open something. */
+.console-row-link__go {
+  margin-left: auto;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.console-row-link:hover {
+  background: rgb(62 112 238 / 7%);
+}
+
+.console-row-link:hover .console-row-link__name {
+  text-decoration-thickness: 3px;
+}
+
+.console-row-link:focus-visible {
+  outline-offset: 0;
+}
+
+/* An inline link in a row that also holds its own buttons, where making the
+   whole row a link would nest a button inside an anchor. */
+.console-link {
+  color: #2b4fc4;
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+}
+
+/* A group of players under one heading. Stacked rather than side by side: these
+   carry a row of facts each, not a single count. */
+.progress-group {
+  margin-top: 0.85rem;
+}
+
+.progress-group__title {
+  margin: 0 0 0.2rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+
+.progress-group__count {
+  color: var(--muted);
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* The three assignment groups side by side, so "how is the team doing" is one
+   glance at three counts rather than three stacked cards read in sequence. */
+.completion-groups {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  margin-bottom: 0.6rem;
+}
+
+.completion-group {
+  margin: 0;
+}
+
+.completion-group__count {
+  margin: 0.1rem 0 0.25rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.completion-group__count strong {
+  color: var(--ink);
+  font-size: 1.5rem;
+  line-height: 1.1;
 }
 
 .console-facts {

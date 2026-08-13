@@ -19,8 +19,7 @@ export const staffCopy = {
   codeIntro:
     "Open the authenticator app you enrolled and enter the six-digit code it shows for ZoomiGo.",
   codeLabel: "Six-digit code",
-  pasteCode: "Paste code",
-  pasteFailed: "Could not read the clipboard. Type the code in instead.",
+  codeHint: "Copy the code and your keyboard will offer to paste it.",
   signIn: "Sign in",
   // One message for every failure, so that guessing at addresses never
   // reveals which staff accounts exist (REQ-106).
@@ -92,11 +91,18 @@ export const consoleCopy = {
     sessions: "Sessions",
     streak: "Streak",
     consistency: "Days active",
+    // Alpha 1.1: these were the same three words the assignment panel used for
+    // a different question, which is what made both unclear. This screen is
+    // only ever about the weekly session goal, so each heading names it, and
+    // "one away" is spelled out as the one session it actually means.
+    goalHint: (goal: number) =>
+      `Grouped by this week's session goal of ${goal}. Whether a player has done the current assignment is on the Training section.`,
     goalStatus: {
-      completed: "Goal met",
-      one_away: "One away",
-      keep_going: "Keep going",
+      completed: (goal: number) => `Reached the ${goal}-session goal`,
+      one_away: "One session away",
+      keep_going: "Working towards it",
     },
+    groupCount: (count: number, total: number) => `${count} of ${total}`,
     // F-C8 allows a coach raw values on their own team; the surface still says
     // nothing about anyone's assessments (REQ-508).
     privacy: "Only you and other staff on this team can see this.",
@@ -278,9 +284,22 @@ export const consoleCopy = {
     dueOnLabel: "Due on",
     createAction: "Create assignment",
     noneLive: "No assignment is live for this team today.",
-    completed: "Completed",
-    oneAway: "One Away",
-    keepGoing: "Keep Going",
+    // Alpha 1.1: these three were "Completed / One Away / Keep Going", and two
+    // of them did not describe their own group. "One Away" is not one rep or
+    // one session away -- it is anyone who has logged something without
+    // reaching the target, however far off. "Keep Going" was everyone who had
+    // not logged at all, which reads as encouragement to someone who has not
+    // begun. Each group now says what puts a player in it.
+    liveTitle: "Who has done it",
+    target: (value: number, unit: string) => `Target: ${value} ${unit}`,
+    dueOn: (dueOn: string) => `Due ${dueOn}`,
+    completed: "Done",
+    completedHint: (value: number, unit: string) =>
+      `Logged ${value} ${unit} or more against this assignment.`,
+    underWay: "Under way",
+    underWayHint: "Logged a session for it, not yet at the target.",
+    notStarted: "Not started",
+    notStartedHint: "Has not logged a session for this assignment yet.",
     noPlayers: "No players in this group.",
     empty: "No assignments yet.",
     window: (startsOn: string, dueOn: string) => `${startsOn} – ${dueOn}`,
