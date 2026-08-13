@@ -51,7 +51,7 @@ func run() error {
 	if !staff.Configured() {
 		slog.Warn("staff sign in is disabled because STAFF_SECRET_KEY is not set")
 	}
-	authenticator, resetAuthFixtures := configuredAuthenticator(cfg, sessions)
+	authenticator, resetAuthFixtures := configuredAuthenticator(cfg, sessions, staff)
 
 	handlerOptions := []httpapi.Option{
 		httpapi.WithStore(repository),

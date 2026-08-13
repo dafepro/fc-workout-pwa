@@ -562,3 +562,37 @@ count is asserted in more places than the migration count is. And the
 gateway allowlist grew a `PATCH` entry without the proxy exporting a `PATCH`
 handler; the test that now derives handlers from the allowlist would have caught
 it, and did not exist until it was needed.
+
+The browser suite gained a coach it can sign in as. Until now it could only
+reach the staff door: `backend/e2e/staff_console_test.go` gets its operator from
+the break-glass CLI, which a browser cannot run, so every console screen past
+sign-in was unexercised at 320 pixels — REQ-403's acceptance criterion named
+F-C1, F-C7, and F-C9 and none of them were met. `staffauth.ResetE2ECoach` is
+behind the `e2e` build tag and seeds one coach of the fixture team with a known
+password and a known TOTP secret, already enrolled; `e2e/staff-sign-in.ts`
+computes the code and signs in through the real door. No production binary can
+build an account whose second factor is written down, and no endpoint hands
+staff credentials out — the literals are shared between the two files by hand,
+deliberately.
+
+It earned its keep on the first run. `/staff/teams/{id}/progress` and `/roster`
+passed `playerHref={routes.staffPlayer}` from a server component into a client
+one, which React refuses — "Functions cannot be passed directly to Client
+Components" — so both screens threw a runtime error for every coach. Every unit
+test passed throughout: jsdom renders the client component directly and never
+crosses the boundary that breaks. The components now take a `playerBase` string
+and build the href themselves.
+
+Two smaller things the browser insisted on. The staff sign-in form keeps its
+buttons disabled until React hydrates, and filling the fields before that writes
+into state that is about to be replaced — the request went out as
+`{"email":"","password":""}` and looked exactly like a wrong password, which is
+the point of REQ-106's single message and the reason the helper reads the
+response status rather than the screen. And the workout picker swallows a tap
+that lands before hydration, so the test clicks until `aria-expanded` says the
+picker heard it.
+
+The fixture assignment now opens its window yesterday rather than today. A suite
+run just after midnight in the team's zone logged entries an hour back, before
+an assignment that started that morning, and the API refused them correctly —
+a flake that reads as a defect in whatever changed most recently.

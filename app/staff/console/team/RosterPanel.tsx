@@ -22,11 +22,11 @@ import type { CredentialReveal, RosterEntry } from "../types";
  */
 export function RosterPanel({
   teamId,
-  playerHref,
+  playerBase,
   operator,
 }: {
   teamId: string;
-  playerHref: (playerId: string) => string;
+  playerBase: string;
   /** Adding an existing player needs the platform-wide player search, which is
    * operator-only in the API. A coach was already refused it; hiding the panel
    * is what stops the refusal arriving as an error they can do nothing about. */
@@ -70,7 +70,7 @@ export function RosterPanel({
         <ul className="console-list">
           {(roster.data?.roster ?? []).map((entry) => (
             <li key={entry.playerId} className="console-list__row">
-              <Link href={playerHref(entry.playerId)}>
+              <Link href={`${playerBase}/${entry.playerId}`}>
                 {entry.firstName} {entry.lastInitial}
               </Link>
               <span>{consoleCopy.credential.state[entry.credentialState]}</span>

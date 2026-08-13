@@ -355,13 +355,18 @@ func (store *Store) ResetE2EFixtures(ctx context.Context, now time.Time) error {
 		}
 	}
 	now = now.UTC()
-	teamToday := now.In(store.location).Format("2006-01-02")
+	// The window opens yesterday, not today. Tests log entries an hour or two
+	// back, and a suite that ran just after midnight in the team's zone put
+	// those before an assignment that started this morning -- which the API
+	// correctly refused, and which looked like a defect in whatever had changed
+	// most recently.
+	windowStart := now.In(store.location).AddDate(0, 0, -1).Format("2006-01-02")
 	teamDue := now.In(store.location).AddDate(0, 0, 6).Format("2006-01-02")
 	if _, err := tx.ExecContext(ctx, `INSERT INTO assignments (
 		id, team_id, activity_definition_id, catalog_key, target_value, target_unit,
 		starts_on, due_on, created_at
 	) VALUES ('assignment-hill-sprints', 'team-hill-striders', 'hill-sprints',
-		'hill_sprints_8x6', 8, 'reps', ?, ?, ?)`, teamToday, teamDue, now.Format(time.RFC3339Nano)); err != nil {
+		'hill_sprints_8x6', 8, 'reps', ?, ?, ?)`, windowStart, teamDue, now.Format(time.RFC3339Nano)); err != nil {
 		return fmt.Errorf("seed e2e assignment: %w", err)
 	}
 	// Mason owes two sessions this week: one still inside its delete window and

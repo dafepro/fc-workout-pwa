@@ -9,5 +9,5 @@ export default async function OperatorTeamProgressPage({
 }) {
   await requireOperator();
   const { teamId } = await params;
-  return <TeamProgress teamId={teamId} playerHref={routes.staffAdminPlayer} />;
+  return <TeamProgress teamId={teamId} playerBase={routes.staffAdminPlayers} />;
 }

@@ -15,10 +15,10 @@ import type { TeamProgress as TeamProgressData } from "../types";
  */
 export function TeamProgress({
   teamId,
-  playerHref,
+  playerBase,
 }: {
   teamId: string;
-  playerHref: (playerId: string) => string;
+  playerBase: string;
 }) {
   const progress = useResource<TeamProgressData>(
     `v1/staff/teams/${teamId}/progress`,
@@ -71,7 +71,7 @@ export function TeamProgress({
         <ul className="console-list">
           {(data?.members ?? []).map((member) => (
             <li key={member.playerId} className="console-list__row">
-              <Link href={playerHref(member.playerId)}>
+              <Link href={`${playerBase}/${member.playerId}`}>
                 {member.firstName} {member.lastInitial}
               </Link>
               <span>{consoleCopy.progress.goalStatus[member.goalStatus]}</span>

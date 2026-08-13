@@ -59,7 +59,7 @@ describe("team progress", () => {
       vi.fn(async () => Response.json(progress)),
     );
 
-    render(<TeamProgress teamId="t1" playerHref={(id) => `/staff/${id}`} />);
+    render(<TeamProgress teamId="t1" playerBase="/staff" />);
 
     expect(
       await screen.findByText("1 of 2 have reached 3 sessions this week"),
@@ -85,7 +85,7 @@ describe("team progress", () => {
     );
 
     const { container } = render(
-      <TeamProgress teamId="t1" playerHref={(id) => `/staff/${id}`} />,
+      <TeamProgress teamId="t1" playerBase="/staff" />,
     );
     await screen.findByText("1 of 2 have reached 3 sessions this week");
 

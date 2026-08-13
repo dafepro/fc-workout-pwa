@@ -12,7 +12,7 @@ export default async function CoachTeamRosterPage({
   return (
     <RosterPanel
       teamId={teamId}
-      playerHref={routes.staffPlayer}
+      playerBase={routes.staffPlayers}
       operator={false}
     />
   );

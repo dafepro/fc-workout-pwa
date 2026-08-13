@@ -9,5 +9,5 @@ export default async function CoachTeamProgressPage({
 }) {
   await requireStaffSession();
   const { teamId } = await params;
-  return <TeamProgress teamId={teamId} playerHref={routes.staffPlayer} />;
+  return <TeamProgress teamId={teamId} playerBase={routes.staffPlayers} />;
 }
