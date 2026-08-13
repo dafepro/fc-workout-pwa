@@ -166,8 +166,8 @@ export function ActivitySpecificFields({
           <span aria-hidden="true">!</span>
           {limit}
         </p>
-      ) : activityId === "hill-sprints" ? (
-        <p className="field-card__context">6 seconds each</p>
+      ) : activity.qualifier ? (
+        <p className="field-card__context">{activity.qualifier} each</p>
       ) : null}
     </div>
   );

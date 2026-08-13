@@ -56,14 +56,57 @@ func TestCreateAssignmentValidatesCatalogAndWindow(t *testing.T) {
 	}
 }
 
-func TestListAssignmentCatalogReturnsOnlyApprovedEntries(t *testing.T) {
+// REQ-512: the catalog is the coach's preset list, so every approved activity
+// is represented, and entries arrive grouped by activity in the same order the
+// player's own picker uses (activity id), cheapest preset first.
+func TestListAssignmentCatalogCoversEveryActivityInPickerOrder(t *testing.T) {
 	staff, _, _ := assignmentStaffStore(t)
 	catalog, err := staff.ListAssignmentCatalog(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(catalog) != 1 || catalog[0].Key != "hill_sprints_8x6" || catalog[0].ActivityDefinitionID != "hill-sprints" {
-		t.Fatalf("unexpected catalog: %+v", catalog)
+
+	got := make([]string, len(catalog))
+	activities := map[string]bool{}
+	for index, entry := range catalog {
+		got[index] = entry.Key
+		activities[entry.ActivityDefinitionID] = true
+	}
+	want := []string{
+		"distance_run_1mi", "distance_run_2mi",
+		"hill_sprints_8x6",
+		"recovery_20",
+		"timed_run_20", "timed_run_30",
+	}
+	if len(got) != len(want) {
+		t.Fatalf("catalog = %v, want %v", got, want)
+	}
+	for index, key := range want {
+		if got[index] != key {
+			t.Fatalf("catalog = %v, want %v", got, want)
+		}
+	}
+	if len(activities) != 4 {
+		t.Fatalf("catalog covers %d activities, want all 4: %v", len(activities), got)
+	}
+}
+
+// An unapproved entry is one awaiting review, and must never be assignable.
+func TestListAssignmentCatalogOmitsUnapprovedEntries(t *testing.T) {
+	staff, _, db := assignmentStaffStore(t)
+	if _, err := db.ExecContext(context.Background(), `INSERT INTO assignment_catalog
+		(key, display_name, activity_definition_id, default_target_value, default_target_unit, approved)
+		VALUES ('pending_review', 'Pending', 'hill-sprints', 4, 'reps', 0)`); err != nil {
+		t.Fatal(err)
+	}
+	catalog, err := staff.ListAssignmentCatalog(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range catalog {
+		if entry.Key == "pending_review" {
+			t.Fatal("an unapproved catalog entry must not be assignable")
+		}
 	}
 }
 

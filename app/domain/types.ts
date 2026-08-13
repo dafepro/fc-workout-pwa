@@ -19,6 +19,8 @@ export interface ActivityDefinition {
   defaultValue: number;
   fieldLabel: string;
   description: string;
+  /** What one unit of this activity is, where the number alone does not say it. */
+  qualifier?: string;
   instructions: readonly string[];
 }
 
@@ -59,7 +61,10 @@ export interface ActivityDay {
 export interface TrainingAssignment {
   id: string;
   activityDefinitionId: ActivityId;
-  catalogKey: "hill_sprints_8x6";
+  /** Opaque: the catalog is seeded data a migration extends, not a closed set
+   * the client gets to know. Pinning a literal here once made the product look
+   * like it had exactly one workout. */
+  catalogKey: string;
   targetValue: number;
   targetUnit: ActivityDefinition["unit"];
   startsOn: string;

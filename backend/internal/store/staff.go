@@ -600,10 +600,13 @@ type AssignmentCatalogEntry struct {
 }
 
 // ListAssignmentCatalog is F-C7's picker: only approved entries, so a catalog
-// row awaiting review never becomes something a coach can assign.
+// row awaiting review never becomes something a coach can assign. Ordering by
+// activity groups an activity's presets together, and matches the order the
+// player's own picker uses (approvedActivities orders by the same id).
 func (staff *StaffStore) ListAssignmentCatalog(ctx context.Context) ([]AssignmentCatalogEntry, error) {
 	rows, err := staff.db.QueryContext(ctx, `SELECT key, display_name, activity_definition_id, default_target_value, default_target_unit
-		FROM assignment_catalog WHERE approved = 1 ORDER BY display_name`)
+		FROM assignment_catalog WHERE approved = 1
+		ORDER BY activity_definition_id, default_target_value`)
 	if err != nil {
 		return nil, err
 	}

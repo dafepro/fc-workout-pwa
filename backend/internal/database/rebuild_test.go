@@ -188,7 +188,9 @@ func TestMigrateRebuildsAPopulatedAssignmentsTable(t *testing.T) {
 		t.Fatalf("migrate a populated database: %v", err)
 	}
 
-	for table, want := range map[string]int{"assignments": 1, "reactions": 1, "assignment_catalog": 1} {
+	// The seeded row from 000011 plus the five presets 000013 adds. This is also
+	// where the preset seed is proved against a populated database.
+	for table, want := range map[string]int{"assignments": 1, "reactions": 1, "assignment_catalog": 6} {
 		var count int
 		if err = db.QueryRowContext(ctx, "SELECT COUNT(*) FROM "+table).Scan(&count); err != nil {
 			t.Fatal(err)

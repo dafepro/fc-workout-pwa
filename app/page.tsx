@@ -126,11 +126,10 @@ export default function HomePage() {
               : assignment
                 ? `${assignment.targetValue} ${assignment.targetUnit}`
                 : "Pick from your team’s activity list"}
-            {!assignmentComplete &&
-            assignment?.catalogKey === "hill_sprints_8x6" ? (
+            {!assignmentComplete && assignmentActivity?.qualifier ? (
               <>
                 {" "}
-                <span>×</span> 6 seconds
+                <span>×</span> {assignmentActivity.qualifier}
               </>
             ) : null}
           </p>

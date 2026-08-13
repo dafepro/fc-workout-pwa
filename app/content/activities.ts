@@ -3,7 +3,11 @@ import type { ActivityDefinition, ActivityId } from "../domain/types";
 type ActivityPresentation = Pick<
   ActivityDefinition,
   "shortName" | "icon" | "fieldLabel" | "description" | "instructions"
->;
+> & {
+  /** What one unit of this activity is, where the count alone does not say it:
+   * "8 reps" means nothing without "× 6 seconds". */
+  qualifier?: string;
+};
 
 export const activityPresentation: Record<ActivityId, ActivityPresentation> = {
   "hill-sprints": {
@@ -11,6 +15,7 @@ export const activityPresentation: Record<ActivityId, ActivityPresentation> = {
     icon: "↗",
     fieldLabel: "Reps completed",
     description: "8 reps × 6 seconds",
+    qualifier: "6 seconds",
     instructions: [
       "Find a short hill with clear footing and room to slow down safely.",
       "Run uphill fast for 6 seconds. Stop before your form gets sloppy.",
