@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { TeamRoster } from "./TeamRoster";
+import { AssignmentPanel } from "./AssignmentPanel";
 
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace }) }));
@@ -99,7 +99,7 @@ describe("coach assignment panel", () => {
         return Response.json(noCurrentAssignments);
       return Response.json(team);
     });
-    render(<TeamRoster teamId="t1" />);
+    render(<AssignmentPanel teamId="t1" />);
 
     // The picker lands on a choice rather than an empty option, so its target
     // is filled in before the coach touches anything.
@@ -173,7 +173,7 @@ describe("coach assignment panel", () => {
       if (call.url.endsWith("/assignments")) return Response.json(current);
       return Response.json(team);
     });
-    render(<TeamRoster teamId="t1" />);
+    render(<AssignmentPanel teamId="t1" />);
 
     expect(await screen.findByText("Ada B")).toBeInTheDocument();
     expect(screen.getByText("Nia K")).toBeInTheDocument();

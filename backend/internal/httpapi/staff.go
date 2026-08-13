@@ -86,6 +86,7 @@ func (service *service) registerStaffRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /v1/staff/teams/{teamId}/roster/{playerId}", service.endMembership)
 	mux.HandleFunc("POST /v1/staff/teams/{teamId}/players", service.provisionPlayer)
 	mux.HandleFunc("GET /v1/staff/assignment-catalog", service.getAssignmentCatalog)
+	mux.HandleFunc("GET /v1/staff/teams/{teamId}/progress", service.getTeamProgress)
 	mux.HandleFunc("GET /v1/staff/teams/{teamId}/assignments", service.listAssignments)
 	mux.HandleFunc("POST /v1/staff/teams/{teamId}/assignments", service.createAssignment)
 	mux.HandleFunc("GET /v1/staff/players/{playerId}", service.getPlayerDetail)
@@ -409,6 +410,34 @@ func (service *service) getAssignmentCatalog(w http.ResponseWriter, r *http.Requ
 
 // F-C7 and F-C8 on one read: the team's assignment history plus the live
 // assignment's Completed / One Away / Keep Going grouping (REQ-506).
+// REQ-516. The coach's review of their own team, served from the projection the
+// players' own team screen uses -- not a second calculation, so the two screens
+// cannot come to different conclusions about who met the weekly goal. Raw
+// participation is allowed here because F-C8 grants a coach values on their own
+// team; the projection still carries no result value, no assessment, and no
+// other team.
+func (service *service) getTeamProgress(w http.ResponseWriter, r *http.Request) {
+	teamID := r.PathValue("teamId")
+	actor, ok := service.teamActor(w, r, teamID)
+	if !ok {
+		return
+	}
+	if service.store == nil {
+		writeError(w, r, http.StatusServiceUnavailable, "not_ready", "The service is not ready.")
+		return
+	}
+	projection, err := service.store.TeamActivity(r.Context(), actor, teamID, service.now().UTC())
+	if errors.Is(err, store.ErrSocialTeamUnavailable) {
+		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
+		return
+	}
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")
+		return
+	}
+	writeJSON(w, http.StatusOK, projection)
+}
+
 func (service *service) listAssignments(w http.ResponseWriter, r *http.Request) {
 	teamID := r.PathValue("teamId")
 	if _, ok := service.teamActor(w, r, teamID); !ok {

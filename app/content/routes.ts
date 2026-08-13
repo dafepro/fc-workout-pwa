@@ -13,7 +13,13 @@ export const routes = {
   staffAdminAccounts: "/staff/admin/accounts",
   staffAdminAudit: "/staff/admin/audit",
   staffAdminTeam: (teamId: string) => `/staff/admin/teams/${teamId}`,
+  staffAdminTeamProgress: (teamId: string) =>
+    `/staff/admin/teams/${teamId}/progress`,
+  staffAdminTeamRoster: (teamId: string) =>
+    `/staff/admin/teams/${teamId}/roster`,
   staffAdminPlayer: (playerId: string) => `/staff/admin/players/${playerId}`,
   staffTeam: (teamId: string) => `/staff/teams/${teamId}`,
+  staffTeamProgress: (teamId: string) => `/staff/teams/${teamId}/progress`,
+  staffTeamRoster: (teamId: string) => `/staff/teams/${teamId}/roster`,
   staffPlayer: (playerId: string) => `/staff/players/${playerId}`,
 } as const;

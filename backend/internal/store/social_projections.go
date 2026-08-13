@@ -280,6 +280,10 @@ func (store *Store) authorizedSocialTeam(ctx context.Context, actor domain.Actor
 		}
 	case domain.RoleClubAdmin:
 		allowed = actor.ClubID != "" && actor.ClubID == team.ClubID
+	case domain.RolePlatformAdmin:
+		// F-O1: the operator reads every club, and repairing a team is hard
+		// without being able to see the same picture the coach is describing.
+		allowed = true
 	}
 	if !allowed {
 		return socialTeamRecord{}, nil, ErrSocialTeamUnavailable

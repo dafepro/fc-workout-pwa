@@ -72,6 +72,35 @@ export const consoleCopy = {
   retry: "Try again",
   cancel: "Cancel",
   close: "Close",
+  sections: {
+    label: "Team sections",
+    training: "Training",
+    progress: "Progress",
+    roster: "Roster",
+  },
+  progress: {
+    title: "This week",
+    week: (start: string, end: string) => `${start} to ${end}`,
+    meetingGoal: (met: number, total: number, goal: number) =>
+      `${met} of ${total} have reached ${goal} sessions this week`,
+    teamSessions: (sessions: number) =>
+      `${sessions} ${sessions === 1 ? "session" : "sessions"} logged by the team`,
+    challenge: (activity: string, completed: number) =>
+      `${activity} · ${completed} completed`,
+    membersTitle: "Players",
+    empty: "No players are on this team yet.",
+    sessions: "Sessions",
+    streak: "Streak",
+    consistency: "Days active",
+    goalStatus: {
+      completed: "Goal met",
+      one_away: "One away",
+      keep_going: "Keep going",
+    },
+    // F-C8 allows a coach raw values on their own team; the surface still says
+    // nothing about anyone's assessments (REQ-508).
+    privacy: "Only you and other staff on this team can see this.",
+  },
   home: {
     coachTitle: "Coach console",
     coachBody:

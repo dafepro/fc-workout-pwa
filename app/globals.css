@@ -3463,3 +3463,24 @@ h2 {
   font-size: 0.9rem;
   font-weight: 800;
 }
+
+/* The section nav is a segmented control on a phone: three thumb targets that
+   fill the width, so which section is open is legible without reading. */
+.console-nav--sections {
+  gap: 0.4rem;
+  margin: 0.25rem 0 0;
+}
+
+.console-nav--sections a {
+  flex: 1 1 0;
+  justify-content: center;
+  min-height: 2.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.7rem;
+  background: var(--surface);
+}
+
+.console-nav--sections a[aria-current="page"] {
+  border-color: var(--purple);
+  background: #efedff;
+}

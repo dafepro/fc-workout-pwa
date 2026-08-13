@@ -148,3 +148,46 @@ func seedSocialProjection(t *testing.T, db *sql.DB, now time.Time) {
 		t.Fatal(err)
 	}
 }
+
+// REQ-516. A coach reviews their own team from the same projection the players
+// see, so the two screens cannot disagree about who met the weekly goal, and a
+// coach with no claim on the team is refused it.
+func TestTeamActivityServesTheAssignedCoachAndRefusesOthers(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+	ctx := context.Background()
+
+	asPlayer, err := repository.TeamActivity(ctx, domain.Actor{
+		Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-one",
+	}, "team-one", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	asCoach, err := repository.TeamActivity(ctx, domain.Actor{
+		Role: domain.RoleCoach, AssignedTeamIDs: []string{"team-one"},
+	}, "team-one", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if asCoach.MembersMeetingGoal != asPlayer.MembersMeetingGoal ||
+		asCoach.TeamSessions != asPlayer.TeamSessions ||
+		len(asCoach.Members) != len(asPlayer.Members) {
+		t.Fatalf("coach and player disagree: coach=%+v player=%+v", asCoach, asPlayer)
+	}
+
+	if _, err = repository.TeamActivity(ctx, domain.Actor{
+		Role: domain.RoleCoach, AssignedTeamIDs: []string{"team-two"},
+	}, "team-one", now); !errors.Is(err, store.ErrSocialTeamUnavailable) {
+		t.Fatalf("unassigned coach error = %v, want ErrSocialTeamUnavailable", err)
+	}
+
+	// The operator reads every club by design (F-O1), and repairing a team is
+	// hard without being able to see it.
+	if _, err = repository.TeamActivity(ctx, domain.Actor{
+		Role: domain.RolePlatformAdmin,
+	}, "team-one", now); err != nil {
+		t.Fatalf("operator refused team progress: %v", err)
+	}
+}

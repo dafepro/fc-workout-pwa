@@ -1,12 +1,12 @@
 import { requireOperator } from "../../guard";
-import { TeamRoster } from "./TeamRoster";
+import { AssignmentPanel } from "../../../console/team/AssignmentPanel";
 
-export default async function TeamRosterPage({
+export default async function OperatorTeamTrainingPage({
   params,
 }: {
   params: Promise<{ teamId: string }>;
 }) {
   await requireOperator();
   const { teamId } = await params;
-  return <TeamRoster teamId={teamId} />;
+  return <AssignmentPanel teamId={teamId} />;
 }

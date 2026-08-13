@@ -1,22 +1,14 @@
 import { requireStaffSession } from "../../guard";
-import { routes } from "../../../content/routes";
-import { consoleCopy } from "../../console/copy";
-import { TeamRoster } from "../../admin/teams/[teamId]/TeamRoster";
+import { AssignmentPanel } from "../../console/team/AssignmentPanel";
 
-export default async function CoachTeamPage({
+/** Training is the landing section: the live assignment and who has completed
+ * it is the question a coach opens the team to answer. */
+export default async function CoachTeamTrainingPage({
   params,
 }: {
   params: Promise<{ teamId: string }>;
 }) {
   await requireStaffSession();
   const { teamId } = await params;
-  return (
-    <TeamRoster
-      teamId={teamId}
-      backHref={routes.staffConsoleHome}
-      backLabel={consoleCopy.home.teams}
-      playerHref={routes.staffPlayer}
-      operator={false}
-    />
-  );
+  return <AssignmentPanel teamId={teamId} />;
 }

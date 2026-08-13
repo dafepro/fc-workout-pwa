@@ -144,3 +144,27 @@ export interface AssignmentCompletion {
   oneAway: PlayerCompletion[];
   keepGoing: PlayerCompletion[];
 }
+
+/** The team projection the players' own Team screen reads, served to staff by
+ * `GET v1/staff/teams/{id}/progress` (REQ-516). Same shape, same numbers. */
+export interface TeamProgressMember {
+  playerId: string;
+  firstName: string;
+  lastInitial: string;
+  weeklySessions: number;
+  effortPoints: number;
+  currentStreak: number;
+  consistencyDays: number;
+  goalStatus: "completed" | "one_away" | "keep_going";
+  challengeCompleted: boolean;
+}
+
+export interface TeamProgress {
+  team: { id: string; name: string; weeklyGoal: number };
+  weekStart: string;
+  weekEnd: string;
+  teamSessions: number;
+  membersMeetingGoal: number;
+  currentChallenge: { activityName: string; completedCount: number } | null;
+  members: TeamProgressMember[];
+}
