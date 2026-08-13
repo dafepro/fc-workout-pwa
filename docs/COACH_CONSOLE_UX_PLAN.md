@@ -3,7 +3,7 @@
 Addresses issue #9, "coach workflow UX needs improvement". Design and
 requirements for the console itself remain owned by
 `docs/STAFF_CONSOLE_DESIGN.md`; this document is a change plan against it and
-adds requirements REQ-509 through REQ-515 in its numbering.
+adds requirements REQ-509 through REQ-516 in its numbering.
 
 ## 1. What is actually wrong
 
@@ -326,7 +326,7 @@ backend/
   internal/httpapi/staff.go      PATCH, DELETE, and progress routes
 docs/
   COACH_CONSOLE_UX_PLAN.md       this file
-  STAFF_CONSOLE_DESIGN.md        + REQ-509..515
+  STAFF_CONSOLE_DESIGN.md        + REQ-509..516
   STAFF_CONSOLE_PROGRESS.md      + what was built and why
   OPEN_DECISIONS.md              + presets-are-seeded, delete-vs-end-early
   _ALPHA_FEEDBACK_1.0.md         issue #9 in the established format

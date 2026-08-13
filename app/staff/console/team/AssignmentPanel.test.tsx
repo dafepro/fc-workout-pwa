@@ -137,7 +137,7 @@ describe("coach assignment panel", () => {
     });
   });
 
-  // REQ-517 and REQ-518: an assignment is a plan, not a permanent record. A
+  // REQ-513 and REQ-514: an assignment is a plan, not a permanent record. A
   // coach amends the one they typed wrong, and is offered the verb that works
   // when the one they wanted to delete has already started.
   it("amends an assignment, and offers ending early when deleting is refused", async () => {

@@ -158,7 +158,7 @@ func TestCurrentAssignmentCompletionGroupsByProgress(t *testing.T) {
 	}
 }
 
-// REQ-517: a coach who typed the wrong target or the wrong week can amend the
+// REQ-513: a coach who typed the wrong target or the wrong week can amend the
 // assignment rather than living with it. The activity is not amendable -- to
 // change what is being asked for, delete an assignment that has not started.
 func TestUpdateAssignmentAmendsTargetAndWindow(t *testing.T) {
@@ -236,7 +236,7 @@ func TestUpdateAssignmentRefusesToMoveAStartThatHasPassed(t *testing.T) {
 	}
 }
 
-// REQ-518: delete is for an assignment created by mistake, which is one nobody
+// REQ-514: delete is for an assignment created by mistake, which is one nobody
 // has trained against yet. Once it is live, or once a reaction points at it,
 // deleting would take a player's own history with it.
 func TestDeleteAssignmentOnlyBeforeItHasStarted(t *testing.T) {

@@ -214,7 +214,7 @@ export function AssignmentPanel({ teamId }: { teamId: string }) {
 }
 
 /**
- * REQ-517 and REQ-518. One row of the history, and the three things a coach can
+ * REQ-513 and REQ-514. One row of the history, and the three things a coach can
  * do to it: amend the target or the dates, end it early, or -- only while it is
  * still a plan nobody has trained against -- delete it. The activity is not
  * amendable, because changing it would rewrite what players were already asked

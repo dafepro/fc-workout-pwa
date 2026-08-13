@@ -216,3 +216,34 @@ to resolve, not the implementing agent's.
   chosen look can appear in a row that is not theirs.
 - Unlocks and currency remain out of scope. Catalog entries are object-shaped so
   an `unlock` field is additive.
+
+## Coach console UX, issue #9 (2026-08-12)
+
+- **`assignment_catalog` is the preset table.** Issue #9 asked separately for
+  every workout type to be assignable and for the weekly plan to be built from
+  presets. Those are one feature: a catalog row already carries an activity, a
+  default target, and a unit. So the fix was seed rows in a migration, not a new
+  table and not a client-side list. `app/domain/types.ts` no longer pins a
+  catalog key literal, because pinning one is what made the product look like it
+  had exactly one workout.
+- **Deleting an assignment is refused rather than cascaded.** `reactions
+.context_assignment_id` and `training_entries.assignment_id` both reference
+  `assignments`, so deleting one players have used would either violate the
+  foreign key or take their own history with it. Delete is therefore only for a
+  future assignment nothing points at; anything else is **ended early**, which
+  sets `due_on` to today in the team's time zone and alters no entry. The 409
+  names that alternative rather than just refusing.
+- **A start date that has passed cannot be moved.** Which entries counted toward
+  an assignment is decided by its window, so moving a passed start silently
+  re-judges the past. The target and the due date stay amendable.
+- **The coach's progress screen reads the players' own projection.** Rather than
+  compute weekly sessions and goal attainment a second time for staff,
+  `GET /v1/staff/teams/{id}/progress` serves `store.TeamActivity`, so a coach and
+  a player can never be told different things about who met the goal. The
+  operator may read it too: repairing a team is hard without seeing the picture
+  the coach is describing.
+- **No "Today" route.** It was in the first draft of the plan and cut: coaches
+  see players only on practice days, and there is no channel to push anything to
+  a player — the app has to be opened by the player. A route framed around today
+  would have implied a reach the product does not have. Training, Progress, and
+  Roster are the three sections.

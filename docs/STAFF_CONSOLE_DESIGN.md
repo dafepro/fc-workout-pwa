@@ -590,6 +590,43 @@ not saved.
 staff and that player's own surfaces. (F-C10)
 _AC:_ no team, leaderboard, or reaction response contains an assessment value.
 
+The requirements below came out of the first round of coach feedback (issue #9)
+and are designed in `COACH_CONSOLE_UX_PLAN.md`.
+
+**REQ-509.** The credential and invitation reveals are modal, and cannot be
+closed without acknowledging that the secret was saved. (F-C5)
+_AC:_ the reveal has no dismissal path other than a checkbox plus a button; the
+Escape key and the backdrop do not close it.
+**REQ-510.** The coach's activity picker is the same component, in the same
+order, as the athlete-facing workout selector.
+_AC:_ one component serves both surfaces, and the catalog is ordered by the same
+activity id ordering the player's picker uses.
+**REQ-511.** A team's three jobs -- set the plan, review how it is going, manage
+the people -- each have their own address, reachable from a section nav that
+marks the current one.
+_AC:_ each section is a route, so the back button and a bookmark both work.
+**REQ-512.** Every approved activity is assignable, with at least one preset per
+activity, seeded rather than hard-coded in the client.
+_AC:_ the catalog covers every approved activity; no client type pins a catalog
+key literal.
+**REQ-513.** Amend a live or future assignment's target and window. The activity
+is not amendable, and a start date that has passed cannot be moved.
+_AC:_ moving a passed start is refused.
+**REQ-514.** Delete an assignment created by mistake, and end one early that is
+already under way.
+_AC:_ deletion is refused for an assignment that has started or that any
+reaction or training entry references, with a refusal naming ending it early;
+ending early sets the due date to today in the team's time zone and alters no
+entry.
+**REQ-515.** The UI explains that changing a window can change which assignment
+is live, per the recorded earliest-due rule.
+_AC:_ the amendment form carries the explanation REQ-505 requires of creation.
+**REQ-516.** Read the team's standing against its weekly goal and each member's
+own participation, from the same projection the players' team screen reads.
+(F-C8)
+_AC:_ the coach and player surfaces are served by one calculation; the surface
+carries no assessment value.
+
 ### 2.6 Operator capabilities
 
 **REQ-601.** Cross-club search over players and teams, opening a single screen

@@ -490,7 +490,7 @@ func (service *service) createAssignment(w http.ResponseWriter, r *http.Request)
 	writeJSON(w, http.StatusCreated, map[string]any{"id": assignmentID})
 }
 
-// REQ-517. Amending an assignment rather than living with a typo. The activity
+// REQ-513. Amending an assignment rather than living with a typo. The activity
 // is absent from the request on purpose: it is not amendable.
 func (service *service) updateAssignment(w http.ResponseWriter, r *http.Request) {
 	teamID := r.PathValue("teamId")
@@ -520,7 +520,7 @@ func (service *service) updateAssignment(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// REQ-518. Only an assignment nobody has trained against and nobody has reacted
+// REQ-514. Only an assignment nobody has trained against and nobody has reacted
 // to; anything else is ended early instead, which the refusal says.
 func (service *service) deleteAssignment(w http.ResponseWriter, r *http.Request) {
 	teamID := r.PathValue("teamId")

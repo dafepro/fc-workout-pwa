@@ -139,7 +139,7 @@ func TestOperatorBuildsAClubAndAPlayerSignsIn(t *testing.T) {
 		"dueOn":      today.AddDate(0, 0, 9).Format("2006-01-02"),
 	})
 
-	// REQ-517: the week a coach typed wrong is amendable, not permanent.
+	// REQ-513: the week a coach typed wrong is amendable, not permanent.
 	amended := api.do(t, http.MethodPatch, "/v1/staff/teams/"+team.ID+"/assignments/"+assignment.ID, token, "",
 		map[string]any{
 			"targetValue": preset.DefaultTargetValue, "targetUnit": preset.DefaultTargetUnit,
@@ -149,7 +149,7 @@ func TestOperatorBuildsAClubAndAPlayerSignsIn(t *testing.T) {
 	assertStatus(t, amended, http.StatusNoContent)
 	_ = amended.Body.Close()
 
-	// REQ-518: one that has started refuses deletion and names the way out.
+	// REQ-514: one that has started refuses deletion and names the way out.
 	live := staffPost[struct {
 		ID string `json:"id"`
 	}](t, api, "/v1/staff/teams/"+team.ID+"/assignments", token, http.StatusCreated, map[string]any{

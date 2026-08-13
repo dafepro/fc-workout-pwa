@@ -696,7 +696,7 @@ type AssignmentUpdate struct {
 // its start moved, but it can be ended early.
 var ErrAssignmentStarted = errors.New("assignment already started")
 
-// UpdateAssignment is REQ-517. A coach who typed the wrong target or the wrong
+// UpdateAssignment is REQ-513. A coach who typed the wrong target or the wrong
 // week amends it here. The start may only move while it is still in the future;
 // once it has passed it is a fact about which entries counted, not a setting.
 func (staff *StaffStore) UpdateAssignment(ctx context.Context, teamID, assignmentID string, update AssignmentUpdate) error {
@@ -726,7 +726,7 @@ func (staff *StaffStore) UpdateAssignment(ctx context.Context, teamID, assignmen
 	return err
 }
 
-// DeleteAssignment is REQ-518, and only for one created by mistake. An
+// DeleteAssignment is REQ-514, and only for one created by mistake. An
 // assignment that has started may have entries logged against it, and one a
 // reaction points at is a foreign key parent, so deleting either would take a
 // player's own history with it. Both refuse in favour of EndAssignment.

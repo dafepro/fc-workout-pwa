@@ -524,3 +524,41 @@ read it. The link is now assembled by appending `"#" + url.Values{…}.Encode()`
 to the URL, and `TestSetupLinkEscapesTheTokenExactlyOnce` pins the literal so a
 symmetric test can never hide it again. `fragmentValue` in the Go E2E helpers
 was rewritten for the same reason and now serves both handoff links.
+
+### 2026-08-12 — the coach console answers issue #9
+
+`docs/COACH_CONSOLE_UX_PLAN.md` has the diagnosis and the six phases; this is
+what landed. Three of the four complaints in #9 were symptoms of one fact:
+`TeamRoster.tsx` was a 573-line component shared verbatim with the operator,
+stacking six equal-weight cards in the order they happened to be written, with
+no navigation. The fourth was a data gap that a client-side type literal had
+hardened into a product limit.
+
+- **The reveal is modal.** `RevealDialog` uses a native `<dialog>` with
+  `showModal()`, cancels its own `cancel` event, and has no path out but a
+  checkbox and a button. The old panel sat above the form that produced it, so
+  the QR could scroll away unsaved. `tests/setup.ts` shims `showModal`, which
+  jsdom does not implement — the test proves the wiring, not the focus trap.
+- **One workout picker.** `WorkoutSelect` came out of `app/log/page.tsx` and now
+  serves the athlete and the coach. `ListAssignmentCatalog` orders by
+  `activity_definition_id, default_target_value`, the same ordering
+  `approvedActivities` uses, so the two surfaces group activities identically.
+- **A team has three addresses.** `/staff/teams/{id}`, `/progress`, `/roster`,
+  with the team's facts and a section nav in a shared layout, mirrored for the
+  operator. They are links, not an ARIA tablist: these are documents, so the
+  back button and a bookmark both mean what a coach expects.
+- **Every workout is assignable.** Migration `000013` seeds five more presets, so
+  the catalog covers all four approved activities. This also answered #9's
+  request for a preset-driven weekly plan — the catalog was already that table.
+- **A plan you can change.** `PATCH` amends the target and window; `DELETE` works
+  only on a future assignment nothing references; `POST …/end` ends a live one
+  today. See `OPEN_DECISIONS.md` for why deletion refuses rather than cascades.
+- **Progress.** The review a coach could not do at all before, served from
+  `store.TeamActivity` so there is one calculation of who met the weekly goal.
+
+Two things worth remembering. Adding a migration broke six count assertions
+across `database_test.go`, `rebuild_test.go`, and the backup tests — the seed
+count is asserted in more places than the migration count is. And the
+gateway allowlist grew a `PATCH` entry without the proxy exporting a `PATCH`
+handler; the test that now derives handlers from the allowlist would have caught
+it, and did not exist until it was needed.
