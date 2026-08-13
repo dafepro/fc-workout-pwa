@@ -649,17 +649,9 @@ var assignmentTargetUnits = map[string]bool{"reps": true, "minutes": true, "mile
 // team-local calendar dates, not parsed as a timestamp, matching every other
 // date the console reasons about.
 func (staff *StaffStore) CreateAssignment(ctx context.Context, teamID string, input AssignmentInput) (string, error) {
-	if input.TargetValue <= 0 || !assignmentTargetUnits[input.TargetUnit] {
-		return "", ErrStaffInvalid
-	}
-	if _, err := time.Parse("2006-01-02", input.StartsOn); err != nil {
-		return "", ErrStaffInvalid
-	}
-	if _, err := time.Parse("2006-01-02", input.DueOn); err != nil {
-		return "", ErrStaffInvalid
-	}
-	if input.StartsOn > input.DueOn {
-		return "", ErrStaffInvalid
+	if err := validAssignmentWindow(AssignmentUpdate{TargetValue: input.TargetValue,
+		TargetUnit: input.TargetUnit, StartsOn: input.StartsOn, DueOn: input.DueOn}); err != nil {
+		return "", err
 	}
 	var activityDefinitionID string
 	err := staff.db.QueryRowContext(ctx, `SELECT activity_definition_id FROM assignment_catalog WHERE key = ? AND approved = 1`,
@@ -686,6 +678,123 @@ func (staff *StaffStore) CreateAssignment(ctx context.Context, teamID string, in
 		return "", err
 	}
 	return id, nil
+}
+
+// AssignmentUpdate is the amendable half of an assignment: what the target is
+// and when the window runs. The activity is not amendable, because changing it
+// would rewrite what players were already asked to do -- to ask for something
+// else, delete an assignment that has not started and set a new one.
+type AssignmentUpdate struct {
+	TargetValue float64
+	TargetUnit  string
+	StartsOn    string
+	DueOn       string
+}
+
+// ErrAssignmentStarted is the refusal that comes with an alternative: an
+// assignment players may already have trained against cannot be deleted or have
+// its start moved, but it can be ended early.
+var ErrAssignmentStarted = errors.New("assignment already started")
+
+// UpdateAssignment is REQ-517. A coach who typed the wrong target or the wrong
+// week amends it here. The start may only move while it is still in the future;
+// once it has passed it is a fact about which entries counted, not a setting.
+func (staff *StaffStore) UpdateAssignment(ctx context.Context, teamID, assignmentID string, update AssignmentUpdate) error {
+	if err := validAssignmentWindow(update); err != nil {
+		return err
+	}
+	today, err := staff.teamToday(ctx, teamID)
+	if err != nil {
+		return err
+	}
+	var startsOn string
+	err = staff.db.QueryRowContext(ctx, `SELECT starts_on FROM assignments WHERE id = ? AND team_id = ?`,
+		assignmentID, teamID).Scan(&startsOn)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrStaffNotFound
+	}
+	if err != nil {
+		return err
+	}
+	if startsOn <= today && update.StartsOn != startsOn {
+		return ErrAssignmentStarted
+	}
+	_, err = staff.db.ExecContext(ctx, `UPDATE assignments
+		SET target_value = ?, target_unit = ?, starts_on = ?, due_on = ?
+		WHERE id = ? AND team_id = ?`,
+		update.TargetValue, update.TargetUnit, update.StartsOn, update.DueOn, assignmentID, teamID)
+	return err
+}
+
+// DeleteAssignment is REQ-518, and only for one created by mistake. An
+// assignment that has started may have entries logged against it, and one a
+// reaction points at is a foreign key parent, so deleting either would take a
+// player's own history with it. Both refuse in favour of EndAssignment.
+func (staff *StaffStore) DeleteAssignment(ctx context.Context, teamID, assignmentID string) error {
+	today, err := staff.teamToday(ctx, teamID)
+	if err != nil {
+		return err
+	}
+	var startsOn string
+	var referenced int
+	err = staff.db.QueryRowContext(ctx, `SELECT a.starts_on,
+		(SELECT COUNT(*) FROM reactions r WHERE r.context_assignment_id = a.id)
+		+ (SELECT COUNT(*) FROM training_entries e WHERE e.assignment_id = a.id)
+		FROM assignments a WHERE a.id = ? AND a.team_id = ?`, assignmentID, teamID).Scan(&startsOn, &referenced)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrStaffNotFound
+	}
+	if err != nil {
+		return err
+	}
+	if startsOn <= today || referenced > 0 {
+		return ErrAssignmentStarted
+	}
+	_, err = staff.db.ExecContext(ctx, `DELETE FROM assignments WHERE id = ? AND team_id = ?`, assignmentID, teamID)
+	return err
+}
+
+// EndAssignment closes a live assignment's window today, in the team's own time
+// zone. It is the verb that always works on something already under way, and it
+// leaves every entry logged against it exactly where it is.
+func (staff *StaffStore) EndAssignment(ctx context.Context, teamID, assignmentID string) (string, error) {
+	today, err := staff.teamToday(ctx, teamID)
+	if err != nil {
+		return "", err
+	}
+	var startsOn string
+	err = staff.db.QueryRowContext(ctx, `SELECT starts_on FROM assignments WHERE id = ? AND team_id = ?`,
+		assignmentID, teamID).Scan(&startsOn)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", ErrStaffNotFound
+	}
+	if err != nil {
+		return "", err
+	}
+	if startsOn > today {
+		return "", ErrStaffInvalid
+	}
+	if _, err = staff.db.ExecContext(ctx, `UPDATE assignments SET due_on = ? WHERE id = ? AND team_id = ?`,
+		today, assignmentID, teamID); err != nil {
+		return "", err
+	}
+	return today, nil
+}
+
+func validAssignmentWindow(update AssignmentUpdate) error {
+	if update.TargetValue <= 0 || !assignmentTargetUnits[update.TargetUnit] {
+		return ErrStaffInvalid
+	}
+	if _, err := time.Parse("2006-01-02", update.StartsOn); err != nil {
+		return ErrStaffInvalid
+	}
+	if _, err := time.Parse("2006-01-02", update.DueOn); err != nil {
+		return ErrStaffInvalid
+	}
+	if update.StartsOn > update.DueOn {
+		return ErrStaffInvalid
+	}
+	return nil
 }
 
 // ListAssignments is the team's assignment history, most recently due first.

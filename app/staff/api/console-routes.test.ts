@@ -96,6 +96,23 @@ describe("console gateway routing", () => {
     }
   });
 
+  /** An allowlisted method with no handler exported from its gateway is a 405
+   * the allowlist promised would not happen. */
+  it("exports a handler for every method its gateway allows", () => {
+    for (const [routes, file] of [
+      [STAFF_ROUTES, "app/staff/api/backend/[...path]/route.ts"],
+      [OPERATOR_ROUTES, "app/staff/admin/api/backend/[...path]/route.ts"],
+    ] as const) {
+      const source = readFileSync(join(process.cwd(), file), "utf8");
+      for (const method of new Set(routes.map((route) => route.method))) {
+        expect(
+          source.includes(`export async function ${method}(`),
+          `${file} allows ${method} but exports no ${method} handler`,
+        ).toBe(true);
+      }
+    }
+  });
+
   it("sends operator paths to the operator gateway", () => {
     expect(gatewayFor("GET", "v1/staff/audit")).toBe(OPERATOR_GATEWAY);
     expect(gatewayFor("GET", "v1/staff/search")).toBe(OPERATOR_GATEWAY);

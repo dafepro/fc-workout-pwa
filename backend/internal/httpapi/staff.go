@@ -45,6 +45,9 @@ type StaffRepository interface {
 	RecordAdminAction(context.Context, string, string, string, string, map[string]any) error
 	ListAssignmentCatalog(context.Context) ([]store.AssignmentCatalogEntry, error)
 	CreateAssignment(context.Context, string, store.AssignmentInput) (string, error)
+	UpdateAssignment(context.Context, string, string, store.AssignmentUpdate) error
+	DeleteAssignment(context.Context, string, string) error
+	EndAssignment(context.Context, string, string) (string, error)
 	ListAssignments(context.Context, string) ([]store.AssignmentSummary, error)
 	CurrentAssignmentCompletion(context.Context, string) (store.AssignmentCompletion, error)
 }
@@ -89,6 +92,9 @@ func (service *service) registerStaffRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/staff/teams/{teamId}/progress", service.getTeamProgress)
 	mux.HandleFunc("GET /v1/staff/teams/{teamId}/assignments", service.listAssignments)
 	mux.HandleFunc("POST /v1/staff/teams/{teamId}/assignments", service.createAssignment)
+	mux.HandleFunc("PATCH /v1/staff/teams/{teamId}/assignments/{assignmentId}", service.updateAssignment)
+	mux.HandleFunc("DELETE /v1/staff/teams/{teamId}/assignments/{assignmentId}", service.deleteAssignment)
+	mux.HandleFunc("POST /v1/staff/teams/{teamId}/assignments/{assignmentId}/end", service.endAssignment)
 	mux.HandleFunc("GET /v1/staff/players/{playerId}", service.getPlayerDetail)
 	mux.HandleFunc("POST /v1/staff/players/{playerId}/credential", service.repairCredential)
 	mux.HandleFunc("POST /v1/staff/players/{playerId}/deactivate", service.deactivatePlayer)
@@ -482,6 +488,81 @@ func (service *service) createAssignment(w http.ResponseWriter, r *http.Request)
 	}
 	service.record(r.Context(), actor, "assignment.create", "assignment", assignmentID, map[string]any{"teamId": teamID})
 	writeJSON(w, http.StatusCreated, map[string]any{"id": assignmentID})
+}
+
+// REQ-517. Amending an assignment rather than living with a typo. The activity
+// is absent from the request on purpose: it is not amendable.
+func (service *service) updateAssignment(w http.ResponseWriter, r *http.Request) {
+	teamID := r.PathValue("teamId")
+	assignmentID := r.PathValue("assignmentId")
+	actor, ok := service.teamActor(w, r, teamID)
+	if !ok {
+		return
+	}
+	var request struct {
+		TargetValue float64 `json:"targetValue"`
+		TargetUnit  string  `json:"targetUnit"`
+		StartsOn    string  `json:"startsOn"`
+		DueOn       string  `json:"dueOn"`
+	}
+	if err := decodeStrictJSON(w, r, &request); err != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid_request", "The request is invalid.")
+		return
+	}
+	err := service.staffStore.UpdateAssignment(r.Context(), teamID, assignmentID, store.AssignmentUpdate{
+		TargetValue: request.TargetValue, TargetUnit: request.TargetUnit,
+		StartsOn: request.StartsOn, DueOn: request.DueOn,
+	})
+	if service.writeAssignmentError(w, r, err) {
+		return
+	}
+	service.record(r.Context(), actor, "assignment.update", "assignment", assignmentID, map[string]any{"teamId": teamID})
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// REQ-518. Only an assignment nobody has trained against and nobody has reacted
+// to; anything else is ended early instead, which the refusal says.
+func (service *service) deleteAssignment(w http.ResponseWriter, r *http.Request) {
+	teamID := r.PathValue("teamId")
+	assignmentID := r.PathValue("assignmentId")
+	actor, ok := service.teamActor(w, r, teamID)
+	if !ok {
+		return
+	}
+	err := service.staffStore.DeleteAssignment(r.Context(), teamID, assignmentID)
+	if service.writeAssignmentError(w, r, err) {
+		return
+	}
+	service.record(r.Context(), actor, "assignment.delete", "assignment", assignmentID, map[string]any{"teamId": teamID})
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// The verb that always works on something already under way.
+func (service *service) endAssignment(w http.ResponseWriter, r *http.Request) {
+	teamID := r.PathValue("teamId")
+	assignmentID := r.PathValue("assignmentId")
+	actor, ok := service.teamActor(w, r, teamID)
+	if !ok {
+		return
+	}
+	dueOn, err := service.staffStore.EndAssignment(r.Context(), teamID, assignmentID)
+	if service.writeAssignmentError(w, r, err) {
+		return
+	}
+	service.record(r.Context(), actor, "assignment.end", "assignment", assignmentID,
+		map[string]any{"teamId": teamID, "dueOn": dueOn})
+	writeJSON(w, http.StatusOK, map[string]any{"dueOn": dueOn})
+}
+
+// A started assignment is a conflict, not a bad request: the values were fine,
+// the world moved. The message names the action that would work.
+func (service *service) writeAssignmentError(w http.ResponseWriter, r *http.Request, err error) bool {
+	if errors.Is(err, store.ErrAssignmentStarted) {
+		writeError(w, r, http.StatusConflict, "assignment_started",
+			"This assignment has already started or has activity against it. End it early instead.")
+		return true
+	}
+	return service.writeStaffStoreError(w, r, err)
 }
 
 func (service *service) getPlayerDetail(w http.ResponseWriter, r *http.Request) {

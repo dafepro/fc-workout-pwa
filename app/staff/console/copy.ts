@@ -284,6 +284,18 @@ export const consoleCopy = {
     noPlayers: "No players in this group.",
     empty: "No assignments yet.",
     window: (startsOn: string, dueOn: string) => `${startsOn} – ${dueOn}`,
+    amend: "Amend",
+    amendHint:
+      "Change the target or the dates. To ask for a different activity, delete this one and set a new assignment. Whichever assignment is due soonest is the one players see, so moving a date can change which one is live.",
+    save: "Save changes",
+    endEarly: "End it early",
+    endEarlyConfirm:
+      "Ending it early sets its last day to today. Everything already logged against it stays exactly as it is.",
+    endEarlyAction: "End it today",
+    delete: "Delete",
+    deleteAction: "Delete assignment",
+    deleteConfirm:
+      "Deleting removes this assignment. It only works before it has started and while nothing has been logged or sent against it.",
   },
   audit: {
     title: "Audit trail",

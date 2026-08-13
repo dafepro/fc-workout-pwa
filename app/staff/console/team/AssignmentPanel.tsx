@@ -5,6 +5,7 @@ import { FormEvent, useState } from "react";
 import { consoleCopy, staffCopy } from "../copy";
 import { activityIcon } from "../../../content/activities";
 import { WorkoutSelect } from "../../../components/WorkoutSelect";
+import { ConfirmButton } from "../ConfirmButton";
 import { ConsoleNotice } from "../ConsoleChrome";
 import { consoleRequest, messageFor } from "../api";
 import { useResource } from "../useResource";
@@ -139,18 +140,12 @@ export function AssignmentPanel({ teamId }: { teamId: string }) {
       ) : null}
       <ul className="console-list">
         {(assignments.data?.assignments ?? []).map((assignment) => (
-          <li key={assignment.id} className="console-list__row">
-            <strong>{assignment.activityName}</strong>
-            <span>
-              {assignment.targetValue} {assignment.targetUnit}
-            </span>
-            <span>
-              {consoleCopy.assignments.window(
-                assignment.startsOn,
-                assignment.dueOn,
-              )}
-            </span>
-          </li>
+          <AssignmentRow
+            key={assignment.id}
+            teamId={teamId}
+            assignment={assignment}
+            onChanged={assignments.reload}
+          />
         ))}
       </ul>
 
@@ -215,6 +210,162 @@ export function AssignmentPanel({ teamId }: { teamId: string }) {
         </button>
       </form>
     </section>
+  );
+}
+
+/**
+ * REQ-517 and REQ-518. One row of the history, and the three things a coach can
+ * do to it: amend the target or the dates, end it early, or -- only while it is
+ * still a plan nobody has trained against -- delete it. The activity is not
+ * amendable, because changing it would rewrite what players were already asked
+ * for; the hint says so, and says to delete and re-set instead.
+ */
+function AssignmentRow({
+  teamId,
+  assignment,
+  onChanged,
+}: {
+  teamId: string;
+  assignment: AssignmentSummary;
+  onChanged: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [targetValue, setTargetValue] = useState(
+    String(assignment.targetValue),
+  );
+  const [startsOn, setStartsOn] = useState(assignment.startsOn);
+  const [dueOn, setDueOn] = useState(assignment.dueOn);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function run(request: () => Promise<unknown>) {
+    setBusy(true);
+    setError("");
+    try {
+      await request();
+      setEditing(false);
+      onChanged();
+    } catch (caught) {
+      // The backend's own refusal is the message worth showing: it is the one
+      // that names the action that would have worked.
+      setError(messageFor(caught));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const path = `v1/staff/teams/${teamId}/assignments/${assignment.id}`;
+
+  return (
+    <li className="console-list__row">
+      <strong>{assignment.activityName}</strong>
+      <span>
+        {assignment.targetValue} {assignment.targetUnit}
+      </span>
+      <span>
+        {consoleCopy.assignments.window(assignment.startsOn, assignment.dueOn)}
+      </span>
+
+      {editing ? (
+        <div className="console-form">
+          <p className="console-hint">{consoleCopy.assignments.amendHint}</p>
+          <label htmlFor={`amend-target-${assignment.id}`}>
+            {consoleCopy.assignments.targetValueLabel}
+          </label>
+          <div className="console-target">
+            <input
+              id={`amend-target-${assignment.id}`}
+              type="number"
+              min="0"
+              step="any"
+              value={targetValue}
+              onChange={(event) => setTargetValue(event.target.value)}
+            />
+            <span>{assignment.targetUnit}</span>
+          </div>
+          <label htmlFor={`amend-starts-${assignment.id}`}>
+            {consoleCopy.assignments.startsOnLabel}
+          </label>
+          <input
+            id={`amend-starts-${assignment.id}`}
+            type="date"
+            value={startsOn}
+            onChange={(event) => setStartsOn(event.target.value)}
+          />
+          <label htmlFor={`amend-due-${assignment.id}`}>
+            {consoleCopy.assignments.dueOnLabel}
+          </label>
+          <input
+            id={`amend-due-${assignment.id}`}
+            type="date"
+            value={dueOn}
+            onChange={(event) => setDueOn(event.target.value)}
+          />
+          <div className="console-actions">
+            <button
+              type="button"
+              className="button button--lime"
+              disabled={busy}
+              onClick={() =>
+                run(() =>
+                  consoleRequest(path, {
+                    method: "PATCH",
+                    body: {
+                      targetValue: Number(targetValue),
+                      targetUnit: assignment.targetUnit,
+                      startsOn,
+                      dueOn,
+                    },
+                  }),
+                )
+              }
+            >
+              {busy ? staffCopy.working : consoleCopy.assignments.save}
+            </button>
+            <button
+              type="button"
+              className="button button--outline"
+              disabled={busy}
+              onClick={() => setEditing(false)}
+            >
+              {consoleCopy.cancel}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="console-actions">
+          <button
+            type="button"
+            className="button button--outline"
+            onClick={() => setEditing(true)}
+          >
+            {consoleCopy.assignments.amend}
+          </button>
+          <ConfirmButton
+            label={consoleCopy.assignments.endEarly}
+            question={consoleCopy.assignments.endEarlyConfirm}
+            confirmLabel={consoleCopy.assignments.endEarlyAction}
+            onConfirm={() =>
+              run(() => consoleRequest(`${path}/end`, { method: "POST" }))
+            }
+          />
+          <ConfirmButton
+            label={consoleCopy.assignments.delete}
+            question={consoleCopy.assignments.deleteConfirm}
+            confirmLabel={consoleCopy.assignments.deleteAction}
+            onConfirm={() =>
+              run(() => consoleRequest(path, { method: "DELETE" }))
+            }
+          />
+        </div>
+      )}
+
+      {error ? (
+        <p className="notice notice--error" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </li>
   );
 }
 

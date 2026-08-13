@@ -137,6 +137,80 @@ describe("coach assignment panel", () => {
     });
   });
 
+  // REQ-517 and REQ-518: an assignment is a plan, not a permanent record. A
+  // coach amends the one they typed wrong, and is offered the verb that works
+  // when the one they wanted to delete has already started.
+  it("amends an assignment, and offers ending early when deleting is refused", async () => {
+    const listed = {
+      assignments: [
+        {
+          id: "assignment-1",
+          catalogKey: "hill_sprints_8x6",
+          activityName: "Hill Sprints",
+          targetValue: 6,
+          targetUnit: "reps",
+          startsOn: "2026-08-05",
+          dueOn: "2026-08-12",
+          createdAt: "2026-08-05T00:00:00Z",
+        },
+      ],
+      current: { completed: [], oneAway: [], keepGoing: [] },
+    };
+    const calls = stubBackend((call) => {
+      if (routeFor(call, "/assignment-catalog")) return Response.json(catalog);
+      if (routeFor(call, "/roster")) return Response.json(emptyRoster);
+      if (call.method === "PATCH") return new Response(null, { status: 204 });
+      if (call.method === "DELETE")
+        return Response.json(
+          {
+            error: {
+              code: "assignment_started",
+              message:
+                "This assignment has already started or has activity against it. End it early instead.",
+            },
+          },
+          { status: 409 },
+        );
+      if (call.url.endsWith("/end"))
+        return Response.json({ dueOn: "2026-08-11" });
+      if (call.url.endsWith("/assignments")) return Response.json(listed);
+      return Response.json(team);
+    });
+    render(<AssignmentPanel teamId="t1" />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Amend" }));
+    fireEvent.change(
+      screen.getByLabelText("Due on", { selector: "#amend-due-assignment-1" }),
+      {
+        target: { value: "2026-08-14" },
+      },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await screen.findByRole("button", { name: "Amend" });
+    const amended = calls.find((call) => call.method === "PATCH");
+    expect(amended?.url).toContain("/assignments/assignment-1");
+    expect(amended?.body).toEqual({
+      targetValue: 6,
+      targetUnit: "reps",
+      startsOn: "2026-08-05",
+      dueOn: "2026-08-14",
+    });
+
+    // Deleting something already under way would take a player's own history
+    // with it, so the refusal names the action that always works.
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete assignment" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "End it early instead.",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "End it early" }));
+    fireEvent.click(screen.getByRole("button", { name: "End it today" }));
+    await screen.findByRole("button", { name: "Amend" });
+    expect(calls.some((call) => call.url.endsWith("/end"))).toBe(true);
+  });
+
   it("groups the live assignment as Completed, One Away, and Keep Going, with no raw values", async () => {
     const current = {
       assignments: [

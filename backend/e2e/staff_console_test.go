@@ -116,6 +116,64 @@ func TestOperatorBuildsAClubAndAPlayerSignsIn(t *testing.T) {
 	assertStatus(t, rejected, http.StatusUnprocessableEntity)
 	_ = rejected.Body.Close()
 
+	// F-C7 and REQ-512: the picker is the seeded preset list, not one activity.
+	catalog := staffGet[struct {
+		Catalog []struct {
+			Key                string  `json:"key"`
+			DefaultTargetValue float64 `json:"defaultTargetValue"`
+			DefaultTargetUnit  string  `json:"defaultTargetUnit"`
+		} `json:"catalog"`
+	}](t, api, "/v1/staff/assignment-catalog", token, http.StatusOK)
+	if len(catalog.Catalog) < 2 {
+		t.Fatalf("catalog = %+v, want more than one preset a coach can assign", catalog.Catalog)
+	}
+	preset := catalog.Catalog[0]
+
+	today := time.Now().UTC()
+	assignment := staffPost[struct {
+		ID string `json:"id"`
+	}](t, api, "/v1/staff/teams/"+team.ID+"/assignments", token, http.StatusCreated, map[string]any{
+		"catalogKey": preset.Key, "targetValue": preset.DefaultTargetValue,
+		"targetUnit": preset.DefaultTargetUnit,
+		"startsOn":   today.AddDate(0, 0, 3).Format("2006-01-02"),
+		"dueOn":      today.AddDate(0, 0, 9).Format("2006-01-02"),
+	})
+
+	// REQ-517: the week a coach typed wrong is amendable, not permanent.
+	amended := api.do(t, http.MethodPatch, "/v1/staff/teams/"+team.ID+"/assignments/"+assignment.ID, token, "",
+		map[string]any{
+			"targetValue": preset.DefaultTargetValue, "targetUnit": preset.DefaultTargetUnit,
+			"startsOn": today.AddDate(0, 0, 4).Format("2006-01-02"),
+			"dueOn":    today.AddDate(0, 0, 10).Format("2006-01-02"),
+		})
+	assertStatus(t, amended, http.StatusNoContent)
+	_ = amended.Body.Close()
+
+	// REQ-518: one that has started refuses deletion and names the way out.
+	live := staffPost[struct {
+		ID string `json:"id"`
+	}](t, api, "/v1/staff/teams/"+team.ID+"/assignments", token, http.StatusCreated, map[string]any{
+		"catalogKey": preset.Key, "targetValue": preset.DefaultTargetValue,
+		"targetUnit": preset.DefaultTargetUnit,
+		"startsOn":   today.AddDate(0, 0, -2).Format("2006-01-02"),
+		"dueOn":      today.AddDate(0, 0, 5).Format("2006-01-02"),
+	})
+	refused := api.do(t, http.MethodDelete, "/v1/staff/teams/"+team.ID+"/assignments/"+live.ID, token, "", nil)
+	assertStatus(t, refused, http.StatusConflict)
+	_ = refused.Body.Close()
+
+	ended := staffPost[struct {
+		DueOn string `json:"dueOn"`
+	}](t, api, "/v1/staff/teams/"+team.ID+"/assignments/"+live.ID+"/end", token, http.StatusOK, nil)
+	if ended.DueOn != today.Format("2006-01-02") {
+		t.Fatalf("ended dueOn = %q, want today", ended.DueOn)
+	}
+
+	// The one that never started is the one delete is for.
+	removed := api.do(t, http.MethodDelete, "/v1/staff/teams/"+team.ID+"/assignments/"+assignment.ID, token, "", nil)
+	assertStatus(t, removed, http.StatusNoContent)
+	_ = removed.Body.Close()
+
 	provisioned := staffPost[struct {
 		PlayerID string `json:"playerId"`
 		PIN      string `json:"pin"`

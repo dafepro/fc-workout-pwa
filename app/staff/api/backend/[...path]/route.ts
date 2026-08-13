@@ -21,6 +21,9 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   return proxyToBackend(request, { marker: MARKER, routes: STAFF_ROUTES });
 }
+export async function PATCH(request: Request) {
+  return proxyToBackend(request, { marker: MARKER, routes: STAFF_ROUTES });
+}
 export async function DELETE(request: Request) {
   return proxyToBackend(request, { marker: MARKER, routes: STAFF_ROUTES });
 }
