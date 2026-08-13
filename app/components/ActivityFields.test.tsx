@@ -2,7 +2,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it } from "vitest";
 import type { ActivityId } from "../domain/types";
-import { ActivitySelector, ActivitySpecificFields } from "./ActivityFields";
+import { ActivitySpecificFields } from "./ActivityFields";
+import { WorkoutSelect } from "./WorkoutSelect";
 import { activities } from "../data/mockData";
 
 function Harness() {
@@ -10,10 +11,17 @@ function Harness() {
   const [value, setValue] = useState(8);
   return (
     <>
-      <ActivitySelector
-        selected={activity}
-        onSelect={setActivity}
-        activities={activities}
+      <WorkoutSelect
+        label="Workout"
+        selectedKey={activity}
+        onSelect={(key) => setActivity(key as ActivityId)}
+        choices={activities.map((definition) => ({
+          key: definition.id,
+          name: definition.name,
+          description: definition.description,
+          icon: definition.icon,
+          instructions: definition.instructions,
+        }))}
       />
       <ActivitySpecificFields
         activityId={activity}
@@ -25,10 +33,18 @@ function Harness() {
   );
 }
 
+/** The picker opens before anything can be chosen from it, exactly as a player
+ * meets it: the choices are a temporary surface, not a permanent list. */
+function openPicker() {
+  fireEvent.click(screen.getByRole("button", { name: /^Selected workout:/ }));
+}
+
 describe("activity-specific form", () => {
   it("shows activity instructions and changes the structured result field", () => {
     render(<Harness />);
     expect(screen.getByText("Reps completed")).toBeInTheDocument();
+
+    openPicker();
     expect(
       screen.getByRole("button", { name: "How to do Hill Sprints" }),
     ).toBeInTheDocument();
@@ -39,6 +55,8 @@ describe("activity-specific form", () => {
       "0.25",
     );
     expect(screen.getByText("miles")).toBeInTheDocument();
+
+    openPicker();
     expect(
       screen.getByRole("button", { name: "How to do Distance Run" }),
     ).toBeInTheDocument();
@@ -60,6 +78,7 @@ describe("activity-specific form", () => {
       expect(screen.getByLabelText("Reps completed")).toHaveValue(9),
     );
 
+    openPicker();
     fireEvent.click(screen.getByRole("radio", { name: /^Distance Run/i }));
     const distance = screen.getByLabelText("Distance completed");
     fireEvent.change(distance, { target: { value: "1" } });

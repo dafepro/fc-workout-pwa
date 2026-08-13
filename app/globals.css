@@ -1359,6 +1359,11 @@ h2 {
 .activity-choice:first-child {
   grid-column: 1 / -1;
 }
+/* Promoting the first card suits the player's four activities, where the first
+   is the one most sessions use. A coach's list is presets of equal standing. */
+.activity-picker__grid--uniform .activity-choice:first-child {
+  grid-column: auto;
+}
 .activity-choice.is-selected {
   border-color: #9ed000;
   background: linear-gradient(135deg, #f7ffdc, white);
@@ -3438,4 +3443,23 @@ h2 {
   .console-dialog button {
     display: none;
   }
+}
+
+/* The target and its unit read as one value: the number is the coach's to set,
+   the unit is the activity's and was never a decision. */
+.console-target {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.console-target input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.console-target span {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 800;
 }

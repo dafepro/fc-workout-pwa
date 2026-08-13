@@ -5,6 +5,8 @@ import { consoleCopy, staffCopy } from "../../../console/copy";
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { routes } from "../../../../content/routes";
+import { activityIcon } from "../../../../content/activities";
+import { WorkoutSelect } from "../../../../components/WorkoutSelect";
 import { ConsoleChrome, ConsoleNotice } from "../../../console/ConsoleChrome";
 import { ConfirmButton } from "../../../console/ConfirmButton";
 import { CredentialRevealPanel } from "../../../console/RevealOnce";
@@ -182,13 +184,32 @@ function AssignmentPanel({ teamId }: { teamId: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  const entries = catalog.data?.catalog ?? [];
+
+  const choices = entries.map((entry) => ({
+    key: entry.key,
+    name: entry.displayName,
+    description: `${entry.defaultTargetValue} ${entry.defaultTargetUnit}`,
+    // The console has no activity vocabulary of its own; icons and accents come
+    // from the same presentation module the player's picker reads.
+    icon: activityIcon(entry.activityDefinitionId),
+    accent: entry.activityDefinitionId,
+  }));
+
+  // The picker always shows a current choice, so an untouched form reads as
+  // sitting on the first preset rather than on an empty option. Derived rather
+  // than seeded into state, so the catalog arriving cannot fight the coach.
+  const selectedKey = catalogKey || (entries[0]?.key ?? "");
+  const selected = entries.find((entry) => entry.key === selectedKey);
+  const target = targetValue || String(selected?.defaultTargetValue ?? "");
+  const unit = targetUnit || (selected?.defaultTargetUnit ?? "");
+
   function chooseCatalogEntry(key: string) {
+    const entry = entries.find((item) => item.key === key);
+    if (!entry) return;
     setCatalogKey(key);
-    const entry = catalog.data?.catalog.find((item) => item.key === key);
-    if (entry) {
-      setTargetValue(String(entry.defaultTargetValue));
-      setTargetUnit(entry.defaultTargetUnit);
-    }
+    setTargetValue(String(entry.defaultTargetValue));
+    setTargetUnit(entry.defaultTargetUnit);
   }
 
   async function submit(event: FormEvent) {
@@ -201,9 +222,9 @@ function AssignmentPanel({ teamId }: { teamId: string }) {
         {
           method: "POST",
           body: {
-            catalogKey,
-            targetValue: Number(targetValue),
-            targetUnit,
+            catalogKey: selectedKey,
+            targetValue: Number(target),
+            targetUnit: unit,
             startsOn,
             dueOn,
           },
@@ -284,45 +305,32 @@ function AssignmentPanel({ teamId }: { teamId: string }) {
 
       <form method="post" onSubmit={submit} noValidate className="console-form">
         <p className="console-hint">{consoleCopy.assignments.createHint}</p>
-        <label htmlFor="assignment-catalog">
-          {consoleCopy.assignments.catalogLabel}
-        </label>
-        <select
-          id="assignment-catalog"
-          value={catalogKey}
-          onChange={(event) => chooseCatalogEntry(event.target.value)}
-          required
-        >
-          <option value="" disabled>
-            {consoleCopy.assignments.catalogLabel}
-          </option>
-          {(catalog.data?.catalog ?? []).map((entry) => (
-            <option key={entry.key} value={entry.key}>
-              {entry.displayName}
-            </option>
-          ))}
-        </select>
+        <WorkoutSelect
+          label={consoleCopy.assignments.catalogLabel}
+          selectedKey={selectedKey}
+          onSelect={chooseCatalogEntry}
+          choices={choices}
+          name="assignment-catalog"
+          uniform
+        />
         <label htmlFor="assignment-target-value">
           {consoleCopy.assignments.targetValueLabel}
         </label>
-        <input
-          id="assignment-target-value"
-          type="number"
-          min="0"
-          step="any"
-          value={targetValue}
-          onChange={(event) => setTargetValue(event.target.value)}
-          required
-        />
-        <label htmlFor="assignment-target-unit">
-          {consoleCopy.assignments.targetUnitLabel}
-        </label>
-        <input
-          id="assignment-target-unit"
-          type="text"
-          value={targetUnit}
-          readOnly
-        />
+        {/* The preset fills this in; it stays editable because a preset is a
+            starting point, not a rule. The unit is the activity's and is not
+            a decision, so it reads as text beside the number. */}
+        <div className="console-target">
+          <input
+            id="assignment-target-value"
+            type="number"
+            min="0"
+            step="any"
+            value={target}
+            onChange={(event) => setTargetValue(event.target.value)}
+            required
+          />
+          <span>{unit}</span>
+        </div>
         <label htmlFor="assignment-starts-on">
           {consoleCopy.assignments.startsOnLabel}
         </label>
@@ -350,7 +358,7 @@ function AssignmentPanel({ teamId }: { teamId: string }) {
         ) : null}
         <button
           className="button button--lime"
-          disabled={busy || !catalogKey || !targetValue || !startsOn || !dueOn}
+          disabled={busy || !selectedKey || !target || !startsOn || !dueOn}
         >
           {busy ? staffCopy.working : consoleCopy.assignments.createAction}
         </button>

@@ -35,6 +35,13 @@ const catalog = {
       defaultTargetValue: 6,
       defaultTargetUnit: "reps",
     },
+    {
+      key: "distance_run_2mi",
+      displayName: "Distance Run (2 miles)",
+      activityDefinitionId: "distance-run",
+      defaultTargetValue: 2,
+      defaultTargetUnit: "miles",
+    },
   ],
 };
 const noCurrentAssignments = {
@@ -80,7 +87,9 @@ afterEach(() => {
 });
 
 describe("coach assignment panel", () => {
-  it("creates an assignment from the approved catalog with its default target", async () => {
+  // REQ-512: the whole catalog is assignable, and REQ-510: it is chosen in the
+  // athlete's picker, so a preset carries its target across with it.
+  it("creates an assignment from any catalog preset, with that preset's target", async () => {
     const calls = stubBackend((call) => {
       if (routeFor(call, "/assignment-catalog")) return Response.json(catalog);
       if (routeFor(call, "/roster")) return Response.json(emptyRoster);
@@ -92,10 +101,20 @@ describe("coach assignment panel", () => {
     });
     render(<TeamRoster teamId="t1" />);
 
-    const select = await screen.findByLabelText("Activity");
-    fireEvent.change(select, { target: { value: "hill_sprints_8x6" } });
+    // The picker lands on a choice rather than an empty option, so its target
+    // is filled in before the coach touches anything.
+    const summary = await screen.findByRole("button", {
+      name: /^Selected activity:/,
+    });
+    expect(summary).toHaveTextContent("Hill Sprints (8x6)");
     expect(screen.getByLabelText("Target")).toHaveValue(6);
-    expect(screen.getByLabelText("Unit")).toHaveValue("reps");
+
+    fireEvent.click(summary);
+    fireEvent.click(
+      screen.getByRole("radio", { name: /^Distance Run \(2 miles\)/ }),
+    );
+    expect(screen.getByLabelText("Target")).toHaveValue(2);
+    expect(screen.getByText("miles")).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Starts on"), {
       target: { value: "2026-08-10" },
@@ -110,9 +129,9 @@ describe("coach assignment panel", () => {
       (call) => call.method === "POST" && call.url.endsWith("/assignments"),
     );
     expect(created?.body).toEqual({
-      catalogKey: "hill_sprints_8x6",
-      targetValue: 6,
-      targetUnit: "reps",
+      catalogKey: "distance_run_2mi",
+      targetValue: 2,
+      targetUnit: "miles",
       startsOn: "2026-08-10",
       dueOn: "2026-08-16",
     });

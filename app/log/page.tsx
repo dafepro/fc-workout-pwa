@@ -2,10 +2,8 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  ActivitySelector,
-  ActivitySpecificFields,
-} from "../components/ActivityFields";
+import { ActivitySpecificFields } from "../components/ActivityFields";
+import { WorkoutSelect } from "../components/WorkoutSelect";
 import { IntensityControls } from "../components/IntensityScale";
 import { copy } from "../content/copy";
 import {
@@ -53,7 +51,6 @@ export default function LogPage() {
   const [exhaustion, setExhaustion] = useState(4);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [showActivities, setShowActivities] = useState(false);
   const initialized = useRef(false);
   const selectedActivity = activities.find((item) => item.id === activityId);
 
@@ -80,7 +77,6 @@ export default function LogPage() {
         : (nextActivity?.defaultValue ?? 1),
     );
     setMessage(null);
-    setShowActivities(false);
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -172,36 +168,19 @@ export default function LogPage() {
       ) : null}
 
       <form method="post" className="log-form" onSubmit={submit}>
-        <button
-          type="button"
-          className={`selected-activity selected-activity--${activityId} ${showActivities ? "is-open" : ""}`}
-          aria-label={`Selected workout: ${selectedActivity.name}. ${showActivities ? "Close activity choices" : "Choose another activity"}`}
-          aria-expanded={showActivities}
-          aria-controls="activity-options"
-          onClick={() => setShowActivities((visible) => !visible)}
-        >
-          <span className="selected-activity__icon" aria-hidden="true">
-            {selectedActivity.icon}
-          </span>
-          <span className="selected-activity__copy">
-            <small>Workout</small>
-            <strong>{selectedActivity.name}</strong>
-            <small>{selectedActivity.description}</small>
-          </span>
-          <span className="selected-activity__chevron" aria-hidden="true">
-            {showActivities ? "⌃" : "⌄"}
-          </span>
-        </button>
-        {showActivities ? (
-          <div id="activity-options" className="activity-options">
-            <ActivitySelector
-              selected={activityId}
-              onSelect={chooseActivity}
-              activities={activities}
-              recommended={assignment?.activityDefinitionId}
-            />
-          </div>
-        ) : null}
+        <WorkoutSelect
+          label="Workout"
+          selectedKey={activityId}
+          onSelect={(key) => chooseActivity(key as ActivityId)}
+          choices={activities.map((activity) => ({
+            key: activity.id,
+            name: activity.name,
+            description: activity.description,
+            icon: activity.icon,
+            instructions: activity.instructions,
+            recommended: activity.id === assignment?.activityDefinitionId,
+          }))}
+        />
         <ActivitySpecificFields
           activityId={activityId}
           value={value}

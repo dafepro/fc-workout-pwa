@@ -9,6 +9,12 @@ type ActivityPresentation = Pick<
   qualifier?: string;
 };
 
+/** For callers holding an id the API gave them -- a catalog entry's activity --
+ * rather than one the union has already narrowed. */
+export function activityIcon(activityDefinitionId: string): string {
+  return activityPresentation[activityDefinitionId as ActivityId]?.icon ?? "•";
+}
+
 export const activityPresentation: Record<ActivityId, ActivityPresentation> = {
   "hill-sprints": {
     shortName: "Sprints",

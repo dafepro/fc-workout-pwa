@@ -4,7 +4,6 @@ import { useState } from "react";
 import { copy } from "../content/copy";
 import { getActivityInput } from "../domain/rules";
 import type { ActivityDefinition, ActivityId } from "../domain/types";
-import { WorkoutInstructions } from "./WorkoutInstructions";
 
 const singularUnits: Record<string, string> = {
   reps: "rep",
@@ -14,62 +13,6 @@ const singularUnits: Record<string, string> = {
 
 function unitLabel(count: number, unit: string): string {
   return count === 1 ? (singularUnits[unit] ?? unit) : unit;
-}
-
-export function ActivitySelector({
-  selected,
-  onSelect,
-  activities,
-  recommended,
-}: {
-  selected: ActivityId;
-  onSelect: (activityId: ActivityId) => void;
-  activities: ActivityDefinition[];
-  recommended?: ActivityId;
-}) {
-  return (
-    <fieldset className="activity-picker">
-      <legend className="sr-only">Activity</legend>
-      <div className="activity-picker__grid">
-        {activities.map((activity) => (
-          <div
-            key={activity.id}
-            className={`activity-choice ${selected === activity.id ? "is-selected" : ""}`}
-          >
-            <label>
-              <input
-                type="radio"
-                name="activity"
-                value={activity.id}
-                checked={selected === activity.id}
-                onChange={() => onSelect(activity.id)}
-              />
-              <span className="activity-choice__icon" aria-hidden="true">
-                {activity.icon}
-              </span>
-              <span className="activity-choice__copy">
-                <strong>{activity.name}</strong>
-                <small>{activity.description}</small>
-              </span>
-            </label>
-            {activity.id === recommended ? (
-              <span
-                className="activity-choice__recommended"
-                aria-label="Coach pick"
-                title="Coach pick"
-              >
-                ★
-              </span>
-            ) : null}
-            <WorkoutInstructions
-              activityName={activity.name}
-              instructions={activity.instructions}
-            />
-          </div>
-        ))}
-      </div>
-    </fieldset>
-  );
 }
 
 export function ActivitySpecificFields({
