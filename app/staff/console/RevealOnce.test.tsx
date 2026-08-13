@@ -55,7 +55,7 @@ describe("credential reveal", () => {
 
   it("copies the PIN and the link together, not just the one on screen", async () => {
     const writeText = stubClipboard(async () => {});
-    render(<CredentialRevealPanel reveal={reveal} onDismiss={() => {}} />);
+    render(<CredentialRevealPanel reveal={reveal} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Copy" }));
 
@@ -73,7 +73,7 @@ describe("credential reveal", () => {
       value: vi.fn(() => false),
       configurable: true,
     });
-    render(<CredentialRevealPanel reveal={reveal} onDismiss={() => {}} />);
+    render(<CredentialRevealPanel reveal={reveal} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Copy" }));
 
@@ -86,7 +86,7 @@ describe("credential reveal", () => {
 
   it("hands the credentials to the device share sheet", async () => {
     const share = stubShare(async () => {});
-    render(<CredentialRevealPanel reveal={reveal} onDismiss={() => {}} />);
+    render(<CredentialRevealPanel reveal={reveal} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Share" }));
 
@@ -102,7 +102,7 @@ describe("credential reveal", () => {
       abort.name = "AbortError";
       throw abort;
     });
-    render(<CredentialRevealPanel reveal={reveal} onDismiss={() => {}} />);
+    render(<CredentialRevealPanel reveal={reveal} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Share" }));
 
@@ -115,7 +115,7 @@ describe("credential reveal", () => {
 
   it("shares the staff invitation with its password and expiry", async () => {
     const share = stubShare(async () => {});
-    render(<InvitationPanel invitation={invitation} onDismiss={() => {}} />);
+    render(<InvitationPanel invitation={invitation} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Share" }));
 
@@ -125,14 +125,14 @@ describe("credential reveal", () => {
     expect(text).toContain(invitation.expiresAt);
   });
 
-  it("still lets the operator acknowledge after copying", async () => {
-    stubClipboard(async () => {});
-    const onDismiss = vi.fn();
-    render(<CredentialRevealPanel reveal={reveal} onDismiss={onDismiss} />);
+  // Closing is RevealDialog's job now, and RevealDialog.test.tsx covers it.
+  it("shows the PIN, the QR, and the link, since a coach may save any of them", () => {
+    render(<CredentialRevealPanel reveal={reveal} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Copy" }));
-    fireEvent.click(screen.getByRole("button", { name: "I have saved this" }));
-
-    expect(onDismiss).toHaveBeenCalledOnce();
+    expect(screen.getByText(reveal.pin)).toBeVisible();
+    expect(screen.getByText(reveal.loginUrl)).toBeVisible();
+    expect(
+      screen.getByRole("img", { name: "Personal sign-in QR code" }),
+    ).toHaveAttribute("src", `data:image/png;base64,${reveal.qrPngBase64}`);
   });
 });

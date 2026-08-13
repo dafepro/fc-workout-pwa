@@ -8,6 +8,7 @@ import { routes } from "../../../../content/routes";
 import { ConsoleChrome, ConsoleNotice } from "../../../console/ConsoleChrome";
 import { ConfirmButton } from "../../../console/ConfirmButton";
 import { CredentialRevealPanel } from "../../../console/RevealOnce";
+import { RevealDialog } from "../../../console/RevealDialog";
 import { ConsoleError, consoleRequest, messageFor } from "../../../console/api";
 import { useResource } from "../../../console/useResource";
 import type {
@@ -85,10 +86,12 @@ export function TeamRoster({
       ) : null}
 
       {reveal ? (
-        <CredentialRevealPanel
-          reveal={reveal}
+        <RevealDialog
+          acknowledgement={consoleCopy.reveal.acknowledge}
           onDismiss={() => setReveal(null)}
-        />
+        >
+          <CredentialRevealPanel reveal={reveal} />
+        </RevealDialog>
       ) : null}
 
       <section className="console-card" aria-label={consoleCopy.roster.title}>

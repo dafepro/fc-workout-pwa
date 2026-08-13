@@ -124,6 +124,8 @@ export const consoleCopy = {
     pinLabel: "PIN",
     qrAlt: "Personal sign-in QR code",
     linkLabel: "Sign-in link",
+    acknowledge: "I have saved the QR code, PIN, and link",
+    acknowledgeInvitation: "I have saved the setup link and password",
     done: "I have saved this",
     copy: "Copy",
     copied: "Copied",

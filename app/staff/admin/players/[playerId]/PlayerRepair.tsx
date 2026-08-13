@@ -6,6 +6,7 @@ import { routes } from "../../../../content/routes";
 import { ConsoleChrome, ConsoleNotice } from "../../../console/ConsoleChrome";
 import { ConfirmButton } from "../../../console/ConfirmButton";
 import { CredentialRevealPanel } from "../../../console/RevealOnce";
+import { RevealDialog } from "../../../console/RevealDialog";
 import { StepUpForm, useStepUp } from "../../../console/StepUp";
 import { ConsoleError, consoleRequest, messageFor } from "../../../console/api";
 import { useResource } from "../../../console/useResource";
@@ -92,10 +93,12 @@ export function PlayerRepair({
       ) : null}
 
       {reveal ? (
-        <CredentialRevealPanel
-          reveal={reveal}
+        <RevealDialog
+          acknowledgement={consoleCopy.reveal.acknowledge}
           onDismiss={() => setReveal(null)}
-        />
+        >
+          <CredentialRevealPanel reveal={reveal} />
+        </RevealDialog>
       ) : null}
 
       {detail ? (

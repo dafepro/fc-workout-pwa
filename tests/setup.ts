@@ -28,3 +28,25 @@ if (!pointerHost.PointerEvent) {
 
   pointerHost.PointerEvent = JsdomPointerEvent;
 }
+
+// jsdom parses <dialog> but implements none of its behaviour, so showModal is
+// missing entirely. Back the three members our code touches with the `open`
+// attribute jsdom does maintain. This proves the wiring, not the focus trap or
+// the inert backdrop -- those are the browser's, and the e2e pass is what
+// actually exercises them.
+const dialogPrototype = window.HTMLDialogElement?.prototype as
+  | (HTMLDialogElement & { showModal?: () => void })
+  | undefined;
+
+if (dialogPrototype && !dialogPrototype.showModal) {
+  dialogPrototype.showModal = function showModal(this: HTMLDialogElement) {
+    this.open = true;
+  };
+  dialogPrototype.show = function show(this: HTMLDialogElement) {
+    this.open = true;
+  };
+  dialogPrototype.close = function close(this: HTMLDialogElement) {
+    this.open = false;
+    this.dispatchEvent(new Event("close"));
+  };
+}

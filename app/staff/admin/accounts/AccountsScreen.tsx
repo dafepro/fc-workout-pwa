@@ -7,6 +7,7 @@ import { routes } from "../../../content/routes";
 import { ConsoleChrome, ConsoleNotice } from "../../console/ConsoleChrome";
 import { ConfirmButton } from "../../console/ConfirmButton";
 import { InvitationPanel } from "../../console/RevealOnce";
+import { RevealDialog } from "../../console/RevealDialog";
 import { StepUpForm, useStepUp } from "../../console/StepUp";
 import { consoleRequest, messageFor } from "../../console/api";
 import { useResource } from "../../console/useResource";
@@ -61,10 +62,12 @@ export function AccountsScreen() {
       ) : null}
 
       {invitation ? (
-        <InvitationPanel
-          invitation={invitation}
+        <RevealDialog
+          acknowledgement={consoleCopy.reveal.acknowledgeInvitation}
           onDismiss={() => setInvitation(null)}
-        />
+        >
+          <InvitationPanel invitation={invitation} />
+        </RevealDialog>
       ) : null}
 
       <CreateAccount

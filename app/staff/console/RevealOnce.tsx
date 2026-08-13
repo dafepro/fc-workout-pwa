@@ -76,13 +76,11 @@ function CredentialActions({
 }
 
 /** SEC-4. Whatever produced these values cannot produce them again, so the copy
- * says so plainly and the only control is an acknowledgement. */
+ * says so plainly. Closing belongs to `RevealDialog`, which wraps this. */
 export function CredentialRevealPanel({
   reveal,
-  onDismiss,
 }: {
   reveal: CredentialReveal;
-  onDismiss: () => void;
 }) {
   const shareBody = [
     `${consoleCopy.reveal.pinLabel}: ${reveal.pin}`,
@@ -115,19 +113,14 @@ export function CredentialRevealPanel({
         subject={consoleCopy.reveal.shareSubject}
         text={shareBody}
       />
-      <button type="button" className="button button--lime" onClick={onDismiss}>
-        {consoleCopy.reveal.done}
-      </button>
     </section>
   );
 }
 
 export function InvitationPanel({
   invitation,
-  onDismiss,
 }: {
   invitation: StaffInvitation;
-  onDismiss: () => void;
 }) {
   const shareBody = [
     `${consoleCopy.accounts.setupUrlLabel}: ${invitation.setupUrl}`,
@@ -157,9 +150,6 @@ export function InvitationPanel({
         subject={consoleCopy.reveal.invitationShareSubject}
         text={shareBody}
       />
-      <button type="button" className="button button--lime" onClick={onDismiss}>
-        {consoleCopy.reveal.done}
-      </button>
     </section>
   );
 }
