@@ -34,6 +34,27 @@ func TestSessionProjectsTheStoredAvatarConfiguration(t *testing.T) {
 	}
 }
 
+func TestSessionProjectsTheTeamTimeZone(t *testing.T) {
+	ctx := context.Background()
+	service, db := sessionService(t)
+	token := seedPlayerSession(t, db, `{}`)
+	now := time.Now().UTC().Format(time.RFC3339Nano)
+	if _, err := db.Exec(`INSERT INTO teams (id, club_id, name, season_id, weekly_default_goal, time_zone, created_at) VALUES ('team-one', 'club-one', 'One', 'season-one', 3, 'America/Chicago', ?)`, now); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-one', 'player-one', '2026-01-01')`); err != nil {
+		t.Fatal(err)
+	}
+
+	session, err := service.Session(ctx, token)
+	if err != nil {
+		t.Fatalf("session: %v", err)
+	}
+	if got := session.Player.Teams[0].TimeZone; got != "America/Chicago" {
+		t.Fatalf("team time zone = %q, want America/Chicago", got)
+	}
+}
+
 // A row that cannot be parsed must cost the player their cosmetics, not their
 // whole session.
 func TestSessionDegradesAnUnparsableAvatarConfigurationToDefaults(t *testing.T) {

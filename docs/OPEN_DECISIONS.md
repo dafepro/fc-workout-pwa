@@ -127,6 +127,35 @@ to resolve, not the implementing agent's.
 - Audit trail and deletion requests.
 - Applicable youth privacy requirements before production use.
 
+## Product analytics (proposed 2026-08-11)
+
+- Planning assumption, not yet approved: use a dedicated Cloudflare D1 database
+  behind a first-party, same-origin, typed event API. Keep analytics disabled by
+  default until its privacy basis and production retention are approved. See
+  `USER_METRICS_PLAN.md`.
+- Proposed retention: 90 days for pseudonymous raw events and 13 months for
+  non-personal daily aggregates, with immediate subject deletion plus a bounded
+  tombstone that reapplies deletion after a D1 Time Travel restore.
+- Proposed access: platform operators may view aggregate product analytics and
+  deliberately resolve one searched player's pseudonymous journey. Coaches do
+  not receive behavioral analytics about children, and D1 stores no roster.
+- Proposed primary product metric: weekly meaningful active players, defined as
+  distinct players who successfully save at least one approved training entry
+  in a calendar week. This measures adoption without rewarding workout volume or
+  athletic performance.
+- Still open: guardian notice/consent or other approved basis, final retention,
+  operator single-player lookup, aggregate handling after erasure, and the date
+  production collection may be explicitly enabled.
+- Planning assumption: analytics mounts inside the existing platform-operator
+  console rather than creating another admin surface. Its capacity card should
+  track actual Worker requests, D1 reads/writes/storage, events per active player,
+  and projected free-tier headroom.
+- Proposed scale policy: keep business outcomes unsampled; summarize route time by
+  visit; step raw retention from 90 to an approved 60/30 days before D1 reaches
+  70%; and deterministically sample only high-volume route/time events if needed.
+  Still open: the exact alert/step-down thresholds after two weeks of measured
+  production coefficients replace the planning estimates.
+
 ## Backup operations
 
 - Recovery-point and recovery-time objectives.

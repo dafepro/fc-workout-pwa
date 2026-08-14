@@ -9,8 +9,10 @@ import { TEAM_NAME } from "../data/mockData";
 import type { ReactionBadge } from "../domain/types";
 import { useTraining } from "../state/training-context";
 import { useAuth } from "../state/auth-context";
+import { useAnalytics } from "../../lib/analytics/AnalyticsProvider";
 
 export default function MePage() {
+  const analytics = useAnalytics();
   const {
     connected,
     signOut,
@@ -52,7 +54,12 @@ export default function MePage() {
         <button
           className="button button--outline"
           type="button"
-          onClick={() => setBuilderOpen((open) => !open)}
+          onClick={() =>
+            setBuilderOpen((open) => {
+              if (!open) analytics.track("avatar_builder_opened", {});
+              return !open;
+            })
+          }
         >
           {builderOpen ? copy.avatar.close : copy.avatar.open}
         </button>

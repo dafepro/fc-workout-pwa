@@ -215,6 +215,32 @@ Confirm both production URLs load and complete only test-identity QR+PIN flows.
 `PRODUCTION_DATA_APPROVED` remains `false` until every owner decision in
 `docs/backend/PRODUCTION_APPROVAL_CHECKLIST.md` is dated and approved.
 
+### Enable privacy-safe product analytics
+
+Analytics is fail-open and disabled unless both the D1 binding and HMAC secret
+are present. Before enabling it, approve the child-privacy, retention, and
+operator-access decisions in `docs/USER_METRICS_PLAN.md`. Then create the free
+D1 database once:
+
+```sh
+pnpm exec wrangler d1 create zoomigo-product-analytics
+gh variable set ANALYTICS_D1_DATABASE_ID --env production --body 'D1_DATABASE_UUID'
+gh secret set ANALYTICS_SUBJECT_KEY --env production --body "$(head -c 32 /dev/urandom | base64)"
+```
+
+The next manual release replaces the local placeholder with that UUID, applies
+the tracked migration, deploys the Worker, and writes the HMAC key as a Worker
+secret. Removing `ANALYTICS_D1_DATABASE_ID` on a later release disables new
+collection without deleting stored data. Never reuse the staff encryption key
+as the analytics key.
+
+Platform operators can then open **Product analytics** in the existing operator
+console. The capacity card reports locally observed D1 rows for the last 24
+hours; Cloudflare's account dashboard remains authoritative for total Worker and
+D1 billing counters. The daily scheduled job removes at most 10,000 raw events
+older than 90 days per run, preventing a large expiry wave from consuming the
+entire daily write allowance.
+
 ## 5. Enable normal CI/CD
 
 Set repository variable `PRODUCTION_DEPLOY_ENABLED=true`. It must be

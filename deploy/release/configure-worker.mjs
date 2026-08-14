@@ -11,7 +11,12 @@ function requireHostname(value, label) {
   return value;
 }
 
-export function configureWorker(generated, production, apiBaseURL) {
+export function configureWorker(
+  generated,
+  production,
+  apiBaseURL,
+  analyticsDatabaseID = "",
+) {
   const apiHostname = requireHostname(production.apiHostname, "apiHostname");
   const pwaHostname = requireHostname(production.pwaHostname, "pwaHostname");
   if (
@@ -27,22 +32,47 @@ export function configureWorker(generated, production, apiBaseURL) {
       `ZOOMIGO_API_BASE_URL (${apiBaseURL}) does not match production API hostname (${apiHostname})`,
     );
   }
+  if (
+    analyticsDatabaseID &&
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      analyticsDatabaseID,
+    )
+  ) {
+    throw new Error("ANALYTICS_D1_DATABASE_ID must be a UUID");
+  }
+  const d1Databases = (generated.d1_databases ?? [])
+    .filter((database) => database.binding !== "ANALYTICS_DB")
+    .concat(
+      analyticsDatabaseID
+        ? (generated.d1_databases ?? [])
+            .filter((database) => database.binding === "ANALYTICS_DB")
+            .map((database) => ({
+              ...database,
+              database_id: analyticsDatabaseID,
+            }))
+        : [],
+    );
+  const generatedVars = { ...(generated.vars ?? {}) };
+  delete generatedVars.ANALYTICS_SUBJECT_KEY;
 
   return {
     ...generated,
     name: production.workerName,
     vars: {
-      ...(generated.vars ?? {}),
+      ...generatedVars,
       ZOOMIGO_API_BASE_URL: apiBaseURL,
       ZOOMIGO_REQUIRE_BACKEND: "true",
+      PRODUCT_ANALYTICS_ENABLED: analyticsDatabaseID ? "true" : "false",
     },
+    d1_databases: d1Databases,
     workers_dev: false,
     routes: [{ pattern: pwaHostname, custom_domain: true }],
   };
 }
 
 async function main() {
-  const [generatedPath, productionPath, apiBaseURL] = process.argv.slice(2);
+  const [generatedPath, productionPath, apiBaseURL, analyticsDatabaseID] =
+    process.argv.slice(2);
   if (!generatedPath || !productionPath || !apiBaseURL) {
     throw new Error(
       "usage: configure-worker.mjs GENERATED_CONFIG PRODUCTION_CONFIG API_BASE_URL",
@@ -52,7 +82,12 @@ async function main() {
   const production = JSON.parse(
     await readFile(resolve(productionPath), "utf8"),
   );
-  const configured = configureWorker(generated, production, apiBaseURL);
+  const configured = configureWorker(
+    generated,
+    production,
+    apiBaseURL,
+    analyticsDatabaseID,
+  );
   await writeFile(
     resolve(generatedPath),
     `${JSON.stringify(configured, null, 2)}\n`,

@@ -31,15 +31,15 @@ These closed open items from `STAFF_CONSOLE_DESIGN.md` §8 and are recorded in
 
 ## Phase status
 
-| Phase                | Requirements                        | Status                                                                   |
-| -------------------- | ----------------------------------- | ------------------------------------------------------------------------ |
-| 0 — sign-in entry    | REQ-101–105                         | Complete                                                                 |
-| 1 — staff identity   | REQ-106, 107, 201–208, 301–305, 401 | Complete                                                                 |
-| 2 — operator console | REQ-601–610, 701–704                | Complete                                                                 |
-| 3 — coach console    | Migration D, REQ-501–506, 403, 404  | Released 2026-08-08 as `3eb0ff3`, E2E pass still owed, below             |
-| Access gate          | REQ-402                             | Withdrawn 2026-08-12; app sign-in and TOTP are the only code gate        |
-| Release              | —                                   | Phases 0–3 released 2026-08-08 as `3eb0ff3`                              |
-| First operator       | —                                   | Created 2026-08-08 for `3bigdave@gmail.com`; setup link not yet redeemed |
+| Phase                | Requirements                        | Status                                                              |
+| -------------------- | ----------------------------------- | ------------------------------------------------------------------- |
+| 0 — sign-in entry    | REQ-101–105                         | Complete                                                            |
+| 1 — staff identity   | REQ-106, 107, 201–208, 301–305, 401 | Complete                                                            |
+| 2 — operator console | REQ-601–610, 701–704                | Complete                                                            |
+| 3 — coach console    | Migration D, REQ-501–506, 403, 404  | Released 2026-08-08 as `3eb0ff3`, E2E pass still owed, below        |
+| Access gate          | REQ-402                             | Withdrawn 2026-08-12; app sign-in and TOTP are the only code gate   |
+| Release              | —                                   | Phases 0–3 released 2026-08-08 as `3eb0ff3`                         |
+| First operator       | —                                   | Placeholder: `staff-admin@example.com`; status varies by deployment |
 
 ## Owed
 
@@ -289,11 +289,10 @@ the moment Access took over — `worker/staff-gate.ts`, its wiring in
 the production environment all go together — but removing it now would leave
 `/staff/*` open, so it is deliberately untouched.
 
-This project's addresses are `3bigdave@gmail.com`, not the work address that
-had been written into the bootstrap command here. `STAFF_CONSOLE_EMAIL_ADDRESSES`
-now matches `ALERT_EMAIL_ADDRESSES`, which matters more than tidiness: Access
-admits by exact address and one-time PIN mails the code there, so the wrong
-value in that variable is a lockout rather than a cosmetic error.
+The private operator addresses in `STAFF_CONSOLE_EMAIL_ADDRESSES` now match
+`ALERT_EMAIL_ADDRESSES`, which matters more than tidiness: Access admits by
+exact address and one-time PIN mails the code there, so the wrong value in that
+variable is a lockout rather than a cosmetic error.
 
 The first `platform_admin` now exists — `list-staff` returned an empty set
 beforehand, so it is genuinely the first. Its setup link is single use and

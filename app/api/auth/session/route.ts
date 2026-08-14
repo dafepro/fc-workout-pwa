@@ -9,6 +9,12 @@ import {
   sameOrigin,
   setSessionCookie,
 } from "../../backend";
+import {
+  recordServerEvent,
+  recordAnonymousServerEvent,
+  recordServerEventForRequest,
+  type AnalyticsSession,
+} from "../../../../lib/analytics/server";
 
 export async function GET(request: Request) {
   const baseURL = backendBaseURL();
@@ -40,6 +46,9 @@ export async function POST(request: Request) {
   try {
     raw = await limitedBody(request, 2048);
   } catch {
+    await recordAnonymousServerEvent("player_sign_in_failed", {
+      reason: "invalid",
+    });
     return jsonError(
       413,
       "request_too_large",
@@ -61,6 +70,9 @@ export async function POST(request: Request) {
       body: raw,
     });
   } catch {
+    await recordAnonymousServerEvent("player_sign_in_failed", {
+      reason: "unavailable",
+    });
     return jsonError(
       503,
       "backend_unavailable",
@@ -69,12 +81,15 @@ export async function POST(request: Request) {
   }
   const body = await upstream.text();
   if (!upstream.ok) {
+    await recordAnonymousServerEvent("player_sign_in_failed", {
+      reason: signInFailureReason(upstream.status),
+    });
     return new Response(body, {
       status: upstream.status,
       headers: forwardedHeaders(upstream),
     });
   }
-  const session = JSON.parse(body) as { token?: string };
+  const session = JSON.parse(body) as AnalyticsSession & { token?: string };
   if (!session.token) {
     return jsonError(
       502,
@@ -88,7 +103,20 @@ export async function POST(request: Request) {
     "Set-Cookie",
     setSessionCookie(request, JSON.parse(body).token, rememberDevice),
   );
+  await recordServerEvent(session, "player_sign_in_succeeded", {
+    remembered: rememberDevice,
+  });
   return Response.json(session, { status: 201, headers });
+}
+
+function signInFailureReason(
+  status: number,
+): "invalid" | "locked" | "busy" | "rate_limited" | "unavailable" {
+  if (status === 423) return "locked";
+  if (status === 429) return "rate_limited";
+  if (status === 503) return "busy";
+  if (status >= 500) return "unavailable";
+  return "invalid";
 }
 
 export async function DELETE(request: Request) {
@@ -97,6 +125,7 @@ export async function DELETE(request: Request) {
   }
   const token = readSessionCookie(request);
   const baseURL = backendBaseURL();
+  await recordServerEventForRequest(request, "player_signed_out", {});
   if (token && baseURL) {
     try {
       await fetch(`${baseURL}/v1/auth/session`, {

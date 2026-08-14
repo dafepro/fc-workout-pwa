@@ -18,6 +18,7 @@ read them directly; nothing decrypts a file to reach them.
 | `TF_STATE_ACCESS_KEY_ID` / `TF_STATE_SECRET_ACCESS_KEY`   | release, infra          | R2 credentials for the OpenTofu state bucket (`zoomigo-tfstate`).                                                                                                                                                                           |
 | `BACKUP_AGE_IDENTITY`                                     | on-demand restore drill | Private half of the one remaining `age` identity; decrypts SQLite backups.                                                                                                                                                                  |
 | `STAFF_SECRET_KEY`                                        | release                 | 32 base64 bytes encrypting stored staff second factors. Rotating it makes every enrolled authenticator unreadable, so every staff account must re-enrol. Absent, the API refuses staff sign-in rather than running without a second factor. |
+| `ANALYTICS_SUBJECT_KEY`                                   | release                 | At least 32 random bytes used only as the HMAC key for pseudonymous player and team analytics keys. Rotating it intentionally breaks historical user continuity.                                                                            |
 
 ## GitHub `production` environment variables (not secret)
 
@@ -36,6 +37,7 @@ read them directly; nothing decrypts a file to reach them.
 | `PLAYER_LOGIN_URL` / `STAFF_SETUP_URL`                                                | Absolute https URLs on the PWA hostname. The console builds a player's QR link and a coach's one-time setup link from these.                                                                                                                                         |
 | `PRODUCTION_DATA_APPROVED`                                                            | `true` allows the console and the CLI to create real player accounts. Keep it unset or `false` until the approval checklist is recorded.                                                                                                                             |
 | `PRODUCTION_DEPLOY_ENABLED`                                                           | Repository-scoped, not environment-scoped (a job-level `if` cannot see environment variables). Kill switch: releases also require dispatching the workflow with `deploy: true`, so `true` here never deploys on its own. Set to anything else to block all releases. |
+| `ANALYTICS_D1_DATABASE_ID`                                                            | Optional D1 database UUID. When absent, the release removes the placeholder binding and analytics remains off. Setting it enables collection and requires `ANALYTICS_SUBJECT_KEY`.                                                                                   |
 
 Set these with `gh secret set NAME --env production` and
 `gh variable set NAME --env production --body VALUE`.

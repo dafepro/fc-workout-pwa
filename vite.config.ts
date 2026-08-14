@@ -13,16 +13,21 @@ const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 
 const bindingConfig = () => ({
   main: "./worker/index.ts",
+  triggers: { crons: ["17 5 * * *"] },
   compatibility_flags: ["nodejs_compat"],
   vars: {
     ZOOMIGO_API_BASE_URL: process.env.ZOOMIGO_API_BASE_URL ?? "",
+    PRODUCT_ANALYTICS_ENABLED: process.env.PRODUCT_ANALYTICS_ENABLED ?? "false",
+    ANALYTICS_SUBJECT_KEY: process.env.ANALYTICS_SUBJECT_KEY ?? "",
   },
   d1_databases: d1
     ? [
         {
           binding: d1,
-          database_name: "site-creator-d1",
+          database_name: "zoomigo-product-analytics",
           database_id: SITE_CREATOR_PLACEHOLDER_DATABASE_ID,
+          // The deploy config is emitted at dist/server/wrangler.json.
+          migrations_dir: "../../drizzle",
         },
       ]
     : [],

@@ -15,6 +15,7 @@ import type {
 } from "../domain/types";
 import { useTraining } from "../state/training-context";
 import { useAuth } from "../state/auth-context";
+import { useAnalytics } from "../../lib/analytics/AnalyticsProvider";
 
 type Period = "Weekly" | "30 Days" | "Season";
 type Metric = "Effort" | "Streaks" | "Consistency";
@@ -22,6 +23,7 @@ type Metric = "Effort" | "Streaks" | "Consistency";
 export default function LeadersPage() {
   const { sendReaction } = useTraining();
   const { connected, currentPlayerID, session } = useAuth();
+  const analytics = useAnalytics();
   const teamID = session?.player?.teams[0]?.id ?? "team-hill-striders";
   const gateway = useMemo(
     () => createSocialGateway(connected, teamID),
@@ -146,6 +148,10 @@ export default function LeadersPage() {
                     onClick={() => {
                       setStatus("loading");
                       setPeriod(option);
+                      analytics.track("leaderboard_filter_selected", {
+                        period: periodMetricValue(option),
+                        metric: metricValue(metric),
+                      });
                     }}
                   >
                     {option}
@@ -165,6 +171,10 @@ export default function LeadersPage() {
                       onClick={() => {
                         setStatus("loading");
                         setMetric(option);
+                        analytics.track("leaderboard_filter_selected", {
+                          period: periodMetricValue(period),
+                          metric: metricValue(option),
+                        });
                       }}
                     >
                       {option === "Effort"
@@ -247,6 +257,14 @@ function periodValue(period: Period): ReactionPeriod {
     ? "weekly"
     : period === "30 Days"
       ? "thirty_days"
+      : "season";
+}
+
+function periodMetricValue(period: Period): "weekly" | "rolling-30" | "season" {
+  return period === "Weekly"
+    ? "weekly"
+    : period === "30 Days"
+      ? "rolling-30"
       : "season";
 }
 
