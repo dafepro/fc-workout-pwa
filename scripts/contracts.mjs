@@ -274,6 +274,7 @@ async function secretContract() {
       "secrets.DIGITALOCEAN_TOKEN",
       "secrets.TF_STATE_ACCESS_KEY_ID",
       "secrets.TF_STATE_SECRET_ACCESS_KEY",
+      "secrets.CLOUDFLARE_ACCOUNT_ID",
       "vars.TF_STATE_BUCKET",
       "vars.TF_STATE_ENDPOINT",
       "environment: production",
@@ -314,6 +315,10 @@ async function releaseContract() {
     !workflow.includes("ZOOMIGO_DEPLOY_AGE_IDENTITY"),
     "The release workflow must not depend on the retired deployment bundle identity.",
   );
+  requireCondition(
+    !workflow.includes("vars.ANALYTICS_D1_DATABASE_ID"),
+    "The release workflow must discover D1 instead of copying its identifier into GitHub.",
+  );
   const release = await text("deploy/release/release.sh");
   requireCondition(
     !release.includes("open-production-secrets.sh") &&
@@ -326,6 +331,8 @@ async function releaseContract() {
       "ZOOMIGO_DEPLOY_SSH_KEY",
       "infra/known_hosts",
       "BACKUP_S3_ACCESS_KEY_ID",
+      "wrangler d1 list --json",
+      "resolve-analytics-d1.mjs",
       "wrangler deploy",
     ],
     "Release script",
@@ -399,6 +406,8 @@ async function iacContract() {
       'resource "digitalocean_uptime_check"',
       'resource "digitalocean_uptime_alert"',
       'resource "cloudflare_dns_record"',
+      'resource "cloudflare_d1_database"',
+      "analytics_d1_database_id",
       "prevent_destroy = true",
       "s-1vcpu-512mb-10gb",
       'backend "s3"',
@@ -451,6 +460,7 @@ async function productionAutomationContract() {
     "infra/digitalocean/adopt-host.sh",
     "infra/digitalocean/environment.tftpl",
     "deploy/release/configure-worker.mjs",
+    "deploy/release/resolve-analytics-d1.mjs",
     "docs/PRODUCTION_RUNBOOK.md",
   ];
   await Promise.all(requiredFiles.map(requireFile));
@@ -475,6 +485,7 @@ async function productionAutomationContract() {
       'resource "digitalocean_uptime_check"',
       'resource "digitalocean_uptime_alert"',
       'resource "cloudflare_dns_record"',
+      'resource "cloudflare_d1_database"',
     ],
     "Production IaC",
   );
@@ -521,6 +532,7 @@ async function productionAutomationContract() {
   run("node", [
     "--test",
     join(ROOT, "deploy/release/configure-worker.test.mjs"),
+    join(ROOT, "deploy/release/resolve-analytics-d1.test.mjs"),
   ]);
   const obsolete = [
     "docs/backend/DIGITALOCEAN_UNDER_5_RUNBOOK.md",

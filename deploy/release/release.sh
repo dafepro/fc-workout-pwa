@@ -27,6 +27,8 @@ esac
 : "${STAFF_SECRET_KEY:?STAFF_SECRET_KEY is required; it protects stored staff second factors}"
 : "${PLAYER_LOGIN_URL:?PLAYER_LOGIN_URL is required}"
 : "${STAFF_SETUP_URL:?STAFF_SETUP_URL is required}"
+: "${CLOUDFLARE_ACCOUNT_ID:?CLOUDFLARE_ACCOUNT_ID is required}"
+: "${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN is required}"
 for console_url in "$ZOOMIGO_API_BASE_URL" "$PLAYER_LOGIN_URL" "$STAFF_SETUP_URL"; do
 	case "$console_url" in https://*) ;; *) printf '%s\n' "error: $console_url must use HTTPS" >&2; exit 1 ;; esac
 done
@@ -34,11 +36,15 @@ done
 cd "$REPOSITORY_ROOT"
 pnpm install --frozen-lockfile
 pnpm build
+analytics_database_id=$(pnpm exec wrangler d1 list --json | node "$SCRIPT_DIRECTORY/resolve-analytics-d1.mjs")
+if [ -n "$analytics_database_id" ]; then
+	: "${ANALYTICS_SUBJECT_KEY:?ANALYTICS_SUBJECT_KEY is required when analytics is enabled}"
+fi
 node "$SCRIPT_DIRECTORY/configure-worker.mjs" \
 	"$REPOSITORY_ROOT/dist/server/wrangler.json" \
 	"$REPOSITORY_ROOT/deploy/production.json" \
 	"$ZOOMIGO_API_BASE_URL" \
-	"${ANALYTICS_D1_DATABASE_ID:-}"
+	"$analytics_database_id"
 
 private_root=$(mktemp -d)
 secrets_directory="$private_root/secrets"
@@ -67,14 +73,11 @@ mkdir -m 0700 -- "$secrets_directory"
 )
 "$SCRIPT_DIRECTORY/deploy-vm.sh" "$secrets_directory" "$release_sha"
 
-: "${CLOUDFLARE_ACCOUNT_ID:?CLOUDFLARE_ACCOUNT_ID is required}"
-: "${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN is required}"
-if [ -n "${ANALYTICS_D1_DATABASE_ID:-}" ]; then
-	: "${ANALYTICS_SUBJECT_KEY:?ANALYTICS_SUBJECT_KEY is required when analytics is enabled}"
+if [ -n "$analytics_database_id" ]; then
 	pnpm exec wrangler d1 migrations apply ANALYTICS_DB --remote --config dist/server/wrangler.json
 fi
 pnpm exec wrangler deploy --config dist/server/wrangler.json
-if [ -n "${ANALYTICS_D1_DATABASE_ID:-}" ]; then
+if [ -n "$analytics_database_id" ]; then
 	printf '%s' "$ANALYTICS_SUBJECT_KEY" | pnpm exec wrangler secret put ANALYTICS_SUBJECT_KEY --config dist/server/wrangler.json
 fi
 

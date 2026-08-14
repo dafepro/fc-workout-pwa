@@ -5,6 +5,7 @@ droplet_size         = "s-1vcpu-512mb-10gb"
 # it is protected by key-only auth instead (see cloud-init.yaml.tftpl).
 ssh_source_addresses = ["0.0.0.0/0", "::/0"]
 cloudflare_zone_id   = "REPLACE_WITH_ZONE_ID"
+cloudflare_account_id = "REPLACE_WITH_ACCOUNT_ID"
 alert_email_addresses = ["operator@example.net"]
 backup_age_recipient = "age1REPLACE_WITH_BACKUP_PUBLIC_RECIPIENT"
 # Optional: also authorize your own laptop's public key for direct operator

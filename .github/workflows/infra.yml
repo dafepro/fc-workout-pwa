@@ -84,6 +84,7 @@ jobs:
             -var="api_hostname=${API_HOSTNAME}" \
             -var="pwa_hostname=${PWA_HOSTNAME}" \
             -var="cloudflare_zone_id=${{ vars.CLOUDFLARE_ZONE_ID }}" \
+            -var="cloudflare_account_id=${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" \
             -var='ssh_source_addresses=${{ vars.SSH_SOURCE_ADDRESSES }}' \
             -var='alert_email_addresses=${{ vars.ALERT_EMAIL_ADDRESSES }}' \
             -var="backup_age_recipient=${{ vars.BACKUP_AGE_RECIPIENT }}" \

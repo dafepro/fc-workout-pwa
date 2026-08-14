@@ -10,8 +10,9 @@ host and serves the PWA from Cloudflare at:
 The application stays portable: Go/SQLite and Caddy run in Docker Compose on
 one Linux VM, while a Cloudflare Worker serves the PWA. OpenTofu manages the
 DigitalOcean project, Droplet, assigned Reserved IP, Cloud Firewall, resource
-alerts, a global API readiness check, monitoring, backups, and the Cloudflare
-API A record. Wrangler manages the Worker custom domain during release.
+alerts, a global API readiness check, monitoring, backups, the Cloudflare API A
+record, and the D1 analytics database. Wrangler manages the Worker custom
+domain during release.
 
 ## Safety boundary
 
@@ -62,8 +63,8 @@ Cloud accounts need:
 
 1. A DigitalOcean token able to manage projects, Droplets, SSH keys, Reserved
    IPs, firewalls, monitoring alerts, uptime checks, and backups.
-2. A Cloudflare API token able to edit DNS for `quicktrack.cc` and deploy
-   Workers/custom domains for the account.
+2. A Cloudflare API token able to edit DNS for `quicktrack.cc`, manage D1, and
+   deploy Workers/custom domains for the account.
 3. Two Cloudflare R2 buckets: the existing private backup bucket, and a new
    small `zoomigo-tfstate` bucket for Terraform state. Create a separate R2 API
    token scoped to just the state bucket.
@@ -139,8 +140,9 @@ artifact and printing it in the job log.
 
 Read the complete plan. A first plan should create one project, SSH key,
 Droplet, assigned Reserved IP, firewall, three resource alerts, one global
-readiness check and alert, project-resource attachment, and Cloudflare DNS
-record. It must not destroy or replace an unexpected resource. The readiness
+readiness check and alert, project-resource attachment, Cloudflare DNS record,
+and protected D1 analytics database. It must not destroy or replace an
+unexpected resource. The readiness
 alert may report the API down until the first release completes.
 
 Trigger `infra.yml` again with `action: apply` and `plan_run_id` set to the
@@ -217,22 +219,21 @@ Confirm both production URLs load and complete only test-identity QR+PIN flows.
 
 ### Enable privacy-safe product analytics
 
-Analytics is fail-open and disabled unless both the D1 binding and HMAC secret
-are present. Before enabling it, approve the child-privacy, retention, and
-operator-access decisions in `docs/USER_METRICS_PLAN.md`. Then create the free
-D1 database once:
+Analytics remains disabled until the protected D1 database exists. Set the HMAC
+secret once; OpenTofu creates the database through the normal reviewed
+`infra.yml` plan/apply flow:
 
 ```sh
-pnpm exec wrangler d1 create zoomigo-product-analytics
-gh variable set ANALYTICS_D1_DATABASE_ID --env production --body 'D1_DATABASE_UUID'
 gh secret set ANALYTICS_SUBJECT_KEY --env production --body "$(head -c 32 /dev/urandom | base64)"
 ```
 
-The next manual release replaces the local placeholder with that UUID, applies
-the tracked migration, deploys the Worker, and writes the HMAC key as a Worker
-secret. Removing `ANALYTICS_D1_DATABASE_ID` on a later release disables new
-collection without deleting stored data. Never reuse the staff encryption key
-as the analytics key.
+Each manual release queries D1 for exactly one database named
+`zoomigo-product-analytics`, configures its binding, applies the tracked
+migrations, deploys the Worker, and writes the HMAC key as a Worker secret. No
+database with that name leaves analytics disabled; duplicate matches or a D1
+API failure stop the release. The database has `prevent_destroy`, so disabling
+collection requires a reviewed code change and does not delete stored data.
+Never reuse the staff encryption key as the analytics key.
 
 Platform operators can then open **Product analytics** in the existing operator
 console. The capacity card reports locally observed D1 rows for the last 24

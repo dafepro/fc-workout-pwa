@@ -23,6 +23,11 @@ output "pwa_hostname" {
   value       = var.pwa_hostname
 }
 
+output "analytics_d1_database_id" {
+  description = "Cloudflare D1 identifier discovered automatically by releases."
+  value       = cloudflare_d1_database.analytics.id
+}
+
 output "staff_console_url" {
   description = "Entry point for the coach and operator console."
   value       = "https://${var.pwa_hostname}/staff"
