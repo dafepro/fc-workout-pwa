@@ -39,13 +39,10 @@ func TestSessionProjectsTheTeamTimeZone(t *testing.T) {
 	service, db := sessionService(t)
 	token := seedPlayerSession(t, db, `{}`)
 	now := time.Now().UTC().Format(time.RFC3339Nano)
-	if _, err := db.Exec(`INSERT INTO seasons (id, club_id, name, starts_on, ends_on, created_at) VALUES ('season-one', 'club-one', '2026', '2026-01-01', '2026-12-31', ?)`, now); err != nil {
-		t.Fatal(err)
-	}
 	if _, err := db.Exec(`INSERT INTO teams (id, club_id, name, season_id, weekly_default_goal, time_zone, created_at) VALUES ('team-one', 'club-one', 'One', 'season-one', 3, 'America/Chicago', ?)`, now); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := db.Exec(`INSERT INTO team_memberships (id, team_id, player_id, active_from, created_at) VALUES ('membership-one', 'team-one', 'player-one', '2026-01-01', ?)`, now); err != nil {
+	if _, err := db.Exec(`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-one', 'player-one', '2026-01-01')`); err != nil {
 		t.Fatal(err)
 	}
 
