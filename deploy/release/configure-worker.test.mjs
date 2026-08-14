@@ -13,6 +13,7 @@ test("configures the production Worker, API, and analytics binding", () => {
         database_id: "00000000-0000-4000-8000-000000000000",
       },
     ],
+    triggers: { crons: ["17 5 * * *"] },
     workers_dev: true,
   };
   const production = {
@@ -43,6 +44,7 @@ test("configures the production Worker, API, and analytics binding", () => {
           database_id: "11111111-1111-4111-8111-111111111111",
         },
       ],
+      triggers: { crons: ["17 5 * * *"] },
       workers_dev: false,
       routes: [
         {
@@ -64,6 +66,7 @@ test("leaves analytics disabled and removes the placeholder without a database",
           database_id: "00000000-0000-4000-8000-000000000000",
         },
       ],
+      triggers: { crons: ["17 5 * * *"] },
     },
     {
       apiHostname: "api.quicktrack.cc",
@@ -75,6 +78,7 @@ test("leaves analytics disabled and removes the placeholder without a database",
   );
   assert.equal(configured.vars.PRODUCT_ANALYTICS_ENABLED, "false");
   assert.deepEqual(configured.d1_databases, []);
+  assert.equal(configured.triggers, undefined);
 });
 
 test("rejects a mismatched public API origin", () => {

@@ -55,7 +55,7 @@ export function configureWorker(
   const generatedVars = { ...(generated.vars ?? {}) };
   delete generatedVars.ANALYTICS_SUBJECT_KEY;
 
-  return {
+  const configured = {
     ...generated,
     name: production.workerName,
     vars: {
@@ -68,6 +68,10 @@ export function configureWorker(
     workers_dev: false,
     routes: [{ pattern: pwaHostname, custom_domain: true }],
   };
+  if (!analyticsDatabaseID) {
+    delete configured.triggers;
+  }
+  return configured;
 }
 
 async function main() {
