@@ -176,3 +176,13 @@ resource "cloudflare_dns_record" "api" {
   ttl     = 1
   proxied = true
 }
+
+resource "cloudflare_d1_database" "analytics" {
+  account_id            = var.cloudflare_account_id
+  name                  = "zoomigo-product-analytics"
+  primary_location_hint = "enam"
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}

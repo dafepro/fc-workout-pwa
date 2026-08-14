@@ -53,6 +53,11 @@ variable "cloudflare_zone_id" {
   type        = string
 }
 
+variable "cloudflare_account_id" {
+  description = "Cloudflare account identifier that owns the Worker and analytics database."
+  type        = string
+}
+
 variable "alert_email_addresses" {
   description = "Operator email destinations for DigitalOcean resource alerts; stored only in ignored inputs and encrypted state."
   type        = list(string)

@@ -127,12 +127,13 @@ to resolve, not the implementing agent's.
 - Audit trail and deletion requests.
 - Applicable youth privacy requirements before production use.
 
-## Product analytics (proposed 2026-08-11)
+## Product analytics
 
-- Planning assumption, not yet approved: use a dedicated Cloudflare D1 database
-  behind a first-party, same-origin, typed event API. Keep analytics disabled by
-  default until its privacy basis and production retention are approved. See
-  `USER_METRICS_PLAN.md`.
+- Decided 2026-08-14: production collection is operationally enabled by applying
+  the reviewed OpenTofu plan that creates the protected, dedicated Cloudflare D1
+  database. Releases discover that database by its fixed name and require the
+  independent HMAC key; no copied database-ID variable or generic enable flag is
+  used. See `USER_METRICS_PLAN.md`.
 - Proposed retention: 90 days for pseudonymous raw events and 13 months for
   non-personal daily aggregates, with immediate subject deletion plus a bounded
   tombstone that reapplies deletion after a D1 Time Travel restore.
@@ -144,8 +145,9 @@ to resolve, not the implementing agent's.
   in a calendar week. This measures adoption without rewarding workout volume or
   athletic performance.
 - Still open: guardian notice/consent or other approved basis, final retention,
-  operator single-player lookup, aggregate handling after erasure, and the date
-  production collection may be explicitly enabled.
+  operator single-player lookup, and aggregate handling after erasure. These
+  policy obligations remain owed even though the owner approved operational
+  enablement on 2026-08-14.
 - Planning assumption: analytics mounts inside the existing platform-operator
   console rather than creating another admin surface. Its capacity card should
   track actual Worker requests, D1 reads/writes/storage, events per active player,
