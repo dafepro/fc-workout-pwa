@@ -187,6 +187,12 @@ async function deploymentContract() {
     ["deploy/release/release.sh", "PRODUCTION_DEPLOY_ENABLED"],
     "Release workflow",
   );
+  requireCondition(
+    /^    if: github\.ref == 'refs\/heads\/main' && vars\.PRODUCTION_DEPLOY_ENABLED == 'true'$/m.test(
+      workflow,
+    ),
+    "The production release job must run only from the main workflow ref.",
+  );
   const deployScript = await text("deploy/vm/scripts/deploy.sh");
   containsEvery(
     deployScript,
@@ -281,6 +287,18 @@ async function secretContract() {
       "tofu apply",
     ],
     "Infrastructure workflow",
+  );
+  requireCondition(
+    /^    if: github\.ref == 'refs\/heads\/main' && inputs\.action == 'plan'$/m.test(
+      infraWorkflow,
+    ),
+    "The production infrastructure plan must run only from the main workflow ref.",
+  );
+  requireCondition(
+    /^    if: github\.ref == 'refs\/heads\/main' && inputs\.action == 'apply'$/m.test(
+      infraWorkflow,
+    ),
+    "The production infrastructure apply must run only from the main workflow ref.",
   );
 
   const gitignore = await text(".gitignore");

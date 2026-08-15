@@ -24,7 +24,7 @@ permissions:
 
 jobs:
   plan:
-    if: inputs.action == 'plan'
+    if: github.ref == 'refs/heads/main' && inputs.action == 'plan'
     name: tofu plan
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -115,7 +115,7 @@ jobs:
           } >>"$GITHUB_STEP_SUMMARY"
 
   apply:
-    if: inputs.action == 'apply'
+    if: github.ref == 'refs/heads/main' && inputs.action == 'apply'
     name: tofu apply
     runs-on: ubuntu-24.04
     timeout-minutes: 15
