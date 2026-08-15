@@ -11,6 +11,7 @@ import type { Player } from "../domain/types";
 import { TrainingProvider } from "./training-context";
 import { copy } from "../content/copy";
 import { routes } from "../content/routes";
+import { AvatarIdentityProvider } from "./avatar-identity-context";
 
 interface SessionProfile {
   accountId: string;
@@ -153,13 +154,15 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   };
   return (
     <AuthContext.Provider value={auth}>
-      <TrainingProvider
-        connected={connected}
-        currentPlayerID={currentPlayerID}
-        currentTeamID={currentTeamID}
-      >
-        <AppShell>{children}</AppShell>
-      </TrainingProvider>
+      <AvatarIdentityProvider value={{ currentPlayerID, avatarConfig }}>
+        <TrainingProvider
+          connected={connected}
+          currentPlayerID={currentPlayerID}
+          currentTeamID={currentTeamID}
+        >
+          <AppShell>{children}</AppShell>
+        </TrainingProvider>
+      </AvatarIdentityProvider>
     </AuthContext.Provider>
   );
 }

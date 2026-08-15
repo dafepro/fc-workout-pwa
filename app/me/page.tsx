@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Avatar } from "../components/Avatar";
+import { PlayerAvatar } from "../components/PlayerAvatar";
 import { SessionList } from "../components/SessionList";
 import { TransientQueryToast } from "../components/TransientQueryToast";
 import { copy } from "../content/copy";
@@ -18,7 +18,6 @@ export default function MePage() {
     currentPlayer: player,
     currentPlayerID,
     session,
-    avatarConfig,
   } = useAuth();
   const {
     entries,
@@ -45,7 +44,7 @@ export default function MePage() {
         message={copy.avatar.saveSuccess}
       />
       <header className="profile-hero">
-        <Avatar player={player} size="large" config={avatarConfig} />
+        <PlayerAvatar player={player} size="large" emphasizeSelf={false} />
         <div>
           <p className="eyebrow">Player profile</p>
           <h1>

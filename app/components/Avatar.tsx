@@ -9,13 +9,13 @@ export function Avatar({
   size = "medium",
   completed = false,
   config,
+  isCurrentPlayer = false,
 }: {
   player: Player;
   size?: "small" | "medium" | "large";
   completed?: boolean;
-  /** Given only for the signed-in player's own surfaces. Team and leaderboard
-   * rows stay on initials, so nobody's chosen look can leak into another row. */
   config?: AvatarConfiguration;
+  isCurrentPlayer?: boolean;
 }) {
   const validConfig = isAvatarConfiguration(config) ? config : null;
   const initials =
@@ -23,9 +23,9 @@ export function Avatar({
 
   return (
     <span
-      className={`avatar avatar--${size}`}
+      className={`avatar avatar--${size}${isCurrentPlayer ? " avatar--self" : ""}`}
       style={validConfig ? undefined : { background: playerColor(player.id) }}
-      aria-label={`${player.firstName} ${player.lastInitial}`}
+      aria-label={`${player.firstName} ${player.lastInitial}${isCurrentPlayer ? ", you" : ""}`}
       title={`${player.firstName} ${player.lastInitial}`}
     >
       {validConfig ? (
@@ -33,6 +33,11 @@ export function Avatar({
       ) : (
         <span aria-hidden="true">{initials}</span>
       )}
+      {isCurrentPlayer ? (
+        <span className="avatar__self-marker" aria-hidden="true">
+          ✦
+        </span>
+      ) : null}
       {completed ? <span className="avatar__check">✓</span> : null}
     </span>
   );

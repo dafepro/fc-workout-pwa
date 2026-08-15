@@ -385,9 +385,36 @@ h2 {
   height: 4.85rem;
   font-size: 1.25rem;
 }
+.avatar--self {
+  box-shadow:
+    0 0 0 2px var(--lime-deep),
+    0 0 0 4px white,
+    0 5px 14px rgb(11 18 61 / 22%);
+}
+.avatar--self.avatar--small {
+  width: 2.75rem;
+  height: 2.75rem;
+  margin: -0.15rem;
+}
 .avatar--more {
   background: #ecebff;
   border-color: white;
+}
+
+.avatar__self-marker {
+  position: absolute;
+  top: -0.28rem;
+  right: -0.28rem;
+  display: grid;
+  width: 1.05rem;
+  height: 1.05rem;
+  place-items: center;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: var(--lime);
+  color: var(--ink);
+  font-size: 0.58rem;
+  line-height: 1;
 }
 
 .avatar__check {
@@ -1796,18 +1823,7 @@ h2 {
 .challenge-participant__avatar {
   position: relative;
 }
-.challenge-participant__check {
-  position: absolute;
-  right: -0.25rem;
-  bottom: -0.15rem;
-  display: grid;
-  width: 1rem;
-  height: 1rem;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--lime);
-  color: var(--ink);
-  font-size: 0.65rem;
+.challenge-participant__avatar .avatar__check {
   animation: challenge-check-pop 280ms cubic-bezier(0.2, 1.7, 0.4, 1) both;
 }
 .badge-callout {
@@ -1871,8 +1887,7 @@ h2 {
   color: var(--muted);
   font-size: 0.68rem;
 }
-.player-progress__cheer,
-.player-progress__you {
+.player-progress__cheer {
   padding: 0.32rem 0.48rem;
   border-radius: 999px;
   font-size: 0.62rem;
@@ -1881,10 +1896,6 @@ h2 {
 .player-progress__cheer {
   background: #ebe8ff;
   color: #5641c7;
-}
-.player-progress__you {
-  background: #edf7c9;
-  color: #536f00;
 }
 .player-progress--reactable {
   width: 100%;
