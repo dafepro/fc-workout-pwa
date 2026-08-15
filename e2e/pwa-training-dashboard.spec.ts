@@ -111,10 +111,13 @@ test("connected Home and Record Training use the server assignment", async ({
     challenge.getByText("1 of 12 teammates completed"),
   ).toBeVisible();
   await expect(
+    challenge.locator(".challenge-participants .avatar--self"),
+  ).toHaveAttribute("aria-label", /, you$/);
+  await expect(
     challenge.locator(".challenge-participants").getByText("You", {
       exact: true,
     }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expect(challenge.getByText(/tired|effort|result/i)).toHaveCount(0);
 
   const api = await request.newContext({ baseURL: apiBaseURL });

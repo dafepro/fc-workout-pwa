@@ -64,7 +64,9 @@ test("a player builds a v4 look with independent Gear sublayers", async ({
   await page.getByRole("button", { name: "Background color" }).click();
   await page.getByRole("button", { name: "Gold" }).click();
   await page.getByRole("radio", { name: "Pulse effect" }).check();
-  await expect(page.locator(".avatar-effect--pulse")).toBeVisible();
+  await expect(
+    page.locator(".avatar-builder__preview .avatar-effect--pulse"),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Save" }).click();
 
   await expect(page).toHaveURL(/\/me$/);
