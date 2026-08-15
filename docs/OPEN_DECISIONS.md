@@ -329,3 +329,12 @@ to resolve, not the implementing agent's.
 - Layer keys may contain camelCase after their initial lowercase character.
   This matches v4's `headPalette` and `backgroundColor` keys while still
   rejecting punctuation, spaces, and uppercase-leading keys.
+
+## Current-player avatar identity (2026-08-11)
+
+- The signed-in player's saved avatar is reused anywhere that player appears,
+  including team progress, challenges, and leaderboards. Other players remain
+  on the safe initials fallback until shared avatar visibility is designed.
+- In dense lists, the current player's avatar is slightly larger and gets a
+  lime-and-white ring plus a small sparkle marker. This avoids another visible
+  `You` label while preserving an accessible `, you` name.

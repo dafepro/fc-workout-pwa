@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Avatar } from "./components/Avatar";
+import { PlayerAvatar } from "./components/PlayerAvatar";
 import { ProgressBar } from "./components/ProgressBar";
 import { SessionList } from "./components/SessionList";
 import { WorkoutInstructions } from "./components/WorkoutInstructions";
@@ -281,7 +281,7 @@ export default function HomePage() {
             ? players
                 .slice(1, 6)
                 .map((teammate) => (
-                  <Avatar
+                  <PlayerAvatar
                     key={teammate.id}
                     player={teammate}
                     size="small"

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
-import { Avatar } from "./Avatar";
+import { PlayerAvatar } from "./PlayerAvatar";
 import { copy } from "../content/copy";
 import { useAuth } from "../state/auth-context";
 import { useAnalytics } from "../../lib/analytics/AnalyticsProvider";
@@ -20,7 +20,7 @@ const navigation = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { currentPlayer: player, avatarConfig } = useAuth();
+  const { currentPlayer: player } = useAuth();
   const analytics = useAnalytics();
   const logging = pathname === "/log";
   const focused = pathname === routes.playerAvatar;
@@ -31,7 +31,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       // accessible name for the same target.
       return (
         <span className="nav-user-avatar" aria-hidden="true">
-          <Avatar player={player} size="small" config={avatarConfig} />
+          <PlayerAvatar player={player} size="small" emphasizeSelf={false} />
         </span>
       );
     }

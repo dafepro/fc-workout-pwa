@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Avatar } from "../components/Avatar";
+import { PlayerAvatar } from "../components/PlayerAvatar";
 import { ReactionPicker } from "../components/ReactionPicker";
 import { copy } from "../content/copy";
 import { createSocialGateway } from "../data/social-gateway";
@@ -290,7 +290,7 @@ function PodiumPlayer({
   const content = (
     <>
       <span className="podium__medal">{place}</span>
-      <Avatar player={player} size="large" />
+      <PlayerAvatar player={player} size="large" />
       <strong>
         {player.firstName} {player.lastInitial}
       </strong>
@@ -330,7 +330,7 @@ function RankingPlayer({
   const content = (
     <>
       <strong className="ranking-list__rank">{player.rank}</strong>
-      <Avatar player={player} size="small" />
+      <PlayerAvatar player={player} size="small" />
       <div>
         <strong>
           {player.firstName} {player.lastInitial}

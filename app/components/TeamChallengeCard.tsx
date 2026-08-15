@@ -3,7 +3,7 @@ import type {
   TeamChallengeProjection,
   TeamMemberProjection,
 } from "../domain/types";
-import { Avatar } from "./Avatar";
+import { PlayerAvatar } from "./PlayerAvatar";
 
 interface TeamChallengeCardProps {
   challenge: TeamChallengeProjection | null;
@@ -63,23 +63,13 @@ export function TeamChallengeCard({
           const content = (
             <>
               <span className="challenge-participant__avatar">
-                <Avatar
+                <PlayerAvatar
                   player={player}
                   size="small"
                   completed={player.challengeCompleted}
                 />
-                {player.challengeCompleted ? (
-                  <span
-                    className="challenge-participant__check"
-                    aria-hidden="true"
-                  >
-                    ✓
-                  </span>
-                ) : null}
               </span>
-              <span>
-                {isCurrentPlayer ? copy.social.you : player.firstName}
-              </span>
+              <span>{player.firstName}</span>
               {!isCurrentPlayer && player.challengeCompleted ? (
                 <small>{copy.social.cheer}</small>
               ) : null}

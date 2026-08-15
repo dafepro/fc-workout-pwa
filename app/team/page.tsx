@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Avatar } from "../components/Avatar";
+import { PlayerAvatar } from "../components/PlayerAvatar";
 import { ProgressBar } from "../components/ProgressBar";
 import { ReactionPicker } from "../components/ReactionPicker";
 import { TeamChallengeCard } from "../components/TeamChallengeCard";
@@ -297,7 +297,7 @@ function PlayerProgressRow({
 }) {
   const content = (
     <>
-      <Avatar player={player} size="small" />
+      <PlayerAvatar player={player} size="small" />
       <span className="player-progress__body">
         <span className="player-progress__meta">
           <strong>
@@ -314,13 +314,9 @@ function PlayerProgressRow({
           label={`${player.firstName}'s weekly participation`}
         />
       </span>
-      <span
-        className={
-          isCurrentPlayer ? "player-progress__you" : "player-progress__cheer"
-        }
-      >
-        {isCurrentPlayer ? copy.social.you : copy.social.cheer}
-      </span>
+      {!isCurrentPlayer ? (
+        <span className="player-progress__cheer">{copy.social.cheer}</span>
+      ) : null}
     </>
   );
   if (isCurrentPlayer) {

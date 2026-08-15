@@ -86,7 +86,6 @@ export const copy = {
     challengeDue: (date: string) => `Due ${date}`,
     noChallenge: "The next Team challenge is warming up.",
     cheer: "Cheer",
-    you: "You",
     safePoints: "safe participation points",
     noParticipation: "No participation has been recorded for this period yet.",
   },

@@ -51,6 +51,29 @@ describe("Avatar with a configuration", () => {
     );
   });
 
+  it("gives the current player a distinct list treatment without visible copy", () => {
+    const { container } = render(
+      <Avatar player={player} config={defaultAvatar()} isCurrentPlayer />,
+    );
+
+    expect(container.querySelector(".avatar")).toHaveClass("avatar--self");
+    expect(container.querySelector(".avatar")).toHaveAttribute(
+      "aria-label",
+      "Mason R., you",
+    );
+    expect(container.querySelector(".avatar__self-marker")).toBeInTheDocument();
+    expect(screen.queryByText("You")).toBeNull();
+  });
+
+  it("keeps the current-player marker separate from completion", () => {
+    const { container } = render(
+      <Avatar player={player} isCurrentPlayer completed />,
+    );
+
+    expect(container.querySelector(".avatar__self-marker")).toBeInTheDocument();
+    expect(container.querySelector(".avatar__check")).toBeInTheDocument();
+  });
+
   it("never leaks an option id into the DOM", () => {
     const { container } = render(
       <Avatar
