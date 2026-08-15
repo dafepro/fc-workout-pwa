@@ -280,6 +280,7 @@ to resolve, not the implementing agent's.
   a player — the app has to be opened by the player. A route framed around today
   would have implied a reach the product does not have. Training, Progress, and
   Roster are the three sections.
+
 ## Avatar Studio foundation (2026-08-11)
 
 - Avatar editing uses the focused `/me/avatar` route. Player navigation and the
