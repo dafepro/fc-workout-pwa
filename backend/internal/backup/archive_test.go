@@ -16,6 +16,8 @@ import (
 	"github.com/dafepro/fc-workout-pwa/backend/migrations"
 )
 
+const currentSchemaMigrationCount = 13
+
 func TestEncryptedArchiveRequiresTheOperatorIdentityToVerifyAndRestore(t *testing.T) {
 	ctx := context.Background()
 	plainPath := filepath.Join(t.TempDir(), "zoomigo-backup.tar.gz")
@@ -182,8 +184,8 @@ func TestCreateVerifyAndRestoreArchive(t *testing.T) {
 	if err := db.QueryRowContext(ctx, "SELECT COUNT(*) FROM schema_migrations").Scan(&migrationsApplied); err != nil {
 		t.Fatal(err)
 	}
-	if entries != 2 || migrationsApplied != 13 {
-		t.Fatalf("restored entries=%d migrations=%d, want 2 and 12", entries, migrationsApplied)
+	if entries != 2 || migrationsApplied != currentSchemaMigrationCount {
+		t.Fatalf("restored entries=%d migrations=%d, want 2 and %d", entries, migrationsApplied, currentSchemaMigrationCount)
 	}
 }
 
