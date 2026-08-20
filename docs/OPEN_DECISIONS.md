@@ -54,6 +54,59 @@ to resolve, not the implementing agent's.
 - Coach override rules.
 - How the system decides to show recovery or overtraining guidance.
 
+### Momentum concept revision 2 (2026-08-19)
+
+`MOMENTUM_CONCEPT.md` and the `/momentum` review route now use the following
+review baseline. None are implemented product decisions:
+
+- Momentum is a continuous personalized plan-following signal, not a weekly
+  checklist, points balance, losable streak, or lifetime total.
+- Each planned exercise has a private goal and optional private stretch target
+  in its activity-specific unit. The goal is complete success; stretch is never
+  required.
+- The illustrative contribution order is prescribed goal, ordinary approved
+  alternative, paired recovery, then history-only extras. A safety-equivalent
+  substitution receives the same effect as the prescription.
+- A prescription can produce at most one primary effect, one small private
+  stretch effect, and one supportive paired-recovery effect. Later valid entries
+  remain private history without repeated Team credit.
+- Hard work, assessment workload, or high private tiredness promotes recovery or
+  lower effort rather than more hard work.
+- Planned rest is a structured one-tap state with no result value. The prototype
+  holds the private gauge and adds one anonymous normalized Team contribution;
+  that Team rule remains open.
+- Personalized prescriptions are mocked outputs of a future separate suggestion
+  engine. Inputs, coach authority, progression ceilings, deloads, explanations,
+  and multi-team workload require their own design before implementation.
+- Team receives normalized participation only and shows an aggregate plan pulse
+  plus rotating highlights. Targets, results, assessments, tiredness, recovery
+  reasons, and ordered player placement remain private.
+- Leaders, the weekly-goal/streak cluster, lifetime effort totals, and duplicate
+  challenge/Team-goal surfaces are candidates for consolidation only after a
+  production replacement is approved and built.
+- Personal rest text, photos, uploads, and sharing remain outside the design
+  because current player-safety rules prohibit user-created content.
+
+The following questions remain explicitly open:
+
+1. Which continuous gauge treatment and cooling behavior should proceed?
+2. Who sets goal, stretch, workload, alternative equivalence, and recovery?
+3. What evidence and limits allow consistency-driven challenge growth?
+4. Should an ordinary alternative contribute partially to Team or only to the
+   private gauge?
+5. Should planned rest contribute to the anonymous Team plan pulse?
+6. Is paired recovery same-day, the next opportunity, or context-dependent?
+7. Which private inputs may a suggestion engine use, and what coach approval is
+   required?
+8. Can an assessment ever be player-recorded?
+9. How should missed opportunities, backdated entries, and plan edits affect the
+   continuous gauge?
+10. Is predefined private rest reflection sufficient for the first release?
+
+Superseded concept assumptions retained in Git history are the finite weekly
+finish line, one-entry-only daily rule, equal credit for every alternative, one
+extra active-day bonus, and raw identical-plan Team targets.
+
 ## Points and leaderboards
 
 - Implemented interim safe projection formula: one session per player per
