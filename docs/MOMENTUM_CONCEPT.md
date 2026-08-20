@@ -3,6 +3,8 @@
 Status: Revised design draft for product-owner review  
 Prepared: 2026-08-19  
 Feedback applied: Round 1  
+Tightening pass applied: 2026-08-20
+
 Implementation status: Review prototype only; no production rules or backend behavior changed  
 Interactive review route: `/momentum`
 
@@ -67,6 +69,53 @@ This draft instead uses:
 
 Calendar weeks may still be useful as a history or reporting filter. They are
 not the player's primary mental model and do not reset Momentum.
+
+## Tightening pass plan
+
+The first interactive revision made nine concepts individually selectable. That
+was useful as an inventory, but it made the feature feel like nine features and
+asked the reviewer to assemble the product mentally. The next pass ranks every
+idea by whether it strengthens one understandable personal-to-team loop.
+
+### Ranked cuts and folds
+
+1. **Cut the nine-scenario picker.** Replace it with one natural flow: see
+   today's plan, check it in, receive closure or recovery, then see the Team
+   effect.
+2. **Choose Momentum Trail.** Remove Gauge Lab from the primary prototype. The
+   chosen visual appears on both personal and Team surfaces so Momentum has one
+   visual language.
+3. **Fold consistency into `Why this plan`.** A small goal increase and its
+   reason belong beside today's prescription, not on a separate suggestion
+   engine screen.
+4. **Fold hard-work recovery into completion.** Hill sprints are the default
+   demanding prescription, so recovery should appear naturally after check-in
+   instead of requiring a separate demonstration.
+5. **Fold approved alternatives into the prescription.** One secondary action
+   opens a compact inline choice without leaving the daily flow.
+6. **Fold extra logging into private history.** Keep one quiet secondary
+   disclosure after completion; do not give extra activity a feature-level
+   destination.
+7. **Keep only Training day and Rest day as review states.** Rest changes the
+   dominant action and cannot be shown honestly as a footnote, but it should use
+   the same Today shell and completion language.
+8. **Collapse Team concepts into Team Momentum.** One shared pulse, one rotating
+   unranked highlight group, and one privacy statement replace separate Team
+   metrics, challenge, cheer, and highlights demos.
+9. **Remove formula detail from player-facing review copy.** The design document
+   may retain illustrative weights, but the UI should speak only in calm effects
+   such as full, small, supportive, or history-only.
+
+### Cohesion test
+
+The pass is successful if a reviewer can understand the complete idea without
+using a scenario menu:
+
+> Follow today's appropriate plan, see personal Momentum move, recover when the
+> work calls for it, and help the Team build Momentum without comparing results.
+
+Anything that does not clarify that sentence should be removed, folded into a
+secondary disclosure, or left in the design document for later work.
 
 ## Goals
 
@@ -223,16 +272,15 @@ Every visual treatment must include:
 - a reduced-motion treatment;
 - no lifetime total or public numeric value.
 
-### Gauge Lab
+### Chosen visual direction
 
-The interactive prototype compares:
+The tightened prototype uses **Momentum Trail** on personal and Team surfaces.
+It shows recent movement along a path with visible room ahead and does not look
+finishable. Flow Bar and Orbit Gauge are cut from the review UI; comparing
+visual systems was distracting from evaluating the Momentum experience itself.
 
-1. **Momentum Trail — recommended for further testing.** It shows recent
-   movement along a path with visible room ahead and does not look finishable.
-2. **Flow Bar.** It is easiest to scan but looks most like a conventional score
-   bar.
-3. **Orbit Gauge.** It is visually distinctive but may imply that completing a
-   circle is the goal.
+Momentum Trail is still a hypothesis. Usability testing must confirm that it
+reads as an ongoing rhythm rather than a score to fill.
 
 ## Personalization and consistency
 
@@ -450,7 +498,7 @@ training can be reviewed.
 
 ### Decisions still open
 
-1. Which gauge treatment should proceed to usability testing?
+1. Does Momentum Trail communicate rhythm without inviting maximization?
 2. What rolling window or cooling behavior produces calm continuity?
 3. Who may set goal, stretch, workload, equivalence, and recovery values?
 4. What evidence and ceiling permit consistency-driven growth?
@@ -478,25 +526,26 @@ training can be reviewed.
 
 The `/momentum` route contains two tabs.
 
-### Design draft
+### Design brief
 
-The written summary covers the revised definition, contribution rules, safety
-contract, suggestion-engine boundary, consolidation proposal, and decisions
-needed from the product owner.
+The shorter summary explains one loop, distinguishes Personal and Team
+Momentum, shows what was folded into the loop, and keeps only the core safety
+rules and four review questions.
 
-### Interactive demo
+### Player flow
 
-The scenario picker demonstrates:
+The prototype now demonstrates one connected path:
 
-1. `Personal plan`
-2. `Goal + stretch`
-3. `Different activity`
-4. `Hard + recovery`
-5. `Consistency growth`
-6. `Rest day`
-7. `Gauge Lab`
-8. `Team highlights`
-9. `Extra logs`
+1. See today's personal Momentum and prescription.
+2. Understand the goal, optional stretch, and consistency-based reason.
+3. Check in the prescription or choose an approved alternative inline.
+4. Receive recovery guidance and daily closure after demanding work.
+5. See the one normalized contribution inside Team Momentum.
+
+Training day and Rest day are the only review-state switch. Rest reuses the same
+Today hierarchy, records with one tap, and leads to the same Team destination.
+Extra activity is available only as a secondary private-history disclosure
+after completion.
 
 The mock is intentionally code-native, mobile-first, and disconnected from
 production data. It contains no recommendation algorithm, persistence, upload,
@@ -558,7 +607,7 @@ or production Momentum API.
 
 The most useful next feedback is:
 
-1. Which Gauge Lab direction feels most motivating and least like a score?
+1. Does Momentum Trail feel motivating without looking like a score to fill?
 2. Does `goal means complete; stretch is optional` feel clear in the demo?
 3. Does partial Momentum for a different approved activity preserve enough
    player agency?
@@ -577,7 +626,7 @@ docs/OPEN_DECISIONS.md                Unapproved Momentum decisions and assumpti
 app/momentum/content.ts               Central review and demo copy
 app/momentum/model.ts                 Pure illustrative contribution rules
 app/momentum/model.test.ts            Contribution and recovery rule tests
-app/momentum/MomentumConcept.tsx      Design draft and scenario-based demo
+app/momentum/MomentumConcept.tsx      Design brief and connected player flow
 app/momentum/MomentumConcept.test.tsx Interaction and visibility tests
 app/momentum/momentum.css             Responsive code-native mock visuals
 ```
@@ -591,3 +640,6 @@ app/momentum/momentum.css             Responsive code-native mock visuals
   the user-content safety conflict.
 - 2026-08-19, revision 2: replaced the obsolete baseline, aligned the written
   rules with the scenario prototype, and recorded remaining gaps and risks.
+- 2026-08-20, tightening pass: cut the nine-scenario inventory, chose Momentum
+  Trail, folded alternatives, consistency, recovery, and extra logging into one
+  daily path, and kept planned rest as the only alternate review state.
