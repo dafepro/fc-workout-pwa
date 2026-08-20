@@ -89,7 +89,8 @@ review baseline. None are implemented product decisions:
 
 The following questions remain explicitly open:
 
-1. Which continuous gauge treatment and cooling behavior should proceed?
+1. Does the selected Momentum Trail communicate an ongoing rhythm without
+   inviting maximization, and what cooling behavior should it use?
 2. Who sets goal, stretch, workload, alternative equivalence, and recovery?
 3. What evidence and limits allow consistency-driven challenge growth?
 4. Should an ordinary alternative contribute partially to Team or only to the
