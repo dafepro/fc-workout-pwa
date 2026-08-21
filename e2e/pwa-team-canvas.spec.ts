@@ -54,14 +54,20 @@ test.beforeEach(async () => {
   await api.dispose();
 });
 
-test("connected Team Canvas uses durable pieces, settings, and SSE updates", async ({
+test("connected Team Canvas uses durable pieces, settings, and realtime updates", async ({
   page,
 }) => {
+  test.setTimeout(45_000);
+  const socketURLs: string[] = [];
+  page.on("websocket", (socket) => {
+    if (socket.url().endsWith("/canvas/socket")) socketURLs.push(socket.url());
+  });
   await page.setViewportSize({ width: 320, height: 700 });
   await loginAsMason(page);
   await page.goto("/team-canvas/team");
 
   await expect(page.getByLabel("Hill Striders weekly canvas")).toBeVisible();
+  await expect.poll(() => socketURLs.length).toBe(1);
   await expect(page.getByText("Ari", { exact: true })).toHaveCount(0);
   await expect(page.getByText("4 stamps ready")).toBeVisible();
 
@@ -95,7 +101,8 @@ test("connected Team Canvas uses durable pieces, settings, and SSE updates", asy
   expect((await rotationSaved).ok()).toBe(true);
 
   await ownedStamp.click();
-  const movingStyle = await ownedStamp.getAttribute("style");
+  const ownedOrbit = ownedStamp.locator("..");
+  const movingStyle = await ownedOrbit.getAttribute("style");
   const api = await request.newContext({ baseURL: apiBaseURL });
   await page.waitForTimeout(300);
   for (const position of [
@@ -107,20 +114,21 @@ test("connected Team Canvas uses durable pieces, settings, and SSE updates", asy
       { headers: masonHeaders, data: position },
     );
     expect(movement.ok()).toBe(true);
+    await page.waitForTimeout(500);
   }
   await expect
-    .poll(() => ownedStamp.getAttribute("style"))
+    .poll(() => ownedOrbit.getAttribute("style"))
     .not.toBe(movingStyle);
   await ownedStamp.click();
 
+  await ownedStamp.hover();
   const stampBox = await ownedStamp.boundingBox();
   if (!stampBox) throw new Error("Owned stamp has no bounding box");
-  await page.mouse.move(
-    stampBox.x + stampBox.width / 2,
-    stampBox.y + stampBox.height / 2,
-  );
   await page.mouse.down();
-  await page.mouse.move(stampBox.x + stampBox.width / 2 + 12, stampBox.y + 12);
+  await page.mouse.move(
+    stampBox.x + stampBox.width / 2 + 20,
+    stampBox.y + stampBox.height / 2 + 20,
+  );
   const trash = page.getByLabel("Drop here to delete today’s stamp");
   await expect(trash).toHaveClass(/is-visible/);
   const trashBox = await trash.boundingBox();

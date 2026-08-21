@@ -14,6 +14,10 @@ import {
   type TeamCanvasPieceFrame,
   type TeamCanvasPhysicsFrame,
 } from "../team-canvas/physics";
+import {
+  createTeamCanvasDeviceCoordinator,
+  type TeamCanvasDeviceCoordinator,
+} from "../team-canvas/realtime/coordinator";
 
 export interface TeamCanvasSettings {
   backgroundAssetId: string;
@@ -98,6 +102,11 @@ interface APITeamCanvasProjection
 
 class HTTPTeamCanvasGateway implements TeamCanvasGateway {
   private readonly root: string;
+  private socket: WebSocket | null = null;
+  private movementSequence = 0;
+  private physicsWorker: Worker | null = null;
+  private socketPlayerID: string | null = null;
+  private deviceCoordinator: TeamCanvasDeviceCoordinator | null = null;
 
   constructor(teamID: string) {
     this.root = `/api/zoomigo/v1/teams/${encodeURIComponent(teamID)}/canvas`;
@@ -138,6 +147,25 @@ class HTTPTeamCanvasGateway implements TeamCanvasGateway {
   }
 
   async moveAvatar(position: BoardPosition): Promise<BoardPosition> {
+    if (this.socket?.readyState === 1 || this.deviceCoordinator) {
+      if (this.socketPlayerID) {
+        this.physicsWorker?.postMessage({
+          type: "avatar",
+          playerId: this.socketPlayerID,
+          position,
+          at: performance.now(),
+        });
+      }
+      this.sendRealtime(
+        JSON.stringify({
+          v: 1,
+          type: "avatar.target",
+          messageId: `move-${Date.now().toString(36)}-${++this.movementSequence}`,
+          position,
+        }),
+      );
+      return position;
+    }
     const response = await this.request("/avatar", {
       method: "PUT",
       body: JSON.stringify(position),
@@ -201,20 +229,227 @@ class HTTPTeamCanvasGateway implements TeamCanvasGateway {
     onPhysics(frame: TeamCanvasPhysicsFrame): void;
     onPiece(frame: TeamCanvasPieceFrame): void;
   }): () => void {
-    const events = new EventSource(`${this.root}/events`);
-    events.addEventListener("ready", handlers.onChange);
-    events.addEventListener("canvas", handlers.onChange);
-    events.addEventListener("physics", (event) => {
-      if (!(event instanceof MessageEvent)) return;
-      const frame = parseTeamCanvasPhysicsFrame(String(event.data));
-      if (frame) handlers.onPhysics(frame);
+    let stopped = false;
+    let events: EventSource | null = null;
+    let visibilityHandler: (() => void) | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let presenceTimer: ReturnType<typeof setInterval> | null = null;
+    let pendingSocketPayload: string | null = null;
+    const startEventsFallback = () => {
+      if (stopped || events || typeof EventSource === "undefined") return;
+      events = new EventSource(`${this.root}/events`);
+      events.addEventListener("ready", handlers.onChange);
+      events.addEventListener("canvas", handlers.onChange);
+      events.addEventListener("physics", (event) => {
+        if (!(event instanceof MessageEvent)) return;
+        const frame = parseTeamCanvasPhysicsFrame(String(event.data));
+        if (frame) handlers.onPhysics(frame);
+      });
+      events.addEventListener("piece", (event) => {
+        if (!(event instanceof MessageEvent)) return;
+        const frame = parseTeamCanvasPieceFrame(String(event.data));
+        if (frame) handlers.onPiece(frame);
+      });
+    };
+    const processRealtimeMessage = (encoded: string) => {
+      if (encoded.length > 72 * 1024) return;
+      let message: {
+        v?: unknown;
+        type?: unknown;
+        frame?: unknown;
+        playerId?: unknown;
+        host?: unknown;
+        position?: unknown;
+      };
+      try {
+        message = JSON.parse(encoded) as typeof message;
+      } catch {
+        return;
+      }
+      if (message.v !== 1 || typeof message.type !== "string") return;
+      if (message.type === "room.ready" || message.type === "physics.frame") {
+        const frame = parseTeamCanvasPhysicsFrame(
+          JSON.stringify(message.frame),
+        );
+        if (!frame) return;
+        if (message.type === "room.ready") {
+          this.socketPlayerID =
+            typeof message.playerId === "string" ? message.playerId : null;
+          this.startPhysicsWorker(
+            frame,
+            message.host === true &&
+              (this.deviceCoordinator?.isOwner() ?? true),
+            handlers.onPhysics,
+          );
+        } else if (this.physicsWorker) {
+          this.physicsWorker.postMessage({ type: "reconcile", frame });
+        } else {
+          this.startPhysicsWorker(frame, false, handlers.onPhysics);
+        }
+      } else if (message.type === "piece.changed") {
+        const frame = parseTeamCanvasPieceFrame(JSON.stringify(message.frame));
+        if (frame) {
+          handlers.onPiece(frame);
+          this.physicsWorker?.postMessage({
+            type: "piece.transform",
+            id: frame.id,
+            transform: {
+              x: frame.x,
+              y: frame.y,
+              size: frame.size,
+              rotation: frame.rotation,
+            },
+          });
+        }
+      } else if (message.type === "canvas.changed") {
+        handlers.onChange();
+      } else if (
+        message.type === "avatar.input" &&
+        typeof message.playerId === "string" &&
+        message.position &&
+        typeof message.position === "object"
+      ) {
+        this.physicsWorker?.postMessage({
+          type: "avatar",
+          playerId: message.playerId,
+          position: message.position,
+          at: performance.now(),
+        });
+      } else if (message.type === "host.granted") {
+        this.physicsWorker?.postMessage({
+          type: "host",
+          host: this.deviceCoordinator?.isOwner() ?? true,
+        });
+      } else if (message.type === "host.revoked") {
+        this.physicsWorker?.postMessage({ type: "host", host: false });
+      }
+    };
+    const startSocket = async () => {
+      if (stopped || !this.deviceCoordinator?.isOwner() || this.socket) return;
+      try {
+        const response = await this.request("/socket-ticket", {
+          method: "POST",
+          body: "{}",
+        });
+        const ticket = (await response.json()) as {
+          ticket?: string;
+          socketUrl?: string;
+        };
+        if (!ticket.ticket || !ticket.socketUrl || stopped)
+          throw new Error("The live canvas ticket was incomplete.");
+        const socket = new WebSocket(ticket.socketUrl, [
+          "zoomigo.team-canvas.v1",
+          `ticket.${ticket.ticket}`,
+        ]);
+        this.socket = socket;
+        visibilityHandler = () => {
+          if (socket.readyState !== 1) return;
+          socket.send(
+            JSON.stringify({
+              v: 1,
+              type: "presence.visible",
+              messageId: `presence-${Date.now().toString(36)}`,
+              visible: document.visibilityState === "visible",
+            }),
+          );
+        };
+        socket.onopen = () => {
+          visibilityHandler?.();
+          presenceTimer = setInterval(() => visibilityHandler?.(), 1000);
+          if (pendingSocketPayload) {
+            socket.send(pendingSocketPayload);
+            pendingSocketPayload = null;
+          }
+        };
+        document.addEventListener("visibilitychange", visibilityHandler);
+        socket.onmessage = (event) => {
+          if (typeof event.data !== "string") return;
+          this.deviceCoordinator?.broadcast(event.data);
+          processRealtimeMessage(event.data);
+        };
+        socket.onclose = () => {
+          if (presenceTimer) clearInterval(presenceTimer);
+          presenceTimer = null;
+          if (this.socket === socket) this.socket = null;
+          if (!stopped && this.deviceCoordinator?.isOwner()) {
+            reconnectTimer = setTimeout(() => void startSocket(), 350);
+          }
+        };
+        socket.onerror = () => socket.close();
+      } catch {
+        if (this.deviceCoordinator?.isOwner()) startEventsFallback();
+      }
+    };
+    this.deviceCoordinator = createTeamCanvasDeviceCoordinator(this.root, {
+      onOwnershipChange: (owner) => {
+        if (owner) void startSocket();
+        else if (this.socket) {
+          const socket = this.socket;
+          this.socket = null;
+          socket.close();
+          this.physicsWorker?.postMessage({ type: "host", host: false });
+        }
+      },
+      onInbound: processRealtimeMessage,
+      onOutbound: (payload) => {
+        if (this.socket?.readyState === 1) this.socket.send(payload);
+        else pendingSocketPayload = payload;
+      },
     });
-    events.addEventListener("piece", (event) => {
-      if (!(event instanceof MessageEvent)) return;
-      const frame = parseTeamCanvasPieceFrame(String(event.data));
-      if (frame) handlers.onPiece(frame);
-    });
-    return () => events.close();
+    return () => {
+      stopped = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (presenceTimer) clearInterval(presenceTimer);
+      events?.close();
+      if (visibilityHandler)
+        document.removeEventListener("visibilitychange", visibilityHandler);
+      this.socket?.close();
+      this.socket = null;
+      this.deviceCoordinator?.close();
+      this.deviceCoordinator = null;
+      this.physicsWorker?.terminate();
+      this.physicsWorker = null;
+      this.socketPlayerID = null;
+    };
+  }
+
+  private startPhysicsWorker(
+    frame: TeamCanvasPhysicsFrame,
+    host: boolean,
+    onPhysics: (frame: TeamCanvasPhysicsFrame) => void,
+  ) {
+    this.physicsWorker?.terminate();
+    if (typeof Worker === "undefined") {
+      onPhysics(frame);
+      return;
+    }
+    const worker = new Worker(
+      new URL("../team-canvas/worker/team-canvas.worker.ts", import.meta.url),
+      { type: "module", name: "team-canvas-physics" },
+    );
+    this.physicsWorker = worker;
+    worker.onmessage = (event: MessageEvent) => {
+      const message = event.data as { type?: unknown; frame?: unknown };
+      const parsed = parseTeamCanvasPhysicsFrame(JSON.stringify(message.frame));
+      if (!parsed) return;
+      if (message.type === "frame") onPhysics(parsed);
+      if (message.type === "host.snapshot") {
+        this.sendRealtime(
+          JSON.stringify({
+            v: 1,
+            type: "physics.snapshot",
+            messageId: `snapshot-${parsed.sequence}`,
+            frame: parsed,
+          }),
+        );
+      }
+    };
+    worker.postMessage({ type: "init", frame, host });
+  }
+
+  private sendRealtime(payload: string) {
+    if (this.socket?.readyState === 1) this.socket.send(payload);
+    else this.deviceCoordinator?.send(payload);
   }
 
   private async request(path: string, init?: RequestInit): Promise<Response> {
