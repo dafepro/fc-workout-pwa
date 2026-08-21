@@ -8,6 +8,12 @@ import type {
   ProjectedBoardPiece,
   StampAsset,
 } from "../team-canvas/model";
+import {
+  parseTeamCanvasPieceFrame,
+  parseTeamCanvasPhysicsFrame,
+  type TeamCanvasPieceFrame,
+  type TeamCanvasPhysicsFrame,
+} from "../team-canvas/physics";
 
 export interface TeamCanvasSettings {
   backgroundAssetId: string;
@@ -30,6 +36,11 @@ export interface ConnectedTeamCanvasProjection {
   team: SocialTeam;
   dayKey: string;
   weekKey: string;
+  physics: {
+    v: 1;
+    sceneId: TeamCanvasPhysicsFrame["sceneId"];
+    sequence: number;
+  };
   settings: TeamCanvasSettings;
   stampChoices: StampAsset[];
   members: TeamCanvasMember[];
@@ -51,7 +62,11 @@ export interface TeamCanvasGateway {
   ): Promise<ProjectedBoardPiece>;
   deletePiece(pieceID: string): Promise<void>;
   saveSettings(settings: TeamCanvasSettings): Promise<TeamCanvasSettings>;
-  subscribe(onChange: () => void): () => void;
+  subscribe(handlers: {
+    onChange(): void;
+    onPhysics(frame: TeamCanvasPhysicsFrame): void;
+    onPiece(frame: TeamCanvasPieceFrame): void;
+  }): () => void;
 }
 
 export class TeamCanvasGatewayError extends Error {
@@ -179,9 +194,24 @@ class HTTPTeamCanvasGateway implements TeamCanvasGateway {
     return (await response.json()) as TeamCanvasSettings;
   }
 
-  subscribe(onChange: () => void): () => void {
+  subscribe(handlers: {
+    onChange(): void;
+    onPhysics(frame: TeamCanvasPhysicsFrame): void;
+    onPiece(frame: TeamCanvasPieceFrame): void;
+  }): () => void {
     const events = new EventSource(`${this.root}/events`);
-    events.addEventListener("canvas", onChange);
+    events.addEventListener("ready", handlers.onChange);
+    events.addEventListener("canvas", handlers.onChange);
+    events.addEventListener("physics", (event) => {
+      if (!(event instanceof MessageEvent)) return;
+      const frame = parseTeamCanvasPhysicsFrame(String(event.data));
+      if (frame) handlers.onPhysics(frame);
+    });
+    events.addEventListener("piece", (event) => {
+      if (!(event instanceof MessageEvent)) return;
+      const frame = parseTeamCanvasPieceFrame(String(event.data));
+      if (frame) handlers.onPiece(frame);
+    });
     return () => events.close();
   }
 

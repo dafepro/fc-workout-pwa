@@ -223,6 +223,18 @@ var logicalTables = []logicalTable{
 		},
 	},
 	{
+		Name:    "team_canvas_scene_states",
+		OrderBy: []string{"team_id", "week_key"},
+		Fields: []logicalField{
+			textField("team_id"),
+			textField("week_key"),
+			integerField("physics_version"),
+			textField("scene_state_json"),
+			integerField("revision"),
+			textField("updated_at"),
+		},
+	},
+	{
 		Name:    "team_canvas_pieces",
 		OrderBy: []string{"id"},
 		Fields: []logicalField{
@@ -239,6 +251,17 @@ var logicalTables = []logicalTable{
 			realField("rotation"),
 			integerField("revision"),
 			textField("created_at"),
+			textField("updated_at"),
+		},
+	},
+	{
+		Name:    "team_canvas_piece_states",
+		OrderBy: []string{"piece_id"},
+		Fields: []logicalField{
+			textField("piece_id"),
+			integerField("behavior_version"),
+			textField("behavior_state_json"),
+			integerField("revision"),
 			textField("updated_at"),
 		},
 	},

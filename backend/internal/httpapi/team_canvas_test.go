@@ -68,7 +68,9 @@ func TestTeamCanvasRoutesGatePersistAndBroadcast(t *testing.T) {
 	}
 	snapshotBytes, _ := io.ReadAll(snapshot.Body)
 	_ = snapshot.Body.Close()
-	if !strings.Contains(string(snapshotBytes), `"developerControlsEnabled":true`) || !strings.Contains(string(snapshotBytes), `"avatarConfiguration":{"head":"fox"}`) {
+	if !strings.Contains(string(snapshotBytes), `"developerControlsEnabled":true`) ||
+		!strings.Contains(string(snapshotBytes), `"avatarConfiguration":{"head":"fox"}`) ||
+		!strings.Contains(string(snapshotBytes), `"physics":{"v":1`) {
 		t.Fatalf("snapshot did not contain connected canvas fields: %s", snapshotBytes)
 	}
 
@@ -95,6 +97,10 @@ func TestTeamCanvasRoutesGatePersistAndBroadcast(t *testing.T) {
 	if !scanner.Scan() || scanner.Text() != "" {
 		t.Fatalf("ready terminator = %q", scanner.Text())
 	}
+	physicsData := scanTeamCanvasHTTPEvent(t, scanner, "physics")
+	if !strings.Contains(physicsData, `"sceneId":"top-down-field"`) || !strings.Contains(physicsData, `"playerId":"player-mason"`) {
+		t.Fatalf("initial physics data = %s", physicsData)
+	}
 
 	avatar := teamCanvasRequest(t, server.Client(), http.MethodPut, server.URL+"/v1/teams/team-one/canvas/avatar", `{"x":120,"y":-8}`)
 	if avatar.StatusCode != http.StatusOK {
@@ -105,8 +111,9 @@ func TestTeamCanvasRoutesGatePersistAndBroadcast(t *testing.T) {
 	if !strings.Contains(string(avatarBytes), `"x":94`) || !strings.Contains(string(avatarBytes), `"y":6`) {
 		t.Fatalf("avatar was not persisted with server bounds: %s", avatarBytes)
 	}
-	if !scanner.Scan() || scanner.Text() != "event: canvas" {
-		t.Fatalf("update stream line = %q", scanner.Text())
+	physicsData = scanTeamCanvasHTTPEvent(t, scanner, "physics")
+	if !strings.Contains(physicsData, `"position":{"x":94,"y":6}`) {
+		t.Fatalf("live avatar physics data = %s", physicsData)
 	}
 
 	settings := teamCanvasRequest(t, server.Client(), http.MethodPut, server.URL+"/v1/teams/team-one/canvas/dev-settings", `{"backgroundAssetId":"cosmic-stadium","backgroundColor":"#112233","textColor":"#FFFFFF","textSize":128,"textStyle":"bubble","stampChoices":["spark-cleat","zoomigo-mark","bolt","star","rocket"]}`)
@@ -130,6 +137,21 @@ func TestTeamCanvasRoutesGatePersistAndBroadcast(t *testing.T) {
 		t.Fatalf("production dev settings status = %d, want 404", response.Code)
 	}
 
+}
+
+func scanTeamCanvasHTTPEvent(t *testing.T, scanner *bufio.Scanner, event string) string {
+	t.Helper()
+	if !scanner.Scan() || scanner.Text() != "event: "+event {
+		t.Fatalf("event line = %q, want %q", scanner.Text(), event)
+	}
+	if !scanner.Scan() || !strings.HasPrefix(scanner.Text(), "data: ") {
+		t.Fatalf("event data = %q", scanner.Text())
+	}
+	data := strings.TrimPrefix(scanner.Text(), "data: ")
+	if !scanner.Scan() || scanner.Text() != "" {
+		t.Fatalf("event terminator = %q", scanner.Text())
+	}
+	return data
 }
 
 func teamCanvasRequest(t *testing.T, client *http.Client, method, url, body string) *http.Response {

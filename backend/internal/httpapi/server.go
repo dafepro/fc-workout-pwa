@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/dafepro/fc-workout-pwa/backend/internal/authn"
+	"github.com/dafepro/fc-workout-pwa/backend/internal/canvasphysics"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/config"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/store"
@@ -51,7 +52,12 @@ type service struct {
 	authFixtures  func(context.Context) error
 	throttles     []*loginThrottle
 	canvasEvents  *teamCanvasBroker
+	canvasPhysics *teamCanvasPhysicsManager
 	now           func() time.Time
+}
+
+type teamCanvasPhysicsRepository interface {
+	SaveTeamCanvasPhysicsCheckpoint(context.Context, string, string, canvasphysics.Checkpoint, time.Time) error
 }
 
 type SessionManager interface {
@@ -109,6 +115,16 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	for _, option := range options {
 		option(service)
 	}
+	service.canvasPhysics = newTeamCanvasPhysicsManager(
+		func(ctx context.Context, teamID, weekKey string, checkpoint canvasphysics.Checkpoint, now time.Time) error {
+			physicsStore, ok := service.store.(teamCanvasPhysicsRepository)
+			if !ok {
+				return nil
+			}
+			return physicsStore.SaveTeamCanvasPhysicsCheckpoint(ctx, teamID, weekKey, checkpoint, now)
+		},
+		service.canvasEvents.publishPhysics,
+	)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {

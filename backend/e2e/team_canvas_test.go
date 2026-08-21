@@ -42,11 +42,12 @@ func TestTeamCanvasPersistsRewardsSettingsAndLiveInvalidations(t *testing.T) {
 	}
 	scanner := bufio.NewScanner(stream.Body)
 	assertCanvasEvent(t, scanner, "ready")
+	assertCanvasEvent(t, scanner, "physics")
 
 	avatar := api.do(t, http.MethodPut, "/v1/teams/team-hill-striders/canvas/avatar", masonToken, "", map[string]any{"x": 120, "y": -8})
 	assertStatus(t, avatar, http.StatusOK)
 	_ = avatar.Body.Close()
-	assertCanvasEvent(t, scanner, "canvas")
+	assertCanvasEvent(t, scanner, "physics")
 
 	reach := validTrainingEntryPayload(time.Now().UTC())
 	reach["assignmentId"] = "assignment-hill-sprints"
@@ -66,16 +67,28 @@ func TestTeamCanvasPersistsRewardsSettingsAndLiveInvalidations(t *testing.T) {
 	if snapshot.AvailableRewards != 1 || !snapshot.DeveloperControlsEnabled || len(snapshot.StampChoices) != 5 {
 		t.Fatalf("unexpected connected snapshot: %+v", snapshot)
 	}
-
-	pieceResponse := api.do(t, http.MethodPost, "/v1/teams/team-hill-striders/canvas/pieces", masonToken, "", map[string]any{"assetId": snapshot.StampChoices[0]})
-	assertStatus(t, pieceResponse, http.StatusCreated)
-	var piece struct {
-		ID string `json:"id"`
-	}
-	decodeJSON(t, pieceResponse, &piece)
+	dynamicSettings := api.do(t, http.MethodPut, "/v1/teams/team-hill-striders/canvas/dev-settings", masonToken, "", map[string]any{
+		"backgroundAssetId": "soccer-field", "backgroundColor": "#89C981", "textColor": "#FFFFFF",
+		"textSize": 112, "textStyle": "block",
+		"stampChoices": []string{"soccer", "balloon", "rocket", "spark-cleat", "zoomigo-mark"},
+	})
+	assertStatus(t, dynamicSettings, http.StatusOK)
+	_ = dynamicSettings.Body.Close()
 	assertCanvasEvent(t, scanner, "canvas")
 
-	secondPiece := api.do(t, http.MethodPost, "/v1/teams/team-hill-striders/canvas/pieces", masonToken, "", map[string]any{"assetId": snapshot.StampChoices[1]})
+	pieceResponse := api.do(t, http.MethodPost, "/v1/teams/team-hill-striders/canvas/pieces", masonToken, "", map[string]any{"assetId": "soccer"})
+	assertStatus(t, pieceResponse, http.StatusCreated)
+	var piece struct {
+		ID      string          `json:"id"`
+		Physics json.RawMessage `json:"physics"`
+	}
+	decodeJSON(t, pieceResponse, &piece)
+	if len(piece.Physics) == 0 || string(piece.Physics) == "null" {
+		t.Fatalf("dynamic piece has no physics state: %+v", piece)
+	}
+	assertCanvasEvent(t, scanner, "canvas")
+
+	secondPiece := api.do(t, http.MethodPost, "/v1/teams/team-hill-striders/canvas/pieces", masonToken, "", map[string]any{"assetId": "balloon"})
 	assertStatus(t, secondPiece, http.StatusUnprocessableEntity)
 	_ = secondPiece.Body.Close()
 
@@ -84,7 +97,7 @@ func TestTeamCanvasPersistsRewardsSettingsAndLiveInvalidations(t *testing.T) {
 	})
 	assertStatus(t, updatedPiece, http.StatusOK)
 	_ = updatedPiece.Body.Close()
-	assertCanvasEvent(t, scanner, "canvas")
+	assertCanvasEvent(t, scanner, "piece")
 
 	settingsResponse := api.do(t, http.MethodPut, "/v1/teams/team-hill-striders/canvas/dev-settings", masonToken, "", map[string]any{
 		"backgroundAssetId": "creature-quest-town",
@@ -148,13 +161,22 @@ func TestTeamCanvasPersistsRewardsSettingsAndLiveInvalidations(t *testing.T) {
 
 func assertCanvasEvent(t *testing.T, scanner *bufio.Scanner, expected string) {
 	t.Helper()
-	if !scanner.Scan() || scanner.Text() != "event: "+expected {
-		t.Fatalf("event line = %q, want %q", scanner.Text(), expected)
-	}
-	if !scanner.Scan() || !strings.HasPrefix(scanner.Text(), "data: ") {
-		t.Fatalf("event data = %q", scanner.Text())
-	}
-	if !scanner.Scan() || scanner.Text() != "" {
-		t.Fatalf("event terminator = %q", scanner.Text())
+	for {
+		if !scanner.Scan() || !strings.HasPrefix(scanner.Text(), "event: ") {
+			t.Fatalf("event line = %q, want %q", scanner.Text(), expected)
+		}
+		event := strings.TrimPrefix(scanner.Text(), "event: ")
+		if !scanner.Scan() || !strings.HasPrefix(scanner.Text(), "data: ") {
+			t.Fatalf("event data = %q", scanner.Text())
+		}
+		if !scanner.Scan() || scanner.Text() != "" {
+			t.Fatalf("event terminator = %q", scanner.Text())
+		}
+		if event == expected {
+			return
+		}
+		if event != "physics" {
+			t.Fatalf("event = %q, want %q", event, expected)
+		}
 	}
 }

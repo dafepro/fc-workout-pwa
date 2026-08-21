@@ -1,15 +1,54 @@
 # Team Canvas Physics — Design Draft
 
-Status: review required before implementation. Last updated: 2026-08-21.
+Status: implemented locally for alpha review; not deployed. Last updated:
+2026-08-21.
 
-## Why this is a separate pass
+## Approved alpha slice
 
-The board now has durable, same-day owner edits and realtime invalidation, but
-physics introduces a different kind of shared state. REST plus SSE can announce
-that a piece changed; it should not pretend to arbitrate collisions at animation
-speed. We should agree on scene rules, ownership, reset behavior, and the
-authoritative simulation before adding storage fields or a client-only engine
-that different players would see differently.
+The first implementation uses the experience-based defaults from this draft:
+
+- `soccer`, `balloon`, and `rocket` are the only dynamic catalog assets;
+- decorative stamps never collide;
+- avatars pass through one another but impart capped impulses to dynamic pieces;
+- top-down fields use friction, the town uses downward gravity, and the cosmic
+  scene uses low drag plus a speed cap;
+- a single-replica server room owns simulation at a fixed step and sends
+  structured physics frames over the existing authenticated SSE connection;
+- clients send avatar movement through the existing bounded endpoint. SSE is
+  preferable to adding a second WebSocket authentication/proxy path for this
+  alpha because input remains client-to-server HTTP and state remains
+  server-to-client streaming;
+- SQLite stores strict versioned checkpoints, never animation frames or
+  client-authored capabilities.
+
+Implemented file tree:
+
+```text
+backend/internal/canvasphysics/
+├── catalog.go                         # trusted asset + scene capabilities
+├── engine.go                          # deterministic circle simulation
+├── state.go                           # strict v1 checkpoint codec
+└── *_test.go
+
+backend/
+├── migrations/000015_team_canvas_physics.*.sql
+├── internal/store/team_canvas_physics.go
+└── internal/httpapi/team_canvas_physics.go
+
+app/team-canvas/
+├── physics.ts                         # strict frames + projection helpers
+├── live-input.ts                      # bounded coalescing input queue
+└── components/BoardSurface.tsx        # thin streamed-state renderer
+
+app/data/team-canvas-gateway.ts        # structured SSE frame handling
+```
+
+## Why this stayed a separate pass
+
+Physics introduces a different kind of shared state. The implementation keeps
+simulation, trusted behavior definitions, persistence, transport, and rendering
+in separate modules so the canvas does not acquire client-only outcomes that
+different players would see differently.
 
 ## Product intent
 
@@ -35,16 +74,17 @@ player-authored behavior, uploads, arbitrary scripts, or competitive scoring.
 
 1. Avatars are kinematic circles. Dragging an avatar supplies a capped velocity;
    contact transfers a bounded impulse to dynamic pieces.
-2. A live stamp being positioned by its owner is kinematic and temporarily
-   non-colliding. On release, the server places it at the closest valid point and
-   then restores its catalog behavior. This prevents a drag from tunneling
-   through or trapping another piece.
+2. A live dynamic stamp updated by its owner receives a renewable 240 ms
+   kinematic lease and is temporarily non-colliding. The lease naturally expires
+   after release or an interrupted request, then the catalog behavior resumes.
+   Server bounds still apply to every placement.
 3. Only catalog entries explicitly marked `dynamic` or `static-collider`
    participate. Decorative stamps are non-colliding, so players cannot surround
    the board with an accidental wall.
-4. Dynamic pieces use swept circle tests, positional correction, and capped
-   impulses. A sufficiently fast avatar can dislodge a crowded ball, but there
-   is no special client-side “pass through” exception.
+4. Avatar input uses swept segment-versus-circle contact. Dynamic bodies use a
+   fixed 30 Hz step, circular collision correction, restitution, and capped
+   impulses. The speed and minimum-radius bounds make tunneling between body
+   steps unlikely in this alpha.
 5. Players may influence shared dynamic pieces with their avatars. They cannot
    directly drag another player's live stamp or delete any piece they do not own
    today.
@@ -79,8 +119,8 @@ The server then:
 2. removes velocity and angular velocity;
 3. searches a deterministic seeded spiral from the scene's safe spawn point for
    the first collision-free circular position;
-4. if no position is free, places the entity at the center in a temporary
-   non-colliding phase and retries until clear.
+4. if no position is free, chooses the least-overlapped candidate, marks the
+   entity as a faint non-colliding recovery ghost, and retries until space opens.
 
 This avoids perpetual motion, divergent clients, and a permanent cage made from
 collision stamps. The visual “explosion” is predefined and non-scoring; it is
@@ -88,28 +128,30 @@ not evidence that a player failed.
 
 ## Authority and realtime transport
 
-Recommendation: a server-authoritative fixed-timestep room owns physics. Clients
-send bounded inputs such as avatar position samples and owner placement gestures;
-the room broadcasts snapshots and interpolated corrections over an authenticated
-WebSocket. The current REST endpoints remain authoritative for create, delete,
-and settings changes. The existing SSE stream remains useful for ordinary canvas
-invalidation but is not the physics frame transport.
+The server-authoritative fixed-timestep room owns physics. Clients send bounded
+avatar and owner-placement samples through the existing authenticated REST
+endpoints. The room sends versioned snapshots at 15 Hz over the existing
+authenticated SSE stream. Structured `piece` events carry ordinary live stamp
+transforms without a full refetch; an overflow falls back to durable canvas
+invalidation. This avoids a second WebSocket authentication and proxy path for
+the single-replica alpha.
 
 For the current single API replica, an in-memory room registry is sufficient for
 an alpha. Before horizontal scaling, each team/week room must have one owner via
 a shared coordinator, or the simulation must move to a dedicated realtime
 service. Clients never elect authority.
 
-The simulation uses a fixed step (recommended 30 Hz) and sends lower-frequency
-snapshots (recommended 10–15 Hz). The browser interpolates visuals but does not
-commit collision outcomes. The server checkpoints sleeping state and periodic
-active state rather than writing SQLite on every frame.
+The simulation uses a 30 Hz fixed step and sends at most 15 snapshots per second.
+The browser uses short visual interpolation but does not commit collision
+outcomes. Avatar and stamp inputs use coalescing 80 ms queues, never overlapping
+requests. The server checkpoints periodic changed state and final room state
+rather than writing SQLite on every frame.
 
 ## Extensible storage contract
 
 Flexible state belongs in versioned, validated JSON; trusted capabilities do
-not. A future migration should add separate records rather than widening the
-existing piece row with one column per behavior:
+not. Migration 15 adds separate records rather than widening the existing piece
+row with one column per behavior:
 
 ```text
 team_canvas_scene_states
@@ -132,24 +174,28 @@ Example persisted state, not a client-authored capability definition:
   "v": 1,
   "position": { "x": 43.25, "y": 61.5 },
   "velocity": { "x": 2.4, "y": -0.7 },
-  "angle": 1.18,
-  "angularVelocity": 0.12,
+  "angle": 67.6,
+  "angularVelocity": 12,
   "sleeping": false,
+  "recovering": false,
   "resetCount": 0
 }
 ```
 
 Every version gets a strict decoder, byte limit, finite-number checks, and an
-upgrade function. Unknown or invalid versions render at the durable piece
-position as non-colliding static art and are queued for repair. JSON is never
-executed. Assets remain reviewed same-origin emoji, SVG/image, or bounded sprite
-definitions.
+upgrade path. Unknown, missing, or invalid behavior state renders at the durable
+piece position as non-colliding static art. JSON is never executed. Assets remain
+reviewed same-origin emoji, SVG/image, or bounded sprite definitions.
+
+At most 64 pieces per team/week receive dynamic state. A reviewed dynamic asset
+placed after that safety budget is exhausted remains ordinary static art;
+editing it cannot promote it around the cap.
 
 ## Lifecycle
 
 - Creation inserts the piece and initial physics state in one transaction.
-- Owner placement temporarily changes the room body to a ghosted kinematic body;
-  release is server-validated before it becomes dynamic again.
+- Owner placement resets velocity and renews a brief ghosted kinematic lease;
+  server bounds and ownership are validated before the room accepts it.
 - Same-day owner deletion removes piece state in the same transaction as the
   piece and broadcasts the removal immediately.
 - At the next team-local day boundary, editable ownership settles exactly as it
@@ -157,8 +203,9 @@ definitions.
   week, while a decorative piece remains static.
 - At the weekly boundary, archive the board snapshot and start a new room. Do not
   carry velocity into the new week.
-- When no clients are connected, active rooms simulate only until all pieces
-  sleep, then checkpoint and stop. Reconnection resumes from that checkpoint.
+- When no clients are connected, active rooms simulate until all pieces sleep,
+  with a five-second runaway budget, then checkpoint and stop. Reconnection
+  resumes from that checkpoint.
 
 ## Safety and accessibility
 
@@ -174,7 +221,7 @@ definitions.
 
 ## Test strategy
 
-- Unit-test circle overlap, swept collision, scene forces, speed caps, sleep,
+- Unit-test circle overlap, swept avatar collision, scene forces, speed caps, sleep,
   deterministic reset placement, JSON upgrades, and invalid-number rejection.
 - Contract-test each catalog capability against its strict decoder and bounds.
 - Run two-client black-box tests for shared impulses, deletion during motion,
@@ -184,20 +231,19 @@ definitions.
 - Fuzz versioned JSON and physics inputs; assert the room cannot panic, emit a
   non-finite state, or exceed its entity/step budgets.
 
-## Suggested implementation slices
+## Implemented slices
 
-1. Add reviewed behavior and scene catalog types plus pure circle simulation;
-   render it in a disconnected developer lab only.
-2. Add the versioned state migration, strict codecs, upgrade tests, and backup
-   coverage without enabling motion in the team route.
-3. Add one authoritative single-replica room and WebSocket for a top-down soccer
-   ball; validate with two real browser sessions.
-4. Add side-view ball and balloon profiles, deterministic recovery, and reduced
-   motion.
-5. Run a small alpha, instrument resets and correction frequency, then decide
-   whether shape colliders and angular impacts are justified.
+1. Reviewed catalog, deterministic circle engine, sleep, caps, and recovery.
+2. Versioned migration, strict codecs, populated migration test, and logical
+   backup round trip.
+3. Single-replica authoritative room, authenticated SSE frames, structured live
+   piece events, and bounded avatar/placement input.
+4. Top-down, side-view, and space profiles plus reduced-motion rendering.
 
-## Decisions requested before slice 1
+The remaining release work is review, beta instrumentation, and a shared room
+coordinator before any horizontal API scaling.
+
+## Adopted alpha decisions
 
 Recommended defaults are shown first:
 
@@ -206,8 +252,9 @@ Recommended defaults are shown first:
 - Avatar collisions: avatars affect dynamic items but pass through one another.
 - Settling: dynamic items keep moving for the current week; all velocities reset
   at the weekly boundary.
-- Scene changes: changing the scene resets dynamic pieces to safe spawns rather
-  than transforming old velocities into a new force model.
+- Scene changes: changing the scene preserves valid positions but clears
+  velocity before applying the new force profile. Stale-scene checkpoints are
+  rejected.
 - Shared influence: every completed teammate may nudge shared dynamic items;
   direct placement remains owner-only for today's live stamp.
 - Empty rooms: simulate until sleep, checkpoint, and pause.

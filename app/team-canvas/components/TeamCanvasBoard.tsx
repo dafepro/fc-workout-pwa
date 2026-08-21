@@ -138,7 +138,11 @@ export function TeamCanvasBoard() {
         onDeletePiece={(pieceId) => void deletePiece(pieceId)}
         onClearPiece={clearPiece}
       />
-      <p className="tc-board-hint">{copy.moveHint}</p>
+      <p className="tc-board-hint">
+        {pieces.some(({ physics }) => physics)
+          ? copy.physicsHint
+          : copy.moveHint}
+      </p>
 
       <section className="tc-rewards" aria-labelledby="tc-rewards-title">
         <div className="tc-rewards__heading">

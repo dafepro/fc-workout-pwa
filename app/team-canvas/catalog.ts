@@ -5,6 +5,7 @@ export const TEAM_CANVAS_STAMPS: readonly StampAsset[] = [
   { id: "fire", kind: "emoji", glyph: "🔥", label: "Fire" },
   { id: "star", kind: "emoji", glyph: "🌟", label: "Star" },
   { id: "rocket", kind: "emoji", glyph: "🚀", label: "Rocket" },
+  { id: "balloon", kind: "emoji", glyph: "🎈", label: "Balloon" },
   { id: "lion", kind: "emoji", glyph: "🦁", label: "Lion" },
   { id: "cheetah", kind: "emoji", glyph: "🐆", label: "Cheetah" },
   { id: "shield", kind: "emoji", glyph: "🛡️", label: "Shield" },
