@@ -199,12 +199,27 @@ describe("Team Canvas application", () => {
     expect(
       view.container.querySelector(".tc-orbit-control--rotate-right"),
     ).toBeInTheDocument();
+    expect(
+      view.container.querySelector(".tc-rotation-arrow--left"),
+    ).toBeInTheDocument();
+    expect(
+      view.container.querySelector(".tc-rotation-arrow--right"),
+    ).toBeInTheDocument();
     expect(view.container.querySelector(".tc-floating-palette")).toBeNull();
     expect(screen.queryByRole("button", { name: /paste/i })).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: /Edit .* live stamp/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Rotate right" }));
+    const liveStamp = screen.getByRole("button", {
+      name: /Edit .* live stamp/,
+    });
+    expect(liveStamp).toHaveStyle({
+      transform: "translate(-50%, -50%) rotate(12deg)",
+    });
+    expect(screen.getByRole("button", { name: "Larger" })).toBeInTheDocument();
+
+    fireEvent.click(liveStamp);
     expect(screen.queryByRole("button", { name: "Smaller" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /Edit .* live stamp/ }));
+    fireEvent.click(liveStamp);
     expect(screen.getByRole("button", { name: "Smaller" })).toBeInTheDocument();
   });
 

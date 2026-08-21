@@ -707,61 +707,99 @@
 
 .tc-orbit-control--rotate-left,
 .tc-orbit-control--rotate-right {
-  top: 22%;
-  width: 1.9rem;
-  height: 60%;
+  top: 13%;
+  width: 42%;
+  height: 75%;
   border: 0;
-  border-radius: 0;
+  border-radius: 999px 0 0 999px;
   background: transparent;
   box-shadow: none;
 }
 
 .tc-orbit-control--rotate-left {
-  left: -0.7rem;
+  left: 0;
 }
 
 .tc-orbit-control--rotate-right {
-  right: -0.7rem;
+  right: 0;
+  border-radius: 0 999px 999px 0;
 }
 
-.tc-orbit-control--rotate-left::before,
-.tc-orbit-control--rotate-right::before {
+.tc-rotation-arrow {
+  --tc-arrow-mirror: 1;
   position: absolute;
-  inset: 5% 0 13%;
-  border-top: 2px solid rgb(16 34 26 / 62%);
-  border-bottom: 2px solid rgb(16 34 26 / 62%);
-  border-radius: 999px;
+  inset: 7%;
+  border-radius: inherit;
+  pointer-events: none;
+  transform: scaleX(var(--tc-arrow-mirror)) scale(1);
+  transition:
+    filter 120ms ease,
+    transform 120ms cubic-bezier(0.2, 0.9, 0.35, 1.4);
+}
+
+.tc-rotation-arrow--left {
+  --tc-arrow-mirror: -1;
+}
+
+.tc-rotation-arrow::before,
+.tc-rotation-arrow::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
   content: "";
 }
 
-.tc-orbit-control--rotate-left::before {
-  border-right: 0;
-  border-left: 2px solid rgb(16 34 26 / 62%);
+.tc-rotation-arrow::before {
+  background: conic-gradient(
+    from 34deg,
+    rgb(16 34 26 / 3%) 0deg,
+    rgb(16 34 26 / 10%) 20deg,
+    rgb(16 34 26 / 34%) 58deg,
+    rgb(16 34 26 / 68%) 88deg,
+    transparent 90deg
+  );
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 0);
 }
 
-.tc-orbit-control--rotate-right::before {
-  border-right: 2px solid rgb(16 34 26 / 62%);
-  border-left: 0;
+.tc-rotation-arrow::after {
+  background: conic-gradient(
+    from 84deg,
+    transparent 0deg,
+    rgb(16 34 26 / 18%) 1deg,
+    rgb(16 34 26 / 72%) 34deg,
+    transparent 36deg
+  );
+  mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 0);
 }
 
-.tc-orbit-control--rotate-left::after,
-.tc-orbit-control--rotate-right::after {
+.tc-rotation-arrow__head {
   position: absolute;
-  bottom: 4%;
+  right: 1%;
+  bottom: 13%;
   width: 0;
   height: 0;
-  border-top: 0.28rem solid rgb(16 34 26 / 72%);
-  border-right: 0.24rem solid transparent;
-  border-left: 0.24rem solid transparent;
-  content: "";
+  border-top: 0.58rem solid rgb(16 34 26 / 78%);
+  border-right: 0.36rem solid transparent;
+  border-left: 0.36rem solid transparent;
+  filter: drop-shadow(0 1px 1px rgb(255 255 255 / 70%));
+  transform: rotate(38deg);
+  transform-origin: 50% 12%;
 }
 
-.tc-orbit-control--rotate-left::after {
-  left: -0.18rem;
+.tc-orbit-control--rotate-left:active ~ .tc-rotation-arrow--left,
+.tc-orbit-control--rotate-right:active ~ .tc-rotation-arrow--right {
+  filter: drop-shadow(0 2px 3px rgb(16 34 26 / 22%));
+  transform: scaleX(var(--tc-arrow-mirror)) scale(1.18);
 }
 
-.tc-orbit-control--rotate-right::after {
-  right: -0.18rem;
+.tc-orbit-control--rotate-left:focus-visible ~ .tc-rotation-arrow--left,
+.tc-orbit-control--rotate-right:focus-visible ~ .tc-rotation-arrow--right {
+  filter: drop-shadow(0 0 2px #163fda) drop-shadow(0 0 2px #163fda);
+}
+
+.tc-orbit-control--rotate-left:focus-visible,
+.tc-orbit-control--rotate-right:focus-visible {
+  outline: 0;
 }
 
 .tc-board-hint {

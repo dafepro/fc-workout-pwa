@@ -386,17 +386,25 @@ function StampOrbitControls({
         type="button"
         aria-label={copy.rotateLeft}
         onClick={() => onEditPiece(piece.id, { rotation: piece.rotation - 12 })}
-      >
-        <span aria-hidden="true" />
-      </button>
+      />
       <button
         className="tc-orbit-control tc-orbit-control--rotate-right"
         type="button"
         aria-label={copy.rotateRight}
         onClick={() => onEditPiece(piece.id, { rotation: piece.rotation + 12 })}
+      />
+      <span
+        className="tc-rotation-arrow tc-rotation-arrow--left"
+        aria-hidden="true"
       >
-        <span aria-hidden="true" />
-      </button>
+        <span className="tc-rotation-arrow__head" />
+      </span>
+      <span
+        className="tc-rotation-arrow tc-rotation-arrow--right"
+        aria-hidden="true"
+      >
+        <span className="tc-rotation-arrow__head" />
+      </span>
     </div>
   );
 }
