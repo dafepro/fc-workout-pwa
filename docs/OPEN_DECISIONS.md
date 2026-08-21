@@ -132,6 +132,36 @@ Superseded concept assumptions retained in Git history are the finite weekly
 finish line, one-entry-only daily rule, equal credit for every alternative, one
 extra active-day bonus, and raw identical-plan Team targets.
 
+### Momentum Alpha application boundary (2026-08-20)
+
+The first implementation is an alternate local prototype, not a replacement
+for Classic Alpha and not a production suggestion engine:
+
+- `/momentum-alpha` owns an independent Today, Team, and Me application shell.
+  Classic Home, Log, Team, Leaders, and Me remain unchanged except for one
+  explicit entry card under Classic Me.
+- Authentication, session handling, current-player identity, and avatar state
+  remain shared infrastructure. Classic training state is not mounted inside
+  the Momentum namespace.
+- Momentum's mock prescription, domain rules, UI state, history, copy, styles,
+  and versioned `zoomigo-momentum-alpha-v1` local storage are contained beneath
+  `app/momentum-alpha/`.
+- Switching is explicit in both directions. No stored preference silently
+  redirects the player from Classic Home.
+- Non-production builds expose predefined Training day, Rest day, and reset
+  controls under Momentum Me for owner review. The production build omits them.
+- The current mock state is intentionally incompatible with production youth
+  data and adds no Momentum API or database schema.
+- Browser back/deep-link semantics within Today's in-page check-in remain open.
+  Team and Me are normal namespaced routes.
+- Production beta hosting remains undecided: one entitled namespaced release, a
+  beta hostname using the same artifact, or a separately releasable frontend.
+  A hidden URL is not considered access control.
+
+Before a production beta, decide the beta entitlement, persistence source,
+authoritative plan owner, cookie/origin topology, rollback unit, and whether
+Momentum Alpha needs independent PWA install/offline behavior.
+
 ## Points and leaderboards
 
 - Implemented interim safe projection formula: one session per player per

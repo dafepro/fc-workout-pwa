@@ -11,6 +11,7 @@ import type { ReactionBadge } from "../domain/types";
 import { useTraining } from "../state/training-context";
 import { useAuth } from "../state/auth-context";
 import { useAnalytics } from "../../lib/analytics/AnalyticsProvider";
+import { MomentumAlphaEntry } from "./MomentumAlphaEntry";
 
 export default function MePage() {
   const analytics = useAnalytics();
@@ -71,6 +72,7 @@ export default function MePage() {
           </button>
         ) : null}
       </header>
+      <MomentumAlphaEntry />
       <section
         className="card reaction-inbox"
         aria-labelledby="reaction-inbox-title"
