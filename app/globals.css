@@ -2366,6 +2366,87 @@ h2 {
   display: grid;
   gap: 0.8rem;
 }
+
+.momentum-alpha-entry {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1.1rem;
+  overflow: hidden;
+  border-color: rgb(139 233 67 / 45%);
+  background:
+    radial-gradient(circle at 5% 20%, rgb(139 233 67 / 18%), transparent 28%),
+    linear-gradient(135deg, #111848, #202963);
+  color: white;
+}
+
+.momentum-alpha-entry__mark {
+  position: relative;
+  width: 4.25rem;
+  height: 4.25rem;
+  border-radius: 1.35rem;
+  background: rgb(255 255 255 / 8%);
+}
+
+.momentum-alpha-entry__mark::before {
+  position: absolute;
+  inset: 50% auto auto 0.65rem;
+  width: 3rem;
+  height: 1.4rem;
+  border-top: 3px solid var(--lime);
+  border-radius: 50%;
+  content: "";
+  transform: rotate(-13deg);
+}
+
+.momentum-alpha-entry__mark span {
+  position: absolute;
+  width: 0.55rem;
+  height: 0.55rem;
+  border: 2px solid #151a45;
+  border-radius: 999px;
+  background: var(--lime);
+}
+
+.momentum-alpha-entry__mark span:nth-child(1) {
+  left: 0.55rem;
+  top: 2.35rem;
+}
+
+.momentum-alpha-entry__mark span:nth-child(2) {
+  left: 1.75rem;
+  top: 1.8rem;
+}
+
+.momentum-alpha-entry__mark span:nth-child(3) {
+  right: 0.45rem;
+  top: 1.2rem;
+}
+
+.momentum-alpha-entry__copy {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.momentum-alpha-entry__copy h2,
+.momentum-alpha-entry__copy p {
+  margin: 0;
+}
+
+.momentum-alpha-entry__copy small {
+  color: rgb(255 255 255 / 64%);
+}
+
+@media (max-width: 700px) {
+  .momentum-alpha-entry {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .momentum-alpha-entry .button {
+    grid-column: 1 / -1;
+  }
+}
+
 .profile-action {
   display: flex;
   align-items: center;

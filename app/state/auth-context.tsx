@@ -152,16 +152,24 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       router.replace(routes.playerSignIn);
     },
   };
+  const insideMomentumAlpha =
+    pathname === routes.momentumAlphaPrefix ||
+    pathname.startsWith(`${routes.momentumAlphaPrefix}/`);
+
   return (
     <AuthContext.Provider value={auth}>
       <AvatarIdentityProvider value={{ currentPlayerID, avatarConfig }}>
-        <TrainingProvider
-          connected={connected}
-          currentPlayerID={currentPlayerID}
-          currentTeamID={currentTeamID}
-        >
-          <AppShell>{children}</AppShell>
-        </TrainingProvider>
+        {insideMomentumAlpha ? (
+          children
+        ) : (
+          <TrainingProvider
+            connected={connected}
+            currentPlayerID={currentPlayerID}
+            currentTeamID={currentTeamID}
+          >
+            <AppShell>{children}</AppShell>
+          </TrainingProvider>
+        )}
       </AvatarIdentityProvider>
     </AuthContext.Provider>
   );
