@@ -547,3 +547,14 @@ Momentum Alpha needs independent PWA install/offline behavior.
 - Still open: planned rest is currently an idempotent structured self-record.
   A later plan/suggestion engine must decide when a rest day is prescribed;
   Team Canvas does not invent that scheduling authority.
+
+## Team Canvas Alpha rotation-handle refinement (2026-08-21)
+
+- Decided: each desktop rotation affordance is a continuous curved trail that
+  follows its side of the stamp boundary. It begins as a thin, low-opacity tail
+  and accumulates weight and opacity into a clear downward arrowhead.
+- Decided: pressing a rotation affordance enlarges its arrow briefly while the
+  hit target and 12-degree rotation step remain unchanged. This is interaction
+  feedback only; it does not introduce another selected, pasted, or saved state.
+- Touch manipulation remains direct pinch-and-twist, so these visual handles
+  continue to appear only for fine pointers.

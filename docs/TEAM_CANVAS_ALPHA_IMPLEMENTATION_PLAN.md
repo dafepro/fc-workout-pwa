@@ -688,3 +688,22 @@ Remaining release decisions are intentionally not hidden in this prototype:
 - planned rest is a structured self-record in this alpha. Connecting it to a
   coach-authored schedule is part of the future suggestion/plan engine rather
   than the canvas reward system.
+
+## 18. Rotation-handle refinement — 2026-08-21
+
+### Owner feedback recorded
+
+- The side rotation handles should read as curved motion, not uniform outlined
+  brackets: each arrow needs a thin, faded tail that follows the stamp boundary
+  and grows heavier toward its arrowhead.
+- Pressing either arrow should briefly enlarge the complete arrow as immediate
+  feedback.
+
+### Focused implementation
+
+- Keep the existing semantic Rotate left and Rotate right buttons, keyboard
+  access, 12-degree edit, server save, and realtime invalidation paths.
+- Replace only their visual children with mirrored tapered trails composed from
+  bounded CSS gradients and a stronger tangent-facing arrowhead.
+- Preserve the full side hit regions while scaling only the visual arrow during
+  the native pressed state. Touch remains pinch-and-twist without handles.
