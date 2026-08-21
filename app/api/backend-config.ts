@@ -4,12 +4,18 @@ function normalize(value: string | undefined): string {
 
 export function resolveBackendBaseURL(
   configured: string | undefined,
+  allowDevelopmentLoopback = false,
 ): string | null {
   const value = normalize(configured);
   if (!value) return null;
 
   const parsed = new URL(value);
-  if (parsed.protocol !== "https:" && parsed.hostname !== "api") {
+  const loopback = ["localhost", "127.0.0.1", "::1"].includes(parsed.hostname);
+  if (
+    parsed.protocol !== "https:" &&
+    parsed.hostname !== "api" &&
+    !(allowDevelopmentLoopback && loopback)
+  ) {
     throw new Error("ZOOMIGO_API_BASE_URL must use HTTPS");
   }
   return value;

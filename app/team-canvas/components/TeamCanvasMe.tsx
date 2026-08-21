@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AppViewSelect } from "../../components/AppViewSelect";
 import { PlayerAvatar } from "../../components/PlayerAvatar";
+import { useOptionalAuth } from "../../state/auth-context";
 import { teamCanvasCopy } from "../content";
 import { teamCanvasMock } from "../mock-data";
 import type { ExtraActivity } from "../model";
@@ -14,9 +15,12 @@ export function TeamCanvasMe({
   showReviewControls?: boolean;
 }) {
   const { state, recordExtra, previewDay, reset } = useTeamCanvas();
+  const auth = useOptionalAuth();
   const [extra, setExtra] = useState<ExtraActivity>("ball-touches");
   const content = teamCanvasCopy.me;
-  const player = teamCanvasMock.player;
+  const player = auth?.currentPlayer ?? teamCanvasMock.player;
+  const teamName =
+    auth?.session?.player?.teams[0]?.name ?? teamCanvasMock.team.name;
 
   return (
     <div className="tc-me">
@@ -27,7 +31,7 @@ export function TeamCanvasMe({
           <h1>
             {player.firstName} {player.lastInitial}
           </h1>
-          <p>{teamCanvasMock.team.name}</p>
+          <p>{teamName}</p>
         </div>
       </header>
 

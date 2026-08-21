@@ -11,7 +11,16 @@ import { useTeamCanvas } from "../state";
 
 export function TeamCanvasToday() {
   const router = useRouter();
-  const { state, complete, recordRest, recordCooldown } = useTeamCanvas();
+  const {
+    state,
+    connectedStatus,
+    connectedProjection,
+    connectedError,
+    justCompletedPrimary,
+    complete,
+    recordRest,
+    recordCooldown,
+  } = useTeamCanvas();
   const [expanded, setExpanded] = useState(false);
   const [completion, setCompletion] = useState<CompletionKind>("goal");
   const [effort, setEffort] = useState(4);
@@ -19,15 +28,32 @@ export function TeamCanvasToday() {
   const copy = teamCanvasCopy.today;
 
   const cooldownPending =
-    state.primaryComplete &&
-    state.dayKind === "training" &&
-    !state.cooldownComplete;
+    connectedStatus === "ready"
+      ? justCompletedPrimary && !connectedProjection?.cooldownComplete
+      : state.primaryComplete &&
+        state.dayKind === "training" &&
+        !state.cooldownComplete;
 
   useEffect(() => {
-    if (state.primaryComplete && !cooldownPending) {
+    const returningToCompletedDay =
+      connectedStatus === "ready" && !justCompletedPrimary;
+    if (
+      returningToCompletedDay ||
+      (state.primaryComplete && !cooldownPending)
+    ) {
       router.replace(teamCanvasRoutes.team);
     }
-  }, [cooldownPending, router, state.primaryComplete]);
+  }, [
+    connectedStatus,
+    cooldownPending,
+    justCompletedPrimary,
+    router,
+    state.primaryComplete,
+  ]);
+
+  if (connectedStatus === "loading") {
+    return <p className="tc-opening">Opening today’s plan…</p>;
+  }
 
   if (cooldownPending) {
     return (
@@ -42,8 +68,12 @@ export function TeamCanvasToday() {
             type="button"
             aria-label={copy.cooldownAction}
             onClick={() => {
-              recordCooldown();
-              router.push(teamCanvasRoutes.team);
+              const saved = recordCooldown();
+              if (connectedStatus === "local") {
+                router.push(teamCanvasRoutes.team);
+              } else {
+                void saved.then(() => router.push(teamCanvasRoutes.team));
+              }
             }}
           >
             <span aria-hidden="true">+</span>
@@ -72,8 +102,12 @@ export function TeamCanvasToday() {
             type="button"
             aria-label={copy.restAction}
             onClick={() => {
-              recordRest();
-              router.push(teamCanvasRoutes.team);
+              const saved = recordRest();
+              if (connectedStatus === "local") {
+                router.push(teamCanvasRoutes.team);
+              } else {
+                void saved.then(() => router.push(teamCanvasRoutes.team));
+              }
             }}
           >
             <span aria-hidden="true">+</span>
@@ -132,7 +166,7 @@ export function TeamCanvasToday() {
               className="tc-save"
               type="button"
               onClick={() => {
-                complete({ completion, effort, tiredness });
+                void complete({ completion, effort, tiredness });
               }}
             >
               {copy.save}
@@ -149,6 +183,11 @@ export function TeamCanvasToday() {
           </button>
         )}
       </article>
+      {connectedError ? (
+        <p className="tc-sync-error" role="alert">
+          {connectedError}
+        </p>
+      ) : null}
     </div>
   );
 }

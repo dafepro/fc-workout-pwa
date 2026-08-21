@@ -77,24 +77,6 @@ export interface TeamCanvasProjection {
 }
 
 const CURRENT_PLAYER_ID = "mason";
-const STAMP_CATALOG: readonly StampAsset[] = [
-  { id: "bolt", kind: "emoji", glyph: "⚡", label: "Bolt" },
-  { id: "fire", kind: "emoji", glyph: "🔥", label: "Fire" },
-  { id: "star", kind: "emoji", glyph: "🌟", label: "Star" },
-  { id: "rocket", kind: "emoji", glyph: "🚀", label: "Rocket" },
-  { id: "lion", kind: "emoji", glyph: "🦁", label: "Lion" },
-  { id: "cheetah", kind: "emoji", glyph: "🐆", label: "Cheetah" },
-  { id: "shield", kind: "emoji", glyph: "🛡️", label: "Shield" },
-  { id: "target", kind: "emoji", glyph: "🎯", label: "Target" },
-  { id: "soccer", kind: "emoji", glyph: "⚽", label: "Soccer ball" },
-  { id: "rainbow", kind: "emoji", glyph: "🌈", label: "Rainbow" },
-  { id: "strong", kind: "emoji", glyph: "💪", label: "Strong" },
-  { id: "runner", kind: "emoji", glyph: "🏃", label: "Runner" },
-  { id: "eagle", kind: "emoji", glyph: "🦅", label: "Eagle" },
-  { id: "party", kind: "emoji", glyph: "🎉", label: "Celebration" },
-  { id: "sparkles", kind: "emoji", glyph: "✨", label: "Sparkles" },
-];
-
 const TEXT_STYLES = ["block", "rally", "speed", "outline"] as const;
 
 export function initialTeamCanvasState(): TeamCanvasState {
@@ -280,7 +262,7 @@ export function availableRewardCount(state: TeamCanvasState): number {
 }
 
 export function dailyStampSet(teamId: string, dayKey: string): StampAsset[] {
-  const available = [...STAMP_CATALOG];
+  const available = [...TEAM_CANVAS_STAMPS];
   const result: StampAsset[] = [];
   let seed = hash(`${teamId}:${dayKey}`);
 
@@ -366,7 +348,7 @@ export function updateOwnedPiece(
     ...next,
     x: clamp(next.x, 6, 94),
     y: clamp(next.y, 6, 94),
-    size: clamp(next.size, 28, 64),
+    size: clamp(next.size, 28, 76),
     rotation: clamp(next.rotation, -45, 45),
   };
 
@@ -508,3 +490,4 @@ function hash(value: string): number {
 function nextSeed(value: number): number {
   return (Math.imul(value, 1664525) + 1013904223) >>> 0;
 }
+import { TEAM_CANVAS_STAMPS } from "./catalog";

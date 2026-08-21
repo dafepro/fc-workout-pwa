@@ -6,6 +6,26 @@ export interface GesturePoint {
   y: number;
 }
 
+export interface StarCrownPoint {
+  angle: number;
+  left: number;
+  top: number;
+}
+
+export function starCrownLayout(count: number): StarCrownPoint[] {
+  const safeCount = Math.max(0, Math.min(7, Math.round(count)));
+  const step = 18;
+  const firstAngle = 270 - ((safeCount - 1) * step) / 2;
+  return Array.from({ length: safeCount }, (_, index) => {
+    const angle = firstAngle + index * step;
+    return {
+      angle,
+      left: 50 + Math.cos((angle * Math.PI) / 180) * 41,
+      top: 52 + Math.sin((angle * Math.PI) / 180) * 47,
+    };
+  });
+}
+
 export function gestureTransform(
   base: BoardTransform,
   start: GesturePoint[],

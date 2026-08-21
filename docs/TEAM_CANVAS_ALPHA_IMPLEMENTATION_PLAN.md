@@ -535,3 +535,156 @@ Implemented on 2026-08-21:
 - the full Docker E2E and VM smoke suites were not run because this remains an
   isolated local prototype with no backend, infrastructure, or release change;
 - no branch push, hosted version, production mutation, or deployment occurred.
+
+## 17. Feedback round three — 2026-08-21
+
+### Owner feedback recorded
+
+- A two-star crown must keep a compact, even gap around the avatar midpoint;
+  star spacing must not expand to fill the full arc.
+- Replace the detached rectangular stamp palette with controls that belong to a
+  circular stamp boundary: minus and plus centered over the top, plus two
+  bilateral orbit arrows following roughly 60-degree side arcs and pointing
+  downward.
+- The circular boundary is a very light, slow loading-like ownership ring while
+  the piece is resting. Selection makes the ring thicker, faster, and about 50%
+  opaque without adding a second popup.
+- Mock peer movement should be faster and jerkier, like short drag updates from
+  another person rather than slow autonomous drifting.
+- Increase the maximum stamp size modestly.
+- Add a development toolbox for board background asset/color, team-name
+  color/size/type treatment, and the five daily stamp choices. Include an empty
+  soccer field, an original creature-adventure town, and other playful generated
+  backgrounds, plus reviewed non-emoji stamp examples.
+- Move Team Canvas off browser-only authority. The completion gate, weekly
+  participants and stars, avatar positions, live/settled pieces, development
+  settings, and reward limits must load from and save through authenticated API
+  endpoints backed by the existing SQLite database.
+- Realtime avatar, piece, and toolbox changes must invalidate other connected
+  clients and resolve to the durable server snapshot rather than only animating
+  a local mock.
+
+### Integration decisions and assumptions
+
+- The existing Go API and SQLite deployment remain authoritative. The Sites
+  project metadata is unchanged; adding D1 beside the application database would
+  create two product-data authorities.
+- Team Canvas uses the existing player session, active team membership, training
+  entries, assignments, team timezone, and saved avatar configuration. A player
+  cannot receive the team projection until today has a qualifying training entry
+  or planned-rest record.
+- Reach eligibility is derived server-side from an assigned result at least 125%
+  of the assignment target. A structured recovery entry earns the second daily
+  piece. Server transaction checks cap creation at the earned count.
+- An authenticated Server-Sent Events stream broadcasts invalidation events.
+  Clients refetch the durable snapshot after each event and after reconnecting,
+  so an event is never treated as state. The documented single API replica can
+  use an in-process broker; more than one replica requires a shared broker or
+  database change stream before rollout.
+- The toolbox endpoint exists only in development and E2E configurations. Its
+  fields are bounded and catalog-backed; production responds as though the
+  endpoint does not exist.
+- Generated backgrounds and stamp art are reviewed same-origin assets. The
+  creature-adventure option is original and contains no franchise character,
+  logo, name, or copied map.
+
+### Round-three proposed file tree
+
+```text
+public/team-canvas/
+├── backgrounds/
+│   ├── soccer-field.png
+│   ├── creature-quest-town.png
+│   └── cosmic-stadium.png
+└── stamps/
+    └── spark-cleat.png
+
+backend/
+├── migrations/
+│   ├── 000013_team_canvas.up.sql
+│   └── 000013_team_canvas.down.sql
+├── internal/store/
+│   ├── team_canvas.go
+│   └── team_canvas_test.go
+├── internal/httpapi/
+│   ├── team_canvas.go
+│   └── team_canvas_test.go
+└── e2e/
+    └── team_canvas_test.go
+
+app/
+├── data/
+│   ├── team-canvas-gateway.ts
+│   └── team-canvas-gateway.test.ts
+├── api/zoomigo/[...path]/route.ts       # allowlist + streaming proxy
+└── team-canvas/
+    ├── catalog.ts                       # reviewed backgrounds/text/stamps
+    ├── components/
+    │   ├── BoardSurface.tsx             # compact crown + circular controls
+    │   ├── TeamCanvasBoard.tsx          # durable snapshot projection
+    │   └── CanvasDevToolbox.tsx          # development/E2E structured toolbox
+    ├── state.tsx                        # local adapter or connected gateway
+    └── team-canvas.css
+
+e2e/
+└── pwa-team-canvas.spec.ts              # connected browser workflow
+```
+
+### Round-three implementation order
+
+1. Lock crown spacing, circular control geometry, movement cadence, and enlarged
+   size bounds with failing focused tests.
+2. Generate and review the same-origin board and stamp assets.
+3. Add the populated-database migration, repository rules, authorization-safe
+   projection, and durable write tests.
+4. Add authenticated REST writes plus the realtime invalidation stream and
+   black-box API coverage.
+5. Connect the alternate UI through a gateway, retain the local adapter only
+   when no backend is configured, and expose the structured toolbox only in
+   development/E2E.
+6. Run targeted Go/TypeScript tests, formatting, lint, type checks, contract
+   checks, production builds, and the Team Canvas Docker E2E workflow; commit
+   locally and do not deploy.
+
+### Round-three implementation and gap-audit result
+
+Implemented locally on 2026-08-21:
+
+- fixed-gap star crowns, a selected/resting circular stamp boundary, bilateral
+  rotation arcs, top-centered size controls, a 76-pixel limit, and faster
+  deterministic peer drag simulation are implemented and covered by focused
+  tests;
+- the toolbox controls reviewed scene assets, bounded team-name styling, and
+  exactly five unique catalog stamps. It is available in the disconnected
+  review build and through a development/E2E-only API when connected;
+- the generated soccer field, original creature-adventure town, cosmic stadium,
+  and transparent spark-cleat art live under the same-origin public catalog;
+- migration 13 adds planned rest, team appearance, weekly avatar positions, and
+  daily reward-slot-backed pieces. The logical backup schema and populated
+  round-trip fixtures include every new table;
+- authenticated REST reads/writes and an SSE invalidation stream now use the
+  existing player session, membership, assignment, training entry, team
+  timezone, avatar, Go service, and SQLite paths. Connected clients refetch the
+  durable snapshot after every event and reconnect;
+- connected mode contains no simulated teammates. Disconnected review mode
+  retains the fast jerky simulation and real Avatar Studio examples solely to
+  demonstrate the multi-player feel before multiple browser sessions are open;
+- deleting a qualifying training entry now reconciles its day’s reward slots,
+  removing any piece that is no longer earned. This closes the earn-place-delete
+  loophole found during the consistency audit;
+- focused component/unit tests, API/store/backup tests, an in-process black-box
+  API E2E, and the connected Playwright workflow pass. Docker Desktop was not
+  running, so the Docker wrapper itself could not start; the same migrations,
+  authentication stack, backend process, Next proxy, browser, and SQLite path
+  were exercised through the repository’s local E2E harness instead;
+- no push, deployment, hosted mutation, or production change occurred.
+
+Remaining release decisions are intentionally not hidden in this prototype:
+
+- the in-process SSE broker is correct for the current single replica, but a
+  shared broker or database change stream is required before horizontal scale;
+- the toolbox proves possible visual inputs but does not decide whether future
+  production themes are coach-selected, team-earned, or system-rotated;
+- planned rest is a structured self-record in this alpha. Connecting it to a
+  coach-authored schedule is part of the future suggestion/plan engine rather
+  than the canvas reward system.

@@ -7,9 +7,16 @@ import type {
   PointerEvent,
 } from "react";
 import { useEffect, useRef, useState } from "react";
+import type { AvatarConfiguration } from "../../avatar/types";
 import { Avatar } from "../../components/Avatar";
-import { gestureTransform, type GesturePoint } from "../board-geometry";
+import type { Player } from "../../domain/types";
+import {
+  gestureTransform,
+  starCrownLayout,
+  type GesturePoint,
+} from "../board-geometry";
 import { teamCanvasCopy } from "../content";
+import { teamCanvasBackground } from "../catalog";
 import { liveTeamFrame } from "../live-simulation";
 import { teamCanvasMock } from "../mock-data";
 import type {
@@ -20,15 +27,28 @@ import type {
 import { StampAssetView, stampAssetLabel } from "./StampAsset";
 
 interface BoardSurfaceProps {
-  starDayKeys: string[];
-  avatarPosition: BoardPosition;
+  teamName: string;
+  currentPlayerID: string;
+  members: BoardMember[];
   pieces: ProjectedBoardPiece[];
   selectedPieceId: string | null;
   textStyle: string;
+  backgroundAssetID: string;
+  backgroundColor: string;
+  textColor: string;
+  textSize: number;
+  simulatePeers: boolean;
   onMoveAvatar(position: BoardPosition): void;
   onTogglePiece(pieceId: string): void;
   onEditPiece(pieceId: string, patch: Partial<BoardTransform>): void;
   onClearPiece(): void;
+}
+
+export interface BoardMember {
+  player: Player;
+  avatar: AvatarConfiguration;
+  position: BoardPosition;
+  starDayKeys: string[];
 }
 
 interface ActiveGesture {
@@ -40,11 +60,17 @@ interface ActiveGesture {
 }
 
 export function BoardSurface({
-  starDayKeys,
-  avatarPosition,
+  teamName,
+  currentPlayerID,
+  members,
   pieces,
   selectedPieceId,
   textStyle,
+  backgroundAssetID,
+  backgroundColor,
+  textColor,
+  textSize,
+  simulatePeers,
   onMoveAvatar,
   onTogglePiece,
   onEditPiece,
@@ -56,99 +82,127 @@ export function BoardSurface({
   const suppressPieceClick = useRef(false);
   const copy = teamCanvasCopy.board;
   const liveFrame = liveTeamFrame(liveTick);
-  const selectedPiece = pieces.find(({ id }) => id === selectedPieceId);
-
+  const currentMember = members.find(
+    ({ player }) => player.id === currentPlayerID,
+  );
+  const background = teamCanvasBackground(backgroundAssetID);
+  const boardStyle = {
+    "--tc-board-color": backgroundColor,
+    "--tc-board-image": background ? `url("${background}")` : "none",
+    "--tc-board-text-color": textColor,
+    "--tc-board-text-size": `${textSize}px`,
+  } as CSSProperties;
   useEffect(() => {
+    if (!simulatePeers) return;
     const reduced = window.matchMedia?.(
       "(prefers-reduced-motion: reduce)",
     ).matches;
     if (reduced) return;
     const timer = window.setInterval(
       () => setLiveTick((tick) => tick + 1),
-      2200,
+      680,
     );
     return () => window.clearInterval(timer);
-  }, []);
+  }, [simulatePeers]);
 
   return (
     <div
-      className={`tc-board tc-board--${textStyle}`}
+      className={`tc-board tc-board--${textStyle} tc-board-bg--${backgroundAssetID}`}
+      style={boardStyle}
       aria-label={copy.canvasLabel}
       onPointerDown={(event) => {
         if (event.target === event.currentTarget) onClearPiece();
       }}
     >
       <span className="tc-board__team-name" aria-hidden="true">
-        HILL
-        <br />
-        STRIDERS
+        {teamName.toUpperCase().replace(/\s+/g, "\n")}
       </span>
       <span className="tc-live-indicator">
         <span aria-hidden="true" /> {copy.liveNow}
       </span>
 
-      {teamCanvasMock.pastedPieces.map((piece) => (
-        <StaticStamp key={piece.id} piece={piece} />
-      ))}
-      {liveFrame.pieces.map((piece) => (
-        <StaticStamp key={piece.id} piece={piece} peerLive />
-      ))}
+      {simulatePeers
+        ? teamCanvasMock.pastedPieces.map((piece) => (
+            <StaticStamp key={piece.id} piece={piece} />
+          ))
+        : null}
+      {simulatePeers
+        ? liveFrame.pieces.map((piece) => (
+            <StaticStamp key={piece.id} piece={piece} peerLive />
+          ))
+        : null}
       {pieces
         .filter(({ editable }) => !editable)
         .map((piece) => (
-          <StaticStamp key={piece.id} piece={piece} />
+          <StaticStamp
+            key={piece.id}
+            piece={piece}
+            peerLive={piece.status === "live"}
+          />
         ))}
 
-      {teamCanvasMock.completers.map((member) => {
-        const livePosition = liveFrame.players.find(
-          ({ id }) => id === member.player.id,
-        );
-        return (
-          <PlayerMarker
-            key={member.player.id}
-            player={member.player}
-            avatar={member.avatar}
-            x={livePosition?.x ?? member.x}
-            y={livePosition?.y ?? member.y}
-            starDayKeys={[...member.starDayKeys]}
-            live
-          />
-        );
-      })}
+      {members
+        .filter(({ player }) => player.id !== currentPlayerID)
+        .map((member) => {
+          const livePosition = liveFrame.players.find(
+            ({ id }) => id === member.player.id,
+          );
+          return (
+            <PlayerMarker
+              key={member.player.id}
+              player={member.player}
+              avatar={member.avatar}
+              x={
+                simulatePeers
+                  ? (livePosition?.x ?? member.position.x)
+                  : member.position.x
+              }
+              y={
+                simulatePeers
+                  ? (livePosition?.y ?? member.position.y)
+                  : member.position.y
+              }
+              starDayKeys={[...member.starDayKeys]}
+              live
+            />
+          );
+        })}
 
-      <PlayerMarker
-        player={teamCanvasMock.player}
-        avatar={teamCanvasMock.playerAvatar}
-        x={avatarPosition.x}
-        y={avatarPosition.y}
-        starDayKeys={starDayKeys}
-        current
-        onPointerDown={(event) => {
-          event.preventDefault();
-          event.currentTarget.setPointerCapture?.(event.pointerId);
-          avatarPointer.current = event.pointerId;
-        }}
-        onPointerMove={(event) => {
-          if (avatarPointer.current !== event.pointerId) return;
-          const board = event.currentTarget.closest(".tc-board");
-          if (!(board instanceof HTMLElement)) return;
-          const rect = board.getBoundingClientRect();
-          onMoveAvatar({
-            x: ((event.clientX - rect.left) / rect.width) * 100,
-            y: ((event.clientY - rect.top) / rect.height) * 100,
-          });
-        }}
-        onPointerUp={(event) => {
-          if (avatarPointer.current === event.pointerId)
+      {currentMember ? (
+        <PlayerMarker
+          player={currentMember.player}
+          avatar={currentMember.avatar}
+          x={currentMember.position.x}
+          y={currentMember.position.y}
+          starDayKeys={currentMember.starDayKeys}
+          current
+          onPointerDown={(event) => {
+            event.preventDefault();
+            event.currentTarget.setPointerCapture?.(event.pointerId);
+            avatarPointer.current = event.pointerId;
+          }}
+          onPointerMove={(event) => {
+            if (avatarPointer.current !== event.pointerId) return;
+            const board = event.currentTarget.closest(".tc-board");
+            if (!(board instanceof HTMLElement)) return;
+            const rect = board.getBoundingClientRect();
+            onMoveAvatar({
+              x: ((event.clientX - rect.left) / rect.width) * 100,
+              y: ((event.clientY - rect.top) / rect.height) * 100,
+            });
+          }}
+          onPointerUp={(event) => {
+            if (avatarPointer.current === event.pointerId)
+              avatarPointer.current = null;
+          }}
+          onPointerCancel={() => {
             avatarPointer.current = null;
-        }}
-        onPointerCancel={() => {
-          avatarPointer.current = null;
-        }}
-        onKeyDown={(event) =>
-          moveAvatarWithKeyboard(event, avatarPosition, onMoveAvatar)
-        }
-      />
+          }}
+          onKeyDown={(event) =>
+            moveAvatarWithKeyboard(event, currentMember.position, onMoveAvatar)
+          }
+        />
+      ) : null}
 
       {pieces
         .filter(({ editable }) => editable)
@@ -156,47 +210,51 @@ export function BoardSurface({
           const selected = piece.id === selectedPieceId;
           const label = stampAssetLabel(piece.asset);
           return (
-            <button
+            <div
               key={piece.id}
-              className={`tc-stamp tc-stamp--owned-live${selected ? " is-selected" : " is-resting"}`}
-              type="button"
-              aria-label={copy.editStamp(label)}
-              aria-pressed={selected}
-              style={positionStyle(piece)}
-              onClick={() => {
-                if (suppressPieceClick.current) {
-                  suppressPieceClick.current = false;
-                  return;
-                }
-                onTogglePiece(piece.id);
-              }}
-              onPointerDown={(event) => {
-                if (!selected) return;
-                event.preventDefault();
-                event.currentTarget.setPointerCapture?.(event.pointerId);
-                beginGesture(event, piece, gesture);
-              }}
-              onPointerMove={(event) =>
-                continueGesture(event, gesture, onEditPiece)
-              }
-              onPointerUp={(event) =>
-                endGesture(event, piece, gesture, suppressPieceClick)
-              }
-              onPointerCancel={(event) =>
-                endGesture(event, piece, gesture, suppressPieceClick)
-              }
-              onKeyDown={(event) =>
-                editPieceWithKeyboard(event, piece, onEditPiece, onClearPiece)
-              }
+              className={`tc-stamp-orbit${selected ? " is-selected" : " is-resting"}`}
+              style={orbitStyle(piece)}
             >
-              <StampAssetView asset={piece.asset} />
-            </button>
+              <button
+                className="tc-stamp tc-stamp--owned-live"
+                type="button"
+                aria-label={copy.editStamp(label)}
+                aria-pressed={selected}
+                style={ownedStampStyle(piece)}
+                onClick={() => {
+                  if (suppressPieceClick.current) {
+                    suppressPieceClick.current = false;
+                    return;
+                  }
+                  onTogglePiece(piece.id);
+                }}
+                onPointerDown={(event) => {
+                  if (!selected) return;
+                  event.preventDefault();
+                  event.currentTarget.setPointerCapture?.(event.pointerId);
+                  beginGesture(event, piece, gesture);
+                }}
+                onPointerMove={(event) =>
+                  continueGesture(event, gesture, onEditPiece)
+                }
+                onPointerUp={(event) =>
+                  endGesture(event, piece, gesture, suppressPieceClick)
+                }
+                onPointerCancel={(event) =>
+                  endGesture(event, piece, gesture, suppressPieceClick)
+                }
+                onKeyDown={(event) =>
+                  editPieceWithKeyboard(event, piece, onEditPiece, onClearPiece)
+                }
+              >
+                <StampAssetView asset={piece.asset} />
+              </button>
+              {selected ? (
+                <StampOrbitControls piece={piece} onEditPiece={onEditPiece} />
+              ) : null}
+            </div>
           );
         })}
-
-      {selectedPiece?.editable ? (
-        <StampPalette piece={selectedPiece} onEditPiece={onEditPiece} />
-      ) : null}
     </div>
   );
 }
@@ -211,8 +269,8 @@ function PlayerMarker({
   live = false,
   ...events
 }: {
-  player: (typeof teamCanvasMock.completers)[number]["player"];
-  avatar: (typeof teamCanvasMock.completers)[number]["avatar"];
+  player: Player;
+  avatar: AvatarConfiguration;
   x: number;
   y: number;
   starDayKeys: string[];
@@ -259,10 +317,7 @@ function StarCrown({ name, dayKeys }: { name: string; dayKeys: string[] }) {
       aria-label={teamCanvasCopy.board.completedDays(name)}
     >
       {dayKeys.map((dayKey, index) => {
-        const angle =
-          dayKeys.length === 1
-            ? 270
-            : 205 + (130 * index) / (dayKeys.length - 1);
+        const point = starCrownLayout(dayKeys.length)[index];
         return (
           <span
             key={dayKey}
@@ -270,8 +325,8 @@ function StarCrown({ name, dayKeys }: { name: string; dayKeys: string[] }) {
             data-testid={`${name}-star`}
             aria-hidden="true"
             style={{
-              left: `${50 + Math.cos((angle * Math.PI) / 180) * 41}%`,
-              top: `${52 + Math.sin((angle * Math.PI) / 180) * 47}%`,
+              left: `${point.left}%`,
+              top: `${point.top}%`,
             }}
           >
             ★
@@ -300,7 +355,7 @@ function StaticStamp({
   );
 }
 
-function StampPalette({
+function StampOrbitControls({
   piece,
   onEditPiece,
 }: {
@@ -309,12 +364,9 @@ function StampPalette({
 }) {
   const copy = teamCanvasCopy.board;
   return (
-    <div
-      className="tc-floating-palette"
-      style={{ left: `${piece.x}%`, top: `${piece.y}%` }}
-      aria-label={copy.paletteLabel}
-    >
+    <div className="tc-orbit-controls" aria-label={copy.paletteLabel}>
       <button
+        className="tc-orbit-control tc-orbit-control--smaller"
         type="button"
         aria-label={copy.smaller}
         onClick={() => onEditPiece(piece.id, { size: piece.size - 6 })}
@@ -322,6 +374,7 @@ function StampPalette({
         −
       </button>
       <button
+        className="tc-orbit-control tc-orbit-control--larger"
         type="button"
         aria-label={copy.larger}
         onClick={() => onEditPiece(piece.id, { size: piece.size + 6 })}
@@ -329,18 +382,20 @@ function StampPalette({
         ＋
       </button>
       <button
+        className="tc-orbit-control tc-orbit-control--rotate-left"
         type="button"
         aria-label={copy.rotateLeft}
         onClick={() => onEditPiece(piece.id, { rotation: piece.rotation - 12 })}
       >
-        ↶
+        <span aria-hidden="true" />
       </button>
       <button
+        className="tc-orbit-control tc-orbit-control--rotate-right"
         type="button"
         aria-label={copy.rotateRight}
         onClick={() => onEditPiece(piece.id, { rotation: piece.rotation + 12 })}
       >
-        ↷
+        <span aria-hidden="true" />
       </button>
     </div>
   );
@@ -434,6 +489,24 @@ function positionStyle(piece: BoardTransform): CSSProperties {
   return {
     left: `${piece.x}%`,
     top: `${piece.y}%`,
+    fontSize: `${piece.size}px`,
+    transform: `translate(-50%, -50%) rotate(${piece.rotation}deg)`,
+  };
+}
+
+function orbitStyle(piece: BoardTransform): CSSProperties {
+  return {
+    left: `${piece.x}%`,
+    top: `${piece.y}%`,
+    width: `${piece.size + 30}px`,
+    height: `${piece.size + 30}px`,
+  };
+}
+
+function ownedStampStyle(piece: BoardTransform): CSSProperties {
+  return {
+    width: `${piece.size}px`,
+    height: `${piece.size}px`,
     fontSize: `${piece.size}px`,
     transform: `translate(-50%, -50%) rotate(${piece.rotation}deg)`,
   };

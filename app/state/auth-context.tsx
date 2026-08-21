@@ -29,6 +29,7 @@ interface AuthState {
   connected: boolean;
   session: SessionProfile | null;
   currentPlayerID: string;
+  currentTeamID: string;
   currentPlayer: Player;
   avatarConfig: AvatarConfiguration;
   saveAvatar(config: AvatarConfiguration): Promise<void>;
@@ -142,6 +143,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     connected,
     session,
     currentPlayerID,
+    currentTeamID,
     currentPlayer,
     avatarConfig,
     async saveAvatar(config) {
@@ -182,6 +184,10 @@ export function useAuth(): AuthState {
   const value = useContext(AuthContext);
   if (!value) throw new Error("useAuth must be used inside AuthGate");
   return value;
+}
+
+export function useOptionalAuth(): AuthState | null {
+  return useContext(AuthContext);
 }
 
 /** The sign-in page and the staff console both authenticate for themselves, and

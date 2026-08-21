@@ -123,7 +123,9 @@ describe("Team Canvas rules", () => {
 
     expect(first).toHaveLength(5);
     expect(new Set(first.map(({ id }) => id)).size).toBe(5);
-    expect(first.every(({ kind }) => kind === "emoji")).toBe(true);
+    expect(
+      first.every(({ kind }) => ["emoji", "image", "sprite"].includes(kind)),
+    ).toBe(true);
     expect(dailyStampSet("team-hill-striders", "2026-08-20")).toEqual(first);
     expect(dailyStampSet("team-hill-striders", "2026-08-21")).not.toEqual(
       first,
@@ -173,7 +175,7 @@ describe("Team Canvas rules", () => {
     expect(edited.boardPieces[0]).toMatchObject({
       x: 94,
       y: 6,
-      size: 64,
+      size: 76,
       rotation: 45,
       status: "live",
     });

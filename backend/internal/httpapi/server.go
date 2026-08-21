@@ -48,6 +48,7 @@ type service struct {
 	credentials   CredentialManager
 	authFixtures  func(context.Context) error
 	throttles     []*loginThrottle
+	canvasEvents  *teamCanvasBroker
 	now           func() time.Time
 }
 
@@ -68,6 +69,13 @@ type Repository interface {
 	TeamActivity(context.Context, domain.Actor, string, time.Time) (store.TeamActivityProjection, error)
 	Leaderboard(context.Context, domain.Actor, string, domain.LeaderboardPeriod, domain.LeaderboardMetric, time.Time) (store.LeaderboardProjection, error)
 	TrainingDashboard(context.Context, domain.Actor, string, time.Time) (store.TrainingDashboardProjection, error)
+	TeamCanvas(context.Context, domain.Actor, string, time.Time) (store.TeamCanvasProjection, error)
+	RecordTeamCanvasRest(context.Context, domain.Actor, string, time.Time) error
+	UpdateTeamCanvasAvatar(context.Context, domain.Actor, string, store.TeamCanvasPosition, time.Time) (store.TeamCanvasPosition, error)
+	CreateTeamCanvasPiece(context.Context, domain.Actor, string, string, time.Time) (store.TeamCanvasPiece, error)
+	UpdateTeamCanvasPiece(context.Context, domain.Actor, string, string, store.TeamCanvasTransform, time.Time) (store.TeamCanvasPiece, error)
+	UpdateTeamCanvasSettings(context.Context, domain.Actor, string, store.TeamCanvasSettingsInput, time.Time) (store.TeamCanvasSettings, error)
+	ReconcileTeamCanvasRewards(context.Context, string, string, time.Time) error
 	UpdatePlayerAvatarConfiguration(context.Context, string, string) error
 }
 
@@ -94,7 +102,7 @@ func WithAuthFixtureReset(reset func(context.Context) error) Option {
 }
 
 func NewHandler(cfg config.Config, options ...Option) http.Handler {
-	service := &service{cfg: cfg, authenticator: authn.Disabled{}, now: time.Now}
+	service := &service{cfg: cfg, authenticator: authn.Disabled{}, canvasEvents: newTeamCanvasBroker(), now: time.Now}
 	for _, option := range options {
 		option(service)
 	}
@@ -141,6 +149,13 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	mux.HandleFunc("DELETE /v1/training-entries/{entryId}", service.deleteTrainingEntry)
 	mux.HandleFunc("GET /v1/teams/{teamId}/activity", service.getTeamActivity)
 	mux.HandleFunc("GET /v1/teams/{teamId}/leaderboards", service.getLeaderboard)
+	mux.HandleFunc("GET /v1/teams/{teamId}/canvas", service.getTeamCanvas)
+	mux.HandleFunc("POST /v1/teams/{teamId}/canvas/rest", service.recordTeamCanvasRest)
+	mux.HandleFunc("PUT /v1/teams/{teamId}/canvas/avatar", service.updateTeamCanvasAvatar)
+	mux.HandleFunc("POST /v1/teams/{teamId}/canvas/pieces", service.createTeamCanvasPiece)
+	mux.HandleFunc("PUT /v1/teams/{teamId}/canvas/pieces/{pieceId}", service.updateTeamCanvasPiece)
+	mux.HandleFunc("PUT /v1/teams/{teamId}/canvas/dev-settings", service.updateTeamCanvasSettings)
+	mux.HandleFunc("GET /v1/teams/{teamId}/canvas/events", service.streamTeamCanvasEvents)
 	if _, ok := service.store.(fixtureResetter); cfg.EnableE2EFixtures && ok {
 		mux.HandleFunc("POST /__e2e/reset", service.resetE2EFixtures)
 	}
@@ -271,6 +286,8 @@ func (service *service) createTrainingEntry(w http.ResponseWriter, r *http.Reque
 	status := http.StatusCreated
 	if entry.Replayed {
 		status = http.StatusOK
+	} else {
+		service.canvasEvents.publish(entry.TeamID)
 	}
 	writeJSON(w, status, entry)
 }
@@ -369,6 +386,13 @@ func (service *service) deleteTrainingEntry(w http.ResponseWriter, r *http.Reque
 		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
 		return
 	}
+	activityDay, err := time.Parse(time.RFC3339Nano, entry.OccurredAt)
+	if err != nil || service.store.ReconcileTeamCanvasRewards(r.Context(), entry.TeamID, entry.PlayerID, activityDay) != nil {
+		service.canvasEvents.publish(entry.TeamID)
+		writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")
+		return
+	}
+	service.canvasEvents.publish(entry.TeamID)
 	w.WriteHeader(http.StatusNoContent)
 }
 
