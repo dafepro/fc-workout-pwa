@@ -74,8 +74,8 @@ func TestLogicalExportAndImportPreserveEveryTableExactly(t *testing.T) {
 	if manifest.CreatedAt != createdAt.Format(time.RFC3339) || manifest.ApplicationVersion != "logical-test" {
 		t.Fatalf("unexpected manifest metadata: %+v", manifest)
 	}
-	if len(manifest.Source.SchemaMigrations) != 13 {
-		t.Fatalf("source migrations = %v, want 13 applied", manifest.Source.SchemaMigrations)
+	if len(manifest.Source.SchemaMigrations) != 14 {
+		t.Fatalf("source migrations = %v, want 14 applied", manifest.Source.SchemaMigrations)
 	}
 	exported := make([]string, 0, len(manifest.Tables))
 	for _, table := range manifest.Tables {
@@ -121,8 +121,8 @@ func TestLogicalExportAndImportPreserveEveryTableExactly(t *testing.T) {
 	if err := target.QueryRowContext(ctx, "SELECT COUNT(*) FROM schema_migrations").Scan(&ledger); err != nil {
 		t.Fatal(err)
 	}
-	if ledger != 13 {
-		t.Fatalf("imported migration ledger = %d, want the current 13", ledger)
+	if ledger != 14 {
+		t.Fatalf("imported migration ledger = %d, want the current 14", ledger)
 	}
 }
 
@@ -173,8 +173,8 @@ func TestLogicalExportFromAnOlderSchemaImportsIntoTheCurrentSchema(t *testing.T)
 	if err := target.QueryRowContext(ctx, "SELECT idempotency_key FROM training_entries WHERE id = 'entry-old'").Scan(&idempotencyKey); err != nil {
 		t.Fatal(err)
 	}
-	if entries != 1 || migrationsApplied != 13 {
-		t.Fatalf("entries=%d migrations=%d, want 1 and 13", entries, migrationsApplied)
+	if entries != 1 || migrationsApplied != 14 {
+		t.Fatalf("entries=%d migrations=%d, want 1 and 14", entries, migrationsApplied)
 	}
 	if idempotencyKey.Valid {
 		t.Fatalf("field added after the export defaulted to %q, want NULL", idempotencyKey.String)

@@ -74,6 +74,7 @@ type Repository interface {
 	UpdateTeamCanvasAvatar(context.Context, domain.Actor, string, store.TeamCanvasPosition, time.Time) (store.TeamCanvasPosition, error)
 	CreateTeamCanvasPiece(context.Context, domain.Actor, string, string, time.Time) (store.TeamCanvasPiece, error)
 	UpdateTeamCanvasPiece(context.Context, domain.Actor, string, string, store.TeamCanvasTransform, time.Time) (store.TeamCanvasPiece, error)
+	DeleteTeamCanvasPiece(context.Context, domain.Actor, string, string, time.Time) error
 	UpdateTeamCanvasSettings(context.Context, domain.Actor, string, store.TeamCanvasSettingsInput, time.Time) (store.TeamCanvasSettings, error)
 	ReconcileTeamCanvasRewards(context.Context, string, string, time.Time) error
 	UpdatePlayerAvatarConfiguration(context.Context, string, string) error
@@ -154,6 +155,7 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	mux.HandleFunc("PUT /v1/teams/{teamId}/canvas/avatar", service.updateTeamCanvasAvatar)
 	mux.HandleFunc("POST /v1/teams/{teamId}/canvas/pieces", service.createTeamCanvasPiece)
 	mux.HandleFunc("PUT /v1/teams/{teamId}/canvas/pieces/{pieceId}", service.updateTeamCanvasPiece)
+	mux.HandleFunc("DELETE /v1/teams/{teamId}/canvas/pieces/{pieceId}", service.deleteTeamCanvasPiece)
 	mux.HandleFunc("PUT /v1/teams/{teamId}/canvas/dev-settings", service.updateTeamCanvasSettings)
 	mux.HandleFunc("GET /v1/teams/{teamId}/canvas/events", service.streamTeamCanvasEvents)
 	if _, ok := service.store.(fixtureResetter); cfg.EnableE2EFixtures && ok {

@@ -80,7 +80,7 @@ func TestTeamCanvasPersistsRewardsSettingsAndLiveInvalidations(t *testing.T) {
 	_ = secondPiece.Body.Close()
 
 	updatedPiece := api.do(t, http.MethodPut, "/v1/teams/team-hill-striders/canvas/pieces/"+piece.ID, masonToken, "", map[string]any{
-		"x": 200, "y": -100, "size": 500, "rotation": 90,
+		"x": 200, "y": -100, "size": 500, "rotation": 135,
 	})
 	assertStatus(t, updatedPiece, http.StatusOK)
 	_ = updatedPiece.Body.Close()
@@ -102,7 +102,7 @@ func TestTeamCanvasPersistsRewardsSettingsAndLiveInvalidations(t *testing.T) {
 	assertStatus(t, reloaded, http.StatusOK)
 	body := readBody(reloaded)
 	_ = reloaded.Body.Close()
-	for _, expected := range []string{`"backgroundAssetId":"creature-quest-town"`, `"x":94`, `"y":6`, `"size":76`, `"rotation":45`} {
+	for _, expected := range []string{`"backgroundAssetId":"creature-quest-town"`, `"x":94`, `"y":6`, `"size":76`, `"rotation":135`} {
 		if !strings.Contains(body, expected) {
 			t.Fatalf("durable snapshot lacks %s: %s", expected, body)
 		}
@@ -116,6 +116,22 @@ func TestTeamCanvasPersistsRewardsSettingsAndLiveInvalidations(t *testing.T) {
 	if err := json.Unmarshal([]byte(body), &validJSON); err != nil {
 		t.Fatalf("durable snapshot JSON: %v", err)
 	}
+
+	deletedPiece := api.do(t, http.MethodDelete, "/v1/teams/team-hill-striders/canvas/pieces/"+piece.ID, masonToken, "", nil)
+	assertStatus(t, deletedPiece, http.StatusNoContent)
+	_ = deletedPiece.Body.Close()
+	assertCanvasEvent(t, scanner, "canvas")
+	afterPieceDelete := api.do(t, http.MethodGet, "/v1/teams/team-hill-striders/canvas", masonToken, "", nil)
+	assertStatus(t, afterPieceDelete, http.StatusOK)
+	var afterPieceDeleteSnapshot canvasSnapshot
+	decodeJSON(t, afterPieceDelete, &afterPieceDeleteSnapshot)
+	if afterPieceDeleteSnapshot.AvailableRewards != 1 || len(afterPieceDeleteSnapshot.Pieces) != 0 {
+		t.Fatalf("deleted piece did not restore reward: %+v", afterPieceDeleteSnapshot)
+	}
+	replacement := api.do(t, http.MethodPost, "/v1/teams/team-hill-striders/canvas/pieces", masonToken, "", map[string]any{"assetId": "zoomigo-mark"})
+	assertStatus(t, replacement, http.StatusCreated)
+	_ = replacement.Body.Close()
+	assertCanvasEvent(t, scanner, "canvas")
 
 	deleted := api.do(t, http.MethodDelete, "/v1/training-entries/"+reachEntry.ID, masonToken, "", nil)
 	assertStatus(t, deleted, http.StatusNoContent)

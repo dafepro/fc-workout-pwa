@@ -225,6 +225,79 @@ func TestMigrateRebuildsAPopulatedAssignmentsTable(t *testing.T) {
 	}
 }
 
+func TestMigrateExpandsRotationForPopulatedCanvasPieces(t *testing.T) {
+	ctx := context.Background()
+	databaseURL := "file:" + filepath.ToSlash(filepath.Join(t.TempDir(), "populated-canvas.db"))
+	db, err := Open(ctx, databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+
+	if _, err = db.ExecContext(ctx, `CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)`); err != nil {
+		t.Fatal(err)
+	}
+	for _, version := range []string{
+		"000001_foundation.up.sql",
+		"000002_reaction_replay_result.up.sql",
+		"000003_training_entry_idempotency.up.sql",
+		"000004_authentication.up.sql",
+		"000005_assignments.up.sql",
+		"000006_activity_defaults.up.sql",
+		"000007_challenge_reactions.up.sql",
+		"000008_platform_admin_and_staff_audit.up.sql",
+		"000009_staff_credentials.up.sql",
+		"000010_admin_audit.up.sql",
+		"000011_assignment_catalog.up.sql",
+		"000012_admin_audit_actor_source.up.sql",
+		"000013_team_canvas.up.sql",
+	} {
+		contents, readErr := fs.ReadFile(migrations.Files, version)
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		if _, err = db.ExecContext(ctx, string(contents)); err != nil {
+			t.Fatalf("apply %s: %v", version, err)
+		}
+		if _, err = db.ExecContext(ctx, `INSERT INTO schema_migrations (version, applied_at) VALUES (?, '2026-08-05T00:00:00Z')`, version[:6]); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	for _, statement := range []string{
+		`INSERT INTO clubs (id, name, created_at) VALUES ('club-1', 'Club', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO teams (id, club_id, name, season_id, weekly_default_goal, time_zone, created_at)
+		 VALUES ('team-1', 'club-1', 'Team', 'season-2026', 3, 'UTC', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at)
+		 VALUES ('player-1', 'club-1', 'Player', 'A', '{}', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO team_canvas_pieces (
+			id, team_id, week_key, day_key, owner_player_id, reward_slot, asset_id,
+			x, y, size, rotation, revision, created_at, updated_at
+		) VALUES (
+			'piece-1', 'team-1', '2026-08-17', '2026-08-21', 'player-1', 1, 'soccer',
+			50, 50, 44, 45, 3, '2026-08-21T12:00:00Z', '2026-08-21T13:00:00Z'
+		)`,
+	} {
+		if _, err = db.ExecContext(ctx, statement); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err = Migrate(ctx, db); err != nil {
+		t.Fatalf("migrate populated canvas: %v", err)
+	}
+	if _, err = db.ExecContext(ctx, `UPDATE team_canvas_pieces SET rotation = 135 WHERE id = 'piece-1'`); err != nil {
+		t.Fatalf("store a full-circle rotation: %v", err)
+	}
+	var rotation float64
+	if err = db.QueryRowContext(ctx, `SELECT rotation FROM team_canvas_pieces WHERE id = 'piece-1'`).Scan(&rotation); err != nil {
+		t.Fatal(err)
+	}
+	if rotation != 135 {
+		t.Fatalf("preserved rotation = %v, want 135", rotation)
+	}
+}
+
 // Enforcement must be back on for the pool afterwards, or every later write
 // silently skips its foreign keys.
 func TestForeignKeysAreEnforcedAfterARebuildMigration(t *testing.T) {

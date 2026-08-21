@@ -239,6 +239,46 @@ describe("Team Canvas application", () => {
     expect(screen.queryByText(/cooldown|recovery walk/i)).toBeNull();
   });
 
+  it("slides in a trash target while dragging and restores the stamp on delete", () => {
+    const complete = recordPrimary(initialTeamCanvasState(), {
+      completion: "reach",
+      effort: 5,
+      tiredness: 4,
+    });
+    renderTeamCanvas(
+      <TeamCanvasProvider initialState={complete}>
+        <TeamCanvasBoard />
+      </TeamCanvasProvider>,
+    );
+    fireEvent.click(
+      screen.getAllByRole("button", { name: /Choose .* stamp/ })[0],
+    );
+    const stamp = screen.getByRole("button", { name: /Edit .* live stamp/ });
+    const trash = screen.getByLabelText("Drop here to delete today’s stamp");
+
+    expect(trash).not.toHaveClass("is-visible");
+    fireEvent.pointerDown(stamp, {
+      pointerId: 1,
+      clientX: 100,
+      clientY: 100,
+    });
+    fireEvent.pointerMove(stamp, {
+      pointerId: 1,
+      clientX: 125,
+      clientY: 125,
+    });
+    expect(trash).toHaveClass("is-visible");
+
+    fireEvent.keyDown(stamp, { key: "Delete" });
+    expect(
+      screen.queryByRole("button", { name: /Edit .* live stamp/ }),
+    ).toBeNull();
+    expect(screen.getByText("1 stamp ready")).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("button", { name: /Choose .* stamp/ }),
+    ).toHaveLength(5);
+  });
+
   it("keeps view selection a small profile setting", () => {
     renderTeamCanvas(<AppViewSelect currentView="team-canvas" />);
     expect(screen.getByRole("combobox", { name: "App view" })).toHaveValue(

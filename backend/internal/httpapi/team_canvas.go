@@ -149,6 +149,23 @@ func (service *service) updateTeamCanvasPiece(w http.ResponseWriter, r *http.Req
 	writeJSON(w, http.StatusOK, piece)
 }
 
+func (service *service) deleteTeamCanvasPiece(w http.ResponseWriter, r *http.Request) {
+	actor, ok := service.authenticate(w, r)
+	if !ok {
+		return
+	}
+	if !service.teamCanvasStoreReady(w, r) {
+		return
+	}
+	teamID := r.PathValue("teamId")
+	err := service.store.DeleteTeamCanvasPiece(r.Context(), actor, teamID, r.PathValue("pieceId"), service.now().UTC())
+	if service.writeTeamCanvasError(w, r, err) {
+		return
+	}
+	service.canvasEvents.publish(teamID)
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (service *service) updateTeamCanvasSettings(w http.ResponseWriter, r *http.Request) {
 	if !service.teamCanvasDeveloperControlsEnabled() {
 		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")

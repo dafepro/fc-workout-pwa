@@ -472,3 +472,24 @@ Momentum Alpha needs independent PWA install/offline behavior.
   feedback only; it does not introduce another selected, pasted, or saved state.
 - Touch manipulation remains direct pinch-and-twist, so these visual handles
   continue to appear only for fine pointers.
+
+## Team Canvas Alpha full rotation, deletion, and physics boundary (2026-08-21)
+
+- Decided: rotation is continuous and wraps into the durable `[-180, 180)`
+  range. The 12-degree buttons and direct twist may cross the old ±45-degree
+  boundary repeatedly; a full turn never becomes a new saved state.
+- Decided: a player may delete only their own live stamp from the current
+  team-local day. Dragging it into the bottom-center trash target is the primary
+  gesture, with Delete/Backspace as the keyboard equivalent. Deletion frees its
+  earned reward slot so a different one of today's five stamps may be selected.
+- Decided: deleting another player's stamp or a settled stamp is rejected as
+  unavailable. Deletion broadcasts the same durable canvas invalidation as
+  placement and movement.
+- Decided: physics will not be added as divergent client-only decoration. Its
+  data model, scene forces, collision authority, runaway recovery, and realtime
+  transport are specified in `docs/TEAM_CANVAS_PHYSICS_DESIGN.md` for review
+  before schema or simulation work begins.
+- Recommended but awaiting review: only catalog-approved dynamic items collide;
+  avatars nudge them but pass through one another; server rooms own outcomes;
+  empty rooms simulate until sleep; and invalid or trapped objects use a
+  deterministic visual reset with no score or penalty.

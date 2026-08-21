@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { gestureTransform, starCrownLayout } from "./board-geometry";
+import {
+  gestureTransform,
+  isPointInTrashDropZone,
+  starCrownLayout,
+} from "./board-geometry";
 
 describe("gestureTransform", () => {
   it("moves a selected piece with one pointer in board coordinates", () => {
@@ -54,5 +58,14 @@ describe("starCrownLayout", () => {
 
     expect(new Set(gaps)).toEqual(new Set([18]));
     expect(fiveStars[2].left).toBeCloseTo(50);
+  });
+});
+
+describe("isPointInTrashDropZone", () => {
+  const board = { left: 0, top: 0, width: 320, height: 500 };
+
+  it("recognizes the bottom-center delete target", () => {
+    expect(isPointInTrashDropZone({ x: 160, y: 448 }, board)).toBe(true);
+    expect(isPointInTrashDropZone({ x: 20, y: 20 }, board)).toBe(false);
   });
 });

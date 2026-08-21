@@ -4,6 +4,7 @@ import {
   addLivePiece,
   beginDay,
   dailyStampSet,
+  deleteOwnedPiece,
   initialTeamCanvasState,
   logExtraActivity,
   moveOwnAvatar,
@@ -156,7 +157,7 @@ describe("Team Canvas rules", () => {
     expect(addLivePiece(live, asset)).toBe(live);
   });
 
-  it("clamps owned live edits and settles the piece at the next day boundary", () => {
+  it("bounds owned live edits, allows a full turn, and settles the piece tomorrow", () => {
     const reached = recordPrimary(initialTeamCanvasState(), {
       completion: "reach",
       effort: 5,
@@ -169,14 +170,14 @@ describe("Team Canvas rules", () => {
       x: 120,
       y: -20,
       size: 100,
-      rotation: 90,
+      rotation: 135,
     });
 
     expect(edited.boardPieces[0]).toMatchObject({
       x: 94,
       y: 6,
       size: 76,
-      rotation: 45,
+      rotation: 135,
       status: "live",
     });
 
@@ -187,6 +188,33 @@ describe("Team Canvas rules", () => {
     expect(tomorrow.boardPieces[0]).toMatchObject({ status: "pasted" });
     expect(tomorrow.selectedPieceId).toBeNull();
     expect(updateOwnedPiece(tomorrow, pieceId, { rotation: 0 })).toBe(tomorrow);
+  });
+
+  it("deletes only today's owned live piece and restores its stamp choice", () => {
+    const reached = recordPrimary(initialTeamCanvasState(), {
+      completion: "reach",
+      effort: 5,
+      tiredness: 4,
+    });
+    const choices = dailyStampSet(reached.teamId, reached.dayKey);
+    const live = addLivePiece(reached, choices[0]);
+    const deleted = deleteOwnedPiece(live, live.boardPieces[0].id);
+
+    expect(deleted.boardPieces).toEqual([]);
+    expect(deleted.selectedPieceId).toBeNull();
+    expect(availableRewardCount(deleted)).toBe(1);
+
+    const replacement = addLivePiece(deleted, choices[1]);
+    expect(replacement.boardPieces).toHaveLength(1);
+    expect(replacement.boardPieces[0].asset.id).toBe(choices[1].id);
+
+    const tomorrow = beginDay(replacement, {
+      dayKey: "2026-08-21",
+      dayKind: "training",
+    });
+    expect(deleteOwnedPiece(tomorrow, replacement.boardPieces[0].id)).toBe(
+      tomorrow,
+    );
   });
 
   it("projects generic emoji, image, and sprite assets without owner identity", () => {

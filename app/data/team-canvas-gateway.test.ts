@@ -80,7 +80,7 @@ describe("HTTP team canvas gateway", () => {
     expect(projection.availableRewards).toBe(1);
   });
 
-  it("sends bounded transforms and developer settings to explicit routes", async () => {
+  it("sends transforms, deletion, and developer settings to explicit routes", async () => {
     const fetchMock = vi.fn().mockImplementation(() =>
       Promise.resolve(
         new Response(JSON.stringify({ x: 84, y: 12 }), {
@@ -93,6 +93,13 @@ describe("HTTP team canvas gateway", () => {
     const gateway = createTeamCanvasGateway("team-one");
 
     await gateway.moveAvatar({ x: 84, y: 12 });
+    await gateway.updatePiece("piece-one", {
+      x: 50,
+      y: 50,
+      size: 44,
+      rotation: 135,
+    });
+    await gateway.deletePiece("piece-one");
     await gateway.saveSettings({
       backgroundAssetId: "soccer-field",
       backgroundColor: "#AABBCC",
@@ -110,6 +117,19 @@ describe("HTTP team canvas gateway", () => {
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
+      "/api/zoomigo/v1/teams/team-one/canvas/pieces/piece-one",
+      expect.objectContaining({
+        method: "PUT",
+        body: '{"x":50,"y":50,"size":44,"rotation":135}',
+      }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      "/api/zoomigo/v1/teams/team-one/canvas/pieces/piece-one",
+      expect.objectContaining({ method: "DELETE" }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      4,
       "/api/zoomigo/v1/teams/team-one/canvas/dev-settings",
       expect.objectContaining({ method: "PUT" }),
     );

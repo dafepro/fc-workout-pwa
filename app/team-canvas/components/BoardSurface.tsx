@@ -12,6 +12,7 @@ import { Avatar } from "../../components/Avatar";
 import type { Player } from "../../domain/types";
 import {
   gestureTransform,
+  isPointInTrashDropZone,
   starCrownLayout,
   type GesturePoint,
 } from "../board-geometry";
@@ -41,6 +42,7 @@ interface BoardSurfaceProps {
   onMoveAvatar(position: BoardPosition): void;
   onTogglePiece(pieceId: string): void;
   onEditPiece(pieceId: string, patch: Partial<BoardTransform>): void;
+  onDeletePiece(pieceId: string): void;
   onClearPiece(): void;
 }
 
@@ -74,9 +76,12 @@ export function BoardSurface({
   onMoveAvatar,
   onTogglePiece,
   onEditPiece,
+  onDeletePiece,
   onClearPiece,
 }: BoardSurfaceProps) {
   const [liveTick, setLiveTick] = useState(0);
+  const [draggingPieceId, setDraggingPieceId] = useState<string | null>(null);
+  const [trashArmed, setTrashArmed] = useState(false);
   const avatarPointer = useRef<number | null>(null);
   const gesture = useRef<ActiveGesture | null>(null);
   const suppressPieceClick = useRef(false);
@@ -92,6 +97,12 @@ export function BoardSurface({
     "--tc-board-text-color": textColor,
     "--tc-board-text-size": `${textSize}px`,
   } as CSSProperties;
+  const deletePiece = (pieceId: string) => {
+    gesture.current = null;
+    setDraggingPieceId(null);
+    setTrashArmed(false);
+    onDeletePiece(pieceId);
+  };
   useEffect(() => {
     if (!simulatePeers) return;
     const reduced = window.matchMedia?.(
@@ -119,6 +130,12 @@ export function BoardSurface({
       </span>
       <span className="tc-live-indicator">
         <span aria-hidden="true" /> {copy.liveNow}
+      </span>
+      <span
+        className={`tc-trash-target${draggingPieceId ? " is-visible" : ""}${trashArmed ? " is-armed" : ""}`}
+        aria-label={copy.trashTarget}
+      >
+        <span className="tc-trash-target__icon" aria-hidden="true" />
       </span>
 
       {simulatePeers
@@ -233,18 +250,58 @@ export function BoardSurface({
                   event.preventDefault();
                   event.currentTarget.setPointerCapture?.(event.pointerId);
                   beginGesture(event, piece, gesture);
+                  setTrashArmed(false);
                 }}
-                onPointerMove={(event) =>
-                  continueGesture(event, gesture, onEditPiece)
-                }
-                onPointerUp={(event) =>
-                  endGesture(event, piece, gesture, suppressPieceClick)
-                }
-                onPointerCancel={(event) =>
-                  endGesture(event, piece, gesture, suppressPieceClick)
-                }
+                onPointerMove={(event) => {
+                  const result = continueGesture(event, gesture, onEditPiece);
+                  if (!result?.moved) return;
+                  setDraggingPieceId(piece.id);
+                  setTrashArmed(result.trashArmed);
+                }}
+                onPointerUp={(event) => {
+                  const active = gesture.current;
+                  if (active?.moved && active.current.size === 1) {
+                    const board = event.currentTarget.closest(".tc-board");
+                    if (
+                      board instanceof HTMLElement &&
+                      isTrashDropPoint(pointerPoint(event), board)
+                    ) {
+                      suppressPieceClick.current = true;
+                      deletePiece(piece.id);
+                      return;
+                    }
+                  }
+                  const ended = endGesture(
+                    event,
+                    piece,
+                    gesture,
+                    suppressPieceClick,
+                  );
+                  if (ended) {
+                    setDraggingPieceId(null);
+                    setTrashArmed(false);
+                  }
+                }}
+                onPointerCancel={(event) => {
+                  const ended = endGesture(
+                    event,
+                    piece,
+                    gesture,
+                    suppressPieceClick,
+                  );
+                  if (ended) {
+                    setDraggingPieceId(null);
+                    setTrashArmed(false);
+                  }
+                }}
                 onKeyDown={(event) =>
-                  editPieceWithKeyboard(event, piece, onEditPiece, onClearPiece)
+                  editPieceWithKeyboard(
+                    event,
+                    piece,
+                    onEditPiece,
+                    deletePiece,
+                    onClearPiece,
+                  )
                 }
               >
                 <StampAssetView asset={piece.asset} />
@@ -456,6 +513,13 @@ function continueGesture(
       rect,
     ),
   );
+  return {
+    moved: active.moved,
+    trashArmed:
+      active.moved && active.current.size === 1
+        ? isTrashDropPoint(pointerPoint(event), board)
+        : false,
+  };
 }
 
 function endGesture(
@@ -465,12 +529,12 @@ function endGesture(
   suppressClick: MutableRefObject<boolean>,
 ) {
   const active = gestureRef.current;
-  if (!active?.current.has(event.pointerId)) return;
+  if (!active?.current.has(event.pointerId)) return false;
   suppressClick.current ||= active.moved;
   active.current.delete(event.pointerId);
   if (active.current.size === 0) {
     gestureRef.current = null;
-    return;
+    return true;
   }
   gestureRef.current = {
     ...active,
@@ -478,10 +542,25 @@ function endGesture(
     start: new Map(active.current),
     moved: false,
   };
+  return false;
 }
 
 function pointerPoint(event: PointerEvent<HTMLElement>): GesturePoint {
   return { id: event.pointerId, x: event.clientX, y: event.clientY };
+}
+
+function isTrashDropPoint(point: GesturePoint, board: HTMLElement) {
+  if (isPointInTrashDropZone(point, board.getBoundingClientRect())) return true;
+  const target = board.querySelector(".tc-trash-target");
+  if (!(target instanceof HTMLElement)) return false;
+  const rect = target.getBoundingClientRect();
+  return (
+    Math.hypot(
+      point.x - (rect.left + rect.width / 2),
+      point.y - (rect.top + rect.height / 2),
+    ) <=
+    Math.max(rect.width, rect.height) * 0.75
+  );
 }
 
 function transformOf(piece: ProjectedBoardPiece): BoardTransform {
@@ -541,6 +620,7 @@ function editPieceWithKeyboard(
   event: KeyboardEvent<HTMLButtonElement>,
   piece: ProjectedBoardPiece,
   edit: (pieceId: string, patch: Partial<BoardTransform>) => void,
+  deletePiece: (pieceId: string) => void,
   clear: () => void,
 ) {
   const movement: Record<string, Partial<BoardTransform>> = {
@@ -557,6 +637,11 @@ function editPieceWithKeyboard(
   if (event.key === "Escape") {
     event.preventDefault();
     clear();
+    return;
+  }
+  if (event.key === "Delete" || event.key === "Backspace") {
+    event.preventDefault();
+    deletePiece(piece.id);
     return;
   }
   const patch = movement[event.key];

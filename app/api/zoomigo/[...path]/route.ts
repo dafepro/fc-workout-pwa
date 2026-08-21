@@ -28,6 +28,10 @@ const allowed = [
     pattern: /^v1\/teams\/[^/]+\/canvas\/pieces\/[^/]+$/,
   },
   {
+    method: "DELETE",
+    pattern: /^v1\/teams\/[^/]+\/canvas\/pieces\/[^/]+$/,
+  },
+  {
     method: "PUT",
     pattern: /^v1\/teams\/[^/]+\/canvas\/dev-settings$/,
   },
