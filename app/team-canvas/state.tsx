@@ -232,7 +232,7 @@ export function TeamCanvasProvider({
       return;
     }
     const queue = createLatestInputQueue<BoardPosition>(
-      80,
+      50,
       async (position) => {
         try {
           await gateway.moveAvatar(position);

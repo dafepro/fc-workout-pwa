@@ -128,6 +128,11 @@ func TestAvatarSweepImpartsCappedImpulse(t *testing.T) {
 
 	world.MoveAvatar("player", Vector{X: 35, Y: 50}, time.Unix(0, 0))
 	world.MoveAvatar("player", Vector{X: 55, Y: 50}, time.Unix(0, int64(200*time.Millisecond)))
+	beforeStep, _ := world.Body("ball")
+	if beforeStep.Position != (Vector{X: 50, Y: 50}) || beforeStep.Velocity != (Vector{}) {
+		t.Fatalf("input moved the body outside the fixed physics step: %+v", beforeStep)
+	}
+	stepWorld(world, 300*time.Millisecond)
 	got, _ := world.Body("ball")
 	if got.Velocity.X <= 0 {
 		t.Fatalf("avatar did not kick the ball: %+v", got)
@@ -141,6 +146,42 @@ func TestAvatarSweepImpartsCappedImpulse(t *testing.T) {
 	avatar := world.AvatarPositions()["player"]
 	if distance(got.Position, avatar)+0.02 < got.Radius()+avatarRadius {
 		t.Fatalf("avatar remained embedded in the kicked ball: avatar=%+v ball=%+v", avatar, got)
+	}
+}
+
+func TestSparseAvatarInputDoesNotTeleportBodyToLatestPointerPosition(t *testing.T) {
+	world := NewWorld(SceneFor("soccer-field"))
+	ball, _ := NewCatalogBody("ball", "soccer", Transform{X: 50, Y: 50, Size: 44})
+	world.Upsert(ball)
+
+	world.MoveAvatar("player", Vector{X: 20, Y: 50}, time.Unix(0, 0))
+	world.MoveAvatar("player", Vector{X: 80, Y: 50}, time.Unix(0, int64(200*time.Millisecond)))
+	world.Step(FixedStep)
+
+	got, _ := world.Body("ball")
+	if math.Abs(got.Position.X-50) > 0.01 {
+		t.Fatalf("sparse pointer sample teleported the ball: %+v", got)
+	}
+	avatar := world.AvatarPositions()["player"]
+	if avatar.X <= 20 || avatar.X >= 30 {
+		t.Fatalf("avatar did not advance by one bounded fixed step: %+v", avatar)
+	}
+}
+
+func TestAvatarContactDoesNotRatchetBodyBetweenPhysicsSteps(t *testing.T) {
+	world := NewWorld(SceneFor("soccer-field"))
+	ball, _ := NewCatalogBody("ball", "soccer", Transform{X: 50, Y: 50, Size: 44})
+	world.Upsert(ball)
+	now := time.Unix(0, 0)
+	world.MoveAvatar("player", Vector{X: 35, Y: 50}, now)
+	world.MoveAvatar("player", Vector{X: 55, Y: 50}, now.Add(200*time.Millisecond))
+	stepWorld(world, 100*time.Millisecond)
+
+	before, _ := world.Body("ball")
+	world.MoveAvatar("player", Vector{X: 62, Y: 50}, now.Add(300*time.Millisecond))
+	afterInput, _ := world.Body("ball")
+	if afterInput.Position != before.Position || afterInput.Velocity != before.Velocity {
+		t.Fatalf("continued contact ratcheted the body outside the solver: before=%+v after=%+v", before, afterInput)
 	}
 }
 

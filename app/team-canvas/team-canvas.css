@@ -580,8 +580,8 @@
 
 .tc-player--live {
   transition:
-    left 80ms linear,
-    top 80ms linear;
+    left 60ms linear,
+    top 60ms linear;
 }
 
 .tc-player-avatar {
@@ -689,9 +689,9 @@
 
 .tc-stamp--physics {
   transition:
-    left 80ms linear,
-    top 80ms linear,
-    transform 80ms linear;
+    left 60ms linear,
+    top 60ms linear,
+    transform 60ms linear;
 }
 
 .tc-stamp-orbit {
@@ -704,8 +704,8 @@
 
 .tc-stamp-orbit--physics:not(.is-selected) {
   transition:
-    left 80ms linear,
-    top 80ms linear;
+    left 60ms linear,
+    top 60ms linear;
 }
 
 .tc-stamp--physics-reset {

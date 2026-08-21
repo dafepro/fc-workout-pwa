@@ -12,10 +12,14 @@ export function createLatestInputQueue<T>(
   let timer: ReturnType<typeof setTimeout> | null = null;
   let inFlight = false;
   let stopped = false;
+  let nextAllowedAt = Date.now() + intervalMilliseconds;
 
   const schedule = () => {
     if (stopped || timer || inFlight || !hasLatest) return;
-    timer = setTimeout(() => void flush(), intervalMilliseconds);
+    timer = setTimeout(
+      () => void flush(),
+      Math.max(0, nextAllowedAt - Date.now()),
+    );
   };
   const flush = async () => {
     timer = null;
@@ -23,11 +27,15 @@ export function createLatestInputQueue<T>(
     const value = latest;
     hasLatest = false;
     inFlight = true;
+    nextAllowedAt = Date.now() + intervalMilliseconds;
     try {
       await send(value);
     } finally {
       inFlight = false;
-      schedule();
+      if (hasLatest && !stopped) {
+        if (Date.now() >= nextAllowedAt) void flush();
+        else schedule();
+      }
     }
   };
 

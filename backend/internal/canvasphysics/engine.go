@@ -17,7 +17,7 @@ const (
 	sleepSteps          = 45
 	boundaryRestSpeed   = 1.05
 	bodySolverSteps     = 4
-	avatarKickCooldown  = 180 * time.Millisecond
+	avatarContactSlop   = 0.8
 )
 
 type Body struct {
@@ -30,6 +30,8 @@ type Body struct {
 
 type avatarSample struct {
 	position Vector
+	target   Vector
+	velocity Vector
 	at       time.Time
 }
 
@@ -38,14 +40,14 @@ type World struct {
 	Sequence  uint64
 	bodies    map[string]Body
 	avatars   map[string]avatarSample
-	lastKicks map[string]time.Time
+	contacts  map[string]bool
 	lastReset []string
 }
 
 func NewWorld(scene SceneProfile) *World {
 	return &World{
 		Scene: scene, bodies: make(map[string]Body), avatars: make(map[string]avatarSample),
-		lastKicks: make(map[string]time.Time),
+		contacts: make(map[string]bool),
 	}
 }
 
@@ -139,6 +141,11 @@ func (world *World) HasAwakeBodies() bool {
 			return true
 		}
 	}
+	for _, avatar := range world.avatars {
+		if avatar.position != avatar.target {
+			return true
+		}
+	}
 	return false
 }
 
@@ -204,6 +211,7 @@ func (world *World) Step(step time.Duration) {
 		world.resolveBounds(&body)
 		world.bodies[id] = body
 	}
+	world.advanceAvatars(seconds)
 	world.resolveBodyCollisions()
 	for _, id := range world.bodyIDs() {
 		body := world.bodies[id]
@@ -226,9 +234,15 @@ func (world *World) Step(step time.Duration) {
 }
 
 func (world *World) MoveAvatar(playerID string, position Vector, at time.Time) {
+	if !finite(position.X) || !finite(position.Y) {
+		return
+	}
 	previous, exists := world.avatars[playerID]
-	world.avatars[playerID] = avatarSample{position: position, at: at}
-	if !exists || !finite(position.X) || !finite(position.Y) || !at.After(previous.at) {
+	if !exists {
+		world.avatars[playerID] = avatarSample{position: position, target: position, at: at}
+		return
+	}
+	if !at.After(previous.at) {
 		return
 	}
 	delta := subtract(position, previous.position)
@@ -238,38 +252,102 @@ func (world *World) MoveAvatar(playerID string, position Vector, at time.Time) {
 	}
 	velocity := scale(delta, 1/math.Max(duration, 0.04))
 	velocity = clampVector(velocity, maximumAvatarSpeed)
-	if length(velocity) < 1 {
-		return
+	if length(delta) < 0.001 {
+		velocity = Vector{}
 	}
-	for _, id := range world.bodyIDs() {
-		body := world.bodies[id]
-		if body.kinematic {
+	previous.target = position
+	previous.velocity = velocity
+	previous.at = at
+	world.avatars[playerID] = previous
+}
+
+func (world *World) advanceAvatars(seconds float64) {
+	nextContacts := make(map[string]bool)
+	playerIDs := make([]string, 0, len(world.avatars))
+	for playerID := range world.avatars {
+		playerIDs = append(playerIDs, playerID)
+	}
+	sort.Strings(playerIDs)
+	for _, playerID := range playerIDs {
+		avatar := world.avatars[playerID]
+		start := avatar.position
+		motionVelocity := avatar.velocity
+		remaining := subtract(avatar.target, start)
+		movement := scale(motionVelocity, seconds)
+		if length(remaining) < 0.001 || dot(movement, remaining) <= 0 || length(movement) >= length(remaining) {
+			avatar.position = avatar.target
+			avatar.velocity = Vector{}
+		} else {
+			avatar.position = add(start, movement)
+		}
+		world.resolveAvatarContacts(playerID, start, avatar.position, motionVelocity, nextContacts)
+		world.avatars[playerID] = avatar
+	}
+	world.contacts = nextContacts
+}
+
+func (world *World) resolveAvatarContacts(
+	playerID string,
+	start, end, avatarVelocity Vector,
+	nextContacts map[string]bool,
+) {
+	for _, bodyID := range world.bodyIDs() {
+		body := world.bodies[bodyID]
+		if body.kinematic || body.Recovering {
 			continue
 		}
-		closest := closestPointOnSegment(body.Position, previous.position, position)
-		if distance(body.Position, closest) > body.Radius()+avatarRadius {
+		minimumDistance := body.Radius() + avatarRadius
+		closest := closestPointOnSegment(body.Position, start, end)
+		contactDistance := distance(body.Position, closest)
+		key := playerID + "\x00" + bodyID
+		if contactDistance > minimumDistance+avatarContactSlop {
 			continue
 		}
-		direction := normalized(velocity)
-		minimumDistance := body.Radius() + avatarRadius + 0.15
-		body.Position = add(position, scale(direction, minimumDistance))
-		world.resolveBounds(&body)
-		kickKey := playerID + "\x00" + id
-		if lastKick, kicked := world.lastKicks[kickKey]; kicked && at.Sub(lastKick) < avatarKickCooldown {
-			world.bodies[id] = body
+		if contactDistance > minimumDistance {
+			if world.contacts[key] {
+				nextContacts[key] = true
+			}
 			continue
 		}
-		impulse := math.Min(
-			body.MaxSpeed()*0.92,
-			math.Max(body.MaxSpeed()*0.55, length(velocity)*0.76),
-		) / math.Max(body.behavior.Mass, 0.1)
-		body.Velocity = add(body.Velocity, scale(direction, impulse))
-		body.AngularVelocity += (direction.X + direction.Y) * 64 / math.Max(body.behavior.Mass, 0.1)
+		nextContacts[key] = true
+
+		normal := normalized(subtract(body.Position, closest))
+		if length(normal) < 0.001 {
+			normal = normalized(avatarVelocity)
+		}
+		if length(normal) < 0.001 {
+			normal = Vector{X: 1}
+		}
+		endDelta := subtract(body.Position, end)
+		endDistance := length(endDelta)
+		if endDistance < minimumDistance {
+			separationNormal := normalized(endDelta)
+			if length(separationNormal) < 0.001 {
+				separationNormal = normal
+			}
+			body.Position = add(body.Position, scale(separationNormal, minimumDistance-endDistance+0.001))
+			world.resolveBounds(&body)
+			normal = separationNormal
+		}
+
+		if !world.contacts[key] {
+			approachSpeed := dot(subtract(avatarVelocity, body.Velocity), normal)
+			if approachSpeed > 1 {
+				desiredSpeed := math.Min(
+					body.MaxSpeed()*0.92,
+					math.Max(body.MaxSpeed()*0.55, approachSpeed*(1+body.behavior.Restitution)),
+				)
+				currentSpeed := dot(body.Velocity, normal)
+				if desiredSpeed > currentSpeed {
+					body.Velocity = add(body.Velocity, scale(normal, desiredSpeed-currentSpeed))
+				}
+				body.AngularVelocity += (normal.X + normal.Y) * 64 / math.Max(body.behavior.Mass, 0.1)
+			}
+		}
 		body.Sleeping = false
 		body.idleSteps = 0
 		clampBodySpeed(&body)
-		world.bodies[id] = body
-		world.lastKicks[kickKey] = at
+		world.bodies[bodyID] = body
 	}
 }
 

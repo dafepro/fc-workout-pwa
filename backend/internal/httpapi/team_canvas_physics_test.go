@@ -35,11 +35,20 @@ func TestPhysicsManagerStreamsAvatarImpulseAndCheckpointsAuthoritativeState(t *t
 	projection := physicsTestProjection("soccer-field", body)
 	manager.sync("team-one", projection, now)
 	manager.moveAvatar("team-one", "player-mason", store.TeamCanvasPosition{X: 55, Y: 50}, now.Add(200*time.Millisecond))
-	manager.advance("team-one", 4, now.Add(200*time.Millisecond))
+	pending, _ := manager.frame("team-one")
+	if pending.Avatars[0].Position.X != 35 || pending.Bodies[0].Velocity.X != 0 {
+		t.Fatalf("input bypassed the authoritative physics step: %+v", pending)
+	}
+	manager.advance("team-one", 1, now.Add(200*time.Millisecond))
+	intermediate, _ := manager.frame("team-one")
+	if intermediate.Avatars[0].Position.X <= 35 || intermediate.Avatars[0].Position.X >= 55 {
+		t.Fatalf("avatar target did not advance smoothly: %+v", intermediate.Avatars)
+	}
+	manager.advance("team-one", 7, now.Add(200*time.Millisecond))
 	manager.checkpoint("team-one", now.Add(time.Second))
 
 	frame, ok := manager.frame("team-one")
-	if !ok || frame.Version != 1 || len(frame.Bodies) != 1 || frame.Bodies[0].Velocity.X <= 0 || frame.Sequence < 4 {
+	if !ok || frame.Version != 1 || len(frame.Bodies) != 1 || frame.Bodies[0].Velocity.X <= 0 || frame.Sequence < 8 {
 		t.Fatalf("physics frame = %+v ok=%v", frame, ok)
 	}
 	if len(frame.Avatars) != 1 || frame.Avatars[0].PlayerID != "player-mason" || frame.Avatars[0].Position.X != 55 {
@@ -52,6 +61,26 @@ func TestPhysicsManagerStreamsAvatarImpulseAndCheckpointsAuthoritativeState(t *t
 	}
 	if saved.Sequence != frame.Sequence || len(saved.Bodies) != 1 || saved.Bodies[0].Position != frame.Bodies[0].Position {
 		t.Fatalf("saved checkpoint = %+v, frame = %+v", saved, frame)
+	}
+}
+
+func TestPhysicsManagerBroadcastsTheTerminalAvatarTargetOnAnOddStep(t *testing.T) {
+	var frames []teamCanvasPhysicsFrame
+	manager := newTeamCanvasPhysicsManager(
+		func(context.Context, string, string, canvasphysics.Checkpoint, time.Time) error { return nil },
+		func(_ string, frame teamCanvasPhysicsFrame) { frames = append(frames, frame) },
+	)
+	now := time.Unix(1_700_000_000, 0)
+	body := canvasphysics.BodyState{
+		ID: "ball", AssetID: "soccer", Position: canvasphysics.Vector{X: 70, Y: 70},
+		Size: 44, Sleeping: true,
+	}
+	manager.sync("team-one", physicsTestProjection("soccer-field", body), now)
+	manager.moveAvatar("team-one", "player-mason", store.TeamCanvasPosition{X: 36, Y: 50}, now.Add(80*time.Millisecond))
+	manager.advance("team-one", 3, now.Add(80*time.Millisecond))
+
+	if len(frames) != 2 || frames[len(frames)-1].Sequence != 3 || frames[len(frames)-1].Avatars[0].Position.X != 36 {
+		t.Fatalf("terminal target frame was not broadcast: %+v", frames)
 	}
 }
 

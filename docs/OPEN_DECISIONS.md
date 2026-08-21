@@ -595,11 +595,13 @@ Momentum Alpha needs independent PWA install/offline behavior.
   streams versioned snapshots over the authenticated SSE path at up to 15 Hz.
   REST remains the authenticated input path, avoiding another realtime protocol
   during the single-replica alpha.
-- Decided: rapid avatar and stamp movement is coalesced to non-overlapping 80 ms
-  requests. Ordinary stamp movement uses a structured SSE transform event;
-  overloaded subscribers fall back to a durable snapshot refresh.
+- Decided: rapid avatar movement is coalesced to a 50 ms cadence and stamp
+  movement to 80 ms, with one request in flight. A slow request does not add a
+  second full delay before the newest waiting sample. Ordinary stamp movement
+  uses a structured SSE transform event; overloaded subscribers fall back to a
+  durable snapshot refresh.
 - Decided: owner placement gives a dynamic piece a renewable 240 ms kinematic,
-  non-colliding lease. Lost pointer-up or network events cannot leave it frozen.
+  solid-collider lease. Lost pointer-up or network events cannot leave it frozen.
 - Decided: top-down scenes use friction, town scenes use gravity and buoyancy,
   and space uses low drag with hard speed caps. Small boundary impacts settle so
   gravity scenes do not jitter forever.
@@ -618,9 +620,14 @@ Momentum Alpha needs independent PWA install/offline behavior.
 
 ## Team Canvas Alpha kick feel and physics playground (2026-08-21)
 
-- Decided: avatar contact is a kick entry, not a continuous drag force. A swept
-  hit separates the body from the avatar, applies a stronger speed-capped
-  impulse, and rate-limits repeated contact impulses for 180 ms.
+- Superseded: rate-limiting repeated avatar impulses for 180 ms still allowed
+  every pointer sample to reposition the body, creating a visible drag-and-pop
+  cycle.
+- Decided: avatar pointer samples update a capped kinematic target. The 30 Hz
+  solver advances the avatar, applies a speed-capped impulse only on contact
+  entry, and keeps contact armed through a small separation hysteresis. A swept
+  hit never teleports the body to the pointer endpoint; overlap correction moves
+  it only by the current penetration depth.
 - Decided: soccer balls use a larger circular collider, higher restitution, a
   higher speed ceiling, and much lower top-down damping. The contact solver runs
   four bounded separation passes so touching bodies finish a tick without a
