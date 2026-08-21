@@ -57,6 +57,48 @@ test("connected Team Canvas uses durable pieces, settings, and SSE updates", asy
   await ownedStamp.click();
   await expect(page.getByRole("button", { name: "Smaller" })).toHaveCount(1);
 
+  const rotationSaved = page.waitForResponse(
+    (response) =>
+      response.url().includes("/canvas/pieces/") &&
+      response.request().method() === "PUT",
+  );
+  for (let turn = 0; turn < 12; turn += 1) {
+    await page.getByRole("button", { name: "Rotate right" }).click();
+  }
+  await expect(ownedStamp).toHaveAttribute("style", /rotate\(144deg\)/);
+  expect((await rotationSaved).ok()).toBe(true);
+
+  const stampBox = await ownedStamp.boundingBox();
+  if (!stampBox) throw new Error("Owned stamp has no bounding box");
+  await page.mouse.move(
+    stampBox.x + stampBox.width / 2,
+    stampBox.y + stampBox.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(stampBox.x + stampBox.width / 2 + 12, stampBox.y + 12);
+  const trash = page.getByLabel("Drop here to delete today’s stamp");
+  await expect(trash).toHaveClass(/is-visible/);
+  const trashBox = await trash.boundingBox();
+  if (!trashBox) throw new Error("Trash target has no bounding box");
+  await page.mouse.move(
+    trashBox.x + trashBox.width / 2,
+    trashBox.y + trashBox.height / 2,
+  );
+  await expect(trash).toHaveClass(/is-armed/);
+  const pieceDeleted = page.waitForResponse(
+    (response) =>
+      response.url().includes("/canvas/pieces/") &&
+      response.request().method() === "DELETE",
+  );
+  await page.mouse.up();
+  expect((await pieceDeleted).status()).toBe(204);
+  await expect(page.getByText("1 stamp ready")).toBeVisible();
+  await page
+    .getByRole("button", { name: /Choose .* stamp/ })
+    .last()
+    .click();
+  await expect(ownedStamp).toBeVisible();
+
   const toolbox = page.locator(".tc-toolbox");
   await toolbox.getByText("Developer canvas toolbox", { exact: true }).click();
   await toolbox.getByLabel("Background scene").selectOption("cosmic-stadium");

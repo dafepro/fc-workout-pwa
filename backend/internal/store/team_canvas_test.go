@@ -94,12 +94,12 @@ func TestTeamCanvasPersistsBoundedLivePiecesPositionsAndSettings(t *testing.T) {
 	}
 
 	updated, err := repository.UpdateTeamCanvasPiece(context.Background(), actor, "team-one", piece.ID, store.TeamCanvasTransform{
-		X: 110, Y: -10, Size: 500, Rotation: 80,
+		X: 110, Y: -10, Size: 500, Rotation: 135,
 	}, now)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if updated.X != 94 || updated.Y != 6 || updated.Size != 76 || updated.Rotation != 45 {
+	if updated.X != 94 || updated.Y != 6 || updated.Size != 76 || updated.Rotation != 135 {
 		t.Fatalf("unbounded piece = %+v", updated)
 	}
 	position, err := repository.UpdateTeamCanvasAvatar(context.Background(), actor, "team-one", store.TeamCanvasPosition{X: -20, Y: 120}, now)
@@ -146,5 +146,67 @@ func TestTeamCanvasPersistsBoundedLivePiecesPositionsAndSettings(t *testing.T) {
 	}
 	if remaining != 0 {
 		t.Fatalf("pieces after source deletion = %d, want none", remaining)
+	}
+}
+
+func TestTeamCanvasDeletesOnlyOwnedCurrentDayPiecesAndReusesRewardSlots(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+	if _, err := db.Exec(`UPDATE training_entries
+		SET assignment_id = 'assignment-hills', result_value = 10
+		WHERE id = 'entry-mason'`); err != nil {
+		t.Fatal(err)
+	}
+	cooldownAt := now.Add(-time.Hour)
+	if _, err := db.Exec(`INSERT INTO training_entries (
+		id, player_id, team_id, activity_definition_id, occurred_at, result_value,
+		result_unit, effort_level, exhaustion_level, created_at, delete_eligible_until
+	) VALUES ('entry-mason-cooldown', 'player-mason', 'team-one', 'recovery-walk-jog',
+		?, 10, 'minutes', 2, 2, ?, ?)`, cooldownAt.Format(time.RFC3339Nano),
+		cooldownAt.Format(time.RFC3339Nano), cooldownAt.Add(24*time.Hour).Format(time.RFC3339Nano)); err != nil {
+		t.Fatal(err)
+	}
+	actor := domain.Actor{Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-one"}
+	projection, err := repository.TeamCanvas(context.Background(), actor, "team-one", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if projection.AvailableRewards != 2 {
+		t.Fatalf("available rewards = %d, want 2", projection.AvailableRewards)
+	}
+	first, err := repository.CreateTeamCanvasPiece(context.Background(), actor, "team-one", projection.StampChoices[0], now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := repository.CreateTeamCanvasPiece(context.Background(), actor, "team-one", projection.StampChoices[1], now)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := repository.DeleteTeamCanvasPiece(context.Background(), actor, "team-one", first.ID, now); err != nil {
+		t.Fatal(err)
+	}
+	afterDelete, err := repository.TeamCanvas(context.Background(), actor, "team-one", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if afterDelete.AvailableRewards != 1 || len(afterDelete.Pieces) != 1 {
+		t.Fatalf("after delete = %+v", afterDelete)
+	}
+	replacement, err := repository.CreateTeamCanvasPiece(context.Background(), actor, "team-one", projection.StampChoices[2], now)
+	if err != nil {
+		t.Fatalf("reuse deleted reward slot: %v", err)
+	}
+	if replacement.AssetID != projection.StampChoices[2] {
+		t.Fatalf("replacement = %+v", replacement)
+	}
+
+	ava := domain.Actor{Role: domain.RolePlayer, PlayerID: "player-ava", ClubID: "club-one"}
+	if err := repository.DeleteTeamCanvasPiece(context.Background(), ava, "team-one", second.ID, now); !errors.Is(err, store.ErrTeamCanvasPieceUnavailable) {
+		t.Fatalf("delete another player's piece error = %v", err)
+	}
+	if err := repository.DeleteTeamCanvasPiece(context.Background(), actor, "team-one", second.ID, now.AddDate(0, 0, 1)); !errors.Is(err, store.ErrTeamCanvasPieceUnavailable) {
+		t.Fatalf("delete yesterday's piece error = %v", err)
 	}
 }

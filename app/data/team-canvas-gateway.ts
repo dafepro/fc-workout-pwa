@@ -49,6 +49,7 @@ export interface TeamCanvasGateway {
     pieceID: string,
     transform: BoardTransform,
   ): Promise<ProjectedBoardPiece>;
+  deletePiece(pieceID: string): Promise<void>;
   saveSettings(settings: TeamCanvasSettings): Promise<TeamCanvasSettings>;
   subscribe(onChange: () => void): () => void;
 }
@@ -153,6 +154,12 @@ class HTTPTeamCanvasGateway implements TeamCanvasGateway {
         assetId: string;
       },
     );
+  }
+
+  async deletePiece(pieceID: string): Promise<void> {
+    await this.request(`/pieces/${encodeURIComponent(pieceID)}`, {
+      method: "DELETE",
+    });
   }
 
   async saveSettings(

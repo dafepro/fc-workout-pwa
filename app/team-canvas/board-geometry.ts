@@ -12,6 +12,17 @@ export interface StarCrownPoint {
   top: number;
 }
 
+export function isPointInTrashDropZone(
+  point: Pick<GesturePoint, "x" | "y">,
+  board: { left: number; top: number; width: number; height: number },
+) {
+  const target = {
+    x: board.left + board.width / 2,
+    y: board.top + board.height - 52,
+  };
+  return Math.hypot(point.x - target.x, point.y - target.y) <= 46;
+}
+
 export function starCrownLayout(count: number): StarCrownPoint[] {
   const safeCount = Math.max(0, Math.min(7, Math.round(count)));
   const step = 18;

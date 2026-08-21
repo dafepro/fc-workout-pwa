@@ -29,6 +29,7 @@ export function TeamCanvasBoard() {
     chooseStamp,
     togglePiece,
     editPiece,
+    deletePiece,
     clearPiece,
     saveSettings,
   } = useTeamCanvas();
@@ -134,6 +135,7 @@ export function TeamCanvasBoard() {
         onMoveAvatar={moveAvatar}
         onTogglePiece={togglePiece}
         onEditPiece={editPiece}
+        onDeletePiece={(pieceId) => void deletePiece(pieceId)}
         onClearPiece={clearPiece}
       />
       <p className="tc-board-hint">{copy.moveHint}</p>

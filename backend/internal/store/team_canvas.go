@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
+	"math"
 	"regexp"
 	"sort"
 	"strings"
@@ -201,6 +202,13 @@ func (store *Store) CreateTeamCanvasPiece(ctx context.Context, actor domain.Acto
 			ownedToday++
 		}
 	}
+	rewardSlot, err := store.nextTeamCanvasRewardSlot(ctx, teamID, actor.PlayerID, projection.DayKey)
+	if err != nil {
+		return TeamCanvasPiece{}, err
+	}
+	if rewardSlot == 0 {
+		return TeamCanvasPiece{}, ErrTeamCanvasRewardUnavailable
+	}
 	piece := TeamCanvasPiece{
 		ID: newID("canvas_piece"), DayKey: projection.DayKey, AssetID: assetID,
 		Status: "live", Editable: true, Revision: 1,
@@ -210,7 +218,7 @@ func (store *Store) CreateTeamCanvasPiece(ctx context.Context, actor domain.Acto
 	_, err = store.db.ExecContext(ctx, `INSERT INTO team_canvas_pieces
 		(id, team_id, week_key, day_key, owner_player_id, reward_slot, asset_id, x, y, size, rotation, revision, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`, piece.ID, teamID, projection.WeekKey,
-		projection.DayKey, actor.PlayerID, ownedToday+1, assetID, piece.X, piece.Y, piece.Size, piece.Rotation, stamp, stamp)
+		projection.DayKey, actor.PlayerID, rewardSlot, assetID, piece.X, piece.Y, piece.Size, piece.Rotation, stamp, stamp)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
 			return TeamCanvasPiece{}, ErrTeamCanvasRewardUnavailable
@@ -240,7 +248,7 @@ func (store *Store) UpdateTeamCanvasPiece(ctx context.Context, actor domain.Acto
 	piece.X = clampCanvas(transform.X, 6, 94)
 	piece.Y = clampCanvas(transform.Y, 6, 94)
 	piece.Size = clampCanvas(transform.Size, 28, 76)
-	piece.Rotation = clampCanvas(transform.Rotation, -45, 45)
+	piece.Rotation = normalizeCanvasRotation(transform.Rotation)
 	piece.Revision++
 	_, err = store.db.ExecContext(ctx, `UPDATE team_canvas_pieces SET x = ?, y = ?, size = ?, rotation = ?,
 		revision = ?, updated_at = ? WHERE id = ?`, piece.X, piece.Y, piece.Size, piece.Rotation,
@@ -250,6 +258,62 @@ func (store *Store) UpdateTeamCanvasPiece(ctx context.Context, actor domain.Acto
 	}
 	piece.Status, piece.Editable = "live", true
 	return piece, nil
+}
+
+func (store *Store) DeleteTeamCanvasPiece(ctx context.Context, actor domain.Actor, teamID, pieceID string, now time.Time) error {
+	if actor.Role != domain.RolePlayer || actor.PlayerID == "" {
+		return ErrTeamCanvasPieceUnavailable
+	}
+	_, location, err := store.authorizedSocialTeam(ctx, actor, teamID, now)
+	if errors.Is(err, ErrSocialTeamUnavailable) {
+		return ErrTeamCanvasPieceUnavailable
+	}
+	if err != nil {
+		return err
+	}
+	dayKey := now.In(location).Format("2006-01-02")
+	result, err := store.db.ExecContext(ctx, `DELETE FROM team_canvas_pieces
+		WHERE id = ? AND team_id = ? AND owner_player_id = ? AND day_key = ?`,
+		pieceID, teamID, actor.PlayerID, dayKey)
+	if err != nil {
+		return fmt.Errorf("delete team canvas piece: %w", err)
+	}
+	deleted, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("count deleted team canvas piece: %w", err)
+	}
+	if deleted != 1 {
+		return ErrTeamCanvasPieceUnavailable
+	}
+	return nil
+}
+
+func (store *Store) nextTeamCanvasRewardSlot(ctx context.Context, teamID, playerID, dayKey string) (int, error) {
+	rows, err := store.db.QueryContext(ctx, `SELECT reward_slot FROM team_canvas_pieces
+		WHERE team_id = ? AND owner_player_id = ? AND day_key = ?`, teamID, playerID, dayKey)
+	if err != nil {
+		return 0, fmt.Errorf("list used team canvas rewards: %w", err)
+	}
+	defer rows.Close()
+	used := [3]bool{}
+	for rows.Next() {
+		var slot int
+		if err := rows.Scan(&slot); err != nil {
+			return 0, err
+		}
+		if slot > 0 && slot < len(used) {
+			used[slot] = true
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return 0, err
+	}
+	for slot := 1; slot <= 2; slot++ {
+		if !used[slot] {
+			return slot, nil
+		}
+	}
+	return 0, nil
 }
 
 func (store *Store) UpdateTeamCanvasSettings(ctx context.Context, actor domain.Actor, teamID string, input TeamCanvasSettingsInput, now time.Time) (TeamCanvasSettings, error) {
@@ -538,4 +602,12 @@ func clampCanvas(value, minimum, maximum float64) float64 {
 		return maximum
 	}
 	return value
+}
+
+func normalizeCanvasRotation(value float64) float64 {
+	normalized := math.Mod(value+180, 360)
+	if normalized < 0 {
+		normalized += 360
+	}
+	return normalized - 180
 }

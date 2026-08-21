@@ -299,7 +299,7 @@ export function addLivePiece(
       piece.ownerId === CURRENT_PLAYER_ID && piece.dayKey === state.dayKey,
   ).length;
   const piece: BoardPiece = {
-    id: `piece-${state.dayKey}-${state.boardPieces.length + 1}`,
+    id: nextPieceId(state),
     dayKey: state.dayKey,
     ownerId: CURRENT_PLAYER_ID,
     asset,
@@ -349,10 +349,27 @@ export function updateOwnedPiece(
     x: clamp(next.x, 6, 94),
     y: clamp(next.y, 6, 94),
     size: clamp(next.size, 28, 76),
-    rotation: clamp(next.rotation, -45, 45),
+    rotation: normalizeRotation(next.rotation),
   };
 
   return { ...state, boardPieces, selectedPieceId: pieceId };
+}
+
+export function deleteOwnedPiece(
+  state: TeamCanvasState,
+  pieceId: string,
+): TeamCanvasState {
+  const piece = state.boardPieces.find(({ id }) => id === pieceId);
+  if (!piece || !isEditablePiece(piece, state.dayKey, CURRENT_PLAYER_ID)) {
+    return state;
+  }
+  return {
+    ...state,
+    boardPieces: state.boardPieces.filter(({ id }) => id !== pieceId),
+    spentRewardSources: state.spentRewardSources.slice(0, -1),
+    selectedPieceId:
+      state.selectedPieceId === pieceId ? null : state.selectedPieceId,
+  };
 }
 
 export function moveOwnAvatar(
@@ -476,6 +493,20 @@ function addUnique<T>(items: T[], item: T): T[] {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
+}
+
+export function normalizeRotation(value: number): number {
+  const normalized = ((((value + 180) % 360) + 360) % 360) - 180;
+  return Object.is(normalized, -0) ? 0 : normalized;
+}
+
+function nextPieceId(state: TeamCanvasState): string {
+  const prefix = `piece-${state.dayKey}-`;
+  let sequence = 1;
+  while (state.boardPieces.some(({ id }) => id === `${prefix}${sequence}`)) {
+    sequence++;
+  }
+  return `${prefix}${sequence}`;
 }
 
 function hash(value: string): number {

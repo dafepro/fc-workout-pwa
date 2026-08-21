@@ -707,3 +707,70 @@ Remaining release decisions are intentionally not hidden in this prototype:
   bounded CSS gradients and a stronger tangent-facing arrowhead.
 - Preserve the full side hit regions while scaling only the visual arrow during
   the native pressed state. Touch remains pinch-and-twist without handles.
+
+## 19. Full rotation and replaceable same-day stamps — 2026-08-21
+
+### Feedback recorded
+
+- Rotation must continue past the old 90-degree total range.
+- Deleting an active stamp must restore that earned choice so a player can pick
+  a different stamp from the same daily five.
+- A trash target should slide into the canvas only while the owned stamp is
+  being dragged. Only today's own live stamps may be deleted.
+- Scene-aware circular physics is desired, but its persistence, authority,
+  collision permissions, trapping behavior, and realtime cadence need a design
+  review before implementation.
+
+### Implementation sequence
+
+1. Lock full-circle normalization, owner/day deletion, reward-slot reuse, trash
+   visibility, and keyboard deletion with failing tests.
+2. Replace all local, API, and SQLite ±45-degree clamps with one wrapped
+   `[-180, 180)` contract and migrate a populated piece table safely.
+3. Add drag-to-trash and Delete/Backspace handling; optimistically remove the
+   piece, restore the tray, persist with an authenticated DELETE endpoint, and
+   publish live invalidation.
+4. Extend connected API and browser coverage through delete, replacement, reload,
+   and rotation beyond 90 degrees.
+5. Review `docs/TEAM_CANVAS_PHYSICS_DESIGN.md`; only then begin its staged
+   catalog, schema, simulation, and authoritative realtime work.
+
+### File-level change map
+
+```text
+app/team-canvas/
+├── board-geometry.ts                    # trash hit zone
+├── model.ts                             # rotation normalization + local delete
+├── state.tsx                            # optimistic connected delete
+├── components/BoardSurface.tsx          # drag target + keyboard alternative
+└── team-canvas.css                      # sliding/armed trash affordance
+
+app/data/team-canvas-gateway.ts          # authenticated DELETE adapter
+app/api/zoomigo/[...path]/route.ts       # narrow DELETE allowlist
+
+backend/
+├── migrations/000014_team_canvas_rotation.*.sql
+├── internal/store/team_canvas.go        # owner/day rule + slot reuse
+└── internal/httpapi/team_canvas.go      # DELETE + live invalidation
+
+docs/TEAM_CANVAS_PHYSICS_DESIGN.md       # review gate for physics work
+```
+
+### Implementation result
+
+Completed locally on 2026-08-21:
+
+- rotation now wraps through a full circle in the local model, connected client,
+  Go repository, and populated SQLite migration;
+- the bottom-center trash target appears only after a real drag, follows its
+  slide-in visual as a live drop zone, and has a Delete/Backspace keyboard path;
+- the API accepts deletion only for the signed-in player's current-day piece,
+  reuses the lowest available daily reward slot, publishes an SSE invalidation,
+  and returns the refreshed five-choice tray;
+- component, model, gateway, store, populated-migration, in-process API E2E, and
+  connected Playwright coverage exercise full rotation, deletion, replacement,
+  persistence, and realtime refresh;
+- physics remains intentionally unimplemented pending review of
+  `docs/TEAM_CANVAS_PHYSICS_DESIGN.md`. No speculative physics fields, client
+  authority, or second persistence path were added;
+- no push, hosted version, deployment, or production change occurred.

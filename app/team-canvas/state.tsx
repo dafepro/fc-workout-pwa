@@ -34,10 +34,12 @@ import {
   beginDay,
   clearPieceSelection,
   dailyStampSet,
+  deleteOwnedPiece,
   initialTeamCanvasState,
   isTeamCanvasState,
   logExtraActivity,
   moveOwnAvatar,
+  normalizeRotation,
   recordCooldown,
   recordPlannedRest,
   recordPrimary,
@@ -70,6 +72,7 @@ interface TeamCanvasContextValue {
   chooseStamp(asset: StampAsset): Promise<void>;
   togglePiece(pieceId: string): void;
   editPiece(pieceId: string, patch: Partial<BoardTransform>): void;
+  deletePiece(pieceId: string): Promise<void>;
   clearPiece(): void;
   saveSettings(settings: TeamCanvasSettings): Promise<void>;
   previewDay(dayKind: DayKind): void;
@@ -371,6 +374,47 @@ export function TeamCanvasProvider({
             .then(refresh);
         }, 120);
       },
+      async deletePiece(pieceId) {
+        if (!gateway) {
+          store.update((current) => deleteOwnedPiece(current, pieceId));
+          return;
+        }
+        const piece = connectedState.projection?.pieces.find(
+          (candidate) => candidate.id === pieceId && candidate.editable,
+        );
+        if (!piece) return;
+        if (pieceSave.current) {
+          clearTimeout(pieceSave.current);
+          pieceSave.current = null;
+        }
+        setRemoteSelectedPieceId((current) =>
+          current === pieceId ? null : current,
+        );
+        setConnectedState((current) =>
+          current.projection
+            ? {
+                ...current,
+                projection: {
+                  ...current.projection,
+                  pieces: current.projection.pieces.filter(
+                    ({ id }) => id !== pieceId,
+                  ),
+                  availableRewards: Math.min(
+                    2,
+                    current.projection.availableRewards + 1,
+                  ),
+                },
+              }
+            : current,
+        );
+        try {
+          await gateway.deletePiece(pieceId);
+          await refresh();
+        } catch (error) {
+          reportConnectedError(error);
+          await refresh();
+        }
+      },
       clearPiece() {
         if (gateway) setRemoteSelectedPieceId(null);
         else store.update((current) => clearPieceSelection(current));
@@ -489,7 +533,7 @@ function boundedTransform(transform: BoardTransform): BoardTransform {
   return {
     ...boundedPosition(transform),
     size: clamp(transform.size, 28, 76),
-    rotation: clamp(transform.rotation, -45, 45),
+    rotation: normalizeRotation(transform.rotation),
   };
 }
 

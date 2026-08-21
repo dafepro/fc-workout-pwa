@@ -72,7 +72,8 @@ export const teamCanvasCopy = {
       `${count} ${count === 1 ? "stamp" : "stamps"} ready`,
     chooseStamp: (label: string) => `Choose ${label} stamp`,
     editStamp: (label: string) =>
-      `Edit ${label} live stamp. Tap to rest it; use arrow keys to move, plus or minus to resize, and brackets to rotate.`,
+      `Edit ${label} live stamp. Tap to rest it; use arrow keys to move, plus or minus to resize, brackets to rotate, or Delete to remove it.`,
+    trashTarget: "Drop here to delete today’s stamp",
     moveAvatar: (name: string) => `Move ${name}’s avatar`,
     completedDays: (name: string) => `${name}’s completed days this week`,
     paletteLabel: "Stamp controls",
