@@ -5,6 +5,7 @@ export const routes = {
   playerAvatar: "/me/avatar",
   playerSignIn: "/login",
   momentumAlphaPrefix: "/momentum-alpha",
+  teamCanvasPrefix: "/team-canvas",
   staffPrefix: "/staff",
   staffSignIn: "/staff/sign-in",
   staffSetup: "/staff/setup",

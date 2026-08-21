@@ -155,11 +155,14 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const insideMomentumAlpha =
     pathname === routes.momentumAlphaPrefix ||
     pathname.startsWith(`${routes.momentumAlphaPrefix}/`);
+  const insideTeamCanvas =
+    pathname === routes.teamCanvasPrefix ||
+    pathname.startsWith(`${routes.teamCanvasPrefix}/`);
 
   return (
     <AuthContext.Provider value={auth}>
       <AvatarIdentityProvider value={{ currentPlayerID, avatarConfig }}>
-        {insideMomentumAlpha ? (
+        {insideMomentumAlpha || insideTeamCanvas ? (
           children
         ) : (
           <TrainingProvider

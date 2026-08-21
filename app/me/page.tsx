@@ -10,7 +10,7 @@ import { TEAM_NAME } from "../data/mockData";
 import type { ReactionBadge } from "../domain/types";
 import { useTraining } from "../state/training-context";
 import { useAuth } from "../state/auth-context";
-import { MomentumAlphaEntry } from "./MomentumAlphaEntry";
+import { AppViewSelect } from "../components/AppViewSelect";
 
 export default function MePage() {
   const {
@@ -66,7 +66,7 @@ export default function MePage() {
           </button>
         ) : null}
       </header>
-      <MomentumAlphaEntry />
+      <AppViewSelect currentView="classic" />
       <section
         className="card reaction-inbox"
         aria-labelledby="reaction-inbox-title"

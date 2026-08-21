@@ -1,7 +1,6 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { MomentumAlphaEntry } from "../me/MomentumAlphaEntry";
 import { MomentumAlphaShell } from "./components/MomentumAlphaShell";
 import { MomentumMe } from "./components/MomentumMe";
 import { MomentumTeam } from "./components/MomentumTeam";
@@ -11,6 +10,7 @@ import { MOMENTUM_ALPHA_STORAGE_KEY, MomentumAlphaProvider } from "./state";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/momentum-alpha",
+  useRouter: () => ({ push: vi.fn() }),
 }));
 
 afterEach(cleanup);
@@ -28,17 +28,6 @@ function renderToday() {
 }
 
 describe("Momentum Alpha application", () => {
-  it("offers one explicit switch from Classic Me", () => {
-    render(<MomentumAlphaEntry />);
-
-    expect(
-      screen.getByRole("heading", { name: "Try Momentum Alpha" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: "Switch to Momentum Alpha" }),
-    ).toHaveAttribute("href", "/momentum-alpha");
-  });
-
   it("uses a separate three-destination player shell", () => {
     render(
       <MomentumAlphaProvider>
@@ -148,16 +137,16 @@ describe("Momentum Alpha application", () => {
     expect(screen.queryByText(/rank|1st|podium|8 reps|10 reps/i)).toBeNull();
   });
 
-  it("keeps the return switch and private history in Momentum Me", () => {
+  it("keeps the app-view selector and private history in Momentum Me", () => {
     render(
       <MomentumAlphaProvider>
         <MomentumMe />
       </MomentumAlphaProvider>,
     );
 
-    expect(
-      screen.getByRole("link", { name: "Return to Classic Alpha" }),
-    ).toHaveAttribute("href", "/me");
+    expect(screen.getByRole("combobox", { name: "App view" })).toHaveValue(
+      "/momentum-alpha/me",
+    );
     expect(
       screen.getByRole("heading", { name: "Private activity" }),
     ).toBeInTheDocument();
