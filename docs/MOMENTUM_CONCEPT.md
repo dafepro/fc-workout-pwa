@@ -1,9 +1,9 @@
 # ZoomiGo Momentum concept
 
-Status: Revised design draft for product-owner review  
-Prepared: 2026-08-19  
-Feedback applied: Round 1  
-Implementation status: Review prototype only; no production rules or backend behavior changed  
+Status: Revised design draft for product-owner review
+Prepared: 2026-08-19
+Feedback applied: Round 1
+Implementation status: Review prototype only; no production rules or backend behavior changed
 Interactive review route: `/momentum`
 
 ## Recommendation in one sentence
