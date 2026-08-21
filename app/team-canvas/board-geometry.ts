@@ -12,6 +12,30 @@ export interface StarCrownPoint {
   top: number;
 }
 
+export function topAnchoredResize(
+  base: BoardTransform,
+  requestedSize: number,
+  boardHeight: number,
+): BoardTransform {
+  let size = Math.max(28, Math.min(76, requestedSize));
+  if (boardHeight > 0) {
+    const minimum = Math.max(28, base.size - ((base.y - 6) * boardHeight) / 50);
+    const maximum = Math.min(
+      76,
+      base.size + ((94 - base.y) * boardHeight) / 50,
+    );
+    size = Math.max(minimum, Math.min(maximum, size));
+  }
+  return {
+    ...base,
+    size,
+    y:
+      boardHeight > 0
+        ? base.y + ((size - base.size) * 50) / boardHeight
+        : base.y,
+  };
+}
+
 export function isPointInTrashDropZone(
   point: Pick<GesturePoint, "x" | "y">,
   board: { left: number; top: number; width: number; height: number },

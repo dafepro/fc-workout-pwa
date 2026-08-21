@@ -774,3 +774,13 @@ Completed locally on 2026-08-21:
   `docs/TEAM_CANVAS_PHYSICS_DESIGN.md`. No speculative physics fields, client
   authority, or second persistence path were added;
 - no push, hosted version, deployment, or production change occurred.
+
+## 20. Anchored stamp resizing — 2026-08-21
+
+- Keep the top `− / +` controls in one screen position while resizing.
+- Compute the bounded size first, then move the stamp center down by half the
+  applied pixel-size change expressed in board-height percentage.
+- Apply the same rule to keyboard plus/minus. Preserve two-pointer pinch around
+  its gesture center.
+- Cover the anchor invariant, maximum-size bound, and rendered control path with
+  focused tests.

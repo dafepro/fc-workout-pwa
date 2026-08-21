@@ -208,6 +208,21 @@ describe("Team Canvas application", () => {
     expect(view.container.querySelector(".tc-floating-palette")).toBeNull();
     expect(screen.queryByRole("button", { name: /paste/i })).toBeNull();
 
+    const board = screen.getByLabelText("Hill Striders weekly canvas");
+    vi.spyOn(board, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      top: 0,
+      right: 320,
+      bottom: 500,
+      left: 0,
+      width: 320,
+      height: 500,
+      toJSON: () => ({}),
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Larger" }));
+    expect(orbit).toHaveStyle({ top: "42.6%", height: "80px" });
+
     fireEvent.click(screen.getByRole("button", { name: "Rotate right" }));
     const liveStamp = screen.getByRole("button", {
       name: /Edit .* live stamp/,

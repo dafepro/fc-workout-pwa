@@ -493,3 +493,12 @@ Momentum Alpha needs independent PWA install/offline behavior.
   avatars nudge them but pass through one another; server rooms own outcomes;
   empty rooms simulate until sleep; and invalid or trapped objects use a
   deterministic visual reset with no score or penalty.
+
+## Team Canvas Alpha anchored stamp resizing (2026-08-21)
+
+- Decided: desktop `− / +` resizing anchors the top of the selected stamp and
+  its circular controls. Growing moves the stamp center downward by half the
+  size increase, so the controls do not retreat from the pointer between taps.
+- Decided: keyboard plus/minus uses the same anchored geometry. Direct two-touch
+  pinch remains centered on the gesture because the player's fingers provide
+  the resize anchor on touch devices.

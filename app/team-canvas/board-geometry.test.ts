@@ -3,6 +3,7 @@ import {
   gestureTransform,
   isPointInTrashDropZone,
   starCrownLayout,
+  topAnchoredResize,
 } from "./board-geometry";
 
 describe("gestureTransform", () => {
@@ -67,5 +68,30 @@ describe("isPointInTrashDropZone", () => {
   it("recognizes the bottom-center delete target", () => {
     expect(isPointInTrashDropZone({ x: 160, y: 448 }, board)).toBe(true);
     expect(isPointInTrashDropZone({ x: 20, y: 20 }, board)).toBe(false);
+  });
+});
+
+describe("topAnchoredResize", () => {
+  it("moves the center down by half the growth so the top controls stay fixed", () => {
+    const resized = topAnchoredResize(
+      { x: 50, y: 42, size: 44, rotation: 0 },
+      50,
+      500,
+    );
+
+    expect(resized).toMatchObject({ size: 50, y: 42.6 });
+    expect(resized.y * 5 - resized.size / 2).toBeCloseTo(188);
+  });
+
+  it("uses the bounded size change at the minimum and maximum", () => {
+    expect(
+      topAnchoredResize({ x: 50, y: 42, size: 74, rotation: 0 }, 90, 500),
+    ).toMatchObject({ size: 76, y: 42.2 });
+  });
+
+  it("stops growing when moving the center would break the board bounds", () => {
+    expect(
+      topAnchoredResize({ x: 50, y: 94, size: 44, rotation: 0 }, 76, 500),
+    ).toMatchObject({ size: 44, y: 94 });
   });
 });

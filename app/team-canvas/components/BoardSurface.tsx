@@ -3,6 +3,7 @@
 import type {
   CSSProperties,
   KeyboardEvent,
+  MouseEvent,
   MutableRefObject,
   PointerEvent,
 } from "react";
@@ -14,6 +15,7 @@ import {
   gestureTransform,
   isPointInTrashDropZone,
   starCrownLayout,
+  topAnchoredResize,
   type GesturePoint,
 } from "../board-geometry";
 import { teamCanvasCopy } from "../content";
@@ -426,7 +428,9 @@ function StampOrbitControls({
         className="tc-orbit-control tc-orbit-control--smaller"
         type="button"
         aria-label={copy.smaller}
-        onClick={() => onEditPiece(piece.id, { size: piece.size - 6 })}
+        onClick={(event) =>
+          resizePieceFromTop(event, piece, piece.size - 6, onEditPiece)
+        }
       >
         −
       </button>
@@ -434,7 +438,9 @@ function StampOrbitControls({
         className="tc-orbit-control tc-orbit-control--larger"
         type="button"
         aria-label={copy.larger}
-        onClick={() => onEditPiece(piece.id, { size: piece.size + 6 })}
+        onClick={(event) =>
+          resizePieceFromTop(event, piece, piece.size + 6, onEditPiece)
+        }
       >
         ＋
       </button>
@@ -628,9 +634,6 @@ function editPieceWithKeyboard(
     ArrowRight: { x: piece.x + 3 },
     ArrowUp: { y: piece.y - 3 },
     ArrowDown: { y: piece.y + 3 },
-    "+": { size: piece.size + 4 },
-    "=": { size: piece.size + 4 },
-    "-": { size: piece.size - 4 },
     "[": { rotation: piece.rotation - 8 },
     "]": { rotation: piece.rotation + 8 },
   };
@@ -644,8 +647,26 @@ function editPieceWithKeyboard(
     deletePiece(piece.id);
     return;
   }
+  const sizeDelta = { "+": 4, "=": 4, "-": -4 }[event.key];
+  if (sizeDelta) {
+    event.preventDefault();
+    resizePieceFromTop(event, piece, piece.size + sizeDelta, edit);
+    return;
+  }
   const patch = movement[event.key];
   if (!patch) return;
   event.preventDefault();
   edit(piece.id, patch);
+}
+
+function resizePieceFromTop(
+  event: MouseEvent<HTMLButtonElement> | KeyboardEvent<HTMLButtonElement>,
+  piece: ProjectedBoardPiece,
+  size: number,
+  edit: (pieceId: string, patch: Partial<BoardTransform>) => void,
+) {
+  const board = event.currentTarget.closest(".tc-board");
+  const boardHeight =
+    board instanceof HTMLElement ? board.getBoundingClientRect().height : 0;
+  edit(piece.id, topAnchoredResize(piece, size, boardHeight));
 }
