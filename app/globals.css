@@ -14,6 +14,70 @@
   color-scheme: light;
 }
 
+.dev-access-page {
+  align-items: flex-start;
+}
+
+.dev-access-card {
+  width: min(100%, 58rem);
+}
+
+.dev-access-pin {
+  padding: 0.8rem 1rem;
+  border-radius: 0.75rem;
+  background: rgb(200 245 42 / 25%);
+}
+
+.dev-player-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.dev-player-list li,
+.dev-admin-card {
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--surface);
+}
+
+.dev-player-list img {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-bottom: 0.75rem;
+  border-radius: 0.5rem;
+}
+
+.dev-player-list .button {
+  width: 100%;
+}
+
+.dev-admin-card {
+  margin-top: 1.5rem;
+}
+
+.dev-admin-card dl div {
+  display: grid;
+  grid-template-columns: minmax(5rem, auto) 1fr;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.dev-admin-card dt {
+  color: var(--muted);
+}
+
+.dev-admin-card dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, "Cascadia Mono", monospace;
+}
+
 * {
   box-sizing: border-box;
 }

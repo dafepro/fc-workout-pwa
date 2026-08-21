@@ -67,3 +67,7 @@ The backend foundation lives in `backend/` and the review contracts live in `doc
 - draft API, authorization, and persistence contracts for review before frontend integration.
 
 See `backend/README.md` for local commands and `docs/PRODUCTION_RUNBOOK.md` for the automated under-$5 production path. The backend and QR+PIN session path are deployable; real youth-data use still requires approved guardian/recovery policy, secure credential distribution, encrypted off-host backups, and privacy operations.
+
+The separately gated disposable preview is documented in
+`docs/DEV_ENVIRONMENT.md`. It uses its own dev-tagged API, database, Worker,
+DNS names, OpenTofu state, and GitHub Actions create/update/reset/destroy flow.

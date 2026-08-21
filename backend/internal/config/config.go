@@ -33,15 +33,20 @@ const (
 )
 
 type Config struct {
-	Environment       string
-	Port              int
-	DatabaseURL       string
-	AllowedOrigin     string
-	TeamTimeZone      *time.Location
-	TeamTimeZoneID    string
-	ShutdownTimeout   time.Duration
-	EnableE2EFixtures bool
-	E2EResetKey       string
+	Environment        string
+	Port               int
+	DatabaseURL        string
+	AllowedOrigin      string
+	TeamTimeZone       *time.Location
+	TeamTimeZoneID     string
+	ShutdownTimeout    time.Duration
+	EnableE2EFixtures  bool
+	E2EResetKey        string
+	EnableDevAccess    bool
+	DevAPIGatewayToken string
+	DevResetKey        string
+	DevFixtureSeed     string
+	DevAdminPassword   string
 	// Zero disables the corresponding login throttle.
 	LoginAttemptsPerMinute            int
 	GlobalLoginAttemptsPerMinute      int
@@ -62,14 +67,18 @@ type Config struct {
 
 func Load(getenv func(string) string) (Config, error) {
 	cfg := Config{
-		Environment:     valueOrDefault(getenv("APP_ENV"), "development"),
-		DatabaseURL:     valueOrDefault(getenv("DATABASE_URL"), defaultDatabaseURL),
-		AllowedOrigin:   valueOrDefault(getenv("ALLOWED_ORIGIN"), "http://localhost:3000"),
-		TeamTimeZoneID:  valueOrDefault(getenv("TEAM_TIME_ZONE"), defaultTeamTimeZone),
-		ShutdownTimeout: defaultShutdownTimeout,
-		E2EResetKey:     getenv("E2E_RESET_KEY"),
-		PlayerLoginURL:  strings.TrimSpace(getenv("PLAYER_LOGIN_URL")),
-		StaffSetupURL:   strings.TrimSpace(getenv("STAFF_SETUP_URL")),
+		Environment:        valueOrDefault(getenv("APP_ENV"), "development"),
+		DatabaseURL:        valueOrDefault(getenv("DATABASE_URL"), defaultDatabaseURL),
+		AllowedOrigin:      valueOrDefault(getenv("ALLOWED_ORIGIN"), "http://localhost:3000"),
+		TeamTimeZoneID:     valueOrDefault(getenv("TEAM_TIME_ZONE"), defaultTeamTimeZone),
+		ShutdownTimeout:    defaultShutdownTimeout,
+		E2EResetKey:        getenv("E2E_RESET_KEY"),
+		DevAPIGatewayToken: strings.TrimSpace(getenv("DEV_API_GATEWAY_TOKEN")),
+		DevResetKey:        strings.TrimSpace(getenv("DEV_RESET_KEY")),
+		DevFixtureSeed:     strings.TrimSpace(getenv("DEV_FIXTURE_SEED")),
+		DevAdminPassword:   getenv("DEV_ADMIN_PASSWORD"),
+		PlayerLoginURL:     strings.TrimSpace(getenv("PLAYER_LOGIN_URL")),
+		StaffSetupURL:      strings.TrimSpace(getenv("STAFF_SETUP_URL")),
 	}
 	cfg.ProductionDataApproved = getenv("PRODUCTION_DATA_APPROVED") == "true"
 
@@ -86,6 +95,30 @@ func Load(getenv func(string) string) (Config, error) {
 		}
 		if strings.TrimSpace(cfg.E2EResetKey) == "" {
 			return Config{}, fmt.Errorf("E2E_RESET_KEY is required when E2E fixtures are enabled")
+		}
+	}
+	if raw := getenv("ENABLE_DEV_ACCESS"); raw != "" {
+		enabled, err := strconv.ParseBool(raw)
+		if err != nil {
+			return Config{}, fmt.Errorf("ENABLE_DEV_ACCESS must be true or false")
+		}
+		cfg.EnableDevAccess = enabled
+	}
+	if cfg.EnableDevAccess {
+		if cfg.Environment != "dev" || !devBuildEnabled {
+			return Config{}, fmt.Errorf("dev access requires APP_ENV=dev and a dev-tagged build")
+		}
+		if len(cfg.DevAPIGatewayToken) < 32 {
+			return Config{}, fmt.Errorf("DEV_API_GATEWAY_TOKEN must be at least 32 characters when dev access is enabled")
+		}
+		if len(cfg.DevResetKey) < 32 {
+			return Config{}, fmt.Errorf("DEV_RESET_KEY must be at least 32 characters when dev access is enabled")
+		}
+		if len(cfg.DevFixtureSeed) < 32 {
+			return Config{}, fmt.Errorf("DEV_FIXTURE_SEED must be at least 32 characters when dev access is enabled")
+		}
+		if len(cfg.DevAdminPassword) < 12 {
+			return Config{}, fmt.Errorf("DEV_ADMIN_PASSWORD must be at least 12 characters when dev access is enabled")
 		}
 	}
 

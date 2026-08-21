@@ -1,4 +1,5 @@
 import {
+  backendHeaders,
   forwardedHeaders,
   jsonError,
   limitedBody,
@@ -54,7 +55,7 @@ export async function proxyToBackend(
     }
   }
 
-  const headers = new Headers({ Authorization: `Bearer ${token}` });
+  const headers = backendHeaders({ Authorization: `Bearer ${token}` });
   const contentType = request.headers.get("content-type");
   if (contentType) headers.set("Content-Type", contentType);
   let body: string | undefined;

@@ -1,5 +1,6 @@
 import {
   backendBaseURL,
+  backendHeaders,
   forwardedHeaders,
   jsonError,
   limitedBody,
@@ -46,7 +47,7 @@ export async function callBackend(
   path: string,
   init: { method: string; body?: unknown; token?: string | null },
 ): Promise<Response | null> {
-  const headers = new Headers();
+  const headers = backendHeaders();
   if (init.body !== undefined) headers.set("Content-Type", "application/json");
   if (init.token) headers.set("Authorization", `Bearer ${init.token}`);
   try {

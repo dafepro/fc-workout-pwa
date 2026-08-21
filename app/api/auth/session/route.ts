@@ -1,5 +1,6 @@
 import {
   backendBaseURL,
+  backendHeaders,
   clearSessionCookie,
   forwardedHeaders,
   jsonError,
@@ -66,7 +67,7 @@ export async function POST(request: Request) {
   try {
     upstream = await fetch(`${baseURL}/v1/auth/sessions`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: backendHeaders({ "Content-Type": "application/json" }),
       body: raw,
     });
   } catch {
@@ -130,7 +131,7 @@ export async function DELETE(request: Request) {
     try {
       await fetch(`${baseURL}/v1/auth/session`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: backendHeaders({ Authorization: `Bearer ${token}` }),
       });
     } catch {
       // Local sign-out still clears the browser credential.
@@ -149,7 +150,7 @@ async function proxySession(baseURL: string, token: string) {
   let response: Response;
   try {
     response = await fetch(`${baseURL}/v1/auth/session`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: backendHeaders({ Authorization: `Bearer ${token}` }),
     });
   } catch {
     return jsonError(

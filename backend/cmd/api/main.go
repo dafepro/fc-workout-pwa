@@ -67,6 +67,9 @@ func run() error {
 	if resetAuthFixtures != nil {
 		handlerOptions = append(handlerOptions, httpapi.WithAuthFixtureReset(resetAuthFixtures))
 	}
+	if devAccess := configuredDevAccess(cfg, db, repository, sessions, staff); devAccess != nil {
+		handlerOptions = append(handlerOptions, httpapi.WithDevAccessManager(devAccess))
+	}
 	server := &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.Port),
 		Handler:           httpapi.NewHandler(cfg, handlerOptions...),

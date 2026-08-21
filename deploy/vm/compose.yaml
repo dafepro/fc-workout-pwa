@@ -14,11 +14,12 @@ services:
       dockerfile: Dockerfile
       args:
         APP_VERSION: ${APP_VERSION:-manual}
+        GO_BUILD_TAGS: ${GO_BUILD_TAGS:-}
     restart: unless-stopped
     init: true
     environment:
       ALLOWED_ORIGIN: ${PWA_ORIGIN:?PWA_ORIGIN must be set}
-      APP_ENV: production
+      APP_ENV: ${APP_ENV:-production}
       DATABASE_URL: file:/data/zoomigo.db
       GOMEMLIMIT: 192MiB
       GOMAXPROCS: "1"
@@ -31,6 +32,11 @@ services:
       PLAYER_LOGIN_URL: ${PLAYER_LOGIN_URL:-}
       STAFF_SETUP_URL: ${STAFF_SETUP_URL:-}
       PRODUCTION_DATA_APPROVED: ${PRODUCTION_DATA_APPROVED:-false}
+      ENABLE_DEV_ACCESS: ${ENABLE_DEV_ACCESS:-false}
+      DEV_API_GATEWAY_TOKEN: ${DEV_API_GATEWAY_TOKEN:-}
+      DEV_RESET_KEY: ${DEV_RESET_KEY:-}
+      DEV_FIXTURE_SEED: ${DEV_FIXTURE_SEED:-}
+      DEV_ADMIN_PASSWORD: ${DEV_ADMIN_PASSWORD:-}
     expose:
       - "8080"
     healthcheck:

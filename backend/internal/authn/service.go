@@ -391,6 +391,10 @@ func (service *Service) issueCredential(ctx context.Context, accountID, pin, tok
 	if err := ValidatePIN(pin); err != nil {
 		return Credential{}, err
 	}
+	return service.issueCredentialUnchecked(ctx, accountID, pin, token)
+}
+
+func (service *Service) issueCredentialUnchecked(ctx context.Context, accountID, pin, token string) (Credential, error) {
 	if !validCredentialToken(token) {
 		return Credential{}, errors.New("credential token must contain 32 random bytes")
 	}

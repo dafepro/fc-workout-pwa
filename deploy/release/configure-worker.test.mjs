@@ -96,3 +96,23 @@ test("rejects a mismatched public API origin", () => {
     /does not match/,
   );
 });
+
+test("configures the disposable Worker with its Midwest gate", () => {
+  const configured = configureWorker(
+    {},
+    {
+      apiHostname: "api.dev.zoomigo.quicktrack.cc",
+      pwaHostname: "dev.zoomigo.quicktrack.cc",
+      workerName: "zoomigo-training-dev",
+      devAccessEnabled: true,
+      allowedRegionCodes: ["IL", "WI"],
+    },
+    "https://api.dev.zoomigo.quicktrack.cc",
+  );
+
+  assert.equal(configured.vars.DEV_ACCESS_ENABLED, "true");
+  assert.equal(configured.vars.DEV_ALLOWED_REGION_CODES, "IL,WI");
+  assert.deepEqual(configured.routes, [
+    { pattern: "dev.zoomigo.quicktrack.cc", custom_domain: true },
+  ]);
+});

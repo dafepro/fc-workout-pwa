@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -46,6 +47,7 @@ type service struct {
 	staffStore    StaffRepository
 	staffAccounts StaffAccountManager
 	credentials   CredentialManager
+	devAccess     DevAccessManager
 	authFixtures  func(context.Context) error
 	throttles     []*loginThrottle
 	now           func() time.Time
@@ -144,11 +146,34 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	if _, ok := service.store.(fixtureResetter); cfg.EnableE2EFixtures && ok {
 		mux.HandleFunc("POST /__e2e/reset", service.resetE2EFixtures)
 	}
+	if cfg.EnableDevAccess && service.devAccess != nil {
+		mux.HandleFunc("GET /__dev/access", service.getDevAccess)
+		mux.HandleFunc("POST /__dev/staff-session", service.createDevStaffSession)
+		mux.HandleFunc("POST /__dev/reset", service.resetDevAccess)
+	}
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
 	})
 
-	return securityHeaders(cfg.AllowedOrigin, requestID(mux))
+	return securityHeaders(cfg.AllowedOrigin, devGateway(cfg, requestID(mux)))
+}
+
+func devGateway(cfg config.Config, next http.Handler) http.Handler {
+	if !cfg.EnableDevAccess {
+		return next
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/healthz" || r.URL.Path == "/readyz" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		supplied := r.Header.Get("X-Zoomigo-Dev-Gateway")
+		if len(supplied) != len(cfg.DevAPIGatewayToken) || subtle.ConstantTimeCompare([]byte(supplied), []byte(cfg.DevAPIGatewayToken)) != 1 {
+			writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (service *service) getTrainingDashboard(w http.ResponseWriter, r *http.Request) {

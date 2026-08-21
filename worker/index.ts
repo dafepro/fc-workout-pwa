@@ -6,8 +6,13 @@ import {
 } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
 import { pruneAnalytics } from "../lib/analytics/storage";
+import {
+  devServiceWorkerResponse,
+  gateDevRequest,
+  type DevGateEnv,
+} from "./dev-gate";
 
-interface Env {
+interface Env extends DevGateEnv {
   ASSETS: Fetcher;
   ANALYTICS_DB?: D1Database;
   PRODUCT_ANALYTICS_ENABLED?: string;
@@ -40,14 +45,18 @@ const worker = {
     env: Env,
     ctx: ExecutionContext,
   ): Promise<Response> {
+    const gateResponse = await gateDevRequest(request, env);
+    if (gateResponse) return gateResponse;
+
+    const serviceWorkerResponse = devServiceWorkerResponse(request, env);
+    if (serviceWorkerResponse) return serviceWorkerResponse;
+
     const url = new URL(request.url);
 
-    // Nothing guards `/staff/*` here, and nothing does at the edge either. The
-    // console gates on staff sign-in, TOTP, and per-request authorization, all
-    // of which live in the application. The Cloudflare Access gate that briefly
-    // sat in front of `/staff/admin` was a second code prompt over the same
-    // people, and its own session expiring mid-console bounced an operator to an
-    // email code; it is gone.
+    // Production adds no separate `/staff/*` edge rule. Its console gates on
+    // staff sign-in, TOTP, and per-request authorization in the application.
+    // The disposable dev deployment is different: gateDevRequest above covers
+    // the complete host before any route reaches this point.
     if (url.pathname === "/_vinext/image") {
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
       return handleImageOptimization(
@@ -66,7 +75,15 @@ const worker = {
       );
     }
 
-    return handler.fetch(request, env, ctx);
+    const response = await handler.fetch(request, env, ctx);
+    if (env.DEV_ACCESS_ENABLED !== "true") return response;
+    const headers = new Headers(response.headers);
+    headers.set("cache-control", "private, no-store, max-age=0");
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
   },
   async scheduled(
     _event: ScheduledEvent,

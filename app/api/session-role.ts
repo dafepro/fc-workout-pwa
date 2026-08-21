@@ -1,4 +1,8 @@
-import { backendBaseURL, readAnySessionCookie } from "./backend";
+import {
+  backendBaseURL,
+  backendHeaders,
+  readAnySessionCookie,
+} from "./backend";
 
 export type SignedInAs = "player" | "staff" | null;
 
@@ -15,7 +19,7 @@ export async function signedInAs(cookieHeader: string): Promise<SignedInAs> {
   let response: Response;
   try {
     response = await fetch(`${baseURL}/v1/auth/session`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: backendHeaders({ Authorization: `Bearer ${token}` }),
     });
   } catch {
     return null;

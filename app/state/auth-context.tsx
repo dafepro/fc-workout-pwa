@@ -180,6 +180,8 @@ export function useAuth(): AuthState {
  * neither may be wrapped in the player shell. */
 function outsideThePlayerApp(pathname: string): boolean {
   return (
-    pathname === routes.playerSignIn || pathname.startsWith(routes.staffPrefix)
+    pathname === routes.playerSignIn ||
+    pathname === routes.devAccess ||
+    pathname.startsWith(routes.staffPrefix)
   );
 }

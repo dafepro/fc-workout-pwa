@@ -48,6 +48,8 @@ func TestLoadRejectsInvalidValues(t *testing.T) {
 		{"TEAM_TIME_ZONE": "Not/AZone"},
 		{"ENABLE_E2E_FIXTURES": "sometimes"},
 		{"ENABLE_E2E_FIXTURES": "true", "APP_ENV": "production", "E2E_RESET_KEY": "not-empty"},
+		{"ENABLE_DEV_ACCESS": "sometimes"},
+		{"ENABLE_DEV_ACCESS": "true", "APP_ENV": "production", "DEV_API_GATEWAY_TOKEN": "not-empty"},
 		{"LOGIN_ATTEMPTS_PER_MINUTE": "-1"},
 		{"LOGIN_ATTEMPTS_PER_MINUTE": "plenty"},
 		{"GLOBAL_LOGIN_ATTEMPTS_PER_MINUTE": "-1"},
@@ -57,5 +59,16 @@ func TestLoadRejectsInvalidValues(t *testing.T) {
 		if err == nil {
 			t.Fatalf("Load(%v) expected an error", values)
 		}
+	}
+}
+
+func TestLoadRejectsDevAccessWithoutGatewayToken(t *testing.T) {
+	values := map[string]string{
+		"APP_ENV":           "dev",
+		"ENABLE_DEV_ACCESS": "true",
+	}
+	_, err := Load(func(key string) string { return values[key] })
+	if err == nil {
+		t.Fatal("Load() expected an error")
 	}
 }

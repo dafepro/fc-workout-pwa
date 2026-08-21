@@ -1,0 +1,20 @@
+{
+  "apiHostname": "api.dev.zoomigo.quicktrack.cc",
+  "pwaHostname": "dev.zoomigo.quicktrack.cc",
+  "workerName": "zoomigo-training-dev",
+  "devAccessEnabled": true,
+  "allowedRegionCodes": [
+    "IL",
+    "IN",
+    "IA",
+    "KS",
+    "MI",
+    "MN",
+    "MO",
+    "NE",
+    "ND",
+    "OH",
+    "SD",
+    "WI"
+  ]
+}

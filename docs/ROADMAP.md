@@ -419,7 +419,7 @@ once a day.
 
 ### 14. Ephemeral dev droplet for repeatable UATs
 
-Status: **Backlog, not started**
+Status: **Implemented in code; environment secrets and first provision remain**
 
 A short-lived second Droplet, provisioned from the same OpenTofu and destroyed
 after use, so a full user-acceptance pass can run against a real host instead of
@@ -436,6 +436,11 @@ rediscovered.
 - Do not colocate this on the production Droplet to save the monthly cost. A
   shared host tests none of the above, and puts the only host that matters behind
   the same OOM killer and disk as untested code.
+- The implemented path uses `dev.zoomigo.quicktrack.cc`, a separate
+  `api.dev.zoomigo.quicktrack.cc`, remote state key, Droplet, DNS record, Worker,
+  and dev-tagged image. GitHub Actions exposes create, update, reset, and destroy
+  operations; create seeds four QR+PIN players and a preset preview operator.
+  See `DEV_ENVIRONMENT.md`.
 
 ## Trigger-based work, not current scope
 

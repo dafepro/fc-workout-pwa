@@ -16,6 +16,21 @@ export function backendBaseURL(): string | null {
   );
 }
 
+export function backendHeaders(initial?: HeadersInit): Headers {
+  const headers = new Headers(initial);
+  const workerValue = (env as { ZOOMIGO_API_GATEWAY_TOKEN?: string })
+    .ZOOMIGO_API_GATEWAY_TOKEN;
+  const token = workerValue?.trim() || process.env.ZOOMIGO_API_GATEWAY_TOKEN;
+  if (token) headers.set("X-Zoomigo-Dev-Gateway", token);
+  return headers;
+}
+
+export function devAccessEnabled(): boolean {
+  const workerValue = (env as { DEV_ACCESS_ENABLED?: string })
+    .DEV_ACCESS_ENABLED;
+  return (workerValue?.trim() || process.env.DEV_ACCESS_ENABLED) === "true";
+}
+
 export function backendRequired(): boolean {
   const workerValue = (env as { ZOOMIGO_REQUIRE_BACKEND?: string })
     .ZOOMIGO_REQUIRE_BACKEND;

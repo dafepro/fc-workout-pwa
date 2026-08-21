@@ -13,15 +13,15 @@ function requireHostname(value, label) {
 
 export function configureWorker(
   generated,
-  production,
+  deployment,
   apiBaseURL,
   analyticsDatabaseID = "",
 ) {
-  const apiHostname = requireHostname(production.apiHostname, "apiHostname");
-  const pwaHostname = requireHostname(production.pwaHostname, "pwaHostname");
+  const apiHostname = requireHostname(deployment.apiHostname, "apiHostname");
+  const pwaHostname = requireHostname(deployment.pwaHostname, "pwaHostname");
   if (
-    typeof production.workerName !== "string" ||
-    !/^[a-z0-9-]+$/.test(production.workerName)
+    typeof deployment.workerName !== "string" ||
+    !/^[a-z0-9-]+$/.test(deployment.workerName)
   ) {
     throw new Error(
       "workerName must contain lowercase letters, digits, and hyphens",
@@ -29,7 +29,7 @@ export function configureWorker(
   }
   if (apiBaseURL !== `https://${apiHostname}`) {
     throw new Error(
-      `ZOOMIGO_API_BASE_URL (${apiBaseURL}) does not match production API hostname (${apiHostname})`,
+      `ZOOMIGO_API_BASE_URL (${apiBaseURL}) does not match deployment API hostname (${apiHostname})`,
     );
   }
   if (
@@ -57,12 +57,20 @@ export function configureWorker(
 
   const configured = {
     ...generated,
-    name: production.workerName,
+    name: deployment.workerName,
     vars: {
       ...generatedVars,
       ZOOMIGO_API_BASE_URL: apiBaseURL,
       ZOOMIGO_REQUIRE_BACKEND: "true",
       PRODUCT_ANALYTICS_ENABLED: analyticsDatabaseID ? "true" : "false",
+      ...(deployment.devAccessEnabled
+        ? {
+            DEV_ACCESS_ENABLED: "true",
+            DEV_ALLOWED_REGION_CODES: requireRegionCodes(
+              deployment.allowedRegionCodes,
+            ),
+          }
+        : {}),
     },
     d1_databases: d1Databases,
     workers_dev: false,
@@ -72,6 +80,17 @@ export function configureWorker(
     delete configured.triggers;
   }
   return configured;
+}
+
+function requireRegionCodes(value) {
+  if (
+    !Array.isArray(value) ||
+    value.length === 0 ||
+    value.some((region) => !/^[A-Z]{2}$/.test(region))
+  ) {
+    throw new Error("allowedRegionCodes must contain two-letter region codes");
+  }
+  return value.join(",");
 }
 
 async function main() {

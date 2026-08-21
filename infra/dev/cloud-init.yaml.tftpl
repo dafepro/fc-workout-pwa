@@ -1,0 +1,48 @@
+#cloud-config
+package_update: true
+package_upgrade: false
+packages:
+  - ca-certificates
+  - curl
+  - docker.io
+  - docker-compose-v2
+  - git
+  - unattended-upgrades
+
+users:
+  - default
+  - name: zoomigo
+    groups: [sudo, docker]
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: true
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+ssh_pwauth: false
+disable_root: true
+
+swap:
+  filename: /swapfile
+  size: 1G
+  maxsize: 1G
+
+write_files:
+  - path: /etc/ssh/sshd_config.d/90-zoomigo.conf
+    owner: root:root
+    permissions: "0644"
+    content: |
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PermitRootLogin no
+
+runcmd:
+  - [systemctl, enable, --now, docker]
+  - [systemctl, enable, --now, apt-daily.timer, apt-daily-upgrade.timer]
+  - [install, -d, -m, "0755", -o, zoomigo, -g, zoomigo, /opt/app]
+  - [sudo, -u, zoomigo, git, clone, --no-checkout, ${repository_url}, /opt/app]
+  - [sudo, -u, zoomigo, git, -C, /opt/app, fetch, --depth=1, origin, ${release_sha}]
+  - [sudo, -u, zoomigo, git, -C, /opt/app, checkout, --detach, ${release_sha}]
+  - [systemctl, restart, ssh]
+
+final_message: "ZoomiGo disposable dev host is ready for deployment."

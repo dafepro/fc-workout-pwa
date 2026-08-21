@@ -1,4 +1,4 @@
-import { backendBaseURL } from "../api/backend";
+import { backendBaseURL, backendHeaders } from "../api/backend";
 import { readAnyStaffCookie } from "./api/staff-cookie";
 
 export interface StaffWho {
@@ -22,7 +22,7 @@ export async function staffSessionFrom(
   let response: Response;
   try {
     response = await fetch(`${baseURL}/v1/auth/staff-session`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: backendHeaders({ Authorization: `Bearer ${token}` }),
     });
   } catch {
     return null;

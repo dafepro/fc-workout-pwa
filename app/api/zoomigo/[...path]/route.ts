@@ -1,5 +1,6 @@
 import {
   backendBaseURL,
+  backendHeaders,
   forwardedHeaders,
   jsonError,
   limitedBody,
@@ -62,7 +63,7 @@ async function proxy(request: Request) {
   }
   const token = readSessionCookie(request);
   if (!token) return jsonError(401, "unauthenticated", "Sign in is required.");
-  const headers = new Headers({ Authorization: `Bearer ${token}` });
+  const headers = backendHeaders({ Authorization: `Bearer ${token}` });
   const contentType = request.headers.get("content-type");
   const idempotencyKey = request.headers.get("idempotency-key");
   if (contentType) headers.set("Content-Type", contentType);

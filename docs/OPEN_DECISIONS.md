@@ -49,6 +49,28 @@ to resolve, not the implementing agent's.
 - Still open: whether the operator's global read across every club needs a stronger control than TOTP plus audit before real data exists.
 - Still open: plausible minimum and maximum values for sprint, distance-run, and shuttle assessments. These are UI guardrails, not standards.
 
+## Disposable dev preview (2026-08-21)
+
+- Decided: the preview is a separate ephemeral environment, not a mode on the
+  production Droplet and not a copy of production authentication or data.
+- Decided: preview invitations use one shared outer password rather than
+  Cloudflare Access membership or an email list. The Worker admits only source
+  IPs Cloudflare locates in the twelve U.S. Census Midwest states, then issues a
+  signed eight-hour cookie. Geolocation and a shared password reduce exposure
+  but do not identify a person; passwords can be forwarded and VPNs can move an
+  apparent location.
+- Decided: the gated directory shows four invented player QR codes, all with PIN
+  `1111`, plus a preset preview administrator email and runtime-supplied
+  password. These shortcuts exist only in the dev-tagged API. Production keeps
+  trivial-PIN rejection and mandatory staff TOTP.
+- Decided: every non-health API route also requires an independent gateway
+  token shared only by the API and Worker. The outer password is never sent to
+  the API.
+- Decided: create seeds fixtures, update preserves review changes, reset is an
+  explicit destructive workflow operation, and destroy is manual rather than a
+  scheduled TTL. No real youth data, production credential, or production
+  secret may enter this environment.
+
 ## Goals and workload
 
 - Default weekly goal calculation.
