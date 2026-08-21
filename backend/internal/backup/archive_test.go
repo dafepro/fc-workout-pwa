@@ -182,8 +182,8 @@ func TestCreateVerifyAndRestoreArchive(t *testing.T) {
 	if err := db.QueryRowContext(ctx, "SELECT COUNT(*) FROM schema_migrations").Scan(&migrationsApplied); err != nil {
 		t.Fatal(err)
 	}
-	if entries != 2 || migrationsApplied != 14 {
-		t.Fatalf("restored entries=%d migrations=%d, want 2 and 14", entries, migrationsApplied)
+	if entries != 2 || migrationsApplied != 15 {
+		t.Fatalf("restored entries=%d migrations=%d, want 2 and 15", entries, migrationsApplied)
 	}
 }
 

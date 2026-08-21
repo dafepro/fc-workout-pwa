@@ -1,3 +1,5 @@
+import type { PhysicsBodyState } from "./physics";
+
 export type DayKind = "training" | "rest";
 export type CompletionKind = "goal" | "reach" | "approved-alternative";
 export type RewardSource = "reach" | "cooldown";
@@ -40,6 +42,8 @@ export interface ProjectedBoardPiece extends BoardTransform {
   asset: StampAsset;
   status: "live" | "pasted";
   editable: boolean;
+  revision?: number;
+  physics?: PhysicsBodyState;
 }
 
 export interface TeamCanvasHistoryEntry {

@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dafepro/fc-workout-pwa/backend/internal/canvasphysics"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/store"
 )
@@ -208,5 +209,71 @@ func TestTeamCanvasDeletesOnlyOwnedCurrentDayPiecesAndReusesRewardSlots(t *testi
 	}
 	if err := repository.DeleteTeamCanvasPiece(context.Background(), actor, "team-one", second.ID, now.AddDate(0, 0, 1)); !errors.Is(err, store.ErrTeamCanvasPieceUnavailable) {
 		t.Fatalf("delete yesterday's piece error = %v", err)
+	}
+}
+
+func TestTeamCanvasPersistsVersionedPhysicsCheckpointsAndCascadesDeletion(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+	if _, err := db.Exec(`UPDATE training_entries
+		SET assignment_id = 'assignment-hills', result_value = 10
+		WHERE id = 'entry-mason'`); err != nil {
+		t.Fatal(err)
+	}
+	actor := domain.Actor{Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-one"}
+	settings, err := repository.UpdateTeamCanvasSettings(context.Background(), actor, "team-one", store.TeamCanvasSettingsInput{
+		BackgroundAssetID: "soccer-field", BackgroundColor: "#A8DC9D", TextColor: "#115630",
+		TextSize: 112, TextStyle: "block", StampChoices: []string{"soccer", "balloon", "rocket", "bolt", "fire"},
+	}, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(settings.StampChoices) != 5 {
+		t.Fatalf("settings = %+v", settings)
+	}
+	piece, err := repository.CreateTeamCanvasPiece(context.Background(), actor, "team-one", "soccer", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if piece.Physics == nil || piece.Physics.AssetID != "soccer" {
+		t.Fatalf("created dynamic piece = %+v", piece)
+	}
+	checkpoint := canvasphysics.Checkpoint{
+		Version: 1, SceneID: "top-down-field", Sequence: 27,
+		Bodies: []canvasphysics.BodyState{{
+			ID: piece.ID, AssetID: "soccer", Position: canvasphysics.Vector{X: 61, Y: 47},
+			Velocity: canvasphysics.Vector{X: 4, Y: -2}, Size: 50, Angle: 33,
+		}},
+	}
+	if err := repository.SaveTeamCanvasPhysicsCheckpoint(context.Background(), "team-one", "2026-08-10", checkpoint, now.Add(time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	reloaded, err := repository.TeamCanvas(context.Background(), actor, "team-one", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reloaded.Physics.SceneID != "top-down-field" || reloaded.Physics.Sequence != 27 ||
+		len(reloaded.Pieces) != 1 || reloaded.Pieces[0].Physics == nil ||
+		reloaded.Pieces[0].X != 61 || reloaded.Pieces[0].Rotation != 33 ||
+		reloaded.Pieces[0].Physics.Velocity.X != 4 {
+		t.Fatalf("reloaded physics projection = %+v", reloaded)
+	}
+	_, err = repository.UpdateTeamCanvasSettings(context.Background(), actor, "team-one", store.TeamCanvasSettingsInput{
+		BackgroundAssetID: "cosmic-stadium", BackgroundColor: "#111827", TextColor: "#FFFFFF",
+		TextSize: 112, TextStyle: "block", StampChoices: []string{"soccer", "balloon", "rocket", "bolt", "fire"},
+	}, now.Add(2*time.Second))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = repository.SaveTeamCanvasPhysicsCheckpoint(context.Background(), "team-one", "2026-08-10", checkpoint, now.Add(3*time.Second)); err == nil {
+		t.Fatal("stale scene checkpoint was accepted after the background changed")
+	}
+	if err := repository.DeleteTeamCanvasPiece(context.Background(), actor, "team-one", piece.ID, now); err != nil {
+		t.Fatal(err)
+	}
+	var states int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM team_canvas_piece_states WHERE piece_id = ?`, piece.ID).Scan(&states); err != nil || states != 0 {
+		t.Fatalf("piece physics survived delete: count=%d err=%v", states, err)
 	}
 }

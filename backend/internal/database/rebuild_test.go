@@ -4,6 +4,7 @@ import (
 	"context"
 	"io/fs"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/dafepro/fc-workout-pwa/backend/migrations"
@@ -295,6 +296,67 @@ func TestMigrateExpandsRotationForPopulatedCanvasPieces(t *testing.T) {
 	}
 	if rotation != 135 {
 		t.Fatalf("preserved rotation = %v, want 135", rotation)
+	}
+}
+
+func TestMigrateAddsPhysicsStateWithoutLosingPopulatedCanvasPieces(t *testing.T) {
+	ctx := context.Background()
+	databaseURL := "file:" + filepath.ToSlash(filepath.Join(t.TempDir(), "populated-canvas-physics.db"))
+	db, err := Open(ctx, databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if _, err = db.ExecContext(ctx, `CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)`); err != nil {
+		t.Fatal(err)
+	}
+	entries, err := fs.ReadDir(migrations.Files, ".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		if entry.Name() >= "000015" || !strings.HasSuffix(entry.Name(), ".up.sql") {
+			continue
+		}
+		contents, readErr := fs.ReadFile(migrations.Files, entry.Name())
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		if _, err = db.ExecContext(ctx, string(contents)); err != nil {
+			t.Fatalf("apply %s: %v", entry.Name(), err)
+		}
+		if _, err = db.ExecContext(ctx, `INSERT INTO schema_migrations (version, applied_at) VALUES (?, '2026-08-05T00:00:00Z')`, entry.Name()[:6]); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, statement := range []string{
+		`INSERT INTO clubs (id, name, created_at) VALUES ('club-1', 'Club', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO teams (id, club_id, name, season_id, weekly_default_goal, time_zone, created_at)
+		 VALUES ('team-1', 'club-1', 'Team', 'season-2026', 3, 'UTC', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at)
+		 VALUES ('player-1', 'club-1', 'Player', 'A', '{}', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO team_canvas_pieces (
+			id, team_id, week_key, day_key, owner_player_id, reward_slot, asset_id,
+			x, y, size, rotation, revision, created_at, updated_at
+		) VALUES ('piece-1', 'team-1', '2026-08-17', '2026-08-21', 'player-1', 1,
+			'soccer', 50, 50, 44, 0, 1, '2026-08-21T12:00:00Z', '2026-08-21T12:00:00Z')`,
+	} {
+		if _, err = db.ExecContext(ctx, statement); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err = Migrate(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	for _, table := range []string{"team_canvas_scene_states", "team_canvas_piece_states"} {
+		var found int
+		if err = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?`, table).Scan(&found); err != nil || found != 1 {
+			t.Fatalf("physics table %s missing: found=%d err=%v", table, found, err)
+		}
+	}
+	var pieces int
+	if err = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM team_canvas_pieces WHERE id = 'piece-1'`).Scan(&pieces); err != nil || pieces != 1 {
+		t.Fatalf("populated piece was lost: count=%d err=%v", pieces, err)
 	}
 }
 

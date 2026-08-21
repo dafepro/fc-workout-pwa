@@ -29,6 +29,11 @@ import type {
   StampAsset,
   TeamCanvasState,
 } from "./model";
+import { createLatestInputQueue, type LatestInputQueue } from "./live-input";
+import {
+  applyTeamCanvasPhysicsFrame,
+  applyTeamCanvasPieceFrame,
+} from "./physics";
 import {
   addLivePiece,
   beginDay,
@@ -125,8 +130,16 @@ export function TeamCanvasProvider({
     loadLocalSettings(state),
   );
   const [justCompletedPrimary, setJustCompletedPrimary] = useState(false);
-  const avatarSave = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pieceSave = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const avatarInput = useRef<LatestInputQueue<BoardPosition> | null>(null);
+  const pieceInputs = useRef(
+    new Map<string, LatestInputQueue<BoardTransform>>(),
+  );
+  const selectedPieceRef = useRef<string | null>(null);
+  const protectAvatarUntil = useRef(0);
+
+  useEffect(() => {
+    selectedPieceRef.current = remoteSelectedPieceId;
+  }, [remoteSelectedPieceId]);
 
   const refresh = useCallback(async () => {
     if (!gateway) return;
@@ -160,13 +173,44 @@ export function TeamCanvasProvider({
 
   useEffect(() => {
     if (!gateway || connectedState.status !== "ready") return;
-    return gateway.subscribe(() => void refresh());
-  }, [connectedState.status, gateway, refresh]);
+    return gateway.subscribe({
+      onChange: () => void refresh(),
+      onPhysics: (frame) =>
+        setConnectedState((current) =>
+          current.projection
+            ? {
+                ...current,
+                projection: applyTeamCanvasPhysicsFrame(
+                  current.projection,
+                  frame,
+                  currentPlayerID,
+                  selectedPieceRef.current,
+                  Date.now() < protectAvatarUntil.current,
+                ),
+              }
+            : current,
+        ),
+      onPiece: (frame) =>
+        setConnectedState((current) =>
+          current.projection
+            ? {
+                ...current,
+                projection: applyTeamCanvasPieceFrame(
+                  current.projection,
+                  frame,
+                  selectedPieceRef.current,
+                ),
+              }
+            : current,
+        ),
+    });
+  }, [connectedState.status, currentPlayerID, gateway, refresh]);
 
   useEffect(
     () => () => {
-      if (avatarSave.current) clearTimeout(avatarSave.current);
-      if (pieceSave.current) clearTimeout(pieceSave.current);
+      avatarInput.current?.stop();
+      pieceInputs.current.forEach((queue) => queue.stop());
+      pieceInputs.current.clear();
     },
     [],
   );
@@ -180,6 +224,34 @@ export function TeamCanvasProvider({
           : "That canvas change could not be saved.",
     }));
   }, []);
+
+  useEffect(() => {
+    avatarInput.current?.stop();
+    if (!gateway) {
+      avatarInput.current = null;
+      return;
+    }
+    const queue = createLatestInputQueue<BoardPosition>(
+      80,
+      async (position) => {
+        try {
+          await gateway.moveAvatar(position);
+        } catch (error) {
+          reportConnectedError(error);
+        }
+      },
+    );
+    avatarInput.current = queue;
+    return () => queue.stop();
+  }, [gateway, reportConnectedError]);
+
+  useEffect(
+    () => () => {
+      pieceInputs.current.forEach((queue) => queue.stop());
+      pieceInputs.current.clear();
+    },
+    [gateway],
+  );
 
   const value = useMemo<TeamCanvasContextValue>(
     () => ({
@@ -295,6 +367,7 @@ export function TeamCanvasProvider({
           return;
         }
         const bounded = boundedPosition(position);
+        protectAvatarUntil.current = Date.now() + 350;
         setConnectedState((current) =>
           current.projection
             ? {
@@ -311,13 +384,7 @@ export function TeamCanvasProvider({
               }
             : current,
         );
-        if (avatarSave.current) clearTimeout(avatarSave.current);
-        avatarSave.current = setTimeout(() => {
-          void gateway
-            .moveAvatar(bounded)
-            .catch(reportConnectedError)
-            .then(refresh);
-        }, 120);
+        avatarInput.current?.push(bounded);
       },
       async chooseStamp(asset) {
         if (!gateway) {
@@ -366,13 +433,19 @@ export function TeamCanvasProvider({
             projection: { ...current.projection, pieces },
           };
         });
-        if (pieceSave.current) clearTimeout(pieceSave.current);
-        pieceSave.current = setTimeout(() => {
-          void gateway
-            .updatePiece(pieceId, transform)
-            .catch(reportConnectedError)
-            .then(refresh);
-        }, 120);
+        let queue = pieceInputs.current.get(pieceId);
+        if (!queue) {
+          queue = createLatestInputQueue<BoardTransform>(80, async (next) => {
+            try {
+              await gateway.updatePiece(pieceId, next);
+            } catch (error) {
+              reportConnectedError(error);
+              await refresh();
+            }
+          });
+          pieceInputs.current.set(pieceId, queue);
+        }
+        queue.push(transform);
       },
       async deletePiece(pieceId) {
         if (!gateway) {
@@ -383,10 +456,8 @@ export function TeamCanvasProvider({
           (candidate) => candidate.id === pieceId && candidate.editable,
         );
         if (!piece) return;
-        if (pieceSave.current) {
-          clearTimeout(pieceSave.current);
-          pieceSave.current = null;
-        }
+        pieceInputs.current.get(pieceId)?.stop();
+        pieceInputs.current.delete(pieceId);
         setRemoteSelectedPieceId((current) =>
           current === pieceId ? null : current,
         );

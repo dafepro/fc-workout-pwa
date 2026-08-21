@@ -39,7 +39,9 @@ var exportedTables = []string{
 	"team_canvas_rest_days",
 	"team_canvas_settings",
 	"team_canvas_avatar_positions",
+	"team_canvas_scene_states",
 	"team_canvas_pieces",
+	"team_canvas_piece_states",
 	"reactions",
 	"auth_credentials",
 	"auth_sessions",
@@ -74,8 +76,8 @@ func TestLogicalExportAndImportPreserveEveryTableExactly(t *testing.T) {
 	if manifest.CreatedAt != createdAt.Format(time.RFC3339) || manifest.ApplicationVersion != "logical-test" {
 		t.Fatalf("unexpected manifest metadata: %+v", manifest)
 	}
-	if len(manifest.Source.SchemaMigrations) != 14 {
-		t.Fatalf("source migrations = %v, want 14 applied", manifest.Source.SchemaMigrations)
+	if len(manifest.Source.SchemaMigrations) != 15 {
+		t.Fatalf("source migrations = %v, want 15 applied", manifest.Source.SchemaMigrations)
 	}
 	exported := make([]string, 0, len(manifest.Tables))
 	for _, table := range manifest.Tables {
@@ -121,8 +123,8 @@ func TestLogicalExportAndImportPreserveEveryTableExactly(t *testing.T) {
 	if err := target.QueryRowContext(ctx, "SELECT COUNT(*) FROM schema_migrations").Scan(&ledger); err != nil {
 		t.Fatal(err)
 	}
-	if ledger != 14 {
-		t.Fatalf("imported migration ledger = %d, want the current 14", ledger)
+	if ledger != 15 {
+		t.Fatalf("imported migration ledger = %d, want the current 15", ledger)
 	}
 }
 
@@ -173,8 +175,8 @@ func TestLogicalExportFromAnOlderSchemaImportsIntoTheCurrentSchema(t *testing.T)
 	if err := target.QueryRowContext(ctx, "SELECT idempotency_key FROM training_entries WHERE id = 'entry-old'").Scan(&idempotencyKey); err != nil {
 		t.Fatal(err)
 	}
-	if entries != 1 || migrationsApplied != 14 {
-		t.Fatalf("entries=%d migrations=%d, want 1 and 14", entries, migrationsApplied)
+	if entries != 1 || migrationsApplied != 15 {
+		t.Fatalf("entries=%d migrations=%d, want 1 and 15", entries, migrationsApplied)
 	}
 	if idempotencyKey.Valid {
 		t.Fatalf("field added after the export defaulted to %q, want NULL", idempotencyKey.String)
@@ -396,13 +398,26 @@ func fullyPopulatedDatabase(t *testing.T, ctx context.Context) string {
 		`INSERT INTO team_canvas_avatar_positions (
 			team_id, week_key, player_id, x, y, revision, updated_at
 		) VALUES ('team-hill-striders', '2026-08-03', 'player-mason', 42, 58, 3, '2026-08-03T12:00:00Z')`,
+		`INSERT INTO team_canvas_scene_states (
+			team_id, week_key, physics_version, scene_state_json, revision, updated_at
+		) VALUES (
+			'team-hill-striders', '2026-08-03', 1,
+			'{"v":1,"sceneId":"space","sequence":9}', 2, '2026-08-03T13:00:00Z'
+		)`,
 		`INSERT INTO team_canvas_pieces (
 			id, team_id, week_key, day_key, owner_player_id, reward_slot, asset_id,
 			x, y, size, rotation, revision, created_at, updated_at
 		) VALUES (
 			'canvas-piece-1', 'team-hill-striders', '2026-08-03', '2026-08-03',
-			'player-mason', 1, 'spark-cleat', 52, 46, 60, 15, 4,
+			'player-mason', 1, 'soccer', 52, 46, 60, 15, 4,
 			'2026-08-03T12:00:00Z', '2026-08-03T13:00:00Z'
+		)`,
+		`INSERT INTO team_canvas_piece_states (
+			piece_id, behavior_version, behavior_state_json, revision, updated_at
+		) VALUES (
+			'canvas-piece-1', 1,
+			'{"id":"canvas-piece-1","assetId":"soccer","position":{"x":52,"y":46},"velocity":{"x":3,"y":-1},"size":60,"angle":15,"angularVelocity":8,"sleeping":false,"resetCount":0}',
+			2, '2026-08-03T13:00:00Z'
 		)`,
 		`INSERT INTO reactions (
 			id, sender_player_id, recipient_player_id, team_id, reaction_type,

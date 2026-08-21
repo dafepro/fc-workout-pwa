@@ -29,6 +29,27 @@ test.beforeEach(async () => {
     },
   });
   expect(reach.status()).toBe(201);
+  const settings = await api.put(
+    "/v1/teams/team-hill-striders/canvas/dev-settings",
+    {
+      headers: masonHeaders,
+      data: {
+        backgroundAssetId: "soccer-field",
+        backgroundColor: "#89C981",
+        textColor: "#FFFFFF",
+        textSize: 112,
+        textStyle: "block",
+        stampChoices: [
+          "soccer",
+          "balloon",
+          "rocket",
+          "spark-cleat",
+          "zoomigo-mark",
+        ],
+      },
+    },
+  );
+  expect(settings.ok()).toBe(true);
   await api.dispose();
 });
 
@@ -43,10 +64,13 @@ test("connected Team Canvas uses durable pieces, settings, and SSE updates", asy
   await expect(page.getByText("Ari", { exact: true })).toHaveCount(0);
   await expect(page.getByText("1 stamp ready")).toBeVisible();
 
-  await page
-    .getByRole("button", { name: /Choose .* stamp/ })
-    .first()
-    .click();
+  const pieceCreated = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/canvas/pieces") &&
+      response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Choose Soccer ball stamp" }).click();
+  expect((await pieceCreated).ok()).toBe(true);
   const ownedStamp = page.getByRole("button", {
     name: /Edit .* live stamp/,
   });
@@ -67,6 +91,25 @@ test("connected Team Canvas uses durable pieces, settings, and SSE updates", asy
   }
   await expect(ownedStamp).toHaveAttribute("style", /rotate\(144deg\)/);
   expect((await rotationSaved).ok()).toBe(true);
+
+  await ownedStamp.click();
+  const movingStyle = await ownedStamp.getAttribute("style");
+  const api = await request.newContext({ baseURL: apiBaseURL });
+  await page.waitForTimeout(300);
+  for (const position of [
+    { x: 25, y: 42 },
+    { x: 70, y: 42 },
+  ]) {
+    const movement = await api.put(
+      "/v1/teams/team-hill-striders/canvas/avatar",
+      { headers: masonHeaders, data: position },
+    );
+    expect(movement.ok()).toBe(true);
+  }
+  await expect
+    .poll(() => ownedStamp.getAttribute("style"))
+    .not.toBe(movingStyle);
+  await ownedStamp.click();
 
   const stampBox = await ownedStamp.boundingBox();
   if (!stampBox) throw new Error("Owned stamp has no bounding box");
@@ -116,7 +159,6 @@ test("connected Team Canvas uses durable pieces, settings, and SSE updates", asy
     /cosmic-stadium\.png/,
   );
 
-  const api = await request.newContext({ baseURL: apiBaseURL });
   const avatarUpdate = await api.put(
     "/v1/teams/team-hill-striders/canvas/avatar",
     { headers: masonHeaders, data: { x: 84, y: 22 } },

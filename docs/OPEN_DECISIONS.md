@@ -489,10 +489,8 @@ Momentum Alpha needs independent PWA install/offline behavior.
   data model, scene forces, collision authority, runaway recovery, and realtime
   transport are specified in `docs/TEAM_CANVAS_PHYSICS_DESIGN.md` for review
   before schema or simulation work begins.
-- Recommended but awaiting review: only catalog-approved dynamic items collide;
-  avatars nudge them but pass through one another; server rooms own outcomes;
-  empty rooms simulate until sleep; and invalid or trapped objects use a
-  deterministic visual reset with no score or penalty.
+- Superseded: the physics recommendations below were adopted for the local alpha
+  implementation and are recorded in `TEAM_CANVAS_PHYSICS_DESIGN.md`.
 
 ## Team Canvas Alpha anchored stamp resizing (2026-08-21)
 
@@ -502,3 +500,32 @@ Momentum Alpha needs independent PWA install/offline behavior.
 - Decided: keyboard plus/minus uses the same anchored geometry. Direct two-touch
   pinch remains centered on the gesture because the player's fingers provide
   the resize anchor on touch devices.
+
+## Team Canvas Alpha physics implementation (2026-08-21)
+
+- Decided: `soccer`, `balloon`, and `rocket` are the initial dynamic assets.
+  Decorative stamps are non-colliding; a team/week has a 64-body safety budget.
+- Decided: one in-process server room owns a deterministic 30 Hz simulation and
+  streams versioned snapshots over the authenticated SSE path at up to 15 Hz.
+  REST remains the authenticated input path, avoiding another realtime protocol
+  during the single-replica alpha.
+- Decided: rapid avatar and stamp movement is coalesced to non-overlapping 80 ms
+  requests. Ordinary stamp movement uses a structured SSE transform event;
+  overloaded subscribers fall back to a durable snapshot refresh.
+- Decided: owner placement gives a dynamic piece a renewable 240 ms kinematic,
+  non-colliding lease. Lost pointer-up or network events cannot leave it frozen.
+- Decided: top-down scenes use friction, town scenes use gravity and buoyancy,
+  and space uses low drag with hard speed caps. Small boundary impacts settle so
+  gravity scenes do not jitter forever.
+- Decided: invalid or trapped pieces reset through a deterministic safe-position
+  search. If every candidate is occupied, the piece becomes a faint,
+  non-colliding recovery ghost and retries without score or blame.
+- Decided: physics state is strict versioned JSON in separate scene and piece
+  tables. Catalog code owns mass, radius, restitution, buoyancy, damping, and
+  speed; clients cannot author capabilities. Populated migrations and logical
+  backups include the new records.
+- Decided: changing scene preserves valid placement, clears velocity, and rejects
+  any late checkpoint from the prior scene. A new week never inherits velocity.
+- Still open before horizontal scaling: shared room ownership/coordinator,
+  reset/correction telemetry thresholds, and whether later shape colliders are
+  engaging enough to justify their added failure surface.

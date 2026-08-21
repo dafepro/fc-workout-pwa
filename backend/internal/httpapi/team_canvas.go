@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,24 +15,42 @@ import (
 
 type teamCanvasBroker struct {
 	mu          sync.Mutex
-	subscribers map[string]map[chan struct{}]struct{}
+	subscribers map[string]map[*teamCanvasSubscriber]struct{}
+}
+
+type teamCanvasSubscriber struct {
+	canvas  chan struct{}
+	physics chan teamCanvasPhysicsFrame
+	pieces  chan teamCanvasPieceFrame
+}
+
+type teamCanvasPieceFrame struct {
+	ID       string  `json:"id"`
+	X        float64 `json:"x"`
+	Y        float64 `json:"y"`
+	Size     float64 `json:"size"`
+	Rotation float64 `json:"rotation"`
+	Revision int     `json:"revision"`
 }
 
 func newTeamCanvasBroker() *teamCanvasBroker {
-	return &teamCanvasBroker{subscribers: make(map[string]map[chan struct{}]struct{})}
+	return &teamCanvasBroker{subscribers: make(map[string]map[*teamCanvasSubscriber]struct{})}
 }
 
-func (broker *teamCanvasBroker) subscribe(teamID string) (<-chan struct{}, func()) {
-	updates := make(chan struct{}, 1)
+func (broker *teamCanvasBroker) subscribe(teamID string) (*teamCanvasSubscriber, func()) {
+	subscriber := &teamCanvasSubscriber{
+		canvas: make(chan struct{}, 1), physics: make(chan teamCanvasPhysicsFrame, 1),
+		pieces: make(chan teamCanvasPieceFrame, 16),
+	}
 	broker.mu.Lock()
 	if broker.subscribers[teamID] == nil {
-		broker.subscribers[teamID] = make(map[chan struct{}]struct{})
+		broker.subscribers[teamID] = make(map[*teamCanvasSubscriber]struct{})
 	}
-	broker.subscribers[teamID][updates] = struct{}{}
+	broker.subscribers[teamID][subscriber] = struct{}{}
 	broker.mu.Unlock()
-	return updates, func() {
+	return subscriber, func() {
 		broker.mu.Lock()
-		delete(broker.subscribers[teamID], updates)
+		delete(broker.subscribers[teamID], subscriber)
 		if len(broker.subscribers[teamID]) == 0 {
 			delete(broker.subscribers, teamID)
 		}
@@ -39,13 +58,44 @@ func (broker *teamCanvasBroker) subscribe(teamID string) (<-chan struct{}, func(
 	}
 }
 
+func (broker *teamCanvasBroker) publishPiece(teamID string, piece teamCanvasPieceFrame) {
+	broker.mu.Lock()
+	defer broker.mu.Unlock()
+	for subscriber := range broker.subscribers[teamID] {
+		select {
+		case subscriber.pieces <- piece:
+		default:
+			select {
+			case subscriber.canvas <- struct{}{}:
+			default:
+			}
+		}
+	}
+}
+
 func (broker *teamCanvasBroker) publish(teamID string) {
 	broker.mu.Lock()
 	defer broker.mu.Unlock()
-	for updates := range broker.subscribers[teamID] {
+	for subscriber := range broker.subscribers[teamID] {
 		select {
-		case updates <- struct{}{}:
+		case subscriber.canvas <- struct{}{}:
 		default:
+		}
+	}
+}
+
+func (broker *teamCanvasBroker) publishPhysics(teamID string, frame teamCanvasPhysicsFrame) {
+	broker.mu.Lock()
+	defer broker.mu.Unlock()
+	for subscriber := range broker.subscribers[teamID] {
+		select {
+		case subscriber.physics <- frame:
+		default:
+			select {
+			case <-subscriber.physics:
+			default:
+			}
+			subscriber.physics <- frame
 		}
 	}
 }
@@ -59,6 +109,7 @@ func (service *service) getTeamCanvas(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	service.canvasPhysics.sync(r.PathValue("teamId"), projection, service.now().UTC())
 	projection.DeveloperControlsEnabled = service.teamCanvasDeveloperControlsEnabled()
 	writeJSON(w, http.StatusOK, projection)
 }
@@ -95,11 +146,13 @@ func (service *service) updateTeamCanvasAvatar(w http.ResponseWriter, r *http.Re
 		return
 	}
 	teamID := r.PathValue("teamId")
-	position, err := service.store.UpdateTeamCanvasAvatar(r.Context(), actor, teamID, position, service.now().UTC())
+	now := service.now().UTC()
+	service.syncTeamCanvasPhysics(r.Context(), actor, teamID, now)
+	position, err := service.store.UpdateTeamCanvasAvatar(r.Context(), actor, teamID, position, now)
 	if service.writeTeamCanvasError(w, r, err) {
 		return
 	}
-	service.canvasEvents.publish(teamID)
+	service.canvasPhysics.moveAvatar(teamID, actor.PlayerID, position, now)
 	writeJSON(w, http.StatusOK, position)
 }
 
@@ -119,10 +172,12 @@ func (service *service) createTeamCanvasPiece(w http.ResponseWriter, r *http.Req
 		return
 	}
 	teamID := r.PathValue("teamId")
-	piece, err := service.store.CreateTeamCanvasPiece(r.Context(), actor, teamID, request.AssetID, service.now().UTC())
+	now := service.now().UTC()
+	piece, err := service.store.CreateTeamCanvasPiece(r.Context(), actor, teamID, request.AssetID, now)
 	if service.writeTeamCanvasError(w, r, err) {
 		return
 	}
+	service.syncTeamCanvasPhysics(r.Context(), actor, teamID, now)
 	service.canvasEvents.publish(teamID)
 	writeJSON(w, http.StatusCreated, piece)
 }
@@ -141,11 +196,16 @@ func (service *service) updateTeamCanvasPiece(w http.ResponseWriter, r *http.Req
 		return
 	}
 	teamID := r.PathValue("teamId")
-	piece, err := service.store.UpdateTeamCanvasPiece(r.Context(), actor, teamID, r.PathValue("pieceId"), transform, service.now().UTC())
+	now := service.now().UTC()
+	piece, err := service.store.UpdateTeamCanvasPiece(r.Context(), actor, teamID, r.PathValue("pieceId"), transform, now)
 	if service.writeTeamCanvasError(w, r, err) {
 		return
 	}
-	service.canvasEvents.publish(teamID)
+	service.syncTeamCanvasPhysics(r.Context(), actor, teamID, now)
+	service.canvasEvents.publishPiece(teamID, teamCanvasPieceFrame{
+		ID: piece.ID, X: piece.X, Y: piece.Y, Size: piece.Size,
+		Rotation: piece.Rotation, Revision: piece.Revision,
+	})
 	writeJSON(w, http.StatusOK, piece)
 }
 
@@ -158,10 +218,12 @@ func (service *service) deleteTeamCanvasPiece(w http.ResponseWriter, r *http.Req
 		return
 	}
 	teamID := r.PathValue("teamId")
-	err := service.store.DeleteTeamCanvasPiece(r.Context(), actor, teamID, r.PathValue("pieceId"), service.now().UTC())
+	now := service.now().UTC()
+	err := service.store.DeleteTeamCanvasPiece(r.Context(), actor, teamID, r.PathValue("pieceId"), now)
 	if service.writeTeamCanvasError(w, r, err) {
 		return
 	}
+	service.syncTeamCanvasPhysics(r.Context(), actor, teamID, now)
 	service.canvasEvents.publish(teamID)
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -184,10 +246,12 @@ func (service *service) updateTeamCanvasSettings(w http.ResponseWriter, r *http.
 		return
 	}
 	teamID := r.PathValue("teamId")
-	settings, err := service.store.UpdateTeamCanvasSettings(r.Context(), actor, teamID, input, service.now().UTC())
+	now := service.now().UTC()
+	settings, err := service.store.UpdateTeamCanvasSettings(r.Context(), actor, teamID, input, now)
 	if service.writeTeamCanvasError(w, r, err) {
 		return
 	}
+	service.syncTeamCanvasPhysics(r.Context(), actor, teamID, now)
 	service.canvasEvents.publish(teamID)
 	writeJSON(w, http.StatusOK, settings)
 }
@@ -197,7 +261,8 @@ func (service *service) streamTeamCanvasEvents(w http.ResponseWriter, r *http.Re
 	if !ok {
 		return
 	}
-	if _, ok := service.loadTeamCanvas(w, r, actor); !ok {
+	projection, ok := service.loadTeamCanvas(w, r, actor)
+	if !ok {
 		return
 	}
 	flusher, ok := w.(http.Flusher)
@@ -206,12 +271,18 @@ func (service *service) streamTeamCanvasEvents(w http.ResponseWriter, r *http.Re
 		return
 	}
 	teamID := r.PathValue("teamId")
+	service.canvasPhysics.sync(teamID, projection, service.now().UTC())
 	updates, unsubscribe := service.canvasEvents.subscribe(teamID)
 	defer unsubscribe()
+	disconnectPhysics := service.canvasPhysics.connect(teamID)
+	defer disconnectPhysics()
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
 	writeCanvasEvent(w, "ready", teamID)
+	if frame, exists := service.canvasPhysics.frame(teamID); exists {
+		writePhysicsEvent(w, frame)
+	}
 	flusher.Flush()
 	heartbeat := time.NewTicker(20 * time.Second)
 	defer heartbeat.Stop()
@@ -219,13 +290,26 @@ func (service *service) streamTeamCanvasEvents(w http.ResponseWriter, r *http.Re
 		select {
 		case <-r.Context().Done():
 			return
-		case <-updates:
+		case <-updates.canvas:
 			writeCanvasEvent(w, "canvas", teamID)
+			flusher.Flush()
+		case frame := <-updates.physics:
+			writePhysicsEvent(w, frame)
+			flusher.Flush()
+		case piece := <-updates.pieces:
+			writeTeamCanvasSSE(w, "piece", piece)
 			flusher.Flush()
 		case <-heartbeat.C:
 			_, _ = fmt.Fprint(w, ": keep-alive\n\n")
 			flusher.Flush()
 		}
+	}
+}
+
+func (service *service) syncTeamCanvasPhysics(ctx context.Context, actor domain.Actor, teamID string, now time.Time) {
+	projection, err := service.store.TeamCanvas(ctx, actor, teamID, now)
+	if err == nil {
+		service.canvasPhysics.sync(teamID, projection, now)
 	}
 }
 
@@ -275,5 +359,14 @@ func writeCanvasEvent(w http.ResponseWriter, event, teamID string) {
 	payload, _ := json.Marshal(struct {
 		TeamID string `json:"teamId"`
 	}{TeamID: teamID})
+	_, _ = fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event, payload)
+}
+
+func writePhysicsEvent(w http.ResponseWriter, frame teamCanvasPhysicsFrame) {
+	writeTeamCanvasSSE(w, "physics", frame)
+}
+
+func writeTeamCanvasSSE(w http.ResponseWriter, event string, value any) {
+	payload, _ := json.Marshal(value)
 	_, _ = fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event, payload)
 }

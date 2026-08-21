@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dafepro/fc-workout-pwa/backend/internal/canvasphysics"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 )
 
@@ -66,32 +67,40 @@ type TeamCanvasMember struct {
 
 type TeamCanvasPiece struct {
 	TeamCanvasTransform
-	ID       string `json:"id"`
-	DayKey   string `json:"dayKey"`
-	AssetID  string `json:"assetId"`
-	Status   string `json:"status"`
-	Editable bool   `json:"editable"`
-	Revision int    `json:"revision"`
+	ID       string                   `json:"id"`
+	DayKey   string                   `json:"dayKey"`
+	AssetID  string                   `json:"assetId"`
+	Status   string                   `json:"status"`
+	Editable bool                     `json:"editable"`
+	Revision int                      `json:"revision"`
+	Physics  *canvasphysics.BodyState `json:"physics,omitempty"`
+}
+
+type TeamCanvasPhysicsProjection struct {
+	Version  int    `json:"v"`
+	SceneID  string `json:"sceneId"`
+	Sequence uint64 `json:"sequence"`
 }
 
 type TeamCanvasProjection struct {
-	Team                     SocialTeam         `json:"team"`
-	DayKey                   string             `json:"dayKey"`
-	WeekKey                  string             `json:"weekKey"`
-	Settings                 TeamCanvasSettings `json:"settings"`
-	StampChoices             []string           `json:"stampChoices"`
-	Members                  []TeamCanvasMember `json:"members"`
-	Pieces                   []TeamCanvasPiece  `json:"pieces"`
-	AvatarPosition           TeamCanvasPosition `json:"avatarPosition"`
-	AvailableRewards         int                `json:"availableRewards"`
-	CooldownComplete         bool               `json:"cooldownComplete"`
-	DeveloperControlsEnabled bool               `json:"developerControlsEnabled"`
+	Team                     SocialTeam                  `json:"team"`
+	DayKey                   string                      `json:"dayKey"`
+	WeekKey                  string                      `json:"weekKey"`
+	Settings                 TeamCanvasSettings          `json:"settings"`
+	StampChoices             []string                    `json:"stampChoices"`
+	Members                  []TeamCanvasMember          `json:"members"`
+	Pieces                   []TeamCanvasPiece           `json:"pieces"`
+	AvatarPosition           TeamCanvasPosition          `json:"avatarPosition"`
+	AvailableRewards         int                         `json:"availableRewards"`
+	CooldownComplete         bool                        `json:"cooldownComplete"`
+	DeveloperControlsEnabled bool                        `json:"developerControlsEnabled"`
+	Physics                  TeamCanvasPhysicsProjection `json:"physics"`
 }
 
 var (
 	canvasBackgrounds = allowedValues("grass-gradient", "soccer-field", "creature-quest-town", "cosmic-stadium", "tactics-board")
 	canvasTextStyles  = allowedValues("block", "rally", "speed", "outline", "bubble")
-	canvasAssets      = allowedValues("bolt", "fire", "star", "rocket", "lion", "cheetah", "shield", "target", "soccer", "rainbow", "strong", "runner", "eagle", "party", "sparkles", "spark-cleat", "zoomigo-mark")
+	canvasAssets      = allowedValues("bolt", "fire", "star", "rocket", "balloon", "lion", "cheetah", "shield", "target", "soccer", "rainbow", "strong", "runner", "eagle", "party", "sparkles", "spark-cleat", "zoomigo-mark")
 	hexColor          = regexp.MustCompile(`^#[0-9A-Fa-f]{6}$`)
 )
 
@@ -147,6 +156,7 @@ func (store *Store) TeamCanvas(ctx context.Context, actor domain.Actor, teamID s
 		Settings: settings, StampChoices: append([]string(nil), settings.StampChoices...),
 		Members: members, Pieces: pieces, AvatarPosition: currentPosition,
 		AvailableRewards: available, CooldownComplete: cooldownComplete,
+		Physics: store.teamCanvasPhysicsProjection(ctx, teamID, weekKey, settings.BackgroundAssetID),
 	}, nil
 }
 
@@ -215,7 +225,12 @@ func (store *Store) CreateTeamCanvasPiece(ctx context.Context, actor domain.Acto
 		TeamCanvasTransform: TeamCanvasTransform{X: 46 + float64(ownedToday*12), Y: 42 + float64(ownedToday*10), Size: 44},
 	}
 	stamp := now.UTC().Format(time.RFC3339Nano)
-	_, err = store.db.ExecContext(ctx, `INSERT INTO team_canvas_pieces
+	tx, err := store.db.BeginTx(ctx, nil)
+	if err != nil {
+		return TeamCanvasPiece{}, fmt.Errorf("begin team canvas piece: %w", err)
+	}
+	defer tx.Rollback()
+	_, err = tx.ExecContext(ctx, `INSERT INTO team_canvas_pieces
 		(id, team_id, week_key, day_key, owner_player_id, reward_slot, asset_id, x, y, size, rotation, revision, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`, piece.ID, teamID, projection.WeekKey,
 		projection.DayKey, actor.PlayerID, rewardSlot, assetID, piece.X, piece.Y, piece.Size, piece.Rotation, stamp, stamp)
@@ -224,6 +239,29 @@ func (store *Store) CreateTeamCanvasPiece(ctx context.Context, actor domain.Acto
 			return TeamCanvasPiece{}, ErrTeamCanvasRewardUnavailable
 		}
 		return TeamCanvasPiece{}, fmt.Errorf("create team canvas piece: %w", err)
+	}
+	var physicsCount int
+	if err = tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM team_canvas_piece_states state
+		JOIN team_canvas_pieces existing ON existing.id = state.piece_id
+		WHERE existing.team_id = ? AND existing.week_key = ?`, teamID, projection.WeekKey).Scan(&physicsCount); err != nil {
+		return TeamCanvasPiece{}, fmt.Errorf("count team canvas physics: %w", err)
+	}
+	if physicsBody, ok := canvasphysics.NewCatalogBody(piece.ID, piece.AssetID, canvasphysics.Transform{
+		X: piece.X, Y: piece.Y, Size: piece.Size, Rotation: piece.Rotation,
+	}); ok && physicsCount < canvasphysics.MaxBodies {
+		encoded, encodeErr := canvasphysics.EncodeBodyState(physicsBody.BodyState)
+		if encodeErr != nil {
+			return TeamCanvasPiece{}, encodeErr
+		}
+		if _, err = tx.ExecContext(ctx, `INSERT INTO team_canvas_piece_states
+			(piece_id, behavior_version, behavior_state_json, revision, updated_at)
+			VALUES (?, 1, ?, 1, ?)`, piece.ID, string(encoded), stamp); err != nil {
+			return TeamCanvasPiece{}, fmt.Errorf("create team canvas physics: %w", err)
+		}
+		piece.Physics = &physicsBody.BodyState
+	}
+	if err = tx.Commit(); err != nil {
+		return TeamCanvasPiece{}, fmt.Errorf("commit team canvas piece: %w", err)
 	}
 	return piece, nil
 }
@@ -245,16 +283,45 @@ func (store *Store) UpdateTeamCanvasPiece(ctx context.Context, actor domain.Acto
 	if err != nil {
 		return TeamCanvasPiece{}, fmt.Errorf("load team canvas piece: %w", err)
 	}
+	var hasPhysics bool
+	if err = store.db.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM team_canvas_piece_states WHERE piece_id = ?)`, piece.ID).Scan(&hasPhysics); err != nil {
+		return TeamCanvasPiece{}, fmt.Errorf("load team canvas piece physics: %w", err)
+	}
 	piece.X = clampCanvas(transform.X, 6, 94)
 	piece.Y = clampCanvas(transform.Y, 6, 94)
 	piece.Size = clampCanvas(transform.Size, 28, 76)
 	piece.Rotation = normalizeCanvasRotation(transform.Rotation)
 	piece.Revision++
-	_, err = store.db.ExecContext(ctx, `UPDATE team_canvas_pieces SET x = ?, y = ?, size = ?, rotation = ?,
+	tx, err := store.db.BeginTx(ctx, nil)
+	if err != nil {
+		return TeamCanvasPiece{}, fmt.Errorf("begin team canvas piece update: %w", err)
+	}
+	defer tx.Rollback()
+	_, err = tx.ExecContext(ctx, `UPDATE team_canvas_pieces SET x = ?, y = ?, size = ?, rotation = ?,
 		revision = ?, updated_at = ? WHERE id = ?`, piece.X, piece.Y, piece.Size, piece.Rotation,
 		piece.Revision, now.UTC().Format(time.RFC3339Nano), piece.ID)
 	if err != nil {
 		return TeamCanvasPiece{}, fmt.Errorf("update team canvas piece: %w", err)
+	}
+	if physicsBody, ok := canvasphysics.NewCatalogBody(piece.ID, piece.AssetID, canvasphysics.Transform{
+		X: piece.X, Y: piece.Y, Size: piece.Size, Rotation: piece.Rotation,
+	}); ok && hasPhysics {
+		encoded, encodeErr := canvasphysics.EncodeBodyState(physicsBody.BodyState)
+		if encodeErr != nil {
+			return TeamCanvasPiece{}, encodeErr
+		}
+		if _, err = tx.ExecContext(ctx, `INSERT INTO team_canvas_piece_states
+			(piece_id, behavior_version, behavior_state_json, revision, updated_at)
+			VALUES (?, 1, ?, 1, ?) ON CONFLICT(piece_id) DO UPDATE SET
+			behavior_version = 1, behavior_state_json = excluded.behavior_state_json,
+			revision = revision + 1, updated_at = excluded.updated_at`,
+			piece.ID, string(encoded), now.UTC().Format(time.RFC3339Nano)); err != nil {
+			return TeamCanvasPiece{}, fmt.Errorf("update team canvas physics: %w", err)
+		}
+		piece.Physics = &physicsBody.BodyState
+	}
+	if err = tx.Commit(); err != nil {
+		return TeamCanvasPiece{}, fmt.Errorf("commit team canvas piece update: %w", err)
 	}
 	piece.Status, piece.Editable = "live", true
 	return piece, nil
@@ -452,9 +519,11 @@ func (store *Store) teamCanvasMembers(ctx context.Context, teamID, currentPlayer
 }
 
 func (store *Store) teamCanvasPieces(ctx context.Context, teamID, currentPlayerID, weekKey, dayKey string) ([]TeamCanvasPiece, error) {
-	rows, err := store.db.QueryContext(ctx, `SELECT id, day_key, asset_id, x, y, size, rotation,
-		revision, owner_player_id FROM team_canvas_pieces WHERE team_id = ? AND week_key = ?
-		ORDER BY created_at, id`, teamID, weekKey)
+	rows, err := store.db.QueryContext(ctx, `SELECT piece.id, piece.day_key, piece.asset_id,
+		piece.x, piece.y, piece.size, piece.rotation, piece.revision, piece.owner_player_id,
+		COALESCE(state.behavior_state_json, '')
+		FROM team_canvas_pieces piece LEFT JOIN team_canvas_piece_states state ON state.piece_id = piece.id
+		WHERE piece.team_id = ? AND piece.week_key = ? ORDER BY piece.created_at, piece.id`, teamID, weekKey)
 	if err != nil {
 		return nil, fmt.Errorf("list team canvas pieces: %w", err)
 	}
@@ -462,10 +531,17 @@ func (store *Store) teamCanvasPieces(ctx context.Context, teamID, currentPlayerI
 	pieces := make([]TeamCanvasPiece, 0)
 	for rows.Next() {
 		var piece TeamCanvasPiece
-		var ownerID string
+		var ownerID, physicsJSON string
 		if err := rows.Scan(&piece.ID, &piece.DayKey, &piece.AssetID, &piece.X, &piece.Y,
-			&piece.Size, &piece.Rotation, &piece.Revision, &ownerID); err != nil {
+			&piece.Size, &piece.Rotation, &piece.Revision, &ownerID, &physicsJSON); err != nil {
 			return nil, err
+		}
+		if physicsJSON != "" {
+			if state, decodeErr := canvasphysics.DecodeBodyState([]byte(physicsJSON)); decodeErr == nil &&
+				state.ID == piece.ID && state.AssetID == piece.AssetID {
+				piece.Physics = &state
+				piece.X, piece.Y, piece.Size, piece.Rotation = state.Position.X, state.Position.Y, state.Size, state.Angle
+			}
 		}
 		piece.Status = "pasted"
 		if piece.DayKey == dayKey {
@@ -547,7 +623,7 @@ func validTeamCanvasSettings(input TeamCanvasSettingsInput) bool {
 }
 
 func dailyCanvasChoices(teamID, dayKey string) []string {
-	catalog := []string{"bolt", "fire", "star", "rocket", "lion", "cheetah", "shield", "target", "soccer", "rainbow", "strong", "runner", "eagle", "party", "sparkles", "spark-cleat", "zoomigo-mark"}
+	catalog := []string{"bolt", "fire", "star", "rocket", "balloon", "lion", "cheetah", "shield", "target", "soccer", "rainbow", "strong", "runner", "eagle", "party", "sparkles", "spark-cleat", "zoomigo-mark"}
 	hash := fnv.New32a()
 	_, _ = hash.Write([]byte(teamID + ":" + dayKey))
 	start := int(hash.Sum32()) % len(catalog)

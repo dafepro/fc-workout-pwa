@@ -142,19 +142,19 @@ export function BoardSurface({
 
       {simulatePeers
         ? teamCanvasMock.pastedPieces.map((piece) => (
-            <StaticStamp key={piece.id} piece={piece} />
+            <StaticStamp key={physicsPieceKey(piece)} piece={piece} />
           ))
         : null}
       {simulatePeers
         ? liveFrame.pieces.map((piece) => (
-            <StaticStamp key={piece.id} piece={piece} peerLive />
+            <StaticStamp key={physicsPieceKey(piece)} piece={piece} peerLive />
           ))
         : null}
       {pieces
         .filter(({ editable }) => !editable)
         .map((piece) => (
           <StaticStamp
-            key={piece.id}
+            key={physicsPieceKey(piece)}
             piece={piece}
             peerLive={piece.status === "live"}
           />
@@ -230,8 +230,8 @@ export function BoardSurface({
           const label = stampAssetLabel(piece.asset);
           return (
             <div
-              key={piece.id}
-              className={`tc-stamp-orbit${selected ? " is-selected" : " is-resting"}`}
+              key={physicsPieceKey(piece)}
+              className={`tc-stamp-orbit${piece.physics ? " tc-stamp-orbit--physics" : ""}${piece.physics?.resetCount ? " tc-stamp--physics-reset" : ""}${piece.physics?.recovering ? " tc-stamp--recovering" : ""}${selected ? " is-selected" : " is-resting"}`}
               style={orbitStyle(piece)}
             >
               <button
@@ -405,13 +405,17 @@ function StaticStamp({
 }) {
   return (
     <span
-      className={`tc-stamp ${peerLive ? "tc-stamp--peer-live" : "tc-stamp--pasted"}`}
+      className={`tc-stamp ${peerLive ? "tc-stamp--peer-live" : "tc-stamp--pasted"}${piece.physics ? " tc-stamp--physics" : ""}${piece.physics?.resetCount ? " tc-stamp--physics-reset" : ""}${piece.physics?.recovering ? " tc-stamp--recovering" : ""}`}
       style={positionStyle(piece)}
       aria-hidden="true"
     >
       <StampAssetView asset={piece.asset} />
     </span>
   );
+}
+
+function physicsPieceKey(piece: ProjectedBoardPiece) {
+  return `${piece.id}-${piece.physics?.resetCount ?? 0}`;
 }
 
 function StampOrbitControls({

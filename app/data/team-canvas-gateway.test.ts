@@ -13,6 +13,7 @@ describe("HTTP team canvas gateway", () => {
             team: { id: "team-one", name: "Trailblazers", weeklyGoal: 3 },
             dayKey: "2026-08-21",
             weekKey: "2026-08-17",
+            physics: { v: 1, sceneId: "space", sequence: 7 },
             settings: {
               backgroundAssetId: "cosmic-stadium",
               backgroundColor: "#112233",
@@ -78,6 +79,54 @@ describe("HTTP team canvas gateway", () => {
     });
     expect(projection.settings.backgroundAssetId).toBe("cosmic-stadium");
     expect(projection.availableRewards).toBe(1);
+  });
+
+  it("delivers validated structured physics frames from the live stream", () => {
+    const listeners = new Map<string, EventListener>();
+    const close = vi.fn();
+    class FakeEventSource {
+      constructor(public readonly url: string) {}
+      addEventListener(name: string, listener: EventListener) {
+        listeners.set(name, listener);
+      }
+      close = close;
+    }
+    vi.stubGlobal("EventSource", FakeEventSource);
+    const onPhysics = vi.fn();
+    const onPiece = vi.fn();
+
+    const unsubscribe = createTeamCanvasGateway("team-one").subscribe({
+      onChange: vi.fn(),
+      onPhysics,
+      onPiece,
+    });
+    listeners.get("physics")?.(
+      new MessageEvent("physics", {
+        data: JSON.stringify({
+          v: 1,
+          teamId: "team-one",
+          weekKey: "2026-08-17",
+          sceneId: "top-down-field",
+          sequence: 4,
+          bodies: [],
+          avatars: [],
+        }),
+      }),
+    );
+
+    expect(onPhysics).toHaveBeenCalledWith(
+      expect.objectContaining({ sequence: 4, sceneId: "top-down-field" }),
+    );
+    listeners.get("piece")?.(
+      new MessageEvent("piece", {
+        data: '{"id":"piece-one","x":44,"y":55,"size":50,"rotation":24,"revision":4}',
+      }),
+    );
+    expect(onPiece).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "piece-one", x: 44, revision: 4 }),
+    );
+    unsubscribe();
+    expect(close).toHaveBeenCalledOnce();
   });
 
   it("sends transforms, deletion, and developer settings to explicit routes", async () => {
