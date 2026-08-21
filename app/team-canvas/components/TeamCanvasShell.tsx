@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { PlayerAvatar } from "../../components/PlayerAvatar";
+import { useOptionalAuth } from "../../state/auth-context";
 import { teamCanvasCopy } from "../content";
 import { teamCanvasMock } from "../mock-data";
 import { teamCanvasRoutes } from "../routes";
 
 export function TeamCanvasShell({ children }: { children: React.ReactNode }) {
-  const player = teamCanvasMock.player;
+  const auth = useOptionalAuth();
+  const player = auth?.currentPlayer ?? teamCanvasMock.player;
 
   return (
     <div className="team-canvas-app">

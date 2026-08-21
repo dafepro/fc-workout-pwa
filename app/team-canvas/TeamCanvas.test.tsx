@@ -155,7 +155,7 @@ describe("Team Canvas application", () => {
     ).toBeNull();
   });
 
-  it("creates an owner-editable live piece with a floating fine-pointer palette", () => {
+  it("creates an owner-editable live piece with circular attached controls", () => {
     const complete = recordPrimary(initialTeamCanvasState(), {
       completion: "reach",
       effort: 5,
@@ -177,6 +177,14 @@ describe("Team Canvas application", () => {
     expect(
       screen.getByRole("button", { name: /Edit .* live stamp/ }),
     ).toBeInTheDocument();
+    const orbit = view.container.querySelector(".tc-stamp-orbit");
+    expect(orbit).toBeInTheDocument();
+    expect(orbit).toContainElement(
+      screen.getByRole("button", { name: "Smaller" }),
+    );
+    expect(orbit).toContainElement(
+      screen.getByRole("button", { name: "Larger" }),
+    );
     expect(screen.getByRole("button", { name: "Smaller" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Larger" })).toBeInTheDocument();
     expect(
@@ -185,6 +193,13 @@ describe("Team Canvas application", () => {
     expect(
       screen.getByRole("button", { name: "Rotate right" }),
     ).toBeInTheDocument();
+    expect(
+      view.container.querySelector(".tc-orbit-control--rotate-left"),
+    ).toBeInTheDocument();
+    expect(
+      view.container.querySelector(".tc-orbit-control--rotate-right"),
+    ).toBeInTheDocument();
+    expect(view.container.querySelector(".tc-floating-palette")).toBeNull();
     expect(screen.queryByRole("button", { name: /paste/i })).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: /Edit .* live stamp/ }));

@@ -509,3 +509,41 @@ Momentum Alpha needs independent PWA install/offline behavior.
   server settling transaction at the team-local day boundary, moderation of
   richer catalog assets, and how reduced-motion preferences should affect
   animated reward sprites beyond pausing decorative motion.
+
+## Team Canvas Alpha feedback round three (2026-08-21)
+
+- Decided: star crowns use a fixed compact gap centered on the avatar. Small
+  counts never expand to occupy the full seven-star arc.
+- Decided: the stamp itself owns a circular manipulation boundary. Resting pieces
+  show a very light slow progress-like ring; selecting a piece speeds and
+  strengthens the ring and reveals top-centered size controls plus bilateral
+  side-arc rotation controls. There is no detached palette.
+- Decided: the stamp maximum grows from 64 to 76 CSS pixels. Server and local
+  validation use the same bound.
+- Decided: the development toolbox controls only predefined background and stamp
+  asset IDs plus bounded text style, size, and hex colors. It is unavailable in
+  production and cannot become a player-facing upload or free-text path.
+- Decided: the existing Go API and SQLite database become Team Canvas authority;
+  Sites D1 remains unused. Positions, pieces, toolbox settings, planned rest,
+  daily rewards, completion visibility, and star days are server-derived and
+  authenticated.
+- Decided: realtime delivery is an authenticated invalidation stream over SSE.
+  Every client refetches the durable snapshot after events and reconnects. The
+  in-process broker is valid for the documented single API replica; a shared
+  broker is a release prerequisite before horizontal scaling.
+- Decided: local peer animation remains only for the disconnected prototype.
+  Connected mode renders actual saved avatar configurations and server events;
+  it must not label simulated movement as realtime.
+- Still open: whether production board themes are coach-selected, team-earned,
+  or rotated by the system; the development toolbox makes no product decision
+  about that authority.
+- Decided after the round-three gap audit: deleting a workout or cooldown also
+  reconciles that team-local day’s reward slots. A live piece cannot survive if
+  its earned daily count no longer supports it; this prevents a player from
+  placing art and then deleting the qualifying session.
+- Decided: loopback HTTP is permitted only when the local development server
+  opts in. Production continues to require HTTPS, while the private Docker
+  hostname keeps its existing E2E exception.
+- Still open: planned rest is currently an idempotent structured self-record.
+  A later plan/suggestion engine must decide when a rest day is prescribed;
+  Team Canvas does not invent that scheduling authority.

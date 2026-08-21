@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gestureTransform } from "./board-geometry";
+import { gestureTransform, starCrownLayout } from "./board-geometry";
 
 describe("gestureTransform", () => {
   it("moves a selected piece with one pointer in board coordinates", () => {
@@ -31,5 +31,28 @@ describe("gestureTransform", () => {
     expect(result.y).toBe(60);
     expect(result.size).toBe(80);
     expect(result.rotation).toBe(90);
+  });
+});
+
+describe("starCrownLayout", () => {
+  it("keeps small crowns compact and centered instead of filling the arc", () => {
+    const twoStars = starCrownLayout(2);
+
+    expect(twoStars).toHaveLength(2);
+    expect(twoStars[1].left - twoStars[0].left).toBeLessThanOrEqual(18);
+    expect((twoStars[0].left + twoStars[1].left) / 2).toBeCloseTo(50);
+    expect(twoStars[0].top).toBeCloseTo(twoStars[1].top);
+  });
+
+  it("uses one fixed even step for every crown size", () => {
+    const fiveStars = starCrownLayout(5);
+    const gaps = fiveStars
+      .slice(1)
+      .map((star, index) =>
+        Number((star.angle - fiveStars[index].angle).toFixed(4)),
+      );
+
+    expect(new Set(gaps)).toEqual(new Set([18]));
+    expect(fiveStars[2].left).toBeCloseTo(50);
   });
 });

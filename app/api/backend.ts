@@ -13,6 +13,7 @@ export function backendBaseURL(): string | null {
     .ZOOMIGO_API_BASE_URL;
   return resolveBackendBaseURL(
     workerValue?.trim() || process.env.ZOOMIGO_API_BASE_URL,
+    process.env.NODE_ENV !== "production",
   );
 }
 

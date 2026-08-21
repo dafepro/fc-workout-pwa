@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import Image from "next/image";
 import type { StampAsset } from "../model";
 
 export function StampAssetView({ asset }: { asset: StampAsset }) {
@@ -16,11 +17,13 @@ export function StampAssetView({ asset }: { asset: StampAsset }) {
 
   if (asset.kind === "image") {
     return (
-      // Catalog assets are reviewed same-origin files; player-entered URLs do not exist.
-      <img
+      <Image
         className="tc-stamp-asset tc-stamp-asset--image"
         src={asset.src}
         alt={asset.alt}
+        width={76}
+        height={76}
+        unoptimized
         draggable="false"
       />
     );

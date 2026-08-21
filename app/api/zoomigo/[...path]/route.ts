@@ -22,6 +22,19 @@ const allowed = [
   { method: "DELETE", pattern: /^v1\/training-entries\/[^/]+$/ },
   { method: "GET", pattern: /^v1\/teams\/[^/]+\/activity$/ },
   { method: "GET", pattern: /^v1\/teams\/[^/]+\/leaderboards$/ },
+  { method: "GET", pattern: /^v1\/teams\/[^/]+\/canvas$/ },
+  { method: "POST", pattern: /^v1\/teams\/[^/]+\/canvas\/rest$/ },
+  { method: "PUT", pattern: /^v1\/teams\/[^/]+\/canvas\/avatar$/ },
+  { method: "POST", pattern: /^v1\/teams\/[^/]+\/canvas\/pieces$/ },
+  {
+    method: "PUT",
+    pattern: /^v1\/teams\/[^/]+\/canvas\/pieces\/[^/]+$/,
+  },
+  {
+    method: "PUT",
+    pattern: /^v1\/teams\/[^/]+\/canvas\/dev-settings$/,
+  },
+  { method: "GET", pattern: /^v1\/teams\/[^/]+\/canvas\/events$/ },
 ];
 
 export async function GET(request: Request) {
@@ -92,7 +105,10 @@ async function proxy(request: Request) {
       "ZoomiGo is temporarily unavailable.",
     );
   }
-  const responseBody = await response.text();
+  const eventStream = response.headers
+    .get("content-type")
+    ?.startsWith("text/event-stream");
+  const responseBody = eventStream ? response.body : await response.text();
   await recordServerEventsForRequest(
     request,
     proxyEvents(

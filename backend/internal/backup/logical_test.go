@@ -36,6 +36,10 @@ var exportedTables = []string{
 	"assignment_catalog",
 	"assignments",
 	"training_entries",
+	"team_canvas_rest_days",
+	"team_canvas_settings",
+	"team_canvas_avatar_positions",
+	"team_canvas_pieces",
 	"reactions",
 	"auth_credentials",
 	"auth_sessions",
@@ -380,6 +384,26 @@ func fullyPopulatedDatabase(t *testing.T, ctx context.Context) string {
 		`UPDATE training_entries SET idempotency_key = 'entry-key-1', assignment_id = 'assignment-hill-sprints'
 		 WHERE id = 'entry-mason-recent'`,
 		`UPDATE training_entries SET deleted_at = '2026-08-01T00:00:00Z' WHERE id = 'entry-mason-expired'`,
+		`INSERT INTO team_canvas_rest_days (team_id, player_id, day_key, created_at)
+		 VALUES ('team-hill-striders', 'player-mason', '2026-08-03', '2026-08-03T12:00:00Z')`,
+		`INSERT INTO team_canvas_settings (
+			team_id, background_asset_id, background_color, text_color, text_size,
+			text_style, stamp_choices_json, revision, updated_at
+		) VALUES (
+			'team-hill-striders', 'cosmic-stadium', '#112233', '#FFFFFF', 118,
+			'bubble', '["bolt","star","rocket","spark-cleat","zoomigo-mark"]', 2, '2026-08-03T12:00:00Z'
+		)`,
+		`INSERT INTO team_canvas_avatar_positions (
+			team_id, week_key, player_id, x, y, revision, updated_at
+		) VALUES ('team-hill-striders', '2026-08-03', 'player-mason', 42, 58, 3, '2026-08-03T12:00:00Z')`,
+		`INSERT INTO team_canvas_pieces (
+			id, team_id, week_key, day_key, owner_player_id, reward_slot, asset_id,
+			x, y, size, rotation, revision, created_at, updated_at
+		) VALUES (
+			'canvas-piece-1', 'team-hill-striders', '2026-08-03', '2026-08-03',
+			'player-mason', 1, 'spark-cleat', 52, 46, 60, 15, 4,
+			'2026-08-03T12:00:00Z', '2026-08-03T13:00:00Z'
+		)`,
 		`INSERT INTO reactions (
 			id, sender_player_id, recipient_player_id, team_id, reaction_type,
 			context_type, context_period, context_metric, team_day, idempotency_key,

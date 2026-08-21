@@ -18,6 +18,18 @@ describe("resolveBackendBaseURL", () => {
       /HTTPS/,
     );
   });
+
+  it("allows loopback HTTP only when a local development caller opts in", () => {
+    expect(() => resolveBackendBaseURL("http://localhost:8080")).toThrow(
+      /HTTPS/,
+    );
+    expect(resolveBackendBaseURL("http://localhost:8080", true)).toBe(
+      "http://localhost:8080",
+    );
+    expect(resolveBackendBaseURL("http://127.0.0.1:8080", true)).toBe(
+      "http://127.0.0.1:8080",
+    );
+  });
 });
 
 describe("resolveBackendRequired", () => {

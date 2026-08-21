@@ -292,6 +292,10 @@ func (store *Store) ResetE2EFixtures(ctx context.Context, now time.Time) error {
 	defer tx.Rollback()
 	statements := []string{
 		"DELETE FROM reactions",
+		"DELETE FROM team_canvas_pieces",
+		"DELETE FROM team_canvas_avatar_positions",
+		"DELETE FROM team_canvas_settings",
+		"DELETE FROM team_canvas_rest_days",
 		"DELETE FROM training_entries",
 		"DELETE FROM assignments",
 		// Staff state as well, or a second run of the console suite collides with
