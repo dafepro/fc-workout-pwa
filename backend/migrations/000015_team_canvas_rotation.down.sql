@@ -1,4 +1,5 @@
 -- zoomigo:table-rebuild
+-- Remove durable piece rotation.
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE team_canvas_pieces_old (

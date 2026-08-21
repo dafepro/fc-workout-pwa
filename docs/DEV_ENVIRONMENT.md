@@ -25,11 +25,15 @@ The dev Worker replaces the PWA service worker with an unregister-and-clear
 script. This prevents an offline app-shell cache from rendering a previously
 visited player or sign-in screen after the outer session expires.
 
-The API has a separate boundary. Other than `/healthz` and `/readyz`, every
-route returns `404` unless it receives `X-Zoomigo-Dev-Gateway` with the secret
-known only to the API and PWA Worker. Thus the public API hostname cannot be
-used to bypass the outer page. Firewall rules admit HTTP and HTTPS only from
-Cloudflare address ranges; SSH remains key-only.
+The API has a separate boundary. Other than `/healthz`, `/readyz`, and the
+ticket-authenticated Team Canvas WebSocket upgrade, every route returns `404`
+unless it receives `X-Zoomigo-Dev-Gateway` with the secret known only to the API
+and PWA Worker. The socket exception accepts only the exact canvas route with a
+valid-shaped, 30-second, single-use ticket in its WebSocket subprotocol; the API
+then verifies its player/team binding and the PWA origin before accepting it.
+Thus the public API hostname cannot be used to bypass the outer page. Firewall
+rules admit HTTP and HTTPS only from Cloudflare address ranges; SSH remains
+key-only.
 
 This is appropriate for invented preview data. It is not approval to copy
 production data, production credentials, guardian data, or production secrets

@@ -253,7 +253,7 @@ func TestMigrateExpandsRotationForPopulatedCanvasPieces(t *testing.T) {
 		"000010_admin_audit.up.sql",
 		"000011_assignment_catalog.up.sql",
 		"000012_admin_audit_actor_source.up.sql",
-		"000013_team_canvas.up.sql",
+		"000014_team_canvas.up.sql",
 	} {
 		contents, readErr := fs.ReadFile(migrations.Files, version)
 		if readErr != nil {
@@ -317,7 +317,7 @@ func TestMigrateAddsPhysicsStateWithoutLosingPopulatedCanvasPieces(t *testing.T)
 		t.Fatal(err)
 	}
 	for _, entry := range entries {
-		if entry.Name() >= "000015" || !strings.HasSuffix(entry.Name(), ".up.sql") {
+		if entry.Name() >= "000016" || !strings.HasSuffix(entry.Name(), ".up.sql") {
 			continue
 		}
 		contents, readErr := fs.ReadFile(migrations.Files, entry.Name())
@@ -378,7 +378,7 @@ func TestMigrateExpandsDeveloperSlotsWithoutLosingPhysicsChildren(t *testing.T) 
 		t.Fatal(err)
 	}
 	for _, entry := range entries {
-		if entry.Name() >= "000016" || !strings.HasSuffix(entry.Name(), ".up.sql") {
+		if entry.Name() >= "000017" || !strings.HasSuffix(entry.Name(), ".up.sql") {
 			continue
 		}
 		contents, readErr := fs.ReadFile(migrations.Files, entry.Name())

@@ -1,3 +1,4 @@
+-- Add durable cosmetic physics checkpoints.
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE team_canvas_scene_states (

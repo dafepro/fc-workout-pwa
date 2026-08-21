@@ -3,6 +3,7 @@ package httpapi
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/dafepro/fc-workout-pwa/backend/internal/config"
@@ -44,5 +45,39 @@ func TestDevGatewayAllowsHealthAndMatchingGatewayToken(t *testing.T) {
 	handler.ServeHTTP(response, request)
 	if response.Code != http.StatusUnauthorized {
 		t.Fatalf("session with gateway token = %d, want 401", response.Code)
+	}
+}
+
+func TestDevGatewayAllowsOnlyTicketAuthenticatedCanvasSocketUpgrades(t *testing.T) {
+	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+	handler := devGateway(config.Config{
+		EnableDevAccess:    true,
+		DevAPIGatewayToken: "gateway-secret",
+	}, next)
+
+	request := httptest.NewRequest(http.MethodGet, "/v1/teams/team-one/canvas/socket", nil)
+	request.Header.Set("Connection", "Upgrade")
+	request.Header.Set("Upgrade", "websocket")
+	request.Header.Set("Sec-WebSocket-Protocol", "zoomigo.team-canvas.v1, ticket."+strings.Repeat("a", 43))
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusNoContent {
+		t.Fatalf("ticketed socket upgrade = %d, want 204", response.Code)
+	}
+
+	request.Header.Del("Sec-WebSocket-Protocol")
+	response = httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("socket without ticket protocol = %d, want 404", response.Code)
+	}
+}
+
+func TestDevAccessEnablesTeamCanvasDeveloperControls(t *testing.T) {
+	service := &service{cfg: config.Config{Environment: "dev", EnableDevAccess: true}}
+	if !service.teamCanvasDeveloperControlsEnabled() {
+		t.Fatal("dev access did not enable Team Canvas developer controls")
 	}
 }

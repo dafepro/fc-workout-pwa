@@ -1,3 +1,4 @@
+-- Remove durable cosmetic physics checkpoints.
 PRAGMA foreign_keys = ON;
 
 DROP INDEX IF EXISTS idx_team_canvas_piece_states_piece;

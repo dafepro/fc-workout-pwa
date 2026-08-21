@@ -1,4 +1,5 @@
 -- zoomigo:table-rebuild
+-- Add dev-only configurable stamps.
 PRAGMA foreign_keys = ON;
 
 ALTER TABLE team_canvas_settings

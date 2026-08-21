@@ -601,8 +601,8 @@ public/team-canvas/
 
 backend/
 ├── migrations/
-│   ├── 000013_team_canvas.up.sql
-│   └── 000013_team_canvas.down.sql
+│   ├── 000014_team_canvas.up.sql
+│   └── 000014_team_canvas.down.sql
 ├── internal/store/
 │   ├── team_canvas.go
 │   └── team_canvas_test.go
@@ -749,7 +749,7 @@ app/data/team-canvas-gateway.ts          # authenticated DELETE adapter
 app/api/zoomigo/[...path]/route.ts       # narrow DELETE allowlist
 
 backend/
-├── migrations/000014_team_canvas_rotation.*.sql
+├── migrations/000015_team_canvas_rotation.*.sql
 ├── internal/store/team_canvas.go        # owner/day rule + slot reuse
 └── internal/httpapi/team_canvas.go      # DELETE + live invalidation
 

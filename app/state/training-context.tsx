@@ -307,3 +307,7 @@ export function useTraining(): TrainingState {
     throw new Error("useTraining must be used inside TrainingProvider");
   return context;
 }
+
+export function useOptionalTraining(): TrainingState | null {
+  return useContext(TrainingContext);
+}

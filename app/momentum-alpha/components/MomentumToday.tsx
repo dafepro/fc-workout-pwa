@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useState } from "react";
 import { momentumAlphaCopy } from "../content";
-import { momentumAlphaMock } from "../mock-data";
 import type { CompletionChoice, Feeling, PlanSelection } from "../model";
 import { momentumBand, nextSuggestedWorkload } from "../model";
 import { momentumAlphaRoutes } from "../routes";
@@ -13,14 +12,17 @@ import { MomentumTrail } from "./MomentumTrail";
 type TodayView = "plan" | "alternatives" | "check-in" | "complete";
 
 export function MomentumToday() {
-  const { state } = useMomentumAlpha();
-  const [view, setView] = useState<TodayView>(
-    state.primaryComplete ? "complete" : "plan",
-  );
-  const [selection, setSelection] = useState<PlanSelection>(
-    state.planSelection,
-  );
+  const { state, presentation, loading } = useMomentumAlpha();
+  const [view, setView] = useState<TodayView>("plan");
+  const [selection, setSelection] = useState<PlanSelection>("prescribed");
 
+  if (loading) {
+    return (
+      <main className="ma-page ma-focused-page" aria-busy="true">
+        <p>{momentumAlphaCopy.connected.loadingPlan}</p>
+      </main>
+    );
+  }
   if (state.dayKind === "rest") return <RestToday />;
   if (view === "alternatives") {
     return (
@@ -59,7 +61,7 @@ export function MomentumToday() {
             <p className="ma-eyebrow">{momentumAlphaCopy.today.eyebrow}</p>
             <h1 id="ma-today-title">{momentumAlphaCopy.today.title}</h1>
           </div>
-          <span className="ma-date">{momentumAlphaMock.plan.dateLabel}</span>
+          <span className="ma-date">{presentation.plan.dateLabel}</span>
         </div>
 
         <div className="ma-plan__activity">
@@ -67,27 +69,25 @@ export function MomentumToday() {
             ↗
           </span>
           <div>
-            <h2>{momentumAlphaMock.plan.activity}</h2>
-            <p>{momentumAlphaMock.plan.workload}</p>
+            <h2>{presentation.plan.activity}</h2>
+            <p>{presentation.plan.workload}</p>
           </div>
         </div>
 
-        <p className="ma-plan__instruction">
-          {momentumAlphaMock.plan.instruction}
-        </p>
+        <p className="ma-plan__instruction">{presentation.plan.instruction}</p>
 
         <div className="ma-targets">
           <article className="ma-target ma-target--goal">
             <span aria-hidden="true">✓</span>
             <div>
-              <strong>{momentumAlphaMock.plan.goal}</strong>
+              <strong>{presentation.plan.goal}</strong>
               <small>{momentumAlphaCopy.today.goalNote}</small>
             </div>
           </article>
           <article className="ma-target ma-target--stretch">
             <span aria-hidden="true">+</span>
             <div>
-              <strong>{momentumAlphaMock.plan.stretch}</strong>
+              <strong>{presentation.plan.stretch}</strong>
               <small>{momentumAlphaCopy.today.stretchNote}</small>
             </div>
           </article>
@@ -114,7 +114,7 @@ export function MomentumToday() {
         <details className="ma-why">
           <summary>{momentumAlphaCopy.today.why}</summary>
           <ul>
-            {momentumAlphaMock.plan.reasons.map((reason) => (
+            {presentation.plan.reasons.map((reason) => (
               <li key={reason}>{reason}</li>
             ))}
           </ul>
@@ -131,6 +131,7 @@ function AlternativeChoice({
   onBack(): void;
   onChoose(selection: PlanSelection): void;
 }) {
+  const { presentation } = useMomentumAlpha();
   return (
     <div className="ma-page ma-focused-page">
       <button type="button" className="ma-back" onClick={onBack}>
@@ -142,7 +143,7 @@ function AlternativeChoice({
         <h1>{momentumAlphaCopy.today.alternativeTitle}</h1>
         <p>{momentumAlphaCopy.today.alternativeIntro}</p>
         <div className="ma-alternatives">
-          {momentumAlphaMock.alternatives.map((alternative) => (
+          {presentation.alternatives.map((alternative) => (
             <button
               key={alternative.id}
               type="button"
@@ -170,15 +171,17 @@ function CheckIn({
   onBack(): void;
   onComplete(): void;
 }) {
-  const { complete } = useMomentumAlpha();
+  const { complete, presentation } = useMomentumAlpha();
   const [choice, setChoice] = useState<CompletionChoice | null>(null);
   const [feeling, setFeeling] = useState<Feeling | null>(null);
-  const alternative = momentumAlphaMock.alternatives.find(
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const alternative = presentation.alternatives.find(
     (item) => item.id === selection,
   );
-  const activity = alternative?.title ?? momentumAlphaMock.plan.activity;
-  const goal = alternative?.goal ?? momentumAlphaMock.plan.goal;
-  const stretch = alternative?.stretch ?? momentumAlphaMock.plan.stretch;
+  const activity = alternative?.title ?? presentation.plan.activity;
+  const goal = alternative?.goal ?? presentation.plan.goal;
+  const stretch = alternative?.stretch ?? presentation.plan.stretch;
 
   return (
     <div className="ma-page ma-focused-page">
@@ -249,22 +252,39 @@ function CheckIn({
         <button
           type="button"
           className="ma-button ma-button--primary ma-button--wide"
-          disabled={!choice || !feeling}
+          disabled={!choice || !feeling || saving}
           onClick={() => {
             if (!choice || !feeling) return;
-            complete({ choice, feeling, planSelection: selection });
-            onComplete();
+            setSaveError("");
+            const result = complete({
+              choice,
+              feeling,
+              planSelection: selection,
+            });
+            if (!result) {
+              onComplete();
+              return;
+            }
+            setSaving(true);
+            void result.then(onComplete, () => {
+              setSaving(false);
+              setSaveError(momentumAlphaCopy.connected.saveFailed);
+            });
           }}
         >
-          {momentumAlphaCopy.checkIn.save}
+          {saving
+            ? momentumAlphaCopy.connected.saving
+            : momentumAlphaCopy.checkIn.save}
         </button>
+        {saveError ? <p role="alert">{saveError}</p> : null}
       </section>
     </div>
   );
 }
 
 function TrainingComplete() {
-  const { state, recordRecovery, recordExtra } = useMomentumAlpha();
+  const { state, presentation, recordRecovery, recordExtra } =
+    useMomentumAlpha();
   const [extraSaved, setExtraSaved] = useState(false);
   const effect =
     state.planSelection === "ball-control"
@@ -305,15 +325,15 @@ function TrainingComplete() {
             <p className="ma-eyebrow">
               {momentumAlphaCopy.complete.recoveryEyebrow}
             </p>
-            <h2 id="ma-recovery-title">{momentumAlphaMock.recovery.title}</h2>
-            <strong>{momentumAlphaMock.recovery.detail}</strong>
+            <h2 id="ma-recovery-title">{presentation.recovery.title}</h2>
+            <strong>{presentation.recovery.detail}</strong>
             <p>{momentumAlphaCopy.complete.recoveryBody}</p>
           </div>
           <button
             type="button"
             className="ma-button ma-button--quiet"
             disabled={state.recoveryComplete}
-            onClick={recordRecovery}
+            onClick={() => void recordRecovery()}
           >
             {state.recoveryComplete
               ? momentumAlphaCopy.complete.recoveryLogged
@@ -341,13 +361,17 @@ function TrainingComplete() {
         <summary>{momentumAlphaCopy.complete.extraTitle}</summary>
         <p>{momentumAlphaCopy.complete.extraBody}</p>
         <div>
-          {momentumAlphaMock.extras.map((activity) => (
+          {presentation.extras.map((activity) => (
             <button
               key={activity.id}
               type="button"
               onClick={() => {
-                recordExtra(activity.id);
-                setExtraSaved(true);
+                const result = recordExtra(activity.id);
+                if (result) {
+                  void result.then(() => setExtraSaved(true));
+                } else {
+                  setExtraSaved(true);
+                }
               }}
             >
               {activity.label}
@@ -409,7 +433,7 @@ function RestToday() {
         <button
           type="button"
           className="ma-button ma-button--primary"
-          onClick={recordRest}
+          onClick={() => void recordRest()}
         >
           {momentumAlphaCopy.rest.action}
         </button>

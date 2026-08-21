@@ -32,8 +32,8 @@ backend/internal/canvasphysics/
 └── *_test.go
 
 backend/
-├── migrations/000015_team_canvas_physics.*.sql
-├── migrations/000016_team_canvas_developer_stamps.*.sql
+├── migrations/000016_team_canvas_physics.*.sql
+├── migrations/000017_team_canvas_developer_stamps.*.sql
 ├── internal/store/team_canvas_physics.go
 └── internal/httpapi/team_canvas_physics.go
 

@@ -391,7 +391,7 @@ func (service *service) writeTeamCanvasError(w http.ResponseWriter, r *http.Requ
 }
 
 func (service *service) teamCanvasDeveloperControlsEnabled() bool {
-	return service.cfg.Environment == "development" || service.cfg.EnableE2EFixtures
+	return service.cfg.EnableDevAccess || service.cfg.Environment == "development" || service.cfg.EnableE2EFixtures
 }
 
 func availableDeveloperStamps(projection store.TeamCanvasProjection) int {

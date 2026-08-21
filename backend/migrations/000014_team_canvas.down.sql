@@ -1,3 +1,4 @@
+-- Remove the Team Canvas durable schema.
 PRAGMA foreign_keys = ON;
 
 DROP INDEX IF EXISTS idx_team_canvas_rest_days_day;

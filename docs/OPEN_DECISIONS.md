@@ -670,3 +670,22 @@ Momentum Alpha needs independent PWA install/offline behavior.
 - Still open before multi-replica beta: sticky room routing versus a shared room
   coordinator, measured correction thresholds, and operational host-epoch
   telemetry.
+
+## Disposable dev real-data preview (2026-08-21)
+
+- Decided: authenticated Momentum routes project the current API training
+  assignment, private player entries, streak summary, and aggregate team pulse.
+  Completing a goal, recovery activity, or approved alternative writes a normal
+  structured training entry to the disposable dev database. This does not add a
+  separate Momentum score or production data contract.
+- Decided: a backend-less local prototype keeps the isolated mock and
+  `localStorage` fallback for design review. A connected session never displays
+  those mock player, team, assignment, or history values while real data loads.
+- Decided: `ENABLE_DEV_ACCESS=true` enables the Team Canvas developer toolbox in
+  the dev-tagged API. Production keeps that flag disabled and cannot expose the
+  controls.
+- Decided: the dev API gateway permits a direct Team Canvas WebSocket upgrade
+  only for the exact canvas socket route with a valid-shaped one-time ticket in
+  its subprotocol. The existing ticket expiry, single-use, player/team binding,
+  and WebSocket origin check remain authoritative; all other dev API traffic
+  still requires the private PWA-to-API gateway header.

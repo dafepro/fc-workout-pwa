@@ -17,8 +17,16 @@ export function MomentumMe({
   };
   showReviewControls?: boolean;
 }) {
-  const { state, previewDay, reset } = useMomentumAlpha();
+  const { state, loading, previewDay, reset } = useMomentumAlpha();
   const content = momentumAlphaCopy.me;
+
+  if (loading) {
+    return (
+      <main className="ma-page ma-focused-page" aria-busy="true">
+        <p>{momentumAlphaCopy.connected.loadingPrivateActivity}</p>
+      </main>
+    );
+  }
 
   return (
     <div className="ma-page ma-me">

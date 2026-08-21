@@ -203,7 +203,7 @@ func devGateway(cfg config.Config, next http.Handler) http.Handler {
 		return next
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/healthz" || r.URL.Path == "/readyz" {
+		if r.URL.Path == "/healthz" || r.URL.Path == "/readyz" || isTicketedTeamCanvasSocketUpgrade(r) {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -214,6 +214,30 @@ func devGateway(cfg config.Config, next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func isTicketedTeamCanvasSocketUpgrade(r *http.Request) bool {
+	if r.Method != http.MethodGet || !strings.EqualFold(r.Header.Get("Upgrade"), "websocket") {
+		return false
+	}
+	teamAndSocket, ok := strings.CutPrefix(r.URL.Path, "/v1/teams/")
+	if !ok {
+		return false
+	}
+	teamID, ok := strings.CutSuffix(teamAndSocket, "/canvas/socket")
+	if !ok || teamID == "" || strings.Contains(teamID, "/") {
+		return false
+	}
+	ticket := teamCanvasSocketTicket(r.Header.Values("Sec-WebSocket-Protocol"))
+	if len(ticket) != 43 {
+		return false
+	}
+	for _, character := range ticket {
+		if character != '-' && character != '_' && (character < '0' || character > '9') && (character < 'A' || character > 'Z') && (character < 'a' || character > 'z') {
+			return false
+		}
+	}
+	return true
 }
 
 func (service *service) getTrainingDashboard(w http.ResponseWriter, r *http.Request) {

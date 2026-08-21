@@ -1,3 +1,4 @@
+-- Team Canvas durable schema.
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE team_canvas_rest_days (
