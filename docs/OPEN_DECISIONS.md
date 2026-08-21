@@ -445,3 +445,35 @@ Momentum Alpha needs independent PWA install/offline behavior.
 - In dense lists, the current player's avatar is slightly larger and gets a
   lime-and-white ring plus a small sparkle marker. This avoids another visible
   `You` label while preserving an accessible `, you` name.
+
+## Team Canvas Alpha local prototype (2026-08-20)
+
+- Team Canvas is an isolated alternate player application below `/team-canvas`.
+  Its top shell has no navigation menu: the wordmark returns to the smart entry
+  route and the small player avatar opens the profile.
+- The local review uses a fixed Mason C. identity and device-local state even
+  though it shares the existing authentication gate. Connecting the signed-in
+  identity, durable plans, and multi-player board is beta work, not implied by
+  the mock.
+- The Team Canvas projection is unavailable until the current player records
+  today's assigned goal or Reach, a coach-approved alternative, or planned rest.
+  A direct locked route exposes no participant, board, emoji, or count data.
+- One star represents one distinct appropriate-plan day in the team-local
+  Monday-through-Sunday week, capped at seven. It does not reveal whether that
+  plan was training, an alternative, or rest.
+- Reach earns one emoji stamp and an assigned cooldown earns one more. The daily
+  ceiling is two; extras, duplicates, larger raw results, and rest earn none.
+  Cooldown is unavailable on a planned rest day.
+- Five predefined emoji are selected deterministically from team and local day,
+  so every teammate receives the same set. A player may move, resize within the
+  fixed bounds, and rotate only the unconfirmed draft. Confirmation consumes a
+  reward and makes the stamp player-immutable.
+- Emoji ownership and reward source are absent from the team projection. Only
+  avatars of appropriate-plan followers, weekly star emblems, safe emoji, and
+  normalized positions are intended to be shared.
+- Refreshing or rescanning into `/team-canvas` returns an incomplete player to
+  the one-card daily flow and a completed player to the weekly canvas. The
+  cooldown follow-up is recorded directly from the canvas.
+- Production questions remain: authoritative team timezone, server-side gate,
+  board conflict handling, moderation deletion cascade, multi-team context,
+  beta entitlement, and whether immutable stamps should identify their creator.

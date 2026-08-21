@@ -106,11 +106,6 @@ export const momentumAlphaCopy = {
     historyTitle: "Private activity",
     historyEmpty: "Today’s activity will appear here after check-in.",
     privateBadge: "Private",
-    switchEyebrow: "Application view",
-    switchTitle: "You’re using Momentum Alpha",
-    switchBody:
-      "Classic Alpha is unchanged. You can return without losing this local Momentum preview.",
-    switchBack: "Return to Classic Alpha",
     reviewEyebrow: "Local review controls",
     reviewTitle: "Preview another plan state",
     reviewBody:
@@ -118,12 +113,5 @@ export const momentumAlphaCopy = {
     trainingDay: "Training day",
     restDay: "Rest day",
     reset: "Reset today’s mock plan",
-  },
-  classicEntry: {
-    eyebrow: "Alternate application preview",
-    title: "Try Momentum Alpha",
-    body: "A simpler view built around today’s appropriate plan, personal rhythm, and unranked Team Momentum.",
-    action: "Switch to Momentum Alpha",
-    note: "Classic Alpha stays available and unchanged.",
   },
 } as const;

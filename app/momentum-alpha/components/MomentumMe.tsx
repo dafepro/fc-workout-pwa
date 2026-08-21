@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
+import { AppViewSelect } from "../../components/AppViewSelect";
 import { momentumAlphaCopy } from "../content";
 import { momentumAlphaMock } from "../mock-data";
-import { momentumAlphaRoutes } from "../routes";
 import { useMomentumAlpha } from "../state";
 
 export function MomentumMe({
@@ -35,6 +34,8 @@ export function MomentumMe({
           <p>{player.team}</p>
         </div>
       </header>
+
+      <AppViewSelect currentView="momentum" />
 
       <section className="ma-history" aria-labelledby="ma-history-title">
         <div className="ma-section-heading">
@@ -69,23 +70,6 @@ export function MomentumMe({
             ))}
           </ul>
         )}
-      </section>
-
-      <section className="ma-switch" aria-labelledby="ma-switch-title">
-        <div className="ma-switch__mark" aria-hidden="true">
-          ↔
-        </div>
-        <div>
-          <p className="ma-eyebrow">{content.switchEyebrow}</p>
-          <h2 id="ma-switch-title">{content.switchTitle}</h2>
-          <p>{content.switchBody}</p>
-        </div>
-        <Link
-          className="ma-button ma-button--ghost"
-          href={momentumAlphaRoutes.classicMe}
-        >
-          {content.switchBack}
-        </Link>
       </section>
 
       {showReviewControls ? (

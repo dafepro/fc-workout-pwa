@@ -398,7 +398,6 @@
 .ma-choice-card,
 .ma-checkin,
 .ma-history,
-.ma-switch,
 .ma-review-controls,
 .ma-team__pulse,
 .ma-highlights,
@@ -988,36 +987,6 @@
   text-align: right;
 }
 
-.ma-switch {
-  display: grid;
-  gap: 0.9rem;
-  background:
-    radial-gradient(circle at 90% 10%, rgb(185 242 59 / 15%), transparent 30%),
-    var(--ma-night);
-  color: white;
-}
-
-.ma-switch .ma-eyebrow {
-  color: var(--ma-lime);
-}
-
-.ma-switch p:not(.ma-eyebrow) {
-  margin-bottom: 0;
-  color: rgb(255 255 255 / 66%);
-  font-size: 0.85rem;
-}
-
-.ma-switch__mark {
-  display: grid;
-  width: 2.8rem;
-  height: 2.8rem;
-  place-items: center;
-  border-radius: 0.9rem;
-  background: rgb(255 255 255 / 9%);
-  color: var(--ma-lime);
-  font-size: 1.25rem;
-}
-
 .ma-review-controls {
   border-style: dashed;
   background: #fbfaff;
@@ -1043,7 +1012,6 @@
   .ma-choice-card,
   .ma-checkin,
   .ma-history,
-  .ma-switch,
   .ma-review-controls,
   .ma-team__pulse,
   .ma-highlights,
@@ -1067,11 +1035,6 @@
 
   .ma-highlights ul {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .ma-switch {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center;
   }
 
   .ma-review-controls > div {
@@ -1211,13 +1174,6 @@
     grid-column: 1;
   }
 
-  .ma-switch {
-    position: sticky;
-    top: 2rem;
-    grid-row: 1 / span 2;
-    grid-column: 2;
-  }
-
   .ma-review-controls {
     grid-column: 1 / -1;
   }
@@ -1238,7 +1194,6 @@
   .ma-choice-card,
   .ma-checkin,
   .ma-history,
-  .ma-switch,
   .ma-review-controls,
   .ma-team__pulse,
   .ma-highlights,
