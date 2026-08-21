@@ -642,3 +642,31 @@ Momentum Alpha needs independent PWA install/offline behavior.
 - Decided: lowering the playground limit is non-destructive. Existing same-day
   developer pieces remain movable/deletable, while new placement stays blocked
   until the number in use falls below the configured limit.
+
+## Team Canvas Alpha client-hosted realtime physics (2026-08-21)
+
+- Superseded: REST avatar samples, per-tab SSE streams, and a continuously
+  running server-authoritative room are no longer the primary connected path.
+  They remain temporarily as compatibility and initialization code.
+- Decided: cosmetic physics is client-hosted and non-scoring. The server remains
+  authoritative for identity, unlock, rewards, ownership, catalog capabilities,
+  day/week boundaries, and durable checkpoints.
+- Decided: a one-time 30-second socket ticket is bound to player, team, and week.
+  The WebSocket consumes it from a subprotocol; credentials and tickets are not
+  placed in URLs.
+- Decided: every client predicts in a 60 Hz worker. One visible room client owns
+  the host role and emits canonical snapshots at 10 Hz. Host loss or hidden
+  visibility hands authority to the oldest visible connection.
+- Decided: one tab per browser owns the WebSocket through a short
+  `BroadcastChannel` lease. Sibling tabs relay input and room frames locally;
+  lack of `BroadcastChannel` degrades to one socket per tab without changing
+  authorization.
+- Decided: host snapshots can update only the existing server-known body ID and
+  asset set. Unknown, missing, non-finite, wrong-scene, wrong-week, stale, or
+  follower-authored snapshots are rejected. Physics cannot grant a workout,
+  star, reward, or canvas access.
+- Decided: dynamic checkpoints and the latest avatar target persist at a bounded
+  cadence plus lifecycle boundaries. Animation frames are never database rows.
+- Still open before multi-replica beta: sticky room routing versus a shared room
+  coordinator, measured correction thresholds, and operational host-epoch
+  telemetry.

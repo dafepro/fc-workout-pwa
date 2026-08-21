@@ -82,7 +82,7 @@ describe("HTTP team canvas gateway", () => {
     expect(projection.availableRewards).toBe(1);
   });
 
-  it("delivers validated structured physics frames from the live stream", () => {
+  it("delivers validated structured physics frames from the live stream", async () => {
     const listeners = new Map<string, EventListener>();
     const close = vi.fn();
     class FakeEventSource {
@@ -101,6 +101,7 @@ describe("HTTP team canvas gateway", () => {
       onPhysics,
       onPiece,
     });
+    await vi.waitFor(() => expect(listeners.has("physics")).toBe(true));
     listeners.get("physics")?.(
       new MessageEvent("physics", {
         data: JSON.stringify({
@@ -128,6 +129,86 @@ describe("HTTP team canvas gateway", () => {
     );
     unsubscribe();
     expect(close).toHaveBeenCalledOnce();
+  });
+
+  it("uses the authenticated socket for latest avatar targets and room frames", async () => {
+    const sent: string[] = [];
+    const sockets: FakeWebSocket[] = [];
+    class FakeWebSocket {
+      static readonly OPEN = 1;
+      readonly readyState = FakeWebSocket.OPEN;
+      onmessage: ((event: MessageEvent) => void) | null = null;
+      onclose: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      constructor(
+        public readonly url: string,
+        public readonly protocols: string[],
+      ) {
+        sockets.push(this);
+      }
+      send(value: string) {
+        sent.push(value);
+      }
+      close() {}
+    }
+    vi.stubGlobal("WebSocket", FakeWebSocket);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            ticket: "one-time-ticket",
+            socketUrl: "ws://localhost:8080/v1/teams/team-one/canvas/socket",
+          }),
+          { status: 201, headers: { "Content-Type": "application/json" } },
+        ),
+      ),
+    );
+    const onPhysics = vi.fn();
+    const gateway = createTeamCanvasGateway("team-one");
+    const unsubscribe = gateway.subscribe({
+      onChange: vi.fn(),
+      onPhysics,
+      onPiece: vi.fn(),
+    });
+    await vi.waitFor(() => expect(sockets).toHaveLength(1));
+    const socket = sockets[0];
+
+    expect(socket.url).toBe(
+      "ws://localhost:8080/v1/teams/team-one/canvas/socket",
+    );
+    expect(socket.protocols).toEqual([
+      "zoomigo.team-canvas.v1",
+      "ticket.one-time-ticket",
+    ]);
+    socket.onmessage?.(
+      new MessageEvent("message", {
+        data: JSON.stringify({
+          v: 1,
+          type: "physics.frame",
+          frame: {
+            v: 1,
+            teamId: "team-one",
+            weekKey: "2026-08-17",
+            sceneId: "top-down-field",
+            sequence: 9,
+            bodies: [],
+            avatars: [],
+          },
+        }),
+      }),
+    );
+    await gateway.moveAvatar({ x: 72, y: 48 });
+
+    expect(onPhysics).toHaveBeenCalledWith(
+      expect.objectContaining({ sequence: 9 }),
+    );
+    expect(JSON.parse(sent.at(-1) ?? "{}")).toMatchObject({
+      v: 1,
+      type: "avatar.target",
+      position: { x: 72, y: 48 },
+    });
+    unsubscribe();
   });
 
   it("sends transforms, deletion, and developer settings to explicit routes", async () => {

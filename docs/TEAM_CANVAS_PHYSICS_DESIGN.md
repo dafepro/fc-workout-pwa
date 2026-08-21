@@ -1,11 +1,12 @@
 # Team Canvas Physics — Design Draft
 
-Status: implemented locally for alpha review; not deployed. Last updated:
-2026-08-21.
+Status: the collision model and versioned persistence remain implemented, but
+the server-loop/SSE transport in this draft is superseded by
+`TEAM_CANVAS_REALTIME_DESIGN.md`. Nothing is deployed. Last updated: 2026-08-21.
 
 ## Approved alpha slice
 
-The first implementation uses the experience-based defaults from this draft:
+The first implementation used the experience-based defaults from this draft:
 
 - `soccer`, `balloon`, and `rocket` are the only dynamic catalog assets;
 - decorative stamps never collide;

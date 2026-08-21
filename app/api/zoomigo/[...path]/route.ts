@@ -39,6 +39,7 @@ const allowed = [
     pattern: /^v1\/teams\/[^/]+\/canvas\/dev-settings$/,
   },
   { method: "GET", pattern: /^v1\/teams\/[^/]+\/canvas\/events$/ },
+  { method: "POST", pattern: /^v1\/teams\/[^/]+\/canvas\/socket-ticket$/ },
 ];
 
 export async function GET(request: Request) {
@@ -112,7 +113,28 @@ async function proxy(request: Request) {
   const eventStream = response.headers
     .get("content-type")
     ?.startsWith("text/event-stream");
-  const responseBody = eventStream ? response.body : await response.text();
+  let responseBody: BodyInit | null = eventStream
+    ? response.body
+    : await response.text();
+  if (
+    response.ok &&
+    request.method === "POST" &&
+    /v1\/teams\/[^/]+\/canvas\/socket-ticket$/.test(path) &&
+    typeof responseBody === "string"
+  ) {
+    try {
+      const ticket = JSON.parse(responseBody) as Record<string, unknown>;
+      const socketPath = path.replace(/socket-ticket$/, "socket");
+      ticket.socketUrl = `${baseURL.replace(/^http/, "ws")}/${socketPath}`;
+      responseBody = JSON.stringify(ticket);
+    } catch {
+      return jsonError(
+        502,
+        "invalid_backend_response",
+        "Live team updates are temporarily unavailable.",
+      );
+    }
+  }
   await recordServerEventsForRequest(
     request,
     proxyEvents(

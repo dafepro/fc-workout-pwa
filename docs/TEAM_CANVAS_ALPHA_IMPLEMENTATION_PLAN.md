@@ -784,3 +784,47 @@ Completed locally on 2026-08-21:
   its gesture center.
 - Cover the anchor invariant, maximum-size bound, and rendered control path with
   focused tests.
+
+## 21. Client-hosted realtime physics — 2026-08-21
+
+### Feedback and diagnosis recorded
+
+- Physics occasionally stopped for four seconds or more and then jumped to the
+  newest state. The ordinary motion between stalls felt substantially better.
+- Local profiling found fast API writes but a one-request-at-a-time movement
+  queue, a single SQLite connection, a full canvas projection on the movement
+  path, and seven open SSE tabs sharing an HTTP/1.1 origin. The stall was
+  transport backpressure and queued correction, not expensive collision math.
+- The requested durable direction is to keep responsive cosmetic simulation on
+  player devices, synchronize it live, and avoid scaling server compute or
+  writes with animation frame rate.
+
+### Implemented local slice
+
+1. A same-origin authenticated POST issues a 30-second, one-time socket ticket
+   bound to player, team, and week. The ticket is presented as a WebSocket
+   subprotocol and never appears in a URL.
+2. A versioned WebSocket room relays latest avatar targets, piece invalidation,
+   role changes, and canonical physics snapshots. Avatar persistence is reduced
+   to a 10-second cadence and disconnect rather than every pointer sample.
+3. A dedicated Web Worker runs the bounded circle solver at 60 Hz. It renders at
+   30 Hz; the visible elected host publishes a canonical snapshot at 10 Hz.
+4. The server validates membership, message size, finite bounds, week/scene,
+   known body IDs and assets, and host authority. It checkpoints trusted catalog
+   bodies no more than every 10 seconds and never accepts client capabilities or
+   scoring outcomes.
+5. A `BroadcastChannel` lease elects one socket owner per browser/device. Seven
+   open local tabs were verified to use one backend connection while relaying
+   avatar input and converging on the same moving body positions.
+6. The previous server engine and SSE stream remain a compatibility path only.
+   WebSocket rooms do not start the server’s 30 Hz solver.
+
+### Remaining beta hardening
+
+- Add explicit host heartbeat epochs and correction/latency telemetry before
+  multi-replica deployment.
+- Tune canonical blending from beta measurements; this pass applies bounded
+  canonical frames directly inside the worker.
+- Horizontal replicas still require sticky room routing or a shared room
+  coordinator. The alternate alpha remains intentionally single-replica.
+- Do not deploy or push until product-owner review.

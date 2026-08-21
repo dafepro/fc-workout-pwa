@@ -3,6 +3,7 @@ package httpapi_test
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,6 +13,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/coder/websocket"
+	"github.com/coder/websocket/wsjson"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/config"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
@@ -41,7 +44,7 @@ func TestTeamCanvasRoutesGatePersistAndBroadcast(t *testing.T) {
 		}
 	}
 
-	handler := httpapi.NewHandler(config.Config{Environment: "development"},
+	handler := httpapi.NewHandler(config.Config{Environment: "development", AllowedOrigin: "http://[::1]:3000"},
 		httpapi.WithStore(store.New(db, time.UTC)),
 		httpapi.WithAuthenticator(socialAuthenticator{actor: domain.Actor{
 			Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-one",
@@ -61,6 +64,55 @@ func TestTeamCanvasRoutesGatePersistAndBroadcast(t *testing.T) {
 		t.Fatalf("rest status = %d", rest.StatusCode)
 	}
 	_ = rest.Body.Close()
+
+	ticketResponse := teamCanvasRequest(t, server.Client(), http.MethodPost, server.URL+"/v1/teams/team-one/canvas/socket-ticket", "{}")
+	if ticketResponse.StatusCode != http.StatusCreated {
+		t.Fatalf("socket ticket status = %d", ticketResponse.StatusCode)
+	}
+	var ticket struct {
+		Ticket string `json:"ticket"`
+	}
+	if err := json.NewDecoder(ticketResponse.Body).Decode(&ticket); err != nil {
+		t.Fatal(err)
+	}
+	_ = ticketResponse.Body.Close()
+	socketURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/v1/teams/team-one/canvas/socket"
+	socket, dialResponse, err := websocket.Dial(ctx, socketURL, &websocket.DialOptions{
+		Subprotocols: []string{"zoomigo.team-canvas.v1", "ticket." + ticket.Ticket},
+		HTTPHeader:   http.Header{"Origin": []string{"http://[::1]:3000"}},
+	})
+	if err != nil {
+		if dialResponse != nil {
+			t.Fatalf("socket dial status = %d: %v", dialResponse.StatusCode, err)
+		}
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = socket.CloseNow() })
+	var socketMessage struct {
+		Version int             `json:"v"`
+		Type    string          `json:"type"`
+		Frame   json.RawMessage `json:"frame"`
+	}
+	if err := wsjson.Read(ctx, socket, &socketMessage); err != nil {
+		t.Fatal(err)
+	}
+	if socketMessage.Version != 1 || socketMessage.Type != "room.ready" || !strings.Contains(string(socketMessage.Frame), `"playerId":"player-mason"`) {
+		t.Fatalf("socket ready = %#v", socketMessage)
+	}
+	if err := wsjson.Write(ctx, socket, map[string]any{
+		"v": 1, "type": "avatar.target", "messageId": "move-one",
+		"position": map[string]float64{"x": 72, "y": 48},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	for socketMessage.Type != "avatar.accepted" {
+		if err := wsjson.Read(ctx, socket, &socketMessage); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if !strings.Contains(string(socketMessage.Frame), `"x":72`) {
+		t.Fatalf("socket avatar acceptance = %#v", socketMessage)
+	}
 
 	snapshot := teamCanvasRequest(t, server.Client(), http.MethodGet, server.URL+"/v1/teams/team-one/canvas", "")
 	if snapshot.StatusCode != http.StatusOK {

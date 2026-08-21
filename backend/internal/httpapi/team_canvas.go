@@ -22,6 +22,12 @@ type teamCanvasSubscriber struct {
 	canvas  chan struct{}
 	physics chan teamCanvasPhysicsFrame
 	pieces  chan teamCanvasPieceFrame
+	avatars chan teamCanvasAvatarInputFrame
+}
+
+type teamCanvasAvatarInputFrame struct {
+	PlayerID string                   `json:"playerId"`
+	Position store.TeamCanvasPosition `json:"position"`
 }
 
 type teamCanvasPieceFrame struct {
@@ -40,7 +46,7 @@ func newTeamCanvasBroker() *teamCanvasBroker {
 func (broker *teamCanvasBroker) subscribe(teamID string) (*teamCanvasSubscriber, func()) {
 	subscriber := &teamCanvasSubscriber{
 		canvas: make(chan struct{}, 1), physics: make(chan teamCanvasPhysicsFrame, 1),
-		pieces: make(chan teamCanvasPieceFrame, 16),
+		pieces: make(chan teamCanvasPieceFrame, 16), avatars: make(chan teamCanvasAvatarInputFrame, 1),
 	}
 	broker.mu.Lock()
 	if broker.subscribers[teamID] == nil {
@@ -55,6 +61,22 @@ func (broker *teamCanvasBroker) subscribe(teamID string) (*teamCanvasSubscriber,
 			delete(broker.subscribers, teamID)
 		}
 		broker.mu.Unlock()
+	}
+}
+
+func (broker *teamCanvasBroker) publishAvatar(teamID string, avatar teamCanvasAvatarInputFrame) {
+	broker.mu.Lock()
+	defer broker.mu.Unlock()
+	for subscriber := range broker.subscribers[teamID] {
+		select {
+		case subscriber.avatars <- avatar:
+		default:
+			select {
+			case <-subscriber.avatars:
+			default:
+			}
+			subscriber.avatars <- avatar
+		}
 	}
 }
 
@@ -156,6 +178,9 @@ func (service *service) updateTeamCanvasAvatar(w http.ResponseWriter, r *http.Re
 		return
 	}
 	service.canvasPhysics.moveAvatar(teamID, actor.PlayerID, position, now)
+	service.canvasEvents.publishAvatar(teamID, teamCanvasAvatarInputFrame{
+		PlayerID: actor.PlayerID, Position: position,
+	})
 	writeJSON(w, http.StatusOK, position)
 }
 
@@ -319,6 +344,11 @@ func (service *service) syncTeamCanvasPhysics(ctx context.Context, actor domain.
 	projection, err := service.store.TeamCanvas(ctx, actor, teamID, now)
 	if err == nil {
 		service.canvasPhysics.sync(teamID, projection, now)
+		if frame, exists := service.canvasPhysics.frame(teamID); exists {
+			if synced, changed := service.canvasRooms.sync(teamID, frame); changed {
+				service.canvasEvents.publishPhysics(teamID, synced)
+			}
+		}
 	}
 }
 

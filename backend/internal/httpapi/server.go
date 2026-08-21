@@ -53,6 +53,8 @@ type service struct {
 	throttles     []*loginThrottle
 	canvasEvents  *teamCanvasBroker
 	canvasPhysics *teamCanvasPhysicsManager
+	canvasTickets *teamCanvasSocketTickets
+	canvasRooms   *teamCanvasRealtimeRooms
 	now           func() time.Time
 }
 
@@ -116,6 +118,8 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	for _, option := range options {
 		option(service)
 	}
+	service.canvasTickets = newTeamCanvasSocketTickets(service.now)
+	service.canvasRooms = newTeamCanvasRealtimeRooms()
 	service.canvasPhysics = newTeamCanvasPhysicsManager(
 		func(ctx context.Context, teamID, weekKey string, checkpoint canvasphysics.Checkpoint, now time.Time) error {
 			physicsStore, ok := service.store.(teamCanvasPhysicsRepository)
@@ -177,6 +181,8 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	mux.HandleFunc("DELETE /v1/teams/{teamId}/canvas/pieces/{pieceId}", service.deleteTeamCanvasPiece)
 	mux.HandleFunc("PUT /v1/teams/{teamId}/canvas/dev-settings", service.updateTeamCanvasSettings)
 	mux.HandleFunc("GET /v1/teams/{teamId}/canvas/events", service.streamTeamCanvasEvents)
+	mux.HandleFunc("POST /v1/teams/{teamId}/canvas/socket-ticket", service.createTeamCanvasSocketTicket)
+	mux.HandleFunc("GET /v1/teams/{teamId}/canvas/socket", service.connectTeamCanvasSocket)
 	if _, ok := service.store.(fixtureResetter); cfg.EnableE2EFixtures && ok {
 		mux.HandleFunc("POST /__e2e/reset", service.resetE2EFixtures)
 	}
