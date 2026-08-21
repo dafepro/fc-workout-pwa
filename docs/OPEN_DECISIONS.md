@@ -461,19 +461,51 @@ Momentum Alpha needs independent PWA install/offline behavior.
 - One star represents one distinct appropriate-plan day in the team-local
   Monday-through-Sunday week, capped at seven. It does not reveal whether that
   plan was training, an alternative, or rest.
-- Reach earns one emoji stamp and an assigned cooldown earns one more. The daily
+- Reach earns one stamp and an assigned cooldown earns one more. The daily
   ceiling is two; extras, duplicates, larger raw results, and rest earn none.
   Cooldown is unavailable on a planned rest day.
 - Five predefined emoji are selected deterministically from team and local day,
-  so every teammate receives the same set. A player may move, resize within the
-  fixed bounds, and rotate only the unconfirmed draft. Confirmation consumes a
-  reward and makes the stamp player-immutable.
-- Emoji ownership and reward source are absent from the team projection. Only
+  so every teammate receives the same set. Choosing one consumes a reward and
+  creates a live shared piece; its owner may move, resize, and rotate it until
+  it settles automatically at the next daily plan boundary.
+- Stamp ownership and reward source are absent from the team projection. Only
   avatars of appropriate-plan followers, weekly star emblems, safe emoji, and
   normalized positions are intended to be shared.
 - Refreshing or rescanning into `/team-canvas` returns an incomplete player to
-  the one-card daily flow and a completed player to the weekly canvas. The
-  cooldown follow-up is recorded directly from the canvas.
+  the one-card daily flow, a completed player with an open cooldown to the
+  separate cooldown card, and an otherwise-complete player to the weekly canvas.
 - Production questions remain: authoritative team timezone, server-side gate,
   board conflict handling, moderation deletion cascade, multi-team context,
-  beta entitlement, and whether immutable stamps should identify their creator.
+  beta entitlement, and whether settled stamps should identify their creator.
+
+## Team Canvas Alpha feedback round two (2026-08-21)
+
+- Decided: effort and exhaustion remain separate seven-step structured values,
+  but the Team Canvas variant uses two always-visible tap/drag tracks rather
+  than dropdowns. This preserves the training record while removing menu-open
+  interactions.
+- Decided: an incomplete assigned cooldown lives on the smart Today route after
+  primary completion, never inside the Team Canvas. It is encouraged but does
+  not revoke Team access; the player may join Team before recording it.
+- Decided: weekly consistency appears as individual stars in a centered arc
+  above each avatar. The team UI shows no numeric star badge.
+- Decided: earned pieces become live shared drafts when selected, remain
+  owner-editable for that team-local day, and settle automatically when the next
+  daily plan begins. There is no manual paste confirmation.
+- Decided: current-owner live pieces pulse; other live pieces are faint. The
+  local demo animates predefined teammate changes, while actual realtime sync
+  remains server work and must not be inferred from the simulation.
+- Decided: touch uses drag, pinch, and twist. Fine pointers receive a floating
+  palette that follows the selected piece. Keyboard shortcuts remain available
+  independently of pointer type.
+- Decided: tapping an owned live piece toggles a temporary edit lock. A tap on
+  the selected piece rests it and hides controls; another tap reselects it and
+  restores controls. This does not paste the piece or change its daily settle
+  time.
+- Decided: the stamp data contract supports catalog-issued emoji, same-origin
+  images such as SVG, and fixed-metadata animated sprite sheets. This does not
+  permit player uploads, remote URLs, or player-authored assets.
+- Still open: transport and conflict policy for real live board edits, exact
+  server settling transaction at the team-local day boundary, moderation of
+  richer catalog assets, and how reduced-motion preferences should affect
+  animated reward sprites beyond pausing decorative motion.

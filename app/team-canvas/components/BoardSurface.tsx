@@ -1,199 +1,441 @@
 "use client";
 
-import type { KeyboardEvent, PointerEvent } from "react";
-import { useState } from "react";
-import { PlayerAvatar } from "../../components/PlayerAvatar";
+import type {
+  CSSProperties,
+  KeyboardEvent,
+  MutableRefObject,
+  PointerEvent,
+} from "react";
+import { useEffect, useRef, useState } from "react";
+import { Avatar } from "../../components/Avatar";
+import { gestureTransform, type GesturePoint } from "../board-geometry";
 import { teamCanvasCopy } from "../content";
+import { liveTeamFrame } from "../live-simulation";
 import { teamCanvasMock } from "../mock-data";
-import type { BoardPosition, EmojiDraft, EmojiPlacement } from "../model";
+import type {
+  BoardPosition,
+  BoardTransform,
+  ProjectedBoardPiece,
+} from "../model";
+import { StampAssetView, stampAssetLabel } from "./StampAsset";
 
-export function BoardSurface({
-  starCount,
-  avatarPosition,
-  emojiDraft,
-  emojiPlacements,
-  textStyle,
-  onMoveAvatar,
-  onMoveEmoji,
-}: {
-  starCount: number;
+interface BoardSurfaceProps {
+  starDayKeys: string[];
   avatarPosition: BoardPosition;
-  emojiDraft: EmojiDraft | null;
-  emojiPlacements: EmojiPlacement[];
+  pieces: ProjectedBoardPiece[];
+  selectedPieceId: string | null;
   textStyle: string;
   onMoveAvatar(position: BoardPosition): void;
-  onMoveEmoji(position: BoardPosition): void;
-}) {
-  const [dragging, setDragging] = useState<"avatar" | "emoji" | null>(null);
-  const copy = teamCanvasCopy.board;
+  onTogglePiece(pieceId: string): void;
+  onEditPiece(pieceId: string, patch: Partial<BoardTransform>): void;
+  onClearPiece(): void;
+}
 
-  const moveFromPointer = (event: PointerEvent<HTMLDivElement>) => {
-    if (!dragging) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const position = {
-      x: ((event.clientX - rect.left) / rect.width) * 100,
-      y: ((event.clientY - rect.top) / rect.height) * 100,
-    };
-    if (dragging === "avatar") onMoveAvatar(position);
-    else onMoveEmoji(position);
-  };
+interface ActiveGesture {
+  pieceId: string;
+  base: BoardTransform;
+  start: Map<number, GesturePoint>;
+  current: Map<number, GesturePoint>;
+  moved: boolean;
+}
+
+export function BoardSurface({
+  starDayKeys,
+  avatarPosition,
+  pieces,
+  selectedPieceId,
+  textStyle,
+  onMoveAvatar,
+  onTogglePiece,
+  onEditPiece,
+  onClearPiece,
+}: BoardSurfaceProps) {
+  const [liveTick, setLiveTick] = useState(0);
+  const avatarPointer = useRef<number | null>(null);
+  const gesture = useRef<ActiveGesture | null>(null);
+  const suppressPieceClick = useRef(false);
+  const copy = teamCanvasCopy.board;
+  const liveFrame = liveTeamFrame(liveTick);
+  const selectedPiece = pieces.find(({ id }) => id === selectedPieceId);
+
+  useEffect(() => {
+    const reduced = window.matchMedia?.(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    if (reduced) return;
+    const timer = window.setInterval(
+      () => setLiveTick((tick) => tick + 1),
+      2200,
+    );
+    return () => window.clearInterval(timer);
+  }, []);
 
   return (
     <div
       className={`tc-board tc-board--${textStyle}`}
       aria-label={copy.canvasLabel}
-      onPointerMove={moveFromPointer}
-      onPointerUp={() => setDragging(null)}
-      onPointerCancel={() => setDragging(null)}
+      onPointerDown={(event) => {
+        if (event.target === event.currentTarget) onClearPiece();
+      }}
     >
       <span className="tc-board__team-name" aria-hidden="true">
         HILL
         <br />
         STRIDERS
       </span>
+      <span className="tc-live-indicator">
+        <span aria-hidden="true" /> {copy.liveNow}
+      </span>
 
-      {teamCanvasMock.lockedStamps.map((stamp) => (
-        <LockedStamp
-          key={stamp.id}
-          placement={{ ...stamp, dayKey: "team", locked: true }}
-        />
+      {teamCanvasMock.pastedPieces.map((piece) => (
+        <StaticStamp key={piece.id} piece={piece} />
       ))}
-      {emojiPlacements.map((placement) => (
-        <LockedStamp key={placement.id} placement={placement} />
+      {liveFrame.pieces.map((piece) => (
+        <StaticStamp key={piece.id} piece={piece} peerLive />
       ))}
+      {pieces
+        .filter(({ editable }) => !editable)
+        .map((piece) => (
+          <StaticStamp key={piece.id} piece={piece} />
+        ))}
 
-      {teamCanvasMock.completers.map((player) => (
-        <PlayerMarker
-          key={player.id}
-          name={player.name}
-          initials={player.initials}
-          color={player.color}
-          x={player.x}
-          y={player.y}
-          stars={player.stars}
-        />
-      ))}
+      {teamCanvasMock.completers.map((member) => {
+        const livePosition = liveFrame.players.find(
+          ({ id }) => id === member.player.id,
+        );
+        return (
+          <PlayerMarker
+            key={member.player.id}
+            player={member.player}
+            avatar={member.avatar}
+            x={livePosition?.x ?? member.x}
+            y={livePosition?.y ?? member.y}
+            starDayKeys={[...member.starDayKeys]}
+            live
+          />
+        );
+      })}
 
       <PlayerMarker
-        name="Mason"
-        initials="MC"
-        color={teamCanvasMock.player.avatarColor}
+        player={teamCanvasMock.player}
+        avatar={teamCanvasMock.playerAvatar}
         x={avatarPosition.x}
         y={avatarPosition.y}
-        stars={starCount}
+        starDayKeys={starDayKeys}
         current
         onPointerDown={(event) => {
           event.preventDefault();
           event.currentTarget.setPointerCapture?.(event.pointerId);
-          setDragging("avatar");
+          avatarPointer.current = event.pointerId;
+        }}
+        onPointerMove={(event) => {
+          if (avatarPointer.current !== event.pointerId) return;
+          const board = event.currentTarget.closest(".tc-board");
+          if (!(board instanceof HTMLElement)) return;
+          const rect = board.getBoundingClientRect();
+          onMoveAvatar({
+            x: ((event.clientX - rect.left) / rect.width) * 100,
+            y: ((event.clientY - rect.top) / rect.height) * 100,
+          });
+        }}
+        onPointerUp={(event) => {
+          if (avatarPointer.current === event.pointerId)
+            avatarPointer.current = null;
+        }}
+        onPointerCancel={() => {
+          avatarPointer.current = null;
         }}
         onKeyDown={(event) =>
           moveAvatarWithKeyboard(event, avatarPosition, onMoveAvatar)
         }
       />
 
-      {emojiDraft ? (
-        <button
-          className="tc-stamp tc-stamp--draft"
-          type="button"
-          aria-label="Move stamp"
-          style={positionStyle(emojiDraft)}
-          onPointerDown={(event) => {
-            event.preventDefault();
-            event.currentTarget.setPointerCapture?.(event.pointerId);
-            setDragging("emoji");
-          }}
-        >
-          {emojiDraft.emoji}
-        </button>
+      {pieces
+        .filter(({ editable }) => editable)
+        .map((piece) => {
+          const selected = piece.id === selectedPieceId;
+          const label = stampAssetLabel(piece.asset);
+          return (
+            <button
+              key={piece.id}
+              className={`tc-stamp tc-stamp--owned-live${selected ? " is-selected" : " is-resting"}`}
+              type="button"
+              aria-label={copy.editStamp(label)}
+              aria-pressed={selected}
+              style={positionStyle(piece)}
+              onClick={() => {
+                if (suppressPieceClick.current) {
+                  suppressPieceClick.current = false;
+                  return;
+                }
+                onTogglePiece(piece.id);
+              }}
+              onPointerDown={(event) => {
+                if (!selected) return;
+                event.preventDefault();
+                event.currentTarget.setPointerCapture?.(event.pointerId);
+                beginGesture(event, piece, gesture);
+              }}
+              onPointerMove={(event) =>
+                continueGesture(event, gesture, onEditPiece)
+              }
+              onPointerUp={(event) =>
+                endGesture(event, piece, gesture, suppressPieceClick)
+              }
+              onPointerCancel={(event) =>
+                endGesture(event, piece, gesture, suppressPieceClick)
+              }
+              onKeyDown={(event) =>
+                editPieceWithKeyboard(event, piece, onEditPiece, onClearPiece)
+              }
+            >
+              <StampAssetView asset={piece.asset} />
+            </button>
+          );
+        })}
+
+      {selectedPiece?.editable ? (
+        <StampPalette piece={selectedPiece} onEditPiece={onEditPiece} />
       ) : null}
     </div>
   );
 }
 
 function PlayerMarker({
-  name,
-  initials,
-  color,
+  player,
+  avatar,
   x,
   y,
-  stars,
+  starDayKeys,
   current = false,
-  onPointerDown,
-  onKeyDown,
+  live = false,
+  ...events
 }: {
-  name: string;
-  initials: string;
-  color: string;
+  player: (typeof teamCanvasMock.completers)[number]["player"];
+  avatar: (typeof teamCanvasMock.completers)[number]["avatar"];
   x: number;
   y: number;
-  stars: number;
+  starDayKeys: string[];
   current?: boolean;
+  live?: boolean;
   onPointerDown?: (event: PointerEvent<HTMLButtonElement>) => void;
+  onPointerMove?: (event: PointerEvent<HTMLButtonElement>) => void;
+  onPointerUp?: (event: PointerEvent<HTMLButtonElement>) => void;
+  onPointerCancel?: (event: PointerEvent<HTMLButtonElement>) => void;
   onKeyDown?: (event: KeyboardEvent<HTMLButtonElement>) => void;
 }) {
   const marker = (
     <>
-      {current ? (
-        <span className="tc-player-avatar tc-player-avatar--art">
-          <PlayerAvatar
-            player={teamCanvasMock.player}
-            size="medium"
-            emphasizeSelf={false}
-          />
-        </span>
-      ) : (
-        <span className="tc-player-avatar" style={{ background: color }}>
-          {initials}
-        </span>
-      )}
-      <span className="tc-player-name">{name}</span>
-      <span
-        className="tc-player-stars"
-        aria-label={`${name} has ${stars} ${stars === 1 ? "star" : "stars"} this week`}
-      >
-        <span aria-hidden="true">★</span> {stars}
+      <StarCrown name={player.firstName} dayKeys={starDayKeys} />
+      <span className="tc-player-avatar">
+        <Avatar player={player} config={avatar} size="medium" />
       </span>
+      <span className="tc-player-name">{player.firstName}</span>
     </>
   );
-
   const style = { left: `${x}%`, top: `${y}%` };
+
   return current ? (
     <button
       className="tc-player tc-player--current"
       type="button"
       style={style}
-      aria-label={`Move ${name}’s avatar`}
-      onPointerDown={onPointerDown}
-      onKeyDown={onKeyDown}
+      aria-label={teamCanvasCopy.board.moveAvatar(player.firstName)}
+      {...events}
     >
       {marker}
     </button>
   ) : (
-    <div className="tc-player" style={style}>
+    <div className={`tc-player${live ? " tc-player--live" : ""}`} style={style}>
       {marker}
     </div>
   );
 }
 
-function LockedStamp({ placement }: { placement: EmojiPlacement }) {
+function StarCrown({ name, dayKeys }: { name: string; dayKeys: string[] }) {
   return (
     <span
-      className="tc-stamp tc-stamp--locked"
-      style={positionStyle(placement)}
-      aria-hidden="true"
+      className="tc-star-crown"
+      aria-label={teamCanvasCopy.board.completedDays(name)}
     >
-      {placement.emoji}
+      {dayKeys.map((dayKey, index) => {
+        const angle =
+          dayKeys.length === 1
+            ? 270
+            : 205 + (130 * index) / (dayKeys.length - 1);
+        return (
+          <span
+            key={dayKey}
+            className="tc-star-crown__star"
+            data-testid={`${name}-star`}
+            aria-hidden="true"
+            style={{
+              left: `${50 + Math.cos((angle * Math.PI) / 180) * 41}%`,
+              top: `${52 + Math.sin((angle * Math.PI) / 180) * 47}%`,
+            }}
+          >
+            ★
+          </span>
+        );
+      })}
     </span>
   );
 }
 
-function positionStyle(placement: EmojiDraft): React.CSSProperties {
+function StaticStamp({
+  piece,
+  peerLive = false,
+}: {
+  piece: ProjectedBoardPiece;
+  peerLive?: boolean;
+}) {
+  return (
+    <span
+      className={`tc-stamp ${peerLive ? "tc-stamp--peer-live" : "tc-stamp--pasted"}`}
+      style={positionStyle(piece)}
+      aria-hidden="true"
+    >
+      <StampAssetView asset={piece.asset} />
+    </span>
+  );
+}
+
+function StampPalette({
+  piece,
+  onEditPiece,
+}: {
+  piece: ProjectedBoardPiece;
+  onEditPiece(pieceId: string, patch: Partial<BoardTransform>): void;
+}) {
+  const copy = teamCanvasCopy.board;
+  return (
+    <div
+      className="tc-floating-palette"
+      style={{ left: `${piece.x}%`, top: `${piece.y}%` }}
+      aria-label={copy.paletteLabel}
+    >
+      <button
+        type="button"
+        aria-label={copy.smaller}
+        onClick={() => onEditPiece(piece.id, { size: piece.size - 6 })}
+      >
+        −
+      </button>
+      <button
+        type="button"
+        aria-label={copy.larger}
+        onClick={() => onEditPiece(piece.id, { size: piece.size + 6 })}
+      >
+        ＋
+      </button>
+      <button
+        type="button"
+        aria-label={copy.rotateLeft}
+        onClick={() => onEditPiece(piece.id, { rotation: piece.rotation - 12 })}
+      >
+        ↶
+      </button>
+      <button
+        type="button"
+        aria-label={copy.rotateRight}
+        onClick={() => onEditPiece(piece.id, { rotation: piece.rotation + 12 })}
+      >
+        ↷
+      </button>
+    </div>
+  );
+}
+
+function beginGesture(
+  event: PointerEvent<HTMLButtonElement>,
+  piece: ProjectedBoardPiece,
+  gestureRef: MutableRefObject<ActiveGesture | null>,
+) {
+  const point = pointerPoint(event);
+  const existing = gestureRef.current;
+  const current =
+    existing?.pieceId === piece.id
+      ? new Map(existing.current)
+      : new Map<number, GesturePoint>();
+  current.set(event.pointerId, point);
+  gestureRef.current = {
+    pieceId: piece.id,
+    base: transformOf(piece),
+    start: new Map(current),
+    current,
+    moved: existing?.moved ?? false,
+  };
+}
+
+function continueGesture(
+  event: PointerEvent<HTMLButtonElement>,
+  gestureRef: MutableRefObject<ActiveGesture | null>,
+  edit: (pieceId: string, patch: Partial<BoardTransform>) => void,
+) {
+  const active = gestureRef.current;
+  if (!active?.current.has(event.pointerId)) return;
+  active.current.set(event.pointerId, pointerPoint(event));
+  active.moved ||= [...active.current].some(([id, point]) => {
+    const origin = active.start.get(id);
+    return origin
+      ? Math.hypot(point.x - origin.x, point.y - origin.y) > 3
+      : false;
+  });
+  const board = event.currentTarget.closest(".tc-board");
+  if (!(board instanceof HTMLElement)) return;
+  const rect = board.getBoundingClientRect();
+  edit(
+    active.pieceId,
+    gestureTransform(
+      active.base,
+      [...active.start.values()],
+      [...active.current.values()],
+      rect,
+    ),
+  );
+}
+
+function endGesture(
+  event: PointerEvent<HTMLButtonElement>,
+  piece: ProjectedBoardPiece,
+  gestureRef: MutableRefObject<ActiveGesture | null>,
+  suppressClick: MutableRefObject<boolean>,
+) {
+  const active = gestureRef.current;
+  if (!active?.current.has(event.pointerId)) return;
+  suppressClick.current ||= active.moved;
+  active.current.delete(event.pointerId);
+  if (active.current.size === 0) {
+    gestureRef.current = null;
+    return;
+  }
+  gestureRef.current = {
+    ...active,
+    base: transformOf(piece),
+    start: new Map(active.current),
+    moved: false,
+  };
+}
+
+function pointerPoint(event: PointerEvent<HTMLElement>): GesturePoint {
+  return { id: event.pointerId, x: event.clientX, y: event.clientY };
+}
+
+function transformOf(piece: ProjectedBoardPiece): BoardTransform {
   return {
-    left: `${placement.x}%`,
-    top: `${placement.y}%`,
-    fontSize: `${placement.size}px`,
-    transform: `translate(-50%, -50%) rotate(${placement.rotation}deg)`,
+    x: piece.x,
+    y: piece.y,
+    size: piece.size,
+    rotation: piece.rotation,
+  };
+}
+
+function positionStyle(piece: BoardTransform): CSSProperties {
+  return {
+    left: `${piece.x}%`,
+    top: `${piece.y}%`,
+    fontSize: `${piece.size}px`,
+    transform: `translate(-50%, -50%) rotate(${piece.rotation}deg)`,
   };
 }
 
@@ -212,4 +454,32 @@ function moveAvatarWithKeyboard(
   if (!delta) return;
   event.preventDefault();
   move({ x: current.x + delta.x, y: current.y + delta.y });
+}
+
+function editPieceWithKeyboard(
+  event: KeyboardEvent<HTMLButtonElement>,
+  piece: ProjectedBoardPiece,
+  edit: (pieceId: string, patch: Partial<BoardTransform>) => void,
+  clear: () => void,
+) {
+  const movement: Record<string, Partial<BoardTransform>> = {
+    ArrowLeft: { x: piece.x - 3 },
+    ArrowRight: { x: piece.x + 3 },
+    ArrowUp: { y: piece.y - 3 },
+    ArrowDown: { y: piece.y + 3 },
+    "+": { size: piece.size + 4 },
+    "=": { size: piece.size + 4 },
+    "-": { size: piece.size - 4 },
+    "[": { rotation: piece.rotation - 8 },
+    "]": { rotation: piece.rotation + 8 },
+  };
+  if (event.key === "Escape") {
+    event.preventDefault();
+    clear();
+    return;
+  }
+  const patch = movement[event.key];
+  if (!patch) return;
+  event.preventDefault();
+  edit(piece.id, patch);
 }

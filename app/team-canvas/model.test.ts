@@ -1,20 +1,21 @@
 import { describe, expect, it } from "vitest";
 import {
   availableRewardCount,
+  addLivePiece,
   beginDay,
-  confirmEmoji,
-  dailyEmojiSet,
+  dailyStampSet,
   initialTeamCanvasState,
   logExtraActivity,
   moveOwnAvatar,
   recordCooldown,
   recordPlannedRest,
   recordPrimary,
-  selectEmoji,
   teamCanvasProjection,
   teamCanvasUnlocked,
-  updateEmojiDraft,
+  updateOwnedPiece,
   weeklyTextStyle,
+  type BoardPiece,
+  type StampAsset,
 } from "./model";
 import { entryRouteFor } from "./routes";
 
@@ -114,16 +115,17 @@ describe("Team Canvas rules", () => {
     expect(friday.completedDayKeys).toEqual(["2026-08-20", "2026-08-21"]);
     expect(nextWeek.weekKey).toBe("2026-08-24");
     expect(nextWeek.completedDayKeys).toEqual([]);
-    expect(nextWeek.emojiPlacements).toEqual([]);
+    expect(nextWeek.boardPieces).toEqual([]);
   });
 
-  it("provides the same deterministic five emoji choices to the team each day", () => {
-    const first = dailyEmojiSet("team-hill-striders", "2026-08-20");
+  it("provides the same deterministic five stamp choices to the team each day", () => {
+    const first = dailyStampSet("team-hill-striders", "2026-08-20");
 
     expect(first).toHaveLength(5);
-    expect(new Set(first).size).toBe(5);
-    expect(dailyEmojiSet("team-hill-striders", "2026-08-20")).toEqual(first);
-    expect(dailyEmojiSet("team-hill-striders", "2026-08-21")).not.toEqual(
+    expect(new Set(first.map(({ id }) => id)).size).toBe(5);
+    expect(first.every(({ kind }) => kind === "emoji")).toBe(true);
+    expect(dailyStampSet("team-hill-striders", "2026-08-20")).toEqual(first);
+    expect(dailyStampSet("team-hill-striders", "2026-08-21")).not.toEqual(
       first,
     );
     expect(weeklyTextStyle("team-hill-striders", "2026-08-17")).toBe(
@@ -131,33 +133,107 @@ describe("Team Canvas rules", () => {
     );
   });
 
-  it("clamps a draft stamp, then locks it permanently when confirmed", () => {
+  it("publishes a reward as a live owned piece and consumes the reward once", () => {
     const reached = recordPrimary(initialTeamCanvasState(), {
       completion: "reach",
       effort: 5,
       tiredness: 4,
     });
-    const emoji = dailyEmojiSet(reached.teamId, reached.dayKey)[0];
-    const selected = selectEmoji(reached, emoji);
-    const edited = updateEmojiDraft(selected, {
+    const asset = dailyStampSet(reached.teamId, reached.dayKey)[0];
+    const live = addLivePiece(reached, asset);
+
+    expect(live.boardPieces).toHaveLength(1);
+    expect(live.boardPieces[0]).toMatchObject({
+      asset,
+      ownerId: "mason",
+      status: "live",
+      dayKey: "2026-08-20",
+    });
+    expect(live.selectedPieceId).toBe(live.boardPieces[0].id);
+    expect(availableRewardCount(live)).toBe(0);
+    expect(addLivePiece(live, asset)).toBe(live);
+  });
+
+  it("clamps owned live edits and settles the piece at the next day boundary", () => {
+    const reached = recordPrimary(initialTeamCanvasState(), {
+      completion: "reach",
+      effort: 5,
+      tiredness: 4,
+    });
+    const asset = dailyStampSet(reached.teamId, reached.dayKey)[0];
+    const live = addLivePiece(reached, asset);
+    const pieceId = live.boardPieces[0].id;
+    const edited = updateOwnedPiece(live, pieceId, {
       x: 120,
       y: -20,
       size: 100,
       rotation: 90,
     });
-    const pasted = confirmEmoji(edited);
 
-    expect(edited.emojiDraft).toMatchObject({
+    expect(edited.boardPieces[0]).toMatchObject({
       x: 94,
       y: 6,
       size: 64,
       rotation: 45,
+      status: "live",
     });
-    expect(pasted.emojiDraft).toBeNull();
-    expect(pasted.emojiPlacements).toHaveLength(1);
-    expect(pasted.emojiPlacements[0]).toMatchObject({ locked: true, emoji });
-    expect(availableRewardCount(pasted)).toBe(0);
-    expect(updateEmojiDraft(pasted, { rotation: 0 })).toBe(pasted);
+
+    const tomorrow = beginDay(edited, {
+      dayKey: "2026-08-21",
+      dayKind: "training",
+    });
+    expect(tomorrow.boardPieces[0]).toMatchObject({ status: "pasted" });
+    expect(tomorrow.selectedPieceId).toBeNull();
+    expect(updateOwnedPiece(tomorrow, pieceId, { rotation: 0 })).toBe(tomorrow);
+  });
+
+  it("projects generic emoji, image, and sprite assets without owner identity", () => {
+    const assets: StampAsset[] = [
+      { id: "emoji-test", kind: "emoji", glyph: "⚡", label: "Bolt" },
+      {
+        id: "image-test",
+        kind: "image",
+        src: "/favicon.svg",
+        alt: "ZoomiGo mark",
+      },
+      {
+        id: "sprite-test",
+        kind: "sprite",
+        src: "/stamps/runner.webp",
+        alt: "Running player",
+        frames: 8,
+        frameWidth: 64,
+        frameHeight: 64,
+      },
+    ];
+    const pieces: BoardPiece[] = assets.map((asset, index) => ({
+      id: `piece-${index}`,
+      asset,
+      ownerId: index === 0 ? "mason" : "player-ari",
+      dayKey: "2026-08-20",
+      status: index === 2 ? "pasted" : "live",
+      x: 20 + index * 20,
+      y: 40,
+      size: 40,
+      rotation: 0,
+    }));
+    const complete = recordPrimary(
+      { ...initialTeamCanvasState(), boardPieces: pieces },
+      { completion: "goal", effort: 4, tiredness: 3 },
+    );
+    const projection = teamCanvasProjection(complete)!;
+
+    expect(projection.pieces.map(({ asset }) => asset.kind)).toEqual([
+      "emoji",
+      "image",
+      "sprite",
+    ]);
+    expect(projection.pieces.map(({ editable }) => editable)).toEqual([
+      true,
+      false,
+      false,
+    ]);
+    expect(JSON.stringify(projection)).not.toContain("ownerId");
   });
 
   it("always lets a player move their own avatar within the board", () => {
@@ -174,7 +250,7 @@ describe("Team Canvas rules", () => {
     const projection = teamCanvasProjection(complete);
 
     expect(projection).not.toBeNull();
-    expect(projection).toMatchObject({ starCount: 1 });
+    expect(projection).toMatchObject({ starDayKeys: ["2026-08-20"] });
     expect(JSON.stringify(projection)).not.toMatch(
       /effort|tiredness|history|completion/i,
     );

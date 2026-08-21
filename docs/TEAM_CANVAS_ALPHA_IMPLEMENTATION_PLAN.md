@@ -1,7 +1,7 @@
 # Team Canvas Alpha implementation plan
 
-Status: Implemented locally on `codex/momentum-concept-tightening`; awaiting
-owner review
+Status: Feedback round two implemented on
+`codex/momentum-concept-tightening`; local review only
 
 Prepared: 2026-08-20
 
@@ -17,7 +17,7 @@ loop:
 2. Tap one large plus button and record it.
 3. Unlock the weekly Team Canvas.
 4. Move your avatar, see who else followed their plan, and spend up to two
-   earned emoji stamps.
+   earned catalog stamps.
 
 The social reward is creative participation, not placement, performance, or
 volume. There is no bottom navigation, leaderboard, feed, chat, public result,
@@ -84,14 +84,15 @@ had rest.
 
 ### After today's plan is recorded
 
-The app immediately opens the Team Canvas. A later QR scan or fresh visit to
-`/team-canvas` also opens the Team Canvas when today's qualifying plan is
-already recorded.
+The app opens the separate cooldown card when the demanding assignment includes
+one; otherwise it opens the Team Canvas. A later QR scan or fresh visit to
+`/team-canvas` resolves the same way from today's saved state.
 
-If the assignment has a cooldown and it is not complete, the Team Canvas shows
-one compact **Cooldown available** action. That is where the follow-up is
-entered. Saving the cooldown returns to the board and creates one additional
-unspent emoji stamp.
+If the assignment has a cooldown and it is not complete, the smart Today route
+shows a second single-card step after the main save. The Team Canvas is already
+unlocked, so the player may record the cooldown there or use a secondary action
+to join Team immediately. Cooldown controls never render on the canvas. Saving
+the cooldown creates one additional unspent stamp and opens Team.
 
 The profile keeps private history and a secondary structured action for extra
 approved activity. Extra activity never unlocks the board, creates a star, or
@@ -107,7 +108,7 @@ The Team Canvas is unavailable until the current player records one of:
 
 A direct request to `/team-canvas/team` before completion renders only a calm
 locked state and a return action. It must not render participant identities,
-canvas objects, emoji inventory, or counts behind the lock.
+canvas objects, stamp inventory, or counts behind the lock.
 
 The gate is a local mock rule in this prototype. Production authorization must
 be enforced by the server projection, not only by hiding client UI.
@@ -117,7 +118,7 @@ be enforced by the server projection, not only by hiding client UI.
 ### Week identity
 
 - One board covers one team-local Monday-through-Sunday week.
-- Team name typography, participant positions, and pasted emoji use that week
+- Team name typography, participant positions, and settled stamp assets use that week
   identity.
 - A new team-local week starts a new board, clears board placements, and resets
   weekly avatar stars.
@@ -148,7 +149,7 @@ Weekly stars deliberately make participation consistency visible because the
 owner requested it. They do not distinguish workout from rest and do not grow
 from cooldowns, Reach, duplicate sessions, or extra activity.
 
-## 6. Emoji stamp rules
+## 6. Stamp rules
 
 ### Earning
 
@@ -162,44 +163,47 @@ raw result, or extra activity cannot mint another stamp.
 
 ### Daily choice set
 
-- The catalog contains only predefined, kid-safe emoji.
-- Five unique emoji are selected deterministically from `team + local date`.
+- The selectable catalog contains only predefined, kid-safe emoji in this pass.
+- Five unique stamps are selected deterministically from `team + local date`.
 - Every team member sees the same five choices that day.
 - The set changes on the next team-local day and is not personalized.
 
 ### Placement
 
-- An unspent stamp lets the player select one of the five daily emoji.
-- The selected emoji becomes a private draft on the canvas.
-- Before confirming, the player may move it, resize it within the documented
-  minimum and maximum, and rotate it within the documented limit.
-- Confirming consumes exactly one earned stamp and pastes one immutable object.
-- A pasted emoji cannot be moved, resized, rotated, or deleted by a player.
-- The board projection does not label an emoji's owner or whether it came from
-  Reach or cooldown.
+- An unspent stamp lets the player select one of the five daily choices.
+- Selecting consumes exactly one earned reward and publishes one faint live
+  piece to the canvas.
+- During that team-local day, its owner may move it, resize it within the fixed
+  minimum and maximum, and rotate it within the fixed limit.
+- Live ownership is indicated without showing the reward source. A current
+  viewer receives only an `editable` projection flag for their own pieces.
+- At the next daily plan boundary, yesterday's live pieces settle into pasted,
+  player-immutable objects.
+- A pasted piece cannot be moved, resized, rotated, or deleted by a player.
 
-`Locked` means player-immutable. A future authorized deletion or moderation
+`Pasted` means player-immutable. A future authorized deletion or moderation
 reversal may remove an object whose qualifying entry was deleted or invalidated.
 
 ## 7. QR, return, and interruption behavior
 
-| Situation                             | Destination or state                                      |
-| ------------------------------------- | --------------------------------------------------------- |
-| QR scan with no active session        | Existing QR + PIN flow, then `/team-canvas`               |
-| Today's plan incomplete               | Single daily card                                         |
-| Check-in started but not saved        | Return to the daily card; draft is not authoritative      |
-| Today's plan complete                 | Redirect from `/team-canvas` to Team Canvas               |
-| Cooldown available                    | Team Canvas with one cooldown action                      |
-| Cooldown saved                        | Team Canvas with another unspent stamp                    |
-| Unspent stamp exists                  | Team Canvas opens the five-choice reward tray             |
-| Emoji draft exists but is unconfirmed | Keep the local draft on route changes; it is not shared   |
-| New week                              | New empty weekly board; daily eligibility is recalculated |
-| Direct Team URL before completion     | Locked state with no team projection                      |
+| Situation                            | Destination or state                                      |
+| ------------------------------------ | --------------------------------------------------------- |
+| QR scan with no active session       | Existing QR + PIN flow, then `/team-canvas`               |
+| Today's plan incomplete              | Single daily card                                         |
+| Check-in started but not saved       | Return to the daily card; draft is not authoritative      |
+| Primary plan complete, cooldown open | Separate cooldown card on `/team-canvas`                  |
+| Player chooses Join Team now         | Team Canvas; cooldown remains available from smart entry  |
+| Cooldown saved                       | Team Canvas with another unspent stamp                    |
+| Unspent stamp exists                 | Team Canvas opens the five-choice reward tray             |
+| Live owned piece exists              | Shared faintly and editable through its earning day       |
+| Next team-local day                  | Prior live pieces settle; next plan becomes current       |
+| New week                             | New empty weekly board; daily eligibility is recalculated |
+| Direct Team URL before completion    | Locked state with no team projection                      |
 
-The experience does not trap the player on a log screen after completion. The
-Team Canvas is the return destination; the cooldown follow-up lives there. The
-small ZoomiGo wordmark returns to this smart landing, while the small avatar is
-the sole profile entrance.
+The experience does not trap the player on a cooldown step after completion.
+The Team Canvas remains available through a secondary action, while the small
+ZoomiGo wordmark returns to the smart landing and the small avatar remains the
+sole profile entrance.
 
 ## 8. Gaps resolved in this prototype
 
@@ -217,13 +221,14 @@ the sole profile entrance.
 - **Multiple teams:** the mock uses the first team. Production must preserve a
   team context in the QR/landing route or offer a predefined membership select
   in profile before loading a board.
-- **Concurrent edits:** local mock state cannot synchronize players. Production
-  requires server-owned board revisions, idempotent emoji confirmation, and a
-  conflict policy for simultaneous avatar moves.
-- **Offline use:** a player may prepare a local emoji draft, but a shared confirm
-  cannot be considered complete until the server accepts it.
-- **Abandoned emoji draft:** the earned stamp remains unspent; reopening the
-  board restores the draft on that device during the prototype.
+- **Concurrent edits:** the deterministic demo motion is not synchronization.
+  Production requires server-owned revisions, idempotent piece creation, and a
+  conflict policy for simultaneous avatar or piece moves.
+- **Offline use:** a live move cannot be considered shared until the server
+  accepts it. Production must communicate pending/retry state without silently
+  pretending local state is live.
+- **Interrupted live edit:** reopening the board restores the last server-owned
+  transform. A reward is consumed when its piece is created, not on every move.
 - **Board crowding:** avatar and emoji coordinates are bounded, but overlap is
   allowed as part of the collage. Future usability testing may add gentle
   collision assistance without ranking or reserving better areas.
@@ -231,12 +236,14 @@ the sole profile entrance.
 ## 9. Safety and privacy contract
 
 - No free text, photos, uploads, links, chat, comments, or custom team names.
-- Only predefined emoji and authoritative avatars appear.
+- Only predefined catalog art and authoritative avatars appear. Catalog art may
+  be Unicode emoji, reviewed same-origin images/SVG, or reviewed sprite sheets.
 - Team access requires today's plan-following.
-- Team sees participation and weekly star count only.
+- Team sees participation and the individual weekly stars only; there is no
+  numeric count badge.
 - No raw result, personalized target, Reach value, activity type, assessment,
   effort, tiredness, or recovery reason appears.
-- Emoji objects expose neither owner nor reward source in the public projection.
+- Stamp objects expose neither owner nor reward source in the public projection.
 - There are no negative reactions, downvotes, public totals by player, or
   ordered placement.
 - Server authorization and moderation/audit are required before a shared beta;
@@ -281,15 +288,19 @@ app/
 └── team-canvas/
     ├── components/
     │   ├── TeamCanvasShell.tsx           # wordmark + avatar only; no nav
-    │   ├── TeamCanvasToday.tsx           # one-card daily state machine
-    │   ├── TeamCanvasBoard.tsx           # gate, board, avatar, rewards, cooldown
-    │   ├── BoardSurface.tsx               # pointer/keyboard placement surface
+    │   ├── FeelTracks.tsx                 # direct effort/tiredness tracks
+    │   ├── StampAsset.tsx                 # safe catalog asset renderer
+    │   ├── TeamCanvasToday.tsx           # workout and separate cooldown cards
+    │   ├── TeamCanvasBoard.tsx           # gate, live board, and reward tray
+    │   ├── BoardSurface.tsx               # gestures, palette, stars, live canvas
     │   └── TeamCanvasMe.tsx               # history, selector, review controls
     ├── me/page.tsx
     ├── team/page.tsx
     ├── content.ts                        # all player-facing copy
     ├── layout.tsx
-    ├── mock-data.ts
+    ├── board-geometry.ts                 # touch move/pinch/twist math
+    ├── live-simulation.ts                # deterministic peer review motion
+    ├── mock-data.ts                      # real Avatar Studio configurations
     ├── model.test.ts                     # critical reward/visibility rules
     ├── model.ts
     ├── page.tsx
@@ -312,7 +323,7 @@ boundary.
 - Reach and cooldown each award one stamp; total is capped at two per day.
 - Daily emoji set and weekly type style are deterministic.
 - Extra activity and duplicate saves produce no board reward.
-- Pasted emoji are immutable and bounded; own avatar remains movable.
+- Settled pieces are immutable and bounded; own avatar remains movable.
 
 ### Step 2 — First meaningful slice
 
@@ -333,8 +344,9 @@ boundary.
 - Enforce the completion gate before rendering team data.
 - Render deterministic team-name typography and completed-player avatars.
 - Add weekly star emblems and movable current-player position.
-- Add the daily five-emoji tray, draft placement controls, and immutable confirm.
-- Add the cooldown follow-up and second reward.
+- Add the daily five-choice tray, live same-day ownership, direct manipulation,
+  and automatic next-day settlement.
+- Keep the cooldown follow-up on its own Today card and award the second reward.
 
 ### Step 5 — Profile, verification, and local commit
 
@@ -350,12 +362,12 @@ boundary.
 This local prototype does not make a multi-player board real. A beta requires:
 
 - server-owned plan eligibility and current-team authorization;
-- durable board, position, reward, and immutable emoji records;
+- durable board, position, reward, and settled-piece records;
 - team-local week/day calculation and authoritative time;
 - idempotency keys and revision/conflict handling;
 - public projection stripping private entry and reward-source data;
 - deletion/moderation cascade and audit;
-- abuse limits and an approved predefined emoji catalog;
+- abuse limits and an approved predefined stamp catalog;
 - multi-team routing and guardian/privacy review;
 - an access entitlement for the alternate view.
 
@@ -368,11 +380,11 @@ work is authorized by this plan.
 - Is locking the Team Canvas motivating or frustrating on a rest/recovery day?
 - Do weekly stars feel like belonging rather than public pressure?
 - Is Reach the right name for the optional target?
-- Is a five-emoji daily set enough variety?
-- Should emoji placement stay anonymous, or should teammates see the creator's
+- Is a five-choice daily set enough variety?
+- Should stamp placement stay anonymous, or should teammates see the creator's
   avatar without revealing the reward source?
-- Is the cooldown action discoverable enough on the board?
-- Should a pasted emoji last only the current week as proposed?
+- Is the separate cooldown card discoverable without feeling like a gate?
+- Should a settled stamp last only the current week as proposed?
 
 ## 15. Local implementation result
 
@@ -386,3 +398,140 @@ Implemented on 2026-08-20:
   isolated local prototype pass with no backend, infrastructure, or release
   change;
 - no branch push, hosted version, or deployment was performed.
+
+## 16. Feedback round two — 2026-08-21
+
+### Owner feedback recorded
+
+- Replace the effort and exhaustion dropdowns with a friendlier interaction
+  that takes fewer clicks.
+- Cooldown recording must not share the Team Canvas page.
+- Weekly stars must be individual stars in a centered arc above the avatar,
+  with no visible numeric count.
+- The demo should show varied real configurations from the existing avatar
+  builder rather than initials circles.
+- Stamp controls should travel with the selected stamp as a floating palette on
+  precise-pointer devices. Touch devices should use direct manipulation:
+  drag, pinch to scale, and two-finger twist to rotate.
+- The board should feel live. Current-player moves should publish immediately,
+  unpasted pieces should be faint, and the demo should simulate other players
+  moving avatars and pieces.
+- A player's avatar and earned pieces remain editable for the current team-local
+  day. Pieces settle automatically at the next daily plan rollover instead of
+  being manually pasted.
+- Current-player pieces need a slow pulsing ownership border.
+- A single tap on an unlocked owned piece should rest it in place and hide its
+  controls; tapping it again should unlock/reselect it and restore controls.
+- The stamp model must support predefined image and animated-sprite assets in
+  addition to Unicode emoji. Player uploads remain prohibited.
+
+### Revised daily flow
+
+1. The workout card expands to Goal/Reach plus a compact **How did it feel?**
+   check using two always-visible native seven-step tracks. Each track can be
+   tapped or dragged directly and shows a friendly face and plain-language
+   current value; there is no menu to open.
+2. Saving the primary assignment unlocks Team but keeps `/team-canvas` on one
+   separate cooldown card when a cooldown remains available.
+3. The cooldown card has the same large-plus simplicity and a secondary
+   **Join Team now** link, so cooldown is encouraged without blocking the
+   already-earned Team access.
+4. Recording cooldown earns its reward and opens Team. Returning through the
+   smart landing while cooldown remains incomplete returns to this cooldown
+   card; a direct Team URL remains allowed after primary completion.
+
+### Revised live-piece lifecycle
+
+- Choosing a reward consumes one reward source and creates a shared **live**
+  board piece immediately; there is no manual Paste action.
+- Live pieces are faint enough to read as in-progress. The current player's
+  live pieces have a slow pulsing outline and remain movable, scalable, and
+  rotatable until the team-local day changes.
+- Selection is a temporary same-day edit lock, not Paste: tapping the selected
+  piece deselects and rests it; tapping that piece again selects it and enables
+  manipulation. Rollover status is unchanged by this toggle.
+- At `beginDay`, every live piece from an earlier day becomes **pasted** and
+  player-immutable. The next suggested workout and this settle event use the
+  same authoritative daily boundary.
+- The public projection exposes only whether a piece is live, whether it is
+  editable by the current viewer, and its safe asset and transform. It does not
+  expose private reward source or raw performance data.
+- The local prototype persists current-player edits immediately and animates a
+  deterministic mock stream of teammate avatar and live-piece moves. A real beta
+  requires server-owned revisions or a realtime channel; the animation is not
+  represented as actual synchronization.
+
+### Input strategy by device
+
+- **Touch/coarse pointer:** tap toggles the owned live piece's edit lock. While
+  selected, one finger moves it and two active pointers scale from their
+  distance and rotate from their angle. The board suppresses browser pan/zoom
+  only while manipulating a piece.
+- **Mouse/trackpad/fine pointer:** dragging moves the piece. A compact palette
+  is absolutely positioned beside the selected piece and follows it. It offers
+  bounded size and rotation steps without taking space below the canvas.
+- **Keyboard/assistive input:** arrow keys move; plus/minus resize; bracket keys
+  rotate. Accessible labels describe the shortcuts even when the visual
+  fine-pointer palette is hidden.
+
+### Generic stamp asset contract
+
+The model uses a serializable discriminated union rather than an `emoji` string:
+
+- `emoji` — a predefined Unicode glyph;
+- `image` — a same-origin reviewed image, including SVG;
+- `sprite` — a same-origin reviewed sprite sheet plus fixed frame metadata.
+
+Only catalog-issued asset IDs may be selected. This pass renders all three
+shapes but keeps the five daily reward choices emoji-only, preserving the
+current safety rule while proving that richer earned art is additive later.
+
+### Round-two proposed file tree
+
+```text
+app/team-canvas/
+├── components/
+│   ├── FeelTracks.tsx               # two direct native seven-step tracks
+│   ├── StampAsset.tsx                # emoji/image/sprite renderer
+│   ├── TeamCanvasToday.tsx           # primary check and separate cooldown card
+│   ├── TeamCanvasBoard.tsx           # reward tray only; no cooldown UI
+│   └── BoardSurface.tsx              # live board, gestures, palette, star arcs
+├── live-simulation.ts                # deterministic mock peer movement
+├── mock-data.ts                      # real builder configs and live peer pieces
+├── model.ts                          # v2 piece lifecycle and generic assets
+├── model.test.ts                     # rollover, ownership, bounds, projection
+├── state.tsx                         # isolated v2 local prototype store
+├── TeamCanvas.test.tsx               # revised user-visible workflows
+├── content.ts                        # centralized revised copy
+└── team-canvas.css                   # tracks, crowns, live/pulse/palette states
+```
+
+### Round-two implementation order
+
+1. Change failing model and workflow tests first.
+2. Replace dropdowns and move cooldown to the smart Today route.
+3. Move to v2 live-piece state and automatic next-day paste.
+4. Add real builder avatars, star arcs, asset rendering, direct manipulation,
+   and deterministic live teammate motion.
+5. Verify locally, commit on the existing branch, and do not push or deploy.
+
+### Round-two local implementation result
+
+Implemented on 2026-08-21:
+
+- the daily check-in now uses two direct seven-step tracks, and cooldown uses a
+  separate Today card with an optional immediate Team entrance;
+- the board uses real Avatar Studio configurations, individual star crowns,
+  simulated live peer motion, faint unsettled pieces, and a pulsing border on
+  current-player pieces;
+- one tap rests an owned piece and hides its controls; the next tap selects it
+  for editing again without changing its next-day settle time;
+- touch manipulation supports one-pointer movement plus two-pointer scale and
+  rotation math, while fine pointers receive a floating four-action palette;
+- state v2 supports safe catalog emoji, reviewed images/SVG, and sprite sheets,
+  with automatic same-week settlement at the next daily boundary;
+- formatting, lint, TypeScript, contract checks, all 204 unit/component tests,
+  and the production build pass;
+- the full Docker E2E and VM smoke suites were not run because this remains an
+  isolated local prototype with no backend, infrastructure, or release change;
+- no branch push, hosted version, production mutation, or deployment occurred.

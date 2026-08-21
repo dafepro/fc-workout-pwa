@@ -8,16 +8,38 @@ export interface BoardPosition {
   y: number;
 }
 
-export interface EmojiDraft extends BoardPosition {
-  emoji: string;
+export interface BoardTransform extends BoardPosition {
   size: number;
   rotation: number;
 }
 
-export interface EmojiPlacement extends EmojiDraft {
+export type StampAsset =
+  | { id: string; kind: "emoji"; glyph: string; label: string }
+  | { id: string; kind: "image"; src: string; alt: string }
+  | {
+      id: string;
+      kind: "sprite";
+      src: string;
+      alt: string;
+      frames: number;
+      frameWidth: number;
+      frameHeight: number;
+    };
+
+export interface BoardPiece extends BoardTransform {
   id: string;
   dayKey: string;
-  locked: true;
+  ownerId: string;
+  asset: StampAsset;
+  status: "live" | "pasted";
+}
+
+export interface ProjectedBoardPiece extends BoardTransform {
+  id: string;
+  dayKey: string;
+  asset: StampAsset;
+  status: "live" | "pasted";
+  editable: boolean;
 }
 
 export interface TeamCanvasHistoryEntry {
@@ -29,7 +51,7 @@ export interface TeamCanvasHistoryEntry {
 }
 
 export interface TeamCanvasState {
-  version: 1;
+  version: 2;
   teamId: string;
   weekKey: string;
   dayKey: string;
@@ -43,40 +65,41 @@ export interface TeamCanvasState {
   earnedRewardSources: RewardSource[];
   spentRewardSources: RewardSource[];
   avatarPosition: BoardPosition;
-  emojiDraft: EmojiDraft | null;
-  emojiPlacements: EmojiPlacement[];
+  boardPieces: BoardPiece[];
+  selectedPieceId: string | null;
   history: TeamCanvasHistoryEntry[];
 }
 
 export interface TeamCanvasProjection {
-  starCount: number;
+  starDayKeys: string[];
   avatarPosition: BoardPosition;
-  emojiPlacements: EmojiPlacement[];
+  pieces: ProjectedBoardPiece[];
 }
 
-const EMOJI_CATALOG = [
-  "⚡",
-  "🔥",
-  "🌟",
-  "🚀",
-  "🦁",
-  "🐆",
-  "🛡️",
-  "🎯",
-  "⚽",
-  "🌈",
-  "💪",
-  "🏃",
-  "🦅",
-  "🎉",
-  "✨",
-] as const;
+const CURRENT_PLAYER_ID = "mason";
+const STAMP_CATALOG: readonly StampAsset[] = [
+  { id: "bolt", kind: "emoji", glyph: "⚡", label: "Bolt" },
+  { id: "fire", kind: "emoji", glyph: "🔥", label: "Fire" },
+  { id: "star", kind: "emoji", glyph: "🌟", label: "Star" },
+  { id: "rocket", kind: "emoji", glyph: "🚀", label: "Rocket" },
+  { id: "lion", kind: "emoji", glyph: "🦁", label: "Lion" },
+  { id: "cheetah", kind: "emoji", glyph: "🐆", label: "Cheetah" },
+  { id: "shield", kind: "emoji", glyph: "🛡️", label: "Shield" },
+  { id: "target", kind: "emoji", glyph: "🎯", label: "Target" },
+  { id: "soccer", kind: "emoji", glyph: "⚽", label: "Soccer ball" },
+  { id: "rainbow", kind: "emoji", glyph: "🌈", label: "Rainbow" },
+  { id: "strong", kind: "emoji", glyph: "💪", label: "Strong" },
+  { id: "runner", kind: "emoji", glyph: "🏃", label: "Runner" },
+  { id: "eagle", kind: "emoji", glyph: "🦅", label: "Eagle" },
+  { id: "party", kind: "emoji", glyph: "🎉", label: "Celebration" },
+  { id: "sparkles", kind: "emoji", glyph: "✨", label: "Sparkles" },
+];
 
 const TEXT_STYLES = ["block", "rally", "speed", "outline"] as const;
 
 export function initialTeamCanvasState(): TeamCanvasState {
   return {
-    version: 1,
+    version: 2,
     teamId: "team-hill-striders",
     weekKey: "2026-08-17",
     dayKey: "2026-08-20",
@@ -90,8 +113,8 @@ export function initialTeamCanvasState(): TeamCanvasState {
     earnedRewardSources: [],
     spentRewardSources: [],
     avatarPosition: { x: 50, y: 72 },
-    emojiDraft: null,
-    emojiPlacements: [],
+    boardPieces: [],
+    selectedPieceId: null,
     history: [],
   };
 }
@@ -117,8 +140,14 @@ export function beginDay(
     earnedRewardSources: [],
     spentRewardSources: [],
     avatarPosition: sameWeek ? state.avatarPosition : { x: 50, y: 72 },
-    emojiDraft: null,
-    emojiPlacements: sameWeek ? state.emojiPlacements : [],
+    boardPieces: sameWeek
+      ? state.boardPieces.map((piece) =>
+          piece.status === "live" && piece.dayKey !== input.dayKey
+            ? { ...piece, status: "pasted" as const }
+            : piece,
+        )
+      : [],
+    selectedPieceId: null,
   };
 }
 
@@ -132,8 +161,8 @@ export function recordPrimary(
 ): TeamCanvasState {
   if (state.primaryComplete || state.dayKind !== "training") return state;
 
-  const rewardSources =
-    input.completion === "reach" ? addUnique([], "reach") : [];
+  const rewardSources: RewardSource[] =
+    input.completion === "reach" ? ["reach"] : [];
   const detail =
     input.completion === "goal"
       ? "Goal followed"
@@ -250,9 +279,9 @@ export function availableRewardCount(state: TeamCanvasState): number {
   );
 }
 
-export function dailyEmojiSet(teamId: string, dayKey: string): string[] {
-  const available = [...EMOJI_CATALOG];
-  const result: string[] = [];
+export function dailyStampSet(teamId: string, dayKey: string): StampAsset[] {
+  const available = [...STAMP_CATALOG];
+  const result: StampAsset[] = [];
   let seed = hash(`${teamId}:${dayKey}`);
 
   while (result.length < 5) {
@@ -270,73 +299,78 @@ export function weeklyTextStyle(
   return TEXT_STYLES[hash(`${teamId}:${weekKey}`) % TEXT_STYLES.length];
 }
 
-export function selectEmoji(
+export function addLivePiece(
   state: TeamCanvasState,
-  emoji: string,
+  requestedAsset: StampAsset,
 ): TeamCanvasState {
-  if (
-    availableRewardCount(state) === 0 ||
-    !dailyEmojiSet(state.teamId, state.dayKey).includes(emoji)
-  ) {
-    return state;
-  }
-
-  return {
-    ...state,
-    emojiDraft: {
-      emoji,
-      x: 50,
-      y: 42,
-      size: 44,
-      rotation: 0,
-    },
-  };
-}
-
-export function updateEmojiDraft(
-  state: TeamCanvasState,
-  patch: Partial<Omit<EmojiDraft, "emoji">>,
-): TeamCanvasState {
-  if (!state.emojiDraft) return state;
-  const next = { ...state.emojiDraft, ...patch };
-
-  return {
-    ...state,
-    emojiDraft: {
-      ...next,
-      x: clamp(next.x, 6, 94),
-      y: clamp(next.y, 6, 94),
-      size: clamp(next.size, 28, 64),
-      rotation: clamp(next.rotation, -45, 45),
-    },
-  };
-}
-
-export function discardEmojiDraft(state: TeamCanvasState): TeamCanvasState {
-  return state.emojiDraft ? { ...state, emojiDraft: null } : state;
-}
-
-export function confirmEmoji(state: TeamCanvasState): TeamCanvasState {
-  if (!state.emojiDraft || availableRewardCount(state) === 0) return state;
+  if (availableRewardCount(state) === 0) return state;
+  const asset = dailyStampSet(state.teamId, state.dayKey).find(
+    ({ id }) => id === requestedAsset.id,
+  );
   const nextSource = state.earnedRewardSources.find(
     (source) => !state.spentRewardSources.includes(source),
   );
-  if (!nextSource) return state;
+  if (!asset || !nextSource) return state;
+
+  const ownedToday = state.boardPieces.filter(
+    (piece) =>
+      piece.ownerId === CURRENT_PLAYER_ID && piece.dayKey === state.dayKey,
+  ).length;
+  const piece: BoardPiece = {
+    id: `piece-${state.dayKey}-${state.boardPieces.length + 1}`,
+    dayKey: state.dayKey,
+    ownerId: CURRENT_PLAYER_ID,
+    asset,
+    status: "live",
+    x: 46 + ownedToday * 12,
+    y: 42 + ownedToday * 10,
+    size: 44,
+    rotation: 0,
+  };
 
   return {
     ...state,
-    emojiDraft: null,
     spentRewardSources: [...state.spentRewardSources, nextSource],
-    emojiPlacements: [
-      ...state.emojiPlacements,
-      {
-        ...state.emojiDraft,
-        id: `stamp-${state.dayKey}-${state.emojiPlacements.length + 1}`,
-        dayKey: state.dayKey,
-        locked: true,
-      },
-    ],
+    boardPieces: [...state.boardPieces, piece],
+    selectedPieceId: piece.id,
   };
+}
+
+export function selectOwnedPiece(
+  state: TeamCanvasState,
+  pieceId: string,
+): TeamCanvasState {
+  const piece = state.boardPieces.find(({ id }) => id === pieceId);
+  return piece && isEditablePiece(piece, state.dayKey, CURRENT_PLAYER_ID)
+    ? { ...state, selectedPieceId: pieceId }
+    : state;
+}
+
+export function clearPieceSelection(state: TeamCanvasState): TeamCanvasState {
+  return state.selectedPieceId ? { ...state, selectedPieceId: null } : state;
+}
+
+export function updateOwnedPiece(
+  state: TeamCanvasState,
+  pieceId: string,
+  patch: Partial<BoardTransform>,
+): TeamCanvasState {
+  const index = state.boardPieces.findIndex(({ id }) => id === pieceId);
+  const current = state.boardPieces[index];
+  if (!current || !isEditablePiece(current, state.dayKey, CURRENT_PLAYER_ID)) {
+    return state;
+  }
+  const next = { ...current, ...patch };
+  const boardPieces = [...state.boardPieces];
+  boardPieces[index] = {
+    ...next,
+    x: clamp(next.x, 6, 94),
+    y: clamp(next.y, 6, 94),
+    size: clamp(next.size, 28, 64),
+    rotation: clamp(next.rotation, -45, 45),
+  };
+
+  return { ...state, boardPieces, selectedPieceId: pieceId };
 }
 
 export function moveOwnAvatar(
@@ -354,20 +388,22 @@ export function moveOwnAvatar(
 
 export function teamCanvasProjection(
   state: TeamCanvasState,
+  currentPlayerId = CURRENT_PLAYER_ID,
 ): TeamCanvasProjection | null {
   if (!teamCanvasUnlocked(state)) return null;
   return {
-    starCount: Math.min(7, state.completedDayKeys.length),
+    starDayKeys: state.completedDayKeys.slice(-7),
     avatarPosition: state.avatarPosition,
-    emojiPlacements: state.emojiPlacements.map((placement) => ({
-      id: placement.id,
-      dayKey: placement.dayKey,
-      emoji: placement.emoji,
-      x: placement.x,
-      y: placement.y,
-      size: placement.size,
-      rotation: placement.rotation,
-      locked: true,
+    pieces: state.boardPieces.map((piece) => ({
+      id: piece.id,
+      dayKey: piece.dayKey,
+      asset: piece.asset,
+      status: piece.status,
+      editable: isEditablePiece(piece, state.dayKey, currentPlayerId),
+      x: piece.x,
+      y: piece.y,
+      size: piece.size,
+      rotation: piece.rotation,
     })),
   };
 }
@@ -376,7 +412,7 @@ export function isTeamCanvasState(value: unknown): value is TeamCanvasState {
   if (!value || typeof value !== "object") return false;
   const state = value as Partial<TeamCanvasState>;
   return (
-    state.version === 1 &&
+    state.version === 2 &&
     typeof state.teamId === "string" &&
     typeof state.weekKey === "string" &&
     typeof state.dayKey === "string" &&
@@ -385,8 +421,59 @@ export function isTeamCanvasState(value: unknown): value is TeamCanvasState {
     Array.isArray(state.completedDayKeys) &&
     Array.isArray(state.earnedRewardSources) &&
     Array.isArray(state.spentRewardSources) &&
-    Array.isArray(state.emojiPlacements) &&
+    Array.isArray(state.boardPieces) &&
+    state.boardPieces.every(isBoardPiece) &&
+    (typeof state.selectedPieceId === "string" ||
+      state.selectedPieceId === null) &&
     Array.isArray(state.history)
+  );
+}
+
+function isEditablePiece(
+  piece: BoardPiece,
+  dayKey: string,
+  currentPlayerId: string,
+): boolean {
+  return (
+    piece.ownerId === currentPlayerId &&
+    piece.dayKey === dayKey &&
+    piece.status === "live"
+  );
+}
+
+function isBoardPiece(value: unknown): value is BoardPiece {
+  if (!value || typeof value !== "object") return false;
+  const piece = value as Partial<BoardPiece>;
+  return (
+    typeof piece.id === "string" &&
+    typeof piece.dayKey === "string" &&
+    typeof piece.ownerId === "string" &&
+    (piece.status === "live" || piece.status === "pasted") &&
+    typeof piece.x === "number" &&
+    typeof piece.y === "number" &&
+    typeof piece.size === "number" &&
+    typeof piece.rotation === "number" &&
+    isStampAsset(piece.asset)
+  );
+}
+
+function isStampAsset(value: unknown): value is StampAsset {
+  if (!value || typeof value !== "object") return false;
+  const asset = value as Partial<StampAsset>;
+  if (typeof asset.id !== "string") return false;
+  if (asset.kind === "emoji") {
+    return typeof asset.glyph === "string" && typeof asset.label === "string";
+  }
+  if (asset.kind === "image") {
+    return typeof asset.src === "string" && typeof asset.alt === "string";
+  }
+  return (
+    asset.kind === "sprite" &&
+    typeof asset.src === "string" &&
+    typeof asset.alt === "string" &&
+    typeof asset.frames === "number" &&
+    typeof asset.frameWidth === "number" &&
+    typeof asset.frameHeight === "number"
   );
 }
 
