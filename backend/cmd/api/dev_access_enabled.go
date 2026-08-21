@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	devAdminEmail = "admin@dev.zoomigo.invalid"
+	devAdminEmail = "admin@dev.invalid"
 	devPIN        = "1111"
 )
 

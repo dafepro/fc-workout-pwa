@@ -96,7 +96,7 @@ export async function gateDevRequest(
     return null;
   }
 
-  const next = `${url.pathname}${url.search}`;
+  const next = safeNext(`${url.pathname}${url.search}`);
   return new Response(null, {
     status: 303,
     headers: {
@@ -207,7 +207,8 @@ function safeNext(value: string) {
     ) {
       return "/dev-access";
     }
-    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    const destination = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    return destination === "/" ? "/dev-access" : destination;
   } catch {
     return "/dev-access";
   }

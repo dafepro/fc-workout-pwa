@@ -42,6 +42,9 @@ func TestDevResetCreatesFourPlayerLoginsAndPresetAdministrator(t *testing.T) {
 	if err != nil || len(access.Players) != 4 || access.PIN != "1111" {
 		t.Fatalf("Access() = %+v, error = %v", access, err)
 	}
+	if access.AdminEmail != "admin@dev.invalid" {
+		t.Fatalf("AdminEmail = %q, want admin@dev.invalid", access.AdminEmail)
+	}
 	for _, player := range access.Players {
 		loginURL, parseErr := url.Parse(player.LoginURL)
 		if parseErr != nil || !strings.HasPrefix(loginURL.Fragment, "credential=") {
