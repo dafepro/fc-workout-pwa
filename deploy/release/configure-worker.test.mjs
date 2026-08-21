@@ -119,13 +119,13 @@ test("configures the disposable Worker with its Midwest gate", () => {
       routes: [{ pattern: "zoomigo.quicktrack.cc", custom_domain: true }],
     },
     {
-      apiHostname: "api.dev.zoomigo.quicktrack.cc",
+      apiHostname: "api-dev.zoomigo.quicktrack.cc",
       pwaHostname: "dev.zoomigo.quicktrack.cc",
       workerName: "zoomigo-training-dev",
       devAccessEnabled: true,
       allowedRegionCodes: ["IL", "WI"],
     },
-    "https://api.dev.zoomigo.quicktrack.cc",
+    "https://api-dev.zoomigo.quicktrack.cc",
   );
 
   assert.equal(configured.vars.DEV_ACCESS_ENABLED, "true");

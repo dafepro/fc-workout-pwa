@@ -57,6 +57,15 @@ describe("gateDevRequest", () => {
     );
   });
 
+  it("sends root visitors to the credential directory after the gate", async () => {
+    const response = await gateDevRequest(request("/", "US"), env);
+
+    expect(response?.status).toBe(303);
+    expect(response?.headers.get("location")).toBe(
+      "/_dev-gate?next=%2Fdev-access",
+    );
+  });
+
   it("creates a secure signed session for the shared password", async () => {
     const response = await gateDevRequest(
       request("/_dev-gate", "US", {

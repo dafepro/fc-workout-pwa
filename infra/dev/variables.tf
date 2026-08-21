@@ -33,7 +33,7 @@ variable "cloudflare_zone_id" {
 
 variable "api_hostname" {
   type    = string
-  default = "api.dev.zoomigo.quicktrack.cc"
+  default = "api-dev.zoomigo.quicktrack.cc"
 }
 
 variable "repository_url" {

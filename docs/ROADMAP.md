@@ -437,7 +437,7 @@ rediscovered.
   shared host tests none of the above, and puts the only host that matters behind
   the same OOM killer and disk as untested code.
 - The implemented path uses `dev.zoomigo.quicktrack.cc`, a separate
-  `api.dev.zoomigo.quicktrack.cc`, remote state key, Droplet, DNS record, Worker,
+  `api-dev.zoomigo.quicktrack.cc`, remote state key, Droplet, DNS record, Worker,
   and dev-tagged image. GitHub Actions exposes create, update, reset, and destroy
   operations; create seeds four QR+PIN players and a preset preview operator.
   See `DEV_ENVIRONMENT.md`.

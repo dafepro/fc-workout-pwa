@@ -1,5 +1,5 @@
 {
-  "apiHostname": "api.dev.zoomigo.quicktrack.cc",
+  "apiHostname": "api-dev.zoomigo.quicktrack.cc",
   "pwaHostname": "dev.zoomigo.quicktrack.cc",
   "workerName": "zoomigo-training-dev",
   "devAccessEnabled": true,

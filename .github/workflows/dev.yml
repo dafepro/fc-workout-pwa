@@ -66,6 +66,8 @@ jobs:
           go -C backend test ./...
           go -C backend test -tags=dev ./...
 
+      - uses: docker/setup-buildx-action@v3
+
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -159,6 +161,8 @@ jobs:
         id: infra
         if: inputs.operation == 'create' || inputs.operation == 'update'
         env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}
           DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           TF_VAR_cloudflare_zone_id: ${{ vars.CLOUDFLARE_ZONE_ID }}
@@ -207,7 +211,7 @@ jobs:
           DEV_ACCESS_PASSWORD: ${{ secrets.DEV_ACCESS_PASSWORD }}
           DEV_ACCESS_SESSION_KEY: ${{ secrets.DEV_ACCESS_SESSION_KEY }}
           STAFF_SECRET_KEY: ${{ secrets.DEV_STAFF_SECRET_KEY }}
-          ZOOMIGO_API_BASE_URL: https://api.dev.zoomigo.quicktrack.cc
+          ZOOMIGO_API_BASE_URL: https://api-dev.zoomigo.quicktrack.cc
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
@@ -233,7 +237,7 @@ jobs:
             -X POST \
             -H "X-Zoomigo-Dev-Gateway: $DEV_API_GATEWAY_TOKEN" \
             -H "X-Zoomigo-Dev-Reset: $DEV_RESET_KEY" \
-            https://api.dev.zoomigo.quicktrack.cc/__dev/reset
+            https://api-dev.zoomigo.quicktrack.cc/__dev/reset
 
       - name: Reset preview fixtures
         if: inputs.operation == 'reset'
@@ -245,7 +249,7 @@ jobs:
             -X POST \
             -H "X-Zoomigo-Dev-Gateway: $DEV_API_GATEWAY_TOKEN" \
             -H "X-Zoomigo-Dev-Reset: $DEV_RESET_KEY" \
-            https://api.dev.zoomigo.quicktrack.cc/__dev/reset
+            https://api-dev.zoomigo.quicktrack.cc/__dev/reset
 
       - name: Remove Worker
         if: inputs.operation == 'destroy'
@@ -257,6 +261,8 @@ jobs:
       - name: Destroy disposable infrastructure
         if: inputs.operation == 'destroy'
         env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}
           DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           TF_VAR_cloudflare_zone_id: ${{ vars.CLOUDFLARE_ZONE_ID }}
