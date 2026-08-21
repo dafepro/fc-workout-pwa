@@ -81,6 +81,7 @@ type Repository interface {
 	RecordTeamCanvasRest(context.Context, domain.Actor, string, time.Time) error
 	UpdateTeamCanvasAvatar(context.Context, domain.Actor, string, store.TeamCanvasPosition, time.Time) (store.TeamCanvasPosition, error)
 	CreateTeamCanvasPiece(context.Context, domain.Actor, string, string, time.Time) (store.TeamCanvasPiece, error)
+	CreateTeamCanvasPieceForDevelopment(context.Context, domain.Actor, string, string, time.Time) (store.TeamCanvasPiece, error)
 	UpdateTeamCanvasPiece(context.Context, domain.Actor, string, string, store.TeamCanvasTransform, time.Time) (store.TeamCanvasPiece, error)
 	DeleteTeamCanvasPiece(context.Context, domain.Actor, string, string, time.Time) error
 	UpdateTeamCanvasSettings(context.Context, domain.Actor, string, store.TeamCanvasSettingsInput, time.Time) (store.TeamCanvasSettings, error)

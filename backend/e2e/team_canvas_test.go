@@ -70,7 +70,8 @@ func TestTeamCanvasPersistsRewardsSettingsAndLiveInvalidations(t *testing.T) {
 	dynamicSettings := api.do(t, http.MethodPut, "/v1/teams/team-hill-striders/canvas/dev-settings", masonToken, "", map[string]any{
 		"backgroundAssetId": "soccer-field", "backgroundColor": "#89C981", "textColor": "#FFFFFF",
 		"textSize": 112, "textStyle": "block",
-		"stampChoices": []string{"soccer", "balloon", "rocket", "spark-cleat", "zoomigo-mark"},
+		"stampChoices":        []string{"soccer", "balloon", "rocket", "spark-cleat", "zoomigo-mark"},
+		"developerStampLimit": 2,
 	})
 	assertStatus(t, dynamicSettings, http.StatusOK)
 	_ = dynamicSettings.Body.Close()
@@ -89,8 +90,22 @@ func TestTeamCanvasPersistsRewardsSettingsAndLiveInvalidations(t *testing.T) {
 	assertCanvasEvent(t, scanner, "canvas")
 
 	secondPiece := api.do(t, http.MethodPost, "/v1/teams/team-hill-striders/canvas/pieces", masonToken, "", map[string]any{"assetId": "balloon"})
-	assertStatus(t, secondPiece, http.StatusUnprocessableEntity)
-	_ = secondPiece.Body.Close()
+	assertStatus(t, secondPiece, http.StatusCreated)
+	var balloonPiece struct {
+		ID string `json:"id"`
+	}
+	decodeJSON(t, secondPiece, &balloonPiece)
+	assertCanvasEvent(t, scanner, "canvas")
+	thirdPiece := api.do(t, http.MethodPost, "/v1/teams/team-hill-striders/canvas/pieces", masonToken, "", map[string]any{"assetId": "rocket"})
+	assertStatus(t, thirdPiece, http.StatusCreated)
+	var rocketPiece struct {
+		ID string `json:"id"`
+	}
+	decodeJSON(t, thirdPiece, &rocketPiece)
+	assertCanvasEvent(t, scanner, "canvas")
+	overLimit := api.do(t, http.MethodPost, "/v1/teams/team-hill-striders/canvas/pieces", masonToken, "", map[string]any{"assetId": "rocket"})
+	assertStatus(t, overLimit, http.StatusUnprocessableEntity)
+	_ = overLimit.Body.Close()
 
 	updatedPiece := api.do(t, http.MethodPut, "/v1/teams/team-hill-striders/canvas/pieces/"+piece.ID, masonToken, "", map[string]any{
 		"x": 200, "y": -100, "size": 500, "rotation": 135,
@@ -100,12 +115,13 @@ func TestTeamCanvasPersistsRewardsSettingsAndLiveInvalidations(t *testing.T) {
 	assertCanvasEvent(t, scanner, "piece")
 
 	settingsResponse := api.do(t, http.MethodPut, "/v1/teams/team-hill-striders/canvas/dev-settings", masonToken, "", map[string]any{
-		"backgroundAssetId": "creature-quest-town",
-		"backgroundColor":   "#DDEEFF",
-		"textColor":         "#112233",
-		"textSize":          124,
-		"textStyle":         "bubble",
-		"stampChoices":      []string{"spark-cleat", "zoomigo-mark", "bolt", "star", "rocket"},
+		"backgroundAssetId":   "creature-quest-town",
+		"backgroundColor":     "#DDEEFF",
+		"textColor":           "#112233",
+		"textSize":            124,
+		"textStyle":           "bubble",
+		"stampChoices":        []string{"spark-cleat", "zoomigo-mark", "bolt", "star", "rocket"},
+		"developerStampLimit": 2,
 	})
 	assertStatus(t, settingsResponse, http.StatusOK)
 	_ = settingsResponse.Body.Close()
@@ -138,12 +154,15 @@ func TestTeamCanvasPersistsRewardsSettingsAndLiveInvalidations(t *testing.T) {
 	assertStatus(t, afterPieceDelete, http.StatusOK)
 	var afterPieceDeleteSnapshot canvasSnapshot
 	decodeJSON(t, afterPieceDelete, &afterPieceDeleteSnapshot)
-	if afterPieceDeleteSnapshot.AvailableRewards != 1 || len(afterPieceDeleteSnapshot.Pieces) != 0 {
+	if afterPieceDeleteSnapshot.AvailableRewards != 1 || len(afterPieceDeleteSnapshot.Pieces) != 2 {
 		t.Fatalf("deleted piece did not restore reward: %+v", afterPieceDeleteSnapshot)
 	}
 	replacement := api.do(t, http.MethodPost, "/v1/teams/team-hill-striders/canvas/pieces", masonToken, "", map[string]any{"assetId": "zoomigo-mark"})
 	assertStatus(t, replacement, http.StatusCreated)
-	_ = replacement.Body.Close()
+	var replacementPiece struct {
+		ID string `json:"id"`
+	}
+	decodeJSON(t, replacement, &replacementPiece)
 	assertCanvasEvent(t, scanner, "canvas")
 
 	deleted := api.do(t, http.MethodDelete, "/v1/training-entries/"+reachEntry.ID, masonToken, "", nil)
@@ -154,8 +173,10 @@ func TestTeamCanvasPersistsRewardsSettingsAndLiveInvalidations(t *testing.T) {
 	assertStatus(t, afterDelete, http.StatusOK)
 	deletedBody := readBody(afterDelete)
 	_ = afterDelete.Body.Close()
-	if !strings.Contains(deletedBody, `"pieces":[]`) {
-		t.Fatalf("deleted reward source left a canvas piece: %s", deletedBody)
+	if strings.Contains(deletedBody, `"id":"`+replacementPiece.ID+`"`) ||
+		!strings.Contains(deletedBody, `"id":"`+balloonPiece.ID+`"`) ||
+		!strings.Contains(deletedBody, `"id":"`+rocketPiece.ID+`"`) {
+		t.Fatalf("reward reconciliation removed developer pieces or kept an earned piece: %s", deletedBody)
 	}
 }
 

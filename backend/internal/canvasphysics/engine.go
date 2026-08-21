@@ -12,10 +12,12 @@ const FixedStep = time.Second / 30
 const (
 	canonicalBoardWidth = 400.0
 	avatarRadius        = 4.2
-	maximumAvatarSpeed  = 55.0
+	maximumAvatarSpeed  = 85.0
 	sleepSpeed          = 0.08
 	sleepSteps          = 45
-	boundaryRestSpeed   = 1.4
+	boundaryRestSpeed   = 1.05
+	bodySolverSteps     = 4
+	avatarKickCooldown  = 180 * time.Millisecond
 )
 
 type Body struct {
@@ -36,12 +38,14 @@ type World struct {
 	Sequence  uint64
 	bodies    map[string]Body
 	avatars   map[string]avatarSample
+	lastKicks map[string]time.Time
 	lastReset []string
 }
 
 func NewWorld(scene SceneProfile) *World {
 	return &World{
 		Scene: scene, bodies: make(map[string]Body), avatars: make(map[string]avatarSample),
+		lastKicks: make(map[string]time.Time),
 	}
 }
 
@@ -247,13 +251,25 @@ func (world *World) MoveAvatar(playerID string, position Vector, at time.Time) {
 			continue
 		}
 		direction := normalized(velocity)
-		impulse := math.Min(body.MaxSpeed()*0.72, length(velocity)*0.42) / math.Max(body.behavior.Mass, 0.1)
+		minimumDistance := body.Radius() + avatarRadius + 0.15
+		body.Position = add(position, scale(direction, minimumDistance))
+		world.resolveBounds(&body)
+		kickKey := playerID + "\x00" + id
+		if lastKick, kicked := world.lastKicks[kickKey]; kicked && at.Sub(lastKick) < avatarKickCooldown {
+			world.bodies[id] = body
+			continue
+		}
+		impulse := math.Min(
+			body.MaxSpeed()*0.92,
+			math.Max(body.MaxSpeed()*0.55, length(velocity)*0.76),
+		) / math.Max(body.behavior.Mass, 0.1)
 		body.Velocity = add(body.Velocity, scale(direction, impulse))
-		body.AngularVelocity += (direction.X + direction.Y) * 38 / math.Max(body.behavior.Mass, 0.1)
+		body.AngularVelocity += (direction.X + direction.Y) * 64 / math.Max(body.behavior.Mass, 0.1)
 		body.Sleeping = false
 		body.idleSteps = 0
 		clampBodySpeed(&body)
 		world.bodies[id] = body
+		world.lastKicks[kickKey] = at
 	}
 }
 
@@ -363,44 +379,63 @@ func bouncedVelocity(velocity, restitution float64) float64 {
 
 func (world *World) resolveBodyCollisions() {
 	ids := world.bodyIDs()
-	for firstIndex, firstID := range ids {
-		for _, secondID := range ids[firstIndex+1:] {
-			first := world.bodies[firstID]
-			second := world.bodies[secondID]
-			if first.kinematic || second.kinematic || first.Recovering || second.Recovering {
-				continue
+	for iteration := 0; iteration < bodySolverSteps; iteration++ {
+		for firstIndex, firstID := range ids {
+			for _, secondID := range ids[firstIndex+1:] {
+				first := world.bodies[firstID]
+				second := world.bodies[secondID]
+				if (first.kinematic && second.kinematic) || first.Recovering || second.Recovering {
+					continue
+				}
+				delta := subtract(second.Position, first.Position)
+				distanceBetween := length(delta)
+				minimumDistance := first.Radius() + second.Radius()
+				if distanceBetween >= minimumDistance {
+					continue
+				}
+				normal := Vector{X: 1}
+				if distanceBetween > 0.0001 {
+					normal = scale(delta, 1/distanceBetween)
+				}
+				inverseFirst := inverseMass(first)
+				inverseSecond := inverseMass(second)
+				correction := scale(normal, (minimumDistance-distanceBetween+0.001)/(inverseFirst+inverseSecond))
+				first.Position = subtract(first.Position, scale(correction, inverseFirst))
+				second.Position = add(second.Position, scale(correction, inverseSecond))
+				if !first.kinematic {
+					world.resolveBounds(&first)
+				}
+				if !second.kinematic {
+					world.resolveBounds(&second)
+				}
+				relativeVelocity := subtract(second.Velocity, first.Velocity)
+				alongNormal := dot(relativeVelocity, normal)
+				if alongNormal < 0 {
+					restitution := math.Min(first.behavior.Restitution, second.behavior.Restitution)
+					impulseMagnitude := -(1 + restitution) * alongNormal / (inverseFirst + inverseSecond)
+					impulse := scale(normal, impulseMagnitude)
+					first.Velocity = subtract(first.Velocity, scale(impulse, inverseFirst))
+					second.Velocity = add(second.Velocity, scale(impulse, inverseSecond))
+				}
+				if !first.kinematic {
+					first.Sleeping, first.idleSteps = false, 0
+				}
+				if !second.kinematic {
+					second.Sleeping, second.idleSteps = false, 0
+				}
+				clampBodySpeed(&first)
+				clampBodySpeed(&second)
+				world.bodies[firstID], world.bodies[secondID] = first, second
 			}
-			delta := subtract(second.Position, first.Position)
-			distanceBetween := length(delta)
-			minimumDistance := first.Radius() + second.Radius()
-			if distanceBetween >= minimumDistance {
-				continue
-			}
-			normal := Vector{X: 1}
-			if distanceBetween > 0.0001 {
-				normal = scale(delta, 1/distanceBetween)
-			}
-			inverseFirst := 1 / math.Max(first.behavior.Mass, 0.1)
-			inverseSecond := 1 / math.Max(second.behavior.Mass, 0.1)
-			correction := scale(normal, (minimumDistance-distanceBetween+0.01)/(inverseFirst+inverseSecond)*0.82)
-			first.Position = subtract(first.Position, scale(correction, inverseFirst))
-			second.Position = add(second.Position, scale(correction, inverseSecond))
-			relativeVelocity := subtract(second.Velocity, first.Velocity)
-			alongNormal := dot(relativeVelocity, normal)
-			if alongNormal < 0 {
-				restitution := math.Min(first.behavior.Restitution, second.behavior.Restitution)
-				impulseMagnitude := -(1 + restitution) * alongNormal / (inverseFirst + inverseSecond)
-				impulse := scale(normal, impulseMagnitude)
-				first.Velocity = subtract(first.Velocity, scale(impulse, inverseFirst))
-				second.Velocity = add(second.Velocity, scale(impulse, inverseSecond))
-			}
-			first.Sleeping, second.Sleeping = false, false
-			first.idleSteps, second.idleSteps = 0, 0
-			clampBodySpeed(&first)
-			clampBodySpeed(&second)
-			world.bodies[firstID], world.bodies[secondID] = first, second
 		}
 	}
+}
+
+func inverseMass(body Body) float64 {
+	if body.kinematic {
+		return 0
+	}
+	return 1 / math.Max(body.behavior.Mass, 0.1)
 }
 
 func (world *World) bodyIDs() []string {

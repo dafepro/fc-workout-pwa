@@ -968,12 +968,14 @@
 }
 
 .tc-toolbox__body select,
+.tc-toolbox__body input[type="number"],
 .tc-toolbox__body input[type="range"] {
   width: 100%;
   min-width: 0;
 }
 
-.tc-toolbox__body select {
+.tc-toolbox__body select,
+.tc-toolbox__body input[type="number"] {
   min-height: 2.35rem;
   padding: 0.35rem 0.45rem;
   border: 1px solid var(--tc-line);

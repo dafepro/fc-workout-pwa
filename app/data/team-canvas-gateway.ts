@@ -22,6 +22,7 @@ export interface TeamCanvasSettings {
   textSize: number;
   textStyle: string;
   stampChoices: string[];
+  developerStampLimit: number;
   revision: number;
 }
 
@@ -189,6 +190,7 @@ class HTTPTeamCanvasGateway implements TeamCanvasGateway {
         textSize: settings.textSize,
         textStyle: settings.textStyle,
         stampChoices: settings.stampChoices,
+        developerStampLimit: settings.developerStampLimit,
       }),
     });
     return (await response.json()) as TeamCanvasSettings;

@@ -32,6 +32,7 @@ backend/internal/canvasphysics/
 
 backend/
 ├── migrations/000015_team_canvas_physics.*.sql
+├── migrations/000016_team_canvas_developer_stamps.*.sql
 ├── internal/store/team_canvas_physics.go
 └── internal/httpapi/team_canvas_physics.go
 
@@ -75,9 +76,10 @@ player-authored behavior, uploads, arbitrary scripts, or competitive scoring.
 1. Avatars are kinematic circles. Dragging an avatar supplies a capped velocity;
    contact transfers a bounded impulse to dynamic pieces.
 2. A live dynamic stamp updated by its owner receives a renewable 240 ms
-   kinematic lease and is temporarily non-colliding. The lease naturally expires
-   after release or an interrupted request, then the catalog behavior resumes.
-   Server bounds still apply to every placement.
+   kinematic lease. It cannot be displaced while held, but it remains a solid
+   circle that can deflect free dynamic bodies. The lease naturally expires after
+   release or an interrupted request, then the catalog behavior resumes. Server
+   bounds still apply to every placement.
 3. Only catalog entries explicitly marked `dynamic` or `static-collider`
    participate. Decorative stamps are non-colliding, so players cannot surround
    the board with an accidental wall.
@@ -191,11 +193,18 @@ At most 64 pieces per team/week receive dynamic state. A reviewed dynamic asset
 placed after that safety budget is exhausted remains ordinary static art;
 editing it cannot promote it around the cap.
 
+Migration 16 adds a development-only placement budget and a durable marker that
+keeps playground pieces separate from earned reward pieces. Development and E2E
+builds may expose 0–16 extra slots per player/day. Production never honors those
+slots, reward reconciliation ignores them, and lowering the budget does not
+silently delete existing playground pieces. They remain owner-deletable today.
+
 ## Lifecycle
 
 - Creation inserts the piece and initial physics state in one transaction.
-- Owner placement resets velocity and renews a brief ghosted kinematic lease;
-  server bounds and ownership are validated before the room accepts it.
+- Owner placement resets velocity and renews a brief solid kinematic lease;
+  server bounds and ownership are validated before the room accepts it. A held
+  dynamic stamp can push free bodies but cannot itself be pushed.
 - Same-day owner deletion removes piece state in the same transaction as the
   piece and broadcasts the removal immediately.
 - At the next team-local day boundary, editable ownership settles exactly as it
@@ -239,6 +248,8 @@ editing it cannot promote it around the cap.
 3. Single-replica authoritative room, authenticated SSE frames, structured live
    piece events, and bounded avatar/placement input.
 4. Top-down, side-view, and space profiles plus reduced-motion rendering.
+5. Firmer four-pass circle separation, higher restitution, lower field drag,
+   stronger swept-avatar kicks, and development-only multi-body placement slots.
 
 The remaining release work is review, beta instrumentation, and a shared room
 coordinator before any horizontal API scaling.

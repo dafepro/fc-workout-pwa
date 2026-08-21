@@ -212,6 +212,60 @@ func TestTeamCanvasDeletesOnlyOwnedCurrentDayPiecesAndReusesRewardSlots(t *testi
 	}
 }
 
+func TestTeamCanvasDeveloperLimitAddsDisposableSlotsWithoutChangingEarnedRewards(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+	if _, err := db.Exec(`UPDATE training_entries
+		SET assignment_id = 'assignment-hills', result_value = 10
+		WHERE id = 'entry-mason'`); err != nil {
+		t.Fatal(err)
+	}
+	actor := domain.Actor{Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-one"}
+	settings, err := repository.UpdateTeamCanvasSettings(context.Background(), actor, "team-one", store.TeamCanvasSettingsInput{
+		BackgroundAssetID: "soccer-field", BackgroundColor: "#A8DC9D", TextColor: "#115630",
+		TextSize: 112, TextStyle: "block", StampChoices: []string{"soccer", "balloon", "rocket", "bolt", "fire"},
+		DeveloperStampLimit: 16,
+	}, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if settings.DeveloperStampLimit != 16 {
+		t.Fatalf("developer stamp limit = %d, want 16", settings.DeveloperStampLimit)
+	}
+
+	for index := 0; index < 17; index++ {
+		piece, createErr := repository.CreateTeamCanvasPieceForDevelopment(context.Background(), actor, "team-one", "soccer", now)
+		if createErr != nil {
+			t.Fatalf("create piece %d: %v", index+1, createErr)
+		}
+		if piece.DeveloperCreated != (index > 0) {
+			t.Fatalf("piece %d developer flag = %v", index+1, piece.DeveloperCreated)
+		}
+	}
+	if _, err := repository.CreateTeamCanvasPieceForDevelopment(context.Background(), actor, "team-one", "soccer", now); !errors.Is(err, store.ErrTeamCanvasRewardUnavailable) {
+		t.Fatalf("piece above developer limit error = %v", err)
+	}
+	projection, err := repository.TeamCanvas(context.Background(), actor, "team-one", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if projection.AvailableRewards != 0 || len(projection.Pieces) != 17 {
+		t.Fatalf("developer pieces changed earned rewards: %+v", projection)
+	}
+
+	if err := repository.ReconcileTeamCanvasRewards(context.Background(), "team-one", "player-mason", now); err != nil {
+		t.Fatal(err)
+	}
+	var developerPieces int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM team_canvas_pieces WHERE developer_created = 1`).Scan(&developerPieces); err != nil {
+		t.Fatal(err)
+	}
+	if developerPieces != 16 {
+		t.Fatalf("developer pieces after reward reconciliation = %d, want 16", developerPieces)
+	}
+}
+
 func TestTeamCanvasPersistsVersionedPhysicsCheckpointsAndCascadesDeletion(t *testing.T) {
 	repository, db := socialProjectionStore(t)
 	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)

@@ -19,28 +19,28 @@ type Behavior struct {
 
 var behaviors = map[string]Behavior{
 	"soccer": {
-		AssetID: "soccer", RadiusScale: 0.82, Mass: 1,
-		Restitution: 0.78, GravityScale: 1, LinearDamping: 0.12, MaximumSpeed: 34,
+		AssetID: "soccer", RadiusScale: 0.92, Mass: 1,
+		Restitution: 0.92, GravityScale: 1, LinearDamping: 0.04, MaximumSpeed: 52,
 	},
 	"balloon": {
-		AssetID: "balloon", RadiusScale: 0.72, Mass: 0.45,
-		Restitution: 0.38, GravityScale: -0.55, LinearDamping: 0.7, MaximumSpeed: 16,
+		AssetID: "balloon", RadiusScale: 0.82, Mass: 0.45,
+		Restitution: 0.55, GravityScale: -0.55, LinearDamping: 0.34, MaximumSpeed: 22,
 	},
 	"rocket": {
-		AssetID: "rocket", RadiusScale: 0.76, Mass: 1.7,
-		Restitution: 0.48, GravityScale: 0.35, LinearDamping: 0.08, MaximumSpeed: 28,
+		AssetID: "rocket", RadiusScale: 0.84, Mass: 1.7,
+		Restitution: 0.68, GravityScale: 0.35, LinearDamping: 0.04, MaximumSpeed: 38,
 	},
 }
 
 var scenes = map[string]SceneProfile{
 	"top-down-field": {
-		ID: "top-down-field", LinearDamping: 1.85, BoundaryRestitution: 0.68,
+		ID: "top-down-field", LinearDamping: 0.34, BoundaryRestitution: 0.84,
 	},
 	"side-view": {
-		ID: "side-view", Gravity: Vector{Y: 28}, LinearDamping: 0.16, BoundaryRestitution: 0.62,
+		ID: "side-view", Gravity: Vector{Y: 28}, LinearDamping: 0.1, BoundaryRestitution: 0.75,
 	},
 	"space": {
-		ID: "space", LinearDamping: 0.1, BoundaryRestitution: 0.82,
+		ID: "space", LinearDamping: 0.035, BoundaryRestitution: 0.9,
 	},
 }
 

@@ -46,6 +46,7 @@ test.beforeEach(async () => {
           "spark-cleat",
           "zoomigo-mark",
         ],
+        developerStampLimit: 3,
       },
     },
   );
@@ -62,7 +63,7 @@ test("connected Team Canvas uses durable pieces, settings, and SSE updates", asy
 
   await expect(page.getByLabel("Hill Striders weekly canvas")).toBeVisible();
   await expect(page.getByText("Ari", { exact: true })).toHaveCount(0);
-  await expect(page.getByText("1 stamp ready")).toBeVisible();
+  await expect(page.getByText("4 stamps ready")).toBeVisible();
 
   const pieceCreated = page.waitForResponse(
     (response) =>
@@ -71,6 +72,7 @@ test("connected Team Canvas uses durable pieces, settings, and SSE updates", asy
   );
   await page.getByRole("button", { name: "Choose Soccer ball stamp" }).click();
   expect((await pieceCreated).ok()).toBe(true);
+  await expect(page.getByText("3 stamps ready")).toBeVisible();
   const ownedStamp = page.getByRole("button", {
     name: /Edit .* live stamp/,
   });
@@ -135,7 +137,7 @@ test("connected Team Canvas uses durable pieces, settings, and SSE updates", asy
   );
   await page.mouse.up();
   expect((await pieceDeleted).status()).toBe(204);
-  await expect(page.getByText("1 stamp ready")).toBeVisible();
+  await expect(page.getByText("4 stamps ready")).toBeVisible();
   await page
     .getByRole("button", { name: /Choose .* stamp/ })
     .last()
@@ -146,6 +148,7 @@ test("connected Team Canvas uses durable pieces, settings, and SSE updates", asy
   await toolbox.getByText("Developer canvas toolbox", { exact: true }).click();
   await toolbox.getByLabel("Background scene").selectOption("cosmic-stadium");
   await toolbox.getByLabel("Team-name style").selectOption("bubble");
+  await toolbox.getByLabel("Extra playground stamps").fill("4");
   const settingsSaved = page.waitForResponse(
     (response) =>
       response.url().includes("/canvas/dev-settings") &&
@@ -153,6 +156,7 @@ test("connected Team Canvas uses durable pieces, settings, and SSE updates", asy
   );
   await toolbox.getByRole("button", { name: "Apply to live canvas" }).click();
   expect((await settingsSaved).ok()).toBe(true);
+  await expect(page.getByText("4 stamps ready")).toBeVisible();
   await expect(page.locator(".tc-board")).toHaveClass(/tc-board--bubble/);
   await expect(page.locator(".tc-board")).toHaveCSS(
     "background-image",

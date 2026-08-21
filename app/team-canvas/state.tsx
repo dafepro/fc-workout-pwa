@@ -470,10 +470,7 @@ export function TeamCanvasProvider({
                   pieces: current.projection.pieces.filter(
                     ({ id }) => id !== pieceId,
                   ),
-                  availableRewards: Math.min(
-                    2,
-                    current.projection.availableRewards + 1,
-                  ),
+                  availableRewards: current.projection.availableRewards + 1,
                 },
               }
             : current,
@@ -620,6 +617,7 @@ function loadLocalSettings(state: TeamCanvasState): TeamCanvasSettings {
     textSize: 112,
     textStyle: "block",
     stampChoices: dailyStampSet(state.teamId, state.dayKey).map(({ id }) => id),
+    developerStampLimit: 0,
     revision: 0,
   };
   if (typeof window === "undefined") return fallback;

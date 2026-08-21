@@ -111,6 +111,9 @@ func (service *service) getTeamCanvas(w http.ResponseWriter, r *http.Request) {
 	}
 	service.canvasPhysics.sync(r.PathValue("teamId"), projection, service.now().UTC())
 	projection.DeveloperControlsEnabled = service.teamCanvasDeveloperControlsEnabled()
+	if projection.DeveloperControlsEnabled {
+		projection.AvailableRewards += availableDeveloperStamps(projection)
+	}
 	writeJSON(w, http.StatusOK, projection)
 }
 
@@ -173,7 +176,13 @@ func (service *service) createTeamCanvasPiece(w http.ResponseWriter, r *http.Req
 	}
 	teamID := r.PathValue("teamId")
 	now := service.now().UTC()
-	piece, err := service.store.CreateTeamCanvasPiece(r.Context(), actor, teamID, request.AssetID, now)
+	var piece store.TeamCanvasPiece
+	var err error
+	if service.teamCanvasDeveloperControlsEnabled() {
+		piece, err = service.store.CreateTeamCanvasPieceForDevelopment(r.Context(), actor, teamID, request.AssetID, now)
+	} else {
+		piece, err = service.store.CreateTeamCanvasPiece(r.Context(), actor, teamID, request.AssetID, now)
+	}
 	if service.writeTeamCanvasError(w, r, err) {
 		return
 	}
@@ -353,6 +362,20 @@ func (service *service) writeTeamCanvasError(w http.ResponseWriter, r *http.Requ
 
 func (service *service) teamCanvasDeveloperControlsEnabled() bool {
 	return service.cfg.Environment == "development" || service.cfg.EnableE2EFixtures
+}
+
+func availableDeveloperStamps(projection store.TeamCanvasProjection) int {
+	placed := 0
+	for _, piece := range projection.Pieces {
+		if piece.Editable && piece.DeveloperCreated {
+			placed++
+		}
+	}
+	available := projection.Settings.DeveloperStampLimit - placed
+	if available < 0 {
+		return 0
+	}
+	return available
 }
 
 func writeCanvasEvent(w http.ResponseWriter, event, teamID string) {

@@ -21,6 +21,9 @@ func TestTopDownFieldAppliesFrictionWithoutGravity(t *testing.T) {
 	if got.Position.X <= 40 || got.Velocity.X <= 0 || got.Velocity.X >= 18 {
 		t.Fatalf("top-down motion = %+v", got)
 	}
+	if got.Velocity.X < 11 {
+		t.Fatalf("top-down field removed too much momentum: %+v", got)
+	}
 	if math.Abs(got.Position.Y-50) > 0.001 {
 		t.Fatalf("top-down field added gravity: y=%v", got.Position.Y)
 	}
@@ -98,6 +101,26 @@ func TestDynamicCirclesBounceWithoutOverlapping(t *testing.T) {
 	}
 }
 
+func TestDynamicCirclesResolveFirmlyAndKeepAnEnergeticBounce(t *testing.T) {
+	world := NewWorld(SceneFor("soccer-field"))
+	left, _ := NewCatalogBody("left", "soccer", Transform{X: 46, Y: 50, Size: 44})
+	right, _ := NewCatalogBody("right", "soccer", Transform{X: 54, Y: 50, Size: 44})
+	left.Velocity.X = 12
+	right.Velocity.X = -12
+	world.Upsert(left)
+	world.Upsert(right)
+
+	world.Step(FixedStep)
+	left, _ = world.Body("left")
+	right, _ = world.Body("right")
+	if distance(left.Position, right.Position)+0.02 < left.Radius()+right.Radius() {
+		t.Fatalf("firm contact left bodies overlapped: left=%+v right=%+v", left, right)
+	}
+	if left.Velocity.X > -10 || right.Velocity.X < 10 {
+		t.Fatalf("collision absorbed too much bounce: left=%+v right=%+v", left, right)
+	}
+}
+
 func TestAvatarSweepImpartsCappedImpulse(t *testing.T) {
 	world := NewWorld(SceneFor("soccer-field"))
 	ball, _ := NewCatalogBody("ball", "soccer", Transform{X: 50, Y: 50, Size: 44})
@@ -111,6 +134,13 @@ func TestAvatarSweepImpartsCappedImpulse(t *testing.T) {
 	}
 	if got.Speed() > got.MaxSpeed()+0.001 {
 		t.Fatalf("avatar exceeded speed cap: %+v", got)
+	}
+	if got.Speed() < got.MaxSpeed()*0.8 {
+		t.Fatalf("avatar contact felt like a shove instead of a kick: %+v", got)
+	}
+	avatar := world.AvatarPositions()["player"]
+	if distance(got.Position, avatar)+0.02 < got.Radius()+avatarRadius {
+		t.Fatalf("avatar remained embedded in the kicked ball: avatar=%+v ball=%+v", avatar, got)
 	}
 }
 
@@ -127,6 +157,10 @@ func TestKinematicPlacementIgnoresForcesAndCollisionsUntilReleased(t *testing.T)
 	placed, _ = world.Body("placed")
 	if placed.Position != (Vector{X: 50, Y: 40}) || placed.Velocity != (Vector{}) {
 		t.Fatalf("kinematic placement moved: %+v", placed)
+	}
+	moving, _ = world.Body("moving")
+	if moving.Velocity.X >= 0 || distance(placed.Position, moving.Position)+0.02 < placed.Radius()+moving.Radius() {
+		t.Fatalf("kinematic placement was not a solid collider: placed=%+v moving=%+v", placed, moving)
 	}
 	world.Remove("moving")
 	world.SetKinematic("placed", false)

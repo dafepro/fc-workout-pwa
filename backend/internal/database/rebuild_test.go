@@ -362,6 +362,84 @@ func TestMigrateAddsPhysicsStateWithoutLosingPopulatedCanvasPieces(t *testing.T)
 	}
 }
 
+func TestMigrateExpandsDeveloperSlotsWithoutLosingPhysicsChildren(t *testing.T) {
+	ctx := context.Background()
+	databaseURL := "file:" + filepath.ToSlash(filepath.Join(t.TempDir(), "populated-developer-stamps.db"))
+	db, err := Open(ctx, databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if _, err = db.ExecContext(ctx, `CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)`); err != nil {
+		t.Fatal(err)
+	}
+	entries, err := fs.ReadDir(migrations.Files, ".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		if entry.Name() >= "000016" || !strings.HasSuffix(entry.Name(), ".up.sql") {
+			continue
+		}
+		contents, readErr := fs.ReadFile(migrations.Files, entry.Name())
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		if _, err = db.ExecContext(ctx, string(contents)); err != nil {
+			t.Fatalf("apply %s: %v", entry.Name(), err)
+		}
+		if _, err = db.ExecContext(ctx, `INSERT INTO schema_migrations (version, applied_at) VALUES (?, '2026-08-05T00:00:00Z')`, entry.Name()[:6]); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, statement := range []string{
+		`INSERT INTO clubs (id, name, created_at) VALUES ('club-1', 'Club', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO teams (id, club_id, name, season_id, weekly_default_goal, time_zone, created_at)
+		 VALUES ('team-1', 'club-1', 'Team', 'season-2026', 3, 'UTC', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at)
+		 VALUES ('player-1', 'club-1', 'Player', 'A', '{}', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO team_canvas_settings (
+			team_id, background_asset_id, background_color, text_color, text_size,
+			text_style, stamp_choices_json, revision, updated_at
+		) VALUES ('team-1', 'soccer-field', '#89C981', '#FFFFFF', 112,
+			'block', '["soccer","balloon","rocket","bolt","star"]', 1, '2026-08-21T12:00:00Z')`,
+		`INSERT INTO team_canvas_pieces (
+			id, team_id, week_key, day_key, owner_player_id, reward_slot, asset_id,
+			x, y, size, rotation, revision, created_at, updated_at
+		) VALUES ('piece-1', 'team-1', '2026-08-17', '2026-08-21', 'player-1', 1,
+			'soccer', 50, 50, 44, 0, 1, '2026-08-21T12:00:00Z', '2026-08-21T12:00:00Z')`,
+		`INSERT INTO team_canvas_piece_states (
+			piece_id, behavior_version, behavior_state_json, revision, updated_at
+		) VALUES ('piece-1', 1, '{}', 1, '2026-08-21T12:00:00Z')`,
+	} {
+		if _, err = db.ExecContext(ctx, statement); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err = Migrate(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	var pieces, physicsStates, developerLimit, developerCreated int
+	if err = db.QueryRowContext(ctx, `SELECT COUNT(*), developer_created FROM team_canvas_pieces WHERE id = 'piece-1'`).Scan(&pieces, &developerCreated); err != nil {
+		t.Fatal(err)
+	}
+	if err = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM team_canvas_piece_states WHERE piece_id = 'piece-1'`).Scan(&physicsStates); err != nil {
+		t.Fatal(err)
+	}
+	if err = db.QueryRowContext(ctx, `SELECT developer_stamp_limit FROM team_canvas_settings WHERE team_id = 'team-1'`).Scan(&developerLimit); err != nil {
+		t.Fatal(err)
+	}
+	if pieces != 1 || physicsStates != 1 || developerCreated != 0 || developerLimit != 0 {
+		t.Fatalf("migrated canvas pieces=%d physics=%d developer_created=%d limit=%d", pieces, physicsStates, developerCreated, developerLimit)
+	}
+	if _, err = db.ExecContext(ctx, `DELETE FROM team_canvas_pieces WHERE id = 'piece-1'`); err != nil {
+		t.Fatal(err)
+	}
+	if err = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM team_canvas_piece_states WHERE piece_id = 'piece-1'`).Scan(&physicsStates); err != nil || physicsStates != 0 {
+		t.Fatalf("physics child did not cascade after rebuild: count=%d err=%v", physicsStates, err)
+	}
+}
+
 // Enforcement must be back on for the pool afterwards, or every later write
 // silently skips its foreign keys.
 func TestForeignKeysAreEnforcedAfterARebuildMigration(t *testing.T) {

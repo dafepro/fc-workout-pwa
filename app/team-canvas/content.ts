@@ -93,6 +93,7 @@ export const teamCanvasCopy = {
       textColor: "Team-name color",
       textSize: "Team-name size",
       textStyle: "Team-name style",
+      extraStamps: "Extra playground stamps",
       stamps: "Today’s five stamps",
       apply: "Apply to live canvas",
     },

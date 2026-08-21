@@ -38,22 +38,24 @@ type TeamCanvasTransform struct {
 }
 
 type TeamCanvasSettings struct {
-	BackgroundAssetID string   `json:"backgroundAssetId"`
-	BackgroundColor   string   `json:"backgroundColor"`
-	TextColor         string   `json:"textColor"`
-	TextSize          int      `json:"textSize"`
-	TextStyle         string   `json:"textStyle"`
-	StampChoices      []string `json:"stampChoices"`
-	Revision          int      `json:"revision"`
+	BackgroundAssetID   string   `json:"backgroundAssetId"`
+	BackgroundColor     string   `json:"backgroundColor"`
+	TextColor           string   `json:"textColor"`
+	TextSize            int      `json:"textSize"`
+	TextStyle           string   `json:"textStyle"`
+	StampChoices        []string `json:"stampChoices"`
+	DeveloperStampLimit int      `json:"developerStampLimit"`
+	Revision            int      `json:"revision"`
 }
 
 type TeamCanvasSettingsInput struct {
-	BackgroundAssetID string   `json:"backgroundAssetId"`
-	BackgroundColor   string   `json:"backgroundColor"`
-	TextColor         string   `json:"textColor"`
-	TextSize          int      `json:"textSize"`
-	TextStyle         string   `json:"textStyle"`
-	StampChoices      []string `json:"stampChoices"`
+	BackgroundAssetID   string   `json:"backgroundAssetId"`
+	BackgroundColor     string   `json:"backgroundColor"`
+	TextColor           string   `json:"textColor"`
+	TextSize            int      `json:"textSize"`
+	TextStyle           string   `json:"textStyle"`
+	StampChoices        []string `json:"stampChoices"`
+	DeveloperStampLimit int      `json:"developerStampLimit"`
 }
 
 type TeamCanvasMember struct {
@@ -67,13 +69,14 @@ type TeamCanvasMember struct {
 
 type TeamCanvasPiece struct {
 	TeamCanvasTransform
-	ID       string                   `json:"id"`
-	DayKey   string                   `json:"dayKey"`
-	AssetID  string                   `json:"assetId"`
-	Status   string                   `json:"status"`
-	Editable bool                     `json:"editable"`
-	Revision int                      `json:"revision"`
-	Physics  *canvasphysics.BodyState `json:"physics,omitempty"`
+	ID               string                   `json:"id"`
+	DayKey           string                   `json:"dayKey"`
+	AssetID          string                   `json:"assetId"`
+	Status           string                   `json:"status"`
+	Editable         bool                     `json:"editable"`
+	Revision         int                      `json:"revision"`
+	Physics          *canvasphysics.BodyState `json:"physics,omitempty"`
+	DeveloperCreated bool                     `json:"-"`
 }
 
 type TeamCanvasPhysicsProjection struct {
@@ -103,6 +106,8 @@ var (
 	canvasAssets      = allowedValues("bolt", "fire", "star", "rocket", "balloon", "lion", "cheetah", "shield", "target", "soccer", "rainbow", "strong", "runner", "eagle", "party", "sparkles", "spark-cleat", "zoomigo-mark")
 	hexColor          = regexp.MustCompile(`^#[0-9A-Fa-f]{6}$`)
 )
+
+const maxDeveloperStampLimit = 16
 
 func (store *Store) TeamCanvas(ctx context.Context, actor domain.Actor, teamID string, now time.Time) (TeamCanvasProjection, error) {
 	if actor.Role != domain.RolePlayer || actor.PlayerID == "" {
@@ -143,7 +148,7 @@ func (store *Store) TeamCanvas(ctx context.Context, actor domain.Actor, teamID s
 	}
 	spent := 0
 	for _, piece := range pieces {
-		if piece.Editable {
+		if piece.Editable && !piece.DeveloperCreated {
 			spent++
 		}
 	}
@@ -199,11 +204,19 @@ func (store *Store) UpdateTeamCanvasAvatar(ctx context.Context, actor domain.Act
 }
 
 func (store *Store) CreateTeamCanvasPiece(ctx context.Context, actor domain.Actor, teamID, assetID string, now time.Time) (TeamCanvasPiece, error) {
+	return store.createTeamCanvasPiece(ctx, actor, teamID, assetID, now, false)
+}
+
+func (store *Store) CreateTeamCanvasPieceForDevelopment(ctx context.Context, actor domain.Actor, teamID, assetID string, now time.Time) (TeamCanvasPiece, error) {
+	return store.createTeamCanvasPiece(ctx, actor, teamID, assetID, now, true)
+}
+
+func (store *Store) createTeamCanvasPiece(ctx context.Context, actor domain.Actor, teamID, assetID string, now time.Time, allowDeveloper bool) (TeamCanvasPiece, error) {
 	projection, err := store.TeamCanvas(ctx, actor, teamID, now)
 	if err != nil {
 		return TeamCanvasPiece{}, err
 	}
-	if projection.AvailableRewards < 1 || !containsCanvas(projection.StampChoices, assetID) {
+	if !containsCanvas(projection.StampChoices, assetID) {
 		return TeamCanvasPiece{}, ErrTeamCanvasRewardUnavailable
 	}
 	ownedToday := 0
@@ -212,7 +225,15 @@ func (store *Store) CreateTeamCanvasPiece(ctx context.Context, actor domain.Acto
 			ownedToday++
 		}
 	}
-	rewardSlot, err := store.nextTeamCanvasRewardSlot(ctx, teamID, actor.PlayerID, projection.DayKey)
+	rewardSlot := 0
+	developerCreated := false
+	if projection.AvailableRewards > 0 {
+		rewardSlot, err = store.nextTeamCanvasSlot(ctx, teamID, actor.PlayerID, projection.DayKey, 1, 2)
+	}
+	if err == nil && rewardSlot == 0 && allowDeveloper && projection.Settings.DeveloperStampLimit > 0 {
+		rewardSlot, err = store.nextTeamCanvasSlot(ctx, teamID, actor.PlayerID, projection.DayKey, 3, projection.Settings.DeveloperStampLimit+2)
+		developerCreated = rewardSlot != 0
+	}
 	if err != nil {
 		return TeamCanvasPiece{}, err
 	}
@@ -221,8 +242,8 @@ func (store *Store) CreateTeamCanvasPiece(ctx context.Context, actor domain.Acto
 	}
 	piece := TeamCanvasPiece{
 		ID: newID("canvas_piece"), DayKey: projection.DayKey, AssetID: assetID,
-		Status: "live", Editable: true, Revision: 1,
-		TeamCanvasTransform: TeamCanvasTransform{X: 46 + float64(ownedToday*12), Y: 42 + float64(ownedToday*10), Size: 44},
+		Status: "live", Editable: true, Revision: 1, DeveloperCreated: developerCreated,
+		TeamCanvasTransform: teamCanvasSpawnTransform(ownedToday),
 	}
 	stamp := now.UTC().Format(time.RFC3339Nano)
 	tx, err := store.db.BeginTx(ctx, nil)
@@ -231,9 +252,11 @@ func (store *Store) CreateTeamCanvasPiece(ctx context.Context, actor domain.Acto
 	}
 	defer tx.Rollback()
 	_, err = tx.ExecContext(ctx, `INSERT INTO team_canvas_pieces
-		(id, team_id, week_key, day_key, owner_player_id, reward_slot, asset_id, x, y, size, rotation, revision, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`, piece.ID, teamID, projection.WeekKey,
-		projection.DayKey, actor.PlayerID, rewardSlot, assetID, piece.X, piece.Y, piece.Size, piece.Rotation, stamp, stamp)
+		(id, team_id, week_key, day_key, owner_player_id, reward_slot, developer_created,
+		asset_id, x, y, size, rotation, revision, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`, piece.ID, teamID, projection.WeekKey,
+		projection.DayKey, actor.PlayerID, rewardSlot, developerCreated, assetID,
+		piece.X, piece.Y, piece.Size, piece.Rotation, stamp, stamp)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
 			return TeamCanvasPiece{}, ErrTeamCanvasRewardUnavailable
@@ -355,14 +378,14 @@ func (store *Store) DeleteTeamCanvasPiece(ctx context.Context, actor domain.Acto
 	return nil
 }
 
-func (store *Store) nextTeamCanvasRewardSlot(ctx context.Context, teamID, playerID, dayKey string) (int, error) {
+func (store *Store) nextTeamCanvasSlot(ctx context.Context, teamID, playerID, dayKey string, minimum, maximum int) (int, error) {
 	rows, err := store.db.QueryContext(ctx, `SELECT reward_slot FROM team_canvas_pieces
 		WHERE team_id = ? AND owner_player_id = ? AND day_key = ?`, teamID, playerID, dayKey)
 	if err != nil {
 		return 0, fmt.Errorf("list used team canvas rewards: %w", err)
 	}
 	defer rows.Close()
-	used := [3]bool{}
+	used := make([]bool, maximum+1)
 	for rows.Next() {
 		var slot int
 		if err := rows.Scan(&slot); err != nil {
@@ -375,7 +398,7 @@ func (store *Store) nextTeamCanvasRewardSlot(ctx context.Context, teamID, player
 	if err := rows.Err(); err != nil {
 		return 0, err
 	}
-	for slot := 1; slot <= 2; slot++ {
+	for slot := minimum; slot <= maximum; slot++ {
 		if !used[slot] {
 			return slot, nil
 		}
@@ -400,13 +423,16 @@ func (store *Store) UpdateTeamCanvasSettings(ctx context.Context, actor domain.A
 	choices, _ := json.Marshal(input.StampChoices)
 	_, err = store.db.ExecContext(ctx, `INSERT INTO team_canvas_settings
 		(team_id, background_asset_id, background_color, text_color, text_size, text_style,
-		stamp_choices_json, revision, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
+		stamp_choices_json, developer_stamp_limit, revision, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
 		ON CONFLICT(team_id) DO UPDATE SET background_asset_id = excluded.background_asset_id,
 		background_color = excluded.background_color, text_color = excluded.text_color,
 		text_size = excluded.text_size, text_style = excluded.text_style,
-		stamp_choices_json = excluded.stamp_choices_json, revision = revision + 1,
+		stamp_choices_json = excluded.stamp_choices_json,
+		developer_stamp_limit = excluded.developer_stamp_limit, revision = revision + 1,
 		updated_at = excluded.updated_at`, teamID, input.BackgroundAssetID, input.BackgroundColor,
-		input.TextColor, input.TextSize, input.TextStyle, string(choices), now.UTC().Format(time.RFC3339Nano))
+		input.TextColor, input.TextSize, input.TextStyle, string(choices), input.DeveloperStampLimit,
+		now.UTC().Format(time.RFC3339Nano))
 	if err != nil {
 		return TeamCanvasSettings{}, fmt.Errorf("save team canvas settings: %w", err)
 	}
@@ -428,7 +454,8 @@ func (store *Store) ReconcileTeamCanvasRewards(ctx context.Context, teamID, play
 		return err
 	}
 	if _, err := store.db.ExecContext(ctx, `DELETE FROM team_canvas_pieces
-		WHERE team_id = ? AND owner_player_id = ? AND day_key = ? AND reward_slot > ?`,
+		WHERE team_id = ? AND owner_player_id = ? AND day_key = ?
+		AND developer_created = 0 AND reward_slot > ?`,
 		teamID, playerID, dayKey, earned); err != nil {
 		return fmt.Errorf("reconcile team canvas rewards: %w", err)
 	}
@@ -521,7 +548,7 @@ func (store *Store) teamCanvasMembers(ctx context.Context, teamID, currentPlayer
 func (store *Store) teamCanvasPieces(ctx context.Context, teamID, currentPlayerID, weekKey, dayKey string) ([]TeamCanvasPiece, error) {
 	rows, err := store.db.QueryContext(ctx, `SELECT piece.id, piece.day_key, piece.asset_id,
 		piece.x, piece.y, piece.size, piece.rotation, piece.revision, piece.owner_player_id,
-		COALESCE(state.behavior_state_json, '')
+		piece.developer_created, COALESCE(state.behavior_state_json, '')
 		FROM team_canvas_pieces piece LEFT JOIN team_canvas_piece_states state ON state.piece_id = piece.id
 		WHERE piece.team_id = ? AND piece.week_key = ? ORDER BY piece.created_at, piece.id`, teamID, weekKey)
 	if err != nil {
@@ -533,7 +560,8 @@ func (store *Store) teamCanvasPieces(ctx context.Context, teamID, currentPlayerI
 		var piece TeamCanvasPiece
 		var ownerID, physicsJSON string
 		if err := rows.Scan(&piece.ID, &piece.DayKey, &piece.AssetID, &piece.X, &piece.Y,
-			&piece.Size, &piece.Rotation, &piece.Revision, &ownerID, &physicsJSON); err != nil {
+			&piece.Size, &piece.Rotation, &piece.Revision, &ownerID,
+			&piece.DeveloperCreated, &physicsJSON); err != nil {
 			return nil, err
 		}
 		if physicsJSON != "" {
@@ -561,10 +589,10 @@ func (store *Store) teamCanvasSettings(ctx context.Context, teamID, dayKey strin
 	}
 	var choices string
 	err := store.db.QueryRowContext(ctx, `SELECT background_asset_id, background_color,
-		text_color, text_size, text_style, stamp_choices_json, revision
+		text_color, text_size, text_style, stamp_choices_json, developer_stamp_limit, revision
 		FROM team_canvas_settings WHERE team_id = ?`, teamID).Scan(&settings.BackgroundAssetID,
 		&settings.BackgroundColor, &settings.TextColor, &settings.TextSize, &settings.TextStyle,
-		&choices, &settings.Revision)
+		&choices, &settings.DeveloperStampLimit, &settings.Revision)
 	if errors.Is(err, sql.ErrNoRows) {
 		return settings, nil
 	}
@@ -609,7 +637,8 @@ func (store *Store) teamCanvasRewards(ctx context.Context, teamID, playerID, day
 func validTeamCanvasSettings(input TeamCanvasSettingsInput) bool {
 	if !canvasBackgrounds[input.BackgroundAssetID] || !canvasTextStyles[input.TextStyle] ||
 		!hexColor.MatchString(input.BackgroundColor) || !hexColor.MatchString(input.TextColor) ||
-		input.TextSize < 64 || input.TextSize > 160 || len(input.StampChoices) != 5 {
+		input.TextSize < 64 || input.TextSize > 160 || len(input.StampChoices) != 5 ||
+		input.DeveloperStampLimit < 0 || input.DeveloperStampLimit > maxDeveloperStampLimit {
 		return false
 	}
 	seen := make(map[string]bool)
@@ -639,6 +668,12 @@ func defaultCanvasPosition(playerID string) TeamCanvasPosition {
 	_, _ = hash.Write([]byte(playerID))
 	value := hash.Sum32()
 	return TeamCanvasPosition{X: 15 + float64(value%70), Y: 18 + float64((value/71)%64)}
+}
+
+func teamCanvasSpawnTransform(index int) TeamCanvasTransform {
+	x := [...]float64{50, 34, 66, 18, 82}
+	y := [...]float64{50, 32, 68, 18}
+	return TeamCanvasTransform{X: x[index%len(x)], Y: y[(index/len(x))%len(y)], Size: 44}
 }
 
 func localCanvasDay(now time.Time, location *time.Location) time.Time {
