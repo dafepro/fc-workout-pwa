@@ -119,6 +119,7 @@ function projectionFixture(): ConnectedTeamCanvasProjection {
       textSize: 100,
       textStyle: "block",
       stampChoices: ["soccer"],
+      developerStampLimit: 0,
       revision: 1,
     },
     stampChoices: [],

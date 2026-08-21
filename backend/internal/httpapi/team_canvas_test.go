@@ -116,11 +116,32 @@ func TestTeamCanvasRoutesGatePersistAndBroadcast(t *testing.T) {
 		t.Fatalf("live avatar physics data = %s", physicsData)
 	}
 
-	settings := teamCanvasRequest(t, server.Client(), http.MethodPut, server.URL+"/v1/teams/team-one/canvas/dev-settings", `{"backgroundAssetId":"cosmic-stadium","backgroundColor":"#112233","textColor":"#FFFFFF","textSize":128,"textStyle":"bubble","stampChoices":["spark-cleat","zoomigo-mark","bolt","star","rocket"]}`)
+	settings := teamCanvasRequest(t, server.Client(), http.MethodPut, server.URL+"/v1/teams/team-one/canvas/dev-settings", `{"backgroundAssetId":"cosmic-stadium","backgroundColor":"#112233","textColor":"#FFFFFF","textSize":128,"textStyle":"bubble","stampChoices":["spark-cleat","zoomigo-mark","bolt","star","rocket"],"developerStampLimit":3}`)
 	if settings.StatusCode != http.StatusOK {
 		t.Fatalf("settings status = %d", settings.StatusCode)
 	}
 	_ = settings.Body.Close()
+
+	withDeveloperStamps := teamCanvasRequest(t, server.Client(), http.MethodGet, server.URL+"/v1/teams/team-one/canvas", "")
+	developerSnapshot, _ := io.ReadAll(withDeveloperStamps.Body)
+	_ = withDeveloperStamps.Body.Close()
+	if withDeveloperStamps.StatusCode != http.StatusOK ||
+		!strings.Contains(string(developerSnapshot), `"availableRewards":3`) ||
+		!strings.Contains(string(developerSnapshot), `"developerStampLimit":3`) {
+		t.Fatalf("developer stamp projection = %d %s", withDeveloperStamps.StatusCode, developerSnapshot)
+	}
+	for index := 0; index < 3; index++ {
+		piece := teamCanvasRequest(t, server.Client(), http.MethodPost, server.URL+"/v1/teams/team-one/canvas/pieces", `{"assetId":"rocket"}`)
+		if piece.StatusCode != http.StatusCreated {
+			t.Fatalf("developer piece %d status = %d", index+1, piece.StatusCode)
+		}
+		_ = piece.Body.Close()
+	}
+	overLimit := teamCanvasRequest(t, server.Client(), http.MethodPost, server.URL+"/v1/teams/team-one/canvas/pieces", `{"assetId":"rocket"}`)
+	if overLimit.StatusCode != http.StatusUnprocessableEntity {
+		t.Fatalf("developer piece above limit status = %d, want 422", overLimit.StatusCode)
+	}
+	_ = overLimit.Body.Close()
 
 	production := httpapi.NewHandler(config.Config{Environment: "production"},
 		httpapi.WithStore(store.New(db, time.UTC)),
@@ -135,6 +156,13 @@ func TestTeamCanvasRoutesGatePersistAndBroadcast(t *testing.T) {
 	production.ServeHTTP(response, request)
 	if response.Code != http.StatusNotFound {
 		t.Fatalf("production dev settings status = %d, want 404", response.Code)
+	}
+	productionSnapshot := httptest.NewRecorder()
+	productionRequest := httptest.NewRequest(http.MethodGet, "/v1/teams/team-one/canvas", nil)
+	productionRequest.Header.Set("Authorization", "Bearer test-session")
+	production.ServeHTTP(productionSnapshot, productionRequest)
+	if productionSnapshot.Code != http.StatusOK || strings.Contains(productionSnapshot.Body.String(), `"availableRewards":3`) {
+		t.Fatalf("production honored developer stamps: %d %s", productionSnapshot.Code, productionSnapshot.Body.String())
 	}
 
 }

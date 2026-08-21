@@ -529,3 +529,23 @@ Momentum Alpha needs independent PWA install/offline behavior.
 - Still open before horizontal scaling: shared room ownership/coordinator,
   reset/correction telemetry thresholds, and whether later shape colliders are
   engaging enough to justify their added failure surface.
+
+## Team Canvas Alpha kick feel and physics playground (2026-08-21)
+
+- Decided: avatar contact is a kick entry, not a continuous drag force. A swept
+  hit separates the body from the avatar, applies a stronger speed-capped
+  impulse, and rate-limits repeated contact impulses for 180 ms.
+- Decided: soccer balls use a larger circular collider, higher restitution, a
+  higher speed ceiling, and much lower top-down damping. The contact solver runs
+  four bounded separation passes so touching bodies finish a tick without a
+  soft visible overlap.
+- Decided: an owner-held dynamic stamp is kinematic but remains a solid collider.
+  It can deflect free physics bodies while controls are active; it cannot be
+  knocked away from the owner.
+- Decided: development and E2E builds may configure 0–16 extra playground stamp
+  slots per player/day. These pieces are stored separately from earned reward
+  accounting, survive reward reconciliation, and are never made available by a
+  production handler.
+- Decided: lowering the playground limit is non-destructive. Existing same-day
+  developer pieces remain movable/deletable, while new placement stays blocked
+  until the number in use falls below the configured limit.

@@ -27,6 +27,7 @@ describe("HTTP team canvas gateway", () => {
                 "star",
                 "rocket",
               ],
+              developerStampLimit: 6,
               revision: 2,
             },
             stampChoices: [
@@ -156,6 +157,7 @@ describe("HTTP team canvas gateway", () => {
       textSize: 112,
       textStyle: "rally",
       stampChoices: ["bolt", "star", "rocket", "spark-cleat", "zoomigo-mark"],
+      developerStampLimit: 8,
       revision: 0,
     });
 
@@ -182,5 +184,8 @@ describe("HTTP team canvas gateway", () => {
       "/api/zoomigo/v1/teams/team-one/canvas/dev-settings",
       expect.objectContaining({ method: "PUT" }),
     );
+    expect(JSON.parse(fetchMock.mock.calls[3][1].body)).toMatchObject({
+      developerStampLimit: 8,
+    });
   });
 });

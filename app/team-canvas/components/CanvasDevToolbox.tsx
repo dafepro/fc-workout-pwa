@@ -92,6 +92,25 @@ export function CanvasDevToolbox({
             ))}
           </select>
         </label>
+        <label>
+          <span>{copy.extraStamps}</span>
+          <input
+            type="number"
+            min="0"
+            max="16"
+            step="1"
+            value={draft.developerStampLimit}
+            onChange={(event) =>
+              setDraft({
+                ...draft,
+                developerStampLimit: Math.max(
+                  0,
+                  Math.min(16, Number(event.target.value) || 0),
+                ),
+              })
+            }
+          />
+        </label>
         <fieldset>
           <legend>{copy.stamps}</legend>
           {draft.stampChoices.map((choice, index) => (
