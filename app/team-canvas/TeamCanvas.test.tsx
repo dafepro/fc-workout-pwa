@@ -69,7 +69,7 @@ describe("Team Canvas application", () => {
     expect(screen.queryByText("Team")).toBeNull();
   });
 
-  it("records Reach inside the card and opens the team canvas", () => {
+  it("records Reach with two direct feel tracks, then shows cooldown separately", () => {
     renderTeamCanvas(
       <TeamCanvasProvider>
         <TeamCanvasToday />
@@ -80,14 +80,25 @@ describe("Team Canvas application", () => {
       screen.getByRole("button", { name: "Record today’s plan" }),
     );
     fireEvent.click(screen.getByRole("button", { name: "Reach · 10 reps" }));
-    fireEvent.change(screen.getByLabelText("Effort"), {
+    expect(screen.queryByRole("combobox")).toBeNull();
+    fireEvent.change(screen.getByRole("slider", { name: "Effort" }), {
       target: { value: "5" },
     });
-    fireEvent.change(screen.getByLabelText("Tiredness"), {
+    fireEvent.change(screen.getByRole("slider", { name: "Tiredness" }), {
       target: { value: "4" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save and join Team" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save workout" }));
 
+    expect(
+      screen.getByRole("heading", { name: "Cool down" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Join Team now" })).toHaveAttribute(
+      "href",
+      "/team-canvas/team",
+    );
+    expect(push).not.toHaveBeenCalledWith("/team-canvas/team");
+
+    fireEvent.click(screen.getByRole("button", { name: "Record cooldown" }));
     expect(push).toHaveBeenCalledWith("/team-canvas/team");
   });
 
@@ -106,12 +117,16 @@ describe("Team Canvas application", () => {
   });
 
   it("shows completers, weekly stars, and five stamp choices after Reach", () => {
-    const complete = recordPrimary(initialTeamCanvasState(), {
+    const reached = recordPrimary(initialTeamCanvasState(), {
       completion: "reach",
       effort: 5,
       tiredness: 4,
     });
-    renderTeamCanvas(
+    const complete = {
+      ...reached,
+      completedDayKeys: ["2026-08-18", "2026-08-19", "2026-08-20"],
+    };
+    const view = renderTeamCanvas(
       <TeamCanvasProvider initialState={complete}>
         <TeamCanvasBoard />
       </TeamCanvasProvider>,
@@ -123,18 +138,62 @@ describe("Team Canvas application", () => {
     expect(
       screen.getByText("Ari", { selector: ".tc-player-name" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByLabelText("Mason has 1 star this week"),
-    ).toBeInTheDocument();
+    expect(screen.getAllByTestId("Mason-star")).toHaveLength(3);
+    expect(screen.queryByText(/★\s*3|3 stars/i)).toBeNull();
     expect(
       screen.getAllByRole("button", { name: /Choose .* stamp/ }),
     ).toHaveLength(5);
+    expect(
+      view.container.querySelectorAll("svg.avatar-art").length,
+    ).toBeGreaterThanOrEqual(5);
+    expect(
+      view.container.querySelector(".tc-stamp--peer-live"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Live now")).toBeInTheDocument();
     expect(
       screen.queryByText(/8 reps|10 reps|effort 5|tiredness 4/i),
     ).toBeNull();
   });
 
-  it("adds a second reward through a compact cooldown follow-up", () => {
+  it("creates an owner-editable live piece with a floating fine-pointer palette", () => {
+    const complete = recordPrimary(initialTeamCanvasState(), {
+      completion: "reach",
+      effort: 5,
+      tiredness: 4,
+    });
+    const view = renderTeamCanvas(
+      <TeamCanvasProvider initialState={complete}>
+        <TeamCanvasBoard />
+      </TeamCanvasProvider>,
+    );
+
+    fireEvent.click(
+      screen.getAllByRole("button", { name: /Choose .* stamp/ })[0],
+    );
+
+    expect(
+      view.container.querySelector(".tc-stamp--owned-live"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Edit .* live stamp/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Smaller" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Larger" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Rotate left" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Rotate right" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /paste/i })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /Edit .* live stamp/ }));
+    expect(screen.queryByRole("button", { name: "Smaller" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Edit .* live stamp/ }));
+    expect(screen.getByRole("button", { name: "Smaller" })).toBeInTheDocument();
+  });
+
+  it("keeps cooldown controls completely off the team canvas", () => {
     const complete = recordPrimary(initialTeamCanvasState(), {
       completion: "reach",
       effort: 5,
@@ -147,12 +206,7 @@ describe("Team Canvas application", () => {
     );
 
     expect(screen.getByText("1 stamp ready")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Record cooldown" }));
-    expect(
-      screen.getByText("Easy recovery walk · 10 minutes"),
-    ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Save cooldown" }));
-    expect(screen.getByText("2 stamps ready")).toBeInTheDocument();
+    expect(screen.queryByText(/cooldown|recovery walk/i)).toBeNull();
   });
 
   it("keeps view selection a small profile setting", () => {

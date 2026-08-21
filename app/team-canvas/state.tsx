@@ -9,16 +9,17 @@ import {
 } from "react";
 import type {
   BoardPosition,
+  BoardTransform,
   CompletionKind,
   DayKind,
-  EmojiDraft,
   ExtraActivity,
+  StampAsset,
   TeamCanvasState,
 } from "./model";
 import {
+  addLivePiece,
   beginDay,
-  confirmEmoji,
-  discardEmojiDraft,
+  clearPieceSelection,
   initialTeamCanvasState,
   isTeamCanvasState,
   logExtraActivity,
@@ -26,11 +27,11 @@ import {
   recordCooldown,
   recordPlannedRest,
   recordPrimary,
-  selectEmoji,
-  updateEmojiDraft,
+  selectOwnedPiece,
+  updateOwnedPiece,
 } from "./model";
 
-export const TEAM_CANVAS_STORAGE_KEY = "zoomigo-team-canvas-alpha-v1";
+export const TEAM_CANVAS_STORAGE_KEY = "zoomigo-team-canvas-alpha-v2";
 
 interface TeamCanvasContextValue {
   state: TeamCanvasState;
@@ -43,10 +44,10 @@ interface TeamCanvasContextValue {
   recordCooldown(): void;
   recordExtra(activity: ExtraActivity): void;
   moveAvatar(position: BoardPosition): void;
-  chooseEmoji(emoji: string): void;
-  editEmoji(patch: Partial<Omit<EmojiDraft, "emoji">>): void;
-  cancelEmoji(): void;
-  pasteEmoji(): void;
+  chooseStamp(asset: StampAsset): void;
+  togglePiece(pieceId: string): void;
+  editPiece(pieceId: string, patch: Partial<BoardTransform>): void;
+  clearPiece(): void;
   previewDay(dayKind: DayKind): void;
   reset(): void;
 }
@@ -85,12 +86,17 @@ export function TeamCanvasProvider({
         store.update((current) => logExtraActivity(current, activity)),
       moveAvatar: (position) =>
         store.update((current) => moveOwnAvatar(current, position)),
-      chooseEmoji: (emoji) =>
-        store.update((current) => selectEmoji(current, emoji)),
-      editEmoji: (patch) =>
-        store.update((current) => updateEmojiDraft(current, patch)),
-      cancelEmoji: () => store.update((current) => discardEmojiDraft(current)),
-      pasteEmoji: () => store.update((current) => confirmEmoji(current)),
+      chooseStamp: (asset) =>
+        store.update((current) => addLivePiece(current, asset)),
+      togglePiece: (pieceId) =>
+        store.update((current) =>
+          current.selectedPieceId === pieceId
+            ? clearPieceSelection(current)
+            : selectOwnedPiece(current, pieceId),
+        ),
+      editPiece: (pieceId, patch) =>
+        store.update((current) => updateOwnedPiece(current, pieceId, patch)),
+      clearPiece: () => store.update((current) => clearPieceSelection(current)),
       previewDay: (dayKind) =>
         store.update((current) =>
           beginDay(current, { dayKey: current.dayKey, dayKind }),

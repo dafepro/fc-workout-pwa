@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { BoardSurface } from "./BoardSurface";
+import { StampAssetView, stampAssetLabel } from "./StampAsset";
 import { teamCanvasCopy } from "../content";
 import {
   availableRewardCount,
-  dailyEmojiSet,
+  dailyStampSet,
   teamCanvasProjection,
   weeklyTextStyle,
 } from "../model";
@@ -14,16 +14,8 @@ import { teamCanvasRoutes } from "../routes";
 import { useTeamCanvas } from "../state";
 
 export function TeamCanvasBoard() {
-  const {
-    state,
-    moveAvatar,
-    chooseEmoji,
-    editEmoji,
-    cancelEmoji,
-    pasteEmoji,
-    recordCooldown,
-  } = useTeamCanvas();
-  const [cooldownOpen, setCooldownOpen] = useState(false);
+  const { state, moveAvatar, chooseStamp, togglePiece, editPiece, clearPiece } =
+    useTeamCanvas();
   const projection = teamCanvasProjection(state);
   const copy = teamCanvasCopy.board;
 
@@ -41,7 +33,7 @@ export function TeamCanvasBoard() {
   }
 
   const rewardCount = availableRewardCount(state);
-  const emojis = dailyEmojiSet(state.teamId, state.dayKey);
+  const stamps = dailyStampSet(state.teamId, state.dayKey);
 
   return (
     <div className="tc-team">
@@ -50,104 +42,51 @@ export function TeamCanvasBoard() {
           <p className="tc-eyebrow">{copy.eyebrow}</p>
           <h1>{copy.title}</h1>
         </div>
-        <span className="tc-week">Mon—Sun</span>
+        <span className="tc-week">{copy.week}</span>
       </header>
 
       <BoardSurface
-        starCount={projection.starCount}
+        starDayKeys={projection.starDayKeys}
         avatarPosition={projection.avatarPosition}
-        emojiDraft={state.emojiDraft}
-        emojiPlacements={projection.emojiPlacements}
+        pieces={projection.pieces}
+        selectedPieceId={state.selectedPieceId}
         textStyle={weeklyTextStyle(state.teamId, state.weekKey)}
         onMoveAvatar={moveAvatar}
-        onMoveEmoji={(position) => editEmoji(position)}
+        onTogglePiece={togglePiece}
+        onEditPiece={editPiece}
+        onClearPiece={clearPiece}
       />
       <p className="tc-board-hint">{copy.moveHint}</p>
 
       <section className="tc-rewards" aria-labelledby="tc-rewards-title">
         <div className="tc-rewards__heading">
           <h2 id="tc-rewards-title">
-            {rewardCount > 0 ? copy.rewardReady(rewardCount) : "Team stamps"}
+            {rewardCount > 0 ? copy.rewardReady(rewardCount) : copy.stampTitle}
           </h2>
-          {state.dayKind === "training" && !state.cooldownComplete ? (
-            <button type="button" onClick={() => setCooldownOpen(true)}>
-              {copy.cooldownAction}
-            </button>
-          ) : (
-            <span>{copy.cooldownDone}</span>
-          )}
         </div>
 
-        {cooldownOpen &&
-        state.dayKind === "training" &&
-        !state.cooldownComplete ? (
-          <div className="tc-cooldown">
-            <div>
-              <strong>{copy.cooldownTitle}</strong>
-              <p>{copy.cooldownBody}</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                recordCooldown();
-                setCooldownOpen(false);
-              }}
-            >
-              {copy.cooldownSave}
-            </button>
-          </div>
-        ) : null}
-
-        {state.emojiDraft ? (
-          <div className="tc-stamp-editor">
-            <label>
-              <span>{copy.size}</span>
-              <input
-                type="range"
-                min="28"
-                max="64"
-                value={state.emojiDraft.size}
-                onChange={(event) =>
-                  editEmoji({ size: Number(event.target.value) })
-                }
-              />
-            </label>
-            <label>
-              <span>{copy.rotation}</span>
-              <input
-                type="range"
-                min="-45"
-                max="45"
-                value={state.emojiDraft.rotation}
-                onChange={(event) =>
-                  editEmoji({ rotation: Number(event.target.value) })
-                }
-              />
-            </label>
-            <div>
-              <button type="button" onClick={cancelEmoji}>
-                {copy.cancel}
-              </button>
-              <button className="tc-paste" type="button" onClick={pasteEmoji}>
-                {copy.confirm}
-              </button>
-            </div>
-          </div>
-        ) : rewardCount > 0 ? (
+        {rewardCount > 0 ? (
           <div className="tc-emoji-tray">
-            {emojis.map((emoji) => (
-              <button
-                key={emoji}
-                type="button"
-                aria-label={copy.chooseStamp(emoji)}
-                onClick={() => chooseEmoji(emoji)}
-              >
-                <span aria-hidden="true">{emoji}</span>
-              </button>
-            ))}
+            {stamps.map((stamp) => {
+              const label = stampAssetLabel(stamp);
+              return (
+                <button
+                  key={stamp.id}
+                  type="button"
+                  aria-label={copy.chooseStamp(label)}
+                  onClick={() => chooseStamp(stamp)}
+                >
+                  <StampAssetView asset={stamp} />
+                </button>
+              );
+            })}
           </div>
         ) : (
-          <p className="tc-rewards__empty">{copy.emptyReward}</p>
+          <p className="tc-rewards__empty">
+            {projection.pieces.some(({ editable }) => editable)
+              ? copy.placedReward
+              : copy.emptyReward}
+          </p>
         )}
       </section>
     </div>

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { FeelTracks } from "./FeelTracks";
 import { teamCanvasCopy } from "../content";
 import type { CompletionKind } from "../model";
 import { teamCanvasRoutes } from "../routes";
@@ -9,16 +11,50 @@ import { useTeamCanvas } from "../state";
 
 export function TeamCanvasToday() {
   const router = useRouter();
-  const { state, complete, recordRest } = useTeamCanvas();
+  const { state, complete, recordRest, recordCooldown } = useTeamCanvas();
   const [expanded, setExpanded] = useState(false);
   const [completion, setCompletion] = useState<CompletionKind>("goal");
   const [effort, setEffort] = useState(4);
   const [tiredness, setTiredness] = useState(3);
   const copy = teamCanvasCopy.today;
 
+  const cooldownPending =
+    state.primaryComplete &&
+    state.dayKind === "training" &&
+    !state.cooldownComplete;
+
   useEffect(() => {
-    if (state.primaryComplete) router.replace(teamCanvasRoutes.team);
-  }, [router, state.primaryComplete]);
+    if (state.primaryComplete && !cooldownPending) {
+      router.replace(teamCanvasRoutes.team);
+    }
+  }, [cooldownPending, router, state.primaryComplete]);
+
+  if (cooldownPending) {
+    return (
+      <div className="tc-today">
+        <article className="tc-daily-card tc-cooldown-card">
+          <p className="tc-eyebrow">{copy.cooldownEyebrow}</p>
+          <h1>{copy.cooldownTitle}</h1>
+          <p className="tc-context">{copy.cooldownContext}</p>
+          <p className="tc-description">{copy.cooldownDescription}</p>
+          <button
+            className="tc-plus"
+            type="button"
+            aria-label={copy.cooldownAction}
+            onClick={() => {
+              recordCooldown();
+              router.push(teamCanvasRoutes.team);
+            }}
+          >
+            <span aria-hidden="true">+</span>
+          </button>
+          <Link className="tc-join-team" href={teamCanvasRoutes.team}>
+            {copy.joinTeam}
+          </Link>
+        </article>
+      </div>
+    );
+  }
 
   if (state.primaryComplete) {
     return <p className="tc-opening">Opening your team canvas…</p>;
@@ -86,40 +122,17 @@ export function TeamCanvasToday() {
             >
               {copy.alternative}
             </button>
-            <div className="tc-signals">
-              <label>
-                <span>{copy.effort}</span>
-                <select
-                  value={effort}
-                  onChange={(event) => setEffort(Number(event.target.value))}
-                >
-                  {scaleOptions.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                <span>{copy.tiredness}</span>
-                <select
-                  value={tiredness}
-                  onChange={(event) => setTiredness(Number(event.target.value))}
-                >
-                  {scaleOptions.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
+            <FeelTracks
+              effort={effort}
+              tiredness={tiredness}
+              onEffortChange={setEffort}
+              onTirednessChange={setTiredness}
+            />
             <button
               className="tc-save"
               type="button"
               onClick={() => {
                 complete({ completion, effort, tiredness });
-                router.push(teamCanvasRoutes.team);
               }}
             >
               {copy.save}
@@ -139,5 +152,3 @@ export function TeamCanvasToday() {
     </div>
   );
 }
-
-const scaleOptions = [1, 2, 3, 4, 5, 6, 7] as const;
