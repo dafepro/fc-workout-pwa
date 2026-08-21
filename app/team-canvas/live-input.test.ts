@@ -41,8 +41,33 @@ describe("latest live input queue", () => {
     expect(sent).toEqual([1]);
     release();
     await Promise.resolve();
-    await vi.advanceTimersByTimeAsync(40);
+    await Promise.resolve();
     expect(sent).toEqual([1, 3]);
+    queue.stop();
+  });
+
+  it("keeps the configured cadence when a request resolves early", async () => {
+    vi.useFakeTimers();
+    let release!: () => void;
+    const sent: number[] = [];
+    const queue = createLatestInputQueue<number>(40, async (value) => {
+      sent.push(value);
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
+    });
+
+    queue.push(1);
+    await vi.advanceTimersByTimeAsync(40);
+    queue.push(2);
+    await vi.advanceTimersByTimeAsync(10);
+    release();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(sent).toEqual([1]);
+
+    await vi.advanceTimersByTimeAsync(30);
+    expect(sent).toEqual([1, 2]);
     queue.stop();
   });
 });

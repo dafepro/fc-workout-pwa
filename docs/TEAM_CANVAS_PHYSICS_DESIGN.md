@@ -73,8 +73,11 @@ player-authored behavior, uploads, arbitrary scripts, or competitive scoring.
 
 ## Recommended interaction rules
 
-1. Avatars are kinematic circles. Dragging an avatar supplies a capped velocity;
-   contact transfers a bounded impulse to dynamic pieces.
+1. Avatars are kinematic circles. Pointer samples update a bounded target and
+   velocity; the fixed-step solver advances the avatar and transfers a bounded
+   impulse only when contact begins. Continued contact uses minimal separation
+   plus a small release hysteresis, never pointer-sample teleportation or a
+   repeating cooldown kick.
 2. A live dynamic stamp updated by its owner receives a renewable 240 ms
    kinematic lease. It cannot be displaced while held, but it remains a solid
    circle that can deflect free dynamic bodies. The lease naturally expires after
@@ -83,10 +86,11 @@ player-authored behavior, uploads, arbitrary scripts, or competitive scoring.
 3. Only catalog entries explicitly marked `dynamic` or `static-collider`
    participate. Decorative stamps are non-colliding, so players cannot surround
    the board with an accidental wall.
-4. Avatar input uses swept segment-versus-circle contact. Dynamic bodies use a
-   fixed 30 Hz step, circular collision correction, restitution, and capped
-   impulses. The speed and minimum-radius bounds make tunneling between body
-   steps unlikely in this alpha.
+4. Avatar input uses swept segment-versus-circle contact inside each fixed step.
+   Dynamic bodies use circular collision correction, restitution, and capped
+   impulses. A swept-only hit applies velocity at the contact point without
+   moving the body to the end of a sparse pointer segment; overlap correction is
+   limited to the penetration at the avatar's current simulated position.
 5. Players may influence shared dynamic pieces with their avatars. They cannot
    directly drag another player's live stamp or delete any piece they do not own
    today.
@@ -144,10 +148,12 @@ a shared coordinator, or the simulation must move to a dedicated realtime
 service. Clients never elect authority.
 
 The simulation uses a 30 Hz fixed step and sends at most 15 snapshots per second.
-The browser uses short visual interpolation but does not commit collision
-outcomes. Avatar and stamp inputs use coalescing 80 ms queues, never overlapping
-requests. The server checkpoints periodic changed state and final room state
-rather than writing SQLite on every frame.
+The browser uses visual interpolation shorter than one snapshot interval and
+does not commit collision outcomes. Avatar input is coalesced to a 50 ms cadence;
+stamp input remains at 80 ms. Both queues keep one request in flight, send the
+newest waiting sample as soon as the cadence permits, and do not add a fresh
+delay after a slow request. The server checkpoints periodic changed state and
+final room state rather than writing SQLite on every frame.
 
 ## Extensible storage contract
 
@@ -250,9 +256,14 @@ silently delete existing playground pieces. They remain owner-deletable today.
 4. Top-down, side-view, and space profiles plus reduced-motion rendering.
 5. Firmer four-pass circle separation, higher restitution, lower field drag,
    stronger swept-avatar kicks, and development-only multi-body placement slots.
+6. Fixed-step kinematic avatar targets, contact-entry impulses with release
+   hysteresis, minimal overlap correction, latency-aware input coalescing, and
+   snapshot-aligned presentation smoothing.
 
 The remaining release work is review, beta instrumentation, and a shared room
-coordinator before any horizontal API scaling.
+coordinator before any horizontal API scaling. A bidirectional realtime input
+transport remains an option if beta latency measurements show REST input is the
+next material limit; it is not required to correct contact behavior.
 
 ## Adopted alpha decisions
 

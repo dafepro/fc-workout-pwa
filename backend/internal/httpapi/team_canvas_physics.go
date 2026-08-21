@@ -187,7 +187,10 @@ func (manager *teamCanvasPhysicsManager) advanceRoom(
 		}
 		room.world.Step(canvasphysics.FixedStep)
 		frame := physicsFrame(teamID, room)
-		broadcast := frame.Sequence%2 == 0 && (active || room.world.HasAwakeBodies() || room.dirty || len(frame.Resets) > 0)
+		activeAfterStep := room.world.HasAwakeBodies()
+		terminalStep := active && !activeAfterStep
+		broadcast := (frame.Sequence%2 == 0 || terminalStep) &&
+			(active || activeAfterStep || room.dirty || len(frame.Resets) > 0)
 		if broadcast {
 			room.dirty = false
 		}

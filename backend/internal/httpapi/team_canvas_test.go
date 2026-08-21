@@ -112,8 +112,8 @@ func TestTeamCanvasRoutesGatePersistAndBroadcast(t *testing.T) {
 		t.Fatalf("avatar was not persisted with server bounds: %s", avatarBytes)
 	}
 	physicsData = scanTeamCanvasHTTPEvent(t, scanner, "physics")
-	if !strings.Contains(physicsData, `"position":{"x":94,"y":6}`) {
-		t.Fatalf("live avatar physics data = %s", physicsData)
+	if !strings.Contains(physicsData, `"playerId":"player-mason"`) {
+		t.Fatalf("live avatar update was not broadcast: %s", physicsData)
 	}
 
 	settings := teamCanvasRequest(t, server.Client(), http.MethodPut, server.URL+"/v1/teams/team-one/canvas/dev-settings", `{"backgroundAssetId":"cosmic-stadium","backgroundColor":"#112233","textColor":"#FFFFFF","textSize":128,"textStyle":"bubble","stampChoices":["spark-cleat","zoomigo-mark","bolt","star","rocket"],"developerStampLimit":3}`)
