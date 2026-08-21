@@ -65,7 +65,7 @@ describe("gateDevRequest", () => {
         body: new URLSearchParams({
           password: env.DEV_ACCESS_PASSWORD!,
           next: "/dev-access",
-        }),
+        }).toString(),
       }),
       env,
     );
@@ -85,7 +85,7 @@ describe("gateDevRequest", () => {
         body: new URLSearchParams({
           password: env.DEV_ACCESS_PASSWORD!,
           next: "/login#credential=preview-token",
-        }),
+        }).toString(),
       }),
       env,
     );
@@ -103,7 +103,7 @@ describe("gateDevRequest", () => {
         body: new URLSearchParams({
           password: env.DEV_ACCESS_PASSWORD!,
           next: "/dev-access",
-        }),
+        }).toString(),
       }),
       env,
     );
