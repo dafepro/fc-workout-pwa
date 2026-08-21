@@ -21,17 +21,23 @@ concurrency:
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
-  operate:
+  build:
+    name: Verify and package the selected application
+    if: inputs.operation == 'create' || inputs.operation == 'update'
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
-    environment: dev
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      revision: ${{ steps.revision.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
+          persist-credentials: false
 
       - name: Resolve the deployed revision
         id: revision
@@ -51,28 +57,22 @@ jobs:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
 
-      - uses: opentofu/setup-opentofu@v1
-        with:
-          tofu_version: 1.10.6
-
       - name: Verify the selected revision
-        if: inputs.operation == 'create' || inputs.operation == 'update'
         run: |
           pnpm install --frozen-lockfile
           pnpm test
           pnpm typecheck
+          pnpm build
           go -C backend test ./...
           go -C backend test -tags=dev ./...
 
       - uses: docker/login-action@v3
-        if: inputs.operation == 'create' || inputs.operation == 'update'
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish the dev-tagged API image
-        if: inputs.operation == 'create' || inputs.operation == 'update'
         env:
           RELEASE_SHA: ${{ steps.revision.outputs.sha }}
         run: |
@@ -87,6 +87,56 @@ jobs:
             --push \
             backend
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dev-worker-${{ steps.revision.outputs.sha }}
+          path: dist
+          if-no-files-found: error
+          retention-days: 1
+
+  operate:
+    name: Operate isolated dev infrastructure
+    needs: build
+    if: >-
+      always() &&
+      (inputs.operation == 'reset' ||
+      inputs.operation == 'destroy' ||
+      needs.build.result == 'success')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    environment: production
+    permissions:
+      actions: read
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.20.0
+          cache: pnpm
+
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: 1.10.6
+
+      - name: Install trusted deployment tools
+        run: pnpm install --frozen-lockfile
+
+      - uses: actions/download-artifact@v4
+        if: inputs.operation == 'create' || inputs.operation == 'update'
+        with:
+          name: dev-worker-${{ needs.build.outputs.revision }}
+          path: source/dist
+
       - name: Initialize disposable infrastructure state
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY_ID }}
@@ -94,9 +144,9 @@ jobs:
         working-directory: infra/dev
         run: |
           tofu init -input=false \
-            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
+            -backend-config="bucket=${{ vars.DEV_TF_STATE_BUCKET }}" \
             -backend-config="key=infra/dev/terraform.tfstate" \
-            -backend-config="endpoint=${{ vars.TF_STATE_ENDPOINT }}" \
+            -backend-config="endpoint=${{ vars.DEV_TF_STATE_ENDPOINT }}" \
             -backend-config="region=auto" \
             -backend-config="use_path_style=true" \
             -backend-config="use_lockfile=true" \
@@ -111,9 +161,9 @@ jobs:
         env:
           DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          TF_VAR_cloudflare_zone_id: ${{ secrets.CLOUDFLARE_ZONE_ID }}
-          TF_VAR_release_sha: ${{ steps.revision.outputs.sha }}
-          DEPLOY_KEY: ${{ secrets.ZOOMIGO_DEV_DEPLOY_SSH_KEY }}
+          TF_VAR_cloudflare_zone_id: ${{ vars.CLOUDFLARE_ZONE_ID }}
+          TF_VAR_release_sha: ${{ github.sha }}
+          DEPLOY_KEY: ${{ secrets.DEV_DEPLOY_SSH_KEY }}
         working-directory: infra/dev
         run: |
           key_file="$RUNNER_TEMP/dev-deploy-key"
@@ -149,7 +199,7 @@ jobs:
         env:
           DEPLOY_HOST_FILE: ${{ runner.temp }}/dev-host
           DEPLOY_USER: zoomigo
-          DEV_DEPLOY_SSH_KEY_VALUE: ${{ secrets.ZOOMIGO_DEV_DEPLOY_SSH_KEY }}
+          DEV_DEPLOY_SSH_KEY_VALUE: ${{ secrets.DEV_DEPLOY_SSH_KEY }}
           DEV_API_GATEWAY_TOKEN: ${{ secrets.DEV_API_GATEWAY_TOKEN }}
           DEV_RESET_KEY: ${{ secrets.DEV_RESET_KEY }}
           DEV_FIXTURE_SEED: ${{ secrets.DEV_FIXTURE_SEED }}
@@ -168,7 +218,10 @@ jobs:
           export DEPLOY_HOST
           export DEV_DEPLOY_SSH_KEY_FILE="$key_file"
           export DEV_KNOWN_HOSTS_FILE="$RUNNER_TEMP/dev-known-hosts"
-          ./deploy/release/deploy-dev.sh "${{ steps.revision.outputs.sha }}"
+          ./deploy/release/deploy-dev.sh \
+            "${{ github.sha }}" \
+            "${{ needs.build.outputs.revision }}" \
+            "$GITHUB_WORKSPACE/source"
 
       - name: Seed a newly created preview
         if: inputs.operation == 'create' || steps.infra.outputs.created == 'true'
@@ -199,18 +252,16 @@ jobs:
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm exec wrangler delete zoomigo-training-dev --force
+        run: pnpm exec wrangler delete zoomigo-training-dev --force
 
       - name: Destroy disposable infrastructure
         if: inputs.operation == 'destroy'
         env:
           DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          TF_VAR_cloudflare_zone_id: ${{ secrets.CLOUDFLARE_ZONE_ID }}
-          TF_VAR_release_sha: ${{ steps.revision.outputs.sha }}
-          DEPLOY_KEY: ${{ secrets.ZOOMIGO_DEV_DEPLOY_SSH_KEY }}
+          TF_VAR_cloudflare_zone_id: ${{ vars.CLOUDFLARE_ZONE_ID }}
+          TF_VAR_release_sha: ${{ github.sha }}
+          DEPLOY_KEY: ${{ secrets.DEV_DEPLOY_SSH_KEY }}
         working-directory: infra/dev
         run: |
           key_file="$RUNNER_TEMP/dev-deploy-key"
@@ -227,7 +278,10 @@ jobs:
             echo "### ZoomiGo disposable dev"
             echo ""
             echo "- Operation: \`${{ inputs.operation }}\`"
-            echo "- Revision: \`${{ steps.revision.outputs.sha }}\`"
+            echo "- Trusted deployment revision: \`${{ github.sha }}\`"
+            if [ -n "${{ needs.build.outputs.revision }}" ]; then
+              echo "- Application revision: \`${{ needs.build.outputs.revision }}\`"
+            fi
             if [ "${{ inputs.operation }}" != "destroy" ]; then
               echo "- PWA: https://dev.zoomigo.quicktrack.cc"
             fi

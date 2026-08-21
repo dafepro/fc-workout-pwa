@@ -55,11 +55,15 @@ export function configureWorker(
   const generatedVars = { ...(generated.vars ?? {}) };
   delete generatedVars.ANALYTICS_SUBJECT_KEY;
 
+  const workerBase = deployment.devAccessEnabled
+    ? requireDevBuildConfig(generated)
+    : generated;
+
   const configured = {
-    ...generated,
+    ...workerBase,
     name: deployment.workerName,
     vars: {
-      ...generatedVars,
+      ...(deployment.devAccessEnabled ? {} : generatedVars),
       ZOOMIGO_API_BASE_URL: apiBaseURL,
       ZOOMIGO_REQUIRE_BACKEND: "true",
       PRODUCT_ANALYTICS_ENABLED: analyticsDatabaseID ? "true" : "false",
@@ -79,7 +83,35 @@ export function configureWorker(
   if (!analyticsDatabaseID) {
     delete configured.triggers;
   }
+  if (deployment.devAccessEnabled) {
+    delete configured.d1_databases;
+  }
   return configured;
+}
+
+function requireDevBuildConfig(generated) {
+  if (generated.main !== "index.js") {
+    throw new Error("disposable Worker entry point must be index.js");
+  }
+  if (generated.assets?.directory !== "../client") {
+    throw new Error("disposable Worker assets must come from ../client");
+  }
+  if (
+    typeof generated.compatibility_date !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(generated.compatibility_date)
+  ) {
+    throw new Error("disposable Worker compatibility_date is invalid");
+  }
+
+  return {
+    main: "index.js",
+    compatibility_date: generated.compatibility_date,
+    compatibility_flags: generated.compatibility_flags ?? [],
+    rules: generated.rules ?? [],
+    no_bundle: true,
+    assets: { directory: "../client" },
+    observability: { enabled: true },
+  };
 }
 
 function requireRegionCodes(value) {

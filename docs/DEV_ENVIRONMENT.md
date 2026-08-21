@@ -58,35 +58,51 @@ project membership, and dev DNS record. Published immutable container images
 and remote infrastructure-state history are retained by their respective
 services.
 
-## GitHub `dev` environment
+## GitHub configuration
 
-Create a GitHub environment named `dev`. An approval rule is optional but
-recommended because jobs in this environment can create billable resources and
-read deployment secrets. Configure these environment secrets:
+The workflow uses two fresh runners. The first checks out and builds the
+selected application revision without cloud, state, or runtime secrets. The
+second checks out only the workflow revision from `main`, downloads the built
+Worker artifact, and performs the deployment. This prevents branch code or a
+process left behind by its build from reading control-plane credentials.
 
-| Secret                       | Purpose                                                 |
-| ---------------------------- | ------------------------------------------------------- |
-| `DIGITALOCEAN_TOKEN`         | Creates and destroys dev infrastructure.                |
-| `CLOUDFLARE_API_TOKEN`       | Manages the dev DNS record and Worker.                  |
-| `CLOUDFLARE_ACCOUNT_ID`      | Selects the Worker account.                             |
-| `CLOUDFLARE_ZONE_ID`         | Selects the DNS zone.                                   |
-| `ZOOMIGO_DEV_DEPLOY_SSH_KEY` | Private key for the disposable host.                    |
-| `TF_STATE_ACCESS_KEY_ID`     | Remote OpenTofu state access.                           |
-| `TF_STATE_SECRET_ACCESS_KEY` | Remote OpenTofu state access.                           |
-| `DEV_ACCESS_PASSWORD`        | Shared password given to preview participants.          |
-| `DEV_ACCESS_SESSION_KEY`     | Signs the outer access cookie.                          |
-| `DEV_API_GATEWAY_TOKEN`      | Authenticates PWA-to-API traffic.                       |
-| `DEV_RESET_KEY`              | Authorizes a destructive fixture reset.                 |
-| `DEV_FIXTURE_SEED`           | Derives the four deterministic player QR tokens.        |
-| `DEV_ADMIN_PASSWORD`         | Preset password displayed inside the gated directory.   |
-| `DEV_STAFF_SECRET_KEY`       | 32 base64-encoded bytes required by staff auth storage. |
+The deployment job uses the existing `production` GitHub environment only as a
+control-plane credential vault. Its OpenTofu directory, state key, resource
+names, DNS name, Worker name, VM filesystem, Compose project, and runtime data
+are all dev-specific. It does not read the production host, backup
+configuration, application database, or application credentials.
 
-Configure these environment variables:
+These existing `production` environment secrets and variables are required by
+the trusted deployment runner:
 
-| Variable            | Purpose                              |
-| ------------------- | ------------------------------------ |
-| `TF_STATE_BUCKET`   | Dedicated remote-state bucket.       |
-| `TF_STATE_ENDPOINT` | S3-compatible remote-state endpoint. |
+| Name                         | Purpose                                         |
+| ---------------------------- | ----------------------------------------------- |
+| `DIGITALOCEAN_TOKEN`         | Creates and destroys named dev resources.       |
+| `CLOUDFLARE_API_TOKEN`       | Manages only the configured dev DNS and Worker. |
+| `CLOUDFLARE_ACCOUNT_ID`      | Selects the Worker account.                     |
+| `CLOUDFLARE_ZONE_ID`         | Selects the DNS zone.                           |
+| `TF_STATE_ACCESS_KEY_ID`     | Accesses the separately keyed OpenTofu state.   |
+| `TF_STATE_SECRET_ACCESS_KEY` | Accesses the separately keyed OpenTofu state.   |
+
+Configure these repository secrets with independent dev-only values:
+
+| Secret                   | Purpose                                                 |
+| ------------------------ | ------------------------------------------------------- |
+| `DEV_DEPLOY_SSH_KEY`     | Private key used only by the disposable host.           |
+| `DEV_ACCESS_PASSWORD`    | Shared password given to preview participants.          |
+| `DEV_ACCESS_SESSION_KEY` | Signs the outer access cookie.                          |
+| `DEV_API_GATEWAY_TOKEN`  | Authenticates PWA-to-API traffic.                       |
+| `DEV_RESET_KEY`          | Authorizes a destructive fixture reset.                 |
+| `DEV_FIXTURE_SEED`       | Derives the four deterministic player QR tokens.        |
+| `DEV_ADMIN_PASSWORD`     | Preset password displayed inside the gated directory.   |
+| `DEV_STAFF_SECRET_KEY`   | 32 base64-encoded bytes required by staff auth storage. |
+
+Configure these repository variables:
+
+| Variable                | Purpose                                       |
+| ----------------------- | --------------------------------------------- |
+| `DEV_TF_STATE_BUCKET`   | Remote-state bucket; the object key is fixed. |
+| `DEV_TF_STATE_ENDPOINT` | S3-compatible remote-state endpoint.          |
 
 Use independent, randomly generated values of at least 32 URL-safe characters
 for the session, gateway, reset, and fixture secrets. `DEV_ADMIN_PASSWORD` must
@@ -96,7 +112,10 @@ stored only as a Worker secret.
 
 The Cloudflare token needs DNS edit and Workers Scripts edit for the selected
 zone/account. The DigitalOcean token needs project, Droplet, firewall, and SSH
-key access. The state credentials should be scoped to the state bucket.
+key access. Those provider values are present only while trusted `main` code is
+running. The selected branch contributes the API image and prebuilt Worker
+files, while a strict Worker-config allowlist removes branch-supplied routes,
+cron triggers, service bindings, storage bindings, and variables.
 
 ## Operating flow
 

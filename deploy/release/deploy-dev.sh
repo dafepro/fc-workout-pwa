@@ -4,7 +4,9 @@ set -eu
 
 SCRIPT_DIRECTORY=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 REPOSITORY_ROOT=$(CDPATH='' cd -- "$SCRIPT_DIRECTORY/../.." && pwd)
-release_sha=${1:?usage: deploy-dev.sh RELEASE_SHA}
+control_sha=${1:?usage: deploy-dev.sh CONTROL_SHA APP_SHA SOURCE_ROOT}
+app_sha=${2:?usage: deploy-dev.sh CONTROL_SHA APP_SHA SOURCE_ROOT}
+source_root=${3:?usage: deploy-dev.sh CONTROL_SHA APP_SHA SOURCE_ROOT}
 
 : "${DEPLOY_HOST:?DEPLOY_HOST is required}"
 : "${DEV_DEPLOY_SSH_KEY_FILE:?DEV_DEPLOY_SSH_KEY_FILE is required}"
@@ -19,18 +21,19 @@ release_sha=${1:?usage: deploy-dev.sh RELEASE_SHA}
 : "${DEV_ACCESS_SESSION_KEY:?DEV_ACCESS_SESSION_KEY is required}"
 : "${CLOUDFLARE_ACCOUNT_ID:?CLOUDFLARE_ACCOUNT_ID is required}"
 : "${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN is required}"
-case "$release_sha" in *[!0-9a-f]*|"") printf '%s\n' "error: invalid release SHA" >&2; exit 1 ;; esac
-[ "${#release_sha}" -eq 40 ] || { printf '%s\n' "error: invalid release SHA" >&2; exit 1; }
+for revision in "$control_sha" "$app_sha"; do
+	case "$revision" in *[!0-9a-f]*|"") printf '%s\n' "error: invalid release SHA" >&2; exit 1 ;; esac
+	[ "${#revision}" -eq 40 ] || { printf '%s\n' "error: invalid release SHA" >&2; exit 1; }
+done
 
 for value in "$DEV_API_GATEWAY_TOKEN" "$DEV_RESET_KEY" "$DEV_FIXTURE_SEED" "$DEV_ADMIN_PASSWORD"; do
 	case "$value" in *[!A-Za-z0-9_-]*) printf '%s\n' "error: dev VM secrets must be URL-safe strings" >&2; exit 1 ;; esac
 done
 case "$STAFF_SECRET_KEY" in *[!A-Za-z0-9+/=]*) printf '%s\n' "error: STAFF_SECRET_KEY must be base64" >&2; exit 1 ;; esac
 
-worker_config="$REPOSITORY_ROOT/dist/server/wrangler.json"
+worker_config="$source_root/dist/server/wrangler.json"
+[ -f "$worker_config" ] || { printf '%s\n' "error: prebuilt Worker config is missing" >&2; exit 1; }
 cd "$REPOSITORY_ROOT"
-pnpm install --frozen-lockfile
-pnpm build
 node "$SCRIPT_DIRECTORY/configure-worker.mjs" \
 	"$worker_config" \
 	"$REPOSITORY_ROOT/deploy/dev.json" \
@@ -42,8 +45,8 @@ environment_file="$private_root/dev.env"
 umask 077
 cat >"$environment_file" <<EOF
 COMPOSE_PROJECT_NAME=zoomigo-dev
-API_IMAGE=ghcr.io/dafepro/fc-workout-pwa/api:sha-dev-$release_sha
-APP_VERSION=$release_sha
+API_IMAGE=ghcr.io/dafepro/fc-workout-pwa/api:sha-dev-$app_sha
+APP_VERSION=$app_sha
 APP_ENV=dev
 GO_BUILD_TAGS=dev
 ENABLE_DEV_ACCESS=true
@@ -82,7 +85,7 @@ run_ssh() {
 }
 
 run_ssh "sudo -n cloud-init status --wait"
-run_ssh "set -eu; cd /opt/app; test -z \"\$(git status --porcelain --untracked-files=no)\"; git fetch --depth=1 origin '$release_sha'; git checkout --detach '$release_sha'"
+run_ssh "set -eu; cd /opt/app; test -z \"\$(git status --porcelain --untracked-files=no)\"; git fetch --depth=1 origin '$control_sha'; git checkout --detach '$control_sha'"
 run_ssh "umask 077; cat > /opt/app/deploy/vm/.env" <"$environment_file"
 run_ssh "set -eu; cd /opt/app/deploy/vm; sudo -n ./scripts/prepare-host.sh .env; ./scripts/preflight.sh .env; ./scripts/deploy.sh .env"
 
@@ -91,4 +94,4 @@ printf '%s' "$DEV_ACCESS_PASSWORD" | pnpm exec wrangler secret put DEV_ACCESS_PA
 printf '%s' "$DEV_ACCESS_SESSION_KEY" | pnpm exec wrangler secret put DEV_ACCESS_SESSION_KEY --config "$worker_config"
 printf '%s' "$DEV_API_GATEWAY_TOKEN" | pnpm exec wrangler secret put ZOOMIGO_API_GATEWAY_TOKEN --config "$worker_config"
 
-printf '%s\n' "Deployed dev.zoomigo.quicktrack.cc at $release_sha."
+printf '%s\n' "Deployed dev.zoomigo.quicktrack.cc application $app_sha with trusted controls $control_sha."

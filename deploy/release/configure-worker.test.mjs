@@ -99,7 +99,25 @@ test("rejects a mismatched public API origin", () => {
 
 test("configures the disposable Worker with its Midwest gate", () => {
   const configured = configureWorker(
-    {},
+    {
+      main: "index.js",
+      compatibility_date: "2026-05-15",
+      compatibility_flags: ["nodejs_compat"],
+      assets: { directory: "../client" },
+      observability: { enabled: true },
+      vars: { UNTRUSTED_BRANCH_VALUE: "must-not-survive" },
+      d1_databases: [
+        {
+          binding: "PRODUCTION_DATA",
+          database_id: "11111111-1111-4111-8111-111111111111",
+        },
+      ],
+      kv_namespaces: [{ binding: "PRODUCTION_CACHE", id: "secret-id" }],
+      r2_buckets: [{ binding: "PRODUCTION_BACKUPS", bucket_name: "backups" }],
+      services: [{ binding: "PRODUCTION_SERVICE", service: "production" }],
+      triggers: { crons: ["* * * * *"] },
+      routes: [{ pattern: "zoomigo.quicktrack.cc", custom_domain: true }],
+    },
     {
       apiHostname: "api.dev.zoomigo.quicktrack.cc",
       pwaHostname: "dev.zoomigo.quicktrack.cc",
@@ -112,6 +130,14 @@ test("configures the disposable Worker with its Midwest gate", () => {
 
   assert.equal(configured.vars.DEV_ACCESS_ENABLED, "true");
   assert.equal(configured.vars.DEV_ALLOWED_REGION_CODES, "IL,WI");
+  assert.equal(configured.vars.UNTRUSTED_BRANCH_VALUE, undefined);
+  assert.equal(configured.d1_databases, undefined);
+  assert.equal(configured.kv_namespaces, undefined);
+  assert.equal(configured.r2_buckets, undefined);
+  assert.equal(configured.services, undefined);
+  assert.equal(configured.triggers, undefined);
+  assert.equal(configured.main, "index.js");
+  assert.deepEqual(configured.assets, { directory: "../client" });
   assert.deepEqual(configured.routes, [
     { pattern: "dev.zoomigo.quicktrack.cc", custom_domain: true },
   ]);
