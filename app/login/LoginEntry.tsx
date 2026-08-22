@@ -8,9 +8,15 @@ import { LoginMasthead } from "../components/LoginMasthead";
 import { useFragmentSecret } from "../components/useFragmentSecret";
 import { routes } from "../content/routes";
 
-export function LoginEntry() {
+export function LoginEntry({ devAccess = false }: { devAccess?: boolean }) {
   const router = useRouter();
   const { secret: credential, settled } = useFragmentSecret("credential");
+
+  useEffect(() => {
+    if (devAccess && settled && !credential) {
+      router.replace(routes.devAccess);
+    }
+  }, [credential, devAccess, router, settled]);
 
   // Playwright waits on this rather than on any one element, so it must appear
   // only once the fragment has been read and the page is what it will stay.
@@ -21,6 +27,10 @@ export function LoginEntry() {
       delete document.documentElement.dataset.appReady;
     };
   }, [settled]);
+
+  if (devAccess && !credential) {
+    return <main className="auth-state">{copy.auth.opening}</main>;
+  }
 
   return (
     <main className="login-page">
