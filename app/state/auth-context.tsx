@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { AppShell } from "../components/AppShell";
+import { ClassicAppShell } from "../components/ClassicAppShell";
 import { playerColor } from "../avatar/color";
 import type { AvatarConfiguration } from "../avatar/types";
 import { createAvatarGateway } from "../data/avatar-gateway";
@@ -13,6 +13,8 @@ import { copy } from "../content/copy";
 import { routes } from "../content/routes";
 import { AnalyticsProvider } from "../../lib/analytics/AnalyticsProvider";
 import { AvatarIdentityProvider } from "./avatar-identity-context";
+import { PlayerExperienceProvider } from "../player/PlayerExperienceProvider";
+import { PlayerShell } from "../player/PlayerShell";
 
 interface SessionProfile {
   accountId: string;
@@ -161,6 +163,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const insideTeamCanvas =
     pathname === routes.teamCanvasPrefix ||
     pathname.startsWith(`${routes.teamCanvasPrefix}/`);
+  const insideClassicAlpha =
+    pathname === "/classic-alpha" || pathname.startsWith("/classic-alpha/");
+  const insideClassicSupport =
+    pathname === "/log" || pathname.startsWith("/sessions/");
 
   return (
     <AuthContext.Provider value={auth}>
@@ -173,8 +179,12 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           >
             {insideMomentumAlpha || insideTeamCanvas ? (
               children
+            ) : insideClassicAlpha || insideClassicSupport ? (
+              <ClassicAppShell>{children}</ClassicAppShell>
             ) : (
-              <AppShell>{children}</AppShell>
+              <PlayerExperienceProvider>
+                <PlayerShell>{children}</PlayerShell>
+              </PlayerExperienceProvider>
             )}
           </TrainingProvider>
         </AvatarIdentityProvider>

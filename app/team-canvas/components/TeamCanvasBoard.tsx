@@ -12,11 +12,20 @@ import {
 } from "../model";
 import { teamCanvasRoutes } from "../routes";
 import { useTeamCanvas } from "../state";
+import type { StampAsset } from "../model";
 import { BoardSurface, type BoardMember } from "./BoardSurface";
 import { CanvasDevToolbox } from "./CanvasDevToolbox";
 import { StampAssetView, stampAssetLabel } from "./StampAsset";
 
-export function TeamCanvasBoard() {
+export function TeamCanvasBoard({
+  showDeveloperTools = true,
+  todayHref = teamCanvasRoutes.today,
+  stampUnlocks,
+}: {
+  showDeveloperTools?: boolean;
+  todayHref?: string;
+  stampUnlocks?: TeamCanvasStampUnlockPort;
+}) {
   const auth = useOptionalAuth();
   const {
     state,
@@ -43,16 +52,14 @@ export function TeamCanvasBoard() {
     connectedStatus === "locked" ||
     (connectedStatus === "local" && !localProjection)
   ) {
-    return <LockedCanvas />;
+    return <LockedCanvas todayHref={todayHref} />;
   }
   if (connectedStatus === "error" && !connectedProjection) {
     return (
       <section className="tc-locked" role="alert">
         <h1>{copy.connectedError}</h1>
         <p>{connectedError}</p>
-        <Link href={teamCanvasRoutes.today}>
-          {teamCanvasCopy.locked.action}
-        </Link>
+        <Link href={todayHref}>{teamCanvasCopy.locked.action}</Link>
       </section>
     );
   }
@@ -97,12 +104,17 @@ export function TeamCanvasBoard() {
   const pieces = connectedView
     ? connectedProjection.pieces
     : localProjection!.pieces;
-  const rewardCount = connectedView
-    ? connectedProjection.availableRewards
-    : availableRewardCount(state);
-  const stamps = connectedView
-    ? connectedProjection.stampChoices
-    : settings.stampChoices.map(teamCanvasStamp);
+  const rewardCount =
+    stampUnlocks?.availableCount ??
+    (connectedView
+      ? connectedProjection.availableRewards
+      : availableRewardCount(state));
+  const stamps =
+    stampUnlocks?.choices ??
+    (connectedView
+      ? connectedProjection.stampChoices
+      : settings.stampChoices.map(teamCanvasStamp));
+  const unlockStamp = stampUnlocks?.unlock ?? chooseStamp;
 
   return (
     <div className="tc-team">
@@ -160,7 +172,7 @@ export function TeamCanvasBoard() {
                   key={stamp.id}
                   type="button"
                   aria-label={copy.chooseStamp(label)}
-                  onClick={() => void chooseStamp(stamp)}
+                  onClick={() => void unlockStamp(stamp)}
                 >
                   <StampAssetView asset={stamp} />
                 </button>
@@ -176,7 +188,8 @@ export function TeamCanvasBoard() {
         )}
       </section>
 
-      {!connectedView || connectedProjection.developerControlsEnabled ? (
+      {showDeveloperTools &&
+      (!connectedView || connectedProjection.developerControlsEnabled) ? (
         <CanvasDevToolbox
           key={`${settings.revision}-${settings.backgroundAssetId}`}
           settings={settings}
@@ -187,13 +200,19 @@ export function TeamCanvasBoard() {
   );
 }
 
-function LockedCanvas() {
+export interface TeamCanvasStampUnlockPort {
+  availableCount: number;
+  choices: StampAsset[];
+  unlock(asset: StampAsset): Promise<void>;
+}
+
+function LockedCanvas({ todayHref }: { todayHref: string }) {
   return (
     <section className="tc-locked">
       <span aria-hidden="true">＋</span>
       <h1>{teamCanvasCopy.locked.title}</h1>
       <p>{teamCanvasCopy.locked.body}</p>
-      <Link href={teamCanvasRoutes.today}>{teamCanvasCopy.locked.action}</Link>
+      <Link href={todayHref}>{teamCanvasCopy.locked.action}</Link>
     </section>
   );
 }

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { TeamCanvasShell } from "./components/TeamCanvasShell";
 import { TeamCanvasProvider } from "./state";
-import "./team-canvas.css";
 
 export const metadata: Metadata = {
   title: "Team Canvas Alpha",

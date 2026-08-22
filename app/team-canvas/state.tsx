@@ -69,7 +69,7 @@ interface TeamCanvasContextValue {
     completion: CompletionKind;
     effort: number;
     tiredness: number;
-  }): Promise<void>;
+  }): Promise<boolean>;
   recordRest(): Promise<void>;
   recordCooldown(): Promise<void>;
   recordExtra(activity: ExtraActivity): void;
@@ -265,7 +265,7 @@ export function TeamCanvasProvider({
       async complete(input) {
         if (!gateway) {
           store.update((current) => recordPrimary(current, input));
-          return;
+          return true;
         }
         try {
           const dashboard = await createTrainingDashboardGateway(
@@ -310,8 +310,10 @@ export function TeamCanvasProvider({
           );
           setJustCompletedPrimary(true);
           await refresh();
+          return true;
         } catch (error) {
           reportConnectedError(error);
+          return false;
         }
       },
       async recordRest() {
@@ -548,6 +550,10 @@ export function useTeamCanvas(): TeamCanvasContextValue {
   if (!value)
     throw new Error("useTeamCanvas must be used inside TeamCanvasProvider");
   return value;
+}
+
+export function useOptionalTeamCanvas(): TeamCanvasContextValue | null {
+  return useContext(TeamCanvasContext);
 }
 
 function loadState(): TeamCanvasState {

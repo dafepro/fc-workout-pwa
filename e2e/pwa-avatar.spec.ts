@@ -76,12 +76,12 @@ test("a player builds a v4 look with independent Gear sublayers", async ({
   await page.reload();
   await page.locator("html[data-app-ready='true']").waitFor();
 
-  await page.goto("/team");
+  await page.goto("/classic-alpha/team");
   await expect(
     page.locator(".player-progress .avatar--self .avatar-art"),
   ).toBeVisible();
 
-  await page.goto("/leaders");
+  await page.goto("/classic-alpha/leaders");
   await expect(page.locator(".avatar--self .avatar-art").first()).toBeVisible();
   await expect(page.locator(".avatar--self").first()).toHaveAttribute(
     "aria-label",

@@ -15,12 +15,13 @@ afterEach(() => {
 });
 
 describe("AppViewSelect", () => {
-  it("uses one native selector for the three isolated player views", () => {
+  it("uses one native selector to return from previous player views", () => {
     render(<AppViewSelect currentView="classic" />);
 
-    const selector = screen.getByRole("combobox", { name: "App view" });
-    expect(selector).toHaveValue("/me");
-    expect(screen.getAllByRole("option")).toHaveLength(3);
+    const selector = screen.getByRole("combobox", { name: "Experience" });
+    expect(selector).toHaveValue("/classic-alpha/me");
+    expect(screen.getAllByRole("option")).toHaveLength(4);
+    expect(selector).toHaveTextContent("Consolidated default");
     expect(selector).toHaveTextContent("Classic Alpha");
     expect(selector).toHaveTextContent("Momentum Alpha");
     expect(selector).toHaveTextContent("Team Canvas");

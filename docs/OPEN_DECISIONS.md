@@ -704,3 +704,25 @@ Momentum Alpha needs independent PWA install/offline behavior.
   Team lounge action.
 - Decided: Team Canvas Me links to the shared predefined avatar builder rather
   than creating a second avatar editor or catalog.
+
+## Consolidated default player experience (2026-08-22)
+
+- Implemented: use Momentum Alpha's Today / Team / Me information
+  architecture as the default shell, Team Canvas as the default Team surface,
+  and Classic Alpha's private utilities inside Me. This replaces parallel
+  default dashboards rather than adding a fourth independent experience.
+- Implemented: logging remains inline on Today and uses separate effort
+  and tiredness tracks. Team stays visible in top-level navigation but reveals
+  no team data until today's approved plan or planned rest is complete.
+- Implemented: reserve a visible `Team rewards coming soon` module on
+  Today and above the Team Canvas. It is participation-based and distinct from
+  digital Canvas stamps. Reward type, threshold, date, fulfillment, and claim
+  flow remain intentionally undecided.
+- Implemented: preserve Classic Alpha, Momentum Alpha, and Team Canvas
+  under Me as previous views. Classic Alpha moves to a namespaced route so the
+  consolidated experience can own the default root routes.
+- Decided: the default experience mounts Team Canvas through a replaceable
+  widget adapter. Canvas rendering, multiplayer state, connectivity, and physics
+  may move to a dedicated library later. The application retains a separate
+  stamp-unlock port so user eligibility and available stamp choices do not
+  become responsibilities of that library.

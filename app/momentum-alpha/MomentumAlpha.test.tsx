@@ -144,7 +144,7 @@ describe("Momentum Alpha application", () => {
       </MomentumAlphaProvider>,
     );
 
-    expect(screen.getByRole("combobox", { name: "App view" })).toHaveValue(
+    expect(screen.getByRole("combobox", { name: "Experience" })).toHaveValue(
       "/momentum-alpha/me",
     );
     expect(

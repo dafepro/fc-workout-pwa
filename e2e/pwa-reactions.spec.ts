@@ -18,7 +18,7 @@ test.beforeEach(async () => {
 test("a teammate can be cheered from Team with labeled, contextual choices", async ({
   page,
 }) => {
-  await openReadyPage(page, "/team");
+  await openReadyPage(page, "/classic-alpha/team");
 
   await page.getByRole("button", { name: /Liam J\./ }).click();
   const picker = page.getByRole("dialog", { name: "Cheer for Liam" });
@@ -60,7 +60,7 @@ test("a completed shared challenge can be cheered without hiding other cheer ent
   await api.dispose();
 
   await page.setViewportSize({ width: 320, height: 700 });
-  await openReadyPage(page, "/team");
+  await openReadyPage(page, "/classic-alpha/team");
 
   const challenge = page.getByRole("region", {
     name: "Hill Sprints",
@@ -86,7 +86,7 @@ test("a completed shared challenge can be cheered without hiding other cheer ent
 test("the picker is usable for a second teammate after a successful cheer", async ({
   page,
 }) => {
-  await openReadyPage(page, "/team");
+  await openReadyPage(page, "/classic-alpha/team");
 
   await page.getByRole("button", { name: /Liam J\./ }).click();
   await page
@@ -111,7 +111,7 @@ test("the picker is usable for a second teammate after a successful cheer", asyn
 test("the sixth cheer to one teammate within 30 minutes shows only the limit error", async ({
   page,
 }) => {
-  await openReadyPage(page, "/team");
+  await openReadyPage(page, "/classic-alpha/team");
 
   for (let index = 0; index < 5; index += 1) {
     await page.getByRole("button", { name: /Cheer for Liam J\./ }).click();
@@ -134,7 +134,7 @@ test("the sixth cheer to one teammate within 30 minutes shows only the limit err
 test("leader cards retain leaderboard context and the current player is not reactable", async ({
   page,
 }) => {
-  await openReadyPage(page, "/leaders");
+  await openReadyPage(page, "/classic-alpha/leaders");
 
   await expect(
     page.getByRole("button", { name: /Cheer for Mason C\./ }),

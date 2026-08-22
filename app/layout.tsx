@@ -3,6 +3,8 @@ import { headers } from "next/headers";
 import { copy } from "./content/copy";
 import { AuthGate } from "./state/auth-context";
 import "./globals.css";
+import "./team-canvas/team-canvas.css";
+import "./player/player.css";
 
 export async function generateMetadata(): Promise<Metadata> {
   const requestHeaders = await headers();

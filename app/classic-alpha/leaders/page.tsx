@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { PlayerAvatar } from "../components/PlayerAvatar";
-import { ReactionPicker } from "../components/ReactionPicker";
-import { copy } from "../content/copy";
-import { createSocialGateway } from "../data/social-gateway";
+import { PlayerAvatar } from "../../components/PlayerAvatar";
+import { ReactionPicker } from "../../components/ReactionPicker";
+import { copy } from "../../content/copy";
+import { createSocialGateway } from "../../data/social-gateway";
 import type {
   LeaderboardItem,
   LeaderboardProjection,
@@ -12,10 +12,10 @@ import type {
   ReactionMetric,
   ReactionPeriod,
   ReactionType,
-} from "../domain/types";
-import { useTraining } from "../state/training-context";
-import { useAuth } from "../state/auth-context";
-import { useAnalytics } from "../../lib/analytics/AnalyticsProvider";
+} from "../../domain/types";
+import { useTraining } from "../../state/training-context";
+import { useAuth } from "../../state/auth-context";
+import { useAnalytics } from "../../../lib/analytics/AnalyticsProvider";
 
 type Period = "Weekly" | "30 Days" | "Season";
 type Metric = "Effort" | "Streaks" | "Consistency";

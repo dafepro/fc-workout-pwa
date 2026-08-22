@@ -1,7 +1,16 @@
-export type AppView = "classic" | "momentum" | "team-canvas";
+export type AppView = "default" | "classic" | "momentum" | "team-canvas";
 
 export const appViews = [
-  { id: "classic" as const, label: "Classic Alpha", href: "/me" },
+  {
+    id: "default" as const,
+    label: "Consolidated default",
+    href: "/me",
+  },
+  {
+    id: "classic" as const,
+    label: "Classic Alpha",
+    href: "/classic-alpha/me",
+  },
   {
     id: "momentum" as const,
     label: "Momentum Alpha",
@@ -15,5 +24,5 @@ export const appViews = [
 ] as const;
 
 export const appViewCopy = {
-  label: "App view",
+  label: "Experience",
 } as const;

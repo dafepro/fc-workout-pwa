@@ -341,7 +341,7 @@ describe("Team Canvas application", () => {
 
   it("keeps view selection a small profile setting", () => {
     renderTeamCanvas(<AppViewSelect currentView="team-canvas" />);
-    expect(screen.getByRole("combobox", { name: "App view" })).toHaveValue(
+    expect(screen.getByRole("combobox", { name: "Experience" })).toHaveValue(
       "/team-canvas/me",
     );
   });

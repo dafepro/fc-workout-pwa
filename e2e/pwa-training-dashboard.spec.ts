@@ -1,29 +1,8 @@
-import {
-  expect,
-  request,
-  test,
-  type APIRequestContext,
-} from "@playwright/test";
+import { expect, request, test } from "@playwright/test";
 import { openReadyPage } from "./app-ready";
 
 const apiBaseURL = process.env.E2E_API_BASE_URL ?? "http://api:8080";
 const resetKey = process.env.E2E_RESET_KEY ?? "local-e2e-reset-only";
-
-async function playerEffort(api: APIRequestContext): Promise<number> {
-  const response = await api.get(
-    "/v1/teams/team-hill-striders/leaderboards?period=weekly&metric=effort",
-    { headers: { Authorization: "Bearer e2e-player-mason" } },
-  );
-  expect(response.ok()).toBe(true);
-  const body = (await response.json()) as {
-    items: Array<{ playerId: string; value: number }>;
-  };
-  const value = body.items.find(
-    (item) => item.playerId === "player-mason",
-  )?.value;
-  expect(value).toBeDefined();
-  return value as number;
-}
 
 test.beforeEach(async () => {
   const api = await request.newContext({ baseURL: apiBaseURL });
@@ -34,91 +13,46 @@ test.beforeEach(async () => {
   await api.dispose();
 });
 
-test("connected Home and Record Training use the server assignment", async ({
+test("the consolidated default completes today's plan and unlocks Team Canvas", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 320, height: 700 });
   await openReadyPage(page, "/");
+
   await expect(
     page.getByRole("heading", { name: "Hill Sprints" }),
   ).toBeVisible();
-  await expect(
-    page.locator(".goal-card").getByRole("heading", { name: "2 of 3" }),
-  ).toBeVisible();
-
-  await page.getByRole("link", { name: /Log session/i }).click();
-  await expect(page.getByRole("link", { name: "Record training" })).toHaveCount(
-    0,
+  await expect(page.getByText("Team rewards coming soon")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Locked Team" })).toHaveAttribute(
+    "href",
+    "/team",
   );
-  await expect(
-    page.getByRole("link", { name: "Close training entry" }),
-  ).toBeVisible();
-  await expect(
-    page
-      .locator(".selected-activity")
-      .getByText("Hill Sprints", { exact: true }),
-  ).toBeVisible();
-  await page.locator(".selected-activity").click();
-  await expect(page.locator(".activity-options")).toBeVisible();
-  await expect(
-    page.getByRole("radio", { name: /Distance Run/i }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "How to do Distance Run" }).click();
-  await expect(page.getByText("How to do Distance Run")).toBeVisible();
-  await page.keyboard.press("Escape");
+  await expect(page.getByText("Leaders")).toHaveCount(0);
 
-  const effort = page.getByRole("slider", {
-    name: "How hard did you work?",
-  });
-  const tiredness = page.getByRole("slider", {
-    name: "How tired were you after?",
-  });
-  await expect(effort).toHaveValue("4");
-  await expect(tiredness).toHaveValue("4");
-  await effort.focus();
-  await page.keyboard.press("ArrowRight");
-  await tiredness.focus();
-  await page.keyboard.press("ArrowLeft");
-  await expect(effort).toHaveValue("5");
-  await expect(tiredness).toHaveValue("3");
+  await page.getByRole("button", { name: "Log today’s plan" }).click();
+  await page.getByRole("button", { name: "Reach · 10 reps" }).click();
+  const effort = page.getByRole("slider", { name: "Effort" });
+  const tiredness = page.getByRole("slider", { name: "Tiredness" });
+  await effort.fill("5");
+  await tiredness.fill("4");
 
-  const createResponse = page.waitForResponse(
+  const created = page.waitForResponse(
     (response) =>
       response.url().includes("/api/zoomigo/v1/me/training-entries") &&
       response.request().method() === "POST",
   );
-  await page.getByRole("button", { name: "Save" }).click();
-  expect((await createResponse).ok()).toBe(true);
+  await page.getByRole("button", { name: "Save workout" }).click();
+  expect((await created).status()).toBe(201);
 
   await expect(
-    page.getByRole("heading", { name: "Done for today!" }),
+    page.getByRole("heading", { name: "Today is in the books" }),
   ).toBeVisible();
-  await expect(page.getByText("Hill Sprints complete")).toBeVisible();
-  await expect(
-    page.getByText("Nice work—your effort helped Hill Striders move forward."),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: "See team progress" }),
-  ).toBeVisible();
-  await expect(page.locator(".hero-card.is-celebrating")).toBeVisible();
-  await expect(
-    page.locator(".goal-card").getByRole("heading", { name: "3 of 3" }),
-  ).toBeVisible();
-
-  await page.getByRole("link", { name: "See team progress" }).click();
-  const challenge = page.getByRole("region", { name: "Hill Sprints" });
-  await expect(
-    challenge.getByText("1 of 12 teammates completed"),
-  ).toBeVisible();
-  await expect(
-    challenge.locator(".challenge-participants .avatar--self"),
-  ).toHaveAttribute("aria-label", /, you$/);
-  await expect(
-    challenge.locator(".challenge-participants").getByText("You", {
-      exact: true,
-    }),
-  ).toHaveCount(0);
-  await expect(challenge.getByText(/tired|effort|result/i)).toHaveCount(0);
+  await page.getByRole("link", { name: /Join Team lounge/ }).click();
+  await expect(page).toHaveURL(/\/team$/);
+  await expect(page.getByLabel("Hill Striders weekly canvas")).toBeVisible();
+  await expect(page.getByText("Team stamps")).toBeVisible();
+  await expect(page.getByText("Developer canvas toolbox")).toHaveCount(0);
+  await expect(page.getByText(/effort|tired|result/i)).toHaveCount(0);
 
   const api = await request.newContext({ baseURL: apiBaseURL });
   const dashboard = await api.get(
@@ -127,46 +61,17 @@ test("connected Home and Record Training use the server assignment", async ({
   );
   expect(dashboard.ok()).toBe(true);
   expect((await dashboard.json()).currentAssignment.completed).toBe(true);
-
-  const firstEffort = await playerEffort(api);
-
-  await page.getByRole("link", { name: "Record training" }).click();
-  const secondCreateResponse = page.waitForResponse(
-    (response) =>
-      response.url().includes("/api/zoomigo/v1/me/training-entries") &&
-      response.request().method() === "POST",
-  );
-  await page.getByRole("button", { name: "Save" }).click();
-  expect((await secondCreateResponse).ok()).toBe(true);
-
-  await expect(
-    page.getByRole("heading", { name: "Done for today!" }),
-  ).toBeVisible();
-  await expect(page.locator(".hero-card.is-celebrating")).toHaveCount(0);
-  await expect(
-    page.locator(".goal-card").getByRole("heading", { name: "3 of 3" }),
-  ).toBeVisible();
-
-  const secondEffort = await playerEffort(api);
-  expect(secondEffort).toBe(firstEffort);
-
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/?saved=1&completed=1");
-  await expect(page.locator(".hero-card.is-celebrating")).toBeVisible();
-  for (const selector of [
-    ".hero-card.is-celebrating",
-    ".completion-check",
-    ".completion-burst i",
-    ".goal-card--celebrating .progress__fill",
-  ]) {
-    await expect
-      .poll(() =>
-        page
-          .locator(selector)
-          .first()
-          .evaluate((element) => getComputedStyle(element).animationName),
-      )
-      .toBe("none");
-  }
   await api.dispose();
+});
+
+test("Classic Alpha remains available under Me", async ({ page }) => {
+  await openReadyPage(page, "/me");
+  await page.getByRole("link", { name: /Classic Alpha/ }).click();
+  await expect(page).toHaveURL(/\/classic-alpha$/);
+  await expect(
+    page.getByRole("navigation", { name: "Primary navigation" }),
+  ).toContainText("Leaders");
+  await expect(
+    page.getByRole("heading", { name: "Hill Sprints" }),
+  ).toBeVisible();
 });

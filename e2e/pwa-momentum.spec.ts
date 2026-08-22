@@ -20,9 +20,8 @@ test("Momentum selects real assignments and persists check-ins across devices", 
   await page.setViewportSize({ width: 320, height: 700 });
   await loginAsMason(page);
   await page.goto("/me");
-  await page.getByLabel("App view").selectOption("/momentum-alpha/me");
-  await expect(page).toHaveURL(/\/momentum-alpha\/me$/);
-  await expect(page.getByRole("heading", { name: "Mason C." })).toBeVisible();
+  await page.getByRole("link", { name: /Momentum Alpha/ }).click();
+  await expect(page).toHaveURL(/\/momentum-alpha$/);
 
   await page.getByRole("link", { name: "Today" }).click();
   await expect(
