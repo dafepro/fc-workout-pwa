@@ -57,6 +57,20 @@ describe("gateDevRequest", () => {
     );
   });
 
+  it("lets a preview visitor reveal or hide the shared password", async () => {
+    const response = await gateDevRequest(request("/_dev-gate", "US"), env);
+    const html = await response?.text();
+
+    expect(html).toContain('id="preview-password"');
+    expect(html).toContain('type="password"');
+    expect(html).toContain('type="button"');
+    expect(html).toContain('aria-controls="preview-password"');
+    expect(html).toContain('aria-pressed="false"');
+    expect(html).toContain("Show password");
+    expect(html).toContain('password.type="text"');
+    expect(html).toContain('password.type="password"');
+  });
+
   it("sends root visitors to the credential directory after the gate", async () => {
     const response = await gateDevRequest(request("/", "US"), env);
 

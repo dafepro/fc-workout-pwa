@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { AppViewSelect } from "../../components/AppViewSelect";
+import { routes } from "../../content/routes";
 import { PlayerAvatar } from "../../components/PlayerAvatar";
 import { useOptionalAuth } from "../../state/auth-context";
 import { teamCanvasCopy } from "../content";
@@ -34,6 +36,11 @@ export function TeamCanvasMe({
           <p>{teamName}</p>
         </div>
       </header>
+
+      <Link className="tc-avatar-builder" href={routes.playerAvatar}>
+        <span>{content.avatarBuilder}</span>
+        <span aria-hidden="true">→</span>
+      </Link>
 
       <AppViewSelect currentView="team-canvas" />
 

@@ -12,6 +12,11 @@ import type { AvatarConfiguration } from "../../avatar/types";
 import { Avatar } from "../../components/Avatar";
 import type { Player } from "../../domain/types";
 import {
+  avatarReleaseVelocity,
+  stepAvatarMomentum,
+  type AvatarMotionSample,
+} from "../avatar-momentum";
+import {
   gestureTransform,
   isPointInTrashDropZone,
   starCrownLayout,
@@ -85,6 +90,8 @@ export function BoardSurface({
   const [draggingPieceId, setDraggingPieceId] = useState<string | null>(null);
   const [trashArmed, setTrashArmed] = useState(false);
   const avatarPointer = useRef<number | null>(null);
+  const avatarSamples = useRef<AvatarMotionSample[]>([]);
+  const avatarMomentumFrame = useRef<number | null>(null);
   const gesture = useRef<ActiveGesture | null>(null);
   const suppressPieceClick = useRef(false);
   const copy = teamCanvasCopy.board;
@@ -105,6 +112,44 @@ export function BoardSurface({
     setTrashArmed(false);
     onDeletePiece(pieceId);
   };
+  const stopAvatarMomentum = () => {
+    if (avatarMomentumFrame.current !== null) {
+      window.cancelAnimationFrame(avatarMomentumFrame.current);
+      avatarMomentumFrame.current = null;
+    }
+  };
+  const beginAvatarMomentum = (
+    position: BoardPosition,
+    samples: AvatarMotionSample[],
+  ) => {
+    stopAvatarMomentum();
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    let momentum = {
+      position,
+      velocity: avatarReleaseVelocity(samples),
+    };
+    if (Math.hypot(momentum.velocity.x, momentum.velocity.y) === 0) return;
+    let lastFrame = performance.now();
+    const advance = (now: number) => {
+      momentum = stepAvatarMomentum(momentum, (now - lastFrame) / 1000);
+      lastFrame = now;
+      onMoveAvatar(momentum.position);
+      if (Math.hypot(momentum.velocity.x, momentum.velocity.y) === 0) {
+        avatarMomentumFrame.current = null;
+        return;
+      }
+      avatarMomentumFrame.current = window.requestAnimationFrame(advance);
+    };
+    avatarMomentumFrame.current = window.requestAnimationFrame(advance);
+  };
+  useEffect(
+    () => () => {
+      if (avatarMomentumFrame.current !== null) {
+        window.cancelAnimationFrame(avatarMomentumFrame.current);
+      }
+    },
+    [],
+  );
   useEffect(() => {
     if (!simulatePeers) return;
     const reduced = window.matchMedia?.(
@@ -197,25 +242,41 @@ export function BoardSurface({
           current
           onPointerDown={(event) => {
             event.preventDefault();
+            stopAvatarMomentum();
             event.currentTarget.setPointerCapture?.(event.pointerId);
             avatarPointer.current = event.pointerId;
+            avatarSamples.current = [
+              {
+                position: currentMember.position,
+                at: event.timeStamp,
+              },
+            ];
           }}
           onPointerMove={(event) => {
             if (avatarPointer.current !== event.pointerId) return;
-            const board = event.currentTarget.closest(".tc-board");
-            if (!(board instanceof HTMLElement)) return;
-            const rect = board.getBoundingClientRect();
-            onMoveAvatar({
-              x: ((event.clientX - rect.left) / rect.width) * 100,
-              y: ((event.clientY - rect.top) / rect.height) * 100,
-            });
+            const position = avatarPositionFromPointer(event);
+            if (!position) return;
+            onMoveAvatar(position);
+            avatarSamples.current = recentAvatarSamples([
+              ...avatarSamples.current,
+              { position, at: event.timeStamp },
+            ]);
           }}
           onPointerUp={(event) => {
-            if (avatarPointer.current === event.pointerId)
-              avatarPointer.current = null;
+            if (avatarPointer.current !== event.pointerId) return;
+            const position =
+              avatarPositionFromPointer(event) ?? currentMember.position;
+            const samples = recentAvatarSamples([
+              ...avatarSamples.current,
+              { position, at: event.timeStamp },
+            ]);
+            avatarPointer.current = null;
+            avatarSamples.current = [];
+            beginAvatarMomentum(position, samples);
           }}
           onPointerCancel={() => {
             avatarPointer.current = null;
+            avatarSamples.current = [];
           }}
           onKeyDown={(event) =>
             moveAvatarWithKeyboard(event, currentMember.position, onMoveAvatar)
@@ -559,6 +620,24 @@ function pointerPoint(event: PointerEvent<HTMLElement>): GesturePoint {
   return { id: event.pointerId, x: event.clientX, y: event.clientY };
 }
 
+function avatarPositionFromPointer(
+  event: PointerEvent<HTMLElement>,
+): BoardPosition | null {
+  const board = event.currentTarget.closest(".tc-board");
+  if (!(board instanceof HTMLElement)) return null;
+  const rect = board.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return null;
+  return {
+    x: clamp(((event.clientX - rect.left) / rect.width) * 100, 6, 94),
+    y: clamp(((event.clientY - rect.top) / rect.height) * 100, 6, 94),
+  };
+}
+
+function recentAvatarSamples(samples: AvatarMotionSample[]) {
+  const latest = samples.at(-1)?.at ?? 0;
+  return samples.filter(({ at }) => at >= latest - 120).slice(-6);
+}
+
 function isTrashDropPoint(point: GesturePoint, board: HTMLElement) {
   if (isPointInTrashDropZone(point, board.getBoundingClientRect())) return true;
   const target = board.querySelector(".tc-trash-target");
@@ -673,4 +752,8 @@ function resizePieceFromTop(
   const boardHeight =
     board instanceof HTMLElement ? board.getBoundingClientRect().height : 0;
   edit(piece.id, topAnchoredResize(piece, size, boardHeight));
+}
+
+function clamp(value: number, minimum: number, maximum: number) {
+  return Math.min(maximum, Math.max(minimum, value));
 }

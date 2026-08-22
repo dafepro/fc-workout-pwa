@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppViewSelect } from "../components/AppViewSelect";
 import { AvatarIdentityProvider } from "../state/avatar-identity-context";
 import { TeamCanvasBoard } from "./components/TeamCanvasBoard";
+import { TeamCanvasMe } from "./components/TeamCanvasMe";
 import { TeamCanvasShell } from "./components/TeamCanvasShell";
 import { TeamCanvasToday } from "./components/TeamCanvasToday";
 import { initialTeamCanvasState, recordPrimary } from "./model";
@@ -35,7 +36,7 @@ function renderTeamCanvas(children: React.ReactNode) {
 }
 
 describe("Team Canvas application", () => {
-  it("uses an avatar-only profile entrance and no navigation", () => {
+  it("keeps the team lounge visibly locked in navigation before today is complete", () => {
     renderTeamCanvas(
       <TeamCanvasProvider>
         <TeamCanvasShell>
@@ -44,10 +45,55 @@ describe("Team Canvas application", () => {
       </TeamCanvasProvider>,
     );
 
-    expect(screen.queryByRole("navigation")).toBeNull();
+    expect(
+      screen.getByRole("navigation", { name: "Team Canvas" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Today" })).toHaveAttribute(
+      "href",
+      "/team-canvas",
+    );
+    expect(screen.getByText("Team lounge")).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    expect(
+      screen.queryByRole("link", { name: "Team lounge" }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Open Mason’s profile" }),
     ).toHaveAttribute("href", "/team-canvas/me");
+  });
+
+  it("opens the team lounge directly from navigation after today is complete", () => {
+    const complete = recordPrimary(initialTeamCanvasState(), {
+      completion: "goal",
+      effort: 4,
+      tiredness: 3,
+    });
+    renderTeamCanvas(
+      <TeamCanvasProvider initialState={complete}>
+        <TeamCanvasShell>
+          <p>Today</p>
+        </TeamCanvasShell>
+      </TeamCanvasProvider>,
+    );
+
+    expect(screen.getByRole("link", { name: "Team lounge" })).toHaveAttribute(
+      "href",
+      "/team-canvas/team",
+    );
+  });
+
+  it("links to the shared avatar builder from the Team Canvas Me view", () => {
+    renderTeamCanvas(
+      <TeamCanvasProvider>
+        <TeamCanvasMe />
+      </TeamCanvasProvider>,
+    );
+
+    expect(
+      screen.getByRole("link", { name: "Customize avatar" }),
+    ).toHaveAttribute("href", "/me/avatar");
   });
 
   it("starts with one daily card and one large text-free action", () => {
@@ -92,10 +138,9 @@ describe("Team Canvas application", () => {
     expect(
       screen.getByRole("heading", { name: "Cool down" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Join Team now" })).toHaveAttribute(
-      "href",
-      "/team-canvas/team",
-    );
+    expect(
+      screen.getByRole("link", { name: "Open Team lounge" }),
+    ).toHaveAttribute("href", "/team-canvas/team");
     expect(push).not.toHaveBeenCalledWith("/team-canvas/team");
 
     fireEvent.click(screen.getByRole("button", { name: "Record cooldown" }));

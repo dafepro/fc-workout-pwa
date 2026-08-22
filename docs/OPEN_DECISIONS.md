@@ -689,3 +689,18 @@ Momentum Alpha needs independent PWA install/offline behavior.
   its subprotocol. The existing ticket expiry, single-use, player/team binding,
   and WebSocket origin check remain authoritative; all other dev API traffic
   still requires the private PWA-to-API gateway header.
+
+## Team Canvas release feel and navigation (2026-08-22)
+
+- Decided: releasing an avatar after a deliberate drag carries its recent
+  direction into a short, speed-capped, damped coast. A still or barely moving
+  release remains in place, boundaries absorb most of an impact, and reduced
+  motion disables the coast. This remains cosmetic canvas movement and cannot
+  affect training, rewards, stars, or access.
+- Decided: Team Canvas keeps Today and Team lounge visible in its header. Team
+  lounge is a disabled, visibly locked destination until the current player has
+  completed today's approved plan; a planned rest continues to qualify as plan
+  completion. The completed-workout cooldown card also carries a prominent
+  Team lounge action.
+- Decided: Team Canvas Me links to the shared predefined avatar builder rather
+  than creating a second avatar editor or catalog.

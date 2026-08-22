@@ -2,6 +2,11 @@ export const teamCanvasCopy = {
   brand: "ZoomiGo",
   edition: "Team Canvas",
   openProfile: (name: string) => `Open ${name}’s profile`,
+  nav: {
+    label: "Team Canvas",
+    today: "Today",
+    team: "Team lounge",
+  },
   today: {
     eyebrow: "Today · Aug 20",
     trainingTitle: "Hill sprints",
@@ -45,7 +50,7 @@ export const teamCanvasCopy = {
       "Walk easily for 10 minutes. Keep the pace relaxed after today’s demanding work.",
     cooldownContext: "Your workout is saved · Team is unlocked",
     cooldownAction: "Record cooldown",
-    joinTeam: "Join Team now",
+    joinTeam: "Open Team lounge",
     restEyebrow: "Today · planned recovery",
     restTitle: "Rest day",
     restDescription:
@@ -100,6 +105,7 @@ export const teamCanvasCopy = {
   },
   me: {
     eyebrow: "Player profile",
+    avatarBuilder: "Customize avatar",
     historyTitle: "Private activity",
     historyEmpty: "Your recorded days and extra activities will appear here.",
     viewLabel: "App view",

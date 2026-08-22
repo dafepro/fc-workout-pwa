@@ -68,8 +68,38 @@ test("connected Team Canvas uses durable pieces, settings, and realtime updates"
 
   await expect(page.getByLabel("Hill Striders weekly canvas")).toBeVisible();
   await expect.poll(() => socketURLs.length).toBe(1);
+  await expect(
+    page.getByRole("navigation", { name: "Team Canvas" }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "Open Mason’s profile" }).click();
+  await expect(
+    page.getByRole("link", { name: "Customize avatar" }),
+  ).toHaveAttribute("href", "/me/avatar");
+  await page.getByRole("link", { name: "Team lounge" }).click();
+  await expect(page.getByLabel("Hill Striders weekly canvas")).toBeVisible();
   await expect(page.getByText("Ari", { exact: true })).toHaveCount(0);
   await expect(page.getByText("4 stamps ready")).toBeVisible();
+
+  const ownAvatar = page.getByRole("button", {
+    name: "Move Mason’s avatar",
+  });
+  const avatarBox = await ownAvatar.boundingBox();
+  if (!avatarBox) throw new Error("Current avatar has no bounding box");
+  await page.mouse.move(
+    avatarBox.x + avatarBox.width / 2,
+    avatarBox.y + avatarBox.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    avatarBox.x + avatarBox.width / 2 + 46,
+    avatarBox.y + avatarBox.height / 2 - 10,
+    { steps: 4 },
+  );
+  await page.mouse.up();
+  const releasedStyle = await ownAvatar.getAttribute("style");
+  await expect
+    .poll(() => ownAvatar.getAttribute("style"))
+    .not.toBe(releasedStyle);
 
   const pieceCreated = page.waitForResponse(
     (response) =>
@@ -177,11 +207,7 @@ test("connected Team Canvas uses durable pieces, settings, and realtime updates"
   );
   expect(avatarUpdate.ok()).toBe(true);
   await expect
-    .poll(() =>
-      page
-        .getByRole("button", { name: "Move Mason’s avatar" })
-        .getAttribute("style"),
-    )
+    .poll(() => ownAvatar.getAttribute("style"))
     .toContain("left: 84%");
 
   await page.reload();
