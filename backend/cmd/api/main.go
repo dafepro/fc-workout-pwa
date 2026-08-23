@@ -61,6 +61,7 @@ func run() error {
 		httpapi.WithSessionManager(sessions),
 		httpapi.WithStaffSessionManager(staff),
 		httpapi.WithStaffRepository(store.NewStaffStore(db)),
+		httpapi.WithTeamRewardRepository(repository),
 		httpapi.WithStaffAccountManager(staff),
 		httpapi.WithCredentialManager(sessions),
 	}

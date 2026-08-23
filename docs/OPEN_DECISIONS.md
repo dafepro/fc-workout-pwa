@@ -753,3 +753,37 @@ Momentum Alpha needs independent PWA install/offline behavior.
 - Decided: a development preview may force a locked presentation but cannot
   force server-protected Team data open. Testing an unlocked live Canvas still
   requires the normal approved-plan or planned-rest completion.
+
+## Team Rewards design direction (2026-08-23)
+
+- Decided: trusted coaches may publish one real-world team reward with bounded
+  custom text and one optional staff-uploaded image directly to their team.
+  Players remain unable to author text or upload media.
+- Decided: reward goals use a guided template UI backed by a strict, versioned,
+  extensible rule model. The first design supports qualifying team days and
+  teammate consistency; it does not expose arbitrary AND/OR expressions.
+- Decided: a percentage-based day qualifies when the stated percentage of that
+  team day's active roster participates. Progress uses active membership on each
+  day and one participation credit per player/day.
+- Decided in principle: backdated starts and authoritative record corrections
+  may recalculate an unachieved reward. Proposed bounds are 30 team days for a
+  corrected start and 90 days for an optional reward window. Achieved rewards
+  latch and are never taken away by later correction.
+- Decided: one reward may be active per team. Published rewards are cancelled,
+  not deleted; drafts may coexist.
+- Implemented: the durable first slice now owns draft, publish, achieved, and
+  cancelled states; calculates aggregate progress from active membership and
+  non-deleted workout records; and exposes only safe aggregate player data.
+  Connected Today and Team surfaces render no reward card until one is
+  published. The local design prototype retains its preview fixture.
+- Proposed: achievement is the final player-facing fulfillment state. There is
+  no coach “prize delivered” acknowledgment or player claim workflow.
+- Proposed: send assigned coaches one close email at 80% and one achievement
+  email, deduplicated through a SQLite transactional outbox.
+- Proposed: trusted-coach publication does not require an approval queue. A
+  quiet, predefined player report action and operator moderation path should be
+  required before this feature is enabled for real youth data.
+- Still open: email provider, production reward-media storage,
+  media-retention period, whether
+  reporting appears in the dev prototype, and final numeric rule bounds after
+  coach UAT. Full design: `TEAM_REWARDS_DESIGN.md`.

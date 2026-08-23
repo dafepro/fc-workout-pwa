@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 
+import { devAccessEnabled } from "../../../api/backend";
 import { requireStaffSession } from "../../guard";
 import { routes } from "../../../content/routes";
 import { consoleCopy } from "../../console/copy";
@@ -19,7 +20,7 @@ export default async function CoachTeamLayout({
     <TeamShell
       teamId={teamId}
       back={{ href: routes.staffConsoleHome, label: consoleCopy.home.teams }}
-      sections={coachSections(teamId)}
+      sections={coachSections(teamId, devAccessEnabled())}
     >
       {children}
     </TeamShell>

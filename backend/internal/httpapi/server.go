@@ -46,6 +46,7 @@ type service struct {
 	sessions      SessionManager
 	staff         StaffSessionManager
 	staffStore    StaffRepository
+	rewards       TeamRewardRepository
 	staffAccounts StaffAccountManager
 	credentials   CredentialManager
 	devAccess     DevAccessManager
@@ -173,6 +174,7 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	mux.HandleFunc("DELETE /v1/training-entries/{entryId}", service.deleteTrainingEntry)
 	mux.HandleFunc("GET /v1/teams/{teamId}/activity", service.getTeamActivity)
 	mux.HandleFunc("GET /v1/teams/{teamId}/leaderboards", service.getLeaderboard)
+	mux.HandleFunc("GET /v1/teams/{teamId}/reward", service.getPlayerTeamReward)
 	mux.HandleFunc("GET /v1/teams/{teamId}/canvas", service.getTeamCanvas)
 	mux.HandleFunc("POST /v1/teams/{teamId}/canvas/rest", service.recordTeamCanvasRest)
 	mux.HandleFunc("PUT /v1/teams/{teamId}/canvas/avatar", service.updateTeamCanvasAvatar)

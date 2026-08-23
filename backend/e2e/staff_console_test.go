@@ -186,6 +186,20 @@ func TestOperatorBuildsAClubAndAPlayerSignsIn(t *testing.T) {
 		t.Fatalf("provisioning revealed no PIN or QR: %+v", provisioned)
 	}
 	credential := fragmentValue(t, provisioned.LoginURL, "credential")
+	reward := staffPost[struct {
+		ID string `json:"id"`
+	}](t, api, "/v1/staff/teams/"+team.ID+"/rewards", token, http.StatusCreated, map[string]any{
+		"prizeTitle": "Team picnic", "prizeDescription": "Celebrate together.",
+		"startsOn": today.Format("2006-01-02"),
+		"rule": map[string]any{
+			"version": 1, "kind": "qualifying_team_days",
+			"participationScope": "any_approved_workout",
+			"requiredDays":       1, "minimumRosterPercent": 100,
+		},
+	})
+	staffPost[struct {
+		Status string `json:"status"`
+	}](t, api, "/v1/staff/teams/"+team.ID+"/rewards/"+reward.ID+"/publish", token, http.StatusOK, nil)
 
 	// The whole point of the seam: the code the console just printed works.
 	playerSession := staffPost[struct {
@@ -197,6 +211,15 @@ func TestOperatorBuildsAClubAndAPlayerSignsIn(t *testing.T) {
 		trainingPayload(team.ID, time.Now().UTC()))
 	assertStatus(t, entry, http.StatusCreated)
 	_ = entry.Body.Close()
+	playerReward := staffGet[struct {
+		Status   string `json:"status"`
+		Progress struct {
+			Achieved bool `json:"achieved"`
+		} `json:"progress"`
+	}](t, api, "/v1/teams/"+team.ID+"/reward", playerSession.Token, http.StatusOK)
+	if playerReward.Status != "achieved" || !playerReward.Progress.Achieved {
+		t.Fatalf("player reward = %+v, want achieved aggregate progress", playerReward)
+	}
 
 	detail := staffGet[struct {
 		Player struct {
@@ -249,6 +272,7 @@ func TestStaffRoutesRefuseTheWrongCredential(t *testing.T) {
 		{http.MethodGet, "/v1/staff/search?q=a"},
 		{http.MethodGet, "/v1/staff/clubs"},
 		{http.MethodGet, "/v1/staff/teams"},
+		{http.MethodGet, "/v1/staff/teams/unknown/rewards"},
 		{http.MethodGet, "/v1/staff/players/unknown"},
 		{http.MethodGet, "/v1/staff/accounts"},
 		{http.MethodGet, "/v1/staff/audit"},

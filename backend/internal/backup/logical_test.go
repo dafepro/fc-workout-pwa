@@ -32,6 +32,8 @@ var exportedTables = []string{
 	"accounts",
 	"team_memberships",
 	"coach_team_assignments",
+	"team_rewards",
+	"team_reward_events",
 	"activity_definitions",
 	"assignment_catalog",
 	"assignments",
@@ -382,6 +384,18 @@ func fullyPopulatedDatabase(t *testing.T, ctx context.Context) string {
 		 VALUES ('account-coach', 'club-zoomigo', NULL, 'coach', 'active', '2026-01-02T00:00:00Z')`,
 		`INSERT INTO coach_team_assignments (team_id, account_id, active_from, active_to)
 		 VALUES ('team-hill-striders', 'account-coach', '2026-01-02', NULL)`,
+		`INSERT INTO team_rewards (
+			id, team_id, created_by_account_id, status, prize_title, prize_description,
+			starts_on, time_zone, rule_version, rule_kind, participation_scope,
+			required_days, minimum_roster_percent, created_at, updated_at
+		) VALUES (
+			'reward-one', 'team-hill-striders', 'account-coach', 'active', 'Team pizza',
+			'Celebrate together.', '2026-08-01', 'America/Chicago', 1,
+			'qualifying_team_days', 'recommended_workout', 10, 80,
+			'2026-08-01T00:00:00Z', '2026-08-02T00:00:00Z'
+		)`,
+		`INSERT INTO team_reward_events (id, reward_id, actor_account_id, event_type, occurred_at)
+		 VALUES ('reward-event-one', 'reward-one', 'account-coach', 'published', '2026-08-02T00:00:00Z')`,
 		`UPDATE team_memberships SET active_to = '2026-06-30' WHERE player_id = 'player-zoe'`,
 		`UPDATE training_entries SET idempotency_key = 'entry-key-1', assignment_id = 'assignment-hill-sprints'
 		 WHERE id = 'entry-mason-recent'`,

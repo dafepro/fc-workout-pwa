@@ -76,6 +76,7 @@ export const consoleCopy = {
     training: "Training",
     progress: "Progress",
     roster: "Roster",
+    rewards: "Rewards",
   },
   progress: {
     title: "This week",

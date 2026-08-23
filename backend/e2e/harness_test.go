@@ -106,6 +106,7 @@ func startLocalAPI(t *testing.T) string {
 		httpapi.WithSessionManager(sessions),
 		httpapi.WithStaffSessionManager(staff),
 		httpapi.WithStaffRepository(store.NewStaffStore(db)),
+		httpapi.WithTeamRewardRepository(repository),
 		httpapi.WithStaffAccountManager(staff),
 		httpapi.WithCredentialManager(sessions),
 		httpapi.WithAuthFixtureReset(func(ctx context.Context) error {

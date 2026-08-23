@@ -127,6 +127,23 @@ describe("console gateway routing", () => {
     expect(gatewayFor("POST", "v1/staff/teams/team-1/assignments")).toBe(
       STAFF_GATEWAY,
     );
+    expect(gatewayFor("GET", "v1/staff/teams/team-1/rewards")).toBe(
+      STAFF_GATEWAY,
+    );
+    expect(
+      allows(
+        STAFF_ROUTES,
+        "POST",
+        "v1/staff/teams/team-1/rewards/reward-1/publish",
+      ),
+    ).toBe(true);
+    expect(
+      allows(
+        STAFF_ROUTES,
+        "POST",
+        "v1/staff/teams/team-1/rewards/reward-1/cancel",
+      ),
+    ).toBe(true);
   });
 
   /** An unknown path must not be promoted to the operator side by a lookup

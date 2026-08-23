@@ -713,6 +713,113 @@
   background: linear-gradient(90deg, #8bcf19, var(--lime));
 }
 
+.player-rewards--active {
+  grid-template-columns: minmax(0, 1fr) minmax(4.75rem, 7rem);
+  border-color: #cbd6ad;
+  background:
+    radial-gradient(circle at 95% 0%, rgb(200 245 42 / 34%), transparent 8rem),
+    linear-gradient(145deg, #ffffff, #f7faee);
+}
+
+.player-rewards__content {
+  min-width: 0;
+}
+
+.player-rewards__goal {
+  color: #48504b;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.player-rewards__content > b {
+  display: block;
+  margin: 0.65rem 0 0.3rem;
+  color: #233b34;
+  font-size: 0.88rem;
+}
+
+.player-rewards__visual {
+  width: 100%;
+  align-self: stretch;
+}
+
+.player-rewards__visual img {
+  width: 100%;
+  height: 100%;
+  min-height: 7rem;
+  border-radius: 0.9rem;
+  object-fit: cover;
+  box-shadow: 0 8px 18px rgb(18 61 47 / 14%);
+}
+
+.player-rewards__gift {
+  position: relative;
+  display: grid;
+  height: 100%;
+  min-height: 7rem;
+  place-items: center;
+  border-radius: 0.9rem;
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, transparent 42%, #ffdf6f 42% 58%, transparent 58%),
+    linear-gradient(145deg, #674dde, #352184);
+  box-shadow: 0 8px 18px rgb(18 61 47 / 16%);
+}
+
+.player-rewards__gift::before,
+.player-rewards__gift::after {
+  position: absolute;
+  top: 18%;
+  width: 2.3rem;
+  height: 1.7rem;
+  border: 0.4rem solid #ffdf6f;
+  content: "";
+}
+
+.player-rewards__gift::before {
+  right: 50%;
+  border-radius: 1rem 0.2rem 0.2rem 0.3rem;
+  transform: rotate(16deg);
+}
+
+.player-rewards__gift::after {
+  left: 50%;
+  border-radius: 0.2rem 1rem 0.3rem 0.2rem;
+  transform: rotate(-16deg);
+}
+
+.player-rewards__gift i {
+  width: 72%;
+  height: 45%;
+  margin-top: 35%;
+  border-top: 0.55rem solid #ffdf6f;
+  background: rgb(255 255 255 / 12%);
+}
+
+.player-rewards__complete {
+  margin-top: 0.65rem;
+  padding: 0.55rem;
+  border-radius: 0.6rem;
+  background: rgb(200 245 42 / 24%);
+  font-size: 0.85rem;
+}
+
+.player-rewards__complete strong {
+  margin-bottom: 0.1rem;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 23rem) {
+  .player-rewards--active {
+    grid-template-columns: minmax(0, 1fr) 4.5rem;
+  }
+
+  .player-rewards__visual img,
+  .player-rewards__gift {
+    min-height: 6rem;
+  }
+}
+
 .team-preview {
   position: relative;
   display: grid;

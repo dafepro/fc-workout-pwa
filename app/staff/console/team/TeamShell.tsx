@@ -15,8 +15,8 @@ export interface TeamSection {
 }
 
 /**
- * REQ-511. One team, three jobs -- set the plan, review how it is going, manage
- * the people -- each at its own address. They were one scroll of six cards in
+ * REQ-511. One team, several jobs -- set the plan, review progress, manage
+ * rewards and people -- each at its own address. They were one scroll of six cards in
  * the order the components happened to be written, so nothing on the screen
  * said which job anything belonged to.
  *

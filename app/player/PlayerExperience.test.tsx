@@ -8,6 +8,11 @@ import {
 import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AvatarIdentityProvider } from "../state/avatar-identity-context";
+import {
+  createPrototypeReward,
+  publishPrototypeReward,
+  writePrototypeRewards,
+} from "../data/team-reward-prototype";
 import { MomentumAlphaProvider } from "../momentum-alpha/state";
 import { initialTeamCanvasState, recordPrimary } from "../team-canvas/model";
 import { TeamCanvasProvider } from "../team-canvas/state";
@@ -121,6 +126,24 @@ describe("consolidated default player experience", () => {
     expect(screen.getByText("Team rewards coming soon")).toBeInTheDocument();
     expect(screen.getByText("Finish today first")).toBeInTheDocument();
     expect(screen.queryByText("Elena")).not.toBeInTheDocument();
+  });
+
+  it("shows a dev-published reward in the reserved player slot", async () => {
+    const reward = publishPrototypeReward(
+      {
+        ...createPrototypeReward("team-hill-striders"),
+        prizeTitle: "Pizza after practice",
+      },
+      [],
+    );
+    writePrototypeRewards("team-hill-striders", [reward]);
+
+    renderExperience(<ConsolidatedToday />, initialTeamCanvasState(), true);
+
+    expect(await screen.findByText("Pizza after practice")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Team rewards coming soon"),
+    ).not.toBeInTheDocument();
   });
 
   it("renders the Team Canvas widget after plan completion", () => {
