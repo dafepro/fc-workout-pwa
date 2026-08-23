@@ -39,6 +39,11 @@ export const STAFF_ROUTES: ConsoleRoute[] = [
   { method: "GET", pattern: /^v1\/staff\/teams\/[^/]+\/progress$/ },
   { method: "GET", pattern: /^v1\/staff\/teams\/[^/]+\/rewards$/ },
   { method: "POST", pattern: /^v1\/staff\/teams\/[^/]+\/rewards$/ },
+  { method: "POST", pattern: /^v1\/staff\/teams\/[^/]+\/reward-media$/ },
+  {
+    method: "GET",
+    pattern: /^v1\/staff\/teams\/[^/]+\/reward-media\/[^/]+$/,
+  },
   {
     method: "POST",
     pattern: /^v1\/staff\/teams\/[^/]+\/rewards\/[^/]+\/publish$/,

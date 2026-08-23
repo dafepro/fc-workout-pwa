@@ -20,6 +20,8 @@ export function TeamRewardCard({
     prizeTitle: string;
     prizeDescription: string;
     imageDataUrl?: string;
+    imageUrl?: string;
+    imageAlt?: string;
     rule: TeamRewardRule;
   };
   progress: TeamRewardProgress;
@@ -27,6 +29,7 @@ export function TeamRewardCard({
 }) {
   const headingId = `team-reward-${placement}-${reward.id}`;
   const achieved = reward.status === "achieved" || progress.achieved;
+  const imageUrl = reward.imageDataUrl ?? reward.imageUrl;
   return (
     <section
       className={`player-rewards player-rewards--active player-rewards--${placement}`}
@@ -68,12 +71,15 @@ export function TeamRewardCard({
         ) : null}
       </div>
       <div className="player-rewards__visual">
-        {reward.imageDataUrl ? (
+        {imageUrl ? (
           <Image
-            src={reward.imageDataUrl}
-            alt={teamRewardCopy.staff.imageAlt(reward.prizeTitle)}
+            src={imageUrl}
+            alt={
+              reward.imageAlt ??
+              teamRewardCopy.staff.imageAlt(reward.prizeTitle)
+            }
             width={240}
-            height={180}
+            height={160}
             unoptimized
           />
         ) : (

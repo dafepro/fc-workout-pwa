@@ -3,8 +3,14 @@
 package e2e_test
 
 import (
+	"bytes"
 	"encoding/base32"
+	"image"
+	"image/color"
+	"image/png"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"net/url"
 	"os"
 	"strings"
@@ -186,10 +192,12 @@ func TestOperatorBuildsAClubAndAPlayerSignsIn(t *testing.T) {
 		t.Fatalf("provisioning revealed no PIN or QR: %+v", provisioned)
 	}
 	credential := fragmentValue(t, provisioned.LoginURL, "credential")
+	mediaID := uploadRewardMediaE2E(t, api, token, team.ID)
 	reward := staffPost[struct {
 		ID string `json:"id"`
 	}](t, api, "/v1/staff/teams/"+team.ID+"/rewards", token, http.StatusCreated, map[string]any{
 		"prizeTitle": "Team picnic", "prizeDescription": "Celebrate together.",
+		"mediaId":  mediaID,
 		"startsOn": today.Format("2006-01-02"),
 		"rule": map[string]any{
 			"version": 1, "kind": "qualifying_team_days",
@@ -213,13 +221,20 @@ func TestOperatorBuildsAClubAndAPlayerSignsIn(t *testing.T) {
 	_ = entry.Body.Close()
 	playerReward := staffGet[struct {
 		Status   string `json:"status"`
+		MediaID  string `json:"mediaId"`
 		Progress struct {
 			Achieved bool `json:"achieved"`
 		} `json:"progress"`
 	}](t, api, "/v1/teams/"+team.ID+"/reward", playerSession.Token, http.StatusOK)
-	if playerReward.Status != "achieved" || !playerReward.Progress.Achieved {
+	if playerReward.Status != "achieved" || !playerReward.Progress.Achieved || playerReward.MediaID != mediaID {
 		t.Fatalf("player reward = %+v, want achieved aggregate progress", playerReward)
 	}
+	imageResponse := api.do(t, http.MethodGet, "/v1/teams/"+team.ID+"/reward-media/"+mediaID+"?variant=thumbnail", playerSession.Token, "", nil)
+	assertStatus(t, imageResponse, http.StatusOK)
+	if imageResponse.Header.Get("Content-Type") != "image/jpeg" {
+		t.Fatalf("reward media type = %q", imageResponse.Header.Get("Content-Type"))
+	}
+	_ = imageResponse.Body.Close()
 
 	detail := staffGet[struct {
 		Player struct {
@@ -257,6 +272,54 @@ func TestOperatorBuildsAClubAndAPlayerSignsIn(t *testing.T) {
 			}
 		}
 	}
+}
+
+func uploadRewardMediaE2E(t *testing.T, api apiClient, token, teamID string) string {
+	t.Helper()
+	value := image.NewRGBA(image.Rect(0, 0, 900, 600))
+	for y := 0; y < 600; y++ {
+		for x := 0; x < 900; x++ {
+			value.Set(x, y, color.RGBA{R: uint8(x % 255), G: uint8(y % 255), B: 120, A: 255})
+		}
+	}
+	var encoded bytes.Buffer
+	if err := png.Encode(&encoded, value); err != nil {
+		t.Fatal(err)
+	}
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	if err := writer.WriteField("altKind", "prize_image"); err != nil {
+		t.Fatal(err)
+	}
+	header := make(textproto.MIMEHeader)
+	header.Set("Content-Disposition", `form-data; name="image"; filename="prize.png"`)
+	header.Set("Content-Type", "image/png")
+	part, err := writer.CreatePart(header)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = part.Write(encoded.Bytes()); err != nil {
+		t.Fatal(err)
+	}
+	if err = writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	request, err := http.NewRequest(http.MethodPost, api.baseURL+"/v1/staff/teams/"+teamID+"/reward-media", &body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Authorization", "Bearer "+token)
+	request.Header.Set("Content-Type", writer.FormDataContentType())
+	response, err := api.client.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertStatus(t, response, http.StatusCreated)
+	var media struct {
+		ID string `json:"id"`
+	}
+	decodeJSON(t, response, &media)
+	return media.ID
 }
 
 // REQ-304 and REQ-305: nothing on the console answers without credentials, and

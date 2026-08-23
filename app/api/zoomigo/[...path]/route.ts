@@ -10,37 +10,7 @@ import {
 } from "../../backend";
 import { proxyEvents } from "../../../../lib/analytics/proxy-events";
 import { recordServerEventsForRequest } from "../../../../lib/analytics/server";
-
-const allowed = [
-  { method: "GET", pattern: /^v1\/me\/training-entries$/ },
-  { method: "GET", pattern: /^v1\/me\/training-dashboard$/ },
-  { method: "POST", pattern: /^v1\/me\/training-entries$/ },
-  { method: "GET", pattern: /^v1\/me\/reaction-badges$/ },
-  { method: "POST", pattern: /^v1\/reactions$/ },
-  { method: "PUT", pattern: /^v1\/me\/avatar$/ },
-  { method: "GET", pattern: /^v1\/training-entries\/[^/]+$/ },
-  { method: "DELETE", pattern: /^v1\/training-entries\/[^/]+$/ },
-  { method: "GET", pattern: /^v1\/teams\/[^/]+\/activity$/ },
-  { method: "GET", pattern: /^v1\/teams\/[^/]+\/leaderboards$/ },
-  { method: "GET", pattern: /^v1\/teams\/[^/]+\/canvas$/ },
-  { method: "POST", pattern: /^v1\/teams\/[^/]+\/canvas\/rest$/ },
-  { method: "PUT", pattern: /^v1\/teams\/[^/]+\/canvas\/avatar$/ },
-  { method: "POST", pattern: /^v1\/teams\/[^/]+\/canvas\/pieces$/ },
-  {
-    method: "PUT",
-    pattern: /^v1\/teams\/[^/]+\/canvas\/pieces\/[^/]+$/,
-  },
-  {
-    method: "DELETE",
-    pattern: /^v1\/teams\/[^/]+\/canvas\/pieces\/[^/]+$/,
-  },
-  {
-    method: "PUT",
-    pattern: /^v1\/teams\/[^/]+\/canvas\/dev-settings$/,
-  },
-  { method: "GET", pattern: /^v1\/teams\/[^/]+\/canvas\/events$/ },
-  { method: "POST", pattern: /^v1\/teams\/[^/]+\/canvas\/socket-ticket$/ },
-];
+import { allowsPlayerRoute } from "../routes";
 
 export async function GET(request: Request) {
   return proxy(request);
@@ -61,11 +31,7 @@ async function proxy(request: Request) {
   const path = incoming.pathname.slice(
     incoming.pathname.indexOf(marker) + marker.length,
   );
-  if (
-    !allowed.some(
-      (route) => route.method === request.method && route.pattern.test(path),
-    )
-  ) {
+  if (!allowsPlayerRoute(request.method, path)) {
     return jsonError(404, "not_found", "The requested resource was not found.");
   }
   if (request.method !== "GET" && !sameOrigin(request)) {
@@ -110,20 +76,14 @@ async function proxy(request: Request) {
       "ZoomiGo is temporarily unavailable.",
     );
   }
-  const eventStream = response.headers
-    .get("content-type")
-    ?.startsWith("text/event-stream");
-  let responseBody: BodyInit | null = eventStream
-    ? response.body
-    : await response.text();
+  let responseBody: BodyInit | null = response.body;
   if (
     response.ok &&
     request.method === "POST" &&
-    /v1\/teams\/[^/]+\/canvas\/socket-ticket$/.test(path) &&
-    typeof responseBody === "string"
+    /v1\/teams\/[^/]+\/canvas\/socket-ticket$/.test(path)
   ) {
     try {
-      const ticket = JSON.parse(responseBody) as Record<string, unknown>;
+      const ticket = (await response.clone().json()) as Record<string, unknown>;
       const socketPath = path.replace(/socket-ticket$/, "socket");
       ticket.socketUrl = `${baseURL.replace(/^http/, "ws")}/${socketPath}`;
       responseBody = JSON.stringify(ticket);

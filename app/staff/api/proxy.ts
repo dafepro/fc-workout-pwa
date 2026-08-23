@@ -2,6 +2,7 @@ import {
   backendHeaders,
   forwardedHeaders,
   jsonError,
+  limitedBinaryBody,
   limitedBody,
   sameOrigin,
 } from "../../api/backend";
@@ -58,10 +59,14 @@ export async function proxyToBackend(
   const headers = backendHeaders({ Authorization: `Bearer ${token}` });
   const contentType = request.headers.get("content-type");
   if (contentType) headers.set("Content-Type", contentType);
-  let body: string | undefined;
+  let body: BodyInit | undefined;
   if (request.method !== "GET" && request.method !== "DELETE") {
     try {
-      body = await limitedBody(request, 32 * 1024);
+      const isRewardMediaUpload =
+        request.method === "POST" && /\/reward-media$/.test(path);
+      body = isRewardMediaUpload
+        ? await limitedBinaryBody(request, 3 * 1024 * 1024 + 64 * 1024)
+        : await limitedBody(request, 32 * 1024);
     } catch {
       return jsonError(413, "request_too_large", "The request is too large.");
     }
@@ -76,8 +81,7 @@ export async function proxyToBackend(
   } catch {
     return unavailable();
   }
-  const text = await response.text();
-  return new Response(text || null, {
+  return new Response(response.body, {
     status: response.status,
     headers: forwardedHeaders(response),
   });

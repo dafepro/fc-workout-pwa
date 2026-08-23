@@ -20,28 +20,30 @@ var version = "development"
 // create/verify/restore work on the same-engine SQLite snapshot;
 // export/verify-export/import work on the engine-independent logical format.
 var commandFlags = map[string][]string{
-	"create":                  {"database-url", "output", "app-version"},
-	"create-encrypted":        {"database-url", "output", "recipient", "app-version"},
+	"create":                  {"database-url", "media-dir", "output", "app-version"},
+	"create-encrypted":        {"database-url", "media-dir", "output", "recipient", "app-version"},
 	"verify":                  {"archive"},
 	"verify-encrypted":        {"archive", "identity"},
-	"restore":                 {"archive", "target"},
-	"restore-encrypted":       {"archive", "identity", "target"},
-	"export":                  {"database-url", "output", "app-version"},
-	"export-encrypted":        {"database-url", "output", "recipient", "app-version"},
+	"restore":                 {"archive", "target", "media-target"},
+	"restore-encrypted":       {"archive", "identity", "target", "media-target"},
+	"export":                  {"database-url", "media-dir", "output", "app-version"},
+	"export-encrypted":        {"database-url", "media-dir", "output", "recipient", "app-version"},
 	"verify-export":           {"archive"},
 	"verify-export-encrypted": {"archive", "identity"},
-	"import":                  {"archive", "target"},
-	"import-encrypted":        {"archive", "identity", "target"},
+	"import":                  {"archive", "target", "media-target"},
+	"import-encrypted":        {"archive", "identity", "target", "media-target"},
 }
 
 type options struct {
-	databaseURL        string
-	output             string
-	archive            string
-	target             string
-	recipient          string
-	identity           string
-	applicationVersion string
+	databaseURL          string
+	output               string
+	archive              string
+	target               string
+	recipient            string
+	identity             string
+	applicationVersion   string
+	rewardMediaDirectory string
+	rewardMediaTarget    string
 }
 
 func main() {
@@ -85,10 +87,10 @@ func run(arguments []string) error {
 		manifest, err := backup.VerifyEncrypted(ctx, parsed.archive, parsed.identity)
 		return report(err, "verified-encrypted", parsed.archive, manifest.FormatVersion, manifest.CreatedAt)
 	case "restore":
-		manifest, err := backup.Restore(ctx, backup.RestoreOptions{ArchivePath: parsed.archive, DatabasePath: parsed.target})
+		manifest, err := backup.Restore(ctx, backup.RestoreOptions{ArchivePath: parsed.archive, DatabasePath: parsed.target, RewardMediaDirectory: parsed.rewardMediaTarget})
 		return report(err, "restored", parsed.target, manifest.FormatVersion, manifest.CreatedAt)
 	case "restore-encrypted":
-		manifest, err := backup.RestoreEncrypted(ctx, backup.RestoreOptions{ArchivePath: parsed.archive, DatabasePath: parsed.target}, parsed.identity)
+		manifest, err := backup.RestoreEncrypted(ctx, backup.RestoreOptions{ArchivePath: parsed.archive, DatabasePath: parsed.target, RewardMediaDirectory: parsed.rewardMediaTarget}, parsed.identity)
 		return report(err, "restored-encrypted", parsed.target, manifest.FormatVersion, manifest.CreatedAt)
 	case "export":
 		manifest, err := backup.ExportLogical(ctx, parsed.exportOptions())
@@ -107,10 +109,10 @@ func run(arguments []string) error {
 		manifest, err := backup.VerifyLogicalEncrypted(ctx, parsed.archive, parsed.identity)
 		return report(err, "verified-export-encrypted", parsed.archive, manifest.FormatVersion, manifest.CreatedAt)
 	case "import":
-		manifest, err := backup.ImportLogical(ctx, backup.LogicalImportOptions{ArchivePath: parsed.archive, DatabasePath: parsed.target})
+		manifest, err := backup.ImportLogical(ctx, backup.LogicalImportOptions{ArchivePath: parsed.archive, DatabasePath: parsed.target, RewardMediaDirectory: parsed.rewardMediaTarget})
 		return report(err, "imported", parsed.target, manifest.FormatVersion, manifest.CreatedAt)
 	case "import-encrypted":
-		manifest, err := backup.ImportLogicalEncrypted(ctx, backup.LogicalImportOptions{ArchivePath: parsed.archive, DatabasePath: parsed.target}, parsed.identity)
+		manifest, err := backup.ImportLogicalEncrypted(ctx, backup.LogicalImportOptions{ArchivePath: parsed.archive, DatabasePath: parsed.target, RewardMediaDirectory: parsed.rewardMediaTarget}, parsed.identity)
 		return report(err, "imported-encrypted", parsed.target, manifest.FormatVersion, manifest.CreatedAt)
 	default:
 		return usageError()
@@ -124,6 +126,10 @@ func parseOptions(name string, flagNames, arguments []string) (options, error) {
 		switch flagName {
 		case "database-url":
 			flags.StringVar(&parsed.databaseURL, flagName, valueOrDefault(os.Getenv("DATABASE_URL"), "file:data/zoomigo.db"), "SQLite database URL")
+		case "media-dir":
+			flags.StringVar(&parsed.rewardMediaDirectory, flagName, strings.TrimSpace(os.Getenv("REWARD_MEDIA_DIR")), "reward media source directory")
+		case "media-target":
+			flags.StringVar(&parsed.rewardMediaTarget, flagName, "", "new isolated reward media directory")
 		case "output":
 			flags.StringVar(&parsed.output, flagName, "", "new output archive path")
 		case "archive":
@@ -156,17 +162,19 @@ func parseOptions(name string, flagNames, arguments []string) (options, error) {
 
 func (parsed options) createOptions() backup.CreateOptions {
 	return backup.CreateOptions{
-		DatabaseURL:        parsed.databaseURL,
-		ArchivePath:        parsed.output,
-		ApplicationVersion: parsed.applicationVersion,
+		DatabaseURL:          parsed.databaseURL,
+		ArchivePath:          parsed.output,
+		ApplicationVersion:   parsed.applicationVersion,
+		RewardMediaDirectory: parsed.rewardMediaDirectory,
 	}
 }
 
 func (parsed options) exportOptions() backup.LogicalExportOptions {
 	return backup.LogicalExportOptions{
-		DatabaseURL:        parsed.databaseURL,
-		ArchivePath:        parsed.output,
-		ApplicationVersion: parsed.applicationVersion,
+		DatabaseURL:          parsed.databaseURL,
+		ArchivePath:          parsed.output,
+		ApplicationVersion:   parsed.applicationVersion,
+		RewardMediaDirectory: parsed.rewardMediaDirectory,
 	}
 }
 

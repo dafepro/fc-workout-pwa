@@ -28,6 +28,7 @@ import {
   createAndPublishTeamReward,
   type StaffTeamReward,
   type StaffTeamRewardsResponse,
+  withStaffRewardImageURL,
 } from "./team-reward-console-gateway";
 
 const copy = teamRewardCopy.staff;
@@ -54,6 +55,9 @@ function LocalTeamRewards({ teamId }: { teamId: string }) {
       rewards={rewards}
       prototype
       imageEnabled
+      imageMaxBytes={750 * 1024}
+      imageHint={copy.prototypeImageHint}
+      imageTooLargeMessage={copy.prototypeImageTooLarge}
       progressFor={(reward) => prototypeRewardProgress(reward.rule)}
       previewProgress={(rule) => prototypeRewardProgress(rule)}
       onPublish={(draft) => {
@@ -78,9 +82,14 @@ function ConnectedTeamRewards({ teamId }: { teamId: string }) {
   return (
     <TeamRewardsWorkspace
       teamId={teamId}
-      rewards={resource.data.items}
+      rewards={resource.data.items.map((reward) =>
+        withStaffRewardImageURL(teamId, reward),
+      )}
       prototype={false}
-      imageEnabled={false}
+      imageEnabled
+      imageMaxBytes={3 * 1024 * 1024}
+      imageHint={copy.imageHint}
+      imageTooLargeMessage={copy.imageTooLarge}
       progressFor={(reward) =>
         "progress" in reward
           ? (reward as StaffTeamReward).progress
@@ -108,6 +117,9 @@ function TeamRewardsWorkspace({
   rewards,
   prototype,
   imageEnabled,
+  imageMaxBytes,
+  imageHint,
+  imageTooLargeMessage,
   progressFor,
   previewProgress,
   onPublish,
@@ -117,6 +129,9 @@ function TeamRewardsWorkspace({
   rewards: PrototypeTeamReward[];
   prototype: boolean;
   imageEnabled: boolean;
+  imageMaxBytes: number;
+  imageHint: string;
+  imageTooLargeMessage: string;
   progressFor: (reward: PrototypeTeamReward) => TeamRewardProgress;
   previewProgress: (rule: TeamRewardRule) => TeamRewardProgress;
   onPublish: (draft: PrototypeTeamReward) => void | Promise<void>;
@@ -172,6 +187,9 @@ function TeamRewardsWorkspace({
           draft={draft}
           progress={previewProgress(draft.rule)}
           imageEnabled={imageEnabled}
+          imageMaxBytes={imageMaxBytes}
+          imageHint={imageHint}
+          imageTooLargeMessage={imageTooLargeMessage}
           imageError={imageError}
           busy={busy}
           setDraft={setDraft}
@@ -308,6 +326,9 @@ function RewardEditor({
   draft,
   progress,
   imageEnabled,
+  imageMaxBytes,
+  imageHint,
+  imageTooLargeMessage,
   imageError,
   busy,
   setDraft,
@@ -318,6 +339,9 @@ function RewardEditor({
   draft: PrototypeTeamReward;
   progress: TeamRewardProgress;
   imageEnabled: boolean;
+  imageMaxBytes: number;
+  imageHint: string;
+  imageTooLargeMessage: string;
   imageError: string;
   busy: boolean;
   setDraft: (reward: PrototypeTeamReward) => void;
@@ -335,17 +359,23 @@ function RewardEditor({
     const file = event.target.files?.[0];
     if (!file) return;
     if (!(["image/png", "image/jpeg"] as string[]).includes(file.type)) {
+      event.target.value = "";
       onImageError(copy.imageWrongType);
       return;
     }
-    if (file.size > 750 * 1024) {
-      onImageError(copy.imageTooLarge);
+    if (file.size > imageMaxBytes) {
+      event.target.value = "";
+      onImageError(imageTooLargeMessage);
       return;
     }
     const reader = new FileReader();
     reader.addEventListener("load", () => {
       setDraft({ ...draft, imageDataUrl: String(reader.result) });
       onImageError("");
+    });
+    reader.addEventListener("error", () => {
+      event.target.value = "";
+      onImageError(copy.imageReadFailed);
     });
     reader.readAsDataURL(file);
   };
@@ -382,15 +412,56 @@ function RewardEditor({
           />
           {imageEnabled ? (
             <>
+              <p className="console-warning reward-image-guidance">
+                {copy.imageGuidance}
+              </p>
               <label htmlFor="reward-prize-image">{copy.prizeImage}</label>
               <input
+                key={draft.imageDataUrl ? "selected" : "empty"}
                 id="reward-prize-image"
                 type="file"
                 accept="image/png,image/jpeg"
                 onChange={chooseImage}
               />
-              <p className="console-hint">{copy.imageHint}</p>
+              <p className="console-hint">{imageHint}</p>
               {imageError ? <p role="alert">{imageError}</p> : null}
+              {draft.imageDataUrl ? (
+                <>
+                  <label htmlFor="reward-image-alt">{copy.imageAltLabel}</label>
+                  <select
+                    id="reward-image-alt"
+                    value={draft.imageAltKind ?? "prize_image"}
+                    onChange={(event) =>
+                      setDraft({
+                        ...draft,
+                        imageAltKind: event.target.value as NonNullable<
+                          PrototypeTeamReward["imageAltKind"]
+                        >,
+                      })
+                    }
+                  >
+                    <option value="prize_image">
+                      {copy.imageAltOptions.prize_image}
+                    </option>
+                    <option value="team_experience">
+                      {copy.imageAltOptions.team_experience}
+                    </option>
+                    <option value="food_or_treat">
+                      {copy.imageAltOptions.food_or_treat}
+                    </option>
+                  </select>
+                  <button
+                    type="button"
+                    className="button button--outline reward-image-remove"
+                    onClick={() => {
+                      setDraft({ ...draft, imageDataUrl: undefined });
+                      onImageError("");
+                    }}
+                  >
+                    {copy.removeImage}
+                  </button>
+                </>
+              ) : null}
             </>
           ) : (
             <p className="console-hint">{copy.connectedImageHint}</p>

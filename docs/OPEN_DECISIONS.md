@@ -776,6 +776,12 @@ Momentum Alpha needs independent PWA install/offline behavior.
   non-deleted workout records; and exposes only safe aggregate player data.
   Connected Today and Team surfaces render no reward card until one is
   published. The local design prototype retains its preview fixture.
+- Implemented: optional coach images are accepted only as bounded JPEG/PNG,
+  decoded and orientation-corrected on the backend, center-cropped, and stored
+  as metadata-free 1200 × 800 and 360 × 240 JPEGs behind authenticated routes.
+  Files use opaque keys on the protected VM data volume, are included in both
+  encrypted backup formats and restore drills, and unattached uploads expire
+  after 24 hours. The store interface preserves a later move to object storage.
 - Proposed: achievement is the final player-facing fulfillment state. There is
   no coach “prize delivered” acknowledgment or player claim workflow.
 - Proposed: send assigned coaches one close email at 80% and one achievement
@@ -783,7 +789,7 @@ Momentum Alpha needs independent PWA install/offline behavior.
 - Proposed: trusted-coach publication does not require an approval queue. A
   quiet, predefined player report action and operator moderation path should be
   required before this feature is enabled for real youth data.
-- Still open: email provider, production reward-media storage,
-  media-retention period, whether
-  reporting appears in the dev prototype, and final numeric rule bounds after
-  coach UAT. Full design: `TEAM_REWARDS_DESIGN.md`.
+- Still open: email provider, long-term retention for images attached to
+  cancelled or historical rewards, whether reporting appears in the next dev
+  iteration, and final numeric rule bounds after coach UAT. Full design:
+  `TEAM_REWARDS_DESIGN.md`.

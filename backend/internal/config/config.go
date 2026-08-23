@@ -14,6 +14,7 @@ const (
 	defaultShutdownTimeout = 10 * time.Second
 	defaultTeamTimeZone    = "America/Chicago"
 	defaultDatabaseURL     = "file:data/zoomigo.db"
+	defaultRewardMediaDir  = "data/reward-media"
 	// A squad's worth of players signing in never approaches these rates, while
 	// they leave credential spraying far too slow to be useful.
 	defaultLoginAttemptsPerMinute       = 30
@@ -36,6 +37,7 @@ type Config struct {
 	Environment        string
 	Port               int
 	DatabaseURL        string
+	RewardMediaDir     string
 	AllowedOrigin      string
 	TeamTimeZone       *time.Location
 	TeamTimeZoneID     string
@@ -69,6 +71,7 @@ func Load(getenv func(string) string) (Config, error) {
 	cfg := Config{
 		Environment:        valueOrDefault(getenv("APP_ENV"), "development"),
 		DatabaseURL:        valueOrDefault(getenv("DATABASE_URL"), defaultDatabaseURL),
+		RewardMediaDir:     valueOrDefault(strings.TrimSpace(getenv("REWARD_MEDIA_DIR")), defaultRewardMediaDir),
 		AllowedOrigin:      valueOrDefault(getenv("ALLOWED_ORIGIN"), "http://localhost:3000"),
 		TeamTimeZoneID:     valueOrDefault(getenv("TEAM_TIME_ZONE"), defaultTeamTimeZone),
 		ShutdownTimeout:    defaultShutdownTimeout,

@@ -18,6 +18,9 @@ export interface PlayerTeamReward {
   startsOn: string;
   rule: TeamRewardRule;
   progress: TeamRewardProgress;
+  mediaId?: string;
+  imageAlt?: string;
+  imageUrl?: string;
 }
 
 export async function loadPlayerTeamReward(
@@ -38,11 +41,19 @@ export async function loadPlayerTeamReward(
     !reward.rule ||
     validateTeamRewardRule(reward.rule).length > 0 ||
     !reward.progress ||
-    typeof reward.progress.percent !== "number"
+    typeof reward.progress.percent !== "number" ||
+    (reward.mediaId !== undefined &&
+      (typeof reward.mediaId !== "string" ||
+        typeof reward.imageAlt !== "string"))
   ) {
     throw new Error("The team reward response was invalid.");
   }
-  return reward;
+  return reward.mediaId
+    ? {
+        ...reward,
+        imageUrl: `/api/zoomigo/v1/teams/${encodeURIComponent(teamId)}/reward-media/${encodeURIComponent(reward.mediaId)}?variant=thumbnail`,
+      }
+    : reward;
 }
 
 export function usePlayerTeamReward(teamId: string, connected: boolean) {

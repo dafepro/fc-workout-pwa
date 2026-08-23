@@ -29,12 +29,14 @@ export_name="zoomigo-export-${timestamp}-v1.tar.gz.age"
 # is the one that survives a schema or engine change.
 compose run --rm backup create-encrypted \
 	--database-url file:/data/zoomigo.db \
+	--media-dir /data/reward-media \
 	--output "/backups/${archive_name}" \
 	--recipient "$backup_recipient" \
 	--app-version "$application_version"
 
 compose run --rm backup export-encrypted \
 	--database-url file:/data/zoomigo.db \
+	--media-dir /data/reward-media \
 	--output "/backups/${export_name}" \
 	--recipient "$backup_recipient" \
 	--app-version "$application_version"

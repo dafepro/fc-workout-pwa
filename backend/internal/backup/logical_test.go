@@ -32,6 +32,7 @@ var exportedTables = []string{
 	"accounts",
 	"team_memberships",
 	"coach_team_assignments",
+	"team_reward_media",
 	"team_rewards",
 	"team_reward_events",
 	"activity_definitions",
@@ -127,6 +128,61 @@ func TestLogicalExportAndImportPreserveEveryTableExactly(t *testing.T) {
 	}
 	if ledger != currentSchemaMigrationCount {
 		t.Fatalf("imported migration ledger = %d, want the current %d", ledger, currentSchemaMigrationCount)
+	}
+}
+
+func TestLogicalRoundTripIncludesCanonicalRewardMedia(t *testing.T) {
+	ctx := context.Background()
+	databaseURL := seededDatabase(t, ctx)
+	db := openDatabase(t, ctx, databaseURL)
+	if _, err := db.ExecContext(ctx, `INSERT INTO accounts (id, club_id, role, status, created_at)
+		VALUES ('account-logical-media', 'club-zoomigo', 'coach', 'active', '2026-01-01T00:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+	mediaRoot := filepath.Join(t.TempDir(), "reward-media")
+	mediaDirectory := filepath.Join(mediaRoot, "media_logical_one")
+	if err := os.MkdirAll(mediaDirectory, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	display, thumbnail := []byte("logical display"), []byte("logical thumbnail")
+	if err := os.WriteFile(filepath.Join(mediaDirectory, "display.jpg"), display, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(mediaDirectory, "thumbnail.jpg"), thumbnail, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	digest := sha256.Sum256(display)
+	if _, err := db.ExecContext(ctx, `INSERT INTO team_reward_media (
+		id, team_id, storage_key, sha256, mime_type, width, height, byte_size,
+		alt_kind, created_by_account_id, created_at
+	) VALUES ('media-logical-one', 'team-hill-striders', 'media_logical_one', ?,
+		'image/jpeg', 1200, 800, ?, 'prize_image', 'account-logical-media', '2026-08-23T00:00:00Z')`,
+		hex.EncodeToString(digest[:]), len(display)); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	archivePath := filepath.Join(t.TempDir(), "logical-media.tar.gz")
+	manifest, err := backup.ExportLogical(ctx, backup.LogicalExportOptions{
+		DatabaseURL: databaseURL, ArchivePath: archivePath, RewardMediaDirectory: mediaRoot,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if manifest.RewardMedia == nil || manifest.RewardMedia.Count != 1 {
+		t.Fatalf("logical media manifest = %+v", manifest.RewardMedia)
+	}
+	targetDatabase := filepath.Join(t.TempDir(), "logical-restored.db")
+	targetMedia := filepath.Join(t.TempDir(), "logical-restored-media")
+	if _, err = backup.ImportLogical(ctx, backup.LogicalImportOptions{
+		ArchivePath: archivePath, DatabasePath: targetDatabase, RewardMediaDirectory: targetMedia,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	contents, err := os.ReadFile(filepath.Join(targetMedia, "media_logical_one", "thumbnail.jpg"))
+	if err != nil || !bytes.Equal(contents, thumbnail) {
+		t.Fatalf("logical thumbnail = %q err=%v", contents, err)
 	}
 }
 
@@ -384,15 +440,24 @@ func fullyPopulatedDatabase(t *testing.T, ctx context.Context) string {
 		 VALUES ('account-coach', 'club-zoomigo', NULL, 'coach', 'active', '2026-01-02T00:00:00Z')`,
 		`INSERT INTO coach_team_assignments (team_id, account_id, active_from, active_to)
 		 VALUES ('team-hill-striders', 'account-coach', '2026-01-02', NULL)`,
+		`INSERT INTO team_reward_media (
+			id, team_id, storage_key, sha256, mime_type, width, height, byte_size,
+			alt_kind, created_by_account_id, created_at, deleted_at
+		) VALUES (
+			'reward-media-one', 'team-hill-striders', 'media_storage_one',
+			'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+			'image/jpeg', 1200, 800, 12000, 'prize_image', 'account-coach',
+			'2026-08-01T00:00:00Z', '2026-08-02T00:00:00Z'
+		)`,
 		`INSERT INTO team_rewards (
 			id, team_id, created_by_account_id, status, prize_title, prize_description,
 			starts_on, time_zone, rule_version, rule_kind, participation_scope,
-			required_days, minimum_roster_percent, created_at, updated_at
+			required_days, minimum_roster_percent, created_at, updated_at, media_id
 		) VALUES (
 			'reward-one', 'team-hill-striders', 'account-coach', 'active', 'Team pizza',
 			'Celebrate together.', '2026-08-01', 'America/Chicago', 1,
 			'qualifying_team_days', 'recommended_workout', 10, 80,
-			'2026-08-01T00:00:00Z', '2026-08-02T00:00:00Z'
+			'2026-08-01T00:00:00Z', '2026-08-02T00:00:00Z', 'reward-media-one'
 		)`,
 		`INSERT INTO team_reward_events (id, reward_id, actor_account_id, event_type, occurred_at)
 		 VALUES ('reward-event-one', 'reward-one', 'account-coach', 'published', '2026-08-02T00:00:00Z')`,

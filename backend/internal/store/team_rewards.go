@@ -45,6 +45,8 @@ type TeamReward struct {
 	CancelledAt        string                `json:"cancelledAt,omitempty"`
 	CreatedAt          string                `json:"createdAt"`
 	UpdatedAt          string                `json:"updatedAt"`
+	MediaID            string                `json:"mediaId,omitempty"`
+	ImageAlt           string                `json:"imageAlt,omitempty"`
 }
 
 type TeamRewardProjection struct {
@@ -61,6 +63,8 @@ type PlayerTeamRewardProjection struct {
 	StartsOn         string                    `json:"startsOn"`
 	Rule             domain.TeamRewardRule     `json:"rule"`
 	Progress         domain.TeamRewardProgress `json:"progress"`
+	MediaID          string                    `json:"mediaId,omitempty"`
+	ImageAlt         string                    `json:"imageAlt,omitempty"`
 }
 
 type CreateTeamRewardInput struct {
@@ -70,6 +74,7 @@ type CreateTeamRewardInput struct {
 	PrizeDescription   string
 	StartsOn           string
 	Rule               domain.TeamRewardRule
+	MediaID            string
 	Now                time.Time
 }
 
@@ -89,6 +94,17 @@ func (store *Store) CreateTeamReward(ctx context.Context, input CreateTeamReward
 	}
 	if err := domain.ValidateTeamRewardRule(input.Rule); err != nil {
 		return TeamReward{}, ErrTeamRewardInvalid
+	}
+	var imageAlt string
+	if input.MediaID != "" {
+		var altKind TeamRewardMediaAltKind
+		if err := store.db.QueryRowContext(ctx, `SELECT alt_kind FROM team_reward_media
+			WHERE id = ? AND team_id = ? AND deleted_at IS NULL`, input.MediaID, input.TeamID).Scan(&altKind); errors.Is(err, sql.ErrNoRows) {
+			return TeamReward{}, ErrTeamRewardInvalid
+		} else if err != nil {
+			return TeamReward{}, fmt.Errorf("load reward media: %w", err)
+		}
+		imageAlt = altKind.AltText()
 	}
 	var timeZone string
 	if err := store.db.QueryRowContext(ctx, `SELECT time_zone FROM teams WHERE id = ?`, input.TeamID).Scan(&timeZone); errors.Is(err, sql.ErrNoRows) {
@@ -114,6 +130,7 @@ func (store *Store) CreateTeamReward(ctx context.Context, input CreateTeamReward
 		ID: newID("reward"), TeamID: input.TeamID, CreatedByAccountID: input.CreatedByAccountID,
 		Status: TeamRewardDraft, PrizeTitle: input.PrizeTitle, PrizeDescription: input.PrizeDescription,
 		StartsOn: input.StartsOn, TimeZone: timeZone, Rule: input.Rule, CreatedAt: now, UpdatedAt: now,
+		MediaID: input.MediaID, ImageAlt: imageAlt,
 	}
 	tx, err := store.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -124,13 +141,13 @@ func (store *Store) CreateTeamReward(ctx context.Context, input CreateTeamReward
 		id, team_id, created_by_account_id, status, prize_title, prize_description,
 		starts_on, time_zone, rule_version, rule_kind, participation_scope,
 		required_days, minimum_roster_percent, required_players, required_days_per_player,
-		created_at, updated_at
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		created_at, updated_at, media_id
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		reward.ID, reward.TeamID, reward.CreatedByAccountID, reward.Status, reward.PrizeTitle,
 		reward.PrizeDescription, reward.StartsOn, reward.TimeZone, reward.Rule.Version,
 		reward.Rule.Kind, reward.Rule.ParticipationScope, nullableRuleValue(reward.Rule.RequiredDays),
 		nullableRuleValue(reward.Rule.MinimumRosterPercent), nullableRuleValue(reward.Rule.RequiredPlayers),
-		nullableRuleValue(reward.Rule.RequiredDaysPerPlayer), now, now); err != nil {
+		nullableRuleValue(reward.Rule.RequiredDaysPerPlayer), now, now, nullableText(reward.MediaID)); err != nil {
 		return TeamReward{}, fmt.Errorf("insert team reward: %w", err)
 	}
 	if err = insertRewardEvent(ctx, tx, reward.ID, reward.CreatedByAccountID, "created", now); err != nil {
@@ -273,15 +290,18 @@ func (store *Store) TeamRewardForPlayer(ctx context.Context, actor domain.Actor,
 		ID: projection.ID, TeamID: projection.TeamID, Status: projection.Status,
 		PrizeTitle: projection.PrizeTitle, PrizeDescription: projection.PrizeDescription,
 		StartsOn: projection.StartsOn, Rule: projection.Rule, Progress: projection.Progress,
+		MediaID: projection.MediaID, ImageAlt: projection.ImageAlt,
 	}, nil
 }
 
 func (store *Store) teamRewardProjection(ctx context.Context, teamID, rewardID string, now time.Time) (TeamRewardProjection, error) {
-	reward, err := scanTeamReward(store.db.QueryRowContext(ctx, `SELECT id, team_id, created_by_account_id,
-		status, prize_title, prize_description, starts_on, time_zone, rule_version, rule_kind,
-		participation_scope, required_days, minimum_roster_percent, required_players,
-		required_days_per_player, achieved_at, cancelled_at, created_at, updated_at
-		FROM team_rewards WHERE id = ? AND team_id = ?`, rewardID, teamID))
+	reward, err := scanTeamReward(store.db.QueryRowContext(ctx, `SELECT r.id, r.team_id, r.created_by_account_id,
+		r.status, r.prize_title, r.prize_description, r.starts_on, r.time_zone, r.rule_version, r.rule_kind,
+		r.participation_scope, r.required_days, r.minimum_roster_percent, r.required_players,
+		r.required_days_per_player, r.achieved_at, r.cancelled_at, r.created_at, r.updated_at,
+		COALESCE(r.media_id, ''), COALESCE(m.alt_kind, '')
+		FROM team_rewards r LEFT JOIN team_reward_media m ON m.id = r.media_id AND m.deleted_at IS NULL
+		WHERE r.id = ? AND r.team_id = ?`, rewardID, teamID))
 	if errors.Is(err, sql.ErrNoRows) {
 		return TeamRewardProjection{}, ErrTeamRewardUnavailable
 	}
@@ -412,11 +432,12 @@ func scanTeamReward(row rewardRow) (TeamReward, error) {
 	var reward TeamReward
 	var requiredDays, rosterPercent, requiredPlayers, daysPerPlayer sql.NullInt64
 	var achievedAt, cancelledAt sql.NullString
+	var altKind TeamRewardMediaAltKind
 	err := row.Scan(&reward.ID, &reward.TeamID, &reward.CreatedByAccountID, &reward.Status,
 		&reward.PrizeTitle, &reward.PrizeDescription, &reward.StartsOn, &reward.TimeZone,
 		&reward.Rule.Version, &reward.Rule.Kind, &reward.Rule.ParticipationScope,
 		&requiredDays, &rosterPercent, &requiredPlayers, &daysPerPlayer,
-		&achievedAt, &cancelledAt, &reward.CreatedAt, &reward.UpdatedAt)
+		&achievedAt, &cancelledAt, &reward.CreatedAt, &reward.UpdatedAt, &reward.MediaID, &altKind)
 	if err != nil {
 		return TeamReward{}, err
 	}
@@ -425,6 +446,7 @@ func scanTeamReward(row rewardRow) (TeamReward, error) {
 	reward.Rule.RequiredPlayers = int(requiredPlayers.Int64)
 	reward.Rule.RequiredDaysPerPlayer = int(daysPerPlayer.Int64)
 	reward.AchievedAt, reward.CancelledAt = achievedAt.String, cancelledAt.String
+	reward.ImageAlt = altKind.AltText()
 	return reward, nil
 }
 
@@ -447,6 +469,13 @@ func insertRewardEvent(ctx context.Context, executor rewardEventExecutor, reward
 
 func nullableRuleValue(value int) any {
 	if value == 0 {
+		return nil
+	}
+	return value
+}
+
+func nullableText(value string) any {
+	if value == "" {
 		return nil
 	}
 	return value

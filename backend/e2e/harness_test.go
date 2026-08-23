@@ -23,6 +23,7 @@ import (
 	"github.com/dafepro/fc-workout-pwa/backend/internal/config"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/httpapi"
+	"github.com/dafepro/fc-workout-pwa/backend/internal/rewardmedia"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/staffauth"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/store"
 )
@@ -94,6 +95,10 @@ func startLocalAPI(t *testing.T) string {
 		ProductionDataApproved:       true,
 	}
 	repository := store.New(db, location)
+	media, err := rewardmedia.NewFileStore(filepath.Join(t.TempDir(), "reward-media"))
+	if err != nil {
+		t.Fatal(err)
+	}
 	sessions := authn.NewService(db)
 	staff := staffauth.NewService(db, cfg.StaffSecretKey, authn.NewSlot())
 	server := httptest.NewServer(httpapi.NewHandler(
@@ -107,6 +112,7 @@ func startLocalAPI(t *testing.T) string {
 		httpapi.WithStaffSessionManager(staff),
 		httpapi.WithStaffRepository(store.NewStaffStore(db)),
 		httpapi.WithTeamRewardRepository(repository),
+		httpapi.WithTeamRewardMedia(media, rewardmedia.NewProcessor()),
 		httpapi.WithStaffAccountManager(staff),
 		httpapi.WithCredentialManager(sessions),
 		httpapi.WithAuthFixtureReset(func(ctx context.Context) error {

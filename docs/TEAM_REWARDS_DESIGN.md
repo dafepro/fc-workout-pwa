@@ -2,8 +2,9 @@
 
 Status: design approved for phased implementation. The browser-local prototype
 and the first durable slice are implemented: lifecycle, authorization,
-authoritative workout progress, staff controls, and the safe player projection.
-Reward media, notification email, and reporting remain later phases.
+authoritative workout progress, staff controls, the safe player projection, and
+canonical reward-image storage. Notification email and reporting remain later
+phases.
 
 ## Outcome
 
@@ -356,13 +357,28 @@ an authenticated team-scoped endpoint.
 - produce one bounded display rendition and a thumbnail;
 - limit concurrent image decoding on the 512 MiB VM;
 - serve from a same-origin authenticated route with immutable cache keys;
-- delete unreferenced draft media after a bounded grace period;
+- delete unreferenced draft media after a 24-hour grace period;
 - include published media in encrypted backup and restore drills.
 
 Define a `RewardMediaStore` interface. The first single-VM implementation may
 use protected durable host storage; moving to R2 must not alter reward records or
-public URLs. A production implementation must decide the backing store before
-media is enabled.
+public URLs. The implemented adapter stores opaque, non-guessable keys in the
+protected `/data/reward-media` volume. It atomically writes mode-0600 files and
+never exposes storage paths through an API.
+
+The server, rather than the browser, is authoritative. It decodes the bytes,
+applies JPEG orientation, center-crops to 3:2, flattens transparency, and
+re-encodes metadata-free JPEG renditions at 1200 × 800 and 360 × 240. Display
+images remain below 1 MiB. A single-process semaphore bounds decoding to one
+image at a time on the current VM. Backup verification also refuses a media
+bundle above 2 GiB so a malformed archive cannot claim the host's entire disk.
+Unattached media becomes eligible after 24 hours and cleanup runs at startup,
+after uploads, and every six hours; a failed file deletion restores its metadata
+so the next pass can retry safely.
+
+Structural validation cannot reliably tell whether an image depicts a person,
+QR code, or private information. The UI therefore gives explicit guidance, but
+the report/moderation path remains a launch gate before real youth use.
 
 ## Email notifications
 
@@ -491,6 +507,7 @@ mime_type
 width
 height
 byte_size
+alt_kind
 created_by_account_id
 created_at
 deleted_at nullable
@@ -556,9 +573,10 @@ POST   /v1/staff/teams/{teamId}/rewards/{rewardId}/publish
 POST   /v1/staff/teams/{teamId}/rewards/{rewardId}/cancel
 POST   /v1/staff/teams/{teamId}/rewards/{rewardId}/restore
 POST   /v1/staff/teams/{teamId}/reward-media
-GET    /v1/me/teams/{teamId}/reward
-GET    /v1/me/teams/{teamId}/reward-media/{mediaId}
-POST   /v1/me/teams/{teamId}/rewards/{rewardId}/reports
+GET    /v1/staff/teams/{teamId}/reward-media/{mediaId}
+GET    /v1/teams/{teamId}/reward
+GET    /v1/teams/{teamId}/reward-media/{mediaId}
+POST   /v1/teams/{teamId}/rewards/{rewardId}/reports
 ```
 
 The player reward projection contains only prize presentation, generated goal
@@ -669,7 +687,8 @@ coverage.
    authorization, audit, lifecycle, and recalculation.
 4. **Complete — Player projection:** one shared reward card and safe aggregate
    state. Connected players see no placeholder when no reward is published.
-5. **Media:** authenticated upload, validation, storage, backup, and fallback.
+5. **Complete — Media:** authenticated upload, canonical validation and
+   rendering, protected storage, safe projections, and backup/restore.
 6. **Email:** transactional outbox, dev sink, provider adapter, and alerts.
 7. **Reporting and moderation:** structured report, operator queue, hide/cancel.
 8. **Dev rollout:** fake prize fixture, staff controls, metrics, and UAT before
@@ -737,9 +756,9 @@ instead of copied between API surfaces.
 These do not change the product model but must be selected before their phase:
 
 1. transactional email provider and sending domain;
-2. first production `RewardMediaStore` backend: durable VM storage plus backup
-   or a dedicated R2 media bucket;
-3. exact media retention after draft deletion and reward cancellation;
-4. whether the structured report flow ships with the first dev prototype or
+2. long-term storage backend if the protected VM volume plus encrypted backup
+   no longer fits operational needs;
+3. exact retention for media attached to cancelled or historical rewards;
+4. whether the structured report flow ships with the next dev iteration or
    only before real-user release;
 5. final numeric min/max limits after coach UAT of the two templates.

@@ -131,9 +131,29 @@ export async function limitedBody(
   return body;
 }
 
+export async function limitedBinaryBody(
+  request: Request,
+  maximumBytes: number,
+): Promise<ArrayBuffer> {
+  const declared = Number(request.headers.get("content-length") ?? 0);
+  if (declared > maximumBytes) throw new Error("request_too_large");
+  const body = await request.arrayBuffer();
+  if (body.byteLength > maximumBytes) throw new Error("request_too_large");
+  return body;
+}
+
 export function forwardedHeaders(response: Response): Headers {
-  const headers = new Headers({ "Cache-Control": "no-store" });
-  for (const name of ["content-type", "x-request-id", "retry-after"]) {
+  const headers = new Headers({
+    "Cache-Control": response.headers.get("cache-control") ?? "no-store",
+  });
+  for (const name of [
+    "content-type",
+    "content-disposition",
+    "etag",
+    "vary",
+    "x-request-id",
+    "retry-after",
+  ]) {
     const value = response.headers.get(name);
     if (value) headers.set(name, value);
   }

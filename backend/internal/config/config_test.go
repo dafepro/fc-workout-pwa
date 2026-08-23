@@ -13,6 +13,9 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.Port != 8080 {
 		t.Fatalf("Port = %d, want 8080", cfg.Port)
 	}
+	if cfg.RewardMediaDir != "data/reward-media" {
+		t.Fatalf("RewardMediaDir = %q", cfg.RewardMediaDir)
+	}
 	if cfg.TeamTimeZoneID != "America/Chicago" {
 		t.Fatalf("TeamTimeZoneID = %q", cfg.TeamTimeZoneID)
 	}

@@ -130,6 +130,12 @@ describe("console gateway routing", () => {
     expect(gatewayFor("GET", "v1/staff/teams/team-1/rewards")).toBe(
       STAFF_GATEWAY,
     );
+    expect(gatewayFor("POST", "v1/staff/teams/team-1/reward-media")).toBe(
+      STAFF_GATEWAY,
+    );
+    expect(
+      gatewayFor("GET", "v1/staff/teams/team-1/reward-media/media-1"),
+    ).toBe(STAFF_GATEWAY);
     expect(
       allows(
         STAFF_ROUTES,

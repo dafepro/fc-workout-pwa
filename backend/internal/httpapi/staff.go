@@ -92,6 +92,8 @@ func (service *service) registerStaffRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/staff/teams/{teamId}/progress", service.getTeamProgress)
 	mux.HandleFunc("GET /v1/staff/teams/{teamId}/rewards", service.listTeamRewards)
 	mux.HandleFunc("POST /v1/staff/teams/{teamId}/rewards", service.createTeamReward)
+	mux.HandleFunc("POST /v1/staff/teams/{teamId}/reward-media", service.uploadTeamRewardMedia)
+	mux.HandleFunc("GET /v1/staff/teams/{teamId}/reward-media/{mediaId}", service.getStaffTeamRewardMedia)
 	mux.HandleFunc("POST /v1/staff/teams/{teamId}/rewards/{rewardId}/publish", service.publishTeamReward)
 	mux.HandleFunc("POST /v1/staff/teams/{teamId}/rewards/{rewardId}/cancel", service.cancelTeamReward)
 	mux.HandleFunc("GET /v1/staff/teams/{teamId}/assignments", service.listAssignments)

@@ -11,6 +11,11 @@ export type PrototypeRewardStatus =
   | "achieved"
   | "cancelled";
 
+export type RewardMediaAltKind =
+  | "prize_image"
+  | "team_experience"
+  | "food_or_treat";
+
 export interface PrototypeTeamReward {
   id: string;
   teamId: string;
@@ -18,6 +23,10 @@ export interface PrototypeTeamReward {
   prizeTitle: string;
   prizeDescription: string;
   imageDataUrl?: string;
+  imageUrl?: string;
+  imageAlt?: string;
+  imageAltKind?: RewardMediaAltKind;
+  mediaId?: string;
   startsOn: string;
   rule: TeamRewardRule;
   createdAt: string;
@@ -61,6 +70,7 @@ export function createPrototypeReward(
     prizeTitle: "Team choice celebration",
     prizeDescription:
       "Choose a fun team activity together at the next session.",
+    imageAltKind: "prize_image",
     startsOn: localDate(now),
     rule: {
       version: 1,

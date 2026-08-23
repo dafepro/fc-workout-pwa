@@ -34,15 +34,17 @@ const (
 )
 
 type LogicalExportOptions struct {
-	DatabaseURL        string
-	ArchivePath        string
-	ApplicationVersion string
-	Now                func() time.Time
+	DatabaseURL          string
+	ArchivePath          string
+	ApplicationVersion   string
+	Now                  func() time.Time
+	RewardMediaDirectory string
 }
 
 type LogicalImportOptions struct {
-	ArchivePath  string
-	DatabasePath string
+	ArchivePath          string
+	DatabasePath         string
+	RewardMediaDirectory string
 }
 
 type LogicalManifest struct {
@@ -52,6 +54,7 @@ type LogicalManifest struct {
 	ApplicationVersion string                 `json:"applicationVersion"`
 	Source             LogicalSource          `json:"source"`
 	Tables             []LogicalTableManifest `json:"tables"`
+	RewardMedia        *RewardMediaManifest   `json:"rewardMedia,omitempty"`
 }
 
 // Provenance only; import never reads it, which is what keeps the format
@@ -73,8 +76,9 @@ type LogicalTableManifest struct {
 }
 
 type extractedLogicalArchive struct {
-	directory string
-	manifest  LogicalManifest
+	directory            string
+	manifest             LogicalManifest
+	rewardMediaDirectory string
 }
 
 // ExportLogical writes a versioned, engine-independent export of every table.
@@ -157,6 +161,10 @@ func ExportLogical(ctx context.Context, options LogicalExportOptions) (LogicalMa
 			Bytes:   size,
 		})
 	}
+	rewardMediaExpected, err := rewardMediaExpectedFromQuerier(ctx, tx)
+	if err != nil {
+		return LogicalManifest{}, err
+	}
 	if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
 		return LogicalManifest{}, fmt.Errorf("close export snapshot: %w", err)
 	}
@@ -166,6 +174,11 @@ func ExportLogical(ctx context.Context, options LogicalExportOptions) (LogicalMa
 		now = options.Now
 	}
 	createdAt := now().UTC()
+	rewardMediaBundlePath := filepath.Join(workingDirectory, rewardMediaBundleName)
+	rewardMediaManifest, err := createRewardMediaBundleFromExpected(rewardMediaExpected, options.RewardMediaDirectory, rewardMediaBundlePath, createdAt)
+	if err != nil {
+		return LogicalManifest{}, fmt.Errorf("create logical reward media backup: %w", err)
+	}
 	applicationVersion := strings.TrimSpace(options.ApplicationVersion)
 	if applicationVersion == "" {
 		applicationVersion = defaultAppVersion
@@ -177,6 +190,9 @@ func ExportLogical(ctx context.Context, options LogicalExportOptions) (LogicalMa
 		ApplicationVersion: applicationVersion,
 		Source:             source,
 		Tables:             tableManifests,
+	}
+	if rewardMediaManifest.Path != "" {
+		manifest.RewardMedia = &rewardMediaManifest
 	}
 	manifestBytes, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
@@ -194,6 +210,10 @@ func ExportLogical(ctx context.Context, options LogicalExportOptions) (LogicalMa
 			sourcePath: filepath.Join(workingDirectory, filepath.FromSlash(table.Path)),
 		})
 		fmt.Fprintf(&checksums, "%s  %s\n", table.SHA256, table.Path)
+	}
+	if manifest.RewardMedia != nil {
+		entries = append(entries, archiveEntry{name: rewardMediaBundleName, sourcePath: rewardMediaBundlePath})
+		fmt.Fprintf(&checksums, "%s  %s\n", manifest.RewardMedia.SHA256, rewardMediaBundleName)
 	}
 	entries = append(entries, archiveEntry{name: checksumsName, contents: []byte(checksums.String())})
 
@@ -249,6 +269,14 @@ func ImportLogical(ctx context.Context, options LogicalImportOptions) (LogicalMa
 		return LogicalManifest{}, err
 	}
 	defer os.RemoveAll(extracted.directory)
+	if extracted.manifest.RewardMedia != nil {
+		if strings.TrimSpace(options.RewardMediaDirectory) == "" {
+			return LogicalManifest{}, errors.New("reward media import target is required")
+		}
+		if err := requireNewPath(options.RewardMediaDirectory, "reward media import target"); err != nil {
+			return LogicalManifest{}, err
+		}
+	}
 
 	targetDirectory := filepath.Dir(options.DatabasePath)
 	if err := os.MkdirAll(targetDirectory, archiveDirectoryMode); err != nil {
@@ -295,7 +323,17 @@ func ImportLogical(ctx context.Context, options LogicalImportOptions) (LogicalMa
 	if err := os.Chmod(temporaryPath, archiveFileMode); err != nil {
 		return LogicalManifest{}, fmt.Errorf("secure imported database: %w", err)
 	}
+	mediaPublished := false
+	if extracted.rewardMediaDirectory != "" {
+		if err := publishRewardMediaRestore(extracted.rewardMediaDirectory, options.RewardMediaDirectory); err != nil {
+			return LogicalManifest{}, err
+		}
+		mediaPublished = true
+	}
 	if err := os.Rename(temporaryPath, options.DatabasePath); err != nil {
+		if mediaPublished {
+			_ = os.RemoveAll(options.RewardMediaDirectory)
+		}
 		return LogicalManifest{}, fmt.Errorf("publish imported database: %w", err)
 	}
 	return extracted.manifest, nil
@@ -673,8 +711,9 @@ func extractAndVerifyLogical(archivePath string) (extractedLogicalArchive, error
 		return extractedLogicalArchive{}, errors.New("export path is required")
 	}
 	allowed := map[string]int64{
-		manifestName:  maxManifestBytes,
-		checksumsName: maxChecksumsBytes,
+		manifestName:          maxManifestBytes,
+		checksumsName:         maxChecksumsBytes,
+		rewardMediaBundleName: maxRewardMediaBundle,
 	}
 	for _, table := range logicalTables {
 		allowed[logicalTableDirectory+"/"+table.Name+logicalTableExtension] = maxLogicalTableBytes
@@ -721,7 +760,15 @@ func extractAndVerifyLogical(archivePath string) (extractedLogicalArchive, error
 	if err := validateLogicalManifest(manifest, directory, checksums, seen); err != nil {
 		return fail(err)
 	}
-	return extractedLogicalArchive{directory: directory, manifest: manifest}, nil
+	expectedMedia, err := rewardMediaExpectedFromLogical(directory, manifest)
+	if err != nil {
+		return fail(err)
+	}
+	mediaDirectory, err := verifyRewardMediaBundleFromExpected(expectedMedia, filepath.Join(directory, rewardMediaBundleName), manifest.RewardMedia)
+	if err != nil {
+		return fail(err)
+	}
+	return extractedLogicalArchive{directory: directory, manifest: manifest, rewardMediaDirectory: mediaDirectory}, nil
 }
 
 func validateLogicalManifest(manifest LogicalManifest, directory string, checksums map[string]string, seen map[string]bool) error {
@@ -745,6 +792,13 @@ func validateLogicalManifest(manifest LogicalManifest, directory string, checksu
 	}
 	if len(manifest.Tables) == 0 {
 		return errors.New("export declares no tables")
+	}
+	if manifest.RewardMedia != nil {
+		if manifest.RewardMedia.Path != rewardMediaBundleName || !isHexDigest(manifest.RewardMedia.SHA256) || manifest.RewardMedia.Bytes < 0 || manifest.RewardMedia.Bytes > maxRewardMediaBundle || manifest.RewardMedia.Count < 0 || !seen[rewardMediaBundleName] || checksums[rewardMediaBundleName] != manifest.RewardMedia.SHA256 {
+			return errors.New("export reward media metadata is invalid")
+		}
+	} else if seen[rewardMediaBundleName] {
+		return errors.New("export has an undeclared reward media bundle")
 	}
 
 	declared := map[string]bool{}
@@ -805,7 +859,7 @@ func validateLogicalManifest(manifest LogicalManifest, directory string, checksu
 		}
 	}
 	for name := range seen {
-		if name == manifestName || name == checksumsName {
+		if name == manifestName || name == checksumsName || name == rewardMediaBundleName {
 			continue
 		}
 		if !declared[strings.TrimSuffix(strings.TrimPrefix(name, logicalTableDirectory+"/"), logicalTableExtension)] {

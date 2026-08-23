@@ -45,12 +45,25 @@ export const teamRewardCopy = {
     draft: "Reward setup",
     prizeName: "Prize name",
     prizeDescription: "What players should know",
-    prizeImage: "Prize image (optional prototype preview)",
-    imageHint: "PNG or JPEG, up to 750 KB in this device-only prototype.",
-    connectedImageHint:
-      "Prize image storage is the next backend slice. Text and progress publish now.",
-    imageTooLarge: "Choose an image smaller than 750 KB.",
+    prizeImage: "Prize image (optional)",
+    imageGuidance:
+      "Show the prize, not players. Do not upload people, contact details, schedules, QR codes, or private team information.",
+    imageHint:
+      "JPEG or PNG, up to 3 MB and 2048 × 2048 pixels. We crop it to 3:2, correct phone orientation, and remove metadata.",
+    prototypeImageHint:
+      "JPEG or PNG, up to 750 KB in this browser-only prototype.",
+    imageTooLarge: "Choose an image smaller than 3 MB.",
+    prototypeImageTooLarge: "Choose an image smaller than 750 KB.",
     imageWrongType: "Choose a PNG or JPEG image.",
+    imageReadFailed: "That image could not be read. Choose another one.",
+    imageAltLabel: "What does the image show?",
+    imageAltOptions: {
+      prize_image: "The prize",
+      team_experience: "A team experience",
+      food_or_treat: "Food or a treat",
+    },
+    removeImage: "Remove image",
+    connectedImageHint: "Reward image upload is unavailable in this mode.",
     goalType: "How should the team earn it?",
     templates: {
       teamDays: "Qualifying team days",

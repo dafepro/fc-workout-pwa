@@ -25,6 +25,15 @@ interface RequestOptions {
   method?: string;
   body?: unknown;
   query?: Record<string, string | undefined>;
+  formData?: FormData;
+}
+
+export async function consoleFormRequest<T>(
+  path: string,
+  formData: FormData,
+): Promise<T> {
+  const gateway = gatewayFor("POST", path);
+  return send<T>(`${gateway}${path}`, { method: "POST", formData });
 }
 
 /**
@@ -62,7 +71,8 @@ async function send<T>(url: string, options: RequestOptions): Promise<T> {
           ? undefined
           : { "Content-Type": "application/json" },
       body:
-        options.body === undefined ? undefined : JSON.stringify(options.body),
+        options.formData ??
+        (options.body === undefined ? undefined : JSON.stringify(options.body)),
     });
   } catch {
     throw new ConsoleError(0, "unreachable", consoleCopy.loadFailed);

@@ -293,6 +293,7 @@ func (store *Store) ResetE2EFixtures(ctx context.Context, now time.Time) error {
 	statements := []string{
 		"DELETE FROM team_reward_events",
 		"DELETE FROM team_rewards",
+		"DELETE FROM team_reward_media",
 		"DELETE FROM reactions",
 		"DELETE FROM team_canvas_pieces",
 		"DELETE FROM team_canvas_avatar_positions",

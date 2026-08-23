@@ -15,6 +15,7 @@ import (
 	"github.com/dafepro/fc-workout-pwa/backend/internal/config"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/httpapi"
+	"github.com/dafepro/fc-workout-pwa/backend/internal/rewardmedia"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/staffauth"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/store"
 )
@@ -31,7 +32,9 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
 	}
-	databaseContext, cancelDatabase := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	databaseContext, cancelDatabase := context.WithTimeout(ctx, 15*time.Second)
 	defer cancelDatabase()
 	db, err := database.Open(databaseContext, cfg.DatabaseURL)
 	if err != nil {
@@ -42,6 +45,14 @@ func run() error {
 		return fmt.Errorf("migrate database: %w", err)
 	}
 	repository := store.New(db, cfg.TeamTimeZone)
+	media, err := rewardmedia.NewFileStore(cfg.RewardMediaDir)
+	if err != nil {
+		return fmt.Errorf("open reward media storage: %w", err)
+	}
+	cleanupContext, cancelCleanup := context.WithTimeout(ctx, 15*time.Second)
+	cleanupRewardMedia(cleanupContext, repository, media, time.Now().UTC())
+	cancelCleanup()
+	go monitorRewardMediaCleanup(ctx, repository, media)
 	sessions := authn.NewService(db)
 	// A separate Argon2 slot from the player path. Sharing one held the
 	// ceiling at 64 MiB but let a flood against the public player endpoint
@@ -62,6 +73,7 @@ func run() error {
 		httpapi.WithStaffSessionManager(staff),
 		httpapi.WithStaffRepository(store.NewStaffStore(db)),
 		httpapi.WithTeamRewardRepository(repository),
+		httpapi.WithTeamRewardMedia(media, rewardmedia.NewProcessor()),
 		httpapi.WithStaffAccountManager(staff),
 		httpapi.WithCredentialManager(sessions),
 	}
@@ -79,9 +91,6 @@ func run() error {
 		WriteTimeout:      15 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 
 	serverErrors := make(chan error, 1)
 	go func() {
@@ -102,5 +111,31 @@ func run() error {
 			return fmt.Errorf("shutdown: %w", err)
 		}
 		return nil
+	}
+}
+
+func monitorRewardMediaCleanup(ctx context.Context, repository *store.Store, media rewardmedia.Store) {
+	ticker := time.NewTicker(6 * time.Hour)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case now := <-ticker.C:
+			cleanupContext, cancel := context.WithTimeout(ctx, 30*time.Second)
+			cleanupRewardMedia(cleanupContext, repository, media, now.UTC())
+			cancel()
+		}
+	}
+}
+
+func cleanupRewardMedia(ctx context.Context, repository *store.Store, media rewardmedia.Store, now time.Time) {
+	deleted, err := rewardmedia.CleanupExpired(ctx, repository, media, now.Add(-24*time.Hour), now)
+	if err != nil {
+		slog.Warn("reward media cleanup failed", "error", err)
+		return
+	}
+	if deleted > 0 {
+		slog.Info("reward media cleanup completed", "deleted", deleted)
 	}
 }

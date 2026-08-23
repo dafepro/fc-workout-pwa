@@ -16,6 +16,11 @@ type TeamRewardRepository interface {
 	CancelTeamReward(context.Context, string, string, time.Time) (store.TeamRewardProjection, error)
 	ListTeamRewards(context.Context, string, time.Time) ([]store.TeamRewardProjection, error)
 	TeamRewardForPlayer(context.Context, domain.Actor, string, time.Time) (store.PlayerTeamRewardProjection, error)
+	CreateTeamRewardMedia(context.Context, store.CreateTeamRewardMediaInput) (store.TeamRewardMedia, error)
+	TeamRewardMedia(context.Context, string, string) (store.TeamRewardMedia, error)
+	TeamRewardMediaForPlayer(context.Context, domain.Actor, string, string, time.Time) (store.TeamRewardMedia, error)
+	ExpireUnattachedTeamRewardMedia(context.Context, time.Time, time.Time) ([]store.TeamRewardMedia, error)
+	RestoreExpiredTeamRewardMedia(context.Context, string) error
 }
 
 func WithTeamRewardRepository(repository TeamRewardRepository) Option {
@@ -44,6 +49,7 @@ func (service *service) createTeamReward(w http.ResponseWriter, r *http.Request)
 		PrizeTitle       string                `json:"prizeTitle"`
 		PrizeDescription string                `json:"prizeDescription"`
 		StartsOn         string                `json:"startsOn"`
+		MediaID          string                `json:"mediaId"`
 		Rule             domain.TeamRewardRule `json:"rule"`
 	}
 	if err := decodeStrictJSON(w, r, &request); err != nil {
@@ -53,7 +59,7 @@ func (service *service) createTeamReward(w http.ResponseWriter, r *http.Request)
 	reward, err := service.rewards.CreateTeamReward(r.Context(), store.CreateTeamRewardInput{
 		TeamID: teamID, CreatedByAccountID: actor.AccountID,
 		PrizeTitle: request.PrizeTitle, PrizeDescription: request.PrizeDescription,
-		StartsOn: request.StartsOn, Rule: request.Rule, Now: service.now().UTC(),
+		StartsOn: request.StartsOn, Rule: request.Rule, MediaID: request.MediaID, Now: service.now().UTC(),
 	})
 	if service.writeRewardError(w, r, err) {
 		return
