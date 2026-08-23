@@ -3,7 +3,7 @@ import type {
   RewardMediaAltKind,
 } from "../../../../data/team-reward-prototype";
 import type { TeamRewardProgress } from "../../../../domain/team-rewards";
-import { consoleFormRequest, consoleRequest } from "../../api";
+import { ConsoleError, consoleFormRequest, consoleRequest } from "../../api";
 
 export interface StaffTeamReward extends PrototypeTeamReward {
   progress: TeamRewardProgress;
@@ -42,9 +42,44 @@ export async function createAndPublishTeamReward(
       },
     },
   );
-  return consoleRequest<StaffTeamReward>(
-    `v1/staff/teams/${teamId}/rewards/${created.id}/publish`,
-    { method: "POST" },
+  const publishPath = `v1/staff/teams/${teamId}/rewards/${created.id}/publish`;
+  try {
+    return await consoleRequest<StaffTeamReward>(publishPath, {
+      method: "POST",
+    });
+  } catch (error) {
+    if (!transientPublishError(error)) throw error;
+    return recoverPublishHandoff(teamId, created.id, publishPath, error);
+  }
+}
+
+async function recoverPublishHandoff(
+  teamId: string,
+  rewardId: string,
+  publishPath: string,
+  originalError: unknown,
+) {
+  let rewards: StaffTeamRewardsResponse;
+  try {
+    rewards = await consoleRequest<StaffTeamRewardsResponse>(
+      `v1/staff/teams/${teamId}/rewards`,
+    );
+  } catch {
+    throw originalError;
+  }
+  const reward = rewards.items.find((item) => item.id === rewardId);
+  if (reward?.status === "active" || reward?.status === "achieved") {
+    return reward;
+  }
+  if (reward?.status === "draft") {
+    return consoleRequest<StaffTeamReward>(publishPath, { method: "POST" });
+  }
+  throw originalError;
+}
+
+function transientPublishError(error: unknown) {
+  return (
+    error instanceof ConsoleError && (error.status === 0 || error.status >= 500)
   );
 }
 

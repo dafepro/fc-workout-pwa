@@ -59,6 +59,46 @@ describe("staff team reward gateway", () => {
     );
   });
 
+  it("recovers a transient publish handoff without creating another draft", async () => {
+    const draft = {
+      ...createPrototypeReward("team-one", new Date("2026-08-23T12:00:00Z")),
+      rule: {
+        version: 1 as const,
+        kind: "teammate_consistency" as const,
+        requiredPlayers: 8,
+        requiredDaysPerPlayer: 5,
+        participationScope: "recommended_workout" as const,
+      },
+    };
+    const created = { ...draft, id: "reward-server" };
+    const published = {
+      ...created,
+      status: "active" as const,
+      progress: {
+        current: 0,
+        target: 8,
+        percent: 0,
+        close: false,
+        achieved: false,
+      },
+    };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(created, 201))
+      .mockRejectedValueOnce(new TypeError("connection closed"))
+      .mockResolvedValueOnce(jsonResponse({ items: [created] }, 200))
+      .mockResolvedValueOnce(jsonResponse(published, 200));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      createAndPublishTeamReward("team-one", draft),
+    ).resolves.toEqual(published);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(fetchMock.mock.calls[3]?.[0]).toBe(
+      "/staff/api/backend/v1/staff/teams/team-one/rewards/reward-server/publish",
+    );
+  });
+
   it("uploads a canonicalizable image before attaching it to the draft", async () => {
     const draft = {
       ...createPrototypeReward("team-one", new Date("2026-08-23T12:00:00Z")),

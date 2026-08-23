@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -142,6 +143,8 @@ func (service *service) writeRewardError(w http.ResponseWriter, r *http.Request,
 	case errors.Is(err, store.ErrTeamRewardState):
 		writeError(w, r, http.StatusConflict, "team_reward_state", "That reward cannot be changed from its current state.")
 	default:
+		requestID, _ := r.Context().Value(requestIDKey).(string)
+		slog.Error("team reward request failed", "method", r.Method, "path", r.URL.Path, "request_id", requestID, "error", err)
 		writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")
 	}
 	return true

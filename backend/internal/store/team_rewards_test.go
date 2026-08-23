@@ -72,6 +72,37 @@ func TestTeamRewardLifecyclePersistsOneActiveRewardAndRealProgress(t *testing.T)
 	}
 }
 
+func TestTeammateConsistencyRewardPublishesWithRealProgress(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+	if _, err := db.Exec(`INSERT INTO accounts (id, club_id, role, status, created_at)
+		VALUES ('account-coach', 'club-one', 'coach', 'active', '2026-01-01T00:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+
+	reward, err := repository.CreateTeamReward(context.Background(), store.CreateTeamRewardInput{
+		TeamID: "team-one", CreatedByAccountID: "account-coach",
+		PrizeTitle: "Team celebration", PrizeDescription: "Celebrate together.",
+		StartsOn: "2026-08-11", Now: now,
+		Rule: domain.TeamRewardRule{
+			Version: 1, Kind: domain.RewardRuleTeammateConsistency,
+			ParticipationScope: domain.RewardParticipationRecommended,
+			RequiredPlayers:    2, RequiredDaysPerPlayer: 1,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	projection, err := repository.PublishTeamReward(context.Background(), "team-one", reward.ID, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if projection.Status != store.TeamRewardActive || projection.Progress.Current != 1 || projection.Progress.Target != 2 {
+		t.Fatalf("unexpected consistency reward: %+v", projection)
+	}
+}
+
 func TestTeamRewardAchievementLatchesAfterAuthoritativeProgress(t *testing.T) {
 	repository, db := socialProjectionStore(t)
 	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
