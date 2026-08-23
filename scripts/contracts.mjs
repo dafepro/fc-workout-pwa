@@ -431,6 +431,7 @@ async function iacContract() {
       "resize_disk   = false",
       'comparison = "less_than"',
       "threshold  = 1",
+      'mode = "disabled"',
       'backend "s3"',
     ],
     "OpenTofu configuration",

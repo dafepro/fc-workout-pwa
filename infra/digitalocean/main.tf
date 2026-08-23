@@ -185,6 +185,10 @@ resource "cloudflare_d1_database" "analytics" {
   name                  = "zoomigo-product-analytics"
   primary_location_hint = "enam"
 
+  read_replication = {
+    mode = "disabled"
+  }
+
   lifecycle {
     prevent_destroy = true
   }
