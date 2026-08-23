@@ -6,18 +6,11 @@ import { ActivitySpecificFields } from "../components/ActivityFields";
 import { WorkoutSelect } from "../components/WorkoutSelect";
 import { IntensityControls } from "../components/IntensityScale";
 import { copy } from "../content/copy";
-import {
-  earliestAllowedDate,
-  isBackdateAllowed,
-  toDateInput,
-} from "../domain/rules";
+import { isBackdateAllowed, toDateInput } from "../domain/rules";
 import type { ActivityId } from "../domain/types";
 import { useTraining } from "../state/training-context";
 import { useAnalytics } from "../../lib/analytics/AnalyticsProvider";
-
-function currentTimeInput(): string {
-  return new Date().toTimeString().slice(0, 5);
-}
+import { useLocalSessionClock } from "./useLocalSessionClock";
 
 function compactDateLabel(dateValue: string): string {
   const today = toDateInput(new Date());
@@ -47,8 +40,7 @@ export default function LogPage() {
   const assignment = dashboard?.currentAssignment ?? null;
   const [activityId, setActivityId] = useState<ActivityId>("hill-sprints");
   const [value, setValue] = useState(8);
-  const [date, setDate] = useState(toDateInput(new Date()));
-  const [time, setTime] = useState(currentTimeInput());
+  const clock = useLocalSessionClock();
   const [effort, setEffort] = useState(4);
   const [exhaustion, setExhaustion] = useState(4);
   const [message, setMessage] = useState<string | null>(null);
@@ -87,8 +79,8 @@ export default function LogPage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (saving) return;
-    if (!isBackdateAllowed(date)) {
+    if (saving || !clock.ready) return;
+    if (!isBackdateAllowed(clock.date)) {
       setMessage("Choose today or one of the previous seven days.");
       return;
     }
@@ -99,11 +91,11 @@ export default function LogPage() {
       );
       return;
     }
-    const occurredAt = new Date(`${date}T${time}:00`);
+    const occurredAt = new Date(`${clock.date}T${clock.time}:00`);
     const assignmentId =
       assignment?.activityDefinitionId === activityId &&
-      date >= assignment.startsOn &&
-      date <= assignment.dueOn
+      clock.date >= assignment.startsOn &&
+      clock.date <= assignment.dueOn
         ? assignment.id
         : undefined;
     const completesAssignment = Boolean(
@@ -208,7 +200,7 @@ export default function LogPage() {
         <button
           className="button button--lime button--wide"
           type="submit"
-          disabled={saving}
+          disabled={saving || !clock.ready}
         >
           {saving ? "Saving…" : "Save"}
         </button>
@@ -216,7 +208,9 @@ export default function LogPage() {
           <summary>
             <span aria-hidden="true">◷</span>
             <strong>
-              {compactDateLabel(date)} · {compactTimeLabel(time)}
+              {clock.ready
+                ? `${compactDateLabel(clock.date)} · ${compactTimeLabel(clock.time)}`
+                : "Setting local date and time…"}
             </strong>
             <span>Change</span>
           </summary>
@@ -226,10 +220,10 @@ export default function LogPage() {
               <input
                 id="session-date"
                 type="date"
-                min={earliestAllowedDate()}
-                max={toDateInput(new Date())}
-                value={date}
-                onChange={(event) => setDate(event.target.value)}
+                min={clock.earliestDate || undefined}
+                max={clock.today || undefined}
+                value={clock.date}
+                onChange={(event) => clock.setDate(event.target.value)}
                 required
               />
             </label>
@@ -238,8 +232,8 @@ export default function LogPage() {
               <input
                 id="session-time"
                 type="time"
-                value={time}
-                onChange={(event) => setTime(event.target.value)}
+                value={clock.time}
+                onChange={(event) => clock.setTime(event.target.value)}
                 required
               />
             </label>

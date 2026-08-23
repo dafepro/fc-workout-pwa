@@ -54,7 +54,7 @@ export function MomentumStatus({
 
       <Image
         className="momentum-status__art"
-        src="/art/zoomi/zoomi-momentum.webp"
+        src="/art/zoomi/zoomi-momentum-v2.webp"
         alt={copy.artAlt}
         width={900}
         height={600}

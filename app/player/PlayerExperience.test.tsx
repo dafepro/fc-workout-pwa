@@ -83,7 +83,7 @@ describe("consolidated default player experience", () => {
 
     expect(
       screen.getByRole("img", { name: "Zoomi runs with your Momentum" }),
-    ).toHaveAttribute("src", "/art/zoomi/zoomi-momentum.webp");
+    ).toHaveAttribute("src", "/art/zoomi/zoomi-momentum-v2.webp");
     expect(
       screen.getByRole("progressbar", { name: "Momentum path: Rolling" }),
     ).toBeInTheDocument();

@@ -48,6 +48,73 @@ Grafana's current documentation supports Docker log collection with
 remote write with a local WAL. Cloud Access Policies provide separate
 `logs:write`, `metrics:write`, `logs:read`, and `metrics:read` machine scopes.
 
+## Host resource budget and admission gate
+
+Observability is subordinate to application availability. The current VM sizes
+are materially different:
+
+- dev is `s-1vcpu-1gb` (1 vCPU and 1 GiB RAM);
+- production is `s-1vcpu-512mb-10gb` (1 vCPU, 512 MiB RAM, 10 GiB disk);
+- the continuously running API and Caddy containers already have 256 MiB and
+  96 MiB memory limits. Their 352 MiB combined ceiling excludes the host OS,
+  Docker, security updates, and transient deployment work.
+
+The first Alloy configuration is intentionally small: logs and metrics only,
+no traces or profiles, at most 500 active application series, a 30-second scrape
+interval, fixed route templates, and no Kubernetes or cloud-service discovery.
+Its initial container budget is:
+
+| Resource             | Hard/operating budget                                       |
+| -------------------- | ----------------------------------------------------------- |
+| Container memory     | `mem_limit: 96m`; `GOMEMLIMIT=72MiB`                        |
+| CPU                  | `cpus: 0.20`; sustained p95 below 10% of the single vCPU    |
+| Processes            | `pids_limit: 64`                                            |
+| Local telemetry data | 256 MiB allocation target; remote-write WAL retained <= 2 h |
+| Log input            | <= 100 KiB/s sustained; existing Docker logs remain bounded |
+| Network egress       | <= 128 KiB/s p95 outside a recovery flush                   |
+
+Grafana's published estimates scale mainly with active series and log ingress,
+but explicitly warn that per-node fixed overhead and real configuration can
+change the result. These numbers are therefore ceilings to prove in dev, not a
+claim that Alloy always fits in 96 MiB.
+
+### Capacity decision
+
+Co-located Alloy is **not admitted on the current 512 MiB production Droplet**.
+Adding a 96 MiB collector to the existing 352 MiB container ceilings leaves at
+most 64 MiB for the host and Docker, before deployment spikes. Production must
+first either:
+
+1. move to at least the same 1 GiB class as dev; or
+2. adopt a reviewed non-co-located collection path that does not expose Docker,
+   SQLite, the metrics listener, or an administrative port publicly.
+
+Do not reduce the API's current safety limit to make the collector fit. Managed
+Grafana hosts the UI and data stores; only the small Alloy collector is proposed
+for the application VM.
+
+### Measured admission test
+
+Before enabling Alloy in either environment:
+
+1. Record a 24-hour baseline for host available memory, swap-in rate, CPU, disk,
+   API p95 latency, and container restarts under representative traffic.
+2. Start Alloy in dev with the limits above and synthetic safe logs/metrics.
+3. Exercise normal traffic plus a deploy, backup, remote-write outage, and
+   recovery flush for at least 24 hours.
+4. Require at least 256 MiB host `MemAvailable` at idle, at least 128 MiB during
+   the worst test, no OOM/restart, under 1 MiB/hour swap-in after warm-up, at
+   least 2 GiB free disk, and no material readiness or latency regression.
+5. Fail deployment if the VM is below 1 GiB RAM, disk headroom is below 2 GiB,
+   the configured series/log budgets are exceeded, or Compose lacks the memory,
+   CPU, PID, and bounded-storage settings.
+6. Automatically stop and roll back Alloy—not the API—if available memory stays
+   below 128 MiB, disk reaches 70%, Alloy repeatedly restarts, or API readiness
+   regresses during rollout.
+
+This test must be rerun after enabling a new telemetry signal, materially adding
+routes or labels, changing scrape frequency, or resizing either Droplet.
+
 ## Privacy-safe logging contract
 
 Add an HTTP middleware outside the existing request-ID middleware. Emit one
@@ -110,6 +177,9 @@ or other unbounded value. The route label uses registered templates such as
   SQLite operation latency, active canvas connections, and backup age.
 
 ## Codex access
+
+Agent use: dispatch `observability-query` for dev or production, choose a preset
+and window, then download the sanitized artifact; never query droplets directly.
 
 Do not put a Grafana token in a developer shell or ask Codex to use the owner's
 browser session. Add a manual `observability-query.yml` workflow with enumerated
@@ -233,6 +303,8 @@ enumerated templates above, caps output, and never prints credentials.
 
 - [Grafana Alloy Docker log source](https://grafana.com/docs/alloy/latest/reference/components/loki/loki.source.docker/)
 - [Grafana Alloy Prometheus scrape](https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.scrape/)
+- [Grafana Alloy resource estimates](https://grafana.com/docs/alloy/latest/set-up/estimate-resource-usage/)
+- [Grafana Alloy memory controls](https://grafana.com/docs/alloy/latest/reference/cli/environment-variables/)
 - [Grafana Cloud Prometheus remote write](https://grafana.com/docs/grafana-cloud/observe-and-act/send-data/alloy/reference/components/prometheus/prometheus.remote_write/)
 - [Grafana Cloud authentication and access policies](https://grafana.com/docs/grafana-cloud/platform/security-and-account-management/security-and-access/authentication-and-permissions/)
 - [Prometheus Go application instrumentation](https://prometheus.io/docs/guides/go-application/)
