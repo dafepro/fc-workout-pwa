@@ -35,8 +35,10 @@ done
 if [ -n "$observability_directory" ]; then
 	install -d -m 0700 -o 473 -g 473 "$observability_directory"
 	install -d -m 0700 -o 473 -g 473 "$observability_directory/textfile"
+	chown -R 473:473 -- "$observability_directory"
+	chmod 0700 "$observability_directory" "$observability_directory/textfile"
 fi
 
 sh "$SCRIPT_DIRECTORY/install-observability-metrics-service.sh" "$ENV_FILE"
 
-printf '%s\n' "Prepared ZoomiGo data directories for container uid/gid 65532."
+printf '%s\n' "Prepared ZoomiGo application and observability data directories."

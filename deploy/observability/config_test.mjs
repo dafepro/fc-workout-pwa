@@ -88,6 +88,7 @@ test("Deployment enforces host admission before enabling Alloy", async () => {
   assert.match(preflight, /2097152/);
   assert.match(preflight, /OBSERVABILITY_DATA_DIR/);
   assert.match(prepareHost, /-o 473 -g 473/);
+  assert.match(prepareHost, /chown -R 473:473/);
   assert.match(library, /chown 473:473/);
   assert.match(productionCheck, /Alloy container is not running/);
   assert.match(productionCheck, /RestartCount/);
