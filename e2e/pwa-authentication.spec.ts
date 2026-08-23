@@ -18,7 +18,7 @@ test("a player signs in from a QR fragment, stays signed in, and logs out", asyn
 }) => {
   await loginAsMason(page);
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole("link", { name: "ZoomiGo home" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "ZoomiGo Today" })).toBeVisible();
   await expect(
     page.getByRole("heading", {
       name: "Hill Sprints",

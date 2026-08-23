@@ -97,7 +97,7 @@ describe("consolidated default player experience", () => {
       screen.getByText("Aim for the goal. Stretch stays optional."),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Hill sprints" }),
+      screen.getByRole("heading", { name: "Hill Sprints" }),
     ).toBeInTheDocument();
     expect(screen.getByTestId("workout-mark")).toBeInTheDocument();
     expect(screen.getByText("Team rewards coming soon")).toBeInTheDocument();
@@ -214,7 +214,7 @@ describe("consolidated default player experience", () => {
 
     expect(screen.getByLabelText("Momentum is rolling")).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Hill sprints" }),
+      screen.getByRole("heading", { name: "Hill Sprints" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Team rewards coming soon")).toBeInTheDocument();
   });

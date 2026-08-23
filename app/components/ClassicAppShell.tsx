@@ -9,7 +9,7 @@ import { useAuth } from "../state/auth-context";
 import { useAnalytics } from "../../lib/analytics/AnalyticsProvider";
 import { routes } from "../content/routes";
 
-const SERVICE_WORKER_URL = "/sw.js?v=4";
+const SERVICE_WORKER_URL = "/sw.js?v=5";
 
 const navigation = [
   { href: "/classic-alpha", label: "Home", icon: "⌂" },

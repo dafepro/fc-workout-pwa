@@ -161,11 +161,11 @@ test("connected Team Canvas uses durable pieces, settings, and realtime updates"
   );
   const trash = page.getByLabel("Drop here to delete today’s stamp");
   await expect(trash).toHaveClass(/is-visible/);
-  const trashBox = await trash.boundingBox();
-  if (!trashBox) throw new Error("Trash target has no bounding box");
+  const boardBox = await page.locator(".tc-board").boundingBox();
+  if (!boardBox) throw new Error("Team canvas has no bounding box");
   await page.mouse.move(
-    trashBox.x + trashBox.width / 2,
-    trashBox.y + trashBox.height / 2,
+    boardBox.x + boardBox.width / 2,
+    boardBox.y + boardBox.height - 52,
   );
   await expect(trash).toHaveClass(/is-armed/);
   const pieceDeleted = page.waitForResponse(
@@ -183,7 +183,7 @@ test("connected Team Canvas uses durable pieces, settings, and realtime updates"
   await expect(ownedStamp).toBeVisible();
 
   const toolbox = page.locator(".tc-toolbox");
-  await toolbox.getByText("Developer canvas toolbox", { exact: true }).click();
+  await toolbox.getByText("Canvas dev console", { exact: true }).click();
   await toolbox.getByLabel("Background scene").selectOption("cosmic-stadium");
   await toolbox.getByLabel("Team-name style").selectOption("bubble");
   await toolbox.getByLabel("Extra playground stamps").fill("4");

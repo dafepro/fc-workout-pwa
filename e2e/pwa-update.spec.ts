@@ -17,5 +17,5 @@ test("a new service worker removes the previous app-shell cache", async ({
 
   await expect
     .poll(() => page.evaluate(() => caches.keys()))
-    .toEqual(["zoomigo-shell-v4"]);
+    .toEqual(["zoomigo-shell-v5"]);
 });

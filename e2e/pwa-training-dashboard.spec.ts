@@ -13,7 +13,7 @@ test.beforeEach(async () => {
   await api.dispose();
 });
 
-test("the consolidated default completes today's plan and unlocks Team Canvas", async ({
+test("the consolidated default completes today's plan and opens Team Canvas", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 320, height: 700 });
@@ -22,8 +22,7 @@ test("the consolidated default completes today's plan and unlocks Team Canvas", 
   await expect(
     page.getByRole("heading", { name: "Hill Sprints" }),
   ).toBeVisible();
-  await expect(page.getByText("Team rewards coming soon")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Locked Team" })).toHaveAttribute(
+  await expect(page.getByRole("link", { name: /Team lounge/ })).toHaveAttribute(
     "href",
     "/team",
   );
@@ -50,8 +49,8 @@ test("the consolidated default completes today's plan and unlocks Team Canvas", 
   await page.getByRole("link", { name: /Join Team lounge/ }).click();
   await expect(page).toHaveURL(/\/team$/);
   await expect(page.getByLabel("Hill Striders weekly canvas")).toBeVisible();
-  await expect(page.getByText("Team stamps")).toBeVisible();
-  await expect(page.getByText("Developer canvas toolbox")).toHaveCount(0);
+  await expect(page.getByText(/stamp ready/)).toBeVisible();
+  await expect(page.getByText("Canvas dev console")).toHaveCount(0);
   await expect(page.getByText(/effort|tired|result/i)).toHaveCount(0);
 
   const api = await request.newContext({ baseURL: apiBaseURL });

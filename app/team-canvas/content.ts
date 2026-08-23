@@ -9,7 +9,7 @@ export const teamCanvasCopy = {
   },
   today: {
     eyebrow: "Today · Aug 20",
-    trainingTitle: "Hill sprints",
+    trainingTitle: "Hill Sprints",
     trainingDescription:
       "Sprint for 6 seconds, then walk back fully before the next start.",
     trainingContext: "Demanding · assigned cooldown follows",

@@ -20,6 +20,7 @@ import {
 import { createTrainingDashboardGateway } from "../data/training-dashboard-gateway";
 import { createTrainingEntryGateway } from "../data/training-entry-gateway";
 import { useOptionalAuth } from "../state/auth-context";
+import { useOptionalTraining } from "../state/training-context";
 import type {
   BoardPosition,
   BoardTransform,
@@ -101,6 +102,7 @@ export function TeamCanvasProvider({
   initialState?: TeamCanvasState;
 }) {
   const auth = useOptionalAuth();
+  const training = useOptionalTraining();
   const connected = auth?.connected ?? false;
   const teamID = auth?.currentTeamID ?? "team-hill-striders";
   const currentPlayerID = auth?.currentPlayerID ?? "mason";
@@ -311,7 +313,7 @@ export function TeamCanvasProvider({
               : input.completion === "approved-alternative"
                 ? activity.defaultValue
                 : target;
-          await createTrainingEntryGateway(true, teamID).create({
+          const entry = {
             activityId: activity.id,
             assignmentId:
               input.completion === "approved-alternative"
@@ -323,7 +325,12 @@ export function TeamCanvasProvider({
             inputKind: activity.inputKind,
             effortLevel: input.effort,
             exhaustionLevel: input.tiredness,
-          });
+          };
+          if (training) {
+            await training.addEntry(entry);
+          } else {
+            await createTrainingEntryGateway(true, teamID).create(entry);
+          }
           store.update((current) =>
             recordPrimary({ ...current, dayKind: "training" }, input),
           );
@@ -554,6 +561,7 @@ export function TeamCanvasProvider({
       state,
       store,
       teamID,
+      training,
     ],
   );
 

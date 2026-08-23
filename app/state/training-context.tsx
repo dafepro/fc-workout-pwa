@@ -144,7 +144,7 @@ export function TrainingProvider({
         entry,
         ...current.filter((item) => item.id !== entry.id),
       ]);
-      if (connected) void refreshDashboard();
+      if (connected) await refreshDashboard();
       return entry;
     },
     [connected, refreshDashboard, trainingEntryGateway],

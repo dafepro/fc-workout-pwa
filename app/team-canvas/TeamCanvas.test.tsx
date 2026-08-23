@@ -104,7 +104,7 @@ describe("Team Canvas application", () => {
     );
 
     expect(
-      screen.getByRole("heading", { name: "Hill sprints" }),
+      screen.getByRole("heading", { name: "Hill Sprints" }),
     ).toBeInTheDocument();
     expect(
       screen.getByText(/Sprint for 6 seconds, then walk back fully/i),

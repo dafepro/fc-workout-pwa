@@ -26,15 +26,16 @@ export function ConsolidatedToday() {
   const liveBand = momentumBand(momentum.state.personalMomentum);
   const band =
     dev.settings.momentumBand === "real" ? liveBand : dev.settings.momentumBand;
-  const liveUnlocked =
-    canvas.connectedStatus === "ready" ||
-    (canvas.connectedStatus === "local" && canvas.state.primaryComplete);
+  const livePlanComplete =
+    canvas.connectedStatus === "local"
+      ? canvas.state.primaryComplete
+      : momentum.state.primaryComplete;
   const unlockedByToday =
     dev.settings.today === "complete"
       ? true
       : dev.settings.today === "training" || dev.settings.today === "rest"
         ? false
-        : liveUnlocked;
+        : livePlanComplete;
   const unlocked =
     dev.settings.teamAccess === "locked" ? false : unlockedByToday;
   const restDay =

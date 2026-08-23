@@ -21,6 +21,9 @@ test("a player can save, reopen, and delete a private session", async ({
 
   await expect(page.getByRole("status")).toContainText("Training saved");
 
+  await page.goto("/me");
+  await page.locator("html[data-app-ready='true']").waitFor();
+
   const newestSession = page
     .getByRole("link", {
       name: "View Hill Sprints session details",
