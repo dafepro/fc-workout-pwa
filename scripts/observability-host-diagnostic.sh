@@ -27,6 +27,15 @@ container=$(compose ps --quiet alloy)
 state=$(docker inspect --format '{{.State.Status}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}} restarts={{.RestartCount}}' "$container")
 printf '%s\n' "Alloy state: $state"
 
+runtime=$(docker inspect --format 'user={{if .Config.User}}{{.Config.User}}{{else}}root{{end}} userns={{if .HostConfig.UsernsMode}}{{.HostConfig.UsernsMode}}{{else}}default{{end}}' "$container")
+printf '%s\n' "Alloy runtime: $runtime"
+
+storage_source=$(docker inspect --format '{{range .Mounts}}{{if eq .Destination "/var/lib/alloy/data"}}{{.Source}}{{end}}{{end}}' "$container")
+[ -n "$storage_source" ] || fail "Alloy storage bind is missing"
+storage_mount=$(docker inspect --format '{{range .Mounts}}{{if eq .Destination "/var/lib/alloy/data"}}type={{.Type}} rw={{.RW}}{{end}}{{end}}' "$container")
+storage_stat=$(stat -c 'owner=%u:%g mode=%a' "$storage_source")
+printf '%s\n' "Alloy storage: $storage_mount $storage_stat"
+
 networks=$(docker inspect --format '{{range $name, $_ := .NetworkSettings.Networks}}{{println $name}}{{end}}' "$container")
 printf '%s\n' "Alloy networks:"
 printf '%s\n' "$networks"
