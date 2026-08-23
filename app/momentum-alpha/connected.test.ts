@@ -130,4 +130,24 @@ describe("connected Momentum", () => {
       exhaustionLevel: 4,
     });
   });
+
+  it("keeps historical assignment entries in history without completing today", () => {
+    const model = connectedMomentumModel(
+      {
+        ...dashboard,
+        currentAssignment: {
+          ...dashboard.currentAssignment!,
+          dueOn: "2026-08-22",
+          completed: false,
+        },
+      },
+      entries,
+      "player-one",
+      new Date("2026-08-22T18:00:00Z"),
+    );
+
+    expect(model.state.primaryComplete).toBe(false);
+    expect(model.state.primaryChoice).toBeNull();
+    expect(model.state.history).toHaveLength(1);
+  });
 });

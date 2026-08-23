@@ -27,7 +27,8 @@ export function ConsolidatedToday() {
   const band =
     dev.settings.momentumBand === "real" ? liveBand : dev.settings.momentumBand;
   const liveUnlocked =
-    canvas.connectedStatus === "ready" || canvas.state.primaryComplete;
+    canvas.connectedStatus === "ready" ||
+    (canvas.connectedStatus === "local" && canvas.state.primaryComplete);
   const unlockedByToday =
     dev.settings.today === "complete"
       ? true
@@ -38,7 +39,7 @@ export function ConsolidatedToday() {
     dev.settings.teamAccess === "locked" ? false : unlockedByToday;
   const restDay =
     dev.settings.today === "rest" ||
-    (dev.settings.today === "real" && canvas.state.dayKind === "rest");
+    (dev.settings.today === "real" && momentum.state.dayKind === "rest");
   const previewingToday = dev.settings.today !== "real";
 
   async function save() {

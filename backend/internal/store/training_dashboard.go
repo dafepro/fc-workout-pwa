@@ -95,7 +95,7 @@ func (store *Store) TrainingDashboard(ctx context.Context, actor domain.Actor, t
 	if err != nil {
 		return TrainingDashboardProjection{}, err
 	}
-	assignment, err := store.currentAssignment(ctx, actor.PlayerID, teamID, now.In(location).Format("2006-01-02"))
+	assignment, err := store.currentAssignment(ctx, actor.PlayerID, teamID, now.In(location).Format("2006-01-02"), location)
 	if err != nil {
 		return TrainingDashboardProjection{}, err
 	}
@@ -155,17 +155,25 @@ func (store *Store) personalProjectionEntries(ctx context.Context, playerID, tea
 	return items, rows.Err()
 }
 
-func (store *Store) currentAssignment(ctx context.Context, playerID, teamID, teamDay string) (*AssignmentProjection, error) {
+func (store *Store) currentAssignment(ctx context.Context, playerID, teamID, teamDay string, location *time.Location) (*AssignmentProjection, error) {
 	record, err := store.activeAssignment(ctx, teamID, teamDay)
 	if err != nil || record == nil {
 		return nil, err
 	}
+	dayStart, err := time.ParseInLocation("2006-01-02", teamDay, location)
+	if err != nil {
+		return nil, fmt.Errorf("parse assignment team day: %w", err)
+	}
+	dayEnd := dayStart.AddDate(0, 0, 1)
 	item := record.AssignmentProjection
 	err = store.db.QueryRowContext(ctx, `SELECT EXISTS (
 		SELECT 1 FROM training_entries e
 		WHERE e.assignment_id = ? AND e.player_id = ? AND e.deleted_at IS NULL
 		  AND e.result_unit = ? AND e.result_value >= ?
-	)`, item.ID, playerID, item.TargetUnit, item.TargetValue).Scan(&item.Completed)
+		  AND julianday(e.occurred_at) >= julianday(?)
+		  AND julianday(e.occurred_at) < julianday(?)
+	)`, item.ID, playerID, item.TargetUnit, item.TargetValue,
+		dayStart.UTC().Format(time.RFC3339Nano), dayEnd.UTC().Format(time.RFC3339Nano)).Scan(&item.Completed)
 	if err != nil {
 		return nil, fmt.Errorf("load assignment completion: %w", err)
 	}

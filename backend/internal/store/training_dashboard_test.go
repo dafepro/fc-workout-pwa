@@ -55,6 +55,51 @@ func TestTrainingDashboardReturnsOwnedCatalogAssignmentAndSafeSummary(t *testing
 	}
 }
 
+func TestTrainingDashboardScopesAssignmentCompletionToTheTeamDay(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+	ctx := context.Background()
+	actor := domain.Actor{Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-one"}
+
+	if _, err := db.ExecContext(ctx, `UPDATE training_entries
+		SET assignment_id = 'assignment-hills', occurred_at = '2026-08-12T04:59:59Z'
+		WHERE id = 'entry-mason'`); err != nil {
+		t.Fatal(err)
+	}
+	projection, err := repository.TrainingDashboard(ctx, actor, "team-one", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if projection.CurrentAssignment == nil || projection.CurrentAssignment.Completed {
+		t.Fatalf("a prior team-day entry completed today's assignment: %+v", projection.CurrentAssignment)
+	}
+
+	if _, err := db.ExecContext(ctx, `UPDATE training_entries
+		SET occurred_at = '2026-08-12T05:00:00.000Z' WHERE id = 'entry-mason'`); err != nil {
+		t.Fatal(err)
+	}
+	projection, err = repository.TrainingDashboard(ctx, actor, "team-one", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if projection.CurrentAssignment == nil || !projection.CurrentAssignment.Completed {
+		t.Fatalf("a current team-day entry did not complete today's assignment: %+v", projection.CurrentAssignment)
+	}
+
+	if _, err := db.ExecContext(ctx, `UPDATE training_entries
+		SET occurred_at = '2026-08-13T05:00:00.000Z' WHERE id = 'entry-mason'`); err != nil {
+		t.Fatal(err)
+	}
+	projection, err = repository.TrainingDashboard(ctx, actor, "team-one", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if projection.CurrentAssignment == nil || projection.CurrentAssignment.Completed {
+		t.Fatalf("the next team-day boundary completed today's assignment: %+v", projection.CurrentAssignment)
+	}
+}
+
 func TestTrainingDashboardRejectsUnrelatedPlayer(t *testing.T) {
 	repository, db := socialProjectionStore(t)
 	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)

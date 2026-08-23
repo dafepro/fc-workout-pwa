@@ -73,8 +73,10 @@ export function connectedMomentumModel(
   const playerEntries = entries
     .filter((entry) => entry.playerId === currentPlayerID)
     .sort((left, right) => left.occurredAt.localeCompare(right.occurredAt));
-  const assignmentEntry = assignment
-    ? playerEntries.find((entry) => entry.assignmentId === assignment.id)
+  const assignmentEntry = assignment?.completed
+    ? [...playerEntries]
+        .reverse()
+        .find((entry) => entry.assignmentId === assignment.id)
     : undefined;
   const recoveryActivity =
     dashboard.activities.find(
@@ -103,9 +105,7 @@ export function connectedMomentumModel(
   const history = playerEntries.map((entry) =>
     historyEntry(entry, dashboard.activities),
   );
-  const primaryComplete = Boolean(
-    assignmentEntry || assignment?.completed || plannedRestComplete,
-  );
+  const primaryComplete = Boolean(assignment?.completed || plannedRestComplete);
 
   return {
     state: {
