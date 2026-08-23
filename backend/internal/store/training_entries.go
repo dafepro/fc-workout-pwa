@@ -316,12 +316,9 @@ func sameTrainingEntryRequest(entry TrainingEntry, request TrainingEntryRequest,
 }
 
 func entryDateAllowed(occurredAt, now time.Time, location *time.Location) bool {
-	if occurredAt.After(now) {
-		return false
-	}
 	today := localDateStart(now, location)
 	selected := localDateStart(occurredAt, location)
-	return !selected.Before(today.AddDate(0, 0, -7))
+	return !selected.After(today) && !selected.Before(today.AddDate(0, 0, -7))
 }
 
 func localDateStart(value time.Time, location *time.Location) time.Time {

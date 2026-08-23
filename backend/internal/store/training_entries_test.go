@@ -2,11 +2,40 @@ package store_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/dafepro/fc-workout-pwa/backend/internal/store"
 )
+
+func TestCreateTrainingEntryUsesTheTeamDayDespiteClientClockSkew(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	now := time.Date(2026, time.August, 13, 4, 30, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+	request := store.TrainingEntryRequest{
+		TeamID:               "team-one",
+		ActivityDefinitionID: "hill-sprints",
+		OccurredAt:           now.Add(29 * time.Minute).Format(time.RFC3339),
+		Result:               store.TrainingResult{Kind: "repetitions", Value: 8, Unit: "reps"},
+		EffortLevel:          4,
+		ExhaustionLevel:      3,
+	}
+
+	if _, err := repository.CreateTrainingEntry(context.Background(), store.CreateTrainingEntryInput{
+		PlayerID: "player-mason", IdempotencyKey: "same-team-day-skew", Request: request, Now: now,
+	}); err != nil {
+		t.Fatalf("same team-day clock skew was rejected: %v", err)
+	}
+
+	request.OccurredAt = now.Add(31 * time.Minute).Format(time.RFC3339)
+	_, err := repository.CreateTrainingEntry(context.Background(), store.CreateTrainingEntryInput{
+		PlayerID: "player-mason", IdempotencyKey: "next-team-day", Request: request, Now: now,
+	})
+	if !errors.Is(err, store.ErrEntryDateNotAllowed) {
+		t.Fatalf("next team-day error = %v", err)
+	}
+}
 
 func TestCreateTrainingEntryUsesTheTeamsCalendarForMembership(t *testing.T) {
 	_, db := socialProjectionStore(t)
