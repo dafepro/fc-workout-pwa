@@ -45,6 +45,7 @@ export function TeamRewardsPreview({
         alt={copy.artAlt}
         width={720}
         height={595}
+        unoptimized
       />
     </section>
   );

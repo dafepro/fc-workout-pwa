@@ -59,6 +59,7 @@ export function MomentumStatus({
         width={900}
         height={600}
         priority
+        unoptimized
       />
 
       <div

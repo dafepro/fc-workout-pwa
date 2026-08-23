@@ -82,10 +82,8 @@ describe("consolidated default player experience", () => {
     renderExperience(<ConsolidatedToday />);
 
     expect(
-      screen
-        .getByRole("img", { name: "Zoomi runs with your Momentum" })
-        .getAttribute("src"),
-    ).toContain("zoomi-momentum.webp");
+      screen.getByRole("img", { name: "Zoomi runs with your Momentum" }),
+    ).toHaveAttribute("src", "/art/zoomi/zoomi-momentum.webp");
     expect(
       screen.getByRole("progressbar", { name: "Momentum path: Rolling" }),
     ).toBeInTheDocument();
@@ -97,24 +95,18 @@ describe("consolidated default player experience", () => {
       screen.getByRole("heading", { name: "Hill sprints" }),
     ).toBeInTheDocument();
     expect(
-      screen
-        .getByRole("img", { name: "Zoomi charges up the hill" })
-        .getAttribute("src"),
-    ).toContain("zoomi-workout.webp");
+      screen.getByRole("img", { name: "Zoomi charges up the hill" }),
+    ).toHaveAttribute("src", "/art/zoomi/zoomi-workout.webp");
     expect(screen.getByText("Team rewards coming soon")).toBeInTheDocument();
     expect(
-      screen
-        .getByRole("img", { name: "Zoomi guards a mystery team reward" })
-        .getAttribute("src"),
-    ).toContain("zoomi-rewards.webp");
+      screen.getByRole("img", { name: "Zoomi guards a mystery team reward" }),
+    ).toHaveAttribute("src", "/art/zoomi/zoomi-rewards.webp");
     expect(
       screen.getByText("Complete today’s plan to join your team."),
     ).toBeInTheDocument();
     expect(
-      screen
-        .getByRole("img", { name: "Zoomi opens the Team lounge" })
-        .getAttribute("src"),
-    ).toContain("zoomi-lounge.webp");
+      screen.getByRole("img", { name: "Zoomi opens the Team lounge" }),
+    ).toHaveAttribute("src", "/art/zoomi/zoomi-lounge.webp");
 
     fireEvent.click(screen.getByRole("button", { name: "Log today’s plan" }));
     expect(screen.getByRole("slider", { name: "Effort" })).toBeInTheDocument();

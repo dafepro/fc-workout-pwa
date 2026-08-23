@@ -107,6 +107,7 @@ export function ConsolidatedToday() {
             width={900}
             height={600}
             priority
+            unoptimized
           />
           <div className="today-plan__heading">
             <div>
@@ -221,6 +222,7 @@ export function ConsolidatedToday() {
           alt={playerExperienceCopy.today.loungeArtAlt}
           width={900}
           height={600}
+          unoptimized
         />
         <div>
           <p className="player-eyebrow">Creative team space</p>
