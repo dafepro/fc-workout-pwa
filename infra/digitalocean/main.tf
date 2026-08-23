@@ -151,10 +151,11 @@ resource "digitalocean_uptime_check" "api" {
 }
 
 resource "digitalocean_uptime_alert" "api_down" {
-  name     = "ZoomiGo API unavailable"
-  check_id = digitalocean_uptime_check.api.id
-  type     = "down_global"
-  period   = "5m"
+  name       = "ZoomiGo API unavailable"
+  check_id   = digitalocean_uptime_check.api.id
+  type       = "down_global"
+  comparison = "less_than"
+  period     = "5m"
 
   notifications {
     email = var.alert_email_addresses

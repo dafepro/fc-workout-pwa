@@ -429,6 +429,7 @@ async function iacContract() {
       "prevent_destroy = true",
       "s-1vcpu-1gb",
       "resize_disk   = false",
+      'comparison = "less_than"',
       'backend "s3"',
     ],
     "OpenTofu configuration",
