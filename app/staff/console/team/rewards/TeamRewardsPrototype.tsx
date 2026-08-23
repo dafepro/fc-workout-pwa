@@ -349,11 +349,24 @@ function RewardEditor({
   onPublish: () => void | Promise<void>;
   onDiscard: () => void;
 }) {
+  const [invalidNumberFields, setInvalidNumberFields] = useState<string[]>([]);
   const updateRule = (patch: Partial<TeamRewardRule>) =>
     setDraft({
       ...draft,
       rule: { ...draft.rule, ...patch } as TeamRewardRule,
     });
+  const setNumberFieldValidity = (field: string, valid: boolean) =>
+    setInvalidNumberFields((current) =>
+      valid
+        ? current.filter((item) => item !== field)
+        : current.includes(field)
+          ? current
+          : [...current, field],
+    );
+  const chooseRule = (rule: TeamRewardRule) => {
+    setInvalidNumberFields([]);
+    setDraft({ ...draft, rule });
+  };
 
   const chooseImage = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -475,15 +488,12 @@ function RewardEditor({
                 name="reward-template"
                 checked={draft.rule.kind === "qualifying_team_days"}
                 onChange={() =>
-                  setDraft({
-                    ...draft,
-                    rule: {
-                      version: 1,
-                      kind: "qualifying_team_days",
-                      requiredDays: 10,
-                      minimumRosterPercent: 80,
-                      participationScope: draft.rule.participationScope,
-                    },
+                  chooseRule({
+                    version: 1,
+                    kind: "qualifying_team_days",
+                    requiredDays: 10,
+                    minimumRosterPercent: 80,
+                    participationScope: draft.rule.participationScope,
                   })
                 }
               />
@@ -498,15 +508,12 @@ function RewardEditor({
                 name="reward-template"
                 checked={draft.rule.kind === "teammate_consistency"}
                 onChange={() =>
-                  setDraft({
-                    ...draft,
-                    rule: {
-                      version: 1,
-                      kind: "teammate_consistency",
-                      requiredPlayers: 8,
-                      requiredDaysPerPlayer: 3,
-                      participationScope: draft.rule.participationScope,
-                    },
+                  chooseRule({
+                    version: 1,
+                    kind: "teammate_consistency",
+                    requiredPlayers: 8,
+                    requiredDaysPerPlayer: 3,
+                    participationScope: draft.rule.participationScope,
                   })
                 }
               />
@@ -535,31 +542,29 @@ function RewardEditor({
           {draft.rule.kind === "qualifying_team_days" ? (
             <>
               <label htmlFor="reward-required-days">{copy.requiredDays}</label>
-              <input
+              <RewardNumberInput
+                key="reward-required-days"
                 id="reward-required-days"
-                type="number"
                 min={1}
                 max={90}
                 value={draft.rule.requiredDays}
-                onChange={(event) =>
-                  updateRule({ requiredDays: Number(event.target.value) })
-                }
+                onValue={(requiredDays) => updateRule({ requiredDays })}
+                onValidityChange={setNumberFieldValidity}
               />
               <label htmlFor="reward-roster-percent">
                 {copy.rosterPercent}
               </label>
-              <input
+              <RewardNumberInput
+                key="reward-roster-percent"
                 id="reward-roster-percent"
-                type="number"
                 min={10}
                 max={100}
                 step={5}
                 value={draft.rule.minimumRosterPercent}
-                onChange={(event) =>
-                  updateRule({
-                    minimumRosterPercent: Number(event.target.value),
-                  })
+                onValue={(minimumRosterPercent) =>
+                  updateRule({ minimumRosterPercent })
                 }
+                onValidityChange={setNumberFieldValidity}
               />
             </>
           ) : (
@@ -567,30 +572,28 @@ function RewardEditor({
               <label htmlFor="reward-required-players">
                 {copy.requiredPlayers}
               </label>
-              <input
+              <RewardNumberInput
+                key="reward-required-players"
                 id="reward-required-players"
-                type="number"
                 min={1}
                 max={100}
                 value={draft.rule.requiredPlayers}
-                onChange={(event) =>
-                  updateRule({ requiredPlayers: Number(event.target.value) })
-                }
+                onValue={(requiredPlayers) => updateRule({ requiredPlayers })}
+                onValidityChange={setNumberFieldValidity}
               />
               <label htmlFor="reward-days-per-player">
                 {copy.daysPerPlayer}
               </label>
-              <input
+              <RewardNumberInput
+                key="reward-days-per-player"
                 id="reward-days-per-player"
-                type="number"
                 min={1}
                 max={90}
                 value={draft.rule.requiredDaysPerPlayer}
-                onChange={(event) =>
-                  updateRule({
-                    requiredDaysPerPlayer: Number(event.target.value),
-                  })
+                onValue={(requiredDaysPerPlayer) =>
+                  updateRule({ requiredDaysPerPlayer })
                 }
+                onValidityChange={setNumberFieldValidity}
               />
             </>
           )}
@@ -618,7 +621,9 @@ function RewardEditor({
           <button
             type="button"
             className="button button--lime"
-            disabled={busy || !draft.prizeTitle.trim()}
+            disabled={
+              busy || !draft.prizeTitle.trim() || invalidNumberFields.length > 0
+            }
             onClick={onPublish}
           >
             {copy.publish}
@@ -634,5 +639,62 @@ function RewardEditor({
         </div>
       </section>
     </>
+  );
+}
+
+function RewardNumberInput({
+  id,
+  value,
+  min,
+  max,
+  step = 1,
+  onValue,
+  onValidityChange,
+}: {
+  id: string;
+  value: number;
+  min: number;
+  max: number;
+  step?: number;
+  onValue: (value: number) => void;
+  onValidityChange: (field: string, valid: boolean) => void;
+}) {
+  const [rawValue, setRawValue] = useState(String(value));
+  const valid = validRewardNumber(rawValue, min, max, step);
+
+  return (
+    <input
+      id={id}
+      type="number"
+      min={min}
+      max={max}
+      step={step}
+      required
+      value={rawValue}
+      aria-invalid={!valid}
+      onChange={(event) => {
+        const nextRawValue = event.target.value;
+        const nextValid = validRewardNumber(nextRawValue, min, max, step);
+        setRawValue(nextRawValue);
+        onValidityChange(id, nextValid);
+        if (nextValid) onValue(Number(nextRawValue));
+      }}
+    />
+  );
+}
+
+function validRewardNumber(
+  rawValue: string,
+  min: number,
+  max: number,
+  step: number,
+) {
+  if (rawValue.trim() === "") return false;
+  const value = Number(rawValue);
+  return (
+    Number.isInteger(value) &&
+    value >= min &&
+    value <= max &&
+    (value - min) % step === 0
   );
 }

@@ -51,6 +51,34 @@ describe("staff team rewards prototype", () => {
     expect(screen.getByLabelText("Days per teammate")).toBeInTheDocument();
   });
 
+  it("keeps the editor open while replacing the consistency day count", () => {
+    render(<TeamRewardsPrototype teamId="team-2" />);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Create a team reward" }),
+    );
+    fireEvent.click(
+      screen.getByRole("radio", { name: /Teammate consistency/ }),
+    );
+
+    const days = screen.getByLabelText("Days per teammate");
+    expect(days).toHaveValue(3);
+    fireEvent.change(days, { target: { value: "" } });
+
+    expect(days).toHaveValue(null);
+    expect(screen.getByText("Player card preview")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Publish reward" }),
+    ).toBeDisabled();
+
+    fireEvent.change(days, { target: { value: "5" } });
+
+    expect(days).toHaveValue(5);
+    expect(screen.getByText(/on 5 days/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Publish reward" }),
+    ).toBeEnabled();
+  });
+
   it("cancels without erasing the reward record", () => {
     render(<TeamRewardsPrototype teamId="team-3" />);
     fireEvent.click(
