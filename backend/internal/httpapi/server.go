@@ -50,6 +50,7 @@ type service struct {
 	devAccess     DevAccessManager
 	authFixtures  func(context.Context) error
 	throttles     []*loginThrottle
+	middleware    func(http.Handler) http.Handler
 	now           func() time.Time
 }
 
@@ -93,6 +94,10 @@ func WithSessionManager(sessions SessionManager) Option {
 
 func WithAuthFixtureReset(reset func(context.Context) error) Option {
 	return func(service *service) { service.authFixtures = reset }
+}
+
+func WithMiddleware(middleware func(http.Handler) http.Handler) Option {
+	return func(service *service) { service.middleware = middleware }
 }
 
 func NewHandler(cfg config.Config, options ...Option) http.Handler {
@@ -155,7 +160,11 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
 	})
 
-	return securityHeaders(cfg.AllowedOrigin, devGateway(cfg, requestID(mux)))
+	handler := securityHeaders(cfg.AllowedOrigin, devGateway(cfg, mux))
+	if service.middleware != nil {
+		handler = service.middleware(handler)
+	}
+	return requestID(handler)
 }
 
 func devGateway(cfg config.Config, next http.Handler) http.Handler {
@@ -700,6 +709,9 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 }
 
 func writeError(w http.ResponseWriter, r *http.Request, status int, code, message string) {
+	if recorder, ok := w.(interface{ SetErrorCode(string) }); ok {
+		recorder.SetErrorCode(code)
+	}
 	id, _ := r.Context().Value(requestIDKey).(string)
 	writeJSON(w, status, errorEnvelope{Error: errorBody{Code: code, Message: message, RequestID: id}})
 }

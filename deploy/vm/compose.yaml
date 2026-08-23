@@ -23,7 +23,9 @@ services:
       DATABASE_URL: file:/data/zoomigo.db
       GOMEMLIMIT: 192MiB
       GOMAXPROCS: "1"
+      METRICS_PORT: "9090"
       PORT: "8080"
+      RELEASE_SHA: ${APP_VERSION:-manual}
       SHUTDOWN_TIMEOUT: 15s
       TEAM_TIME_ZONE: ${TEAM_TIME_ZONE:-America/Chicago}
       # Absent, staff sign-in refuses rather than running without a second
@@ -39,6 +41,7 @@ services:
       DEV_ADMIN_PASSWORD: ${DEV_ADMIN_PASSWORD:-}
     expose:
       - "8080"
+      - "9090"
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/readyz"]
       interval: 10s
@@ -119,6 +122,68 @@ services:
       - edge
       - backend
 
+  alloy:
+    image: grafana/alloy:v1.18.1@sha256:0f4434c92b3e6cdac38bb129b344e1790c246f7b6e2eaffcc16a5fa363240e33
+    profiles:
+      - observability
+    restart: unless-stopped
+    init: true
+    depends_on:
+      api:
+        condition: service_healthy
+    command:
+      - run
+      - --server.http.listen-addr=127.0.0.1:12345
+      - --storage.path=/var/lib/alloy/data
+      - --disable-reporting
+      - /etc/alloy/config.alloy
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME:-zoomigo}
+      GOMEMLIMIT: 72MiB
+      GRAFANA_LOGS_TOKEN: ${GRAFANA_LOGS_TOKEN:-}
+      GRAFANA_LOGS_URL: ${GRAFANA_LOGS_URL:-}
+      GRAFANA_LOGS_USERNAME: ${GRAFANA_LOGS_USERNAME:-}
+      GRAFANA_METRICS_TOKEN: ${GRAFANA_METRICS_TOKEN:-}
+      GRAFANA_METRICS_URL: ${GRAFANA_METRICS_URL:-}
+      GRAFANA_METRICS_USERNAME: ${GRAFANA_METRICS_USERNAME:-}
+      RELEASE_SHA: ${APP_VERSION:-manual}
+    configs:
+      - source: alloy_config
+        target: /etc/alloy/config.alloy
+        mode: 0444
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+        read_only: true
+      - type: bind
+        source: /proc
+        target: /host/proc
+        read_only: true
+      - type: bind
+        source: /sys
+        target: /host/sys
+        read_only: true
+      - type: bind
+        source: ${OBSERVABILITY_DATA_DIR:-/var/lib/zoomigo/observability}
+        target: /var/lib/alloy/data
+        bind:
+          create_host_path: false
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 96m
+    cpus: 0.20
+    pids_limit: 64
+    logging: *bounded-logging
+    networks:
+      - backend
+
   backup:
     image: ${API_IMAGE:-zoomigo-api:local}
     profiles:
@@ -190,6 +255,8 @@ services:
 configs:
   caddyfile:
     file: ./Caddyfile
+  alloy_config:
+    file: ../observability/config.alloy
 
 volumes:
   caddy-data:

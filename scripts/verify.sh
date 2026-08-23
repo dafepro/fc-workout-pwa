@@ -39,6 +39,7 @@ go test ./...
 cd "$REPOSITORY_ROOT"
 node scripts/contracts.mjs
 node --test scripts/unix-automation-contract.test.mjs
+node --test deploy/observability/config_test.mjs scripts/observability-query.test.mjs
 
 cd "$REPOSITORY_ROOT/infra/digitalocean"
 tofu fmt -check

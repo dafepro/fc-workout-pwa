@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Upserts the console's settings into the compose environment file, reading
+# Upserts the console and observability runtime settings into the compose environment file, reading
 # KEY=VALUE lines from standard input so a secret never appears in an argv where
 # any process on the host could read it. The same reason deploy-vm.sh installs
 # the backup credential this way.
@@ -18,7 +18,7 @@ require_env_file
 
 allowed_key() {
 	case "$1" in
-		STAFF_SECRET_KEY|PLAYER_LOGIN_URL|STAFF_SETUP_URL|PRODUCTION_DATA_APPROVED) return 0 ;;
+		STAFF_SECRET_KEY|PLAYER_LOGIN_URL|STAFF_SETUP_URL|PRODUCTION_DATA_APPROVED|ENABLE_OBSERVABILITY|OBSERVABILITY_DATA_DIR|GRAFANA_LOGS_URL|GRAFANA_LOGS_USERNAME|GRAFANA_LOGS_TOKEN|GRAFANA_METRICS_URL|GRAFANA_METRICS_USERNAME|GRAFANA_METRICS_TOKEN) return 0 ;;
 		*) return 1 ;;
 	esac
 }
@@ -41,8 +41,8 @@ while IFS= read -r line; do
 	case "$line" in \#*) continue ;; esac
 	key=${line%%=*}
 	value=${line#*=}
-	[ "$key" != "$line" ] || fail "console settings must be KEY=VALUE lines"
-	allowed_key "$key" || fail "$key is not a console setting this script may write"
+	[ "$key" != "$line" ] || fail "runtime settings must be KEY=VALUE lines"
+	allowed_key "$key" || fail "$key is not a runtime setting this script may write"
 	case "$value" in *[!!-~\ ]*) fail "$key contains a character that cannot go in an environment file" ;; esac
 	grep -v "^${key}=" "$working" >"$working.next" || true
 	printf '%s=%s\n' "$key" "$value" >>"$working.next"
@@ -51,4 +51,4 @@ done
 
 install -m 0600 "$working" "$ENV_FILE"
 chown "$environment_uid:$environment_gid" "$ENV_FILE"
-printf '%s\n' "Applied the console settings to $ENV_FILE."
+printf '%s\n' "Applied the reviewed runtime settings to $ENV_FILE."

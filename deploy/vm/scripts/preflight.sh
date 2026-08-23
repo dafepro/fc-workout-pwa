@@ -20,6 +20,7 @@ data_directory=$(require_env_value DATA_DIR)
 backup_directory=$(require_env_value BACKUP_DIR)
 restore_directory=$(require_env_value RESTORE_DIR)
 admin_output_directory=$(require_env_value ADMIN_OUTPUT_DIR)
+enable_observability=$(env_value ENABLE_OBSERVABILITY)
 
 case "$site_address" in
 	http://*|https://*|*/*|localhost|*:* ) fail "CADDY_SITE_ADDRESS must be a bare public DNS hostname" ;;
@@ -45,6 +46,10 @@ esac
 case "$production_data_approved" in
 	true|false) ;;
 	*) fail "PRODUCTION_DATA_APPROVED must be true or false" ;;
+esac
+case "$enable_observability" in
+	true|false|"") ;;
+	*) fail "ENABLE_OBSERVABILITY must be true or false" ;;
 esac
 
 # Empty is allowed and means the console is off; a wrong value is not, because
@@ -78,4 +83,5 @@ for directory in "$data_directory" "$backup_directory" "$restore_directory" "$ad
 done
 
 compose config --quiet
+sh "$SCRIPT_DIRECTORY/observability-preflight.sh" "$ENV_FILE"
 printf '%s\n' "VM deployment preflight passed."

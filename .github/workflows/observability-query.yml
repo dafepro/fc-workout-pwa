@@ -1,0 +1,86 @@
+name: Read sanitized observability data
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Telemetry environment
+        required: true
+        type: choice
+        options: [dev, production]
+      window:
+        description: Lookback window
+        required: true
+        type: choice
+        options: [15m, 1h, 6h, 24h]
+      query:
+        description: Reviewed diagnostic
+        required: true
+        type: choice
+        options:
+          [
+            api-errors,
+            request-id,
+            latency,
+            readiness,
+            resources,
+            canvas,
+            backups,
+          ]
+      request_id:
+        description: Required only for request-id (req_ plus 24 lowercase hex characters)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  query:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Query reviewed telemetry preset
+        env:
+          INPUT_ENVIRONMENT: ${{ inputs.environment }}
+          INPUT_WINDOW: ${{ inputs.window }}
+          INPUT_QUERY: ${{ inputs.query }}
+          INPUT_REQUEST_ID: ${{ inputs.request_id }}
+          GRAFANA_LOGS_QUERY_URL: ${{ vars.GRAFANA_LOGS_QUERY_URL }}
+          GRAFANA_LOGS_USERNAME: ${{ vars.GRAFANA_LOGS_USERNAME }}
+          GRAFANA_METRICS_QUERY_URL: ${{ vars.GRAFANA_METRICS_QUERY_URL }}
+          GRAFANA_METRICS_USERNAME: ${{ vars.GRAFANA_METRICS_USERNAME }}
+          GRAFANA_READ_TOKEN: ${{ secrets.GRAFANA_READ_TOKEN }}
+        run: |
+          set -- \
+            --environment "$INPUT_ENVIRONMENT" \
+            --window "$INPUT_WINDOW" \
+            --query "$INPUT_QUERY" \
+            --output observability-result.json
+          if [ -n "$INPUT_REQUEST_ID" ]; then
+            set -- "$@" --request-id "$INPUT_REQUEST_ID"
+          fi
+          node scripts/observability-query.mjs "$@"
+          {
+            printf '## Sanitized observability query\n\n'
+            printf -- '- Environment: `%s`\n' "$INPUT_ENVIRONMENT"
+            printf -- '- Window: `%s`\n' "$INPUT_WINDOW"
+            printf -- '- Preset: `%s`\n' "$INPUT_QUERY"
+            printf -- '- Rows: `%s`\n' "$(jq '.rows | length' observability-result.json)"
+            printf '\nThe artifact contains only reviewed fields and expires after one day.\n'
+          } >>"$GITHUB_STEP_SUMMARY"
+
+      - name: Upload sanitized result
+        uses: actions/upload-artifact@v4
+        with:
+          name: observability-${{ github.run_id }}
+          path: observability-result.json
+          retention-days: 1
+          if-no-files-found: error

@@ -1,0 +1,18 @@
+[Unit]
+Description=Write bounded ZoomiGo host metrics for Alloy
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh /opt/app/deploy/vm/scripts/write-host-metrics.sh /opt/app/deploy/vm/.env
+Nice=10
+IOSchedulingClass=idle
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=-/var/lib/zoomigo/observability -/var/lib/zoomigo-dev/observability
+
+[Install]
+WantedBy=multi-user.target

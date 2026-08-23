@@ -277,6 +277,51 @@ and time the isolated restore and the offline cutover rehearsal from
 release with `./deploy/release/release.sh` from an operator's own machine so the
 Actions-is-down fallback is known to work.
 
+## Backend observability rollout
+
+The API always emits privacy-safe JSON completion logs and listens for metrics
+on port 9090 inside the Compose `backend` network. Nothing publishes that port.
+The Alloy collector is a separate opt-in profile and is disabled unless the
+matching GitHub variable is exactly `true`.
+
+Create one Grafana Cloud stack, then create separate dev and production write
+credentials for logs and metrics plus one read-only diagnostic credential. Set
+the URLs, usernames, and tokens listed in `deploy/secrets/README.md`. Do not
+reuse the owner Viewer login, a write token, or a provisioning token for the
+diagnostic workflow.
+
+Keep `DEV_OBSERVABILITY_ENABLED=false` initially. Record the 24-hour baseline
+from `docs/OBSERVABILITY_PLAN.md`, enable the dev variable, and run another
+24-hour traffic/deploy/backup/outage pass. The deployment refuses to start Alloy
+below 1 GiB RAM, below 256 MiB available memory, or below 2 GiB free disk. If
+readiness regresses or the collector hits its 96 MiB/0.20 CPU budget, set the
+variable back to `false` and redeploy; this removes Alloy without stopping the
+API.
+
+Import `infra/observability/dashboards/backend-overview.json` into two folders
+filtered to dev and production. Provision
+`infra/observability/alerts/backend.yaml` only after seven days of dev data, set
+the approved contact point and thresholds, then deliberately unpause each rule.
+The checked-in rules are paused so a merge cannot page anyone.
+
+The production configuration uses the 1 GiB Basic size with
+`resize_disk = false`, so the resource change is a reversible CPU/RAM-only
+resize. Leave `PRODUCTION_OBSERVABILITY_ENABLED=false` until the reviewed
+infrastructure change is applied and the live admission test passes. Do not
+lower the API memory limit to make room.
+
+For a read-only incident check, dispatch **Read sanitized observability data**,
+choose the environment, window, and preset, and download its one-day artifact.
+The `request-id` preset additionally requires the exact `req_` plus 24 lowercase
+hexadecimal characters shown to the client. The workflow exposes no arbitrary
+LogQL/PromQL input and never uses SSH.
+
+Rotate a write credential one signal and environment at a time: create the new
+scoped token, update the GitHub secret, release, verify fresh data and Alloy
+health, then revoke the old token. Rotate the read token by updating
+`GRAFANA_READ_TOKEN`, dispatching one safe query, and only then revoking the old
+token. A failed rotation should disable Alloy, not weaken API availability.
+
 ## Creating the first operator account
 
 The console cannot create the account that signs into it, so the first

@@ -29,6 +29,18 @@ esac
 : "${STAFF_SETUP_URL:?STAFF_SETUP_URL is required}"
 : "${CLOUDFLARE_ACCOUNT_ID:?CLOUDFLARE_ACCOUNT_ID is required}"
 : "${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN is required}"
+case ${ENABLE_OBSERVABILITY:-false} in
+	true)
+		: "${GRAFANA_LOGS_URL:?GRAFANA_LOGS_URL is required}"
+		: "${GRAFANA_LOGS_USERNAME:?GRAFANA_LOGS_USERNAME is required}"
+		: "${GRAFANA_LOGS_TOKEN:?GRAFANA_LOGS_TOKEN is required}"
+		: "${GRAFANA_METRICS_URL:?GRAFANA_METRICS_URL is required}"
+		: "${GRAFANA_METRICS_USERNAME:?GRAFANA_METRICS_USERNAME is required}"
+		: "${GRAFANA_METRICS_TOKEN:?GRAFANA_METRICS_TOKEN is required}"
+		;;
+	false) ;;
+	*) printf '%s\n' "error: ENABLE_OBSERVABILITY must be true or false" >&2; exit 1 ;;
+esac
 for console_url in "$ZOOMIGO_API_BASE_URL" "$PLAYER_LOGIN_URL" "$STAFF_SETUP_URL"; do
 	case "$console_url" in https://*) ;; *) printf '%s\n' "error: $console_url must use HTTPS" >&2; exit 1 ;; esac
 done
@@ -69,6 +81,14 @@ mkdir -m 0700 -- "$secrets_directory"
 	PLAYER_LOGIN_URL=$PLAYER_LOGIN_URL
 	STAFF_SETUP_URL=$STAFF_SETUP_URL
 	PRODUCTION_DATA_APPROVED=${PRODUCTION_DATA_APPROVED:-false}
+	ENABLE_OBSERVABILITY=${ENABLE_OBSERVABILITY:-false}
+	OBSERVABILITY_DATA_DIR=/var/lib/zoomigo/observability
+	GRAFANA_LOGS_URL=${GRAFANA_LOGS_URL:-}
+	GRAFANA_LOGS_USERNAME=${GRAFANA_LOGS_USERNAME:-}
+	GRAFANA_LOGS_TOKEN=${GRAFANA_LOGS_TOKEN:-}
+	GRAFANA_METRICS_URL=${GRAFANA_METRICS_URL:-}
+	GRAFANA_METRICS_USERNAME=${GRAFANA_METRICS_USERNAME:-}
+	GRAFANA_METRICS_TOKEN=${GRAFANA_METRICS_TOKEN:-}
 	EOF
 )
 "$SCRIPT_DIRECTORY/deploy-vm.sh" "$secrets_directory" "$release_sha"

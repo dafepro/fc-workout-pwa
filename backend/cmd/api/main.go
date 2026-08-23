@@ -15,6 +15,7 @@ import (
 	"github.com/dafepro/fc-workout-pwa/backend/internal/config"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/httpapi"
+	"github.com/dafepro/fc-workout-pwa/backend/internal/observability"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/staffauth"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/store"
 )
@@ -31,6 +32,11 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
 	}
+	logger := observability.NewLogger(os.Stdout, observability.Metadata{
+		Service: "api", Environment: cfg.Environment, Release: cfg.ReleaseSHA,
+	})
+	slog.SetDefault(logger)
+	metrics := observability.NewMetrics(cfg.ReleaseSHA)
 	databaseContext, cancelDatabase := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancelDatabase()
 	db, err := database.Open(databaseContext, cfg.DatabaseURL)
@@ -42,6 +48,7 @@ func run() error {
 		return fmt.Errorf("migrate database: %w", err)
 	}
 	repository := store.New(db, cfg.TeamTimeZone)
+	observedRepository := observability.NewObservedStore(repository, metrics)
 	sessions := authn.NewService(db)
 	// A separate Argon2 slot from the player path. Sharing one held the
 	// ceiling at 64 MiB but let a flood against the public player endpoint
@@ -54,7 +61,7 @@ func run() error {
 	authenticator, resetAuthFixtures := configuredAuthenticator(cfg, sessions, staff)
 
 	handlerOptions := []httpapi.Option{
-		httpapi.WithStore(repository),
+		httpapi.WithStore(observedRepository),
 		// A staff bearer token resolves through the same interface as a player
 		// one, so authorization stays the single place that decides anything.
 		httpapi.WithAuthenticator(authn.Fallback{Primary: authenticator, Secondary: staff}),
@@ -63,6 +70,7 @@ func run() error {
 		httpapi.WithStaffRepository(store.NewStaffStore(db)),
 		httpapi.WithStaffAccountManager(staff),
 		httpapi.WithCredentialManager(sessions),
+		httpapi.WithMiddleware(observability.HTTPMiddleware(logger, metrics)),
 	}
 	if resetAuthFixtures != nil {
 		handlerOptions = append(handlerOptions, httpapi.WithAuthFixtureReset(resetAuthFixtures))
@@ -70,36 +78,63 @@ func run() error {
 	if devAccess := configuredDevAccess(cfg, db, repository, sessions, staff); devAccess != nil {
 		handlerOptions = append(handlerOptions, httpapi.WithDevAccessManager(devAccess))
 	}
-	server := &http.Server{
-		Addr:              fmt.Sprintf(":%d", cfg.Port),
-		Handler:           httpapi.NewHandler(cfg, handlerOptions...),
-		ReadHeaderTimeout: 5 * time.Second,
-		ReadTimeout:       15 * time.Second,
-		WriteTimeout:      15 * time.Second,
-		IdleTimeout:       60 * time.Second,
-	}
+	server, metricsServer := newServers(cfg, httpapi.NewHandler(cfg, handlerOptions...), metrics.Handler())
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	serverErrors := make(chan error, 1)
+	serverErrors := make(chan error, 2)
 	go func() {
 		slog.Info("api listening", "port", cfg.Port, "environment", cfg.Environment)
 		serverErrors <- server.ListenAndServe()
+	}()
+	go func() {
+		slog.Info("metrics listening", "port", cfg.MetricsPort)
+		serverErrors <- metricsServer.ListenAndServe()
 	}()
 
 	select {
 	case err := <-serverErrors:
 		if !errors.Is(err, http.ErrServerClosed) {
+			shutdownServers(cfg.ShutdownTimeout, server, metricsServer)
 			return fmt.Errorf("serve: %w", err)
 		}
 		return nil
 	case <-ctx.Done():
-		shutdownContext, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
-		defer cancel()
-		if err := server.Shutdown(shutdownContext); err != nil {
+		if err := shutdownServers(cfg.ShutdownTimeout, server, metricsServer); err != nil {
 			return fmt.Errorf("shutdown: %w", err)
 		}
 		return nil
 	}
+}
+
+func newServers(cfg config.Config, applicationHandler, metricsHandler http.Handler) (*http.Server, *http.Server) {
+	application := &http.Server{
+		Addr:              fmt.Sprintf(":%d", cfg.Port),
+		Handler:           applicationHandler,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+	metrics := &http.Server{
+		Addr:              fmt.Sprintf(":%d", cfg.MetricsPort),
+		Handler:           metricsHandler,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       30 * time.Second,
+	}
+	return application, metrics
+}
+
+func shutdownServers(timeout time.Duration, servers ...*http.Server) error {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	for _, server := range servers {
+		if err := server.Shutdown(ctx); err != nil {
+			return err
+		}
+	}
+	return nil
 }

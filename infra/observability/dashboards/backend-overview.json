@@ -1,0 +1,186 @@
+{
+  "annotations": { "list": [] },
+  "description": "Privacy-safe ZoomiGo backend health. No youth performance or identity data.",
+  "editable": false,
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "sum(rate(zoomigo_http_requests_total{environment=\"$environment\"}[5m]))",
+          "legendFormat": "requests"
+        }
+      ],
+      "title": "Request rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": { "defaults": { "unit": "percentunit" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "sum(rate(zoomigo_http_requests_total{environment=\"$environment\",status_class=\"5xx\"}[5m])) / clamp_min(sum(rate(zoomigo_http_requests_total{environment=\"$environment\"}[5m])), 0.001)",
+          "legendFormat": "5xx ratio"
+        }
+      ],
+      "title": "Error rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le,route) (rate(zoomigo_http_request_duration_seconds_bucket{environment=\"$environment\"}[5m])))",
+          "legendFormat": "{{route}}"
+        }
+      ],
+      "title": "p95 latency",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": { "defaults": { "min": 0, "max": 1 }, "overrides": [] },
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 8 },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "min(up{environment=\"$environment\",service=~\"api|host\"})",
+          "legendFormat": "up"
+        }
+      ],
+      "title": "Readiness",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 8 },
+      "id": 5,
+      "targets": [
+        {
+          "expr": "node_memory_MemAvailable_bytes{environment=\"$environment\"}",
+          "legendFormat": "available"
+        }
+      ],
+      "title": "Available memory",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 8 },
+      "id": 6,
+      "targets": [
+        {
+          "expr": "zoomigo_host_filesystem_avail_bytes{environment=\"$environment\"}",
+          "legendFormat": "free"
+        }
+      ],
+      "title": "Disk free",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 8 },
+      "id": 7,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le,operation) (rate(zoomigo_sqlite_operation_duration_seconds_bucket{environment=\"$environment\"}[5m])))",
+          "legendFormat": "{{operation}}"
+        }
+      ],
+      "title": "SQLite latency",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 14 },
+      "id": 8,
+      "targets": [
+        {
+          "expr": "time() - zoomigo_backup_last_success_timestamp_seconds{environment=\"$environment\"}",
+          "legendFormat": "age"
+        }
+      ],
+      "title": "Backup age",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 14 },
+      "id": 9,
+      "targets": [
+        {
+          "expr": "sum by (code) (rate(zoomigo_errors_total{environment=\"$environment\"}[15m]))",
+          "legendFormat": "{{code}}"
+        }
+      ],
+      "title": "Safe error codes",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 14 },
+      "id": 10,
+      "options": { "showTime": true, "wrapLogMessage": false },
+      "targets": [
+        {
+          "expr": "{environment=\"$environment\",service=\"api\"} | json | msg=\"http_request_complete\" | status >= 500",
+          "refId": "A"
+        }
+      ],
+      "title": "Recent API errors",
+      "type": "logs"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 20 },
+      "id": 11,
+      "targets": [
+        {
+          "expr": "max by (service) (zoomigo_container_restart_count{environment=\"$environment\"})",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "title": "Container restarts",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 41,
+  "tags": ["zoomigo", "backend", "privacy-safe"],
+  "templating": {
+    "list": [
+      {
+        "current": { "text": "dev", "value": "dev" },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Environment",
+        "name": "environment",
+        "options": [
+          { "selected": true, "text": "dev", "value": "dev" },
+          { "selected": false, "text": "production", "value": "production" }
+        ],
+        "query": "dev,production",
+        "type": "custom"
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timezone": "browser",
+  "title": "ZoomiGo Backend Overview",
+  "uid": "zoomigo-backend-overview",
+  "version": 1
+}

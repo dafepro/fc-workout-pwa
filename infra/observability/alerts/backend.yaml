@@ -1,0 +1,205 @@
+apiVersion: 1
+
+# Provision only after the seven-day dev baseline. Rules are deliberately
+# paused so checking this file in cannot page anyone or invent final budgets.
+groups:
+  - orgId: 1
+    name: zoomigo-backend-health
+    folder: ZoomiGo Backend
+    interval: 1m
+    rules:
+      - uid: zoomigo-readiness
+        title: API readiness failing
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: ${PROMETHEUS_DATASOURCE_UID}
+            model: { expr: 'min(up{service="api"})', instant: true }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              {
+                type: threshold,
+                expression: A,
+                conditions: [{ evaluator: { type: lt, params: [1] } }],
+              }
+        for: 2m
+        noDataState: Alerting
+        execErrState: Error
+        annotations:
+          {
+            summary: "API readiness is failing",
+            dashboardUid: zoomigo-backend-overview,
+          }
+        labels: { severity: page }
+        isPaused: true
+      - uid: zoomigo-error-ratio
+        title: API 5xx ratio high
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: ${PROMETHEUS_DATASOURCE_UID}
+            model:
+              {
+                expr: 'sum(rate(zoomigo_http_requests_total{status_class="5xx"}[5m])) / clamp_min(sum(rate(zoomigo_http_requests_total[5m])), 0.001)',
+                instant: true,
+              }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              {
+                type: threshold,
+                expression: A,
+                conditions: [{ evaluator: { type: gt, params: [0.05] } }],
+              }
+        for: 5m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          {
+            summary: "API 5xx ratio exceeded the provisional threshold",
+            dashboardUid: zoomigo-backend-overview,
+          }
+        labels: { severity: page }
+        isPaused: true
+      - uid: zoomigo-latency
+        title: API p95 latency high
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: ${PROMETHEUS_DATASOURCE_UID}
+            model:
+              {
+                expr: "histogram_quantile(0.95, sum by (le) (rate(zoomigo_http_request_duration_seconds_bucket[5m])))",
+                instant: true,
+              }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              {
+                type: threshold,
+                expression: A,
+                conditions: [{ evaluator: { type: gt, params: [1] } }],
+              }
+        for: 10m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          {
+            summary: "API p95 latency exceeded the provisional budget",
+            dashboardUid: zoomigo-backend-overview,
+          }
+        labels: { severity: ticket }
+        isPaused: true
+      - uid: zoomigo-alloy-missing
+        title: Alloy stopped reporting
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: ${PROMETHEUS_DATASOURCE_UID}
+            model: { expr: 'min(up{service="host"})', instant: true }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              {
+                type: threshold,
+                expression: A,
+                conditions: [{ evaluator: { type: lt, params: [1] } }],
+              }
+        for: 5m
+        noDataState: Alerting
+        execErrState: Error
+        annotations:
+          {
+            summary: "Alloy has stopped reporting",
+            dashboardUid: zoomigo-backend-overview,
+          }
+        labels: { severity: page }
+        isPaused: true
+      - uid: zoomigo-disk-low
+        title: Disk space low
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: ${PROMETHEUS_DATASOURCE_UID}
+            model:
+              {
+                expr: "zoomigo_host_filesystem_avail_bytes / zoomigo_host_filesystem_size_bytes",
+                instant: true,
+              }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              {
+                type: threshold,
+                expression: A,
+                conditions: [{ evaluator: { type: lt, params: [0.15] } }],
+              }
+        for: 5m
+        noDataState: Alerting
+        execErrState: Error
+        annotations:
+          {
+            summary: "Free disk is below 15%",
+            dashboardUid: zoomigo-backend-overview,
+          }
+        labels: { severity: page }
+        isPaused: true
+      - uid: zoomigo-container-restarts
+        title: Container restarting repeatedly
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: ${PROMETHEUS_DATASOURCE_UID}
+            model:
+              {
+                expr: "changes(zoomigo_container_restart_count[10m])",
+                instant: true,
+              }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              {
+                type: threshold,
+                expression: A,
+                conditions: [{ evaluator: { type: gt, params: [1] } }],
+              }
+        for: 5m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          {
+            summary: "A ZoomiGo container is restarting repeatedly",
+            dashboardUid: zoomigo-backend-overview,
+          }
+        labels: { severity: page }
+        isPaused: true
+      - uid: zoomigo-backup-stale
+        title: Backup stale
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: ${PROMETHEUS_DATASOURCE_UID}
+            model:
+              {
+                expr: "time() - zoomigo_backup_last_success_timestamp_seconds",
+                instant: true,
+              }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              {
+                type: threshold,
+                expression: A,
+                conditions: [{ evaluator: { type: gt, params: [93600] } }],
+              }
+        for: 5m
+        noDataState: Alerting
+        execErrState: Error
+        annotations:
+          {
+            summary: "The last successful backup is more than 26 hours old",
+            dashboardUid: zoomigo-backend-overview,
+          }
+        labels: { severity: page }
+        isPaused: true

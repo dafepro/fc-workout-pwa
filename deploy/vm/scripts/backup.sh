@@ -50,6 +50,8 @@ case "$upload_enabled" in
 			\( -name 'zoomigo-backup-*-v1.tar.gz.age' -o -name 'zoomigo-export-*-v1.tar.gz.age' \) \
 			-mtime "+$retention_days" -delete
 		printf '%s\n' "Pruned local encrypted backups older than $retention_days days after the successful S3 upload."
+		record_observability_gauge zoomigo_backup_last_success_timestamp_seconds \
+			"Unix timestamp of the last successful off-host backup." "$(date -u +%s)"
 		;;
 	false|"") printf '%s\n' "Warning: S3 upload is disabled; this backup remains on one host." ;;
 	*) fail "BACKUP_S3_UPLOAD_ENABLED must be true or false" ;;

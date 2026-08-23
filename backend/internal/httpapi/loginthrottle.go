@@ -160,9 +160,7 @@ func (throttle *loginThrottle) guard(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		client := loginClientKey(r)
 		if allowed, retryAfter := throttle.allow(client); !allowed {
-			// The address is the only actionable detail for an operator deciding
-			// whether to block a source at the edge.
-			slog.Warn("login rate limited", "client", client, "retryAfterSeconds", int(retryAfter.Seconds()))
+			slog.Warn("login rate limited", "retryAfterSeconds", int(retryAfter.Seconds()))
 			w.Header().Set("Retry-After", strconv.Itoa(int(retryAfter.Seconds())))
 			writeError(w, r, http.StatusTooManyRequests, "login_rate_limited", "Too many sign-in attempts. Wait a moment and try again.")
 			return

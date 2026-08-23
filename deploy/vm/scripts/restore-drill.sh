@@ -32,6 +32,10 @@ identity_path="/restore/${identity_name}"
 
 compose run --rm backup "$verify_command" --archive "$archive_path" --identity "$identity_path"
 compose run --rm backup "$load_command" --archive "$archive_path" --identity "$identity_path" --target "$target_path"
+record_observability_gauge zoomigo_restore_drill_last_success \
+	"Whether the most recent restore drill succeeded." 1
+record_observability_gauge zoomigo_restore_drill_last_success_timestamp_seconds \
+	"Unix timestamp of the most recent successful restore drill." "$(date -u +%s)"
 
 printf '%s\n' "Restore drill passed and left the isolated database at RESTORE_DIR/$target_name."
 printf '%s\n' "The live database was not stopped, replaced, or modified."

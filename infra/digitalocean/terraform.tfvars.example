@@ -1,5 +1,5 @@
 region               = "nyc1"
-droplet_size         = "s-1vcpu-512mb-10gb"
+droplet_size         = "s-1vcpu-1gb"
 # Neither the operator's laptop nor the GitHub-hosted CI runner that deploys
 # over SSH has a stable IP, so SSH access is not restricted by source address;
 # it is protected by key-only auth instead (see cloud-init.yaml.tftpl).

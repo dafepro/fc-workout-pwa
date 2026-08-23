@@ -11,6 +11,7 @@ import (
 
 const (
 	defaultPort            = 8080
+	defaultMetricsPort     = 9090
 	defaultShutdownTimeout = 10 * time.Second
 	defaultTeamTimeZone    = "America/Chicago"
 	defaultDatabaseURL     = "file:data/zoomigo.db"
@@ -35,6 +36,8 @@ const (
 type Config struct {
 	Environment        string
 	Port               int
+	MetricsPort        int
+	ReleaseSHA         string
 	DatabaseURL        string
 	AllowedOrigin      string
 	TeamTimeZone       *time.Location
@@ -79,6 +82,7 @@ func Load(getenv func(string) string) (Config, error) {
 		DevAdminPassword:   getenv("DEV_ADMIN_PASSWORD"),
 		PlayerLoginURL:     strings.TrimSpace(getenv("PLAYER_LOGIN_URL")),
 		StaffSetupURL:      strings.TrimSpace(getenv("STAFF_SETUP_URL")),
+		ReleaseSHA:         valueOrDefault(strings.TrimSpace(getenv("RELEASE_SHA")), "unknown"),
 	}
 	cfg.ProductionDataApproved = getenv("PRODUCTION_DATA_APPROVED") == "true"
 
@@ -128,6 +132,15 @@ func Load(getenv func(string) string) (Config, error) {
 		return Config{}, fmt.Errorf("PORT must be an integer from 1 to 65535")
 	}
 	cfg.Port = port
+	metricsPortValue := valueOrDefault(getenv("METRICS_PORT"), strconv.Itoa(defaultMetricsPort))
+	metricsPort, err := strconv.Atoi(metricsPortValue)
+	if err != nil || metricsPort < 1 || metricsPort > 65535 {
+		return Config{}, fmt.Errorf("METRICS_PORT must be an integer from 1 to 65535")
+	}
+	if metricsPort == cfg.Port {
+		return Config{}, fmt.Errorf("METRICS_PORT must differ from PORT")
+	}
+	cfg.MetricsPort = metricsPort
 
 	if timeoutValue := getenv("SHUTDOWN_TIMEOUT"); timeoutValue != "" {
 		timeout, err := time.ParseDuration(timeoutValue)

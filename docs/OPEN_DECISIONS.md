@@ -180,6 +180,24 @@ to resolve, not the implementing agent's.
   Still open: the exact alert/step-down thresholds after two weeks of measured
   production coefficients replace the planning estimates.
 
+## Backend observability (2026-08-23)
+
+- Implementation assumption: the reviewed code path targets one Grafana Cloud
+  Loki/Prometheus stack. This does not create an account, accept provider terms,
+  or enable collection; those remain deliberate owner actions.
+- The collector is opt-in. Dev may enable it only after the measured admission
+  test in `OBSERVABILITY_PLAN.md`. Production moves to the reversible 1 GiB
+  CPU/RAM size with the initial rollout; collection remains off until the live
+  host passes the same admission test and the Grafana endpoints are configured.
+- Proposed provider retention remains 14 days for dev and 30 days for
+  production. Final retention is still a privacy/cost decision configured in
+  Grafana Cloud, not silently enforced by application code.
+- Alert definitions are checked in paused. The owner email destination and
+  final latency/error thresholds remain open until seven days of dev baseline
+  data exist; provisioning the file must not unpause the rules.
+- Cloudflare Worker logs remain phase two. Origin API logs and metrics do not
+  depend on that decision.
+
 ## Backup operations
 
 - Recovery-point and recovery-time objectives.
@@ -192,7 +210,7 @@ to resolve, not the implementing agent's.
 ## Cloud VM operations
 
 - Implemented baseline: one provider-neutral Linux VM runs Caddy plus one non-root Go/SQLite API replica through Docker Compose; only ports 80/443 are public, while database and backup directories are explicit protected host bind mounts.
-- Selected first host: one DigitalOcean Basic 512 MiB x64 Droplet in `nyc1`, where the $4 size is available, with 1 GiB swap, DigitalOcean backups, monitoring, an assigned Reserved IP, and an operator-maintained SSH allowlist.
+- Selected first host: one DigitalOcean Basic x64 Droplet in `nyc1`, initially 512 MiB and resized CPU/RAM-only to 1 GiB for the bounded observability collector, with 1 GiB swap, DigitalOcean backups, monitoring, an assigned Reserved IP, and an operator-maintained SSH allowlist.
 - Implemented operations baseline: Ubuntu security updates run daily without unattended reboot; required reboots are completed within seven days, container logs are bounded, the production check requires at least 1 GiB free, and DigitalOcean alerts watch disk, memory, CPU, and the public `/readyz` endpoint. The alert email destinations remain operator-private inputs.
 - QR/PIN authentication and the same-origin PWA cookie gateway are implemented. Real youth-data deployment still requires guardian ownership/recovery policy, secure credential distribution, and privacy approval.
 - Implemented safety gate: production player provisioning defaults locked and accepts only explicit `--test-only` identities until `PRODUCTION_DATA_APPROVED=true` is deliberately configured after approval.

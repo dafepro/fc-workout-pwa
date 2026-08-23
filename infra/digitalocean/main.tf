@@ -17,6 +17,7 @@ resource "digitalocean_droplet" "zoomigo" {
   image         = "ubuntu-24-04-x64"
   region        = var.region
   size          = var.droplet_size
+  resize_disk   = false
   monitoring    = true
   droplet_agent = true
   backups       = true
