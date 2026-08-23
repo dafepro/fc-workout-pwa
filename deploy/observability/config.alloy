@@ -105,7 +105,7 @@ prometheus.exporter.unix "host" {
   set_collectors = ["cpu", "loadavg", "meminfo", "stat", "textfile", "time", "uname"]
 
   textfile {
-    directory = "/var/lib/alloy/data/textfile"
+    directory = "/alloy-data/textfile"
   }
 }
 

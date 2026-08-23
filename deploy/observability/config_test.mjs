@@ -12,6 +12,7 @@ test("Alloy keeps labels, credentials, and buffering bounded", async () => {
     "sample_limit    = 500",
     'name   = "label"',
     'values = ["com.docker.compose.project=" + sys.env("COMPOSE_PROJECT_NAME")]',
+    'directory = "/alloy-data/textfile"',
     'max_keepalive_time = "2h"',
     'sys.env("GRAFANA_LOGS_TOKEN")',
     'sys.env("GRAFANA_METRICS_TOKEN")',
@@ -48,6 +49,8 @@ test("Compose makes the collector private, pinned, and resource gated", async ()
   assert.match(alloy, /cpus: 0\.20/);
   assert.match(alloy, /pids_limit: 64/);
   assert.match(alloy, /GOMEMLIMIT: 72MiB/);
+  assert.match(alloy, /--storage\.path=\/alloy-data/);
+  assert.match(alloy, /target: \/alloy-data/);
   assert.match(
     alloy,
     /source: \/var\/run\/docker\.sock[\s\S]*?target: \/var\/run\/docker\.sock[\s\S]*?read_only: true/,
@@ -87,9 +90,9 @@ test("Deployment enforces host admission before enabling Alloy", async () => {
   assert.match(preflight, /1 GiB VM class/);
   assert.match(preflight, /2097152/);
   assert.match(preflight, /OBSERVABILITY_DATA_DIR/);
-  assert.match(prepareHost, /-o 473 -g 473/);
-  assert.match(prepareHost, /chown -R 473:473/);
-  assert.match(library, /chown 473:473/);
+  assert.match(prepareHost, /-o 0 -g 0/);
+  assert.doesNotMatch(prepareHost, /473/);
+  assert.doesNotMatch(library, /473/);
   assert.match(productionCheck, /Alloy container is not running/);
   assert.match(productionCheck, /RestartCount/);
   assert.match(hostMetrics, /zoomigo_container_restart_count/);

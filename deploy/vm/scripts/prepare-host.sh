@@ -33,9 +33,9 @@ for directory in "$data_directory" "$backup_directory" "$restore_directory" "$ad
 	install -d -m 0700 -o 65532 -g 65532 "$directory"
 done
 if [ -n "$observability_directory" ]; then
-	install -d -m 0700 -o 473 -g 473 "$observability_directory"
-	install -d -m 0700 -o 473 -g 473 "$observability_directory/textfile"
-	chown -R 473:473 -- "$observability_directory"
+	install -d -m 0700 -o 0 -g 0 "$observability_directory"
+	install -d -m 0700 -o 0 -g 0 "$observability_directory/textfile"
+	chown -R 0:0 -- "$observability_directory"
 	chmod 0700 "$observability_directory" "$observability_directory/textfile"
 fi
 

@@ -134,7 +134,7 @@ services:
     command:
       - run
       - --server.http.listen-addr=127.0.0.1:12345
-      - --storage.path=/var/lib/alloy/data
+      - --storage.path=/alloy-data
       - --disable-reporting
       - /etc/alloy/config.alloy
     environment:
@@ -167,7 +167,7 @@ services:
         read_only: true
       - type: bind
         source: ${OBSERVABILITY_DATA_DIR:-/var/lib/zoomigo/observability}
-        target: /var/lib/alloy/data
+        target: /alloy-data
         bind:
           create_host_path: false
     read_only: true
