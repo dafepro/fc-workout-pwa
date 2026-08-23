@@ -82,12 +82,39 @@ describe("consolidated default player experience", () => {
     renderExperience(<ConsolidatedToday />);
 
     expect(
+      screen
+        .getByRole("img", { name: "Zoomi runs with your Momentum" })
+        .getAttribute("src"),
+    ).toContain("zoomi-momentum.webp");
+    expect(
+      screen.getByRole("progressbar", { name: "Momentum path: Rolling" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Today’s best move")).toBeInTheDocument();
+    expect(
+      screen.getByText("Aim for the goal. Stretch stays optional."),
+    ).toBeInTheDocument();
+    expect(
       screen.getByRole("heading", { name: "Hill sprints" }),
     ).toBeInTheDocument();
+    expect(
+      screen
+        .getByRole("img", { name: "Zoomi charges up the hill" })
+        .getAttribute("src"),
+    ).toContain("zoomi-workout.webp");
     expect(screen.getByText("Team rewards coming soon")).toBeInTheDocument();
+    expect(
+      screen
+        .getByRole("img", { name: "Zoomi guards a mystery team reward" })
+        .getAttribute("src"),
+    ).toContain("zoomi-rewards.webp");
     expect(
       screen.getByText("Complete today’s plan to join your team."),
     ).toBeInTheDocument();
+    expect(
+      screen
+        .getByRole("img", { name: "Zoomi opens the Team lounge" })
+        .getAttribute("src"),
+    ).toContain("zoomi-lounge.webp");
 
     fireEvent.click(screen.getByRole("button", { name: "Log today’s plan" }));
     expect(screen.getByRole("slider", { name: "Effort" })).toBeInTheDocument();
@@ -95,6 +122,11 @@ describe("consolidated default player experience", () => {
       screen.getByRole("slider", { name: "Tiredness" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save workout" })).toBeVisible();
+
+    fireEvent.click(screen.getByRole("button", { name: "Save workout" }));
+    expect(
+      screen.getByText("Hard work is done. Keep the next move easy."),
+    ).toBeInTheDocument();
   });
 
   it("does not render team data before the daily plan unlocks it", () => {
@@ -117,6 +149,9 @@ describe("consolidated default player experience", () => {
       screen.getByLabelText("Hill Striders weekly canvas"),
     ).toBeInTheDocument();
     expect(screen.getByText("Team stamps")).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: "Zoomi guards a mystery team reward" }),
+    ).toBeInTheDocument();
     expect(screen.queryByText("Canvas dev console")).not.toBeInTheDocument();
   });
 
@@ -157,6 +192,16 @@ describe("consolidated default player experience", () => {
     expect(
       screen.queryByText("Team rewards coming soon"),
     ).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Today preview"), {
+      target: { value: "rest" },
+    });
+    fireEvent.click(screen.getByLabelText("Show Momentum card"));
+    expect(
+      screen.getByText(
+        "Protect today’s recovery. Rest keeps your rhythm steady.",
+      ),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Reset dev controls" }));
 

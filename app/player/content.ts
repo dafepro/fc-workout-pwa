@@ -7,11 +7,25 @@ export const playerExperienceCopy = {
   },
   momentum: {
     eyebrow: "Your momentum",
+    artAlt: "Zoomi runs with your Momentum",
     detail: {
       "warming-up": "Every plan-following day starts the rhythm.",
       building: "Your steady choices are adding up.",
       rolling: "You’ve found a steady rhythm.",
       strong: "Your consistent rhythm is holding strong.",
+    },
+    path: {
+      "warming-up": "Start",
+      building: "Build",
+      rolling: "Roll",
+      strong: "Strong",
+    },
+    recommendationLabel: "Today’s best move",
+    recommendation: {
+      goal: "Aim for the goal. Stretch stays optional.",
+      recovery: "Hard work is done. Keep the next move easy.",
+      rest: "Protect today’s recovery. Rest keeps your rhythm steady.",
+      team: "Your plan is logged. The Team lounge is open.",
     },
   },
   today: {
@@ -26,6 +40,8 @@ export const playerExperienceCopy = {
     unlockedTeamBody:
       "Your team is ready. Add your star and make the canvas move.",
     why: "Why this plan?",
+    workoutArtAlt: "Zoomi charges up the hill",
+    loungeArtAlt: "Zoomi opens the Team lounge",
   },
   rewards: {
     eyebrow: "Team rewards coming soon",
@@ -33,6 +49,7 @@ export const playerExperienceCopy = {
     teamBody: "Participation moves the whole team.",
     previewLabel: "Preview goal—not active yet",
     progress: "9 of 12 plan days",
+    artAlt: "Zoomi guards a mystery team reward",
   },
   previousViews: {
     eyebrow: "For comparison and review",

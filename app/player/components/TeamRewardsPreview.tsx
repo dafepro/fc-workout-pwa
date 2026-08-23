@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { playerExperienceCopy } from "../content";
 import { usePlayerDevSettings } from "../dev/PlayerDevSettings";
 
@@ -38,9 +39,13 @@ export function TeamRewardsPreview({
         )}
         <small>{copy.previewLabel}</small>
       </div>
-      <span className="player-rewards__mystery" aria-hidden="true">
-        ?
-      </span>
+      <Image
+        className="player-rewards__art"
+        src="/art/zoomi/zoomi-rewards.webp"
+        alt={copy.artAlt}
+        width={720}
+        height={595}
+      />
     </section>
   );
 }

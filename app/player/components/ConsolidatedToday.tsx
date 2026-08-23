@@ -1,8 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { momentumAlphaCopy } from "../../momentum-alpha/content";
 import { momentumBand } from "../../momentum-alpha/model";
 import { useMomentumAlpha } from "../../momentum-alpha/state";
 import { teamCanvasCopy } from "../../team-canvas/content";
@@ -12,6 +12,7 @@ import { FeelTracks } from "../../team-canvas/components/FeelTracks";
 import { playerExperienceCopy } from "../content";
 import { TeamRewardsPreview } from "./TeamRewardsPreview";
 import { usePlayerDevSettings } from "../dev/PlayerDevSettings";
+import { MomentumStatus } from "./MomentumStatus";
 
 export function ConsolidatedToday() {
   const momentum = useMomentumAlpha();
@@ -68,7 +69,14 @@ export function ConsolidatedToday() {
 
   return (
     <div className="player-page player-page--today">
-      {dev.settings.momentumVisible ? <MomentumStatus band={band} /> : null}
+      {dev.settings.momentumVisible ? (
+        <MomentumStatus
+          band={band}
+          restDay={restDay}
+          planComplete={unlockedByToday}
+          recoveryComplete={momentum.state.recoveryComplete}
+        />
+      ) : null}
 
       {unlocked ? (
         <section
@@ -92,6 +100,14 @@ export function ConsolidatedToday() {
         />
       ) : (
         <section className="today-plan" aria-labelledby="today-plan-title">
+          <Image
+            className="today-plan__art"
+            src="/art/zoomi/zoomi-workout.webp"
+            alt={playerExperienceCopy.today.workoutArtAlt}
+            width={900}
+            height={600}
+            priority
+          />
           <div className="today-plan__heading">
             <div>
               <p className="player-eyebrow">
@@ -197,6 +213,13 @@ export function ConsolidatedToday() {
         className={`team-preview${unlocked ? " is-unlocked" : ""}`}
         href="/team"
       >
+        <Image
+          className="team-preview__art"
+          src="/art/zoomi/zoomi-lounge.webp"
+          alt={playerExperienceCopy.today.loungeArtAlt}
+          width={900}
+          height={600}
+        />
         <div>
           <p className="player-eyebrow">Creative team space</p>
           <h2>{playerExperienceCopy.today.lockedTeamTitle}</h2>
@@ -206,28 +229,11 @@ export function ConsolidatedToday() {
               : playerExperienceCopy.today.lockedTeamBody}
           </p>
         </div>
-        <span aria-hidden="true">{unlocked ? "→" : "◆"}</span>
+        <span className="team-preview__action" aria-hidden="true">
+          {unlocked ? "→" : "◆"}
+        </span>
       </Link>
     </div>
-  );
-}
-
-function MomentumStatus({ band }: { band: ReturnType<typeof momentumBand> }) {
-  return (
-    <section className="momentum-status" aria-label={`Momentum is ${band}`}>
-      <div className="momentum-status__trail" aria-hidden="true">
-        <span />
-        <span />
-        <span />
-      </div>
-      <div>
-        <p className="player-eyebrow">
-          {playerExperienceCopy.momentum.eyebrow}
-        </p>
-        <strong>{momentumAlphaCopy.trail.bands[band]}</strong>
-        <p>{playerExperienceCopy.momentum.detail[band]}</p>
-      </div>
-    </section>
   );
 }
 

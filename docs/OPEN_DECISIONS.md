@@ -14,6 +14,12 @@ Do not block the first UI prototype on these. Use clear mock assumptions and rec
   `app/avatar/art/` ships hand-authored inline SVG faces a player picks for
   themselves. If approved mascot artwork later replaces a face, it is one entry
   in one registry.
+- Decided 2026-08-22: the product owner lifted the Zoomi art gate for a first
+  generated dev-evaluation family: an athletic Dalmatian mutt with geometric
+  soccer-panel spots, mature editorial linework, and a lime collar. The four
+  approved dev surfaces are Momentum, today's workout, the Team lounge, and the
+  placeholder Team rewards card. Production acceptance and any Rover direction
+  remain open before release.
 - Native `zoomigo` cookie, database, archive, route, cache, binary, project,
   and service identifiers are the supported runtime contract.
 
