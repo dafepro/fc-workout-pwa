@@ -182,6 +182,7 @@ services:
     pids_limit: 64
     logging: *bounded-logging
     networks:
+      - edge
       - backend
 
   backup:

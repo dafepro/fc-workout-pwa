@@ -54,6 +54,7 @@ test("Compose makes the collector private, pinned, and resource gated", async ()
   );
   assert.doesNotMatch(alloy, /\n\s+ports:/);
   assert.doesNotMatch(alloy, /source: \/\s*$/m);
+  assert.match(alloy, /networks:\s*\n\s+- edge\s*\n\s+- backend/);
   assert.match(alloy, /\n\s+- backend\s*$/m);
   assert.match(compose, /METRICS_PORT: "9090"/);
   assert.match(compose, /RELEASE_SHA: \$\{APP_VERSION:-manual\}/);
