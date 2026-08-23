@@ -69,6 +69,7 @@ record_observability_gauge() {
 		printf '%s %s\n' "$metric_name" "$metric_value"
 	} >"$temporary_metric"
 	chmod 0600 "$temporary_metric"
+	chown 473:473 "$temporary_metric"
 	mv -- "$temporary_metric" "$observability_directory/textfile/${metric_name}.prom"
 	trap - EXIT HUP INT TERM
 }

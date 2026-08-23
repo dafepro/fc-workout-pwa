@@ -62,9 +62,20 @@ test("Compose makes the collector private, pinned, and resource gated", async ()
 });
 
 test("Deployment enforces host admission before enabling Alloy", async () => {
-  const [deploy, preflight, hostMetrics, throttle] = await Promise.all([
+  const [
+    deploy,
+    preflight,
+    prepareHost,
+    library,
+    productionCheck,
+    hostMetrics,
+    throttle,
+  ] = await Promise.all([
     read("../vm/scripts/deploy.sh"),
     read("../vm/scripts/observability-preflight.sh"),
+    read("../vm/scripts/prepare-host.sh"),
+    read("../vm/scripts/lib.sh"),
+    read("../vm/scripts/production-check.sh"),
     read("../vm/scripts/write-host-metrics.sh"),
     read("../../backend/internal/httpapi/loginthrottle.go"),
   ]);
@@ -76,6 +87,10 @@ test("Deployment enforces host admission before enabling Alloy", async () => {
   assert.match(preflight, /1 GiB VM class/);
   assert.match(preflight, /2097152/);
   assert.match(preflight, /OBSERVABILITY_DATA_DIR/);
+  assert.match(prepareHost, /-o 473 -g 473/);
+  assert.match(library, /chown 473:473/);
+  assert.match(productionCheck, /Alloy container is not running/);
+  assert.match(productionCheck, /RestartCount/);
   assert.match(hostMetrics, /zoomigo_container_restart_count/);
   assert.match(hostMetrics, /zoomigo_host_filesystem_avail_bytes/);
   assert.doesNotMatch(throttle, /"client",\s*client/);

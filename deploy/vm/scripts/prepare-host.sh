@@ -33,8 +33,8 @@ for directory in "$data_directory" "$backup_directory" "$restore_directory" "$ad
 	install -d -m 0700 -o 65532 -g 65532 "$directory"
 done
 if [ -n "$observability_directory" ]; then
-	install -d -m 0700 -o 0 -g 0 "$observability_directory"
-	install -d -m 0700 -o 0 -g 0 "$observability_directory/textfile"
+	install -d -m 0700 -o 473 -g 473 "$observability_directory"
+	install -d -m 0700 -o 473 -g 473 "$observability_directory/textfile"
 fi
 
 sh "$SCRIPT_DIRECTORY/install-observability-metrics-service.sh" "$ENV_FILE"
