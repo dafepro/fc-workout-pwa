@@ -2,6 +2,7 @@
 
 import { MomentumAlphaProvider } from "../momentum-alpha/state";
 import { TeamCanvasProvider } from "../team-canvas/state";
+import { PlayerDevSettingsProvider } from "./dev/PlayerDevSettings";
 
 export function PlayerExperienceProvider({
   children,
@@ -9,8 +10,10 @@ export function PlayerExperienceProvider({
   children: React.ReactNode;
 }) {
   return (
-    <MomentumAlphaProvider>
-      <TeamCanvasProvider>{children}</TeamCanvasProvider>
-    </MomentumAlphaProvider>
+    <PlayerDevSettingsProvider>
+      <MomentumAlphaProvider>
+        <TeamCanvasProvider>{children}</TeamCanvasProvider>
+      </MomentumAlphaProvider>
+    </PlayerDevSettingsProvider>
   );
 }

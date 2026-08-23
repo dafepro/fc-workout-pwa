@@ -39,4 +39,16 @@ export const playerExperienceCopy = {
     title: "Previous views",
     body: "Open any earlier experience without changing the default view.",
   },
+  devConsole: {
+    title: "Experience dev console",
+    summary: "Preview flags, visibility, and locked states",
+    body: "These device-only presentation overrides never bypass server access or change saved training data.",
+    momentumPreview: "Momentum preview",
+    todayPreview: "Today preview",
+    teamAccess: "Team access preview",
+    showMomentum: "Show Momentum card",
+    showRewards: "Show rewards preview",
+    reset: "Reset dev controls",
+    forcedLock: "Dev preview · locked presentation",
+  },
 } as const;

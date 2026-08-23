@@ -1,10 +1,13 @@
 import { playerExperienceCopy } from "../content";
+import { usePlayerDevSettings } from "../dev/PlayerDevSettings";
 
 export function TeamRewardsPreview({
   placement,
 }: {
   placement: "today" | "team";
 }) {
+  const dev = usePlayerDevSettings();
+  if (!dev.settings.rewardsVisible) return null;
   const copy = playerExperienceCopy.rewards;
   return (
     <section

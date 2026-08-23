@@ -12,9 +12,11 @@ import { MomentumAlphaProvider } from "../momentum-alpha/state";
 import { initialTeamCanvasState, recordPrimary } from "../team-canvas/model";
 import { TeamCanvasProvider } from "../team-canvas/state";
 import { PlayerShell } from "./PlayerShell";
+import { PlayerDevConsole } from "./components/PlayerDevConsole";
 import { ConsolidatedTeam } from "./components/ConsolidatedTeam";
 import { ConsolidatedToday } from "./components/ConsolidatedToday";
 import { PreviousViews } from "./components/PreviousViews";
+import { PlayerDevSettingsProvider } from "./dev/PlayerDevSettings";
 
 const push = vi.fn();
 
@@ -33,6 +35,7 @@ beforeEach(() => {
 function renderExperience(
   children: React.ReactNode,
   initialCanvasState = initialTeamCanvasState(),
+  developerControlsEnabled = false,
 ) {
   return render(
     <AvatarIdentityProvider
@@ -40,7 +43,9 @@ function renderExperience(
     >
       <MomentumAlphaProvider>
         <TeamCanvasProvider initialState={initialCanvasState}>
-          {children}
+          <PlayerDevSettingsProvider enabled={developerControlsEnabled}>
+            {children}
+          </PlayerDevSettingsProvider>
         </TeamCanvasProvider>
       </MomentumAlphaProvider>
     </AvatarIdentityProvider>,
@@ -112,8 +117,61 @@ describe("consolidated default player experience", () => {
       screen.getByLabelText("Hill Striders weekly canvas"),
     ).toBeInTheDocument();
     expect(screen.getByText("Team stamps")).toBeInTheDocument();
+    expect(screen.queryByText("Canvas dev console")).not.toBeInTheDocument();
+  });
+
+  it("makes the Canvas console available only with the dev capability", () => {
+    const complete = recordPrimary(initialTeamCanvasState(), {
+      completion: "goal",
+      effort: 4,
+      tiredness: 3,
+    });
+    renderExperience(<ConsolidatedTeam />, complete, true);
+
+    expect(screen.getByText("Canvas dev console")).toBeInTheDocument();
+  });
+
+  it("resets Momentum, Today, lock, and rewards preview controls together", () => {
+    renderExperience(
+      <>
+        <PlayerDevConsole />
+        <ConsolidatedToday />
+      </>,
+      initialTeamCanvasState(),
+      true,
+    );
+
+    fireEvent.change(screen.getByLabelText("Momentum preview"), {
+      target: { value: "strong" },
+    });
+    fireEvent.change(screen.getByLabelText("Today preview"), {
+      target: { value: "complete" },
+    });
+    fireEvent.click(screen.getByLabelText("Show Momentum card"));
+    fireEvent.click(screen.getByLabelText("Show rewards preview"));
+
+    expect(screen.getByText("Today is in the books")).toBeInTheDocument();
     expect(
-      screen.queryByText("Developer canvas toolbox"),
+      screen.queryByLabelText("Momentum is strong"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Team rewards coming soon"),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Reset dev controls" }));
+
+    expect(screen.getByLabelText("Momentum is rolling")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Hill sprints" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Team rewards coming soon")).toBeInTheDocument();
+  });
+
+  it("does not render the ME dev console without the dev capability", () => {
+    renderExperience(<PlayerDevConsole />);
+
+    expect(
+      screen.queryByText("Experience dev console"),
     ).not.toBeInTheDocument();
   });
 

@@ -14,6 +14,7 @@ import { useAuth } from "../../state/auth-context";
 import { useAnalytics } from "../../../lib/analytics/AnalyticsProvider";
 import { AppViewSelect } from "../../components/AppViewSelect";
 import { PreviousViews } from "../../player/components/PreviousViews";
+import { PlayerDevConsole } from "../../player/components/PlayerDevConsole";
 
 export default function ClassicMePage() {
   return <PlayerMe currentView="classic" />;
@@ -85,7 +86,10 @@ export function PlayerMe({
         ) : null}
       </header>
       {showPreviousViews ? (
-        <PreviousViews />
+        <>
+          <PlayerDevConsole />
+          <PreviousViews />
+        </>
       ) : (
         <AppViewSelect currentView={currentView} />
       )}

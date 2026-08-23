@@ -8,6 +8,7 @@ import {
 import { teamCanvasStamp } from "../../team-canvas/catalog";
 import { availableRewardCount } from "../../team-canvas/model";
 import { useTeamCanvas } from "../../team-canvas/state";
+import { usePlayerDevSettings } from "../dev/PlayerDevSettings";
 
 export interface TeamCanvasWidgetAdapter {
   Canvas: ComponentType<{
@@ -27,6 +28,7 @@ export function TeamCanvasWidget({
   adapter?: TeamCanvasWidgetAdapter;
 }) {
   const canvas = useTeamCanvas();
+  const dev = usePlayerDevSettings();
   const Canvas = adapter.Canvas;
   const connected =
     canvas.connectedStatus === "ready" && canvas.connectedProjection;
@@ -41,7 +43,7 @@ export function TeamCanvasWidget({
   };
   return (
     <Canvas
-      showDeveloperTools={false}
+      showDeveloperTools={dev.enabled}
       todayHref="/"
       stampUnlocks={stampUnlocks}
     />

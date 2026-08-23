@@ -11,19 +11,35 @@ import { useTeamCanvas } from "../../team-canvas/state";
 import { FeelTracks } from "../../team-canvas/components/FeelTracks";
 import { playerExperienceCopy } from "../content";
 import { TeamRewardsPreview } from "./TeamRewardsPreview";
+import { usePlayerDevSettings } from "../dev/PlayerDevSettings";
 
 export function ConsolidatedToday() {
   const momentum = useMomentumAlpha();
   const canvas = useTeamCanvas();
+  const dev = usePlayerDevSettings();
   const [expanded, setExpanded] = useState(false);
   const [completion, setCompletion] = useState<CompletionKind>("goal");
   const [effort, setEffort] = useState(4);
   const [tiredness, setTiredness] = useState(3);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
-  const band = momentumBand(momentum.state.personalMomentum);
-  const unlocked =
+  const liveBand = momentumBand(momentum.state.personalMomentum);
+  const band =
+    dev.settings.momentumBand === "real" ? liveBand : dev.settings.momentumBand;
+  const liveUnlocked =
     canvas.connectedStatus === "ready" || canvas.state.primaryComplete;
+  const unlockedByToday =
+    dev.settings.today === "complete"
+      ? true
+      : dev.settings.today === "training" || dev.settings.today === "rest"
+        ? false
+        : liveUnlocked;
+  const unlocked =
+    dev.settings.teamAccess === "locked" ? false : unlockedByToday;
+  const restDay =
+    dev.settings.today === "rest" ||
+    (dev.settings.today === "real" && canvas.state.dayKind === "rest");
+  const previewingToday = dev.settings.today !== "real";
 
   async function save() {
     setSaveError("");
@@ -52,7 +68,7 @@ export function ConsolidatedToday() {
 
   return (
     <div className="player-page player-page--today">
-      <MomentumStatus band={band} />
+      {dev.settings.momentumVisible ? <MomentumStatus band={band} /> : null}
 
       {unlocked ? (
         <section
@@ -69,8 +85,11 @@ export function ConsolidatedToday() {
           </div>
           <Link href="/team">{playerExperienceCopy.today.joinTeam} →</Link>
         </section>
-      ) : canvas.state.dayKind === "rest" ? (
-        <RestPlan onRecord={() => canvas.recordRest()} />
+      ) : restDay ? (
+        <RestPlan
+          onRecord={() => canvas.recordRest()}
+          previewOnly={previewingToday}
+        />
       ) : (
         <section className="today-plan" aria-labelledby="today-plan-title">
           <div className="today-plan__heading">
@@ -136,10 +155,14 @@ export function ConsolidatedToday() {
                 <button
                   type="button"
                   className="today-checkin__save"
-                  disabled={saving}
+                  disabled={previewingToday || saving}
                   onClick={() => void save()}
                 >
-                  {saving ? "Saving…" : teamCanvasCopy.today.save}
+                  {previewingToday
+                    ? "Preview only"
+                    : saving
+                      ? "Saving…"
+                      : teamCanvasCopy.today.save}
                 </button>
               </div>
               {saveError ? <p role="alert">{saveError}</p> : null}
@@ -208,7 +231,13 @@ function MomentumStatus({ band }: { band: ReturnType<typeof momentumBand> }) {
   );
 }
 
-function RestPlan({ onRecord }: { onRecord(): Promise<void> }) {
+function RestPlan({
+  onRecord,
+  previewOnly,
+}: {
+  onRecord(): Promise<void>;
+  previewOnly: boolean;
+}) {
   const [saving, setSaving] = useState(false);
   return (
     <section className="today-plan today-plan--rest">
@@ -217,13 +246,17 @@ function RestPlan({ onRecord }: { onRecord(): Promise<void> }) {
       <p>{teamCanvasCopy.today.restDescription}</p>
       <button
         type="button"
-        disabled={saving}
+        disabled={previewOnly || saving}
         onClick={() => {
           setSaving(true);
           void onRecord().finally(() => setSaving(false));
         }}
       >
-        {saving ? "Saving…" : teamCanvasCopy.today.restAction}
+        {previewOnly
+          ? "Preview only"
+          : saving
+            ? "Saving…"
+            : teamCanvasCopy.today.restAction}
       </button>
     </section>
   );

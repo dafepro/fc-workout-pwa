@@ -91,8 +91,8 @@ export const teamCanvasCopy = {
     loading: "Opening the live team canvas…",
     connectedError: "The live canvas is having trouble syncing.",
     toolbox: {
-      title: "Developer canvas toolbox",
-      summary: "Change the controlled ‘random’ look",
+      title: "Canvas dev console",
+      summary: "Tune the live lounge scene and stamp playground",
       background: "Background scene",
       backgroundColor: "Fallback color",
       textColor: "Team-name color",

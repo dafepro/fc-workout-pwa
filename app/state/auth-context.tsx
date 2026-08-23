@@ -19,6 +19,7 @@ import { PlayerShell } from "../player/PlayerShell";
 interface SessionProfile {
   accountId: string;
   role: string;
+  developerControlsEnabled?: boolean;
   player: {
     id: string;
     firstName: string;
@@ -30,6 +31,7 @@ interface SessionProfile {
 
 interface AuthState {
   connected: boolean;
+  developerControlsEnabled: boolean;
   session: SessionProfile | null;
   currentPlayerID: string;
   currentTeamID: string;
@@ -144,6 +146,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const currentTeamID = session?.player?.teams[0]?.id ?? "team-hill-striders";
   const auth: AuthState = {
     connected,
+    developerControlsEnabled:
+      session?.developerControlsEnabled ??
+      process.env.NODE_ENV !== "production",
     session,
     currentPlayerID,
     currentTeamID,

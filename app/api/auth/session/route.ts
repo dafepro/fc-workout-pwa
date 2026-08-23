@@ -2,6 +2,7 @@ import {
   backendBaseURL,
   backendHeaders,
   clearSessionCookie,
+  devAccessEnabled,
   forwardedHeaders,
   jsonError,
   limitedBody,
@@ -10,6 +11,7 @@ import {
   sameOrigin,
   setSessionCookie,
 } from "../../backend";
+import { withRuntimeCapabilities } from "./capabilities";
 import {
   recordServerEvent,
   recordAnonymousServerEvent,
@@ -28,7 +30,7 @@ export async function GET(request: Request) {
   }
   const token = readSessionCookie(request);
   if (!token) return jsonError(401, "unauthenticated", "Sign in is required.");
-  return proxySession(baseURL, token);
+  return proxySession(baseURL, token, devAccessEnabled());
 }
 
 export async function POST(request: Request) {
@@ -107,7 +109,10 @@ export async function POST(request: Request) {
   await recordServerEvent(session, "player_sign_in_succeeded", {
     remembered: rememberDevice,
   });
-  return Response.json(session, { status: 201, headers });
+  return Response.json(withRuntimeCapabilities(session, devAccessEnabled()), {
+    status: 201,
+    headers,
+  });
 }
 
 function signInFailureReason(
@@ -146,7 +151,11 @@ export async function DELETE(request: Request) {
   });
 }
 
-async function proxySession(baseURL: string, token: string) {
+async function proxySession(
+  baseURL: string,
+  token: string,
+  developerControlsEnabled: boolean,
+) {
   let response: Response;
   try {
     response = await fetch(`${baseURL}/v1/auth/session`, {
@@ -159,8 +168,26 @@ async function proxySession(baseURL: string, token: string) {
       "ZoomiGo is temporarily unavailable.",
     );
   }
-  return new Response(await response.text(), {
-    status: response.status,
-    headers: forwardedHeaders(response),
-  });
+  const body = await response.text();
+  if (!response.ok) {
+    return new Response(body, {
+      status: response.status,
+      headers: forwardedHeaders(response),
+    });
+  }
+  try {
+    return Response.json(
+      withRuntimeCapabilities(
+        JSON.parse(body) as Record<string, unknown>,
+        developerControlsEnabled,
+      ),
+      { status: response.status, headers: forwardedHeaders(response) },
+    );
+  } catch {
+    return jsonError(
+      502,
+      "invalid_backend_response",
+      "The player session could not be opened.",
+    );
+  }
 }

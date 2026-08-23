@@ -8,6 +8,7 @@ import { copy } from "../content/copy";
 import { useOptionalAuth } from "../state/auth-context";
 import { useOptionalTeamCanvas } from "../team-canvas/state";
 import { playerExperienceCopy } from "./content";
+import { usePlayerDevSettings } from "./dev/PlayerDevSettings";
 
 const SERVICE_WORKER_URL = "/sw.js?v=5";
 
@@ -21,10 +22,13 @@ export function PlayerShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const auth = useOptionalAuth();
   const canvas = useOptionalTeamCanvas();
-  const teamLocked = canvas
-    ? canvas.connectedStatus === "locked" ||
-      (canvas.connectedStatus === "local" && !canvas.state.primaryComplete)
-    : false;
+  const dev = usePlayerDevSettings();
+  const teamLocked =
+    dev.settings.teamAccess === "locked" ||
+    (canvas
+      ? canvas.connectedStatus === "locked" ||
+        (canvas.connectedStatus === "local" && !canvas.state.primaryComplete)
+      : false);
   const focused = pathname === "/me/avatar";
 
   useEffect(() => {

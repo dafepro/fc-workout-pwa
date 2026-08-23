@@ -726,3 +726,19 @@ Momentum Alpha needs independent PWA install/offline behavior.
   may move to a dedicated library later. The application retains a separate
   stamp-unlock port so user eligibility and available stamp choices do not
   become responsibilities of that library.
+
+## Development experience controls (2026-08-22)
+
+- Decided: both developer consoles require a server-provided runtime capability
+  in connected builds. Local development may enable them automatically;
+  production does not render either console.
+- Decided: the Team lounge console reuses the Canvas-owned scene, visual, and
+  playground-stamp controls. These may persist through the dev API but remain
+  behind its existing authorization and cannot grant training or rewards.
+- Decided: the Me console stores only device-local presentation overrides for
+  Momentum visibility/band, Today state, a forced locked Team presentation, and
+  rewards visibility. Preview actions cannot mutate training data, and one
+  reset clears all overrides back to live behavior.
+- Decided: a development preview may force a locked presentation but cannot
+  force server-protected Team data open. Testing an unlocked live Canvas still
+  requires the normal approved-plan or planned-rest completion.
