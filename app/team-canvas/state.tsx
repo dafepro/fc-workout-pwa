@@ -263,6 +263,7 @@ export function TeamCanvasProvider({
       selectedPieceId: gateway ? remoteSelectedPieceId : state.selectedPieceId,
       justCompletedPrimary,
       async complete(input) {
+        setConnectedState((current) => ({ ...current, error: null }));
         if (!gateway) {
           store.update((current) => recordPrimary(current, input));
           return true;
@@ -276,13 +277,16 @@ export function TeamCanvasProvider({
           const assignedActivity = dashboard.activities.find(
             ({ id }) => id === assignment?.activityDefinitionId,
           );
+          const displayedPlanActivity = assignment
+            ? undefined
+            : dashboard.activities.find(({ id }) => id === "hill-sprints");
           const alternative = dashboard.activities.find(
             ({ id }) => id === "recovery-walk-jog",
           );
           const activity =
             input.completion === "approved-alternative"
               ? alternative
-              : assignedActivity;
+              : (assignedActivity ?? displayedPlanActivity);
           if (!activity)
             throw new Error("Today’s approved activity is unavailable.");
           const target = assignment?.targetValue ?? activity.defaultValue;

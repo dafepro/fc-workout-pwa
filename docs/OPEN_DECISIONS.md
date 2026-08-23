@@ -76,6 +76,11 @@ to resolve, not the implementing agent's.
   explicit destructive workflow operation, and destroy is manual rather than a
   scheduled TTL. No real youth data, production credential, or production
   secret may enter this environment.
+- Decided 2026-08-22: while the consolidated Today card still presents the
+  fixed Hill Sprints prototype, a connected player with no current server
+  assignment records it as an approved unassigned activity. The UI must not
+  present a save action that its connected state rejects before making a
+  request. A later server-driven plan card should remove this fallback.
 
 ## Goals and workload
 

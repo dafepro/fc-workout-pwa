@@ -181,7 +181,9 @@ export function ConsolidatedToday() {
                       : teamCanvasCopy.today.save}
                 </button>
               </div>
-              {saveError ? <p role="alert">{saveError}</p> : null}
+              {canvas.connectedError || saveError ? (
+                <p role="alert">{canvas.connectedError ?? saveError}</p>
+              ) : null}
             </div>
           ) : (
             <button
