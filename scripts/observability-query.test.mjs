@@ -3,9 +3,24 @@ import test from "node:test";
 
 import {
   buildQuery,
+  buildRangeParameters,
   sanitizeResponse,
   validateInputs,
 } from "./observability-query.mjs";
+
+test("range timestamps use each provider's required unit", () => {
+  assert.deepEqual(
+    buildRangeParameters("metrics", 1_700_000_000, 1_700_000_900),
+    {
+      start: "1700000000",
+      end: "1700000900",
+    },
+  );
+  assert.deepEqual(buildRangeParameters("logs", 1_700_000_000, 1_700_000_900), {
+    start: "1700000000000000000",
+    end: "1700000900000000000",
+  });
+});
 
 test("inputs are closed enums with a bounded request ID", () => {
   assert.deepEqual(

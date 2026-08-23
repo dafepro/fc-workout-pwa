@@ -82,6 +82,14 @@ export function buildQuery(input) {
   return templates[input.query];
 }
 
+export function buildRangeParameters(signal, start, end) {
+  const multiplier = signal === "logs" ? 1_000_000_000n : 1n;
+  return {
+    start: String(BigInt(start) * multiplier),
+    end: String(BigInt(end) * multiplier),
+  };
+}
+
 const safeLogFields = new Set([
   "level",
   "msg",
@@ -203,10 +211,11 @@ async function execute(input, outputPath) {
     throw new Error(`missing ${prefix} read configuration`);
   const end = Math.floor(Date.now() / 1000);
   const start = end - windows.get(input.window);
+  const range = buildRangeParameters(query.signal, start, end);
   const url = new URL(endpoint);
   url.searchParams.set("query", query.expression);
-  url.searchParams.set("start", String(start));
-  url.searchParams.set("end", String(end));
+  url.searchParams.set("start", range.start);
+  url.searchParams.set("end", range.end);
   url.searchParams.set("limit", String(maxRows));
   if (query.signal === "metrics") url.searchParams.set("step", "30");
 
