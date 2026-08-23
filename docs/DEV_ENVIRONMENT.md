@@ -8,14 +8,19 @@ provider, or an email allowlist. A shared outer password is the invitation.
 
 Every PWA request reaches the custom Worker gate before application routing,
 static assets, player sign-in, staff sign-in, or the credential directory. The
-visitor must enter `DEV_ACCESS_PASSWORD`, which creates an eight-hour, signed,
-Secure, HttpOnly, SameSite=Strict cookie.
+gate requires both:
 
-Dev uses the explicit `*` location policy in `deploy/dev.json`. Cloudflare
-country and region metadata caused false lockouts for invited testers and was
-only an abuse-reduction signal, not identity. The password remains the access
-credential; the environment contains invented data and has its own API gateway
-boundary.
+1. Cloudflare geolocates the source IP to the United States. Dev uses the
+   explicit `*` region policy in `deploy/dev.json`, so state-level geolocation
+   errors do not lock out an invited tester.
+2. The visitor enters `DEV_ACCESS_PASSWORD`, which creates an eight-hour,
+   signed, Secure, HttpOnly, SameSite=Strict cookie.
+
+Cloudflare provides country metadata to Workers on all plans, so this does not
+require Business or Enterprise. IP geolocation is an abuse-reduction signal,
+not identity: a VPN can appear to be in the United States, a mobile connection
+can be located incorrectly, and anyone can forward the shared password. The
+password remains the actual access credential.
 
 The dev Worker replaces the PWA service worker with an unregister-and-clear
 script. This prevents an offline app-shell cache from rendering a previously

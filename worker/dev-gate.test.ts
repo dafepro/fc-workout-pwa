@@ -58,14 +58,14 @@ describe("gateDevRequest", () => {
     expect(await response?.text()).toContain("shared preview password");
   });
 
-  it("uses password-only access when the deployment uses the wildcard", async () => {
+  it("keeps non-US requests blocked when the deployment uses the wildcard", async () => {
     const response = await gateDevRequest(request("/_dev-gate", "CA"), {
       ...env,
       DEV_ALLOWED_REGION_CODES: "*",
     });
 
-    expect(response?.status).toBe(200);
-    expect(await response?.text()).toContain("shared preview password");
+    expect(response?.status).toBe(403);
+    expect(await response?.text()).toBe("Unavailable");
   });
 
   it("redirects an unauthenticated US request to the outer gate", async () => {
