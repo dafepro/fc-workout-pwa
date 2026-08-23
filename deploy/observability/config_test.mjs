@@ -10,6 +10,8 @@ test("Alloy keeps labels, credentials, and buffering bounded", async () => {
   for (const value of [
     'scrape_interval = "30s"',
     "sample_limit    = 500",
+    'name   = "label"',
+    'values = ["com.docker.compose.project=" + sys.env("COMPOSE_PROJECT_NAME")]',
     'max_keepalive_time = "2h"',
     'sys.env("GRAFANA_LOGS_TOKEN")',
     'sys.env("GRAFANA_METRICS_TOKEN")',

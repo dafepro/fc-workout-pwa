@@ -7,8 +7,8 @@ discovery.docker "zoomigo" {
   host = "unix:///var/run/docker.sock"
 
   filter {
-    name   = "label=com.docker.compose.project"
-    values = [sys.env("COMPOSE_PROJECT_NAME")]
+    name   = "label"
+    values = ["com.docker.compose.project=" + sys.env("COMPOSE_PROJECT_NAME")]
   }
 }
 
