@@ -293,8 +293,9 @@ diagnostic workflow.
 Keep `DEV_OBSERVABILITY_ENABLED=false` initially. Record the 24-hour baseline
 from `docs/OBSERVABILITY_PLAN.md`, enable the dev variable, and run another
 24-hour traffic/deploy/backup/outage pass. The deployment refuses to start Alloy
-below 1 GiB RAM, below 256 MiB available memory, or below 2 GiB free disk. If
-readiness regresses or the collector hits its 96 MiB/0.20 CPU budget, set the
+below 900,000 KiB total RAM (the lower bound for the selected 1 GiB VM class),
+below 256 MiB available memory, or below 2 GiB free disk. If readiness regresses
+or the collector hits its 96 MiB/0.20 CPU budget, set the
 variable back to `false` and redeploy; this removes Alloy without stopping the
 API.
 

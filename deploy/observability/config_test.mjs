@@ -69,7 +69,8 @@ test("Deployment enforces host admission before enabling Alloy", async () => {
   assert.match(deploy, /ENABLE_OBSERVABILITY/);
   assert.match(deploy, /--profile observability/);
   assert.match(preflight, /MemTotal/);
-  assert.match(preflight, /1048576/);
+  assert.match(preflight, /900000/);
+  assert.match(preflight, /1 GiB VM class/);
   assert.match(preflight, /2097152/);
   assert.match(preflight, /OBSERVABILITY_DATA_DIR/);
   assert.match(hostMetrics, /zoomigo_container_restart_count/);

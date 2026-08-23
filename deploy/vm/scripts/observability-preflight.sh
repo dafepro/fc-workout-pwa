@@ -14,7 +14,7 @@ validate_host_directory OBSERVABILITY_DATA_DIR "$observability_directory"
 
 memory_total_kib=$(awk '/^MemTotal:/ { print $2 }' /proc/meminfo)
 memory_available_kib=$(awk '/^MemAvailable:/ { print $2 }' /proc/meminfo)
-[ "$memory_total_kib" -ge 1048576 ] || fail "observability requires at least 1 GiB host RAM"
+[ "$memory_total_kib" -ge 900000 ] || fail "observability requires at least a 1 GiB VM class"
 [ "$memory_available_kib" -ge 262144 ] || fail "observability requires at least 256 MiB MemAvailable before startup"
 
 free_disk_kib=$(df -Pk "$observability_directory" | awk 'NR == 2 { print $4 }')
