@@ -430,6 +430,7 @@ async function iacContract() {
       "s-1vcpu-1gb",
       "resize_disk   = false",
       'comparison = "less_than"',
+      "threshold  = 1",
       'backend "s3"',
     ],
     "OpenTofu configuration",

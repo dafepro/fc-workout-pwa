@@ -155,6 +155,7 @@ resource "digitalocean_uptime_alert" "api_down" {
   check_id   = digitalocean_uptime_check.api.id
   type       = "down_global"
   comparison = "less_than"
+  threshold  = 1
   period     = "5m"
 
   notifications {
