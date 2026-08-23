@@ -82,8 +82,8 @@ describe("consolidated default player experience", () => {
     renderExperience(<ConsolidatedToday />);
 
     expect(
-      screen.getByRole("img", { name: "Zoomi runs with your Momentum" }),
-    ).toHaveAttribute("src", "/art/zoomi/zoomi-momentum-v2.webp");
+      screen.queryByRole("img", { name: /Zoomi/ }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole("progressbar", { name: "Momentum path: Rolling" }),
     ).toBeInTheDocument();
@@ -94,19 +94,13 @@ describe("consolidated default player experience", () => {
     expect(
       screen.getByRole("heading", { name: "Hill sprints" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("img", { name: "Zoomi charges up the hill" }),
-    ).toHaveAttribute("src", "/art/zoomi/zoomi-workout.webp");
+    expect(screen.getByTestId("workout-mark")).toBeInTheDocument();
     expect(screen.getByText("Team rewards coming soon")).toBeInTheDocument();
-    expect(
-      screen.getByRole("img", { name: "Zoomi guards a mystery team reward" }),
-    ).toHaveAttribute("src", "/art/zoomi/zoomi-rewards.webp");
+    expect(screen.getByTestId("reward-mark")).toBeInTheDocument();
     expect(
       screen.getByText("Complete today’s plan to join your team."),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("img", { name: "Zoomi opens the Team lounge" }),
-    ).toHaveAttribute("src", "/art/zoomi/zoomi-lounge.webp");
+    expect(screen.getByTestId("lounge-mark")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Log today’s plan" }));
     expect(screen.getByRole("slider", { name: "Effort" })).toBeInTheDocument();
@@ -141,9 +135,7 @@ describe("consolidated default player experience", () => {
       screen.getByLabelText("Hill Striders weekly canvas"),
     ).toBeInTheDocument();
     expect(screen.getByText("Team stamps")).toBeInTheDocument();
-    expect(
-      screen.getByRole("img", { name: "Zoomi guards a mystery team reward" }),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("reward-mark")).toBeInTheDocument();
     expect(screen.queryByText("Canvas dev console")).not.toBeInTheDocument();
   });
 

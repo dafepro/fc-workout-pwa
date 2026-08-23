@@ -26,6 +26,7 @@ afterEach(() => {
 describe("connected Team Canvas training", () => {
   it("saves the displayed Hill Sprints plan without a current assignment", async () => {
     const requests: { url: string; init?: RequestInit }[] = [];
+    let canvasLoads = 0;
     vi.stubGlobal(
       "fetch",
       vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -79,6 +80,10 @@ describe("connected Team Canvas training", () => {
           );
         }
         if (url.endsWith("/canvas")) {
+          canvasLoads += 1;
+          if (canvasLoads >= 3) {
+            return Response.json(readyCanvasProjection());
+          }
           return Response.json(
             {
               error: {
@@ -103,6 +108,8 @@ describe("connected Team Canvas training", () => {
     fireEvent.click(screen.getByRole("button", { name: "Complete plan" }));
 
     await waitFor(() => expect(screen.getByText("saved")).toBeVisible());
+    await waitFor(() => expect(screen.getByText("ready")).toBeVisible());
+    expect(canvasLoads).toBe(3);
     const create = requests.find(
       ({ url, init }) =>
         url.endsWith("/v1/me/training-entries") && init?.method === "POST",
@@ -193,6 +200,32 @@ describe("connected Team Canvas training", () => {
     );
   });
 });
+
+function readyCanvasProjection() {
+  return {
+    team: { id: "team-new", name: "New Team", weeklyGoal: 3 },
+    dayKey: "2026-08-23",
+    weekKey: "2026-08-17",
+    physics: { v: 1, sceneId: "top-down", sequence: 0 },
+    settings: {
+      backgroundAssetId: "grass-gradient",
+      backgroundColor: "#A8DC9D",
+      textColor: "#115630",
+      textSize: 112,
+      textStyle: "block",
+      stampChoices: ["bolt", "star", "rocket", "fire", "soccer"],
+      developerStampLimit: 0,
+      revision: 1,
+    },
+    stampChoices: ["bolt", "star", "rocket", "fire", "soccer"],
+    members: [],
+    pieces: [],
+    avatarPosition: { x: 50, y: 50 },
+    availableRewards: 1,
+    cooldownComplete: false,
+    developerControlsEnabled: true,
+  };
+}
 
 function CompleteTraining() {
   const canvas = useTeamCanvas();

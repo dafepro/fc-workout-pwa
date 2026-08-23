@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { PlayerAvatar } from "../../components/PlayerAvatar";
 import { momentumAlphaCopy } from "../../momentum-alpha/content";
 import type { MomentumBand } from "../../momentum-alpha/model";
@@ -52,15 +51,11 @@ export function MomentumStatus({
 
       <p className="momentum-status__detail">{copy.detail[band]}</p>
 
-      <Image
-        className="momentum-status__art"
-        src="/art/zoomi/zoomi-momentum-v2.webp"
-        alt={copy.artAlt}
-        width={900}
-        height={600}
-        priority
-        unoptimized
-      />
+      <span className="momentum-status__signal" aria-hidden="true">
+        <i />
+        <i />
+        <i />
+      </span>
 
       <div
         className="momentum-status__path"

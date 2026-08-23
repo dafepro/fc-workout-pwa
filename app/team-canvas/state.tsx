@@ -141,29 +141,44 @@ export function TeamCanvasProvider({
     selectedPieceRef.current = remoteSelectedPieceId;
   }, [remoteSelectedPieceId]);
 
-  const refresh = useCallback(async () => {
-    if (!gateway) return;
-    try {
-      const projection = await gateway.load();
-      setConnectedState({ status: "ready", projection, error: null });
-    } catch (error) {
-      if (
-        error instanceof TeamCanvasGatewayError &&
-        error.code === "team_canvas_locked"
-      ) {
-        setConnectedState({ status: "locked", projection: null, error: null });
-        return;
+  const refresh = useCallback(
+    async (lockedRetries = 0) => {
+      if (!gateway) return;
+      for (let attempt = 0; attempt <= lockedRetries; attempt += 1) {
+        try {
+          const projection = await gateway.load();
+          setConnectedState({ status: "ready", projection, error: null });
+          return;
+        } catch (error) {
+          if (
+            error instanceof TeamCanvasGatewayError &&
+            error.code === "team_canvas_locked"
+          ) {
+            if (attempt < lockedRetries) {
+              await waitForTeamCanvasConsistency(attempt);
+              continue;
+            }
+            setConnectedState({
+              status: "locked",
+              projection: null,
+              error: null,
+            });
+            return;
+          }
+          setConnectedState({
+            status: "error",
+            projection: null,
+            error:
+              error instanceof Error
+                ? error.message
+                : "The team canvas could not be loaded.",
+          });
+          return;
+        }
       }
-      setConnectedState({
-        status: "error",
-        projection: null,
-        error:
-          error instanceof Error
-            ? error.message
-            : "The team canvas could not be loaded.",
-      });
-    }
-  }, [gateway]);
+    },
+    [gateway],
+  );
 
   useEffect(() => {
     if (!gateway) return;
@@ -313,7 +328,7 @@ export function TeamCanvasProvider({
             recordPrimary({ ...current, dayKind: "training" }, input),
           );
           setJustCompletedPrimary(true);
-          await refresh();
+          await refresh(2);
           return true;
         } catch (error) {
           reportConnectedError(error);
@@ -330,7 +345,7 @@ export function TeamCanvasProvider({
           store.update((current) =>
             recordPlannedRest({ ...current, dayKind: "rest" }),
           );
-          await refresh();
+          await refresh(2);
         } catch (error) {
           reportConnectedError(error);
         }
@@ -617,6 +632,12 @@ function boundedTransform(transform: BoardTransform): BoardTransform {
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(maximum, Math.max(minimum, value));
+}
+
+function waitForTeamCanvasConsistency(attempt: number): Promise<void> {
+  return new Promise((resolve) =>
+    window.setTimeout(resolve, 75 * (attempt + 1)),
+  );
 }
 
 function loadLocalSettings(state: TeamCanvasState): TeamCanvasSettings {

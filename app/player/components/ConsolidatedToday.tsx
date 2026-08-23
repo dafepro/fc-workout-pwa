@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { momentumBand } from "../../momentum-alpha/model";
@@ -100,15 +99,13 @@ export function ConsolidatedToday() {
         />
       ) : (
         <section className="today-plan" aria-labelledby="today-plan-title">
-          <Image
-            className="today-plan__art"
-            src="/art/zoomi/zoomi-workout.webp"
-            alt={playerExperienceCopy.today.workoutArtAlt}
-            width={900}
-            height={600}
-            priority
-            unoptimized
-          />
+          <span
+            className="today-plan__mark"
+            data-testid="workout-mark"
+            aria-hidden="true"
+          >
+            ↗
+          </span>
           <div className="today-plan__heading">
             <div>
               <p className="player-eyebrow">
@@ -216,14 +213,13 @@ export function ConsolidatedToday() {
         className={`team-preview${unlocked ? " is-unlocked" : ""}`}
         href="/team"
       >
-        <Image
-          className="team-preview__art"
-          src="/art/zoomi/zoomi-lounge.webp"
-          alt={playerExperienceCopy.today.loungeArtAlt}
-          width={900}
-          height={600}
-          unoptimized
-        />
+        <span
+          className="team-preview__mark"
+          data-testid="lounge-mark"
+          aria-hidden="true"
+        >
+          <i />
+        </span>
         <div>
           <p className="player-eyebrow">Creative team space</p>
           <h2>{playerExperienceCopy.today.lockedTeamTitle}</h2>
