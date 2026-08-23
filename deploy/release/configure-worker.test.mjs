@@ -97,7 +97,7 @@ test("rejects a mismatched public API origin", () => {
   );
 });
 
-test("configures the disposable Worker with its US-wide gate", () => {
+test("configures the disposable Worker with its password-only gate", () => {
   const configured = configureWorker(
     {
       main: "index.js",

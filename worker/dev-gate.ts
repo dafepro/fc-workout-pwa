@@ -65,7 +65,7 @@ export async function gateDevRequest(
   }
 
   const cf = (request as CloudflareRequest).cf;
-  const allowAnyUSRegion = env.DEV_ALLOWED_REGION_CODES?.trim() === "*";
+  const allowAnyLocation = env.DEV_ALLOWED_REGION_CODES?.trim() === "*";
   const allowedRegions = env.DEV_ALLOWED_REGION_CODES
     ? new Set(
         env.DEV_ALLOWED_REGION_CODES.split(",")
@@ -74,9 +74,10 @@ export async function gateDevRequest(
       )
     : censusMidwestRegions;
   if (
-    cf?.country !== "US" ||
-    (!allowAnyUSRegion &&
-      (!cf.regionCode || !allowedRegions.has(cf.regionCode)))
+    !allowAnyLocation &&
+    (cf?.country !== "US" ||
+      !cf.regionCode ||
+      !allowedRegions.has(cf.regionCode))
   ) {
     return lockedResponse(403, "Unavailable");
   }
