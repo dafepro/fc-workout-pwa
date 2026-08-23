@@ -115,6 +115,9 @@ function requireDevBuildConfig(generated) {
 }
 
 function requireRegionCodes(value) {
+  if (Array.isArray(value) && value.length === 1 && value[0] === "*") {
+    return "*";
+  }
   if (
     !Array.isArray(value) ||
     value.length === 0 ||

@@ -10,16 +10,17 @@ Every PWA request reaches the custom Worker gate before application routing,
 static assets, player sign-in, staff sign-in, or the credential directory. The
 gate requires both:
 
-1. Cloudflare geolocates the source IP to the United States and one of the
-   twelve U.S. Census Midwest state codes configured in `deploy/dev.json`.
+1. Cloudflare geolocates the source IP to the United States. Dev uses the
+   explicit `*` region policy in `deploy/dev.json`, so state-level geolocation
+   errors do not lock out an invited tester.
 2. The visitor enters `DEV_ACCESS_PASSWORD`, which creates an eight-hour,
    signed, Secure, HttpOnly, SameSite=Strict cookie.
 
-Cloudflare documents `request.cf.regionCode` as available to Workers on all
-plans, so this does not require Business or Enterprise. IP geolocation is an
-abuse-reduction signal, not identity: a VPN can appear to be in an allowed
-state, a mobile connection can be located incorrectly, and anyone can forward
-the shared password. The password remains the actual access credential.
+Cloudflare provides country metadata to Workers on all plans, so this does not
+require Business or Enterprise. IP geolocation is an abuse-reduction signal,
+not identity: a VPN can appear to be in the United States, a mobile connection
+can be located incorrectly, and anyone can forward the shared password. The
+password remains the actual access credential.
 
 The dev Worker replaces the PWA service worker with an unregister-and-clear
 script. This prevents an offline app-shell cache from rendering a previously
