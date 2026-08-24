@@ -216,7 +216,14 @@ func (store *Store) createTeamCanvasPiece(ctx context.Context, actor domain.Acto
 	if err != nil {
 		return TeamCanvasPiece{}, err
 	}
-	if !containsCanvas(projection.StampChoices, assetID) {
+	allowed, err := store.playerCanUseCanvasStamp(ctx, actor.PlayerID, assetID)
+	if allowDeveloper {
+		allowed = containsCanvas(projection.Settings.StampChoices, assetID)
+	}
+	if err != nil {
+		return TeamCanvasPiece{}, err
+	}
+	if !allowed {
 		return TeamCanvasPiece{}, ErrTeamCanvasRewardUnavailable
 	}
 	ownedToday := 0
@@ -287,6 +294,17 @@ func (store *Store) createTeamCanvasPiece(ctx context.Context, actor domain.Acto
 		return TeamCanvasPiece{}, fmt.Errorf("commit team canvas piece: %w", err)
 	}
 	return piece, nil
+}
+
+func (store *Store) playerCanUseCanvasStamp(ctx context.Context, playerID, assetID string) (bool, error) {
+	if domain.CanvasStampIncluded(assetID) {
+		return true, nil
+	}
+	item, restricted := domain.DailyDropCanvasItem(assetID)
+	if !restricted {
+		return false, nil
+	}
+	return store.PlayerOwnsUnlock(ctx, playerID, item.ID)
 }
 
 func (store *Store) UpdateTeamCanvasPiece(ctx context.Context, actor domain.Actor, teamID, pieceID string, transform TeamCanvasTransform, now time.Time) (TeamCanvasPiece, error) {

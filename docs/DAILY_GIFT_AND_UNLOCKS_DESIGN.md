@@ -1,6 +1,6 @@
 # Daily Drop and Unlocks Design
 
-Status: Daily Drop, player Today loop, and Avatar Studio inventory implemented
+Status: Daily Drop and shared Avatar/Team Canvas inventory implemented
 
 ## Implementation status
 
@@ -21,7 +21,12 @@ parts locked during loading or failure, displays new parts accessibly, and
 acknowledges them when their tray is deliberately opened. The backend rejects a
 known catalog reward part unless the authenticated player owns it; safe unknown
 legacy slugs still round-trip so a rolling catalog deployment cannot erase an
-older configuration. The Team Canvas unlock adapter remains to be implemented.
+older configuration.
+
+Team Canvas now receives included and earned stamp assets through its narrow
+unlock port. Permanent ownership is independent from the existing daily
+placement-slot limit, unknown or retired catalog items are ignored, and the
+backend rejects placement of a known unowned stamp even from a modified client.
 
 ## Product intent
 
@@ -144,6 +149,12 @@ Main categories have three included choices. Optional categories have `none` plu
 ## Canvas integration
 
 The stamp tray receives unlocked IDs from `StampUnlockPort`. Unknown or disabled IDs are ignored safely. Removing a catalog item never corrupts an existing board: the app preserves its stored ID and the adapter supplies a neutral fallback rendering until the board is edited.
+
+The included first-use stamp set is Bolt, Fire, Star, Soccer Ball, Spark Cleat,
+and the ZoomiGo mark. Daily Drops extend this set permanently. Completing a
+workout or cooldown may provide a placement slot, but never changes permanent
+stamp ownership. Developer playground slots remain an explicit dev-only bypass
+and cannot grant inventory.
 
 ## Failure and abuse handling
 

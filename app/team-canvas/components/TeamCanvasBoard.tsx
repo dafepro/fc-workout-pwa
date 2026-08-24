@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRef } from "react";
 import { migrateAvatarConfiguration } from "../../avatar/config";
 import { useAvatarIdentity } from "../../state/avatar-identity-context";
 import { useOptionalAuth } from "../../state/auth-context";
@@ -47,6 +48,7 @@ export function TeamCanvasBoard({
   } = useTeamCanvas();
   const localProjection = teamCanvasProjection(state);
   const copy = teamCanvasCopy.board;
+  const viewedNewStamps = useRef(false);
 
   if (connectedStatus === "loading") {
     return <p className="tc-opening">{copy.loading}</p>;
@@ -122,6 +124,19 @@ export function TeamCanvasBoard({
       ? connectedProjection.stampChoices
       : settings.stampChoices.map(teamCanvasStamp));
   const unlockStamp = stampUnlocks?.unlock ?? chooseStamp;
+  function viewNewStamps() {
+    if (
+      viewedNewStamps.current ||
+      !stampUnlocks?.viewNew ||
+      stampUnlocks.newAssetIDs?.length === 0
+    ) {
+      return;
+    }
+    viewedNewStamps.current = true;
+    void Promise.resolve(stampUnlocks.viewNew()).catch(() => {
+      viewedNewStamps.current = false;
+    });
+  }
 
   return (
     <div className="tc-team">
@@ -170,18 +185,38 @@ export function TeamCanvasBoard({
           </h2>
         </div>
 
+        {stampUnlocks?.status === "loading" ? (
+          <p className="tc-rewards__inventory" role="status">
+            {copy.stampsLoading}
+          </p>
+        ) : stampUnlocks?.status === "error" ? (
+          <p className="tc-rewards__inventory" role="status">
+            {copy.stampsFailed}
+          </p>
+        ) : null}
+
         {rewardCount > 0 ? (
-          <div className="tc-emoji-tray">
+          <div
+            className="tc-emoji-tray"
+            onFocusCapture={viewNewStamps}
+            onPointerDown={viewNewStamps}
+          >
             {stamps.map((stamp) => {
               const label = stampAssetLabel(stamp);
+              const isNew = stampUnlocks?.newAssetIDs?.includes(stamp.id);
               return (
                 <button
                   key={stamp.id}
                   type="button"
-                  aria-label={copy.chooseStamp(label)}
+                  aria-label={`${copy.chooseStamp(label)}${isNew ? `, ${copy.newStamp}` : ""}`}
                   onClick={() => void unlockStamp(stamp)}
                 >
                   <StampAssetView asset={stamp} />
+                  {isNew ? (
+                    <span className="tc-stamp-new" aria-hidden="true">
+                      {copy.newStamp}
+                    </span>
+                  ) : null}
                 </button>
               );
             })}
@@ -210,7 +245,10 @@ export function TeamCanvasBoard({
 export interface TeamCanvasStampUnlockPort {
   availableCount: number;
   choices: StampAsset[];
+  status?: "loading" | "error" | "ready";
+  newAssetIDs?: string[];
   unlock(asset: StampAsset): Promise<void>;
+  viewNew?(): void | Promise<void>;
 }
 
 function LockedCanvas({ todayHref }: { todayHref: string }) {

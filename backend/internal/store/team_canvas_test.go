@@ -83,14 +83,14 @@ func TestTeamCanvasPersistsBoundedLivePiecesPositionsAndSettings(t *testing.T) {
 	if projection.AvailableRewards != 1 || len(projection.StampChoices) != 5 {
 		t.Fatalf("unexpected rewards: %+v", projection)
 	}
-	piece, err := repository.CreateTeamCanvasPiece(context.Background(), actor, "team-one", projection.StampChoices[0], now)
+	piece, err := repository.CreateTeamCanvasPiece(context.Background(), actor, "team-one", "bolt", now)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if piece.Status != "live" || !piece.Editable {
 		t.Fatalf("created piece = %+v", piece)
 	}
-	if _, err := repository.CreateTeamCanvasPiece(context.Background(), actor, "team-one", projection.StampChoices[1], now); !errors.Is(err, store.ErrTeamCanvasRewardUnavailable) {
+	if _, err := repository.CreateTeamCanvasPiece(context.Background(), actor, "team-one", "fire", now); !errors.Is(err, store.ErrTeamCanvasRewardUnavailable) {
 		t.Fatalf("second piece error = %v", err)
 	}
 
@@ -150,6 +150,37 @@ func TestTeamCanvasPersistsBoundedLivePiecesPositionsAndSettings(t *testing.T) {
 	}
 }
 
+func TestTeamCanvasPlacementRequiresPermanentStampOwnershipButKeepsPlacementSlotsSeparate(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+	if _, err := db.Exec(`UPDATE training_entries
+		SET assignment_id = 'assignment-hills', result_value = 10
+		WHERE id = 'entry-mason'`); err != nil {
+		t.Fatal(err)
+	}
+	actor := domain.Actor{Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-one"}
+
+	if _, err := repository.CreateTeamCanvasPiece(context.Background(), actor, "team-one", "target", now); !errors.Is(err, store.ErrTeamCanvasRewardUnavailable) {
+		t.Fatalf("unowned target error = %v, want unavailable", err)
+	}
+	if _, err := db.Exec(`INSERT INTO player_unlocks
+		(player_id, item_kind, item_id, source, unlocked_at)
+		VALUES ('player-mason', 'canvas_stamp', 'canvas-stamp-target', 'daily_drop', '2026-08-12T17:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+	piece, err := repository.CreateTeamCanvasPiece(context.Background(), actor, "team-one", "target", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if piece.AssetID != "target" {
+		t.Fatalf("piece = %+v, want owned target", piece)
+	}
+	if _, err := repository.CreateTeamCanvasPiece(context.Background(), actor, "team-one", "target", now); !errors.Is(err, store.ErrTeamCanvasRewardUnavailable) {
+		t.Fatalf("second placement error = %v, want exhausted slot", err)
+	}
+}
+
 func TestTeamCanvasDeletesOnlyOwnedCurrentDayPiecesAndReusesRewardSlots(t *testing.T) {
 	repository, db := socialProjectionStore(t)
 	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
@@ -176,11 +207,11 @@ func TestTeamCanvasDeletesOnlyOwnedCurrentDayPiecesAndReusesRewardSlots(t *testi
 	if projection.AvailableRewards != 2 {
 		t.Fatalf("available rewards = %d, want 2", projection.AvailableRewards)
 	}
-	first, err := repository.CreateTeamCanvasPiece(context.Background(), actor, "team-one", projection.StampChoices[0], now)
+	first, err := repository.CreateTeamCanvasPiece(context.Background(), actor, "team-one", "bolt", now)
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, err := repository.CreateTeamCanvasPiece(context.Background(), actor, "team-one", projection.StampChoices[1], now)
+	second, err := repository.CreateTeamCanvasPiece(context.Background(), actor, "team-one", "fire", now)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,11 +226,11 @@ func TestTeamCanvasDeletesOnlyOwnedCurrentDayPiecesAndReusesRewardSlots(t *testi
 	if afterDelete.AvailableRewards != 1 || len(afterDelete.Pieces) != 1 {
 		t.Fatalf("after delete = %+v", afterDelete)
 	}
-	replacement, err := repository.CreateTeamCanvasPiece(context.Background(), actor, "team-one", projection.StampChoices[2], now)
+	replacement, err := repository.CreateTeamCanvasPiece(context.Background(), actor, "team-one", "star", now)
 	if err != nil {
 		t.Fatalf("reuse deleted reward slot: %v", err)
 	}
-	if replacement.AssetID != projection.StampChoices[2] {
+	if replacement.AssetID != "star" {
 		t.Fatalf("replacement = %+v", replacement)
 	}
 

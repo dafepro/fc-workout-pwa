@@ -17,8 +17,8 @@ changes a large vertical slice.
 | ----- | ------------------------------------------------------------------------------------------------- | ----------------------------- | ----------- |
 | A     | Daily Drop can be opened safely from Today                                                        | Existing claim API            | Delivered   |
 | B     | One shared inventory governs avatar options                                                       | A                             | Delivered   |
-| C     | The Team Canvas consumes shared stamp unlocks through its port                                    | A                             | Next        |
-| D     | Coach-plan logging records authoritative day and block provenance                                 | Existing plan projection      | Not started |
+| C     | The Team Canvas consumes shared stamp unlocks through its port                                    | A                             | Delivered   |
+| D     | Coach-plan logging records authoritative day and block provenance                                 | Existing plan projection      | Next        |
 | E     | Three-day and seven-day plan participation grants claimable drops                                 | A, D                          | Not started |
 | F     | Coaches can safely edit future plan days and players receive an explained fallback recommendation | D                             | Not started |
 | G     | Team Rewards has correction, moderation, and deduplicated staff notification operations           | Existing durable reward slice | Not started |
@@ -80,13 +80,13 @@ adapter boundary; the Canvas physics and multiplayer code cannot grant items.
 
 Completion gates:
 
-- [ ] Replace Canvas-specific unlock choices with an inventory-backed
+- [x] Replace Canvas-specific unlock choices with an inventory-backed
       `StampUnlockPort` adapter.
-- [ ] Keep weekly placement limits separate from permanent ownership.
-- [ ] Ignore unknown or disabled inventory IDs without corrupting board state.
-- [ ] Mark opened stamp trays viewed without blocking the board.
-- [ ] Prove a modified client cannot place an unowned stamp.
-- [ ] Contract-test the built-in Canvas adapter so a later library can replace
+- [x] Keep weekly placement limits separate from permanent ownership.
+- [x] Ignore unknown or disabled inventory IDs without corrupting board state.
+- [x] Mark opened stamp trays viewed without blocking the board.
+- [x] Prove a modified client cannot place an unowned stamp.
+- [x] Contract-test the built-in Canvas adapter so a later library can replace
       it without changing product reward rules.
 
 ## Slice D — plan provenance and connected What's Next
@@ -216,7 +216,8 @@ Add one entry per completed or materially changed vertical slice.
 | ---------- | --------------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
 | 2026-08-24 | Tracker baseline            | `0f67ef5`            | Audited current branch contracts and linked designs                                                                              | Slices A–H                        |
 | 2026-08-24 | A · Daily Drop player loop  | `19e3b9d`            | 11 focused UI/gateway/proxy tests; Daily Drop store/reset tests; connected 320px Docker browser flow; typecheck, lint, and build | Shared inventory consumers in B/C |
-| 2026-08-24 | B · Shared Avatar inventory | This delivery commit | Inventory gateway and Studio component tests; viewed idempotency; save ownership; retired catalog and legacy coverage            | Canvas inventory adapter in C     |
+| 2026-08-24 | B · Shared Avatar inventory | `f158466`            | Inventory gateway and Studio component tests; viewed idempotency; save ownership; retired catalog and legacy coverage            | Canvas inventory adapter in C     |
+| 2026-08-24 | C · Shared Canvas inventory | This delivery commit | Adapter contract and tray interaction tests; backend ownership enforcement; placement-slot separation and safe catalog fallback  | Plan provenance in D              |
 
 ## Linked designs
 

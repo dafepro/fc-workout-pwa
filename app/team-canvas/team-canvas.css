@@ -1122,7 +1122,28 @@
   margin-top: 0.8rem;
 }
 
+.tc-rewards__inventory {
+  margin: 0.35rem 0 0;
+  color: var(--tc-muted);
+  font-size: 0.82rem;
+}
+
+.tc-stamp-new {
+  position: absolute;
+  top: 0.2rem;
+  right: 0.2rem;
+  border-radius: 999px;
+  padding: 0.12rem 0.3rem;
+  background: var(--tc-green);
+  color: var(--tc-ink);
+  font-size: 0.56rem;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
 .tc-emoji-tray button {
+  position: relative;
   display: grid;
   aspect-ratio: 1;
   min-width: 0;

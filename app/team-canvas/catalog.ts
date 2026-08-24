@@ -60,9 +60,11 @@ export const TEAM_CANVAS_TEXT_STYLES = [
 ] as const;
 
 export function teamCanvasStamp(assetID: string): StampAsset {
-  return (
-    TEAM_CANVAS_STAMPS.find(({ id }) => id === assetID) ?? TEAM_CANVAS_STAMPS[0]
-  );
+  return findTeamCanvasStamp(assetID) ?? TEAM_CANVAS_STAMPS[0];
+}
+
+export function findTeamCanvasStamp(assetID: string): StampAsset | undefined {
+  return TEAM_CANVAS_STAMPS.find(({ id }) => id === assetID);
 }
 
 export function teamCanvasBackground(assetID: string): string | null {

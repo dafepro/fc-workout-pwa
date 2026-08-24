@@ -28,6 +28,11 @@ var dailyDropCatalog = []UnlockItem{
 	{ID: "canvas-stamp-sparkles", Kind: UnlockCanvasStamp, Slot: "stamp", AssetID: "sparkles", Label: "Sparkles stamp", CatalogVersion: 1},
 }
 
+var includedCanvasStampAssets = map[string]bool{
+	"bolt": true, "fire": true, "star": true, "soccer": true,
+	"spark-cleat": true, "zoomigo-mark": true,
+}
+
 func DailyDropCatalogItems() []UnlockItem {
 	return append([]UnlockItem(nil), dailyDropCatalog...)
 }
@@ -84,4 +89,17 @@ func DailyDropAvatarItem(slot, assetID string) (UnlockItem, bool) {
 		}
 	}
 	return UnlockItem{}, false
+}
+
+func DailyDropCanvasItem(assetID string) (UnlockItem, bool) {
+	for _, item := range dailyDropCatalog {
+		if item.Kind == UnlockCanvasStamp && item.AssetID == assetID {
+			return item, true
+		}
+	}
+	return UnlockItem{}, false
+}
+
+func CanvasStampIncluded(assetID string) bool {
+	return includedCanvasStampAssets[assetID]
 }

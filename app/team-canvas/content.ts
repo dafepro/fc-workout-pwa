@@ -73,6 +73,10 @@ export const teamCanvasCopy = {
     physicsHint:
       "Move your avatar into a ball, balloon, or rocket to send it through the live scene.",
     stampTitle: "Team stamps",
+    stampsLoading: "Loading your stamp collection…",
+    stampsFailed:
+      "Your earned stamps could not load. Included stamps still work.",
+    newStamp: "new",
     emptyReward: "Reach the stretch or finish the cooldown to earn a stamp.",
     placedReward: "Your live stamps can move until tomorrow’s workout arrives.",
     rewardReady: (count: number) =>

@@ -9,6 +9,7 @@ import { TeamCanvasMe } from "./components/TeamCanvasMe";
 import { TeamCanvasShell } from "./components/TeamCanvasShell";
 import { TeamCanvasToday } from "./components/TeamCanvasToday";
 import { initialTeamCanvasState, recordPrimary } from "./model";
+import { teamCanvasStamp } from "./catalog";
 import { TeamCanvasProvider } from "./state";
 
 const push = vi.fn();
@@ -199,6 +200,35 @@ describe("Team Canvas application", () => {
     expect(
       screen.queryByText(/8 reps|10 reps|effort 5|tiredness 4/i),
     ).toBeNull();
+  });
+
+  it("labels newly earned stamps and acknowledges them on deliberate tray interaction", () => {
+    const complete = recordPrimary(initialTeamCanvasState(), {
+      completion: "reach",
+      effort: 4,
+      tiredness: 3,
+    });
+    const viewNew = vi.fn();
+    renderTeamCanvas(
+      <TeamCanvasProvider initialState={complete}>
+        <TeamCanvasBoard
+          stampUnlocks={{
+            availableCount: 1,
+            choices: [teamCanvasStamp("target")],
+            newAssetIDs: ["target"],
+            status: "ready",
+            unlock: vi.fn(),
+            viewNew,
+          }}
+        />
+      </TeamCanvasProvider>,
+    );
+
+    const target = screen.getByRole("button", {
+      name: /Choose Target stamp.*new/i,
+    });
+    fireEvent.pointerDown(target);
+    expect(viewNew).toHaveBeenCalledTimes(1);
   });
 
   it("updates the current player's lounge avatar when their saved look changes", () => {
