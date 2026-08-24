@@ -2829,6 +2829,30 @@ h2 {
   font-size: 0.65rem;
   box-shadow: 0 2px 6px rgb(11 18 61 / 20%);
 }
+
+.avatar-choice__new {
+  position: absolute;
+  z-index: 2;
+  top: 0.2rem;
+  right: 0.2rem;
+  border-radius: 999px;
+  padding: 0.12rem 0.35rem;
+  background: var(--lime);
+  color: var(--ink);
+  font-size: 0.62rem;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.avatar-builder__inventory-status {
+  margin: 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--blue) 12%, white);
+  color: var(--muted);
+  font-size: 0.82rem;
+}
 .avatar-choice input:focus-visible ~ .avatar-choice__icon {
   outline: 3px solid rgb(62 112 238 / 42%);
   outline-offset: -2px;

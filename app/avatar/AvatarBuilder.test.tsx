@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { copy } from "../content/copy";
 import { AvatarBuilder } from "./AvatarBuilder";
 import { defaultAvatar } from "./config";
+import type { PlayerUnlock } from "../data/unlock-inventory-gateway";
 
 afterEach(cleanup);
 
@@ -88,12 +89,61 @@ describe("AvatarBuilder", () => {
     ).toBeInTheDocument();
   });
 
-  it("disables advancement-locked animals", () => {
+  it("disables unearned Daily Drop animals", () => {
     renderBuilder();
     expect(
       screen.getByRole("radio", { name: /Rover the dog.*locked/i }),
     ).toBeDisabled();
     expect(screen.getAllByText("🔒")).toHaveLength(3);
+  });
+
+  it("enables earned Daily Drop parts, marks new ones, and acknowledges the opened tray", () => {
+    const onViewUnlocks = vi.fn();
+    const dog: PlayerUnlock = {
+      item: {
+        id: "avatar-head-dog",
+        kind: "avatar_part",
+        slot: "head",
+        assetId: "dog",
+        label: "Rover the dog",
+        catalogVersion: 1,
+      },
+      source: "daily_drop",
+      unlockedAt: "2026-08-24T14:00:00Z",
+    };
+    render(
+      <AvatarBuilder
+        config={defaultAvatar()}
+        inventory={{ state: "ready", items: [dog] }}
+        onViewUnlocks={onViewUnlocks}
+        onSave={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("radio", { name: /Rover the dog.*new/i }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole("radio", { name: /Scout the fox.*locked/i }),
+    ).toBeDisabled();
+    fireEvent.click(
+      screen.getByRole("button", { name: copy.avatar.categories.head }),
+    );
+    expect(onViewUnlocks).toHaveBeenCalledWith(["avatar-head-dog"]);
+  });
+
+  it("keeps earned choices locked and explains inventory loading failures", () => {
+    render(
+      <AvatarBuilder
+        config={defaultAvatar()}
+        inventory={{ state: "error", items: [] }}
+        onSave={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent(/rewards.*load/i);
+    expect(
+      screen.getByRole("radio", { name: /Rover the dog.*locked/i }),
+    ).toBeDisabled();
   });
 
   it("equips a hat and glasses simultaneously", async () => {

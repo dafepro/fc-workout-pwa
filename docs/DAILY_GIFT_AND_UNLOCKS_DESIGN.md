@@ -1,6 +1,6 @@
 # Daily Drop and Unlocks Design
 
-Status: durable backend and player Today loop implemented; inventory consumers in progress
+Status: Daily Drop, player Today loop, and Avatar Studio inventory implemented
 
 ## Implementation status
 
@@ -16,9 +16,12 @@ collected or collection-complete state. Opening a drop does not create a
 training entry or change Momentum. The local disconnected prototype does not
 invent a second collection.
 
-Viewed/new acknowledgement, inventory-aware avatar validation, and the Team
-Canvas unlock adapter remain to be implemented. Until those consumers land,
-the reveal names the destination but does not offer a dead “use now” action.
+Avatar Studio now loads earned parts from the shared inventory, keeps reward
+parts locked during loading or failure, displays new parts accessibly, and
+acknowledges them when their tray is deliberately opened. The backend rejects a
+known catalog reward part unless the authenticated player owns it; safe unknown
+legacy slugs still round-trip so a rolling catalog deployment cannot erase an
+older configuration. The Team Canvas unlock adapter remains to be implemented.
 
 ## Product intent
 
@@ -116,19 +119,19 @@ The claim and unlock insert occur in one transaction. The unique day constraint 
 
 ## API
 
-`GET /v1/player/daily-drop`
+`GET /v1/me/daily-drop`
 
 Returns `available`, `claimed`, or `collection_complete`, plus today’s existing result when claimed.
 
-`POST /v1/player/daily-drop/claim`
+`POST /v1/me/daily-drop/claim`
 
 Requires the player session and `Idempotency-Key`. It accepts no item choice. The response includes the awarded item’s safe catalog projection and destination action.
 
-`GET /v1/player/unlocks?kind=avatar_part|canvas_stamp`
+`GET /v1/me/unlocks?kind=avatar_part|canvas_stamp`
 
 Returns enabled item IDs with `unlocked` and `new` state. It does not expose rarity or other players’ inventories.
 
-`POST /v1/player/unlocks/{itemId}/viewed`
+`POST /v1/me/unlocks/{itemId}/viewed`
 
 Idempotently clears the local “new” badge after server authorization and catalog validation.
 

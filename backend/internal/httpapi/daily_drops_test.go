@@ -89,6 +89,14 @@ func TestDailyDropRoutesClaimWithoutTrainingAndReturnTheUnlockedCollection(t *te
 		t.Fatalf("unlocks status=%d body=%s", unlocksResponse.Code, unlocksResponse.Body.String())
 	}
 
+	viewedRequest := httptest.NewRequest(http.MethodPost, "/v1/me/unlocks/"+claimed.Claim.Item.ID+"/viewed", nil)
+	viewedRequest.Header.Set("Authorization", "Bearer player")
+	viewedResponse := httptest.NewRecorder()
+	handler.ServeHTTP(viewedResponse, viewedRequest)
+	if viewedResponse.Code != http.StatusOK || !strings.Contains(viewedResponse.Body.String(), `"viewedAt":`) {
+		t.Fatalf("viewed status=%d body=%s", viewedResponse.Code, viewedResponse.Body.String())
+	}
+
 	var trainingEntries int
 	if err := db.QueryRow(`SELECT COUNT(*) FROM training_entries WHERE player_id = 'player-one'`).Scan(&trainingEntries); err != nil {
 		t.Fatal(err)

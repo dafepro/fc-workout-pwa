@@ -49,9 +49,9 @@ export const AVATAR_LAYERS: readonly AvatarLayerDefinition[] = [
       { id: "person-round", label: labels.head.personRound },
       { id: "person-tall", label: labels.head.personTall },
       { id: "person-curls", label: labels.head.personCurls },
-      { id: "dog", label: labels.head.dog, unlock: "advancement" },
-      { id: "cheetah", label: labels.head.cheetah, unlock: "advancement" },
-      { id: "fox", label: labels.head.fox, unlock: "advancement" },
+      { id: "dog", label: labels.head.dog, unlock: "daily_drop" },
+      { id: "cheetah", label: labels.head.cheetah, unlock: "daily_drop" },
+      { id: "fox", label: labels.head.fox, unlock: "daily_drop" },
     ],
   },
   {

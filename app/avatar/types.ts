@@ -21,7 +21,7 @@ export interface AvatarOption {
   id: string;
   label: string;
   color?: string;
-  unlock?: "advancement" | "daily_drop";
+  unlock?: "daily_drop";
 }
 
 export interface AvatarLayerDefinition {

@@ -16,8 +16,8 @@ changes a large vertical slice.
 | Slice | Vertical outcome                                                                                  | Depends on                    | Status      |
 | ----- | ------------------------------------------------------------------------------------------------- | ----------------------------- | ----------- |
 | A     | Daily Drop can be opened safely from Today                                                        | Existing claim API            | Delivered   |
-| B     | One shared inventory governs avatar options                                                       | A                             | Next        |
-| C     | The Team Canvas consumes shared stamp unlocks through its port                                    | A                             | Not started |
+| B     | One shared inventory governs avatar options                                                       | A                             | Delivered   |
+| C     | The Team Canvas consumes shared stamp unlocks through its port                                    | A                             | Next        |
 | D     | Coach-plan logging records authoritative day and block provenance                                 | Existing plan projection      | Not started |
 | E     | Three-day and seven-day plan participation grants claimable drops                                 | A, D                          | Not started |
 | F     | Coaches can safely edit future plan days and players receive an explained fallback recommendation | D                             | Not started |
@@ -63,15 +63,15 @@ unowned item.
 
 Completion gates:
 
-- [ ] Add the idempotent viewed/new acknowledgement endpoint promised by the
+- [x] Add the idempotent viewed/new acknowledgement endpoint promised by the
       Daily Drop contract.
-- [ ] Load avatar-part inventory with explicit loading and failure behavior.
-- [ ] Show locked and newly earned options accessibly in the existing Head and
+- [x] Load avatar-part inventory with explicit loading and failure behavior.
+- [x] Show locked and newly earned options accessibly in the existing Head and
       optional-category trays.
-- [ ] Mark an earned option viewed when its tray is deliberately opened.
-- [ ] Validate ownership in the backend avatar save path.
-- [ ] Preserve and normalize existing avatar configurations safely.
-- [ ] Cover included, earned, locked, removed-catalog, and legacy configurations.
+- [x] Mark an earned option viewed when its tray is deliberately opened.
+- [x] Validate ownership in the backend avatar save path.
+- [x] Preserve and normalize existing avatar configurations safely.
+- [x] Cover included, earned, locked, removed-catalog, and legacy configurations.
 
 ## Slice C — Team Canvas shared stamp adapter
 
@@ -184,12 +184,11 @@ app/
   data/
     daily-drop-gateway.ts
     daily-drop-gateway.test.ts
+    unlock-inventory-gateway.ts         # Slice B
   player/
     components/
       DailyDropCard.tsx
       DailyDropCard.test.tsx
-  avatar/
-    unlock-inventory.ts                 # Slice B
   team-canvas/
     unlock-adapter.ts                   # Slice C
   player/
@@ -213,10 +212,11 @@ docs/
 
 Add one entry per completed or materially changed vertical slice.
 
-| Date       | Slice                      | Revision             | Evidence                                                                                                                         | Remaining                         |
-| ---------- | -------------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
-| 2026-08-24 | Tracker baseline           | `0f67ef5`            | Audited current branch contracts and linked designs                                                                              | Slices A–H                        |
-| 2026-08-24 | A · Daily Drop player loop | This delivery commit | 11 focused UI/gateway/proxy tests; Daily Drop store/reset tests; connected 320px Docker browser flow; typecheck, lint, and build | Shared inventory consumers in B/C |
+| Date       | Slice                       | Revision             | Evidence                                                                                                                         | Remaining                         |
+| ---------- | --------------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| 2026-08-24 | Tracker baseline            | `0f67ef5`            | Audited current branch contracts and linked designs                                                                              | Slices A–H                        |
+| 2026-08-24 | A · Daily Drop player loop  | `19e3b9d`            | 11 focused UI/gateway/proxy tests; Daily Drop store/reset tests; connected 320px Docker browser flow; typecheck, lint, and build | Shared inventory consumers in B/C |
+| 2026-08-24 | B · Shared Avatar inventory | This delivery commit | Inventory gateway and Studio component tests; viewed idempotency; save ownership; retired catalog and legacy coverage            | Canvas inventory adapter in C     |
 
 ## Linked designs
 

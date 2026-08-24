@@ -76,3 +76,12 @@ func DailyDropCatalogItem(itemID string) (UnlockItem, bool) {
 	}
 	return UnlockItem{}, false
 }
+
+func DailyDropAvatarItem(slot, assetID string) (UnlockItem, bool) {
+	for _, item := range dailyDropCatalog {
+		if item.Kind == UnlockAvatarPart && item.Slot == slot && item.AssetID == assetID {
+			return item, true
+		}
+	}
+	return UnlockItem{}, false
+}

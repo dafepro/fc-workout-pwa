@@ -141,7 +141,11 @@ export const copy = {
     saving: "Saving…",
     saveSuccess: "Avatar saved",
     failed: "Your look could not be saved. Try again.",
-    locked: "locked, advancement reward",
+    locked: "locked, Daily Drop reward",
+    newReward: "new",
+    inventoryLoading: "Loading avatar rewards…",
+    inventoryFailed:
+      "Avatar rewards could not load. Included choices still work.",
     categories: {
       head: "Head",
       kit: "Kit",

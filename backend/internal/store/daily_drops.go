@@ -13,7 +13,10 @@ import (
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 )
 
-var ErrDailyDropIdempotencyConflict = errors.New("daily drop idempotency key was used on another day")
+var (
+	ErrDailyDropIdempotencyConflict = errors.New("daily drop idempotency key was used on another day")
+	ErrPlayerUnlockNotFound         = errors.New("player unlock not found")
+)
 
 type DailyDropState string
 
@@ -172,6 +175,43 @@ func (store *Store) ListPlayerUnlocks(ctx context.Context, playerID string, kind
 		return nil, fmt.Errorf("read player unlocks: %w", err)
 	}
 	return items, nil
+}
+
+func (store *Store) PlayerOwnsUnlock(ctx context.Context, playerID, itemID string) (bool, error) {
+	var count int
+	if err := store.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM player_unlocks
+		WHERE player_id = ? AND item_id = ?`, playerID, itemID).Scan(&count); err != nil {
+		return false, fmt.Errorf("check player unlock: %w", err)
+	}
+	return count > 0, nil
+}
+
+func (store *Store) MarkPlayerUnlockViewed(ctx context.Context, playerID, itemID string, now time.Time) (PlayerUnlock, error) {
+	stamp := now.UTC().Format(time.RFC3339Nano)
+	result, err := store.db.ExecContext(ctx, `UPDATE player_unlocks
+		SET viewed_at = COALESCE(viewed_at, ?)
+		WHERE player_id = ? AND item_id = ?`, stamp, playerID, itemID)
+	if err != nil {
+		return PlayerUnlock{}, fmt.Errorf("mark player unlock viewed: %w", err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return PlayerUnlock{}, fmt.Errorf("read viewed unlock result: %w", err)
+	}
+	if rows == 0 {
+		return PlayerUnlock{}, ErrPlayerUnlockNotFound
+	}
+	var source, unlockedAt, viewedAt string
+	if err := store.db.QueryRowContext(ctx, `SELECT source, unlocked_at, viewed_at
+		FROM player_unlocks WHERE player_id = ? AND item_id = ?`, playerID, itemID).
+		Scan(&source, &unlockedAt, &viewedAt); err != nil {
+		return PlayerUnlock{}, fmt.Errorf("load viewed unlock: %w", err)
+	}
+	item, found := domain.DailyDropCatalogItem(itemID)
+	if !found {
+		return PlayerUnlock{}, ErrPlayerUnlockNotFound
+	}
+	return PlayerUnlock{Item: item, Source: source, UnlockedAt: unlockedAt, ViewedAt: &viewedAt}, nil
 }
 
 type dailyDropQuery interface {

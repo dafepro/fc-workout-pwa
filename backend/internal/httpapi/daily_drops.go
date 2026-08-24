@@ -15,6 +15,29 @@ type dailyDropRepository interface {
 	DailyDropStatus(context.Context, string, time.Time) (store.DailyDropStatus, error)
 	ClaimDailyDrop(context.Context, store.ClaimDailyDropInput) (store.ClaimDailyDropResult, error)
 	ListPlayerUnlocks(context.Context, string, domain.UnlockItemKind) ([]store.PlayerUnlock, error)
+	MarkPlayerUnlockViewed(context.Context, string, string, time.Time) (store.PlayerUnlock, error)
+}
+
+func (service *service) markPlayerUnlockViewed(w http.ResponseWriter, r *http.Request) {
+	actor, repository, ok := service.dailyDropActor(w, r)
+	if !ok {
+		return
+	}
+	itemID := r.PathValue("itemId")
+	if _, found := domain.DailyDropCatalogItem(itemID); !found {
+		writeError(w, r, http.StatusNotFound, "unlock_not_found", "That unlocked item is unavailable.")
+		return
+	}
+	item, err := repository.MarkPlayerUnlockViewed(r.Context(), actor.PlayerID, itemID, service.now().UTC())
+	if errors.Is(err, store.ErrPlayerUnlockNotFound) {
+		writeError(w, r, http.StatusNotFound, "unlock_not_found", "That unlocked item is unavailable.")
+		return
+	}
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "internal_error", "The item could not be marked viewed.")
+		return
+	}
+	writeJSON(w, http.StatusOK, item)
 }
 
 func (service *service) getDailyDrop(w http.ResponseWriter, r *http.Request) {

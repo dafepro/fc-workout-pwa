@@ -11,7 +11,7 @@ func TestAvatarSaveIsScopedToTheCallerAndValidated(t *testing.T) {
 	api := newAPIClient(t)
 	api.reset(t)
 
-	masonLook := map[string]string{"head": "cheetah", "background": "sky", "eyewear": "none"}
+	masonLook := map[string]string{"head": "person-round", "background": "sky", "eyewear": "none"}
 	saved := api.do(t, http.MethodPut, "/v1/me/avatar", masonToken, "", map[string]any{"configuration": masonLook})
 	assertStatus(t, saved, http.StatusOK)
 	assertAvatarConfiguration(t, saved, masonLook)
@@ -117,7 +117,7 @@ func TestPlayerReadsTheSavedAvatarBackFromTheSession(t *testing.T) {
 		t.Fatalf("a fresh fixture player should start with an empty configuration: %+v", signIn.Player)
 	}
 
-	look := map[string]string{"head": "cheetah", "background": "sky"}
+	look := map[string]string{"head": "person-tall", "background": "sky"}
 	saved := api.do(t, http.MethodPut, "/v1/me/avatar", signIn.Token, "", map[string]any{"configuration": look})
 	assertStatus(t, saved, http.StatusOK)
 	assertAvatarConfiguration(t, saved, look)

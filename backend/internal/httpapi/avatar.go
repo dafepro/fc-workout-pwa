@@ -1,11 +1,16 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 )
+
+type avatarUnlockRepository interface {
+	PlayerOwnsUnlock(context.Context, string, string) (bool, error)
+}
 
 // The response echoes the canonical stored form rather than the request, so the
 // client adopts exactly what the column holds.
@@ -39,6 +44,26 @@ func (service *service) updateAvatar(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeError(w, r, http.StatusBadRequest, "invalid_avatar_configuration", "Choose avatar parts from the picker and try again.")
 		return
+	}
+	for slot, assetID := range *request.Configuration {
+		item, restricted := domain.DailyDropAvatarItem(slot, assetID)
+		if !restricted {
+			continue
+		}
+		inventory, ready := service.store.(avatarUnlockRepository)
+		if !ready {
+			writeError(w, r, http.StatusServiceUnavailable, "not_ready", "Avatar rewards are not ready.")
+			return
+		}
+		owned, err := inventory.PlayerOwnsUnlock(r.Context(), actor.PlayerID, item.ID)
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")
+			return
+		}
+		if !owned {
+			writeError(w, r, http.StatusForbidden, "locked_avatar_part", "Open Daily Drops to unlock that avatar part.")
+			return
+		}
 	}
 	if err := service.store.UpdatePlayerAvatarConfiguration(r.Context(), actor.PlayerID, configuration); err != nil {
 		writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")

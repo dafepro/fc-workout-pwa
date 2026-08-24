@@ -160,3 +160,50 @@ func TestResetE2EFixturesClearsDailyDropClaimsAndInventory(t *testing.T) {
 		t.Fatalf("unlocks after reset = %d, want 0", unlocks)
 	}
 }
+
+func TestPlayerUnlockCanBeMarkedViewedIdempotently(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	ctx := context.Background()
+	now := time.Date(2026, time.August, 24, 14, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+	if _, err := db.Exec(`INSERT INTO player_unlocks
+		(player_id, item_kind, item_id, source, unlocked_at)
+		VALUES ('player-mason', 'avatar_part', 'avatar-head-dog', 'daily_drop', '2026-08-24T14:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+
+	first, err := repository.MarkPlayerUnlockViewed(ctx, "player-mason", "avatar-head-dog", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := repository.MarkPlayerUnlockViewed(ctx, "player-mason", "avatar-head-dog", now.Add(time.Hour))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.ViewedAt == nil || second.ViewedAt == nil || *first.ViewedAt != *second.ViewedAt {
+		t.Fatalf("viewed stamps should be stable: first=%+v second=%+v", first, second)
+	}
+	if _, err := repository.MarkPlayerUnlockViewed(ctx, "player-ava", "avatar-head-dog", now); !errors.Is(err, store.ErrPlayerUnlockNotFound) {
+		t.Fatalf("other player error = %v, want not found", err)
+	}
+}
+
+func TestUnknownCatalogUnlocksDoNotLeakIntoInventory(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	ctx := context.Background()
+	now := time.Date(2026, time.August, 24, 14, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+	if _, err := db.Exec(`INSERT INTO player_unlocks
+		(player_id, item_kind, item_id, source, unlocked_at)
+		VALUES ('player-mason', 'avatar_part', 'avatar-head-retired', 'daily_drop', '2026-08-24T14:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+
+	items, err := repository.ListPlayerUnlocks(ctx, "player-mason", domain.UnlockAvatarPart)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 0 {
+		t.Fatalf("retired catalog item leaked into inventory: %+v", items)
+	}
+}

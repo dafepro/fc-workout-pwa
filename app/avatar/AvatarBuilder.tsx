@@ -17,15 +17,20 @@ import type {
   AvatarOption,
   AvatarPaletteKey,
 } from "./types";
+import type { PlayerUnlock } from "../data/unlock-inventory-gateway";
 
 type SaveStatus = "idle" | "saving" | "error";
 
 export function AvatarBuilder({
   config,
   onSave,
+  inventory = { state: "ready", items: [] },
+  onViewUnlocks,
 }: {
   config: AvatarConfiguration;
   onSave(config: AvatarConfiguration): Promise<void>;
+  inventory?: UnlockInventoryState;
+  onViewUnlocks?(itemIDs: string[]): void | Promise<void>;
 }) {
   const startingConfig = migrateAvatarConfiguration(config) ?? defaultAvatar();
 
@@ -34,6 +39,8 @@ export function AvatarBuilder({
       key={configurationKey(startingConfig)}
       startingConfig={startingConfig}
       onSave={onSave}
+      inventory={inventory}
+      onViewUnlocks={onViewUnlocks}
     />
   );
 }
@@ -41,9 +48,13 @@ export function AvatarBuilder({
 function AvatarBuilderEditor({
   startingConfig,
   onSave,
+  inventory,
+  onViewUnlocks,
 }: {
   startingConfig: AvatarConfiguration;
   onSave(config: AvatarConfiguration): Promise<void>;
+  inventory: UnlockInventoryState;
+  onViewUnlocks?(itemIDs: string[]): void | Promise<void>;
 }) {
   const [draft, setDraft] = useState<AvatarConfiguration>(startingConfig);
   const [activeCategory, setActiveCategory] =
@@ -51,6 +62,28 @@ function AvatarBuilderEditor({
   const [status, setStatus] = useState<SaveStatus>("idle");
   const category = AVATAR_CATEGORIES.find(({ id }) => id === activeCategory)!;
   const dirty = configurationKey(draft) !== configurationKey(startingConfig);
+  const acknowledged = useRef(new Set<string>());
+
+  function openCategory(id: AvatarCategoryKind) {
+    setActiveCategory(id);
+    if (inventory.state !== "ready" || !onViewUnlocks) return;
+    const opened = AVATAR_CATEGORIES.find((candidate) => candidate.id === id)!;
+    const itemIDs = inventory.items
+      .filter(
+        ({ item, viewedAt }) =>
+          !viewedAt &&
+          opened.layerKinds.includes(
+            item.slot as AvatarLayerDefinition["kind"],
+          ) &&
+          !acknowledged.current.has(item.id),
+      )
+      .map(({ item }) => item.id);
+    if (itemIDs.length === 0) return;
+    itemIDs.forEach((itemID) => acknowledged.current.add(itemID));
+    void Promise.resolve(onViewUnlocks(itemIDs)).catch(() => {
+      itemIDs.forEach((itemID) => acknowledged.current.delete(itemID));
+    });
+  }
 
   function update(key: string, value: string) {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -96,16 +129,28 @@ function AvatarBuilderEditor({
             type="button"
             className={activeCategory === id ? "is-active" : ""}
             aria-pressed={activeCategory === id}
-            onClick={() => setActiveCategory(id)}
+            onClick={() => openCategory(id)}
           >
             {label}
           </button>
         ))}
       </nav>
 
+      {inventory.state !== "ready" ? (
+        <p className="avatar-builder__inventory-status" role="status">
+          {inventory.state === "loading"
+            ? copy.avatar.inventoryLoading
+            : copy.avatar.inventoryFailed}
+        </p>
+      ) : null}
+
       <div className="avatar-builder__layer">
         {activeCategory === "background" ? (
-          <BackgroundControls draft={draft} onChange={update} />
+          <BackgroundControls
+            draft={draft}
+            inventory={inventory}
+            onChange={update}
+          />
         ) : (
           category.layerKinds.map((kind) => {
             const layer = AVATAR_LAYERS.find(
@@ -119,6 +164,7 @@ function AvatarBuilderEditor({
                 showLegend={category.layerKinds.length > 1}
                 onChange={update}
                 onChoose={(optionID) => update(kind, optionID)}
+                inventory={inventory}
               />
             );
           })
@@ -151,12 +197,14 @@ function LayerPicker({
   showLegend,
   onChange,
   onChoose,
+  inventory,
 }: {
   layer: AvatarLayerDefinition;
   draft: AvatarConfiguration;
   showLegend: boolean;
   onChange(key: string, value: string): void;
   onChoose(optionID: string): void;
+  inventory: UnlockInventoryState;
 }) {
   return (
     <fieldset className="avatar-builder__sublayer">
@@ -176,6 +224,7 @@ function LayerPicker({
             option={option}
             draft={draft}
             onChoose={() => onChoose(option.id)}
+            inventory={inventory}
           />
         ))}
       </div>
@@ -218,9 +267,11 @@ function LayerPaletteControl({
 
 function BackgroundControls({
   draft,
+  inventory,
   onChange,
 }: {
   draft: AvatarConfiguration;
+  inventory: UnlockInventoryState;
   onChange(key: string, value: string): void;
 }) {
   const effect = AVATAR_LAYERS.find(({ kind }) => kind === "effect")!;
@@ -242,6 +293,7 @@ function BackgroundControls({
         showLegend
         onChange={onChange}
         onChoose={(optionID) => onChange("effect", optionID)}
+        inventory={inventory}
       />
     </>
   );
@@ -343,17 +395,25 @@ function Choice({
   option,
   draft,
   onChoose,
+  inventory,
 }: {
   layer: AvatarLayerDefinition;
   option: AvatarOption;
   draft: AvatarConfiguration;
   onChoose(): void;
+  inventory: UnlockInventoryState;
 }) {
   const selected = draft[layer.kind] === option.id;
-  const locked = option.unlock === "advancement";
+  const earned = inventory.items.find(
+    ({ item }) => item.slot === layer.kind && item.assetId === option.id,
+  );
+  const locked = option.unlock !== undefined && !earned;
+  const isNew = Boolean(earned && !earned.viewedAt);
   const accessibleName = locked
     ? `${option.label}, ${copy.avatar.locked}`
-    : option.label;
+    : isNew
+      ? `${option.label}, ${copy.avatar.newReward}`
+      : option.label;
 
   return (
     <div
@@ -377,10 +437,20 @@ function Choice({
             &#128274;
           </span>
         ) : null}
+        {isNew ? (
+          <span className="avatar-choice__new" aria-hidden="true">
+            {copy.avatar.newReward}
+          </span>
+        ) : null}
       </label>
     </div>
   );
 }
+
+export type UnlockInventoryState =
+  | { state: "loading"; items: [] }
+  | { state: "error"; items: [] }
+  | { state: "ready"; items: PlayerUnlock[] };
 
 function paletteName(key: AvatarPaletteKey): string {
   const names = copy.avatar.palette;
