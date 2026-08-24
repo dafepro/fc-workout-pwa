@@ -52,7 +52,7 @@ type PersonalActivityDay struct {
 type PersonalTrainingSummary struct {
 	WeeklySessions        int                   `json:"weeklySessions"`
 	WeeklyMomentumCredits int                   `json:"weeklyMomentumCredits"`
-	MomentumScore         int                   `json:"momentumScore"`
+	MomentumScore         float64               `json:"momentumScore"`
 	Rolling30Sessions     int                   `json:"rolling30Sessions"`
 	CurrentStreak         int                   `json:"currentStreak"`
 	CurrentCheckInStreak  int                   `json:"currentCheckInStreak"`
@@ -378,7 +378,7 @@ func weeklyMomentumCredits(entries []domain.ProjectionEntry, restDays []string, 
 	return credits
 }
 
-func momentumScore(activityCounts map[string]int, restDays []string, today time.Time) int {
+func momentumScore(activityCounts map[string]int, restDays []string, today time.Time) float64 {
 	rest := make(map[string]bool, len(restDays))
 	for _, dayKey := range restDays {
 		rest[dayKey] = true
@@ -396,7 +396,7 @@ func momentumScore(activityCounts map[string]int, restDays []string, today time.
 		}
 		total += credit * weight
 	}
-	return min(100, int(math.Round(total)))
+	return math.Min(100, math.Round(total*10)/10)
 }
 
 func dailyMomentumCredit(activityCount int, plannedRest bool) float64 {

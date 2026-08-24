@@ -62,6 +62,8 @@ A daily credit is worth four points for its first 28 days, then fades gradually
 to zero by day 56. There is no missed-day subtraction and the current streak is
 not part of the formula. This lets showing up move the score more than an
 isolated gap can affect it, while keeping the gauge recent rather than lifetime.
+The score keeps one decimal when needed so the third activity's half-point move
+does not disappear through whole-number rounding.
 
 The supporting continuity measure is the current **check-in streak**: the run of
 distinct team-local days with an approved activity or planned rest, ending today

@@ -748,7 +748,8 @@ Momentum Alpha needs independent PWA install/offline behavior.
   one-eighth, and later activities zero. Planned rest earns the first daily
   credit without stacking as another activity. Credits hold full weight for 28
   days, then fade gradually to zero by day 56; there is no missed-day deduction,
-  streak multiplier, result-value reward, or mutable balance.
+  streak multiplier, result-value reward, or mutable balance. One decimal is
+  retained when needed so the third activity's smaller effect remains visible.
 - Revised 2026-08-24: the supporting label is `check-in streak`, counting
   distinct consecutive team-local days with an approved activity or planned
   rest and ending today or yesterday. Merely opening the app does not count.

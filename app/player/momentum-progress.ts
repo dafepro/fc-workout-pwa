@@ -11,7 +11,7 @@ export interface MomentumProgress {
 }
 
 export function momentumProgress(momentumScore: number): MomentumProgress {
-  const score = Math.min(100, Math.max(0, Math.round(momentumScore)));
+  const score = Math.min(100, Math.max(0, Math.round(momentumScore * 10) / 10));
 
   return {
     score,

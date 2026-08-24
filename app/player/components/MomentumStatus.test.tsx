@@ -7,7 +7,7 @@ describe("MomentumStatus", () => {
   it("features the composite score and supporting check-in streak", () => {
     render(
       <MomentumStatus
-        momentumScore={68}
+        momentumScore={68.5}
         weeklyCheckIns={2}
         weeklyGoal={3}
         checkInStreak={4}
@@ -28,11 +28,11 @@ describe("MomentumStatus", () => {
     ).toBeInTheDocument();
 
     const gauge = screen.getByRole("progressbar", {
-      name: "Momentum: 68 out of 100",
+      name: "Momentum: 68.5 out of 100",
     });
-    expect(gauge).toHaveTextContent("68");
+    expect(gauge).toHaveTextContent("68.5");
     expect(gauge).toHaveTextContent("Momentum");
-    expect(gauge).toHaveAttribute("aria-valuenow", "68");
+    expect(gauge).toHaveAttribute("aria-valuenow", "68.5");
     expect(gauge).toHaveAttribute("aria-valuemax", "100");
   });
 

@@ -180,7 +180,7 @@ func TestTrainingDashboardBuildsMomentumWithDiminishingDailyActivities(t *testin
 		t.Fatal(err)
 	}
 
-	wantScores := []int{4, 5, 6, 6}
+	wantScores := []float64{4, 5, 5.5, 5.5}
 	for index, want := range wantScores {
 		stamp := now.Add(-time.Duration(index+1) * time.Minute)
 		if _, err := db.ExecContext(ctx, `INSERT INTO training_entries (
@@ -196,7 +196,7 @@ func TestTrainingDashboardBuildsMomentumWithDiminishingDailyActivities(t *testin
 			t.Fatal(err)
 		}
 		if projection.Summary.MomentumScore != want {
-			t.Fatalf("%d same-day activities produced Momentum %d, want %d", index+1, projection.Summary.MomentumScore, want)
+			t.Fatalf("%d same-day activities produced Momentum %v, want %v", index+1, projection.Summary.MomentumScore, want)
 		}
 		if projection.Summary.WeeklyMomentumCredits != 1 {
 			t.Fatalf("%d same-day activities produced %d weekly check-ins, want 1", index+1, projection.Summary.WeeklyMomentumCredits)
@@ -235,7 +235,7 @@ func TestTrainingDashboardCheckInStreakIncludesPlannedRest(t *testing.T) {
 		t.Fatalf("check-in streak = %d, want 4", projection.Summary.CurrentCheckInStreak)
 	}
 	if projection.Summary.MomentumScore != 16 {
-		t.Fatalf("four recent check-in days produced Momentum %d, want 16", projection.Summary.MomentumScore)
+		t.Fatalf("four recent check-in days produced Momentum %v, want 16", projection.Summary.MomentumScore)
 	}
 	if projection.Summary.WeeklyMomentumCredits != 3 {
 		t.Fatalf("weekly check-ins included an older rest day: %d", projection.Summary.WeeklyMomentumCredits)
@@ -270,8 +270,8 @@ func TestTrainingDashboardMomentumFadesOldCheckInsWithoutAMissedDayPenalty(t *te
 	if err != nil {
 		t.Fatal(err)
 	}
-	if projection.Summary.MomentumScore != 8 {
-		t.Fatalf("Momentum score = %d, want 8 from recent and gently aged check-ins", projection.Summary.MomentumScore)
+	if projection.Summary.MomentumScore != 8.1 {
+		t.Fatalf("Momentum score = %v, want 8.1 from recent and gently aged check-ins", projection.Summary.MomentumScore)
 	}
 }
 
@@ -313,7 +313,7 @@ func TestTrainingDashboardMomentumUsesTeamDaysAndIgnoresDeletedEntries(t *testin
 		t.Fatalf("team-local check-in streak = %d, want 2", projection.Summary.CurrentCheckInStreak)
 	}
 	if projection.Summary.MomentumScore != 8 {
-		t.Fatalf("Momentum score = %d, want 8", projection.Summary.MomentumScore)
+		t.Fatalf("Momentum score = %v, want 8", projection.Summary.MomentumScore)
 	}
 }
 

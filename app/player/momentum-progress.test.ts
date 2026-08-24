@@ -5,6 +5,7 @@ describe("Momentum score progress", () => {
   it.each([
     { score: 0, state: "ready", percentage: 0 },
     { score: 4, state: "started", percentage: 4 },
+    { score: 5.5, state: "started", percentage: 5.5 },
     { score: 25, state: "building", percentage: 25 },
     { score: 65, state: "on-a-roll", percentage: 65 },
     { score: 100, state: "on-a-roll", percentage: 100 },
@@ -23,5 +24,9 @@ describe("Momentum score progress", () => {
       percentage: 100,
       state: "on-a-roll",
     });
+  });
+
+  it("keeps one decimal so the third daily activity remains visible", () => {
+    expect(momentumProgress(42.54).score).toBe(42.5);
   });
 });
