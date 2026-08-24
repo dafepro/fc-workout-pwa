@@ -1,5 +1,6 @@
 import { consoleCopy } from "./copy";
 import { gatewayFor } from "../api/console-routes";
+import { devAccessCopy } from "../../dev-access/copy";
 
 export class ConsoleError extends Error {
   constructor(
@@ -76,6 +77,13 @@ async function send<T>(url: string, options: RequestOptions): Promise<T> {
     });
   } catch {
     throw new ConsoleError(0, "unreachable", consoleCopy.loadFailed);
+  }
+  if (response.redirected && /\/_dev-gate(?:\?|$)/.test(response.url)) {
+    throw new ConsoleError(
+      401,
+      "preview_access_expired",
+      devAccessCopy.sessionExpired,
+    );
   }
   const text = await response.text();
   let parsed: unknown = undefined;

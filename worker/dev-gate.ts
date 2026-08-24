@@ -1,3 +1,5 @@
+import { devAccessCopy } from "../app/dev-access/copy";
+
 export interface DevGateEnv {
   DEV_ACCESS_ENABLED?: string;
   DEV_ACCESS_PASSWORD?: string;
@@ -95,6 +97,21 @@ export async function gateDevRequest(
   const cookie = readCookie(request.headers.get("cookie"), cookieName);
   if (cookie && (await validSession(cookie, env.DEV_ACCESS_SESSION_KEY))) {
     return null;
+  }
+
+  if (
+    url.pathname.startsWith("/api/") ||
+    url.pathname.startsWith("/staff/api/")
+  ) {
+    return Response.json(
+      {
+        error: {
+          code: "preview_access_expired",
+          message: devAccessCopy.sessionExpired,
+        },
+      },
+      { status: 401, headers: privateHeaders() },
+    );
   }
 
   const next = safeNext(`${url.pathname}${url.search}`);

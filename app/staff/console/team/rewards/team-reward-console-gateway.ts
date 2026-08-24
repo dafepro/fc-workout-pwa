@@ -42,6 +42,13 @@ export async function createAndPublishTeamReward(
       },
     },
   );
+  if (!created || typeof created.id !== "string" || !created.id) {
+    throw new ConsoleError(
+      502,
+      "invalid_reward_response",
+      "The reward draft received an invalid response. Refresh and try again.",
+    );
+  }
   const publishPath = `v1/staff/teams/${teamId}/rewards/${created.id}/publish`;
   try {
     return await consoleRequest<StaffTeamReward>(publishPath, {
@@ -114,13 +121,26 @@ function rewardImageBlob(dataUrl: string) {
   const match = /^data:(image\/(?:png|jpeg));base64,([A-Za-z0-9+/=]+)$/.exec(
     dataUrl,
   );
-  if (!match) throw new Error("The selected reward image is invalid.");
-  const binary = atob(match[2]);
+  if (!match) throw invalidRewardImage();
+  let binary: string;
+  try {
+    binary = atob(match[2]);
+  } catch {
+    throw invalidRewardImage();
+  }
   const bytes = new Uint8Array(binary.length);
   for (let index = 0; index < binary.length; index++) {
     bytes[index] = binary.charCodeAt(index);
   }
   return new Blob([bytes], { type: match[1] });
+}
+
+function invalidRewardImage() {
+  return new ConsoleError(
+    422,
+    "reward_image_invalid",
+    "That image could not be prepared. Choose it again and retry.",
+  );
 }
 
 export function cancelConnectedTeamReward(

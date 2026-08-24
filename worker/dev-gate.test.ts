@@ -77,6 +77,25 @@ describe("gateDevRequest", () => {
     );
   });
 
+  it("returns a typed expiry error to background API requests", async () => {
+    const response = await gateDevRequest(
+      request("/staff/api/backend/v1/staff/teams/team-one/rewards", "US", {
+        method: "POST",
+      }),
+      env,
+    );
+
+    expect(response?.status).toBe(401);
+    expect(response?.headers.get("content-type")).toContain("application/json");
+    await expect(response?.json()).resolves.toEqual({
+      error: {
+        code: "preview_access_expired",
+        message:
+          "Preview access expired. Refresh this page and enter the shared preview password again.",
+      },
+    });
+  });
+
   it("lets a preview visitor reveal or hide the shared password", async () => {
     const response = await gateDevRequest(request("/_dev-gate", "US"), env);
     const html = await response?.text();

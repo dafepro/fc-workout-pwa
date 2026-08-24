@@ -13,4 +13,6 @@ export const devAccessCopy = {
   adminButton: "Sign in as administrator",
   signingIn: "Signing in…",
   adminError: "Administrator sign-in did not work. Try resetting the preview.",
+  sessionExpired:
+    "Preview access expired. Refresh this page and enter the shared preview password again.",
 } as const;

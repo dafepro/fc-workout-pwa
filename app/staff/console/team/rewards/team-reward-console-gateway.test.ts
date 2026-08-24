@@ -144,6 +144,38 @@ describe("staff team reward gateway", () => {
       JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body)),
     ).toMatchObject({ mediaId: "media-one" });
   });
+
+  it("reports an invalid local image before making a request", async () => {
+    const draft = {
+      ...createPrototypeReward("team-one"),
+      imageDataUrl: "data:image/heic;base64,aGVsbG8=",
+    };
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      createAndPublishTeamReward("team-one", draft),
+    ).rejects.toMatchObject({
+      code: "reward_image_invalid",
+      message: "That image could not be prepared. Choose it again and retry.",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("does not publish when draft creation returns an invalid response", async () => {
+    const draft = createPrototypeReward("team-one");
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse({}, 201));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      createAndPublishTeamReward("team-one", draft),
+    ).rejects.toMatchObject({
+      code: "invalid_reward_response",
+      message:
+        "The reward draft received an invalid response. Refresh and try again.",
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 });
 
 function jsonResponse(value: unknown, status: number) {
