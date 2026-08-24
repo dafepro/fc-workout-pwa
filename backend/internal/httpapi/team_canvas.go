@@ -149,7 +149,12 @@ func (service *service) recordTeamCanvasRest(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	teamID := r.PathValue("teamId")
-	err := service.store.RecordTeamCanvasRest(r.Context(), actor, teamID, service.now().UTC())
+	var request store.TeamCanvasRestRequest
+	if err := decodeStrictJSON(w, r, &request); err != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid_request", "The planned rest request is invalid.")
+		return
+	}
+	err := service.store.RecordTeamCanvasRest(r.Context(), actor, teamID, request, service.now().UTC())
 	if service.writeTeamCanvasError(w, r, err) {
 		return
 	}
@@ -384,6 +389,8 @@ func (service *service) writeTeamCanvasError(w http.ResponseWriter, r *http.Requ
 		writeError(w, r, http.StatusUnprocessableEntity, "canvas_reward_unavailable", "That stamp reward is unavailable.")
 	case errors.Is(err, store.ErrTeamCanvasSettingsInvalid):
 		writeError(w, r, http.StatusUnprocessableEntity, "canvas_settings_invalid", "Choose approved canvas settings.")
+	case errors.Is(err, store.ErrTeamCanvasRestUnavailable):
+		writeError(w, r, http.StatusUnprocessableEntity, "canvas_rest_unavailable", "That planned rest is unavailable. Refresh the plan and try again.")
 	default:
 		writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")
 	}

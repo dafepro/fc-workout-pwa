@@ -87,7 +87,48 @@ func TestMigrateUpgradesAnExistingFoundationDatabase(t *testing.T) {
 	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM schema_migrations`).Scan(&migrationCount); err != nil {
 		t.Fatal(err)
 	}
-	if migrationCount != 21 {
-		t.Fatalf("migration count = %d, want 21", migrationCount)
+	if migrationCount != 22 {
+		t.Fatalf("migration count = %d, want 22", migrationCount)
+	}
+}
+
+func TestPlanCompletionMigrationPreservesPopulatedEntriesAndRestDays(t *testing.T) {
+	ctx := context.Background()
+	databaseURL := "file:" + filepath.ToSlash(filepath.Join(t.TempDir(), "populated-provenance.db"))
+	db, err := Open(ctx, databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if _, err = db.ExecContext(ctx, `CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL);
+		INSERT INTO schema_migrations (version, applied_at) VALUES (22, '2026-08-24T00:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+	if err = Migrate(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = db.ExecContext(ctx, `INSERT INTO clubs (id, name, created_at) VALUES ('club-migration', 'Migration Club', '2026-08-24T00:00:00Z');
+		INSERT INTO teams (id, club_id, name, season_id, time_zone, weekly_default_goal, created_at) VALUES ('team-migration', 'club-migration', 'Migration Team', 'season-migration', 'UTC', 3, '2026-08-24T00:00:00Z');
+		INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-migration', 'club-migration', 'Pat', 'M', '{}', '2026-08-24T00:00:00Z');
+		INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-migration', 'player-migration', '2026-08-24');
+		INSERT INTO training_entries (id, player_id, team_id, activity_definition_id, occurred_at, result_value, result_unit, effort_level, exhaustion_level, created_at, delete_eligible_until) VALUES ('entry-migration', 'player-migration', 'team-migration', 'hill-sprints', '2026-08-24T12:00:00Z', 8, 'reps', 4, 3, '2026-08-24T12:00:00Z', '2026-08-25T12:00:00Z');
+		INSERT INTO team_canvas_rest_days (team_id, player_id, day_key, created_at) VALUES ('team-migration', 'player-migration', '2026-08-24', '2026-08-24T12:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = db.ExecContext(ctx, `DELETE FROM schema_migrations WHERE version = 22`); err != nil {
+		t.Fatal(err)
+	}
+	if err = Migrate(ctx, db); err != nil {
+		t.Fatalf("upgrade populated database to plan provenance: %v", err)
+	}
+	var entryCount, restCount int
+	if err = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM training_entries WHERE id = 'entry-migration' AND training_plan_id IS NULL`).Scan(&entryCount); err != nil {
+		t.Fatal(err)
+	}
+	if err = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM team_canvas_rest_days WHERE player_id = 'player-migration' AND training_plan_id IS NULL`).Scan(&restCount); err != nil {
+		t.Fatal(err)
+	}
+	if entryCount != 1 || restCount != 1 {
+		t.Fatalf("populated rows were not preserved: entries=%d rest=%d", entryCount, restCount)
 	}
 }

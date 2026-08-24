@@ -48,6 +48,33 @@ describe("connected Team Canvas training", () => {
               },
             ],
             currentAssignment: null,
+            currentPlanDay: {
+              planId: "plan-new",
+              dayIndex: 2,
+              templateName: "Balanced week",
+              occursOn: "2026-08-23",
+              kind: "training",
+              focus: "speed",
+              durationMinutes: 20,
+              intensity: "hard",
+              completed: false,
+              blocks: [
+                {
+                  blockIndex: 0,
+                  activityDefinitionId: "timed-run-walk",
+                  label: "Warm up",
+                  durationMinutes: 8,
+                  completed: true,
+                },
+                {
+                  blockIndex: 1,
+                  activityDefinitionId: "hill-sprints",
+                  label: "Hill sprints",
+                  durationMinutes: 12,
+                  completed: false,
+                },
+              ],
+            },
             summary: {},
             teamPulse: {
               activeThisWeek: 0,
@@ -121,6 +148,7 @@ describe("connected Team Canvas training", () => {
     expect(create).toBeDefined();
     expect(JSON.parse(String(create?.init?.body))).toMatchObject({
       activityDefinitionId: "hill-sprints",
+      plan: { planId: "plan-new", dayIndex: 2, blockIndex: 1 },
       result: { kind: "repetitions", value: 8, unit: "reps" },
       effortLevel: 4,
       exhaustionLevel: 3,

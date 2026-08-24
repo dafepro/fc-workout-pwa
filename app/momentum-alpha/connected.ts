@@ -69,7 +69,7 @@ export function connectedMomentumModel(
   const assignment = planDay ? null : dashboard.currentAssignment;
   const plannedActivityID =
     planDay && planDay.kind !== "rest"
-      ? planDay.blocks[0]?.activityDefinitionId
+      ? planDay.blocks.find((block) => !block.completed)?.activityDefinitionId
       : undefined;
   const primaryActivity = plannedActivityID
     ? (dashboard.activities.find(
@@ -194,11 +194,20 @@ export function momentumCompletionInput(
       ? steppedValue(target * 1.25, activity.step, activity.max)
       : target;
   const levels = feelingLevels(input.feeling);
+  const planBlock = model.planDay?.blocks.find((block) => !block.completed);
 
   return {
     activityId: activity.id,
     assignmentId:
       input.planSelection === "prescribed" ? model.assignment?.id : undefined,
+    plan:
+      input.planSelection === "prescribed" && model.planDay && planBlock
+        ? {
+            planId: model.planDay.planId,
+            dayIndex: model.planDay.dayIndex,
+            blockIndex: planBlock.blockIndex,
+          }
+        : undefined,
     occurredAt: model.now.toISOString(),
     value,
     unit: activity.unit,

@@ -36,6 +36,13 @@ export interface TrainingEntry {
   createdAt: string;
   deleteEligibleUntil: string;
   assignmentId?: string;
+  plan?: TrainingPlanProvenance;
+}
+
+export interface TrainingPlanProvenance {
+  planId: string;
+  dayIndex: number;
+  blockIndex: number;
 }
 
 export type TrainingEntryInput = Pick<
@@ -49,6 +56,7 @@ export type TrainingEntryInput = Pick<
 > & {
   inputKind: InputKind;
   assignmentId?: string;
+  plan?: TrainingPlanProvenance;
 };
 
 export interface ActivityDay {
@@ -74,6 +82,7 @@ export interface TrainingAssignment {
 
 export interface CurrentTrainingPlanDay {
   planId: string;
+  dayIndex: number;
   templateName: string;
   occursOn: string;
   kind: "training" | "recovery" | "rest";
@@ -82,9 +91,11 @@ export interface CurrentTrainingPlanDay {
   intensity: "easy" | "steady" | "hard";
   completed: boolean;
   blocks: {
+    blockIndex: number;
     activityDefinitionId: ActivityId;
     label: string;
     durationMinutes: number;
+    completed: boolean;
   }[];
 }
 

@@ -23,6 +23,7 @@ var (
 	ErrTeamCanvasRewardUnavailable = errors.New("team canvas reward is unavailable")
 	ErrTeamCanvasPieceUnavailable  = errors.New("team canvas piece is unavailable")
 	ErrTeamCanvasSettingsInvalid   = errors.New("team canvas settings are invalid")
+	ErrTeamCanvasRestUnavailable   = errors.New("team canvas planned rest is unavailable")
 )
 
 type TeamCanvasPosition struct {
@@ -165,7 +166,12 @@ func (store *Store) TeamCanvas(ctx context.Context, actor domain.Actor, teamID s
 	}, nil
 }
 
-func (store *Store) RecordTeamCanvasRest(ctx context.Context, actor domain.Actor, teamID string, now time.Time) error {
+type TeamCanvasRestRequest struct {
+	PlanID   string `json:"planId"`
+	DayIndex int    `json:"dayIndex"`
+}
+
+func (store *Store) RecordTeamCanvasRest(ctx context.Context, actor domain.Actor, teamID string, request TeamCanvasRestRequest, now time.Time) error {
 	if actor.Role != domain.RolePlayer || actor.PlayerID == "" {
 		return ErrTeamCanvasUnavailable
 	}
@@ -177,11 +183,68 @@ func (store *Store) RecordTeamCanvasRest(ctx context.Context, actor domain.Actor
 		return err
 	}
 	dayKey := now.In(location).Format("2006-01-02")
+	var planDayCount, plannedRestCount int
+	err = store.db.QueryRowContext(ctx, `SELECT COUNT(*)
+		FROM training_plans p
+		JOIN training_plan_days d ON d.plan_id = p.id
+		WHERE p.team_id = ? AND p.status = 'published' AND d.occurs_on = ?`,
+		teamID, dayKey).Scan(&planDayCount)
+	if err != nil {
+		return err
+	}
+	if request.PlanID != "" {
+		err = store.db.QueryRowContext(ctx, `SELECT COUNT(*)
+		FROM training_plans p
+		JOIN training_plan_days d ON d.plan_id = p.id
+		WHERE p.id = ? AND p.team_id = ? AND p.status = 'published'
+		  AND d.day_index = ? AND d.occurs_on = ? AND d.kind = 'rest'`,
+			request.PlanID, teamID, request.DayIndex, dayKey).Scan(&plannedRestCount)
+		if err != nil {
+			return err
+		}
+	}
+	if (request.PlanID == "" && planDayCount != 0) || (request.PlanID != "" && plannedRestCount != 1) {
+		return ErrTeamCanvasRestUnavailable
+	}
 	_, err = store.db.ExecContext(ctx, `INSERT INTO team_canvas_rest_days
-		(team_id, player_id, day_key, created_at) VALUES (?, ?, ?, ?)
-		ON CONFLICT(team_id, player_id, day_key) DO NOTHING`,
-		teamID, actor.PlayerID, dayKey, now.UTC().Format(time.RFC3339Nano))
-	return err
+		(team_id, player_id, day_key, created_at, training_plan_id, training_plan_day_index)
+		VALUES (?, ?, ?, ?, ?, ?)
+		ON CONFLICT(team_id, player_id, day_key) DO UPDATE SET
+			training_plan_id = excluded.training_plan_id,
+			training_plan_day_index = excluded.training_plan_day_index
+		WHERE team_canvas_rest_days.training_plan_id IS NULL`,
+		teamID, actor.PlayerID, dayKey, now.UTC().Format(time.RFC3339Nano), nullablePlanID(request.PlanID), nullablePlanDayIndex(request.PlanID, request.DayIndex))
+	if err != nil {
+		return err
+	}
+	if request.PlanID == "" {
+		return nil
+	}
+	var storedPlanID sql.NullString
+	var storedDayIndex sql.NullInt64
+	if err = store.db.QueryRowContext(ctx, `SELECT training_plan_id, training_plan_day_index
+		FROM team_canvas_rest_days WHERE team_id = ? AND player_id = ? AND day_key = ?`,
+		teamID, actor.PlayerID, dayKey).Scan(&storedPlanID, &storedDayIndex); err != nil {
+		return err
+	}
+	if !storedPlanID.Valid || !storedDayIndex.Valid || storedPlanID.String != request.PlanID || int(storedDayIndex.Int64) != request.DayIndex {
+		return ErrTeamCanvasRestUnavailable
+	}
+	return nil
+}
+
+func nullablePlanID(planID string) any {
+	if planID == "" {
+		return nil
+	}
+	return planID
+}
+
+func nullablePlanDayIndex(planID string, dayIndex int) any {
+	if planID == "" {
+		return nil
+	}
+	return dayIndex
 }
 
 func (store *Store) UpdateTeamCanvasAvatar(ctx context.Context, actor domain.Actor, teamID string, position TeamCanvasPosition, now time.Time) (TeamCanvasPosition, error) {

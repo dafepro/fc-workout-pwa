@@ -84,7 +84,7 @@ type Repository interface {
 	Leaderboard(context.Context, domain.Actor, string, domain.LeaderboardPeriod, domain.LeaderboardMetric, time.Time) (store.LeaderboardProjection, error)
 	TrainingDashboard(context.Context, domain.Actor, string, time.Time) (store.TrainingDashboardProjection, error)
 	TeamCanvas(context.Context, domain.Actor, string, time.Time) (store.TeamCanvasProjection, error)
-	RecordTeamCanvasRest(context.Context, domain.Actor, string, time.Time) error
+	RecordTeamCanvasRest(context.Context, domain.Actor, string, store.TeamCanvasRestRequest, time.Time) error
 	UpdateTeamCanvasAvatar(context.Context, domain.Actor, string, store.TeamCanvasPosition, time.Time) (store.TeamCanvasPosition, error)
 	CreateTeamCanvasPiece(context.Context, domain.Actor, string, string, time.Time) (store.TeamCanvasPiece, error)
 	CreateTeamCanvasPieceForDevelopment(context.Context, domain.Actor, string, string, time.Time) (store.TeamCanvasPiece, error)
@@ -360,6 +360,8 @@ func (service *service) createTrainingEntry(w http.ResponseWriter, r *http.Reque
 			writeError(w, r, http.StatusUnprocessableEntity, "entry_membership_inactive", "You were not an active member of this team on that date. Choose another date or ask an adult for help.")
 		case errors.Is(err, store.ErrEntryAssignmentUnavailable):
 			writeError(w, r, http.StatusUnprocessableEntity, "entry_assignment_unavailable", "That assignment is unavailable.")
+		case errors.Is(err, store.ErrEntryPlanUnavailable):
+			writeError(w, r, http.StatusUnprocessableEntity, "entry_plan_unavailable", "That coach plan step is unavailable. Refresh the plan and try again.")
 		case errors.Is(err, store.ErrEntryLevelsNotAllowed):
 			writeError(w, r, http.StatusUnprocessableEntity, "entry_feelings_not_allowed", "Effort and exhaustion must use the seven-step scale.")
 		default:

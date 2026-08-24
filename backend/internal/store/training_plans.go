@@ -17,9 +17,11 @@ type TrainingPlanInput struct {
 }
 
 type TrainingPlanBlock struct {
+	BlockIndex           int    `json:"blockIndex"`
 	ActivityDefinitionID string `json:"activityDefinitionId"`
 	Label                string `json:"label"`
 	DurationMinutes      int    `json:"durationMinutes"`
+	Completed            bool   `json:"completed"`
 }
 
 type TrainingPlanDay struct {
@@ -203,7 +205,7 @@ func loadTrainingPlan(ctx context.Context, query trainingPlanQueryer, id string)
 }
 
 func loadTrainingPlanBlocks(ctx context.Context, query trainingPlanQueryer, planID string, dayIndex int) ([]TrainingPlanBlock, error) {
-	rows, err := query.QueryContext(ctx, `SELECT activity_definition_id, label, duration_minutes
+	rows, err := query.QueryContext(ctx, `SELECT block_index, activity_definition_id, label, duration_minutes
 		FROM training_plan_blocks WHERE plan_id = ? AND day_index = ? ORDER BY block_index`, planID, dayIndex)
 	if err != nil {
 		return nil, err
@@ -212,7 +214,7 @@ func loadTrainingPlanBlocks(ctx context.Context, query trainingPlanQueryer, plan
 	blocks := []TrainingPlanBlock{}
 	for rows.Next() {
 		var block TrainingPlanBlock
-		if err = rows.Scan(&block.ActivityDefinitionID, &block.Label, &block.DurationMinutes); err != nil {
+		if err = rows.Scan(&block.BlockIndex, &block.ActivityDefinitionID, &block.Label, &block.DurationMinutes); err != nil {
 			return nil, err
 		}
 		blocks = append(blocks, block)

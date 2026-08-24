@@ -77,7 +77,7 @@ func TestTrainingDashboardProjectsPublishedTrainingAndRestDays(t *testing.T) {
 		wantKind  string
 		completed bool
 	}{
-		{name: "training activity", startsOn: "2026-08-12", wantKind: "training", completed: true},
+		{name: "training activity", startsOn: "2026-08-12", wantKind: "training", completed: false},
 		{name: "planned rest", startsOn: "2026-08-09", wantKind: "rest", completed: false},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -101,7 +101,8 @@ func TestTrainingDashboardProjectsPublishedTrainingAndRestDays(t *testing.T) {
 				t.Fatalf("unexpected current plan day: %+v", projection.CurrentPlanDay)
 			}
 			if test.wantKind == "training" && (len(projection.CurrentPlanDay.Blocks) != 1 ||
-				projection.CurrentPlanDay.Blocks[0].ActivityDefinitionID != "hill-sprints") {
+				projection.CurrentPlanDay.Blocks[0].ActivityDefinitionID != "hill-sprints" ||
+				projection.CurrentPlanDay.Blocks[0].Completed) {
 				t.Fatalf("unexpected current plan blocks: %+v", projection.CurrentPlanDay.Blocks)
 			}
 		})
@@ -134,7 +135,7 @@ func TestTrainingDashboardProjectsYesterdayTodayAndTomorrowFromOnePlan(t *testin
 	if window.TemplateName != "In-season balance" || window.DayNumber != 2 || window.DayCount != 7 {
 		t.Fatalf("unexpected plan identity: %+v", window)
 	}
-	if window.Yesterday == nil || window.Yesterday.OccursOn != "2026-08-11" || !window.Yesterday.Completed {
+	if window.Yesterday == nil || window.Yesterday.OccursOn != "2026-08-11" || window.Yesterday.Completed {
 		t.Fatalf("unexpected yesterday: %+v", window.Yesterday)
 	}
 	if window.Today.OccursOn != "2026-08-12" || window.Today.Kind != "recovery" || window.Today.Completed {

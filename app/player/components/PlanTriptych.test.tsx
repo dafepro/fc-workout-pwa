@@ -11,6 +11,7 @@ const window: TrainingPlanWindow = {
   dayCount: 7,
   yesterday: {
     planId: "plan-one",
+    dayIndex: 0,
     templateName: "Speed and recovery",
     occursOn: "2026-08-23",
     kind: "training",
@@ -20,14 +21,17 @@ const window: TrainingPlanWindow = {
     completed: true,
     blocks: [
       {
+        blockIndex: 0,
         activityDefinitionId: "hill-sprints",
         label: "Hill sprints",
         durationMinutes: 12,
+        completed: true,
       },
     ],
   },
   today: {
     planId: "plan-one",
+    dayIndex: 1,
     templateName: "Speed and recovery",
     occursOn: "2026-08-24",
     kind: "recovery",
@@ -37,14 +41,17 @@ const window: TrainingPlanWindow = {
     completed: false,
     blocks: [
       {
+        blockIndex: 0,
         activityDefinitionId: "recovery-walk-jog",
         label: "Recovery walk or jog",
         durationMinutes: 15,
+        completed: false,
       },
     ],
   },
   tomorrow: {
     planId: "plan-one",
+    dayIndex: 2,
     templateName: "Speed and recovery",
     occursOn: "2026-08-25",
     kind: "rest",

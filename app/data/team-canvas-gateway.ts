@@ -58,7 +58,7 @@ export interface ConnectedTeamCanvasProjection {
 
 export interface TeamCanvasGateway {
   load(): Promise<ConnectedTeamCanvasProjection>;
-  recordRest(): Promise<void>;
+  recordRest(plan: { planId: string; dayIndex: number }): Promise<void>;
   moveAvatar(position: BoardPosition): Promise<BoardPosition>;
   createPiece(assetID: string): Promise<ProjectedBoardPiece>;
   updatePiece(
@@ -142,8 +142,11 @@ class HTTPTeamCanvasGateway implements TeamCanvasGateway {
     };
   }
 
-  async recordRest(): Promise<void> {
-    await this.request("/rest", { method: "POST", body: "{}" });
+  async recordRest(plan: { planId: string; dayIndex: number }): Promise<void> {
+    await this.request("/rest", {
+      method: "POST",
+      body: JSON.stringify(plan),
+    });
   }
 
   async moveAvatar(position: BoardPosition): Promise<BoardPosition> {

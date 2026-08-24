@@ -169,8 +169,9 @@ export function TrainingProvider({
     async (entryId: string) => {
       await trainingEntryGateway.delete(entryId);
       setEntries((current) => current.filter((entry) => entry.id !== entryId));
+      if (connected) await refreshDashboard();
     },
-    [trainingEntryGateway],
+    [connected, refreshDashboard, trainingEntryGateway],
   );
 
   const sendReaction = useCallback(

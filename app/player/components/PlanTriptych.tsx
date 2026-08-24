@@ -58,7 +58,9 @@ function DayBookend({
   const activity =
     day.kind === "rest"
       ? "Rest"
-      : (day.blocks[0]?.label ?? focusLabel(day.focus));
+      : (day.blocks.find((block) => !block.completed)?.label ??
+        day.blocks.at(-1)?.label ??
+        focusLabel(day.focus));
   const state =
     position === "tomorrow"
       ? "Preview"

@@ -18,8 +18,8 @@ changes a large vertical slice.
 | A     | Daily Drop can be opened safely from Today                                                        | Existing claim API            | Delivered   |
 | B     | One shared inventory governs avatar options                                                       | A                             | Delivered   |
 | C     | The Team Canvas consumes shared stamp unlocks through its port                                    | A                             | Delivered   |
-| D     | Coach-plan logging records authoritative day and block provenance                                 | Existing plan projection      | Next        |
-| E     | Three-day and seven-day plan participation grants claimable drops                                 | A, D                          | Not started |
+| D     | Coach-plan logging records authoritative day and block provenance                                 | Existing plan projection      | Delivered   |
+| E     | Three-day and seven-day plan participation grants claimable drops                                 | A, D                          | Next        |
 | F     | Coaches can safely edit future plan days and players receive an explained fallback recommendation | D                             | Not started |
 | G     | Team Rewards has correction, moderation, and deduplicated staff notification operations           | Existing durable reward slice | Not started |
 | H     | Team Canvas has a production library boundary and multi-replica room strategy                     | C                             | Not started |
@@ -97,15 +97,15 @@ backend-owned plan rather than prototype state.
 
 Completion gates:
 
-- [ ] Add populated-database-tested provenance columns and indexes.
-- [ ] Accept provenance only when player, team, date, activity, plan snapshot,
+- [x] Add populated-database-tested provenance columns and indexes.
+- [x] Accept provenance only when player, team, date, activity, plan snapshot,
       day, and block all match.
-- [ ] Make repeated submissions idempotent without marking another block done.
-- [ ] Project completion per block and per day.
-- [ ] Make the triptych action select the first unfinished block.
-- [ ] Record planned rest against the same plan-day contract.
-- [ ] Recalculate unlatched completion after an eligible entry deletion.
-- [ ] Remove connected-mode dependence on Momentum/Canvas mock completion state.
+- [x] Make repeated submissions idempotent without marking another block done.
+- [x] Project completion per block and per day.
+- [x] Make the triptych action select the first unfinished block.
+- [x] Record planned rest against the same plan-day contract.
+- [x] Recalculate unlatched completion after an eligible entry deletion.
+- [x] Remove connected-mode dependence on Momentum/Canvas mock completion state.
 
 ## Slice E — plan participation drops
 
@@ -196,13 +196,12 @@ app/
 backend/
   internal/
     domain/
-      plan_completion.go                # Slice D
       plan_rewards.go                   # Slice E
     notifications/
       outbox.go                         # Slice G
       mailer.go
   migrations/
-    0000NN_plan_completion_provenance.*.sql
+    000022_plan_completion_provenance.*.sql
     0000NN_reward_notification_outbox.*.sql
 docs/
   PRODUCTION_FEATURE_COMPLETION_TRACKER.md
@@ -212,12 +211,13 @@ docs/
 
 Add one entry per completed or materially changed vertical slice.
 
-| Date       | Slice                       | Revision             | Evidence                                                                                                                         | Remaining                         |
-| ---------- | --------------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
-| 2026-08-24 | Tracker baseline            | `0f67ef5`            | Audited current branch contracts and linked designs                                                                              | Slices A–H                        |
-| 2026-08-24 | A · Daily Drop player loop  | `19e3b9d`            | 11 focused UI/gateway/proxy tests; Daily Drop store/reset tests; connected 320px Docker browser flow; typecheck, lint, and build | Shared inventory consumers in B/C |
-| 2026-08-24 | B · Shared Avatar inventory | `f158466`            | Inventory gateway and Studio component tests; viewed idempotency; save ownership; retired catalog and legacy coverage            | Canvas inventory adapter in C     |
-| 2026-08-24 | C · Shared Canvas inventory | This delivery commit | Adapter contract and tray interaction tests; backend ownership enforcement; placement-slot separation and safe catalog fallback  | Plan provenance in D              |
+| Date       | Slice                       | Revision             | Evidence                                                                                                                          | Remaining                         |
+| ---------- | --------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| 2026-08-24 | Tracker baseline            | `0f67ef5`            | Audited current branch contracts and linked designs                                                                               | Slices A–H                        |
+| 2026-08-24 | A · Daily Drop player loop  | `19e3b9d`            | 11 focused UI/gateway/proxy tests; Daily Drop store/reset tests; connected 320px Docker browser flow; typecheck, lint, and build  | Shared inventory consumers in B/C |
+| 2026-08-24 | B · Shared Avatar inventory | `f158466`            | Inventory gateway and Studio component tests; viewed idempotency; save ownership; retired catalog and legacy coverage             | Canvas inventory adapter in C     |
+| 2026-08-24 | C · Shared Canvas inventory | `cb2693f`            | Adapter contract and tray interaction tests; backend ownership enforcement; placement-slot separation and safe catalog fallback   | Plan provenance in D              |
+| 2026-08-24 | D · Coach-plan provenance   | This delivery commit | Populated migration; exact plan/day/block and rest validation; per-block projection; idempotency and deletion recalculation tests | Plan participation drops in E     |
 
 ## Linked designs
 

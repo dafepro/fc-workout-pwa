@@ -72,6 +72,7 @@ class LocalTrainingDashboardGateway implements TrainingDashboardGateway {
     };
     const planDay = {
       planId: "prototype-plan",
+      dayIndex: 2,
       templateName: "Speed and recovery",
       occursOn: dateAt(0),
       kind: "training" as const,
@@ -81,9 +82,11 @@ class LocalTrainingDashboardGateway implements TrainingDashboardGateway {
       completed: false,
       blocks: [
         {
+          blockIndex: 0,
           activityDefinitionId: "hill-sprints" as const,
           label: "Hill sprints",
           durationMinutes: 12,
+          completed: false,
         },
       ],
     };
@@ -103,6 +106,7 @@ class LocalTrainingDashboardGateway implements TrainingDashboardGateway {
         dayCount: 7,
         yesterday: {
           ...planDay,
+          dayIndex: 1,
           occursOn: dateAt(-1),
           kind: "recovery",
           focus: "recovery",
@@ -111,15 +115,18 @@ class LocalTrainingDashboardGateway implements TrainingDashboardGateway {
           completed: true,
           blocks: [
             {
+              blockIndex: 0,
               activityDefinitionId: "recovery-walk-jog",
               label: "Recovery walk or jog",
               durationMinutes: 15,
+              completed: true,
             },
           ],
         },
         today: planDay,
         tomorrow: {
           ...planDay,
+          dayIndex: 3,
           occursOn: dateAt(1),
           kind: "rest",
           focus: "recovery",

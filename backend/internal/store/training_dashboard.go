@@ -83,6 +83,7 @@ type StreakComparisonProjection struct {
 
 type CurrentTrainingPlanDay struct {
 	PlanID          string              `json:"planId"`
+	DayIndex        int                 `json:"dayIndex"`
 	TemplateName    string              `json:"templateName"`
 	OccursOn        string              `json:"occursOn"`
 	Kind            string              `json:"kind"`
@@ -233,6 +234,7 @@ func (store *Store) trainingPlanDay(ctx context.Context, planID, playerID, teamI
 	if err != nil {
 		return nil, 0, fmt.Errorf("load training plan day: %w", err)
 	}
+	item.DayIndex = dayIndex
 	item.Blocks, err = loadTrainingPlanBlocks(ctx, store.db, item.PlanID, dayIndex)
 	if err != nil {
 		return nil, 0, err
@@ -241,23 +243,22 @@ func (store *Store) trainingPlanDay(ctx context.Context, planID, playerID, teamI
 		err = store.db.QueryRowContext(ctx, `SELECT EXISTS (
 			SELECT 1 FROM team_canvas_rest_days
 			WHERE team_id = ? AND player_id = ? AND day_key = ?
-		)`, teamID, playerID, teamDay).Scan(&item.Completed)
+			  AND training_plan_id = ? AND training_plan_day_index = ?
+		)`, teamID, playerID, teamDay, item.PlanID, dayIndex).Scan(&item.Completed)
 	} else {
-		dayStart, parseErr := time.ParseInLocation("2006-01-02", teamDay, location)
-		if parseErr != nil {
-			return nil, 0, fmt.Errorf("parse training plan team day: %w", parseErr)
-		}
-		err = store.db.QueryRowContext(ctx, `SELECT NOT EXISTS (
-			SELECT 1 FROM training_plan_blocks b
-			WHERE b.plan_id = ? AND b.day_index = ? AND NOT EXISTS (
+		item.Completed = len(item.Blocks) > 0
+		for index := range item.Blocks {
+			err = store.db.QueryRowContext(ctx, `SELECT EXISTS (
 				SELECT 1 FROM training_entries e
 				WHERE e.player_id = ? AND e.team_id = ? AND e.deleted_at IS NULL
-				  AND e.activity_definition_id = b.activity_definition_id
-				  AND julianday(e.occurred_at) >= julianday(?)
-				  AND julianday(e.occurred_at) < julianday(?)
-			)
-		)`, item.PlanID, dayIndex, playerID, teamID,
-			dayStart.UTC().Format(time.RFC3339Nano), dayStart.AddDate(0, 0, 1).UTC().Format(time.RFC3339Nano)).Scan(&item.Completed)
+				  AND e.training_plan_id = ? AND e.training_plan_day_index = ?
+				  AND e.training_plan_block_index = ?
+			)`, playerID, teamID, item.PlanID, dayIndex, item.Blocks[index].BlockIndex).Scan(&item.Blocks[index].Completed)
+			if err != nil {
+				break
+			}
+			item.Completed = item.Completed && item.Blocks[index].Completed
+		}
 	}
 	if err != nil {
 		return nil, 0, fmt.Errorf("load training plan completion: %w", err)

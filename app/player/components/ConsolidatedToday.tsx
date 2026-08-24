@@ -14,6 +14,7 @@ import { MomentumStatus } from "./MomentumStatus";
 import { DailyDropCard } from "./DailyDropCard";
 import { TeamPulse } from "./TeamPulse";
 import { WhatsNext } from "./WhatsNext";
+import type { TrainingDashboard } from "../../domain/types";
 
 const prototypePulse = {
   activeThisWeek: 8,
@@ -36,7 +37,7 @@ export function ConsolidatedToday() {
   const livePlanComplete =
     canvas.connectedStatus === "local"
       ? canvas.state.primaryComplete
-      : canvas.connectedStatus === "ready" || momentum.state.primaryComplete;
+      : connectedTodayComplete(training?.dashboard ?? null);
   const restDay =
     dev.settings.today === "rest" ||
     (dev.settings.today === "real" &&
@@ -161,5 +162,15 @@ export function ConsolidatedToday() {
         }
       />
     </div>
+  );
+}
+
+export function connectedTodayComplete(
+  dashboard: TrainingDashboard | null,
+): boolean {
+  return (
+    dashboard?.currentPlanDay?.completed ??
+    dashboard?.currentAssignment?.completed ??
+    false
   );
 }

@@ -162,6 +162,7 @@ describe("connected Momentum", () => {
         ...dashboard,
         currentPlanDay: {
           planId: "plan-one",
+          dayIndex: 0,
           templateName: "Return to rhythm",
           occursOn: "2026-08-21",
           kind: "training",
@@ -171,9 +172,11 @@ describe("connected Momentum", () => {
           completed: false,
           blocks: [
             {
+              blockIndex: 0,
               activityDefinitionId: "timed-run-walk",
               label: "Timed run or walk",
               durationMinutes: 20,
+              completed: false,
             },
           ],
         },
@@ -207,6 +210,7 @@ describe("connected Momentum", () => {
         ...dashboard,
         currentPlanDay: {
           planId: "plan-one",
+          dayIndex: 0,
           templateName: "In-season balance",
           occursOn: "2026-08-21",
           kind: "rest",

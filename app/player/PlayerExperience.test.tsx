@@ -23,7 +23,10 @@ import { TeamCanvasProvider } from "../team-canvas/state";
 import { PlayerShell } from "./PlayerShell";
 import { PlayerDevConsole } from "./components/PlayerDevConsole";
 import { ConsolidatedTeam } from "./components/ConsolidatedTeam";
-import { ConsolidatedToday } from "./components/ConsolidatedToday";
+import {
+  connectedTodayComplete,
+  ConsolidatedToday,
+} from "./components/ConsolidatedToday";
 import { PreviousViews } from "./components/PreviousViews";
 import { PlayerDevSettingsProvider } from "./dev/PlayerDevSettings";
 
@@ -62,6 +65,21 @@ function renderExperience(
 }
 
 describe("consolidated default player experience", () => {
+  it("does not treat a loaded connected canvas as plan completion", () => {
+    expect(
+      connectedTodayComplete({
+        currentPlanDay: { completed: false },
+        currentAssignment: { completed: true },
+      } as never),
+    ).toBe(false);
+    expect(
+      connectedTodayComplete({
+        currentPlanDay: { completed: true },
+        currentAssignment: null,
+      } as never),
+    ).toBe(true);
+  });
+
   it("uses a persistent Today, Team, and Me navigation", () => {
     renderExperience(
       <PlayerShell>

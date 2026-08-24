@@ -28,6 +28,11 @@ interface APITrainingEntry {
   teamId: string;
   activityDefinitionId: ActivityId;
   assignmentId: string | null;
+  plan: {
+    planId: string;
+    dayIndex: number;
+    blockIndex: number;
+  } | null;
   occurredAt: string;
   result: {
     kind: "repetitions" | "duration" | "distance";
@@ -71,6 +76,7 @@ class HTTPTrainingEntryGateway implements TrainingEntryGateway {
         teamId: this.teamID,
         activityDefinitionId: input.activityId,
         assignmentId: input.assignmentId,
+        plan: input.plan,
         occurredAt: input.occurredAt,
         result: {
           kind: input.inputKind,
@@ -123,6 +129,7 @@ class LocalTrainingEntryGateway implements TrainingEntryGateway {
       effortLevel: input.effortLevel,
       exhaustionLevel: input.exhaustionLevel,
       assignmentId: input.assignmentId,
+      plan: input.plan,
       createdAt: now.toISOString(),
       deleteEligibleUntil: createDeleteDeadline(now),
     };
@@ -175,6 +182,7 @@ function fromAPIEntry(entry: APITrainingEntry): TrainingEntry {
     createdAt: entry.createdAt,
     deleteEligibleUntil: entry.deleteEligibleUntil,
     assignmentId: entry.assignmentId ?? undefined,
+    plan: entry.plan ?? undefined,
   };
 }
 

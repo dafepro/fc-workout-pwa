@@ -65,6 +65,43 @@ func TestTeamCanvasUsesMembershipCompletionAndSafeFields(t *testing.T) {
 	}
 }
 
+func TestTeamCanvasPlannedRestRequiresAndPreservesExactPlanDay(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+	plan, err := store.NewStaffStore(db).PublishTrainingPlan(context.Background(), "team-one", store.TrainingPlanInput{
+		TemplateID: "in-season-balance-v1", StartsOn: "2026-08-09",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	actor := domain.Actor{Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-one"}
+	if err = repository.RecordTeamCanvasRest(context.Background(), actor, "team-one", store.TeamCanvasRestRequest{}, now); !errors.Is(err, store.ErrTeamCanvasRestUnavailable) {
+		t.Fatalf("unattributed planned rest error = %v", err)
+	}
+	request := store.TeamCanvasRestRequest{PlanID: plan.ID, DayIndex: 3}
+	if err = repository.RecordTeamCanvasRest(context.Background(), actor, "team-one", request, now); err != nil {
+		t.Fatal(err)
+	}
+	if err = repository.RecordTeamCanvasRest(context.Background(), actor, "team-one", request, now); err != nil {
+		t.Fatalf("exact replay was not idempotent: %v", err)
+	}
+	projection, err := repository.TrainingDashboard(context.Background(), actor, "team-one", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if projection.CurrentPlanDay == nil || !projection.CurrentPlanDay.Completed {
+		t.Fatalf("planned rest was not completed: %+v", projection.CurrentPlanDay)
+	}
+	if _, err = db.Exec(`UPDATE team_canvas_rest_days SET training_plan_id = 'different-plan'
+		WHERE team_id = 'team-one' AND player_id = 'player-mason' AND day_key = '2026-08-12'`); err != nil {
+		t.Fatal(err)
+	}
+	if err = repository.RecordTeamCanvasRest(context.Background(), actor, "team-one", request, now); !errors.Is(err, store.ErrTeamCanvasRestUnavailable) {
+		t.Fatalf("different stored plan provenance error = %v", err)
+	}
+}
+
 func TestTeamCanvasPersistsBoundedLivePiecesPositionsAndSettings(t *testing.T) {
 	repository, db := socialProjectionStore(t)
 	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)

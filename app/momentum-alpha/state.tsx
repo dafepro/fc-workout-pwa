@@ -165,11 +165,16 @@ export function MomentumAlphaProvider({
       },
       recordRest() {
         if (connected) {
-          if (!teamCanvasGateway)
+          if (!teamCanvasGateway || !connectedModel?.planDay)
             throw new Error(momentumAlphaCopy.connected.recoveryLoading);
-          return teamCanvasGateway.recordRest().then(() => {
-            setPlannedRestComplete(true);
-          });
+          return teamCanvasGateway
+            .recordRest({
+              planId: connectedModel.planDay.planId,
+              dayIndex: connectedModel.planDay.dayIndex,
+            })
+            .then(() => {
+              setPlannedRestComplete(true);
+            });
         }
         store.update((current) => recordPlannedRest(current));
       },

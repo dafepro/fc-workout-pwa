@@ -291,11 +291,12 @@ export function TeamCanvasProvider({
             teamID,
           ).get();
           const planDay = dashboard.currentPlanDay;
+          const planBlock = planDay?.blocks.find((block) => !block.completed);
           const assignment = planDay ? null : dashboard.currentAssignment;
           const plannedActivity =
             planDay && planDay.kind !== "rest"
               ? dashboard.activities.find(
-                  ({ id }) => id === planDay.blocks[0]?.activityDefinitionId,
+                  ({ id }) => id === planBlock?.activityDefinitionId,
                 )
               : undefined;
           const assignedActivity = dashboard.activities.find(
@@ -326,6 +327,16 @@ export function TeamCanvasProvider({
               input.completion === "approved-alternative"
                 ? undefined
                 : assignment?.id,
+            plan:
+              planDay &&
+              planBlock &&
+              input.completion !== "approved-alternative"
+                ? {
+                    planId: planDay.planId,
+                    dayIndex: planDay.dayIndex,
+                    blockIndex: planBlock.blockIndex,
+                  }
+                : undefined,
             occurredAt: new Date().toISOString(),
             value: activityValue,
             unit: activity.unit,
@@ -355,7 +366,18 @@ export function TeamCanvasProvider({
           return;
         }
         try {
-          await gateway.recordRest();
+          const dashboard = await createTrainingDashboardGateway(
+            true,
+            teamID,
+          ).get();
+          const planDay = dashboard.currentPlanDay;
+          if (!planDay || planDay.kind !== "rest") {
+            throw new Error("Today’s planned rest is unavailable.");
+          }
+          await gateway.recordRest({
+            planId: planDay.planId,
+            dayIndex: planDay.dayIndex,
+          });
           store.update((current) =>
             recordPlannedRest({ ...current, dayKind: "rest" }),
           );
