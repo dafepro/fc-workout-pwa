@@ -144,9 +144,6 @@ export const copy = {
     locked: "locked, advancement reward",
     categories: {
       head: "Head",
-      eyes: "Eyes",
-      mouth: "Mouth",
-      facialHair: "Facial hair",
       kit: "Kit",
       gear: "Gear",
       background: "Background",

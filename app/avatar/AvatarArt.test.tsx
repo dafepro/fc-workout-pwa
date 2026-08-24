@@ -2,7 +2,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { Avatar } from "../components/Avatar";
 import type { Player } from "../domain/types";
-import { AVATAR_LAYERS } from "./catalog";
+import { AVATAR_CATEGORIES, AVATAR_LAYERS } from "./catalog";
 import { LAYER_ART } from "./art";
 import { playerColor } from "./color";
 import { defaultAvatar, normalizeAvatar } from "./config";
@@ -166,6 +166,35 @@ describe("Avatar with a configuration", () => {
     );
     expect(container.querySelector(".avatar-art")).toBeNull();
   });
+
+  it("renders none as an uncropped universal no-symbol", () => {
+    const facialHair = AVATAR_LAYERS.find(
+      (layer) => layer.kind === "facialHair",
+    )!;
+    const { container } = render(
+      <AvatarPartArt
+        kind="facialHair"
+        option={facialHair.options[0]}
+        config={defaultAvatar()}
+      />,
+    );
+
+    expect(container.querySelector("svg")).toHaveAttribute(
+      "viewBox",
+      "0 0 64 64",
+    );
+    expect(container.querySelector(".avatar-part-art__none")).toBeVisible();
+  });
+
+  it("keeps the goatee below the mouth line", () => {
+    const { container } = render(
+      <AvatarArt config={{ ...defaultAvatar(), facialHair: "goatee" }} />,
+    );
+
+    expect(
+      container.querySelector(".avatar-facial-hair--goatee"),
+    ).toHaveAttribute("d", "M28.5 48.5q3.5 1.8 7 0l-1.1 5.8-2.4 2.4-2.4-2.4z");
+  });
 });
 
 describe("the catalog and the art registry", () => {
@@ -220,6 +249,9 @@ describe("the catalog and the art registry", () => {
     expect(
       AVATAR_LAYERS.find((layer) => layer.kind === "facialHair")?.options[0].id,
     ).toBe("none");
+    expect(
+      AVATAR_CATEGORIES.find((category) => category.id === "head")?.layerKinds,
+    ).toEqual(["head", "eyes", "mouth", "facialHair"]);
   });
 
   it("has one solid background style and an animated effect", () => {

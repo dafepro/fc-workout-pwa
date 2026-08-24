@@ -116,7 +116,7 @@ function AvatarBuilderEditor({
                 key={kind}
                 layer={layer}
                 draft={draft}
-                showLegend={activeCategory === "gear"}
+                showLegend={category.layerKinds.length > 1}
                 onChange={update}
                 onChoose={(optionID) => update(kind, optionID)}
               />

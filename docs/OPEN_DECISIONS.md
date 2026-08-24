@@ -849,10 +849,10 @@ Momentum Alpha needs independent PWA install/offline behavior.
 - Proposed: the application owns the item catalog and unlock ledger. Team
   Canvas consumes unlocked stamp IDs through its existing replaceable adapter;
   a future multiplayer/physics library does not decide player eligibility.
-- Proposed: split avatar head, eyes, mouth, and facial hair into independent
-  layers. Main categories have three included choices; optional categories have
-  `none` plus two included choices. Earned items extend, rather than replace,
-  those basics.
+- Decided: keep avatar head, eyes, mouth, and facial hair independently
+  selectable, but group all four layers under the top-level Head category.
+  Main layers have three included choices; optional layers have `none` plus two
+  included choices. Earned items extend, rather than replace, those basics.
 - Still open: the calendar timezone for a player on multiple teams, whether
   Daily Drop pool weighting is remotely configurable, and how a completed
   collection behaves on later days.

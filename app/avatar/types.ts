@@ -9,14 +9,7 @@ export type AvatarLayerKind =
   | "hat"
   | "eyewear";
 
-export type AvatarCategoryKind =
-  | "head"
-  | "eyes"
-  | "mouth"
-  | "facialHair"
-  | "kit"
-  | "gear"
-  | "background";
+export type AvatarCategoryKind = "head" | "kit" | "gear" | "background";
 
 export type AvatarPaletteKey =
   | "headPalette"

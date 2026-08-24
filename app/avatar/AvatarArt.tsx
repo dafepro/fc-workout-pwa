@@ -55,20 +55,22 @@ export function AvatarPartArt({
 }) {
   return (
     <svg
-      viewBox={PART_VIEW_BOX[kind]}
+      viewBox={option.id === "none" ? "0 0 64 64" : PART_VIEW_BOX[kind]}
       className="avatar-part-art"
       aria-hidden="true"
       focusable="false"
     >
       <g className={`avatar-part-art__layer avatar-part-art__layer--${kind}`}>
         {option.id === "none" ? (
-          <path
-            d="M19 19l26 26M45 19 19 45"
+          <g
+            className="avatar-part-art__none"
             fill="none"
             stroke="currentColor"
             strokeWidth="4"
-            strokeLinecap="round"
-          />
+          >
+            <circle cx="32" cy="32" r="15" />
+            <path d="M21.5 21.5l21 21" strokeLinecap="round" />
+          </g>
         ) : (
           LAYER_ART[kind](option, config)
         )}

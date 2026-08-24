@@ -118,13 +118,10 @@ export const AVATAR_LAYERS: readonly AvatarLayerDefinition[] = [
 ];
 
 export const AVATAR_CATEGORIES: readonly AvatarCategoryDefinition[] = [
-  { id: "head", label: copy.avatar.categories.head, layerKinds: ["head"] },
-  { id: "eyes", label: copy.avatar.categories.eyes, layerKinds: ["eyes"] },
-  { id: "mouth", label: copy.avatar.categories.mouth, layerKinds: ["mouth"] },
   {
-    id: "facialHair",
-    label: copy.avatar.categories.facialHair,
-    layerKinds: ["facialHair"],
+    id: "head",
+    label: copy.avatar.categories.head,
+    layerKinds: ["head", "eyes", "mouth", "facialHair"],
   },
   { id: "kit", label: copy.avatar.categories.kit, layerKinds: ["kit"] },
   {

@@ -6,7 +6,7 @@ Status: active implementation plan
 
 - Implemented: consolidated Momentum advice and removed the repeated copy.
 - Implemented: generic partial-contribution evaluation and anonymous progress tracks for both initial team-reward rule types.
-- Implemented: independent avatar head, eyes, mouth, and facial-hair layers with version 4 to version 5 migration.
+- Implemented: independent avatar head, eyes, mouth, and facial-hair layers, grouped under one Head category, with version 4 to version 5 migration.
 - Designed: Daily Drop, shared inventory, avatar/Canvas unlock boundaries, and player flow mockups.
 - Designed: curated coach plans, safe missed-day behavior, and delivery slices.
 - Not yet implemented: the Daily Drop persistence/API, inventory-aware locked avatar choices, Canvas stamp unlocks, and coach plan domain/UI.

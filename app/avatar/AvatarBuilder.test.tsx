@@ -28,15 +28,27 @@ function openCategory(name: string) {
 }
 
 describe("AvatarBuilder", () => {
-  it("shows one category at a time and keeps hats and glasses inside Gear", () => {
+  it("keeps face controls inside Head and hats and glasses inside Gear", () => {
     renderBuilder();
-    expect(
-      screen
-        .getByRole("navigation", { name: "Avatar categories" })
-        .querySelectorAll("button"),
-    ).toHaveLength(7);
+    const categories = screen.getByRole("navigation", {
+      name: "Avatar categories",
+    });
+    expect(categories.querySelectorAll("button")).toHaveLength(4);
+    expect(categories).toHaveTextContent(copy.avatar.categories.head);
+    expect(categories).not.toHaveTextContent("Eyes");
+    expect(categories).not.toHaveTextContent("Mouth");
+    expect(categories).not.toHaveTextContent("Facial hair");
     expect(
       screen.getByRole("group", { name: copy.avatar.legends.head }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("group", { name: copy.avatar.legends.eyes }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("group", { name: copy.avatar.legends.mouth }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("group", { name: copy.avatar.legends.facialHair }),
     ).toBeInTheDocument();
 
     openCategory(copy.avatar.categories.gear);
@@ -49,22 +61,6 @@ describe("AvatarBuilder", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole("group", { name: copy.avatar.legends.eyewear }),
-    ).toBeInTheDocument();
-  });
-
-  it("edits eyes, mouth, and facial hair in separate categories", () => {
-    renderBuilder();
-    openCategory(copy.avatar.categories.eyes);
-    expect(
-      screen.getByRole("group", { name: copy.avatar.legends.eyes }),
-    ).toBeInTheDocument();
-    openCategory(copy.avatar.categories.mouth);
-    expect(
-      screen.getByRole("group", { name: copy.avatar.legends.mouth }),
-    ).toBeInTheDocument();
-    openCategory(copy.avatar.categories.facialHair);
-    expect(
-      screen.getByRole("group", { name: copy.avatar.legends.facialHair }),
     ).toBeInTheDocument();
   });
 
