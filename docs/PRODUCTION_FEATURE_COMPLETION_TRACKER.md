@@ -15,8 +15,8 @@ changes a large vertical slice.
 
 | Slice | Vertical outcome                                                                                  | Depends on                    | Status      |
 | ----- | ------------------------------------------------------------------------------------------------- | ----------------------------- | ----------- |
-| A     | Daily Drop can be opened safely from Today                                                        | Existing claim API            | In progress |
-| B     | One shared inventory governs avatar options                                                       | A                             | Not started |
+| A     | Daily Drop can be opened safely from Today                                                        | Existing claim API            | Delivered   |
+| B     | One shared inventory governs avatar options                                                       | A                             | Next        |
 | C     | The Team Canvas consumes shared stamp unlocks through its port                                    | A                             | Not started |
 | D     | Coach-plan logging records authoritative day and block provenance                                 | Existing plan projection      | Not started |
 | E     | Three-day and seven-day plan participation grants claimable drops                                 | A, D                          | Not started |
@@ -44,16 +44,16 @@ Implemented foundation:
 
 Completion gates:
 
-- [ ] Same-origin player proxy explicitly allows only the Daily Drop routes.
-- [ ] Today loads the server-owned status without blocking the primary action.
-- [ ] Available, opening, revealed, collected, collection-complete, and retry
+- [x] Same-origin player proxy explicitly allows only the Daily Drop routes.
+- [x] Today loads the server-owned status without blocking the primary action.
+- [x] Available, opening, revealed, collected, collection-complete, and retry
       states fit at 320 CSS pixels.
-- [ ] A failed claim reuses the same idempotency key and cannot reroll an item.
-- [ ] Reveal copy names the item and destination without implying rarity, odds,
+- [x] A failed claim reuses the same idempotency key and cannot reroll an item.
+- [x] Reveal copy names the item and destination without implying rarity, odds,
       purchase, or workout credit.
-- [ ] Reduced motion removes the reveal movement.
-- [ ] Component, gateway, proxy-allowlist, and connected browser coverage pass.
-- [ ] `docs/DAILY_GIFT_AND_UNLOCKS_DESIGN.md` reflects delivered behavior.
+- [x] Reduced motion removes the reveal movement.
+- [x] Component, gateway, proxy-allowlist, and connected browser coverage pass.
+- [x] `docs/DAILY_GIFT_AND_UNLOCKS_DESIGN.md` reflects delivered behavior.
 
 ## Slice B — shared inventory and Avatar Studio
 
@@ -213,9 +213,10 @@ docs/
 
 Add one entry per completed or materially changed vertical slice.
 
-| Date       | Slice            | Revision | Evidence                                            | Remaining  |
-| ---------- | ---------------- | -------- | --------------------------------------------------- | ---------- |
-| 2026-08-24 | Tracker baseline | Pending  | Audited current branch contracts and linked designs | Slices A–H |
+| Date       | Slice                      | Revision             | Evidence                                                                                                                         | Remaining                         |
+| ---------- | -------------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| 2026-08-24 | Tracker baseline           | `0f67ef5`            | Audited current branch contracts and linked designs                                                                              | Slices A–H                        |
+| 2026-08-24 | A · Daily Drop player loop | This delivery commit | 11 focused UI/gateway/proxy tests; Daily Drop store/reset tests; connected 320px Docker browser flow; typecheck, lint, and build | Shared inventory consumers in B/C |
 
 ## Linked designs
 

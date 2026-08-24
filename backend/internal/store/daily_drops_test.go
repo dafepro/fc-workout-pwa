@@ -130,3 +130,33 @@ func TestDailyDropDayUsesTheConfiguredTeamTimezone(t *testing.T) {
 		t.Fatalf("timezone boundary did not create a new unique claim: before=%+v after=%+v", beforeMidnight, afterMidnight)
 	}
 }
+
+func TestResetE2EFixturesClearsDailyDropClaimsAndInventory(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	ctx := context.Background()
+	now := time.Date(2026, time.August, 24, 14, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+	if _, err := repository.ClaimDailyDrop(ctx, store.ClaimDailyDropInput{
+		PlayerID: "player-mason", IdempotencyKey: "claimed-before-reset", Now: now,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := repository.ResetE2EFixtures(ctx, now); err != nil {
+		t.Fatal(err)
+	}
+	status, err := repository.DailyDropStatus(ctx, "player-mason", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.State != store.DailyDropAvailable || status.Claim != nil {
+		t.Fatalf("status after reset = %+v, want available", status)
+	}
+	var unlocks int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM player_unlocks`).Scan(&unlocks); err != nil {
+		t.Fatal(err)
+	}
+	if unlocks != 0 {
+		t.Fatalf("unlocks after reset = %d, want 0", unlocks)
+	}
+}

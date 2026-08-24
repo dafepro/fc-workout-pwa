@@ -1,12 +1,24 @@
 # Daily Drop and Unlocks Design
 
-Status: backend foundation in progress
+Status: durable backend and player Today loop implemented; inventory consumers in progress
 
 ## Implementation status
 
-The first backend slice now provides the versioned award catalog, a durable unlock ledger, once-per-day claims, hashed idempotency keys, non-duplicate selection, collection-complete results, logical-backup coverage, and authenticated status/claim/inventory endpoints. It uses the deployment’s configured team timezone until the multi-team timezone decision is resolved.
+The first backend slice provides the versioned award catalog, a durable unlock
+ledger, once-per-day claims, hashed idempotency keys, non-duplicate selection,
+collection-complete results, logical-backup coverage, and authenticated
+status/claim/inventory endpoints. It uses the deployment’s configured team
+timezone until the multi-team timezone decision is resolved.
 
-Player UI, viewed/new acknowledgement, inventory-aware avatar validation, and the Team Canvas unlock adapter remain to be implemented.
+The connected Today view now loads that status, opens a drop with one stable
+idempotency key across retries, announces the result, and returns as a quiet
+collected or collection-complete state. Opening a drop does not create a
+training entry or change Momentum. The local disconnected prototype does not
+invent a second collection.
+
+Viewed/new acknowledgement, inventory-aware avatar validation, and the Team
+Canvas unlock adapter remain to be implemented. Until those consumers land,
+the reveal names the destination but does not offer a dead “use now” action.
 
 ## Product intent
 

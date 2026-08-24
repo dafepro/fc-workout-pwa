@@ -11,6 +11,7 @@ import { useTeamCanvas } from "../../team-canvas/state";
 import { TeamRewardsPreview } from "./TeamRewardsPreview";
 import { usePlayerDevSettings } from "../dev/PlayerDevSettings";
 import { MomentumStatus } from "./MomentumStatus";
+import { DailyDropCard } from "./DailyDropCard";
 import { TeamPulse } from "./TeamPulse";
 import { WhatsNext } from "./WhatsNext";
 
@@ -141,6 +142,8 @@ export function ConsolidatedToday() {
         onRecordRest={() => canvas.recordRest()}
         onRecordCooldown={() => canvas.recordCooldown()}
       />
+
+      <DailyDropCard connected={training?.connected ?? false} />
 
       <TeamRewardsPreview placement="today" />
 

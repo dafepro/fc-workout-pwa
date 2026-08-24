@@ -3,6 +3,18 @@ import { describe, expect, it } from "vitest";
 import { allowsPlayerRoute } from "./routes";
 
 describe("player API route allowlist", () => {
+  it("allows only the player Daily Drop contract", () => {
+    expect(allowsPlayerRoute("GET", "v1/me/daily-drop")).toBe(true);
+    expect(allowsPlayerRoute("POST", "v1/me/daily-drop/claim")).toBe(true);
+    expect(allowsPlayerRoute("GET", "v1/me/unlocks")).toBe(true);
+
+    expect(allowsPlayerRoute("POST", "v1/me/daily-drop")).toBe(false);
+    expect(allowsPlayerRoute("GET", "v1/me/daily-drop/claim")).toBe(false);
+    expect(
+      allowsPlayerRoute("POST", "v1/me/unlocks/avatar-head-dog/viewed"),
+    ).toBe(false);
+  });
+
   it("allows the current team reward and its protected image", () => {
     expect(allowsPlayerRoute("GET", "v1/teams/team-one/reward")).toBe(true);
     expect(

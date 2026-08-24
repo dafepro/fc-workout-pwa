@@ -13,6 +13,30 @@ test.beforeEach(async () => {
   await api.dispose();
 });
 
+test("the consolidated default opens one durable Daily Drop", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 700 });
+  await openReadyPage(page, "/");
+
+  const claimed = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/zoomigo/v1/me/daily-drop/claim") &&
+      response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Open today’s drop" }).click();
+  expect([200, 201]).toContain((await claimed).status());
+  await expect(page.getByRole("status")).toContainText("Unlocked:");
+
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "Collected today" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Open today’s drop" }),
+  ).toHaveCount(0);
+});
+
 test("the consolidated default completes today's plan and opens Team Canvas", async ({
   page,
 }) => {

@@ -895,3 +895,13 @@ Momentum Alpha needs independent PWA install/offline behavior.
   backend-validated plan/day/block provenance. Matching only activity type and
   date is insufficient for a durable reward.
 - Full design: `PLAYER_PLAN_RECOMMENDATIONS_DESIGN.md`.
+
+## Daily Drop delivery boundary (2026-08-24)
+
+- Decided: the connected Today view may open and persist the server-owned Daily
+  Drop before Avatar Studio and Team Canvas consume the shared inventory.
+- Until a destination consumer is authoritative, the reveal names where the
+  item belongs but does not offer a dead “use now” action.
+- The disconnected prototype does not create a second local collection.
+  Destination actions become available only with the corresponding inventory
+  consumer.

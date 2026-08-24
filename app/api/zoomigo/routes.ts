@@ -1,6 +1,9 @@
 const PLAYER_ROUTES = [
   { method: "GET", pattern: /^v1\/me\/training-entries$/ },
   { method: "GET", pattern: /^v1\/me\/training-dashboard$/ },
+  { method: "GET", pattern: /^v1\/me\/daily-drop$/ },
+  { method: "POST", pattern: /^v1\/me\/daily-drop\/claim$/ },
+  { method: "GET", pattern: /^v1\/me\/unlocks$/ },
   { method: "POST", pattern: /^v1\/me\/training-entries$/ },
   { method: "GET", pattern: /^v1\/me\/reaction-badges$/ },
   { method: "POST", pattern: /^v1\/reactions$/ },
