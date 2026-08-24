@@ -88,11 +88,22 @@ export interface CurrentTrainingPlanDay {
   }[];
 }
 
+export interface TrainingPlanWindow {
+  planId: string;
+  templateName: string;
+  dayNumber: number;
+  dayCount: number;
+  yesterday: CurrentTrainingPlanDay | null;
+  today: CurrentTrainingPlanDay;
+  tomorrow: CurrentTrainingPlanDay | null;
+}
+
 export interface TrainingDashboard {
   team: SocialTeam;
   activities: ActivityDefinition[];
   currentAssignment: TrainingAssignment | null;
   currentPlanDay: CurrentTrainingPlanDay | null;
+  currentPlan: TrainingPlanWindow | null;
   summary: {
     weeklySessions: number;
     weeklyMomentumCredits: number;

@@ -378,6 +378,12 @@ export const consoleCopy = {
       published: "Published",
       cancelled: "Cancelled",
     },
+    legacy: {
+      loading: "Loading legacy assignment history…",
+      title: "Legacy assignment history",
+      summary: "Older activity requests retained during the plan cutover",
+      body: "These records remain readable and continue through their existing date windows. Schedule new player work with a training plan above.",
+    },
   },
   audit: {
     title: "Audit trail",

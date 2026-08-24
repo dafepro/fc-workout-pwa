@@ -1,9 +1,9 @@
 import { requireStaffSession } from "../../guard";
-import { AssignmentPanel } from "../../console/team/AssignmentPanel";
+import { LegacyAssignmentHistory } from "../../console/team/LegacyAssignmentHistory";
 import { TrainingPlanPrototype } from "../../console/team/training-plans/TrainingPlanPrototype";
 
-/** Training is the landing section: the live assignment and who has completed
- * it is the question a coach opens the team to answer. */
+/** Training is the landing section because the published plan is the coach's
+ * primary way to shape the team's next activity. */
 export default async function CoachTeamTrainingPage({
   params,
 }: {
@@ -14,7 +14,7 @@ export default async function CoachTeamTrainingPage({
   return (
     <>
       <TrainingPlanPrototype teamId={teamId} />
-      <AssignmentPanel teamId={teamId} />
+      <LegacyAssignmentHistory teamId={teamId} />
     </>
   );
 }

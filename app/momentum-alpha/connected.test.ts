@@ -53,6 +53,7 @@ const dashboard: TrainingDashboard = {
     completed: true,
   },
   currentPlanDay: null,
+  currentPlan: null,
   summary: {
     weeklySessions: 3,
     weeklyMomentumCredits: 3,

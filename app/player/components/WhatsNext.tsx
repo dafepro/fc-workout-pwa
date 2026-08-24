@@ -6,11 +6,13 @@ import type { MomentumPresentation } from "../../momentum-alpha/connected";
 import { FeelTracks } from "../../team-canvas/components/FeelTracks";
 import { teamCanvasCopy } from "../../team-canvas/content";
 import type { CompletionKind } from "../../team-canvas/model";
+import type { TrainingPlanWindow } from "../../domain/types";
 import { playerExperienceCopy } from "../content";
 import {
   decideWhatsNext,
   type WhatsNextSecondaryAction,
 } from "../whats-next-model";
+import { PlanTriptych } from "./PlanTriptych";
 
 interface WhatsNextProps {
   restDay: boolean;
@@ -22,6 +24,7 @@ interface WhatsNextProps {
   recentTiredness?: number | null;
   connectedError: string | null;
   plan: MomentumPresentation["plan"];
+  planWindow?: TrainingPlanWindow | null;
   recovery: MomentumPresentation["recovery"];
   onComplete(input: {
     completion: CompletionKind;
@@ -42,6 +45,7 @@ export function WhatsNext({
   recentTiredness,
   connectedError,
   plan,
+  planWindow = null,
   recovery,
   onComplete,
   onRecordRest,
@@ -99,7 +103,7 @@ export function WhatsNext({
   }
 
   if (restDay) {
-    return (
+    const restCard = (
       <section className="whats-next whats-next--rest">
         <p className="player-eyebrow">{copy.eyebrow}</p>
         <h1>{copy.restTitle}</h1>
@@ -120,9 +124,14 @@ export function WhatsNext({
         ) : null}
       </section>
     );
+    return planWindow ? (
+      <PlanTriptych plan={planWindow}>{restCard}</PlanTriptych>
+    ) : (
+      restCard
+    );
   }
 
-  return (
+  const planCard = (
     <section
       className="whats-next whats-next--plan"
       aria-labelledby="whats-next-plan-title"
@@ -227,6 +236,11 @@ export function WhatsNext({
         </ul>
       </details>
     </section>
+  );
+  return planWindow ? (
+    <PlanTriptych plan={planWindow}>{planCard}</PlanTriptych>
+  ) : (
+    planCard
   );
 }
 

@@ -1,6 +1,6 @@
 # Coach Training Plans Design
 
-Status: curated whole-team publication, immutable history, and player Today projection implemented; structured day editing remains
+Status: curated whole-team publication, immutable history, and three-day player projection implemented; structured day editing remains
 
 ## Problem
 
@@ -81,11 +81,14 @@ The weekly overview is a calm sequence of day intents, not a performance compari
 2. Staff template chooser and read-only schedule preview. **Implemented.**
 3. Whole-team publication and immutable plan-history snapshots. **Implemented.**
 4. Structured day editor and safe revalidation.
-5. Player Today projection and missed-day behavior. **Implemented for the current calendar day.**
+5. Player Today projection and missed-day behavior. **Implemented as a yesterday/today/tomorrow plan window.**
 6. Staff cancellation/rescheduling and expanded plan-history audit view.
 
 ## Open decisions
 
 - Exact duration and intensity bounds by age band need a coaching/content owner before mainline release. The development templates conservatively cap active days at 20 minutes, separate hard days, and include recovery/rest.
 - Decided for the first release: plans apply to the whole team. Selected-player plans can extend the model later.
-- Decide how existing single-activity assignments migrate or coexist during rollout.
+- Decided: plans are the only new coach scheduling workflow. Existing
+  single-activity assignments remain readable and enforceable until their
+  windows end, but the staff Training route no longer creates them. Full
+  cutover and loot design: `PLAYER_PLAN_RECOMMENDATIONS_DESIGN.md`.

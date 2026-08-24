@@ -1,5 +1,5 @@
 import { requireOperator } from "../../guard";
-import { AssignmentPanel } from "../../../console/team/AssignmentPanel";
+import { LegacyAssignmentHistory } from "../../../console/team/LegacyAssignmentHistory";
 import { TrainingPlanPrototype } from "../../../console/team/training-plans/TrainingPlanPrototype";
 
 export default async function OperatorTeamTrainingPage({
@@ -12,7 +12,7 @@ export default async function OperatorTeamTrainingPage({
   return (
     <>
       <TrainingPlanPrototype teamId={teamId} />
-      <AssignmentPanel teamId={teamId} />
+      <LegacyAssignmentHistory teamId={teamId} />
     </>
   );
 }

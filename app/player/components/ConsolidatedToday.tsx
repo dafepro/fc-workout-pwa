@@ -135,6 +135,7 @@ export function ConsolidatedToday() {
         recentTiredness={recentTiredness}
         connectedError={canvas.connectedError}
         plan={momentum.presentation.plan}
+        planWindow={training?.dashboard?.currentPlan}
         recovery={momentum.presentation.recovery}
         onComplete={(input) => canvas.complete(input)}
         onRecordRest={() => canvas.recordRest()}

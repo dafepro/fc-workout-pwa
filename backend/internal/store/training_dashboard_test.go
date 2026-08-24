@@ -108,6 +108,43 @@ func TestTrainingDashboardProjectsPublishedTrainingAndRestDays(t *testing.T) {
 	}
 }
 
+func TestTrainingDashboardProjectsYesterdayTodayAndTomorrowFromOnePlan(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+	if _, err := db.Exec(`UPDATE training_entries SET occurred_at = '2026-08-11T12:00:00Z' WHERE id = 'entry-mason'`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.NewStaffStore(db).PublishTrainingPlan(context.Background(), "team-one", store.TrainingPlanInput{
+		TemplateID: "in-season-balance-v1", StartsOn: "2026-08-11",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	projection, err := repository.TrainingDashboard(context.Background(), domain.Actor{
+		Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-one",
+	}, "team-one", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	window := projection.CurrentPlan
+	if window == nil {
+		t.Fatal("published plan did not produce a three-day window")
+	}
+	if window.TemplateName != "In-season balance" || window.DayNumber != 2 || window.DayCount != 7 {
+		t.Fatalf("unexpected plan identity: %+v", window)
+	}
+	if window.Yesterday == nil || window.Yesterday.OccursOn != "2026-08-11" || !window.Yesterday.Completed {
+		t.Fatalf("unexpected yesterday: %+v", window.Yesterday)
+	}
+	if window.Today.OccursOn != "2026-08-12" || window.Today.Kind != "recovery" || window.Today.Completed {
+		t.Fatalf("unexpected today: %+v", window.Today)
+	}
+	if window.Tomorrow == nil || window.Tomorrow.OccursOn != "2026-08-13" || window.Tomorrow.Kind != "training" || window.Tomorrow.Completed {
+		t.Fatalf("unexpected tomorrow: %+v", window.Tomorrow)
+	}
+}
+
 func TestTrainingDashboardKeepsRecentTeamActivityBehindTodaysGate(t *testing.T) {
 	repository, db := socialProjectionStore(t)
 	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)

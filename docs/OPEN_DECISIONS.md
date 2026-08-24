@@ -874,3 +874,24 @@ Momentum Alpha needs independent PWA install/offline behavior.
 - Still open: final bounds by age band, structured day-editing controls,
   cancellation/rescheduling behavior, multi-block day completion UX, and
   migration or coexistence of current assignments.
+
+## Unified player recommendations and plan loot (2026-08-24)
+
+- Decided: training plans are the sole new coach scheduling mechanism. The
+  normal staff workflow will stop creating legacy activity assignments; existing
+  records remain readable and enforceable until they end.
+- Decided: the backend resolves one player recommendation with an explicit
+  source. Published coach plans take priority, an optional team default is
+  reserved inside plan settings, and a bounded suggestion engine fills genuinely
+  unplanned days.
+- Decided: a coach-plan day renders as a yesterday/today/tomorrow triptych in
+  What's next. Yesterday is neutral completion context, today owns the action,
+  and tomorrow is a noninteractive preview. Missed work never rolls forward or
+  prompts catch-up.
+- Decided: completing three distinct days in a seven-day plan earns one Daily
+  Drop-compatible loot grant; completing all seven earns one additional grant.
+  Planned-rest check-ins count, while extra activity volume does not.
+- Required before plan loot ships: training and rest records must carry
+  backend-validated plan/day/block provenance. Matching only activity type and
+  date is insufficient for a durable reward.
+- Full design: `PLAYER_PLAN_RECOMMENDATIONS_DESIGN.md`.

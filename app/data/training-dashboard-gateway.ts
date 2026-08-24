@@ -64,6 +64,29 @@ class HTTPTrainingDashboardGateway implements TrainingDashboardGateway {
 class LocalTrainingDashboardGateway implements TrainingDashboardGateway {
   async get(): Promise<TrainingDashboard> {
     const streak = currentStreak(initialEntries);
+    const today = new Date();
+    const dateAt = (offset: number) => {
+      const date = new Date(today);
+      date.setUTCDate(date.getUTCDate() + offset);
+      return date.toISOString().slice(0, 10);
+    };
+    const planDay = {
+      planId: "prototype-plan",
+      templateName: "Speed and recovery",
+      occursOn: dateAt(0),
+      kind: "training" as const,
+      focus: "speed" as const,
+      durationMinutes: 20,
+      intensity: "hard" as const,
+      completed: false,
+      blocks: [
+        {
+          activityDefinitionId: "hill-sprints" as const,
+          label: "Hill sprints",
+          durationMinutes: 12,
+        },
+      ],
+    };
     return {
       team: {
         id: "team-hill-striders",
@@ -71,17 +94,41 @@ class LocalTrainingDashboardGateway implements TrainingDashboardGateway {
         weeklyGoal: WEEKLY_GOAL,
       },
       activities,
-      currentAssignment: {
-        id: "prototype-hill-sprints",
-        activityDefinitionId: "hill-sprints",
-        catalogKey: "hill_sprints_8x6",
-        targetValue: 8,
-        targetUnit: "reps",
-        startsOn: new Date().toISOString().slice(0, 10),
-        dueOn: new Date().toISOString().slice(0, 10),
-        completed: false,
+      currentAssignment: null,
+      currentPlanDay: planDay,
+      currentPlan: {
+        planId: planDay.planId,
+        templateName: planDay.templateName,
+        dayNumber: 3,
+        dayCount: 7,
+        yesterday: {
+          ...planDay,
+          occursOn: dateAt(-1),
+          kind: "recovery",
+          focus: "recovery",
+          durationMinutes: 15,
+          intensity: "easy",
+          completed: true,
+          blocks: [
+            {
+              activityDefinitionId: "recovery-walk-jog",
+              label: "Recovery walk or jog",
+              durationMinutes: 15,
+            },
+          ],
+        },
+        today: planDay,
+        tomorrow: {
+          ...planDay,
+          occursOn: dateAt(1),
+          kind: "rest",
+          focus: "recovery",
+          durationMinutes: 0,
+          intensity: "easy",
+          completed: false,
+          blocks: [],
+        },
       },
-      currentPlanDay: null,
       summary: {
         weeklySessions: entriesWithinDays(initialEntries, 7).length,
         weeklyMomentumCredits: entriesWithinDays(initialEntries, 7).length,
