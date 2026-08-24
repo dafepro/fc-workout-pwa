@@ -758,8 +758,14 @@ Momentum Alpha needs independent PWA install/offline behavior.
 - Decided: submitting prescribed rest counts toward weekly Momentum and unlocks
   Team, but does not increase the explicitly labeled activity streak. Merely
   opening the app does not earn progress.
-- Proposed: Team pulse will show at most five server-projected safe activity
-  events with predefined cheers and no raw result or feeling data.
+- Implemented: Team pulse shows at most five server-projected recent activities
+  after the player completes today's approved activity or submits prescribed
+  rest. It includes only safe display identity, approved activity name, and
+  `Today` / `Yesterday` / `Recently` recency; no raw result or feeling data is
+  returned to the client.
+- Decided: each Team pulse row begins with one predefined clap. It reuses the
+  private, rate-limited weekly Team-progress reaction context; sent state is
+  confirmed only to the sender and no public cheer totals are shown.
 - Still open: whether a future plan ledger replaces the derived plan-day gauge,
   the approved activity-art catalog, and Team pulse retention.
 - Full plan: `CONSOLIDATED_HOME_ENGAGEMENT_PLAN.md`.

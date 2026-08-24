@@ -1,13 +1,30 @@
 "use client";
 
-import { players, WEEKLY_GOAL } from "../../data/mockData";
+import {
+  players,
+  recentTeamActivities,
+  WEEKLY_GOAL,
+} from "../../data/mockData";
 import { useMomentumAlpha } from "../../momentum-alpha/state";
 import { useOptionalTraining } from "../../state/training-context";
 import { useTeamCanvas } from "../../team-canvas/state";
 import { TeamRewardsPreview } from "./TeamRewardsPreview";
 import { usePlayerDevSettings } from "../dev/PlayerDevSettings";
 import { MomentumStatus } from "./MomentumStatus";
+import { TeamPulse } from "./TeamPulse";
 import { WhatsNext } from "./WhatsNext";
+
+const prototypePulse = {
+  activeThisWeek: 8,
+  unlocked: true,
+  recentActivities: recentTeamActivities,
+};
+
+const emptyPulse = {
+  activeThisWeek: 0,
+  unlocked: false,
+  recentActivities: [],
+};
 
 export function ConsolidatedToday() {
   const momentum = useMomentumAlpha();
@@ -52,6 +69,9 @@ export function ConsolidatedToday() {
       ? canvas.state.cooldownComplete
       : (canvas.connectedProjection?.cooldownComplete ??
         momentum.state.recoveryComplete);
+  const pulse =
+    training?.dashboard?.teamPulse ??
+    (training?.connected ? emptyPulse : prototypePulse);
 
   if (canvas.connectedStatus === "loading" || momentum.loading) {
     return (
@@ -95,6 +115,20 @@ export function ConsolidatedToday() {
       />
 
       <TeamRewardsPreview placement="today" />
+
+      <TeamPulse
+        activeThisWeek={pulse.activeThisWeek}
+        activities={pulse.recentActivities}
+        teamId={training?.dashboard?.team.id ?? "team-hill-striders"}
+        unlocked={unlocked && pulse.unlocked}
+        onSendReaction={
+          training?.sendReaction ??
+          (async () => ({
+            id: crypto.randomUUID(),
+            remainingForRecipientWindow: 4,
+          }))
+        }
+      />
     </div>
   );
 }

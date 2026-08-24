@@ -61,7 +61,7 @@ const dashboard: TrainingDashboard = {
     effortPoints: 120,
     activityDays: [],
   },
-  teamPulse: { activeThisWeek: 6 },
+  teamPulse: { activeThisWeek: 6, unlocked: true, recentActivities: [] },
   streakComparison: { templateKey: "test", value: "4", message: "Test" },
 };
 

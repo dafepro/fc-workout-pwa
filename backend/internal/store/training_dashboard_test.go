@@ -44,6 +44,17 @@ func TestTrainingDashboardReturnsOwnedCatalogAssignmentAndSafeSummary(t *testing
 	if projection.TeamPulse.ActiveThisWeek != 2 {
 		t.Fatalf("team pulse included an inactive member: %+v", projection.TeamPulse)
 	}
+	if !projection.TeamPulse.Unlocked || len(projection.TeamPulse.RecentActivities) != 3 {
+		t.Fatalf("unexpected recent Team pulse: %+v", projection.TeamPulse)
+	}
+	for index, activity := range projection.TeamPulse.RecentActivities {
+		if activity.PlayerID != "player-ava" || activity.FirstName != "Ava" || activity.LastInitial != "R" || activity.ActivityName != "Hill Sprints" {
+			t.Fatalf("unsafe or unexpected pulse item %d: %+v", index, activity)
+		}
+	}
+	if projection.TeamPulse.RecentActivities[0].Recency != "Today" || projection.TeamPulse.RecentActivities[2].Recency != "Yesterday" {
+		t.Fatalf("recent Team pulse exposed the wrong recency: %+v", projection.TeamPulse.RecentActivities)
+	}
 	if projection.StreakComparison.TemplateKey == "" || projection.StreakComparison.Value == "" {
 		t.Fatalf("server must choose a streak comparison: %+v", projection.StreakComparison)
 	}
@@ -51,10 +62,29 @@ func TestTrainingDashboardReturnsOwnedCatalogAssignmentAndSafeSummary(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, privateField := range []string{"exhaustionLevel", "resultValue", "player-ava"} {
+	for _, privateField := range []string{"exhaustionLevel", "resultValue", "occurredAt", "entry-ava-one", "player-former"} {
 		if strings.Contains(string(encoded), privateField) {
 			t.Fatalf("dashboard leaked %q: %s", privateField, encoded)
 		}
+	}
+}
+
+func TestTrainingDashboardKeepsRecentTeamActivityBehindTodaysGate(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+	if _, err := db.Exec(`UPDATE training_entries SET occurred_at = '2026-08-11T12:00:00Z' WHERE id = 'entry-mason'`); err != nil {
+		t.Fatal(err)
+	}
+
+	projection, err := repository.TrainingDashboard(context.Background(), domain.Actor{
+		Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-one",
+	}, "team-one", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if projection.TeamPulse.Unlocked || len(projection.TeamPulse.RecentActivities) != 0 {
+		t.Fatalf("locked dashboard exposed Team activity: %+v", projection.TeamPulse)
 	}
 }
 
@@ -109,6 +139,9 @@ func TestTrainingDashboardCountsPlannedRestOnceTowardWeeklyMomentum(t *testing.T
 	seedSocialProjection(t, db, now)
 	ctx := context.Background()
 	actor := domain.Actor{Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-one"}
+	if _, err := db.ExecContext(ctx, `UPDATE training_entries SET occurred_at = '2026-08-11T12:00:00Z' WHERE id = 'entry-mason'`); err != nil {
+		t.Fatal(err)
+	}
 
 	projection, err := repository.TrainingDashboard(ctx, actor, "team-one", now)
 	if err != nil {
@@ -130,6 +163,9 @@ func TestTrainingDashboardCountsPlannedRestOnceTowardWeeklyMomentum(t *testing.T
 	}
 	if projection.Summary.WeeklyMomentumCredits != 2 {
 		t.Fatalf("training plus one distinct rest day = %d", projection.Summary.WeeklyMomentumCredits)
+	}
+	if !projection.TeamPulse.Unlocked || len(projection.TeamPulse.RecentActivities) == 0 {
+		t.Fatalf("submitted planned rest did not unlock Team pulse: %+v", projection.TeamPulse)
 	}
 }
 

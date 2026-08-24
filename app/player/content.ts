@@ -91,6 +91,21 @@ export const playerExperienceCopy = {
     previewLabel: "Preview goal—not active yet",
     progress: "9 of 12 plan days",
   },
+  teamPulse: {
+    eyebrow: "Team pulse",
+    title: "Latest from your team",
+    activeThisWeek: (count: number) =>
+      `${count.toLocaleString("en-US")} ${count === 1 ? "teammate has" : "teammates have"} shown up this week`,
+    locked: "Team pulse unlocks after today’s check-in.",
+    lockedDetail: "Finish the plan or submit prescribed rest to see it.",
+    empty: "Your team’s next check-in will show here.",
+    listLabel: "Recent team activity",
+    cheer: "Cheer",
+    cheering: "Sending…",
+    cheered: "Cheered",
+    privateDetail: "Cheers arrive privately.",
+    failed: "That cheer could not be sent. Try again.",
+  },
   previousViews: {
     eyebrow: "For comparison and review",
     title: "Previous views",

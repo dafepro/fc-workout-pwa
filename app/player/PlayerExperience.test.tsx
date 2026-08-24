@@ -113,6 +113,10 @@ describe("consolidated default player experience", () => {
     expect(
       screen.queryByRole("link", { name: /Team lounge/ }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Team pulse unlocks after today’s check-in."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Ava R.")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Log today’s plan" }));
     expect(screen.getByRole("slider", { name: "Effort" })).toBeInTheDocument();
@@ -135,6 +139,13 @@ describe("consolidated default player experience", () => {
     expect(
       screen.getByRole("link", { name: /Relax in Team lounge/ }),
     ).toHaveAttribute("href", "/team");
+    expect(
+      screen.getByRole("heading", { name: "Latest from your team" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Ava R.")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Cheer Ava for Hill Sprints" }),
+    ).toBeEnabled();
   });
 
   it("counts a submitted planned-rest day toward weekly Momentum", async () => {

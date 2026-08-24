@@ -59,7 +59,17 @@ type PersonalTrainingSummary struct {
 }
 
 type TeamPulseProjection struct {
-	ActiveThisWeek int `json:"activeThisWeek"`
+	ActiveThisWeek   int                 `json:"activeThisWeek"`
+	Unlocked         bool                `json:"unlocked"`
+	RecentActivities []TeamPulseActivity `json:"recentActivities"`
+}
+
+type TeamPulseActivity struct {
+	PlayerID     string `json:"playerId"`
+	FirstName    string `json:"firstName"`
+	LastInitial  string `json:"lastInitial"`
+	ActivityName string `json:"activityName"`
+	Recency      string `json:"recency"`
 }
 
 type StreakComparisonProjection struct {
@@ -113,11 +123,83 @@ func (store *Store) TrainingDashboard(ctx context.Context, actor domain.Actor, t
 	if err != nil {
 		return TrainingDashboardProjection{}, err
 	}
+	pulse := TeamPulseProjection{ActiveThisWeek: activeCount, RecentActivities: []TeamPulseActivity{}}
+	pulse.Unlocked = completedToday(entries, restDays, now, location)
+	if pulse.Unlocked {
+		pulse.RecentActivities, err = store.recentTeamActivities(ctx, actor.PlayerID, teamID, now, location)
+		if err != nil {
+			return TrainingDashboardProjection{}, err
+		}
+	}
 	return TrainingDashboardProjection{
 		Team: team.SocialTeam, Activities: activities, CurrentAssignment: assignment, Summary: summary,
-		TeamPulse:        TeamPulseProjection{ActiveThisWeek: activeCount},
+		TeamPulse:        pulse,
 		StreakComparison: streakComparison(actor.PlayerID, now.In(location).Format("2006-01-02"), summary.CurrentStreak),
 	}, nil
+}
+
+func completedToday(entries []domain.ProjectionEntry, restDays []string, now time.Time, location *time.Location) bool {
+	today := now.In(location).Format("2006-01-02")
+	for _, entry := range entries {
+		if !entry.OccurredAt.After(now) && entry.OccurredAt.In(location).Format("2006-01-02") == today {
+			return true
+		}
+	}
+	for _, dayKey := range restDays {
+		if dayKey == today {
+			return true
+		}
+	}
+	return false
+}
+
+func (store *Store) recentTeamActivities(ctx context.Context, playerID, teamID string, now time.Time, location *time.Location) ([]TeamPulseActivity, error) {
+	today := localDateStart(now, location)
+	windowStart := today.AddDate(0, 0, -6)
+	teamDay := today.Format("2006-01-02")
+	rows, err := store.db.QueryContext(ctx, `SELECT p.id, p.first_name, p.last_initial, d.name, e.occurred_at
+		FROM training_entries e
+		JOIN players p ON p.id = e.player_id
+		JOIN activity_definitions d ON d.id = e.activity_definition_id
+		JOIN team_memberships m ON m.team_id = e.team_id AND m.player_id = e.player_id
+		WHERE e.team_id = ? AND e.player_id <> ? AND e.deleted_at IS NULL
+		  AND julianday(e.occurred_at) >= julianday(?) AND julianday(e.occurred_at) <= julianday(?)
+		  AND m.active_from <= ? AND (m.active_to IS NULL OR m.active_to >= ?)
+		ORDER BY julianday(e.occurred_at) DESC, e.id DESC LIMIT 5`,
+		teamID, playerID, windowStart.UTC().Format(time.RFC3339Nano), now.UTC().Format(time.RFC3339Nano), teamDay, teamDay)
+	if err != nil {
+		return nil, fmt.Errorf("list recent Team activities: %w", err)
+	}
+	defer rows.Close()
+	items := make([]TeamPulseActivity, 0, 5)
+	for rows.Next() {
+		var item TeamPulseActivity
+		var occurredAt string
+		if err := rows.Scan(&item.PlayerID, &item.FirstName, &item.LastInitial, &item.ActivityName, &occurredAt); err != nil {
+			return nil, fmt.Errorf("scan recent Team activity: %w", err)
+		}
+		occurred, err := time.Parse(time.RFC3339Nano, occurredAt)
+		if err != nil {
+			return nil, fmt.Errorf("parse recent Team activity time: %w", err)
+		}
+		item.Recency = broadRecency(occurred, today, location)
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate recent Team activities: %w", err)
+	}
+	return items, nil
+}
+
+func broadRecency(value, today time.Time, location *time.Location) string {
+	day := localDateStart(value, location)
+	if day.Equal(today) {
+		return "Today"
+	}
+	if day.Equal(today.AddDate(0, 0, -1)) {
+		return "Yesterday"
+	}
+	return "Recently"
 }
 
 func (store *Store) personalRestDayKeys(ctx context.Context, playerID, teamID string, weekStart, now time.Time, location *time.Location) ([]string, error) {

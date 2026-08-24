@@ -1,6 +1,6 @@
 # Consolidated home engagement plan
 
-Status: approved direction; Momentum and What's next are implemented.
+Status: implemented direction; Momentum, What's next, and Team pulse are complete.
 
 ## Outcome
 
@@ -126,7 +126,7 @@ increase Team credit.
 
 ## Slice 3: Team pulse
 
-This later slice shows at most five recent, safe team events. Each event may
+This slice shows at most five recent, safe team events. Each event may
 contain:
 
 - the teammate's existing safe display identity/avatar;
@@ -134,10 +134,12 @@ contain:
 - broad recency copy such as `Today` or `Yesterday`;
 - one predefined cheer action and the resulting private confirmation.
 
-It must not expose result values, duration, distance, repetitions, pace, effort,
-tiredness, ordered performance, comments, or custom content. The API should own
-the safe projection and cheer eligibility; the client should not download a
-private entry and redact it locally.
+It does not expose result values, duration, distance, repetitions, pace, effort,
+tiredness, ordered performance, comments, or custom content. The authenticated
+training dashboard owns the safe projection and keeps teammate identities behind
+the same-day plan/rest gate; the client never downloads a private entry and
+redacts it locally. Each row offers one predefined clap through the existing
+private, rate-limited Team-progress reaction context.
 
 ## Team rewards placement
 
@@ -148,8 +150,8 @@ product review decides whether an empty state is still useful.
 
 ## Proposed file tree
 
-Files in the first slice are marked `now`; later slices are intentionally not
-created yet.
+The implemented files keep the safe read projection in the existing dashboard
+and reuse the established reaction gateway for writes.
 
 ```text
 docs/
@@ -164,13 +166,12 @@ app/player/
     ConsolidatedToday.tsx                    # now: passes live progress data
     MomentumStatus.tsx                       # now: accessible gauge and streak
     WhatsNext.tsx                            # now: adaptive action state machine
-    TeamPulse.tsx                            # later: safe recent-activity list
+    TeamPulse.tsx                            # now: safe recent-activity list
 app/data/
-  team-pulse-gateway.ts                      # later: safe projection/reaction port
+  training-dashboard-gateway.ts             # now: safe Team pulse read projection
+  reaction-gateway.ts                       # now: predefined private cheer write
 backend/internal/store/
-  team_pulse.go                              # later: server-owned safe projection
-backend/internal/httpapi/
-  team_pulse.go                              # later: authenticated read/cheer API
+  training_dashboard.go                     # now: gated safe Team pulse projection
 ```
 
 ## Delivery and test sequence
@@ -181,8 +182,8 @@ backend/internal/httpapi/
 3. Update the component and styles, including reduced motion and 320 px behavior.
 4. Run the targeted component/domain tests, formatting, lint, type checks, and
    production build.
-5. Review Momentum and What's next in real connected dev data before beginning
-   Team pulse.
+5. Review Momentum, What's next, Team pulse, and one-tap cheer behavior in real
+   connected dev data.
 
 ## Assumptions and deferred decisions
 
@@ -195,5 +196,6 @@ backend/internal/httpapi/
 - A future plan ledger may replace this derived participation count if plans
   become fully scheduled and backdatable. The current choice is intentionally
   explainable and reversible.
-- Activity artwork, post-completion action priority, Team pulse retention, and
-  the exact cheer cooldown presentation are later review items.
+- Activity artwork, post-completion action priority, and Team pulse retention
+  are later review items. Team pulse starts with a single clap action and relies
+  on the existing five-per-recipient rolling reaction limit.

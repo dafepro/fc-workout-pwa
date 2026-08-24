@@ -1,6 +1,7 @@
 import type {
   ActivityDefinition,
   Player,
+  TeamPulseActivity,
   TrainingEntry,
 } from "../domain/types";
 import { createDeleteDeadline } from "../domain/rules";
@@ -191,6 +192,30 @@ export const players: Player[] = [
     consistency: 4,
   },
 ];
+
+export const recentTeamActivities: TeamPulseActivity[] = [
+  pulseActivity(1, 0, "Today"),
+  pulseActivity(3, 1, "Today"),
+  pulseActivity(5, 3, "Yesterday"),
+  pulseActivity(9, 1, "Recently"),
+  pulseActivity(4, 2, "Recently"),
+];
+
+function pulseActivity(
+  playerIndex: number,
+  activityIndex: number,
+  recency: TeamPulseActivity["recency"],
+): TeamPulseActivity {
+  const player = players[playerIndex];
+  const activity = activities[activityIndex];
+  return {
+    playerId: player.id,
+    firstName: player.firstName,
+    lastInitial: player.lastInitial.replace(/\.$/, ""),
+    activityName: activity.name,
+    recency,
+  };
+}
 
 function isoDaysAgo(days: number, hour: number): string {
   const date = new Date();

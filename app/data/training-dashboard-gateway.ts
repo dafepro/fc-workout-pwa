@@ -4,7 +4,13 @@ import type {
   InputKind,
   TrainingDashboard,
 } from "../domain/types";
-import { activities, initialEntries, TEAM_NAME, WEEKLY_GOAL } from "./mockData";
+import {
+  activities,
+  initialEntries,
+  recentTeamActivities,
+  TEAM_NAME,
+  WEEKLY_GOAL,
+} from "./mockData";
 import {
   activityDays,
   currentStreak,
@@ -84,7 +90,11 @@ class LocalTrainingDashboardGateway implements TrainingDashboardGateway {
         effortPoints: 520,
         activityDays: activityDays(initialEntries),
       },
-      teamPulse: { activeThisWeek: 8 },
+      teamPulse: {
+        activeThisWeek: 8,
+        unlocked: true,
+        recentActivities: recentTeamActivities,
+      },
       streakComparison: {
         templateKey: "hammerhead_sharks",
         value: String(streak * 13),

@@ -49,7 +49,11 @@ describe("connected Team Canvas training", () => {
             ],
             currentAssignment: null,
             summary: {},
-            teamPulse: { activeThisWeek: 0 },
+            teamPulse: {
+              activeThisWeek: 0,
+              unlocked: false,
+              recentActivities: [],
+            },
             streakComparison: {},
           });
         }
@@ -152,7 +156,11 @@ describe("connected Team Canvas training", () => {
               targetValue: 8,
             },
             summary: {},
-            teamPulse: { activeThisWeek: 0 },
+            teamPulse: {
+              activeThisWeek: 0,
+              unlocked: false,
+              recentActivities: [],
+            },
             streakComparison: {},
           });
         }

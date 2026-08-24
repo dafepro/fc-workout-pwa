@@ -29,7 +29,19 @@ describe("connected training dashboard gateway", () => {
         effortPoints: 42,
         activityDays: [],
       },
-      teamPulse: { activeThisWeek: 2 },
+      teamPulse: {
+        activeThisWeek: 2,
+        unlocked: true,
+        recentActivities: [
+          {
+            playerId: "player-ava",
+            firstName: "Ava",
+            lastInitial: "R",
+            activityName: "Hill Sprints",
+            recency: "Today",
+          },
+        ],
+      },
       streakComparison: {
         templateKey: "hammerhead_sharks",
         value: "26",
@@ -45,6 +57,9 @@ describe("connected training dashboard gateway", () => {
       team: { id: "team-real", weeklyGoal: 4 },
       activities: [{ id: "hill-sprints", min: 1, max: 20, defaultValue: 8 }],
       summary: { effortPoints: 42 },
+      teamPulse: {
+        recentActivities: [{ playerId: "player-ava", recency: "Today" }],
+      },
     });
     expect(fetch).toHaveBeenCalledWith(
       "/api/zoomigo/v1/me/training-dashboard?teamId=team-real",

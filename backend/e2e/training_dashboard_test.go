@@ -48,6 +48,10 @@ func TestTrainingDashboardOwnsAssignmentCatalogAndCompletion(t *testing.T) {
 	completeResponse := api.do(t, http.MethodPost, "/v1/me/training-entries", masonToken, "assignment-complete", complete)
 	assertStatus(t, completeResponse, http.StatusCreated)
 	_ = completeResponse.Body.Close()
+	teammate := validTrainingEntryPayload(time.Now().UTC().Add(-15 * time.Minute))
+	teammateResponse := api.do(t, http.MethodPost, "/v1/me/training-entries", avaToken, "team-pulse-activity", teammate)
+	assertStatus(t, teammateResponse, http.StatusCreated)
+	_ = teammateResponse.Body.Close()
 
 	afterComplete := api.do(t, http.MethodGet, "/v1/me/training-dashboard?teamId=team-hill-striders", masonToken, "", nil)
 	assertStatus(t, afterComplete, http.StatusOK)
@@ -55,6 +59,16 @@ func TestTrainingDashboardOwnsAssignmentCatalogAndCompletion(t *testing.T) {
 	_ = afterComplete.Body.Close()
 	if !strings.Contains(completeBody, `"completed":true`) {
 		t.Fatalf("target work did not complete assignment: %s", completeBody)
+	}
+	for _, expected := range []string{`"unlocked":true`, `"firstName":"Ava"`, `"activityName":"Hill Sprints"`} {
+		if !strings.Contains(completeBody, expected) {
+			t.Fatalf("safe Team pulse missing %s: %s", expected, completeBody)
+		}
+	}
+	for _, forbidden := range []string{"occurredAt", "resultValue", "effortLevel", "exhaustionLevel"} {
+		if strings.Contains(completeBody, forbidden) {
+			t.Fatalf("Team pulse leaked %s: %s", forbidden, completeBody)
+		}
 	}
 
 	invalid := validTrainingEntryPayload(time.Now().UTC().Add(-time.Hour))
