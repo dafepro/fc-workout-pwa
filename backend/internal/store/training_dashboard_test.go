@@ -38,6 +38,9 @@ func TestTrainingDashboardReturnsOwnedCatalogAssignmentAndSafeSummary(t *testing
 	if projection.Summary.WeeklySessions != 1 || projection.Summary.Rolling30Sessions != 1 || projection.Summary.LongestStreak != 1 {
 		t.Fatalf("unexpected personal summary: %+v", projection.Summary)
 	}
+	if projection.Summary.WeeklyMomentumCredits != 1 {
+		t.Fatalf("unexpected weekly Momentum credit: %+v", projection.Summary)
+	}
 	if projection.TeamPulse.ActiveThisWeek != 2 {
 		t.Fatalf("team pulse included an inactive member: %+v", projection.TeamPulse)
 	}
@@ -97,6 +100,36 @@ func TestTrainingDashboardScopesAssignmentCompletionToTheTeamDay(t *testing.T) {
 	}
 	if projection.CurrentAssignment == nil || projection.CurrentAssignment.Completed {
 		t.Fatalf("the next team-day boundary completed today's assignment: %+v", projection.CurrentAssignment)
+	}
+}
+
+func TestTrainingDashboardCountsPlannedRestOnceTowardWeeklyMomentum(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+	ctx := context.Background()
+	actor := domain.Actor{Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-one"}
+
+	projection, err := repository.TrainingDashboard(ctx, actor, "team-one", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if projection.Summary.WeeklyMomentumCredits != 1 {
+		t.Fatalf("training credit = %d", projection.Summary.WeeklyMomentumCredits)
+	}
+
+	if _, err := db.ExecContext(ctx, `INSERT INTO team_canvas_rest_days
+		(team_id, player_id, day_key, created_at) VALUES
+		('team-one', 'player-mason', '2026-08-11', '2026-08-11T12:00:00Z'),
+		('team-one', 'player-mason', '2026-08-12', '2026-08-12T12:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+	projection, err = repository.TrainingDashboard(ctx, actor, "team-one", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if projection.Summary.WeeklyMomentumCredits != 2 {
+		t.Fatalf("training plus one distinct rest day = %d", projection.Summary.WeeklyMomentumCredits)
 	}
 }
 

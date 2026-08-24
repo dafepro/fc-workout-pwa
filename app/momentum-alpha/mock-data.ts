@@ -7,7 +7,7 @@ export const momentumAlphaMock = {
   },
   plan: {
     dateLabel: "Today · Aug 20",
-    activity: "Hill sprints",
+    activity: "Hill Sprints",
     workload: "Demanding · recovery follows",
     instruction:
       "Sprint for 6 seconds, then walk back fully before the next start.",

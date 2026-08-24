@@ -742,21 +742,26 @@ Momentum Alpha needs independent PWA install/offline behavior.
 - Decided: the default Today surface separates three jobs: Momentum measures
   personal progress, What's next directs the next action, and Team pulse supplies
   safe social motivation. Team rewards remains a separate real-world team goal.
-- Decided for the first slice: Momentum uses the authenticated weekly session
-  count and team weekly goal as its explainable gauge, plus the existing current
-  activity streak as descriptive continuity. It adds no synthetic production
-  score or schema.
+- Decided: Momentum uses the authenticated weekly plan-day credit and team
+  weekly goal as its explainable gauge, plus the existing current activity
+  streak as descriptive continuity. A plan-day credit is an approved recorded
+  activity or a submitted prescribed-rest day, counted at most once per
+  team-local day. It adds no synthetic mutable score or schema.
 - Decided: Momentum states are `Ready`, `Started`, `Building`, and `On a roll`.
-  Guidance names the remaining weekly sessions below goal and recommends
+  Guidance names the remaining weekly plan days below goal and recommends
   recovery rather than extra volume once the goal is met. Streak copy never uses
   loss framing or recommends work solely to preserve a streak.
-- Proposed: What's next will replace the separate workout, completion advice,
-  and Team lounge cards with one adaptive recommendation surface. Team pulse
-  will show at most five server-projected safe activity events with predefined
-  cheers and no raw result or feeling data.
-- Still open: whether a future plan ledger replaces weekly sessions as the
-  Momentum gauge, how planned rest affects continuity, the approved activity-art
-  catalog, post-completion action priority, and Team pulse retention.
+- Implemented: What's next replaces the separate workout, completion advice,
+  and Team lounge cards with one adaptive recommendation surface. Before
+  completion it focuses on the plan. After completion it recommends cooldown or
+  Team lounge and offers only structured secondary actions.
+- Decided: submitting prescribed rest counts toward weekly Momentum and unlocks
+  Team, but does not increase the explicitly labeled activity streak. Merely
+  opening the app does not earn progress.
+- Proposed: Team pulse will show at most five server-projected safe activity
+  events with predefined cheers and no raw result or feeling data.
+- Still open: whether a future plan ledger replaces the derived plan-day gauge,
+  the approved activity-art catalog, and Team pulse retention.
 - Full plan: `CONSOLIDATED_HOME_ENGAGEMENT_PLAN.md`.
 
 ## Development experience controls (2026-08-22)

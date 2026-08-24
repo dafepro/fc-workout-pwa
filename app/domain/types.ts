@@ -78,6 +78,7 @@ export interface TrainingDashboard {
   currentAssignment: TrainingAssignment | null;
   summary: {
     weeklySessions: number;
+    weeklyMomentumCredits: number;
     rolling30Sessions: number;
     currentStreak: number;
     longestStreak: number;

@@ -14,7 +14,7 @@ export const playerExperienceCopy = {
       },
       started: {
         label: "Started",
-        detail: "Your first activity has the week moving.",
+        detail: "Your first plan day has the week moving.",
       },
       building: {
         label: "Building",
@@ -22,7 +22,7 @@ export const playerExperienceCopy = {
       },
       "on-a-roll": {
         label: "On a roll",
-        detail: "You reached the team’s weekly activity goal.",
+        detail: "You reached the team’s weekly plan goal.",
       },
     },
     thisWeek: "this week",
@@ -30,13 +30,13 @@ export const playerExperienceCopy = {
     streak: (days: number) =>
       `${days.toLocaleString("en-US")}-day activity streak`,
     accessibleGauge: (sessions: number, goal: number) =>
-      `Weekly Momentum: ${sessions} of ${goal} approved activities`,
+      `Weekly Momentum: ${sessions} of ${goal} plan days`,
     guidanceLabel: "How to fill it",
     guidance: {
       goalComplete:
         "Weekly goal complete. Recovery is a good next move; there’s no need to add more.",
       remaining: (count: number) =>
-        `${count.toLocaleString("en-US")} more approved ${count === 1 ? "activity completes" : "activities complete"} this week’s goal.`,
+        `${count.toLocaleString("en-US")} more ${count === 1 ? "plan day completes" : "plan days complete"} this week’s goal.`,
       recommendedPlan: "Today’s recommended plan is the clearest next step.",
       planComplete: "No need to add more today.",
       plannedRest: "Today, stick with planned recovery.",
@@ -54,6 +54,35 @@ export const playerExperienceCopy = {
     unlockedTeamBody:
       "Your team is ready. Add your star and make the canvas move.",
     why: "Why this plan?",
+  },
+  whatsNext: {
+    eyebrow: "What’s next",
+    logPlan: "Log today’s plan",
+    planFollowed: "Plan followed",
+    completeTitle: "What’s next?",
+    workoutLogged: "Today’s workout is in the books.",
+    restLogged: "Planned rest logged",
+    restTitle: "Planned recovery",
+    restDetail:
+      "Recovery is today’s plan. Check in to count it—no workout needed.",
+    recordRest: "Record planned rest",
+    previewOnly: "Preview only",
+    saving: "Saving…",
+    notYet: "Not yet",
+    recommended: "Recommended next",
+    lounge: "Relax in Team lounge",
+    loungeDetail: "Cheer the team or add your stamp.",
+    teamLocked: "Team lounge locked",
+    teamLockedDetail: "Live access still follows the server gate.",
+    cooldownLogged: "Cooldown logged",
+    cooldownDetail: "Nice work bringing the effort back down.",
+    logIfDone: "Already did it? Log",
+    keepRecoveryEasy: "Keep recovery easy",
+    keepRecoveryDetail: "Rest is the plan. No extra activity needed.",
+    callItADay: "Or call it a day",
+    callItADayDetail: "You have done enough for today.",
+    saveError: "That workout could not be saved. Please try again.",
+    actionError: "That could not be saved. Please try again.",
   },
   rewards: {
     eyebrow: "Team rewards coming soon",

@@ -77,6 +77,7 @@ class LocalTrainingDashboardGateway implements TrainingDashboardGateway {
       },
       summary: {
         weeklySessions: entriesWithinDays(initialEntries, 7).length,
+        weeklyMomentumCredits: entriesWithinDays(initialEntries, 7).length,
         rolling30Sessions: entriesWithinDays(initialEntries, 30).length,
         currentStreak: streak,
         longestStreak: 12,

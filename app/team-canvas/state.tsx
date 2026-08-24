@@ -352,6 +352,7 @@ export function TeamCanvasProvider({
           store.update((current) =>
             recordPlannedRest({ ...current, dayKind: "rest" }),
           );
+          await training?.refreshDashboard();
           await refresh(2);
         } catch (error) {
           reportConnectedError(error);
@@ -371,7 +372,7 @@ export function TeamCanvasProvider({
             ({ id }) => id === "recovery-walk-jog",
           );
           if (!activity) throw new Error("Today’s cooldown is unavailable.");
-          await createTrainingEntryGateway(true, teamID).create({
+          const entry = {
             activityId: activity.id,
             occurredAt: new Date().toISOString(),
             value: activity.defaultValue,
@@ -379,7 +380,12 @@ export function TeamCanvasProvider({
             inputKind: activity.inputKind,
             effortLevel: 2,
             exhaustionLevel: 2,
-          });
+          };
+          if (training) {
+            await training.addEntry(entry);
+          } else {
+            await createTrainingEntryGateway(true, teamID).create(entry);
+          }
           store.update((current) => recordCooldown(current));
           setJustCompletedPrimary(false);
           await refresh();

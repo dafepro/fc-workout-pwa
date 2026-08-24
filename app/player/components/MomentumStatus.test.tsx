@@ -19,12 +19,12 @@ describe("MomentumStatus", () => {
     expect(screen.getByText("4-day activity streak")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "1 more approved activity completes this week’s goal. Today’s recommended plan is the clearest next step.",
+        "1 more plan day completes this week’s goal. Today’s recommended plan is the clearest next step.",
       ),
     ).toBeInTheDocument();
 
     const gauge = screen.getByRole("progressbar", {
-      name: "Weekly Momentum: 2 of 3 approved activities",
+      name: "Weekly Momentum: 2 of 3 plan days",
     });
     expect(gauge).toHaveTextContent("2 of 3");
     expect(gauge).toHaveAttribute("aria-valuenow", "2");
@@ -45,7 +45,7 @@ describe("MomentumStatus", () => {
     expect(screen.getByText("On a roll")).toBeInTheDocument();
     expect(
       screen.getByRole("progressbar", {
-        name: "Weekly Momentum: 4 of 3 approved activities",
+        name: "Weekly Momentum: 4 of 3 plan days",
       }),
     ).toHaveTextContent("4 of 3");
     expect(screen.getByText("1-day activity streak")).toBeInTheDocument();
@@ -71,7 +71,7 @@ describe("MomentumStatus", () => {
     expect(screen.getByText("Started")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "2 more approved activities complete this week’s goal. Today, stick with planned recovery.",
+        "2 more plan days complete this week’s goal. Today, stick with planned recovery.",
       ),
     ).toBeInTheDocument();
   });

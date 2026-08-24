@@ -359,8 +359,7 @@
   }
 }
 
-.today-plan,
-.today-complete {
+.whats-next {
   overflow: hidden;
   border-radius: 1.55rem;
   background: #082f27;
@@ -368,7 +367,8 @@
   box-shadow: 0 18px 40px rgb(8 47 39 / 18%);
 }
 
-.today-plan {
+.whats-next--plan,
+.whats-next--rest {
   position: relative;
   padding: 1.25rem;
   background:
@@ -376,7 +376,8 @@
     linear-gradient(145deg, #061f3b, #082f27 70%);
 }
 
-.today-plan::before {
+.whats-next--plan::before,
+.whats-next--rest::before {
   position: absolute;
   z-index: 0;
   top: 0.75rem;
@@ -391,12 +392,13 @@
   content: "";
 }
 
-.today-plan > :not(.today-plan__mark) {
+.whats-next--plan > :not(.whats-next__mark),
+.whats-next--rest > * {
   position: relative;
   z-index: 1;
 }
 
-.today-plan__mark {
+.whats-next__mark {
   position: absolute;
   top: 1.25rem;
   right: 1.2rem;
@@ -413,24 +415,23 @@
   line-height: 1;
 }
 
-.today-plan .player-eyebrow,
-.today-complete .player-eyebrow {
+.whats-next .player-eyebrow {
   color: var(--lime);
 }
 
-.today-plan__heading {
+.whats-next__heading {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
 }
 
-.today-plan__heading h1 {
+.whats-next__heading h1 {
   margin: 0;
   font-size: clamp(2rem, 11vw, 3.4rem);
 }
 
-.today-plan__heading > span {
+.whats-next__heading > span {
   flex: 0 0 auto;
   margin-top: 0.15rem;
   padding: 0.35rem 0.6rem;
@@ -441,25 +442,25 @@
   font-weight: 850;
 }
 
-.today-plan__heading > div,
-.today-plan__workload,
-.today-plan__instruction {
+.whats-next__heading > div,
+.whats-next__goal,
+.whats-next__instruction {
   max-width: 68%;
 }
 
-.today-plan__workload {
+.whats-next__goal {
   margin: 0.8rem 0 0.25rem;
   color: var(--lime);
   font-size: 1.05rem;
   font-weight: 900;
 }
 
-.today-plan__instruction {
+.whats-next__instruction {
   margin-bottom: 1.1rem;
   color: #d5e4df;
 }
 
-.today-plan__log {
+.whats-next__log {
   position: relative;
   display: grid;
   width: 100%;
@@ -474,17 +475,17 @@
   cursor: pointer;
 }
 
-.today-plan__log strong {
+.whats-next__log strong {
   font-size: 1rem;
 }
 
-.today-plan__log small {
+.whats-next__log small {
   grid-column: 1;
   color: #3e5a34;
   font-weight: 700;
 }
 
-.today-plan__log > span {
+.whats-next__log > span {
   grid-column: 2;
   grid-row: 1 / span 2;
   align-self: center;
@@ -492,19 +493,19 @@
   line-height: 1;
 }
 
-.today-plan__why {
+.whats-next__why {
   margin-top: 0.9rem;
   color: #d5e4df;
   font-size: 0.86rem;
 }
 
-.today-plan__why summary {
+.whats-next__why summary {
   width: fit-content;
   cursor: pointer;
   font-weight: 800;
 }
 
-.today-plan__why ul {
+.whats-next__why ul {
   margin-bottom: 0;
   padding-left: 1.15rem;
 }
@@ -523,7 +524,7 @@
 .today-checkin__alternative,
 .today-checkin__cancel,
 .today-checkin__save,
-.today-plan--rest button {
+.whats-next--rest button {
   min-height: 2.9rem;
   border: 1px solid rgb(255 255 255 / 18%);
   border-radius: 0.85rem;
@@ -566,26 +567,43 @@
 }
 
 .today-checkin__save,
-.today-plan--rest button {
+.whats-next--rest button {
   border-color: var(--lime);
   background: var(--lime);
   color: #092e26;
 }
 
 .today-checkin button:disabled,
-.today-plan--rest button:disabled {
+.whats-next--rest button:disabled {
   cursor: wait;
   opacity: 0.65;
 }
 
-.today-complete {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.9rem;
+.whats-next--complete {
   padding: 1.25rem;
+  background:
+    radial-gradient(
+      circle at 92% 8%,
+      rgb(101 203 193 / 24%),
+      transparent 11rem
+    ),
+    linear-gradient(145deg, #061f3b, #082f27 72%);
 }
 
-.today-complete > span {
+.whats-next--lounge {
+  background:
+    linear-gradient(110deg, rgb(3 18 30 / 97%), rgb(5 28 55 / 48%)),
+    url("/team-canvas/backgrounds/cosmic-stadium.png") center / cover;
+}
+
+.whats-next__complete-heading {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.whats-next__complete-heading > span {
   display: grid;
   width: 2.9rem;
   height: 2.9rem;
@@ -597,27 +615,107 @@
   font-weight: 950;
 }
 
-.today-complete h1 {
+.whats-next__complete-heading h1 {
   margin-bottom: 0.3rem;
-  font-size: 1.7rem;
+  font-size: clamp(1.65rem, 7vw, 2.2rem);
 }
 
-.today-complete p:last-child {
+.whats-next__complete-heading p:last-child {
   margin-bottom: 0;
   color: #d5e4df;
 }
 
-.today-complete a {
-  grid-column: 1 / -1;
-  padding: 0.85rem 1rem;
-  border-radius: 0.9rem;
-  background: var(--lime);
-  color: #082f27;
-  font-weight: 900;
-  text-align: center;
+.whats-next__tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-top: 1rem;
 }
 
-.today-plan--rest > button {
+.next-tile {
+  display: flex;
+  min-width: 0;
+  min-height: 6.4rem;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 0.85rem;
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 1rem;
+  color: #fff;
+  text-align: left;
+}
+
+button.next-tile {
+  font: inherit;
+  cursor: pointer;
+}
+
+button.next-tile:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.next-tile.is-recommended {
+  min-height: 7.6rem;
+  grid-column: 1 / -1;
+}
+
+.next-tile small {
+  margin-bottom: auto;
+  color: var(--lime);
+  font-size: 0.62rem;
+  font-weight: 950;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.next-tile strong {
+  font-size: 0.93rem;
+  line-height: 1.15;
+}
+
+.next-tile span {
+  margin-top: 0.28rem;
+  color: rgb(255 255 255 / 78%);
+  font-size: 0.69rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.next-tile--cooldown {
+  background:
+    radial-gradient(circle at 88% 18%, rgb(200 245 42 / 26%), transparent 6rem),
+    linear-gradient(135deg, #155d65, #123f4f);
+}
+
+.next-tile--lounge {
+  background:
+    linear-gradient(105deg, rgb(7 29 51 / 94%), rgb(7 34 55 / 36%)),
+    url("/team-canvas/backgrounds/cosmic-stadium.png") center / cover;
+}
+
+.next-tile--extra {
+  background: linear-gradient(145deg, #5c3d8e, #382664);
+}
+
+.next-tile--done,
+.next-tile--recovery {
+  background: linear-gradient(145deg, #315f53, #23473e);
+}
+
+.next-tile--stop,
+.next-tile--locked {
+  background: rgb(255 255 255 / 9%);
+}
+
+.whats-next--complete > [role="alert"] {
+  margin: 0.8rem 0 0;
+  color: #ffd8d8;
+  font-weight: 800;
+}
+
+.whats-next--rest > button {
   width: 100%;
   margin-top: 0.6rem;
 }
@@ -806,113 +904,6 @@
   .player-rewards__gift {
     min-height: 6rem;
   }
-}
-
-.team-preview {
-  position: relative;
-  display: grid;
-  min-height: 10rem;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
-  gap: 0.8rem;
-  margin-top: 0.9rem;
-  padding: 1.1rem;
-  border-radius: 1.25rem;
-  overflow: hidden;
-  background:
-    linear-gradient(90deg, rgb(3 18 30 / 96%), rgb(5 28 55 / 30%)),
-    url("/team-canvas/backgrounds/cosmic-stadium.png") center / cover;
-  color: #fff;
-  box-shadow: 0 14px 32px rgb(8 47 39 / 14%);
-}
-
-.team-preview::after {
-  position: absolute;
-  z-index: 1;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    rgb(3 18 30 / 96%) 0%,
-    rgb(5 28 35 / 78%) 50%,
-    rgb(5 28 35 / 5%) 82%
-  );
-  content: "";
-}
-
-.team-preview__mark {
-  position: absolute;
-  z-index: 0;
-  inset: 0;
-}
-
-.team-preview__mark i {
-  position: absolute;
-  right: 1.35rem;
-  bottom: 1rem;
-  width: 3.4rem;
-  height: 3.4rem;
-  border: 0.35rem solid rgb(255 255 255 / 68%);
-  border-radius: 50%;
-  background: rgb(20 45 70 / 74%);
-  box-shadow: inset 0 0 0 0.25rem rgb(200 245 42 / 16%);
-}
-
-.team-preview__mark i::before,
-.team-preview__mark i::after {
-  position: absolute;
-  width: 1rem;
-  height: 0.3rem;
-  border-radius: 999px;
-  background: rgb(255 255 255 / 72%);
-  content: "";
-}
-
-.team-preview__mark i::before {
-  top: 0.8rem;
-  left: 0.8rem;
-  transform: rotate(36deg);
-}
-
-.team-preview__mark i::after {
-  right: 0.65rem;
-  bottom: 0.7rem;
-  transform: rotate(-42deg);
-}
-
-.team-preview > div,
-.team-preview__action {
-  position: relative;
-  z-index: 2;
-}
-
-.team-preview > div {
-  max-width: 66%;
-}
-
-.team-preview .player-eyebrow {
-  color: var(--lime);
-}
-
-.team-preview h2 {
-  margin-bottom: 0.35rem;
-  font-size: 1.7rem;
-}
-
-.team-preview p:last-child {
-  margin-bottom: 0;
-  color: #d9e4e0;
-}
-
-.team-preview__action {
-  display: grid;
-  width: 2.5rem;
-  height: 2.5rem;
-  place-items: center;
-  border: 1px solid rgb(255 255 255 / 20%);
-  border-radius: 999px;
-  background: rgb(255 255 255 / 10%);
-  color: var(--lime);
-  font-weight: 950;
 }
 
 .player-page--team {
@@ -1174,23 +1165,16 @@
   }
 
   .player-page--today .momentum-status,
-  .player-page--today .today-plan,
-  .player-page--today .today-complete {
+  .player-page--today .whats-next {
     grid-column: 1;
   }
 
-  .player-page--today .player-rewards,
-  .player-page--today .team-preview {
+  .player-page--today .player-rewards {
     grid-column: 2;
   }
 
   .player-page--today .player-rewards {
     grid-row: 1 / span 1;
-    margin-top: 0;
-  }
-
-  .player-page--today .team-preview {
-    grid-row: 2 / span 2;
     margin-top: 0;
   }
 }
@@ -1200,11 +1184,11 @@
     padding-inline: 0.7rem;
   }
 
-  .today-plan {
+  .whats-next {
     padding: 1rem;
   }
 
-  .today-plan__heading > span {
+  .whats-next__heading > span {
     display: none;
   }
 
@@ -1255,10 +1239,6 @@
 
   .player-rewards {
     grid-template-columns: minmax(0, 1fr) 5.25rem;
-  }
-
-  .team-preview > div {
-    max-width: 72%;
   }
 }
 

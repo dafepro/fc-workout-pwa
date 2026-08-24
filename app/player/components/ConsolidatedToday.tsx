@@ -1,41 +1,43 @@
 "use client";
 
-import Link from "next/link";
-import { useState } from "react";
 import { players, WEEKLY_GOAL } from "../../data/mockData";
 import { useMomentumAlpha } from "../../momentum-alpha/state";
 import { useOptionalTraining } from "../../state/training-context";
-import { teamCanvasCopy } from "../../team-canvas/content";
-import type { CompletionKind } from "../../team-canvas/model";
 import { useTeamCanvas } from "../../team-canvas/state";
-import { FeelTracks } from "../../team-canvas/components/FeelTracks";
-import { playerExperienceCopy } from "../content";
 import { TeamRewardsPreview } from "./TeamRewardsPreview";
 import { usePlayerDevSettings } from "../dev/PlayerDevSettings";
 import { MomentumStatus } from "./MomentumStatus";
+import { WhatsNext } from "./WhatsNext";
 
 export function ConsolidatedToday() {
   const momentum = useMomentumAlpha();
   const canvas = useTeamCanvas();
   const training = useOptionalTraining();
   const dev = usePlayerDevSettings();
-  const [expanded, setExpanded] = useState(false);
-  const [completion, setCompletion] = useState<CompletionKind>("goal");
-  const [effort, setEffort] = useState(4);
-  const [tiredness, setTiredness] = useState(3);
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState("");
   const prototypePlayer = players[0];
-  const weeklySessions =
-    training?.dashboard?.summary.weeklySessions ??
-    prototypePlayer.weeklySessions;
-  const weeklyGoal = training?.dashboard?.team.weeklyGoal ?? WEEKLY_GOAL;
-  const currentStreak =
-    training?.dashboard?.summary.currentStreak ?? prototypePlayer.currentStreak;
   const livePlanComplete =
     canvas.connectedStatus === "local"
       ? canvas.state.primaryComplete
-      : momentum.state.primaryComplete;
+      : canvas.connectedStatus === "ready" || momentum.state.primaryComplete;
+  const restDay =
+    dev.settings.today === "rest" ||
+    (dev.settings.today === "real" &&
+      (momentum.state.dayKind === "rest" ||
+        (canvas.connectedStatus === "local" &&
+          canvas.state.dayKind === "rest")));
+  const localRestCredit =
+    !training?.connected &&
+    dev.settings.today === "real" &&
+    restDay &&
+    canvas.state.completion === "rest"
+      ? 1
+      : 0;
+  const weeklyMomentumCredits =
+    (training?.dashboard?.summary.weeklyMomentumCredits ??
+      prototypePlayer.weeklySessions) + localRestCredit;
+  const weeklyGoal = training?.dashboard?.team.weeklyGoal ?? WEEKLY_GOAL;
+  const currentStreak =
+    training?.dashboard?.summary.currentStreak ?? prototypePlayer.currentStreak;
   const unlockedByToday =
     dev.settings.today === "complete"
       ? true
@@ -44,27 +46,12 @@ export function ConsolidatedToday() {
         : livePlanComplete;
   const unlocked =
     dev.settings.teamAccess === "locked" ? false : unlockedByToday;
-  const restDay =
-    dev.settings.today === "rest" ||
-    (dev.settings.today === "real" && momentum.state.dayKind === "rest");
   const previewingToday = dev.settings.today !== "real";
-
-  async function save() {
-    setSaveError("");
-    setSaving(true);
-    try {
-      const saved = await canvas.complete({ completion, effort, tiredness });
-      if (saved) {
-        setExpanded(false);
-      } else {
-        setSaveError("That workout could not be saved. Please try again.");
-      }
-    } catch {
-      setSaveError("That workout could not be saved. Please try again.");
-    } finally {
-      setSaving(false);
-    }
-  }
+  const cooldownComplete =
+    canvas.connectedStatus === "local"
+      ? canvas.state.cooldownComplete
+      : (canvas.connectedProjection?.cooldownComplete ??
+        momentum.state.recoveryComplete);
 
   if (canvas.connectedStatus === "loading" || momentum.loading) {
     return (
@@ -78,7 +65,7 @@ export function ConsolidatedToday() {
     <div className="player-page player-page--today">
       {dev.settings.momentumVisible ? (
         <MomentumStatus
-          weeklySessions={weeklySessions}
+          weeklySessions={weeklyMomentumCredits}
           weeklyGoal={weeklyGoal}
           currentStreak={currentStreak}
           restDay={restDay}
@@ -91,193 +78,23 @@ export function ConsolidatedToday() {
         />
       ) : null}
 
-      {unlocked ? (
-        <section
-          className="today-complete"
-          aria-labelledby="today-complete-title"
-        >
-          <span aria-hidden="true">✓</span>
-          <div>
-            <p className="player-eyebrow">Plan followed</p>
-            <h1 id="today-complete-title">
-              {playerExperienceCopy.today.completionTitle}
-            </h1>
-            <p>{playerExperienceCopy.today.completionBody}</p>
-          </div>
-          <Link href="/team">{playerExperienceCopy.today.joinTeam} →</Link>
-        </section>
-      ) : restDay ? (
-        <RestPlan
-          onRecord={() => canvas.recordRest()}
-          previewOnly={previewingToday}
-        />
-      ) : (
-        <section className="today-plan" aria-labelledby="today-plan-title">
-          <span
-            className="today-plan__mark"
-            data-testid="workout-mark"
-            aria-hidden="true"
-          >
-            ↗
-          </span>
-          <div className="today-plan__heading">
-            <div>
-              <p className="player-eyebrow">
-                {playerExperienceCopy.today.eyebrow}
-              </p>
-              <h1 id="today-plan-title">
-                {teamCanvasCopy.today.trainingTitle}
-              </h1>
-            </div>
-            <span>8–10 min</span>
-          </div>
-          <p className="today-plan__workload">8 reps · 6 seconds each</p>
-          <p className="today-plan__instruction">
-            {teamCanvasCopy.today.trainingDescription}
-          </p>
-
-          {expanded ? (
-            <div className="today-checkin">
-              <div
-                className="today-checkin__targets"
-                role="group"
-                aria-label={teamCanvasCopy.today.formTitle}
-              >
-                <button
-                  type="button"
-                  aria-pressed={completion === "goal"}
-                  onClick={() => setCompletion("goal")}
-                >
-                  {teamCanvasCopy.today.goal}
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={completion === "reach"}
-                  onClick={() => setCompletion("reach")}
-                >
-                  {teamCanvasCopy.today.reach}
-                </button>
-              </div>
-              <button
-                className="today-checkin__alternative"
-                type="button"
-                aria-pressed={completion === "approved-alternative"}
-                onClick={() => setCompletion("approved-alternative")}
-              >
-                {teamCanvasCopy.today.alternative}
-              </button>
-              <FeelTracks
-                effort={effort}
-                tiredness={tiredness}
-                onEffortChange={setEffort}
-                onTirednessChange={setTiredness}
-              />
-              <div className="today-checkin__actions">
-                <button
-                  type="button"
-                  className="today-checkin__cancel"
-                  onClick={() => setExpanded(false)}
-                >
-                  Not yet
-                </button>
-                <button
-                  type="button"
-                  className="today-checkin__save"
-                  disabled={previewingToday || saving}
-                  onClick={() => void save()}
-                >
-                  {previewingToday
-                    ? "Preview only"
-                    : saving
-                      ? "Saving…"
-                      : teamCanvasCopy.today.save}
-                </button>
-              </div>
-              {canvas.connectedError || saveError ? (
-                <p role="alert">{canvas.connectedError ?? saveError}</p>
-              ) : null}
-            </div>
-          ) : (
-            <button
-              className="today-plan__log"
-              type="button"
-              aria-label={playerExperienceCopy.today.log}
-              onClick={() => setExpanded(true)}
-            >
-              <strong>{playerExperienceCopy.today.log}</strong>
-              <small>{playerExperienceCopy.today.logPreview}</small>
-              <span aria-hidden="true">›</span>
-            </button>
-          )}
-
-          <details className="today-plan__why">
-            <summary>{playerExperienceCopy.today.why}</summary>
-            <ul>
-              {momentum.presentation.plan.reasons.map((reason) => (
-                <li key={reason}>{reason}</li>
-              ))}
-            </ul>
-          </details>
-        </section>
-      )}
+      <WhatsNext
+        restDay={restDay}
+        planComplete={unlockedByToday}
+        cooldownComplete={cooldownComplete}
+        teamAvailable={unlocked}
+        previewOnly={previewingToday}
+        connectedError={canvas.connectedError}
+        plan={momentum.presentation.plan}
+        recovery={momentum.presentation.recovery}
+        extras={momentum.presentation.extras}
+        onComplete={(input) => canvas.complete(input)}
+        onRecordRest={() => canvas.recordRest()}
+        onRecordCooldown={() => canvas.recordCooldown()}
+        onRecordExtra={(activity) => momentum.recordExtra(activity)}
+      />
 
       <TeamRewardsPreview placement="today" />
-
-      <Link
-        className={`team-preview${unlocked ? " is-unlocked" : ""}`}
-        href="/team"
-      >
-        <span
-          className="team-preview__mark"
-          data-testid="lounge-mark"
-          aria-hidden="true"
-        >
-          <i />
-        </span>
-        <div>
-          <p className="player-eyebrow">Creative team space</p>
-          <h2>{playerExperienceCopy.today.lockedTeamTitle}</h2>
-          <p>
-            {unlocked
-              ? playerExperienceCopy.today.unlockedTeamBody
-              : playerExperienceCopy.today.lockedTeamBody}
-          </p>
-        </div>
-        <span className="team-preview__action" aria-hidden="true">
-          {unlocked ? "→" : "◆"}
-        </span>
-      </Link>
     </div>
-  );
-}
-
-function RestPlan({
-  onRecord,
-  previewOnly,
-}: {
-  onRecord(): Promise<void>;
-  previewOnly: boolean;
-}) {
-  const [saving, setSaving] = useState(false);
-  return (
-    <section className="today-plan today-plan--rest">
-      <p className="player-eyebrow">Today · planned recovery</p>
-      <h1>{teamCanvasCopy.today.restTitle}</h1>
-      <p>{teamCanvasCopy.today.restDescription}</p>
-      <button
-        type="button"
-        disabled={previewOnly || saving}
-        onClick={() => {
-          setSaving(true);
-          void onRecord().finally(() => setSaving(false));
-        }}
-      >
-        {previewOnly
-          ? "Preview only"
-          : saving
-            ? "Saving…"
-            : teamCanvasCopy.today.restAction}
-      </button>
-    </section>
   );
 }

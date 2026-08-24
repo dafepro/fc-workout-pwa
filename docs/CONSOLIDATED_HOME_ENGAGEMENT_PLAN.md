@@ -1,6 +1,6 @@
 # Consolidated home engagement plan
 
-Status: approved direction; Momentum is the first implementation slice.
+Status: approved direction; Momentum and What's next are implemented.
 
 ## Outcome
 
@@ -30,9 +30,10 @@ but the current Today hierarchy repeats the same decision in several places.
   adaptive next-action area.
 - The Team lounge card is useful before completion because it explains the gate,
   but becomes duplicate navigation after completion.
-- The existing dashboard already provides weekly sessions, weekly goal, current
-  activity streak, and recent activity days. Those values should replace the
-  synthetic Momentum score on the default experience.
+- The existing dashboard provides weekly sessions, weekly goal, current activity
+  streak, and recent activity days. The Canvas also durably stores submitted
+  planned-rest days. Those sources replace the synthetic Momentum score on the
+  default experience.
 
 ## Information hierarchy
 
@@ -45,16 +46,19 @@ The eventual Today order is:
 5. Team pulse;
 6. persistent Today / Team / Me navigation.
 
-The first implementation changes only Momentum. It does not pre-empt the state
-model or visual treatment of the later cards.
+The first two slices change Momentum and What's next. They do not pre-empt the
+state model or visual treatment of Team pulse.
 
 ## Slice 1: Momentum
 
 ### Data and meaning
 
-The primary gauge is `weeklySessions / weeklyGoal`, using the authenticated
-training dashboard. The visible fill is capped at 100%, while the number may say
-`4 of 3` so above-goal work is truthful without encouraging maximization.
+The primary gauge is `weeklyMomentumCredits / weeklyGoal`, using the
+authenticated training dashboard. A credit is either an approved recorded
+activity or a submitted prescribed-rest day. Rest does not add a second credit
+when an activity already exists on that same team-local day. The visible fill is
+capped at 100%, while the number may say `4 of 3` so above-goal participation is
+truthful without encouraging maximization.
 
 The supporting continuity measure is the existing current activity streak. It is
 the run of distinct team-local days with an approved recorded activity, ending
@@ -64,22 +68,22 @@ alone is not progress.
 
 The gauge has four plain-language states:
 
-| Condition                   | State     |
-| --------------------------- | --------- |
-| No sessions this week       | Ready     |
-| One session, below the goal | Started   |
-| Two or more, below the goal | Building  |
-| Weekly goal met             | On a roll |
+| Condition                    | State     |
+| ---------------------------- | --------- |
+| No plan days this week       | Ready     |
+| One plan day, below the goal | Started   |
+| Two or more, below the goal  | Building  |
+| Weekly goal met              | On a roll |
 
-When a one-session weekly goal is met by the first session, the state is `On a
-roll`; the condition matters more than forcing every label to appear.
+When a one-day weekly goal is met by the first credit, the state is `On a roll`;
+the condition matters more than forcing every label to appear.
 
 ### Guidance
 
 The card explains exactly how to fill the gauge:
 
-- below goal: say how many approved activities remain this week and identify
-  today's recommended plan as the clearest next step;
+- below goal: say how many plan days remain this week and identify today's
+  recommended plan as the clearest next step;
 - at goal: confirm that the weekly goal is complete and say recovery still
   counts as a good choice;
 - above goal: do not add a bonus tier, points, pressure, or a larger target.
@@ -89,7 +93,7 @@ The activity streak is descriptive. The card never uses loss framing such as
 
 ### Interaction and accessibility
 
-- Use a real progressbar with the session count as its accessible value.
+- Use a real progressbar with the plan-day count as its accessible value.
 - Keep the number, state label, and hint visible so color is never the only
   carrier of meaning.
 - Animate the gauge once when data settles; honor `prefers-reduced-motion`.
@@ -99,8 +103,8 @@ The activity streak is descriptive. The card never uses loss framing such as
 
 ## Slice 2: What's next
 
-This later slice consolidates the current workout, completion advice, Team
-lounge preview, and Momentum recommendation into one adaptive card.
+This slice consolidates the current workout, completion advice, Team lounge
+preview, and Momentum recommendation into one adaptive card.
 
 Before the plan is complete, the assigned or recommended workout owns the card's
 large visual background and primary action. If no approved activity-specific
@@ -159,7 +163,7 @@ app/player/
   components/
     ConsolidatedToday.tsx                    # now: passes live progress data
     MomentumStatus.tsx                       # now: accessible gauge and streak
-    WhatsNext.tsx                            # later: adaptive action state machine
+    WhatsNext.tsx                            # now: adaptive action state machine
     TeamPulse.tsx                            # later: safe recent-activity list
 app/data/
   team-pulse-gateway.ts                      # later: safe projection/reaction port
@@ -177,17 +181,19 @@ backend/internal/httpapi/
 3. Update the component and styles, including reduced motion and 320 px behavior.
 4. Run the targeted component/domain tests, formatting, lint, type checks, and
    production build.
-5. Review Momentum in real connected dev data before beginning What's next.
+5. Review Momentum and What's next in real connected dev data before beginning
+   Team pulse.
 
 ## Assumptions and deferred decisions
 
-- The existing dashboard's session-based weekly goal and activity streak are
-  authoritative for this pass; no new backend score or schema is needed.
-- Planned rest currently unlocks Team but does not create a training entry, so it
-  does not increase the activity streak. A future plan ledger may support a
-  separate plan-following continuity metric.
-- Whether the long-term Momentum gauge should measure weekly sessions or a
-  future plan-following model remains open. The current choice is intentionally
+- The dashboard's weekly Momentum credit and team goal are authoritative. The
+  credit is derived from existing training entries and Canvas rest records, so
+  no new mutable score or schema is needed.
+- Submitting prescribed rest counts as showing up; opening the app alone does
+  not. Planned rest does not increase the activity streak, which remains an
+  explicitly labeled run of recorded-activity days.
+- A future plan ledger may replace this derived participation count if plans
+  become fully scheduled and backdatable. The current choice is intentionally
   explainable and reversible.
 - Activity artwork, post-completion action priority, Team pulse retention, and
   the exact cheer cooldown presentation are later review items.
