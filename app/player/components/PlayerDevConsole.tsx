@@ -12,7 +12,9 @@ export function PlayerDevConsole() {
   if (!enabled) return null;
   const copy = playerExperienceCopy.devConsole;
 
-  function select<K extends "momentumBand" | "today" | "teamAccess">(key: K) {
+  function select<
+    K extends "momentumBand" | "today" | "teamAccess" | "whatsNext",
+  >(key: K) {
     return (event: ChangeEvent<HTMLSelectElement>) =>
       update({ [key]: event.target.value } as Pick<PlayerDevSettings, K>);
   }
@@ -65,6 +67,20 @@ export function PlayerDevConsole() {
             >
               <option value="real">Live access</option>
               <option value="locked">Force locked presentation</option>
+            </select>
+          </label>
+          <label>
+            <span>{copy.whatsNextPreview}</span>
+            <select
+              aria-label={copy.whatsNextPreview}
+              value={settings.whatsNext}
+              onChange={select("whatsNext")}
+            >
+              <option value="real">Live recommendation</option>
+              <option value="cooldown">Cooldown review</option>
+              <option value="recovery">High-strain recovery</option>
+              <option value="lounge">Team lounge</option>
+              <option value="all-set">All set</option>
             </select>
           </label>
         </div>

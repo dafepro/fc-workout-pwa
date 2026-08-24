@@ -580,20 +580,31 @@
 }
 
 .whats-next--complete {
+  --next-accent: #72d9cd;
+  --next-accent-ink: #062e31;
   padding: 1.25rem;
   background:
     radial-gradient(
       circle at 92% 8%,
-      rgb(101 203 193 / 24%),
+      color-mix(in srgb, var(--next-accent) 24%, transparent),
       transparent 11rem
     ),
-    linear-gradient(145deg, #061f3b, #082f27 72%);
+    linear-gradient(145deg, #061f3b, #082f27 78%);
+}
+
+.whats-next--recovery {
+  --next-accent: #8fd7f0;
+  --next-accent-ink: #082b40;
 }
 
 .whats-next--lounge {
-  background:
-    linear-gradient(110deg, rgb(3 18 30 / 97%), rgb(5 28 55 / 48%)),
-    url("/team-canvas/backgrounds/cosmic-stadium.png") center / cover;
+  --next-accent: #bca9ff;
+  --next-accent-ink: #241b50;
+}
+
+.whats-next--all-set {
+  --next-accent: var(--lime);
+  --next-accent-ink: #173c28;
 }
 
 .whats-next__complete-heading {
@@ -609,8 +620,8 @@
   height: 2.9rem;
   place-items: center;
   border-radius: 999px;
-  background: var(--lime);
-  color: #082f27;
+  background: var(--next-accent);
+  color: var(--next-accent-ink);
   font-size: 1.4rem;
   font-weight: 950;
 }
@@ -625,94 +636,334 @@
   color: #d5e4df;
 }
 
-.whats-next__tiles {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.65rem;
-  margin-top: 1rem;
-}
-
-.next-tile {
+.whats-next__status {
   display: flex;
-  min-width: 0;
-  min-height: 6.4rem;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-end;
-  padding: 0.85rem;
-  border: 1px solid rgb(255 255 255 / 14%);
-  border-radius: 1rem;
-  color: #fff;
-  text-align: left;
+  align-items: center;
+  gap: 0.55rem;
+  width: fit-content;
+  margin: 0.85rem 0 0;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 7%);
 }
 
-button.next-tile {
-  font: inherit;
-  cursor: pointer;
-}
-
-button.next-tile:disabled {
-  cursor: wait;
-  opacity: 0.65;
-}
-
-.next-tile.is-recommended {
-  min-height: 7.6rem;
-  grid-column: 1 / -1;
-}
-
-.next-tile small {
-  margin-bottom: auto;
-  color: var(--lime);
-  font-size: 0.62rem;
+.whats-next__status > span:first-child {
+  display: grid;
+  width: 1.35rem;
+  height: 1.35rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--next-accent);
+  color: var(--next-accent-ink);
+  font-size: 0.72rem;
   font-weight: 950;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
 }
 
-.next-tile strong {
-  font-size: 0.93rem;
-  line-height: 1.15;
+.whats-next__status > span:last-child {
+  display: grid;
 }
 
-.next-tile span {
-  margin-top: 0.28rem;
-  color: rgb(255 255 255 / 78%);
-  font-size: 0.69rem;
-  font-weight: 700;
-  line-height: 1.3;
+.whats-next__status strong {
+  font-size: 0.72rem;
 }
 
-.next-tile--cooldown {
+.whats-next__status small {
+  color: #c9d8d4;
+  font-size: 0.61rem;
+}
+
+.whats-next__recommendation {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.8rem;
+  margin-top: 1rem;
+  overflow: hidden;
+  padding: 1rem;
+  border: 1px solid rgb(255 255 255 / 15%);
+  border-radius: 1.2rem;
   background:
-    radial-gradient(circle at 88% 18%, rgb(200 245 42 / 26%), transparent 6rem),
-    linear-gradient(135deg, #155d65, #123f4f);
+    radial-gradient(
+      circle at 92% 10%,
+      color-mix(in srgb, var(--next-accent) 28%, transparent),
+      transparent 7rem
+    ),
+    rgb(255 255 255 / 8%);
+  animation: whats-next-enter 220ms ease-out both;
 }
 
-.next-tile--lounge {
+.whats-next--lounge .whats-next__recommendation {
   background:
-    linear-gradient(105deg, rgb(7 29 51 / 94%), rgb(7 34 55 / 36%)),
+    linear-gradient(100deg, rgb(8 31 49 / 94%), rgb(15 40 70 / 45%)),
     url("/team-canvas/backgrounds/cosmic-stadium.png") center / cover;
 }
 
-.next-tile--extra {
-  background: linear-gradient(145deg, #5c3d8e, #382664);
+.whats-next__recommendation-icon,
+.whats-next__action-icon {
+  display: grid;
+  place-items: center;
+  border-radius: 0.85rem;
+  background: var(--next-accent);
+  color: var(--next-accent-ink);
+  font-weight: 950;
 }
 
-.next-tile--done,
-.next-tile--recovery {
-  background: linear-gradient(145deg, #315f53, #23473e);
+.whats-next__recommendation-icon {
+  width: 3rem;
+  height: 3rem;
+  font-size: 1.4rem;
 }
 
-.next-tile--stop,
-.next-tile--locked {
-  background: rgb(255 255 255 / 9%);
+.whats-next__recommendation-copy {
+  min-width: 0;
+}
+
+.whats-next__recommendation-copy h2 {
+  margin: 0;
+  font-size: clamp(1.35rem, 6vw, 1.8rem);
+  line-height: 1.08;
+}
+
+.whats-next__recommendation-copy > p:last-child {
+  margin: 0.35rem 0 0;
+  color: #d3e1de;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.whats-next__primary-action,
+.whats-next__preview-action {
+  grid-column: 1 / -1;
+  min-height: 3.15rem;
+  margin: 0.2rem 0 0;
+  border: 0;
+  border-radius: 0.9rem;
+  background: var(--next-accent);
+  color: var(--next-accent-ink);
+  font: inherit;
+  font-weight: 900;
+}
+
+.whats-next__primary-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0.9rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.whats-next__primary-action > span {
+  font-size: 1.65rem;
+  line-height: 1;
+}
+
+.whats-next__primary-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.whats-next__preview-action {
+  display: grid;
+  place-items: center;
+  padding: 0.65rem;
+  opacity: 0.68;
+}
+
+.whats-next__review {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 0.75rem;
+  padding: 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--next-accent) 42%, transparent);
+  border-radius: 1rem;
+  background: rgb(0 12 20 / 32%);
+  animation: whats-next-enter 180ms ease-out both;
+}
+
+.whats-next__review h3,
+.whats-next__review p {
+  margin: 0;
+}
+
+.whats-next__review > div:first-child > p:not(.player-eyebrow) {
+  margin-top: 0.2rem;
+  color: var(--next-accent);
+  font-weight: 850;
+}
+
+.whats-next__review small {
+  display: block;
+  margin-top: 0.55rem;
+  color: #c9d8d4;
+  line-height: 1.35;
+}
+
+.whats-next__review-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+  gap: 0.55rem;
+}
+
+.whats-next__review-actions button {
+  min-height: 2.85rem;
+  padding: 0.55rem;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 0.8rem;
+  background: rgb(255 255 255 / 7%);
+  color: #fff;
+  font: inherit;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.whats-next__review-actions button:last-child {
+  border-color: var(--next-accent);
+  background: var(--next-accent);
+  color: var(--next-accent-ink);
+}
+
+.whats-next__review-actions button:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+.whats-next__secondary {
+  margin-top: 1rem;
+}
+
+.whats-next__secondary > p {
+  margin: 0 0 0.45rem;
+  color: #9eb5af;
+  font-size: 0.65rem;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.whats-next__secondary > div {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.whats-next__secondary-action,
+.whats-next__secondary-status {
+  display: grid;
+  min-height: 4.25rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.65rem 0.7rem;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 0.9rem;
+  background: rgb(255 255 255 / 6%);
+  color: #fff;
+}
+
+.whats-next__secondary-action {
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.whats-next__secondary-action:hover {
+  border-color: color-mix(in srgb, var(--next-accent) 55%, transparent);
+  background: rgb(255 255 255 / 10%);
+  transform: translateY(-1px);
+}
+
+.whats-next__action-icon {
+  width: 2.4rem;
+  height: 2.4rem;
+}
+
+.whats-next__secondary-action > span:nth-child(2),
+.whats-next__secondary-status > span:nth-child(2) {
+  display: grid;
+  gap: 0.13rem;
+  min-width: 0;
+}
+
+.whats-next__secondary-action strong,
+.whats-next__secondary-status strong {
+  font-size: 0.82rem;
+}
+
+.whats-next__secondary-action small,
+.whats-next__secondary-status small {
+  color: #b9cbc6;
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.whats-next__action-chevron {
+  color: var(--next-accent);
+  font-size: 1.75rem;
+}
+
+.whats-next__action-state {
+  padding: 0.27rem 0.45rem;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 8%);
+  color: #c4d3cf;
+  font-size: 0.58rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.whats-next__preview-notice {
+  margin: 0.75rem 0 0;
+  padding: 0.55rem 0.7rem;
+  border: 1px dashed rgb(255 255 255 / 22%);
+  border-radius: 0.75rem;
+  color: #d8e3e0;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.whats-next__footer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgb(255 255 255 / 10%);
+  color: #bdcec9;
+}
+
+.whats-next__footer > span {
+  color: var(--next-accent);
+  font-weight: 950;
+}
+
+.whats-next__footer p {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 750;
+  line-height: 1.3;
 }
 
 .whats-next--complete > [role="alert"] {
   margin: 0.8rem 0 0;
   color: #ffd8d8;
   font-weight: 800;
+}
+
+@keyframes whats-next-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.35rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .whats-next--rest > button {
@@ -1243,7 +1494,20 @@ button.next-tile:disabled {
   }
 
   .player-dev-console__grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .whats-next__recommendation {
+    grid-template-columns: auto minmax(0, 1fr) minmax(11rem, auto);
+    align-items: center;
+  }
+
+  .whats-next__primary-action,
+  .whats-next__preview-action {
+    grid-column: 3;
+    grid-row: 1;
+    min-width: 11rem;
+    margin: 0;
   }
 
   .player-dev-console__toggles {

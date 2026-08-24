@@ -43,6 +43,15 @@ export const copy = {
   log: {
     overMax: (max: number, unit: string) => `Max is ${max} ${unit}`,
     underMin: (min: number, unit: string) => `Min is ${min} ${unit}`,
+    additionalTitle: "Log Another Activity",
+    chooseActivity: "Choose an activity",
+    additionalIntro:
+      "Nothing will be saved until you choose an activity, review it, and press Save.",
+    chooseBeforeSaving: "Choose an activity before saving.",
+    saveActivity: (value: number, unit: string, activity: string) => {
+      const displayUnit = value === 1 ? unit.replace(/s$/, "") : unit;
+      return `Save ${value.toLocaleString("en-US")} ${displayUnit} · ${activity}`;
+    },
   },
   allEffortCounts: "Every player’s effort counts.",
   recoveryNote:

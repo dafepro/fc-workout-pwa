@@ -63,12 +63,38 @@ export function ConsolidatedToday() {
         : livePlanComplete;
   const unlocked =
     dev.settings.teamAccess === "locked" ? false : unlockedByToday;
-  const previewingToday = dev.settings.today !== "real";
-  const cooldownComplete =
+  const previewingToday =
+    dev.settings.today !== "real" || dev.settings.whatsNext !== "real";
+  const liveCooldownComplete =
     canvas.connectedStatus === "local"
       ? canvas.state.cooldownComplete
       : (canvas.connectedProjection?.cooldownComplete ??
         momentum.state.recoveryComplete);
+  const assignmentEntry = training?.dashboard?.currentAssignment
+    ? training.entries.find(
+        (entry) =>
+          entry.assignmentId === training.dashboard?.currentAssignment?.id,
+      )
+    : undefined;
+  const liveRecentEffort = training?.connected
+    ? assignmentEntry?.effortLevel
+    : canvas.state.effort;
+  const liveRecentTiredness = training?.connected
+    ? assignmentEntry?.exhaustionLevel
+    : canvas.state.tiredness;
+  const cooldownComplete =
+    dev.settings.whatsNext === "lounge" || dev.settings.whatsNext === "all-set"
+      ? true
+      : dev.settings.whatsNext === "cooldown" ||
+          dev.settings.whatsNext === "recovery"
+        ? false
+        : liveCooldownComplete;
+  const recentEffort =
+    dev.settings.whatsNext === "recovery" ? 6 : liveRecentEffort;
+  const recentTiredness =
+    dev.settings.whatsNext === "recovery" ? 6 : liveRecentTiredness;
+  const whatsNextTeamAvailable =
+    dev.settings.whatsNext === "all-set" ? false : unlocked;
   const pulse =
     training?.dashboard?.teamPulse ??
     (training?.connected ? emptyPulse : prototypePulse);
@@ -102,16 +128,16 @@ export function ConsolidatedToday() {
         restDay={restDay}
         planComplete={unlockedByToday}
         cooldownComplete={cooldownComplete}
-        teamAvailable={unlocked}
+        teamAvailable={whatsNextTeamAvailable}
         previewOnly={previewingToday}
+        recentEffort={recentEffort}
+        recentTiredness={recentTiredness}
         connectedError={canvas.connectedError}
         plan={momentum.presentation.plan}
         recovery={momentum.presentation.recovery}
-        extras={momentum.presentation.extras}
         onComplete={(input) => canvas.complete(input)}
         onRecordRest={() => canvas.recordRest()}
         onRecordCooldown={() => canvas.recordCooldown()}
-        onRecordExtra={(activity) => momentum.recordExtra(activity)}
       />
 
       <TeamRewardsPreview placement="today" />

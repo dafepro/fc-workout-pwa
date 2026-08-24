@@ -111,18 +111,26 @@ large visual background and primary action. If no approved activity-specific
 image exists, use a predefined generic activity asset; never accept a player URL
 or upload.
 
-After completion, the card becomes a small grid of structured next actions. The
-recommended action controls the card's accent/background; alternatives remain
-visually distinct but secondary. Candidate actions are:
+After completion, the card presents exactly one recommendation hero followed by
+at most two full-width secondary action rows. Status and reassurance use plain
+status treatments instead of button styling. This deliberately avoids an
+uneven tile grid and makes navigation, guided workflows, and saved mutations
+visually distinct. Candidate actions are:
 
 - enter the Team lounge;
 - record the predefined paired cooldown when one exists;
-- record one specific approved additional activity;
+- open the reviewed additional-activity logger without preselecting an activity;
 - stop for today and recover.
 
 The system must not recommend more demanding work after hard work, an assessment,
 or high tiredness. Extra activities remain private history and do not repeatedly
 increase Team credit.
+
+Cooldown and additional-activity writes require a review step and an explicit
+Save or Record control; selecting their first card action never creates a
+training entry. The current data model treats the predefined Recovery Walk / Jog
+as the paired cooldown, so the review displays its configured duration rather
+than silently relabeling it as a shorter routine.
 
 ## Slice 3: Team pulse
 

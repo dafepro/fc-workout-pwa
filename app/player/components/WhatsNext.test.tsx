@@ -16,15 +16,13 @@ const plan = {
 const common = {
   plan,
   recovery: { title: "Easy recovery walk", detail: "10 minutes · relaxed" },
-  extras: [
-    { id: "ball-control" as const, label: "Easy ball touches · 10 minutes" },
-  ],
+  recentEffort: 4,
+  recentTiredness: 3,
   previewOnly: false,
   connectedError: null,
   onComplete: vi.fn().mockResolvedValue(true),
   onRecordRest: vi.fn().mockResolvedValue(undefined),
   onRecordCooldown: vi.fn().mockResolvedValue(undefined),
-  onRecordExtra: vi.fn().mockResolvedValue(undefined),
 };
 
 describe("WhatsNext", () => {
@@ -67,7 +65,7 @@ describe("WhatsNext", () => {
     expect(screen.queryByText(plan.instruction)).not.toBeInTheDocument();
   });
 
-  it("recommends cooldown after training and keeps specific alternatives secondary", () => {
+  it("presents one recommendation and clearly typed secondary actions", () => {
     render(
       <WhatsNext
         {...common}
@@ -80,15 +78,15 @@ describe("WhatsNext", () => {
     expect(screen.getByRole("heading", { name: "What’s next?" })).toBeVisible();
     expect(screen.getByText("Recommended next")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /Log easy recovery walk/i }),
+      screen.getByRole("button", { name: /Review easy recovery walk/i }),
     ).toBeVisible();
     expect(
-      screen.getByRole("link", { name: /Relax in Team lounge/i }),
+      screen.getByRole("link", { name: /Open Team lounge/i }),
     ).toHaveAttribute("href", "/team");
     expect(
-      screen.getByRole("button", { name: /Easy ball touches/i }),
-    ).toBeVisible();
-    expect(screen.getByText("Or call it a day")).toBeInTheDocument();
+      screen.getByRole("link", { name: /Log another activity/i }),
+    ).toHaveAttribute("href", "/log/additional");
+    expect(screen.getByText(/Anything else is optional/i)).toBeInTheDocument();
   });
 
   it("makes Team lounge the recommendation after cooldown", () => {
@@ -98,8 +96,8 @@ describe("WhatsNext", () => {
 
     expect(screen.getByText("Recommended next")).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: /Relax in Team lounge/i }),
-    ).toHaveAttribute("data-recommended", "true");
+      screen.getByRole("link", { name: /Open Team lounge/i }),
+    ).toBeVisible();
     expect(screen.getByText("Cooldown logged")).toBeInTheDocument();
   });
 
@@ -110,15 +108,15 @@ describe("WhatsNext", () => {
 
     expect(screen.getByText("Planned rest logged")).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: /Relax in Team lounge/i }),
-    ).toHaveAttribute("data-recommended", "true");
+      screen.getByRole("link", { name: /Open Team lounge/i }),
+    ).toBeVisible();
     expect(
-      screen.queryByRole("button", { name: /Easy ball touches/i }),
+      screen.queryByRole("link", { name: /Log another activity/i }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText("Keep recovery easy")).toBeInTheDocument();
+    expect(screen.getByText(/Rest was today’s plan/i)).toBeInTheDocument();
   });
 
-  it("records the recommended cooldown from the card", () => {
+  it("requires review and explicit confirmation before recording cooldown", () => {
     const onRecordCooldown = vi.fn().mockResolvedValue(undefined);
     render(
       <WhatsNext
@@ -131,8 +129,55 @@ describe("WhatsNext", () => {
     );
 
     fireEvent.click(
-      screen.getByRole("button", { name: /Log easy recovery walk/i }),
+      screen.getByRole("button", { name: /Review easy recovery walk/i }),
+    );
+    expect(onRecordCooldown).not.toHaveBeenCalled();
+    expect(screen.getByText(/Nothing has been saved yet/i)).toBeVisible();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Record easy recovery walk/i }),
     );
     expect(onRecordCooldown).toHaveBeenCalledOnce();
+  });
+
+  it("switches to recovery guidance after a difficult check-in", () => {
+    render(
+      <WhatsNext
+        {...common}
+        recentTiredness={6}
+        restDay={false}
+        planComplete
+        cooldownComplete={false}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Recovery first" }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("link", { name: /Log another activity/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /recovery walk/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders preview actions as clearly unavailable status", () => {
+    render(
+      <WhatsNext
+        {...common}
+        previewOnly
+        restDay={false}
+        planComplete
+        cooldownComplete={false}
+      />,
+    );
+
+    expect(
+      screen.getByText("Preview only—nothing can be saved."),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("link", { name: /Log another activity/i }),
+    ).not.toBeInTheDocument();
   });
 });

@@ -755,6 +755,14 @@ Momentum Alpha needs independent PWA install/offline behavior.
   and Team lounge cards with one adaptive recommendation surface. Before
   completion it focuses on the plan. After completion it recommends cooldown or
   Team lounge and offers only structured secondary actions.
+- Decided: the completed state uses one recommendation hero and full-width
+  action rows, not a peer tile grid. Navigation is a link, guided logging opens
+  review, and statuses have no interactive styling. Additional activity begins
+  with no default selection, and no first tap records training data.
+- Decided: effort or tiredness at level 6 or 7 suppresses cooldown and
+  additional-work suggestions in favor of recovery guidance. Assessment and
+  coach-authored workload are not yet structured dashboard fields, so those
+  inputs remain open rather than being inferred from activity names.
 - Decided: submitting prescribed rest counts toward weekly Momentum and unlocks
   Team, but does not increase the explicitly labeled activity streak. Merely
   opening the app does not earn progress.

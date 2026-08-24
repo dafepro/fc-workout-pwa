@@ -137,7 +137,7 @@ describe("consolidated default player experience", () => {
     expect(screen.getByText("Recommended next")).toBeInTheDocument();
     expect(screen.getByText("Easy recovery walk")).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: /Relax in Team lounge/ }),
+      screen.getByRole("link", { name: /Open Team lounge/ }),
     ).toHaveAttribute("href", "/team");
     expect(
       screen.getByRole("heading", { name: "Latest from your team" }),

@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { FormEvent, useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { ActivitySpecificFields } from "../components/ActivityFields";
 import { WorkoutSelect } from "../components/WorkoutSelect";
 import { IntensityControls } from "../components/IntensityScale";
@@ -33,43 +33,46 @@ function compactTimeLabel(timeValue: string): string {
 
 export default function LogPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const additionalMode = pathname === "/log/additional";
   const analytics = useAnalytics();
   const { addEntry, dashboard, dashboardStatus, refreshDashboard } =
     useTraining();
   const activities = useMemo(() => dashboard?.activities ?? [], [dashboard]);
   const assignment = dashboard?.currentAssignment ?? null;
-  const [activityId, setActivityId] = useState<ActivityId>("hill-sprints");
-  const [value, setValue] = useState(8);
+  const [selection, setSelection] = useState<{
+    activityId: ActivityId;
+    value: number;
+  } | null>(null);
+  const suggestedActivity = additionalMode
+    ? undefined
+    : (activities.find(
+        (item) => item.id === assignment?.activityDefinitionId,
+      ) ?? activities[0]);
+  const activityId = selection?.activityId ?? suggestedActivity?.id ?? "";
+  const value =
+    selection?.value ??
+    (suggestedActivity
+      ? assignment?.activityDefinitionId === suggestedActivity.id
+        ? assignment.targetValue
+        : suggestedActivity.defaultValue
+      : 1);
   const clock = useLocalSessionClock();
   const [effort, setEffort] = useState(4);
   const [exhaustion, setExhaustion] = useState(4);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const initialized = useRef(false);
   const selectedActivity = activities.find((item) => item.id === activityId);
 
-  useEffect(() => {
-    if (initialized.current || activities.length === 0) return;
-    const selected =
-      activities.find((item) => item.id === assignment?.activityDefinitionId) ??
-      activities[0];
-    initialized.current = true;
-    setActivityId(selected.id);
-    setValue(
-      assignment?.activityDefinitionId === selected.id
-        ? assignment.targetValue
-        : selected.defaultValue,
-    );
-  }, [activities, assignment]);
-
   function chooseActivity(next: ActivityId) {
-    setActivityId(next);
     const nextActivity = activities.find((item) => item.id === next);
-    setValue(
-      assignment?.activityDefinitionId === next
-        ? assignment.targetValue
-        : (nextActivity?.defaultValue ?? 1),
-    );
+    setSelection({
+      activityId: next,
+      value:
+        assignment?.activityDefinitionId === next
+          ? assignment.targetValue
+          : (nextActivity?.defaultValue ?? 1),
+    });
     setMessage(null);
     analytics.track("training_activity_selected", {
       activity: next,
@@ -84,7 +87,11 @@ export default function LogPage() {
       setMessage("Choose today or one of the previous seven days.");
       return;
     }
-    const activity = activities.find((item) => item.id === activityId)!;
+    const activity = activities.find((item) => item.id === activityId);
+    if (!activity) {
+      setMessage(copy.log.chooseBeforeSaving);
+      return;
+    }
     if (value < activity.min || value > activity.max) {
       setMessage(
         `Enter a value from ${activity.min} to ${activity.max} ${activity.unit}.`,
@@ -109,7 +116,7 @@ export default function LogPage() {
     setMessage(null);
     try {
       await addEntry({
-        activityId,
+        activityId: activity.id,
         inputKind: activity.inputKind,
         assignmentId,
         occurredAt: occurredAt.toISOString(),
@@ -133,7 +140,7 @@ export default function LogPage() {
     return <main className="auth-state">Loading approved activities…</main>;
   }
 
-  if (dashboardStatus === "error" || !dashboard || !selectedActivity) {
+  if (dashboardStatus === "error" || !dashboard) {
     return (
       <main className="auth-state" role="alert">
         <h1>Approved activities could not be loaded</h1>
@@ -154,9 +161,15 @@ export default function LogPage() {
           ↗
         </span>
         <div>
-          <h1>Record Training</h1>
+          <h1>
+            {additionalMode ? copy.log.additionalTitle : "Record Training"}
+          </h1>
         </div>
       </header>
+
+      {additionalMode ? (
+        <p className="log-safety-note">{copy.log.additionalIntro}</p>
+      ) : null}
 
       {message ? (
         <div className="notice notice--error" role="status">
@@ -169,6 +182,7 @@ export default function LogPage() {
         <WorkoutSelect
           label="Workout"
           selectedKey={activityId}
+          placeholder={additionalMode ? copy.log.chooseActivity : undefined}
           onSelect={(key) => chooseActivity(key as ActivityId)}
           choices={activities.map((activity) => ({
             key: activity.id,
@@ -179,30 +193,49 @@ export default function LogPage() {
             recommended: activity.id === assignment?.activityDefinitionId,
           }))}
         />
-        <ActivitySpecificFields
-          activityId={activityId}
-          value={value}
-          onChange={setValue}
-          activities={activities}
-        />
-        <IntensityControls
-          effort={effort}
-          exhaustion={exhaustion}
-          onEffortChange={setEffort}
-          onExhaustionChange={setExhaustion}
-        />
-        {exhaustion >= 6 ? (
-          <aside className="recovery-note">
-            <span aria-hidden="true">💧</span>
-            <p>{copy.recoveryNote}</p>
-          </aside>
+        {selectedActivity ? (
+          <>
+            <ActivitySpecificFields
+              activityId={selectedActivity.id}
+              value={value}
+              onChange={(nextValue) =>
+                setSelection({
+                  activityId: selectedActivity.id,
+                  value: nextValue,
+                })
+              }
+              activities={activities}
+            />
+            <IntensityControls
+              effort={effort}
+              exhaustion={exhaustion}
+              onEffortChange={setEffort}
+              onExhaustionChange={setExhaustion}
+            />
+            {exhaustion >= 6 ? (
+              <aside className="recovery-note">
+                <span aria-hidden="true">💧</span>
+                <p>{copy.recoveryNote}</p>
+              </aside>
+            ) : null}
+          </>
         ) : null}
         <button
           className="button button--lime button--wide"
           type="submit"
-          disabled={saving || !clock.ready}
+          disabled={saving || !clock.ready || !selectedActivity}
         >
-          {saving ? "Saving…" : "Save"}
+          {saving
+            ? "Saving…"
+            : selectedActivity && additionalMode
+              ? copy.log.saveActivity(
+                  value,
+                  selectedActivity.unit,
+                  selectedActivity.name,
+                )
+              : selectedActivity
+                ? "Save"
+                : copy.log.chooseBeforeSaving}
         </button>
         <details className="when-details">
           <summary>

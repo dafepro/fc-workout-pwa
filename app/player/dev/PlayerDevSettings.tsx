@@ -6,12 +6,19 @@ import type { MomentumProgressState } from "../momentum-progress";
 
 export type TodayPreview = "real" | "training" | "rest" | "complete";
 export type TeamAccessPreview = "real" | "locked";
+export type WhatsNextPreview =
+  | "real"
+  | "cooldown"
+  | "recovery"
+  | "lounge"
+  | "all-set";
 
 export interface PlayerDevSettings {
   momentumVisible: boolean;
   momentumBand: "real" | MomentumProgressState;
   today: TodayPreview;
   teamAccess: TeamAccessPreview;
+  whatsNext: WhatsNextPreview;
   rewardsVisible: boolean;
 }
 
@@ -28,6 +35,7 @@ export const defaultPlayerDevSettings: PlayerDevSettings = {
   momentumBand: "real",
   today: "real",
   teamAccess: "real",
+  whatsNext: "real",
   rewardsVisible: true,
 };
 
@@ -99,6 +107,7 @@ function parseSettings(raw: string): PlayerDevSettings {
   const momentumBands = ["real", "ready", "started", "building", "on-a-roll"];
   const todayValues = ["real", "training", "rest", "complete"];
   const teamAccessValues = ["real", "locked"];
+  const whatsNextValues = ["real", "cooldown", "recovery", "lounge", "all-set"];
   return {
     momentumVisible:
       typeof parsed.momentumVisible === "boolean"
@@ -113,6 +122,9 @@ function parseSettings(raw: string): PlayerDevSettings {
     teamAccess: teamAccessValues.includes(parsed.teamAccess ?? "")
       ? (parsed.teamAccess as TeamAccessPreview)
       : defaultPlayerDevSettings.teamAccess,
+    whatsNext: whatsNextValues.includes(parsed.whatsNext ?? "")
+      ? (parsed.whatsNext as WhatsNextPreview)
+      : defaultPlayerDevSettings.whatsNext,
     rewardsVisible:
       typeof parsed.rewardsVisible === "boolean"
         ? parsed.rewardsVisible
