@@ -737,6 +737,28 @@ Momentum Alpha needs independent PWA install/offline behavior.
   stamp-unlock port so user eligibility and available stamp choices do not
   become responsibilities of that library.
 
+## Consolidated home engagement direction (2026-08-23)
+
+- Decided: the default Today surface separates three jobs: Momentum measures
+  personal progress, What's next directs the next action, and Team pulse supplies
+  safe social motivation. Team rewards remains a separate real-world team goal.
+- Decided for the first slice: Momentum uses the authenticated weekly session
+  count and team weekly goal as its explainable gauge, plus the existing current
+  activity streak as descriptive continuity. It adds no synthetic production
+  score or schema.
+- Decided: Momentum states are `Ready`, `Started`, `Building`, and `On a roll`.
+  Guidance names the remaining weekly sessions below goal and recommends
+  recovery rather than extra volume once the goal is met. Streak copy never uses
+  loss framing or recommends work solely to preserve a streak.
+- Proposed: What's next will replace the separate workout, completion advice,
+  and Team lounge cards with one adaptive recommendation surface. Team pulse
+  will show at most five server-projected safe activity events with predefined
+  cheers and no raw result or feeling data.
+- Still open: whether a future plan ledger replaces weekly sessions as the
+  Momentum gauge, how planned rest affects continuity, the approved activity-art
+  catalog, post-completion action priority, and Team pulse retention.
+- Full plan: `CONSOLIDATED_HOME_ENGAGEMENT_PLAN.md`.
+
 ## Development experience controls (2026-08-22)
 
 - Decided: both developer consoles require a server-provided runtime capability
