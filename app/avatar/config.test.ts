@@ -4,6 +4,7 @@ import {
   AVATAR_CONFIG_VERSION,
   defaultAvatar,
   isAvatarConfiguration,
+  migrateAvatarConfiguration,
   normalizeAvatar,
   resolveAvatar,
 } from "./config";
@@ -15,7 +16,7 @@ function byKind(config: Parameters<typeof resolveAvatar>[0]) {
 }
 
 describe("isAvatarConfiguration", () => {
-  it("accepts only a complete version 4 catalog configuration", () => {
+  it("accepts only a complete version 5 catalog configuration", () => {
     expect(isAvatarConfiguration(defaultAvatar())).toBe(true);
   });
 
@@ -36,12 +37,15 @@ describe("isAvatarConfiguration", () => {
 });
 
 describe("resolveAvatar", () => {
-  it("resolves every version 4 layer", () => {
+  it("resolves every version 5 layer", () => {
     const layers = byKind(defaultAvatar());
     expect(layers.background.id).toBe("solid");
     expect(layers.effect.id).toBe("none");
     expect(layers.kit.id).toBe("violet");
     expect(layers.head.id).toBe("person-round");
+    expect(layers.eyes.id).toBe("bright");
+    expect(layers.mouth.id).toBe("smile");
+    expect(layers.facialHair.id).toBe("none");
     expect(layers.hat.id).toBe("none");
     expect(layers.eyewear.id).toBe("none");
   });
@@ -75,13 +79,16 @@ describe("resolveAvatar", () => {
 });
 
 describe("normalizeAvatar", () => {
-  it("creates the canonical version 4 shape within the server key limit", () => {
+  it("creates the canonical version 5 shape within the server key limit", () => {
     expect(normalizeAvatar({ head: "person-tall" })).toEqual({
       version: AVATAR_CONFIG_VERSION,
       background: "solid",
       effect: "none",
       kit: "violet",
       head: "person-tall",
+      eyes: "bright",
+      mouth: "smile",
+      facialHair: "none",
       hat: "none",
       eyewear: "none",
       headPalette: "#66d0ff:#302c61",
@@ -90,7 +97,7 @@ describe("normalizeAvatar", () => {
       eyewearPalette: "#f3ad16:#241d3d",
       backgroundColor: "#755ee8",
     });
-    expect(Object.keys(defaultAvatar())).toHaveLength(12);
+    expect(Object.keys(defaultAvatar())).toHaveLength(15);
   });
 
   it("drops unknown keys and replaces unknown ids with defaults", () => {
@@ -105,6 +112,35 @@ describe("normalizeAvatar", () => {
       kit: "ocean",
     });
     expect(normalizeAvatar(once)).toEqual(once);
+  });
+});
+
+describe("migrateAvatarConfiguration", () => {
+  it("preserves a complete version 4 look and adds the split face defaults", () => {
+    const migrated = migrateAvatarConfiguration({
+      version: "4",
+      background: "solid",
+      effect: "pulse",
+      kit: "ocean",
+      head: "person-tall",
+      hat: "cap",
+      eyewear: "round",
+      headPalette: "#66d0ff:#302c61",
+      kitPalette: "#6954ee:#c8f52a",
+      hatPalette: "#302c61:#66d0ff",
+      eyewearPalette: "#f3ad16:#241d3d",
+      backgroundColor: "#755ee8",
+    });
+
+    expect(migrated).toEqual(
+      expect.objectContaining({
+        version: "5",
+        head: "person-tall",
+        eyes: "bright",
+        mouth: "smile",
+        facialHair: "none",
+      }),
+    );
   });
 });
 

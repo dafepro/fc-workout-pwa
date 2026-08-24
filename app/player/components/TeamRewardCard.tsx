@@ -1,9 +1,12 @@
 import Image from "next/image";
+import type { CSSProperties } from "react";
 
 import {
   teamRewardCopy,
+  teamRewardContributionCopy,
   teamRewardGoalCopy,
   teamRewardProgressCopy,
+  teamRewardUnitProgressCopy,
 } from "../../content/team-rewards";
 import type { PrototypeRewardStatus } from "../../data/team-reward-prototype";
 import type { TeamRewardProgress } from "../../domain/team-rewards";
@@ -30,6 +33,7 @@ export function TeamRewardCard({
   const headingId = `team-reward-${placement}-${reward.id}`;
   const achieved = reward.status === "achieved" || progress.achieved;
   const imageUrl = reward.imageDataUrl ?? reward.imageUrl;
+  const visibleUnits = progress.units.slice(0, 20);
   return (
     <section
       className={`player-rewards player-rewards--active player-rewards--${placement}`}
@@ -49,19 +53,56 @@ export function TeamRewardCard({
             progress.target,
           )}
         </b>
+        <p className="player-rewards__contribution-copy">
+          {teamRewardContributionCopy(reward.rule, progress.started)}
+        </p>
         <div
           className="player-rewards__progress"
           role="progressbar"
-          aria-label={teamRewardProgressCopy(
-            reward.rule,
-            progress.current,
-            progress.target,
-          )}
+          aria-label={`Team contribution: ${progress.contributionPercent}%`}
           aria-valuemin={0}
-          aria-valuemax={progress.target}
-          aria-valuenow={Math.min(progress.current, progress.target)}
+          aria-valuemax={100}
+          aria-valuenow={progress.contributionPercent}
         >
-          <span style={{ width: `${progress.percent}%` }} />
+          <span style={{ width: `${progress.contributionPercent}%` }} />
+        </div>
+        <div
+          className="player-rewards__unit-map"
+          aria-label="Team progress map"
+        >
+          {visibleUnits.map((unit, index) => {
+            const unitPercent = Math.min(
+              100,
+              (unit.current / unit.target) * 100,
+            );
+            const unitStyle = {
+              "--reward-unit-progress": `${unitPercent}%`,
+            } as CSSProperties;
+            return (
+              <span
+                className={unit.complete ? "is-complete" : undefined}
+                key={`${index}-${unit.current}-${unit.target}`}
+                role="progressbar"
+                aria-label={teamRewardUnitProgressCopy(
+                  reward.rule,
+                  index,
+                  unit.current,
+                  unit.target,
+                )}
+                aria-valuemin={0}
+                aria-valuemax={unit.target}
+                aria-valuenow={unit.current}
+                style={unitStyle}
+              >
+                <small aria-hidden="true">
+                  {unit.current}/{unit.target}
+                </small>
+              </span>
+            );
+          })}
+          {progress.units.length > visibleUnits.length ? (
+            <small>+{progress.units.length - visibleUnits.length}</small>
+          ) : null}
         </div>
         {achieved ? (
           <p className="player-rewards__complete">

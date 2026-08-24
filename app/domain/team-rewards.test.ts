@@ -28,6 +28,7 @@ describe("team reward rules", () => {
     expect(progress.current).toBe(2);
     expect(progress.target).toBe(3);
     expect(progress.percent).toBe(67);
+    expect(progress.contributionPercent).toBe(96);
     expect(progress.achieved).toBe(false);
     expect(progress.days.map((day) => day.qualifies)).toEqual([
       true,
@@ -67,6 +68,36 @@ describe("team reward rules", () => {
     expect(progress.target).toBe(3);
     expect(progress.percent).toBe(100);
     expect(progress.achieved).toBe(true);
+  });
+
+  it("shows capped partial consistency progress before a teammate finishes every day", () => {
+    const progress = evaluateTeamReward(
+      {
+        version: 1,
+        kind: "teammate_consistency",
+        requiredPlayers: 2,
+        requiredDaysPerPlayer: 10,
+        participationScope: "any_approved_workout",
+      },
+      {
+        days: [],
+        players: [
+          { playerId: "p1", qualifyingDays: 9 },
+          { playerId: "p2", qualifyingDays: 4 },
+          { playerId: "p3", qualifyingDays: 1 },
+        ],
+      },
+    );
+
+    expect(progress.current).toBe(0);
+    expect(progress.percent).toBe(0);
+    expect(progress.contributionPercent).toBe(65);
+    expect(progress.started).toBe(2);
+    expect(progress.units).toEqual([
+      { current: 9, target: 10, complete: false },
+      { current: 4, target: 10, complete: false },
+    ]);
+    expect(progress.achieved).toBe(false);
   });
 
   it("rejects unsafe or unbounded rule values", () => {

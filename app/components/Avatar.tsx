@@ -1,6 +1,6 @@
 import { AvatarArt } from "../avatar/AvatarArt";
 import { playerColor } from "../avatar/color";
-import { isAvatarConfiguration } from "../avatar/config";
+import { migrateAvatarConfiguration } from "../avatar/config";
 import type { AvatarConfiguration } from "../avatar/types";
 import type { Player } from "../domain/types";
 
@@ -17,7 +17,7 @@ export function Avatar({
   config?: AvatarConfiguration;
   isCurrentPlayer?: boolean;
 }) {
-  const validConfig = isAvatarConfiguration(config) ? config : null;
+  const validConfig = migrateAvatarConfiguration(config);
   const initials =
     `${player.firstName[0] ?? ""}${player.lastInitial[0] ?? ""}`.toUpperCase();
 

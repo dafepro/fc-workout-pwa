@@ -20,7 +20,7 @@ func TestNormalizeAvatarConfiguration(t *testing.T) {
 		{name: "empty configuration keeps an object", raw: map[string]string{}, want: "{}", valid: true},
 		{name: "nil configuration keeps an object", raw: nil, want: "{}", valid: true},
 		{name: "unknown but well-formed slug is stored", raw: map[string]string{"head": "future-part"}, want: `{"head":"future-part"}`, valid: true},
-		{name: "v4 client configuration", raw: v4AvatarConfiguration(), valid: true},
+		{name: "v5 client configuration", raw: v5AvatarConfiguration(), valid: true},
 		{name: "camel case color key", raw: map[string]string{"backgroundColor": "#755ee8"}, want: `{"backgroundColor":"#755ee8"}`, valid: true},
 		{name: "two color palette", raw: map[string]string{"headPalette": "#66d0ff:#302c61"}, want: `{"headPalette":"#66d0ff:#302c61"}`, valid: true},
 		{name: "value with uppercase", raw: map[string]string{"head": "Cheetah"}},
@@ -32,8 +32,9 @@ func TestNormalizeAvatarConfiguration(t *testing.T) {
 		{name: "key with a hyphen", raw: map[string]string{"head-part": "cheetah"}},
 		{name: "key starting with a digit", raw: map[string]string{"1head": "cheetah"}},
 		{name: "empty key", raw: map[string]string{"": "cheetah"}},
-		{name: "too many layers", raw: manyAvatarLayers(13)},
+		{name: "too many layers", raw: manyAvatarLayers(16)},
 		{name: "at the layer ceiling", raw: manyAvatarLayers(12), valid: true},
+		{name: "v5 split face configuration", raw: manyAvatarLayers(15), valid: true},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			stored, err := domain.NormalizeAvatarConfiguration(testCase.raw)
@@ -56,13 +57,16 @@ func TestNormalizeAvatarConfiguration(t *testing.T) {
 	}
 }
 
-func v4AvatarConfiguration() map[string]string {
+func v5AvatarConfiguration() map[string]string {
 	return map[string]string{
-		"version":         "4",
+		"version":         "5",
 		"background":      "solid",
 		"effect":          "pulse",
 		"kit":             "violet",
 		"head":            "person-round",
+		"eyes":            "bright",
+		"mouth":           "smile",
+		"facialHair":      "none",
 		"hat":             "cap",
 		"eyewear":         "round",
 		"headPalette":     "#66d0ff:#302c61",

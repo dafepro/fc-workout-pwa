@@ -6,8 +6,8 @@ import { AvatarArt, AvatarPartArt } from "./AvatarArt";
 import { AVATAR_CATEGORIES, AVATAR_LAYERS } from "./catalog";
 import {
   defaultAvatar,
-  isAvatarConfiguration,
   layerPalette,
+  migrateAvatarConfiguration,
   normalizeAvatar,
 } from "./config";
 import type {
@@ -27,9 +27,7 @@ export function AvatarBuilder({
   config: AvatarConfiguration;
   onSave(config: AvatarConfiguration): Promise<void>;
 }) {
-  const startingConfig = isAvatarConfiguration(config)
-    ? normalizeAvatar(config)
-    : defaultAvatar();
+  const startingConfig = migrateAvatarConfiguration(config) ?? defaultAvatar();
 
   return (
     <AvatarBuilderEditor

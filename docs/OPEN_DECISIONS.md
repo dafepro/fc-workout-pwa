@@ -839,3 +839,27 @@ Momentum Alpha needs independent PWA install/offline behavior.
   cancelled or historical rewards, whether reporting appears in the next dev
   iteration, and final numeric rule bounds after coach UAT. Full design:
   `TEAM_REWARDS_DESIGN.md`.
+
+## Daily Drop, avatar unlocks, and training plans (2026-08-24)
+
+- Proposed: offer one free Daily Drop per player calendar day without requiring
+  an activity. It awards a non-duplicate avatar option or Team Canvas stamp and
+  never affects Momentum, uses purchases, paid rerolls, trades, or streak
+  pressure. Full design: `DAILY_GIFT_AND_UNLOCKS_DESIGN.md`.
+- Proposed: the application owns the item catalog and unlock ledger. Team
+  Canvas consumes unlocked stamp IDs through its existing replaceable adapter;
+  a future multiplayer/physics library does not decide player eligibility.
+- Proposed: split avatar head, eyes, mouth, and facial hair into independent
+  layers. Main categories have three included choices; optional categories have
+  `none` plus two included choices. Earned items extend, rather than replace,
+  those basics.
+- Still open: the calendar timezone for a player on multiple teams, whether
+  Daily Drop pool weighting is remotely configurable, and how a completed
+  collection behaves on later days.
+- Proposed: replace repeated weekly activity assignments with versioned,
+  duration-based training plans that sequence structured training, recovery,
+  and rest days. Missed days stay missed by default; the app never stacks or
+  suggests catching up on workload. Full design:
+  `COACH_TRAINING_PLANS_DESIGN.md`.
+- Still open: plan bounds by age band, whole-team versus selected-player
+  assignment in the first release, and migration of current assignments.

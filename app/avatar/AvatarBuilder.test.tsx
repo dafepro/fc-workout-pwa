@@ -34,7 +34,7 @@ describe("AvatarBuilder", () => {
       screen
         .getByRole("navigation", { name: "Avatar categories" })
         .querySelectorAll("button"),
-    ).toHaveLength(4);
+    ).toHaveLength(7);
     expect(
       screen.getByRole("group", { name: copy.avatar.legends.head }),
     ).toBeInTheDocument();
@@ -49,6 +49,22 @@ describe("AvatarBuilder", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole("group", { name: copy.avatar.legends.eyewear }),
+    ).toBeInTheDocument();
+  });
+
+  it("edits eyes, mouth, and facial hair in separate categories", () => {
+    renderBuilder();
+    openCategory(copy.avatar.categories.eyes);
+    expect(
+      screen.getByRole("group", { name: copy.avatar.legends.eyes }),
+    ).toBeInTheDocument();
+    openCategory(copy.avatar.categories.mouth);
+    expect(
+      screen.getByRole("group", { name: copy.avatar.legends.mouth }),
+    ).toBeInTheDocument();
+    openCategory(copy.avatar.categories.facialHair);
+    expect(
+      screen.getByRole("group", { name: copy.avatar.legends.facialHair }),
     ).toBeInTheDocument();
   });
 
@@ -92,11 +108,14 @@ describe("AvatarBuilder", () => {
     fireEvent.click(screen.getByRole("button", { name: copy.avatar.save }));
 
     expect(onSave).toHaveBeenCalledWith({
-      version: "4",
+      version: "5",
       background: "solid",
       effect: "none",
       kit: "violet",
       head: "person-round",
+      eyes: "bright",
+      mouth: "smile",
+      facialHair: "none",
       hat: "cap",
       eyewear: "round",
       headPalette: "#66d0ff:#302c61",

@@ -130,6 +130,9 @@ describe("Avatar with a configuration", () => {
       "avatar-art__layer avatar-art__layer--effect",
       "avatar-art__layer avatar-art__layer--kit",
       "avatar-art__layer avatar-art__layer--head",
+      "avatar-art__layer avatar-art__layer--eyes",
+      "avatar-art__layer avatar-art__layer--mouth",
+      "avatar-art__layer avatar-art__layer--facialHair",
       "avatar-art__layer avatar-art__layer--hat",
       "avatar-art__layer avatar-art__layer--eyewear",
     ]);
@@ -199,6 +202,24 @@ describe("the catalog and the art registry", () => {
   it("keeps hats and glasses as independent paint layers", () => {
     expect(AVATAR_LAYERS.some((layer) => layer.kind === "hat")).toBe(true);
     expect(AVATAR_LAYERS.some((layer) => layer.kind === "eyewear")).toBe(true);
+  });
+
+  it("keeps head, eyes, mouth, and facial hair independently selectable", () => {
+    for (const kind of ["head", "eyes", "mouth", "facialHair"] as const) {
+      expect(AVATAR_LAYERS.some((layer) => layer.kind === kind)).toBe(true);
+    }
+    expect(
+      AVATAR_LAYERS.find((layer) => layer.kind === "eyes")?.options,
+    ).toHaveLength(3);
+    expect(
+      AVATAR_LAYERS.find((layer) => layer.kind === "mouth")?.options,
+    ).toHaveLength(3);
+    expect(
+      AVATAR_LAYERS.find((layer) => layer.kind === "facialHair")?.options,
+    ).toHaveLength(3);
+    expect(
+      AVATAR_LAYERS.find((layer) => layer.kind === "facialHair")?.options[0].id,
+    ).toBe("none");
   });
 
   it("has one solid background style and an animated effect", () => {

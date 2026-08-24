@@ -26,6 +26,32 @@ export function teamRewardProgressCopy(
   return `${current} of ${target} teammates`;
 }
 
+export function teamRewardContributionCopy(
+  rule: TeamRewardRule,
+  started: number,
+) {
+  const unit = rule.kind === "qualifying_team_days" ? "team days" : "teammates";
+  if (started === 0) return `No ${unit} have started yet.`;
+  if (started === 1) {
+    return rule.kind === "qualifying_team_days"
+      ? "1 team day is building progress."
+      : "1 teammate is building progress.";
+  }
+  return `${started} ${unit} are building progress.`;
+}
+
+export function teamRewardUnitProgressCopy(
+  rule: TeamRewardRule,
+  index: number,
+  current: number,
+  target: number,
+) {
+  if (rule.kind === "qualifying_team_days") {
+    return `Team day ${index + 1}: ${current} of ${target} teammates`;
+  }
+  return `Teammate ${index + 1}: ${current} of ${target} days`;
+}
+
 export const teamRewardCopy = {
   eyebrow: "Team reward",
   active: "Active reward",

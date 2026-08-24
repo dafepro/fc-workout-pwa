@@ -1,32 +1,7 @@
 import type { ReactNode } from "react";
 import { layerPalette } from "../config";
 import type { AvatarConfiguration } from "../types";
-import { INK, LEFT_EYE_X, RIGHT_EYE_X, EYE_LINE } from "./geometry";
-
-function Eyes() {
-  return (
-    <>
-      {[LEFT_EYE_X, RIGHT_EYE_X].map((x) => (
-        <g key={x}>
-          <circle cx={x} cy={EYE_LINE} r="2.6" fill={INK} />
-          <circle cx={x + 0.8} cy={EYE_LINE - 0.9} r="0.8" fill="white" />
-        </g>
-      ))}
-    </>
-  );
-}
-
-function Smile() {
-  return (
-    <path
-      d="M27.5 43q4.5 5 9 0"
-      fill="none"
-      stroke={INK}
-      strokeWidth="1.6"
-      strokeLinecap="round"
-    />
-  );
-}
+import { INK } from "./geometry";
 
 function RoundPerson({ primary, accent }: Palette) {
   return (
@@ -34,8 +9,6 @@ function RoundPerson({ primary, accent }: Palette) {
       <circle cx="32" cy="34" r="17.5" fill={primary} />
       <path d="M15 31q1-16 17-16t17 16q-7-7-17-7t-17 7z" fill={accent} />
       <ellipse cx="25" cy="39" rx="7" ry="5" fill="white" opacity="0.1" />
-      <Eyes />
-      <Smile />
     </>
   );
 }
@@ -49,8 +22,6 @@ function TallPerson({ primary, accent }: Palette) {
         fill={accent}
       />
       <path d="M20 37q12 5 24 0" stroke="white" strokeOpacity="0.12" />
-      <Eyes />
-      <Smile />
     </>
   );
 }
@@ -65,8 +36,6 @@ function CurlyPerson({ primary, accent }: Palette) {
       <circle cx="17" cy="28" r="5" fill={accent} />
       <circle cx="47" cy="28" r="5" fill={accent} />
       <ellipse cx="39" cy="40" rx="7" ry="5" fill="white" opacity="0.1" />
-      <Eyes />
-      <Smile />
     </>
   );
 }
@@ -80,7 +49,6 @@ function Dog({ primary, accent }: Palette) {
       <path d="M18 25q14-15 28 0-14-8-28 0z" fill={accent} />
       <ellipse cx="32" cy="45" rx="10.5" ry="7.5" fill="white" opacity="0.7" />
       <ellipse cx="32" cy="42" rx="3.6" ry="2.8" fill={INK} />
-      <Eyes />
     </>
   );
 }
@@ -98,7 +66,6 @@ function Cheetah({ primary, accent }: Palette) {
       </g>
       <ellipse cx="32" cy="44.5" rx="9.5" ry="7" fill="white" opacity="0.72" />
       <path d="m28.6 42 3.4 3.4 3.4-3.4z" fill={accent} />
-      <Eyes />
     </>
   );
 }
@@ -115,7 +82,6 @@ function Fox({ primary, accent }: Palette) {
         opacity="0.78"
       />
       <path d="m28.7 42 3.3 3 3.3-3z" fill={INK} />
-      <Eyes />
     </>
   );
 }

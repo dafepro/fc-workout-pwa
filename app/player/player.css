@@ -298,26 +298,11 @@
   text-transform: uppercase;
 }
 
-.momentum-status__detail {
-  color: #57665f;
-  font-size: 0.8rem;
-  font-weight: 750;
-}
-
-.momentum-status__explainer {
-  margin-top: 0.38rem;
-  color: #69766f;
-  font-size: 0.68rem;
-  font-weight: 700;
-  line-height: 1.4;
-}
-
 .momentum-status__guidance {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: start;
   gap: 0.55rem;
-  margin-top: 0.65rem;
   padding: 0.62rem 0.68rem;
   border-radius: 0.9rem;
   background: var(--momentum-ink);
@@ -350,6 +335,15 @@
   font-size: 0.73rem;
   font-weight: 750;
   line-height: 1.35;
+}
+
+.momentum-status__guidance .momentum-status__tip {
+  margin-top: 0.38rem;
+  padding-top: 0.38rem;
+  border-top: 1px solid rgb(255 255 255 / 14%);
+  color: #cddbd2;
+  font-size: 0.65rem;
+  font-weight: 700;
 }
 
 @keyframes momentum-gauge-enter {
@@ -1079,6 +1073,57 @@
   font-size: 0.88rem;
 }
 
+.player-rewards__contribution-copy {
+  margin-bottom: 0.35rem;
+  color: #59655f;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.player-rewards__unit-map {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28rem;
+  margin-top: 0.5rem;
+}
+
+.player-rewards__unit-map > span {
+  display: grid;
+  min-width: 2.2rem;
+  height: 1.45rem;
+  flex: 1 1 2.2rem;
+  place-items: center;
+  border: 1px solid #cfd6c9;
+  border-radius: 0.35rem;
+  background: linear-gradient(
+    to top,
+    #88c921 var(--reward-unit-progress),
+    #eef0e9 var(--reward-unit-progress)
+  );
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 55%);
+}
+
+.player-rewards__unit-map > span > small {
+  position: relative;
+  margin: 0;
+  color: #293e35;
+  font-size: 0.56rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.player-rewards__unit-map > span.is-complete {
+  border-color: #6fae16;
+  background: #88c921;
+}
+
+.player-rewards__unit-map > small {
+  margin: 0;
+  align-self: center;
+  color: #59655f;
+  font-size: 0.7rem;
+}
+
 .player-rewards__visual {
   width: 100%;
   align-self: center;
@@ -1659,10 +1704,6 @@
 
   .momentum-status__gauge strong {
     font-size: 1.25rem;
-  }
-
-  .momentum-status__detail {
-    font-size: 0.72rem;
   }
 
   .momentum-status__guidance {

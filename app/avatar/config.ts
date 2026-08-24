@@ -7,7 +7,7 @@ import type {
   ResolvedLayer,
 } from "./types";
 
-export const AVATAR_CONFIG_VERSION = "4";
+export const AVATAR_CONFIG_VERSION = "5";
 
 export const DEFAULT_AVATAR_PALETTES = {
   headPalette: "#66d0ff:#302c61",
@@ -55,6 +55,14 @@ export function isAvatarConfiguration(
   return AVATAR_LAYERS.every((layer) =>
     layer.options.some((option) => option.id === values[layer.kind]),
   );
+}
+
+export function migrateAvatarConfiguration(
+  config: unknown,
+): AvatarConfiguration | null {
+  if (isAvatarConfiguration(config)) return normalizeAvatar(config);
+  if (!isVersionFourConfiguration(config)) return null;
+  return normalizeAvatar(config);
 }
 
 export function resolveAvatar(config: AvatarConfiguration): ResolvedLayer[] {
@@ -127,4 +135,41 @@ function paint(
 ): AvatarOption {
   if (layer.kind !== "background") return option;
   return { ...option, color: config.backgroundColor };
+}
+
+function isVersionFourConfiguration(
+  config: unknown,
+): config is AvatarConfiguration {
+  if (!config || typeof config !== "object" || Array.isArray(config)) {
+    return false;
+  }
+  const values = config as Record<string, unknown>;
+  const legacyKinds = [
+    "background",
+    "effect",
+    "kit",
+    "head",
+    "hat",
+    "eyewear",
+  ] as const;
+  const expectedKeys = [
+    "version",
+    ...legacyKinds,
+    ...PALETTE_KEYS,
+    "backgroundColor",
+  ];
+  if (
+    values.version !== "4" ||
+    Object.keys(values).length !== expectedKeys.length ||
+    expectedKeys.some((key) => typeof values[key] !== "string") ||
+    PALETTE_KEYS.some((key) => !PALETTE.test(values[key] as string)) ||
+    !HEX_COLOR.test(values.backgroundColor as string)
+  ) {
+    return false;
+  }
+  return legacyKinds.every((kind) =>
+    AVATAR_LAYERS.find((layer) => layer.kind === kind)?.options.some(
+      (option) => option.id === values[kind],
+    ),
+  );
 }

@@ -143,13 +143,19 @@ export const copy = {
     failed: "Your look could not be saved. Try again.",
     locked: "locked, advancement reward",
     categories: {
-      head: "Person",
+      head: "Head",
+      eyes: "Eyes",
+      mouth: "Mouth",
+      facialHair: "Facial hair",
       kit: "Kit",
       gear: "Gear",
       background: "Background",
     },
     legends: {
-      head: "People",
+      head: "Heads",
+      eyes: "Eyes",
+      mouth: "Mouths",
+      facialHair: "Facial hair",
       kit: "Kits",
       hat: "Hats",
       eyewear: "Glasses",
@@ -196,6 +202,21 @@ export const copy = {
         personRound: "Round person",
         personTall: "Tall person",
         personCurls: "Curly person",
+      },
+      eyes: {
+        bright: "Bright eyes",
+        focus: "Focus eyes",
+        happy: "Happy eyes",
+      },
+      mouth: {
+        smile: "Smile",
+        grin: "Big grin",
+        calm: "Calm mouth",
+      },
+      facialHair: {
+        none: "No facial hair",
+        mustache: "Mustache",
+        goatee: "Goatee",
       },
       hat: {
         none: "No hat",

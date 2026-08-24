@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { describe, expect, it } from "vitest";
 import { MomentumStatus } from "./MomentumStatus";
@@ -22,10 +22,23 @@ describe("MomentumStatus", () => {
       ),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
+      screen.queryByText("You showed up. Keep that rhythm going."),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
         "Regular check-ins build it most. A second and third activity add smaller boosts; more won’t change it.",
       ),
-    ).toBeInTheDocument();
+    ).not.toBeInTheDocument();
+
+    const advice = screen.getByTestId("momentum-advice");
+    expect(advice).toHaveTextContent(
+      "2 check-ins this week. 1 more reaches your team’s target.",
+    );
+    expect(
+      within(advice).getByText(/show up on different days/i),
+    ).toHaveTextContent(
+      "Show up on different days for the biggest lift. A second and third activity add smaller boosts; planned rest counts too.",
+    );
 
     const gauge = screen.getByRole("progressbar", {
       name: "Momentum: 68.5 out of 100",

@@ -10,19 +10,15 @@ export const playerExperienceCopy = {
     states: {
       ready: {
         label: "Ready",
-        detail: "Your next check-in starts the gauge.",
       },
       started: {
         label: "Started",
-        detail: "You showed up. Keep that rhythm going.",
       },
       building: {
         label: "Building",
-        detail: "Recent check-ins are building a steady rhythm.",
       },
       "on-a-roll": {
         label: "On a roll",
-        detail: "Your recent check-ins are keeping Momentum strong.",
       },
     },
     gaugeLabel: "Momentum",
@@ -38,8 +34,8 @@ export const playerExperienceCopy = {
       `${checkIns.toLocaleString("en-US")} ${checkIns === 1 ? "check-in" : "check-ins"} this week. ${remaining.toLocaleString("en-US")} more ${remaining === 1 ? "reaches" : "reach"} your team’s target.`,
     weeklyComplete: (goal: number) =>
       `You reached your team’s ${goal.toLocaleString("en-US")}-check-in target this week. Nice consistency.`,
-    explainer:
-      "Regular check-ins build it most. A second and third activity add smaller boosts; more won’t change it.",
+    improvementTip:
+      "Show up on different days for the biggest lift. A second and third activity add smaller boosts; planned rest counts too.",
   },
   today: {
     eyebrow: "Today",

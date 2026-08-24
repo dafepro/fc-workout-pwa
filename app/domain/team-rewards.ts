@@ -39,13 +39,22 @@ export interface RewardDayProgress extends RewardDayInput {
   qualifies: boolean;
 }
 
+export interface RewardProgressUnit {
+  current: number;
+  target: number;
+  complete: boolean;
+}
+
 export interface TeamRewardProgress {
   current: number;
   target: number;
   percent: number;
+  contributionPercent: number;
+  started: number;
   close: boolean;
   achieved: boolean;
   days: RewardDayProgress[];
+  units: RewardProgressUnit[];
 }
 
 function wholeNumberBetween(value: number, minimum: number, maximum: number) {
@@ -110,15 +119,16 @@ export function evaluateTeamReward(
       rule.requiredDays,
       days.filter((day) => day.qualifies).length,
     );
-    const percent = progressPercent(current, rule.requiredDays);
-    return {
+    return rewardProgress(
       current,
-      target: rule.requiredDays,
-      percent,
-      close: percent >= 80 && percent < 100,
-      achieved: current >= rule.requiredDays,
+      rule.requiredDays,
       days,
-    };
+      days.map((day) => ({
+        current: Math.min(day.qualifyingPlayers, day.requiredPlayers),
+        target: Math.max(1, day.requiredPlayers),
+        complete: day.qualifies,
+      })),
+    );
   }
 
   const current = Math.min(
@@ -127,13 +137,49 @@ export function evaluateTeamReward(
       (player) => player.qualifyingDays >= rule.requiredDaysPerPlayer,
     ).length,
   );
-  const percent = progressPercent(current, rule.requiredPlayers);
+  return rewardProgress(
+    current,
+    rule.requiredPlayers,
+    [],
+    input.players.map((player) => ({
+      current: Math.min(player.qualifyingDays, rule.requiredDaysPerPlayer),
+      target: rule.requiredDaysPerPlayer,
+      complete: player.qualifyingDays >= rule.requiredDaysPerPlayer,
+    })),
+  );
+}
+
+function rewardProgress(
+  current: number,
+  target: number,
+  days: RewardDayProgress[],
+  candidates: RewardProgressUnit[],
+): TeamRewardProgress {
+  const units = [...candidates]
+    .sort(
+      (left, right) =>
+        right.current / right.target - left.current / left.target ||
+        right.current - left.current,
+    )
+    .slice(0, target);
+  while (units.length < target) {
+    units.push({ current: 0, target: 1, complete: false });
+  }
+
+  const contributionPercent = progressPercent(
+    units.reduce((sum, unit) => sum + unit.current / unit.target, 0),
+    target,
+  );
+  const achieved = current >= target;
   return {
     current,
-    target: rule.requiredPlayers,
-    percent,
-    close: percent >= 80 && percent < 100,
-    achieved: current >= rule.requiredPlayers,
-    days: [],
+    target,
+    percent: progressPercent(current, target),
+    contributionPercent,
+    started: units.filter((unit) => unit.current > 0).length,
+    close: contributionPercent >= 80 && !achieved,
+    achieved,
+    days,
+    units,
   };
 }

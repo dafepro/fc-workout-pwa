@@ -55,6 +55,39 @@ export const AVATAR_LAYERS: readonly AvatarLayerDefinition[] = [
     ],
   },
   {
+    kind: "eyes",
+    legend: copy.avatar.legends.eyes,
+    z: 21,
+    defaultOptionID: "bright",
+    options: [
+      { id: "bright", label: labels.eyes.bright },
+      { id: "focus", label: labels.eyes.focus },
+      { id: "happy", label: labels.eyes.happy },
+    ],
+  },
+  {
+    kind: "mouth",
+    legend: copy.avatar.legends.mouth,
+    z: 22,
+    defaultOptionID: "smile",
+    options: [
+      { id: "smile", label: labels.mouth.smile },
+      { id: "grin", label: labels.mouth.grin },
+      { id: "calm", label: labels.mouth.calm },
+    ],
+  },
+  {
+    kind: "facialHair",
+    legend: copy.avatar.legends.facialHair,
+    z: 23,
+    defaultOptionID: "none",
+    options: [
+      { id: "none", label: labels.facialHair.none },
+      { id: "mustache", label: labels.facialHair.mustache },
+      { id: "goatee", label: labels.facialHair.goatee },
+    ],
+  },
+  {
     kind: "hat",
     legend: copy.avatar.legends.hat,
     z: 25,
@@ -86,6 +119,13 @@ export const AVATAR_LAYERS: readonly AvatarLayerDefinition[] = [
 
 export const AVATAR_CATEGORIES: readonly AvatarCategoryDefinition[] = [
   { id: "head", label: copy.avatar.categories.head, layerKinds: ["head"] },
+  { id: "eyes", label: copy.avatar.categories.eyes, layerKinds: ["eyes"] },
+  { id: "mouth", label: copy.avatar.categories.mouth, layerKinds: ["mouth"] },
+  {
+    id: "facialHair",
+    label: copy.avatar.categories.facialHair,
+    layerKinds: ["facialHair"],
+  },
   { id: "kit", label: copy.avatar.categories.kit, layerKinds: ["kit"] },
   {
     id: "gear",

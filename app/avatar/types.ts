@@ -3,10 +3,20 @@ export type AvatarLayerKind =
   | "effect"
   | "kit"
   | "head"
+  | "eyes"
+  | "mouth"
+  | "facialHair"
   | "hat"
   | "eyewear";
 
-export type AvatarCategoryKind = "head" | "kit" | "gear" | "background";
+export type AvatarCategoryKind =
+  | "head"
+  | "eyes"
+  | "mouth"
+  | "facialHair"
+  | "kit"
+  | "gear"
+  | "background";
 
 export type AvatarPaletteKey =
   | "headPalette"
@@ -18,7 +28,7 @@ export interface AvatarOption {
   id: string;
   label: string;
   color?: string;
-  unlock?: "advancement";
+  unlock?: "advancement" | "daily_drop";
 }
 
 export interface AvatarLayerDefinition {

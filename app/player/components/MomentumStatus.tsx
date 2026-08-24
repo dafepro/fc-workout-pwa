@@ -76,13 +76,15 @@ export function MomentumStatus({
           {stateOverride ? (
             <span className="momentum-status__preview">{copy.preview}</span>
           ) : null}
-          <p className="momentum-status__detail">{stateCopy.detail}</p>
-          <p className="momentum-status__explainer">{copy.explainer}</p>
-          <div className="momentum-status__guidance">
+          <div
+            className="momentum-status__guidance"
+            data-testid="momentum-advice"
+          >
             <span aria-hidden="true">→</span>
             <div>
               <small>{copy.guidanceLabel}</small>
               <p>{hint}</p>
+              <p className="momentum-status__tip">{copy.improvementTip}</p>
             </div>
           </div>
         </div>

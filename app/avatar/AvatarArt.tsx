@@ -37,6 +37,9 @@ const PART_VIEW_BOX: Record<AvatarLayerKind, string> = {
   effect: "0 0 64 64",
   kit: "0 40 64 42",
   head: "8 7 48 49",
+  eyes: "16 24 32 18",
+  mouth: "20 36 24 18",
+  facialHair: "20 35 24 20",
   hat: "8 5 48 30",
   eyewear: "10 20 44 26",
 };

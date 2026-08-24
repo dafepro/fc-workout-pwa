@@ -3,6 +3,7 @@ package domain
 import (
 	"errors"
 	"math"
+	"sort"
 )
 
 type TeamRewardRuleKind string
@@ -51,12 +52,21 @@ type TeamRewardProgressInput struct {
 }
 
 type TeamRewardProgress struct {
-	Current  int                     `json:"current"`
-	Target   int                     `json:"target"`
-	Percent  int                     `json:"percent"`
-	Close    bool                    `json:"close"`
-	Achieved bool                    `json:"achieved"`
-	Days     []TeamRewardDayProgress `json:"days,omitempty"`
+	Current             int                      `json:"current"`
+	Target              int                      `json:"target"`
+	Percent             int                      `json:"percent"`
+	ContributionPercent int                      `json:"contributionPercent"`
+	Started             int                      `json:"started"`
+	Close               bool                     `json:"close"`
+	Achieved            bool                     `json:"achieved"`
+	Days                []TeamRewardDayProgress  `json:"days,omitempty"`
+	Units               []TeamRewardProgressUnit `json:"units"`
+}
+
+type TeamRewardProgressUnit struct {
+	Current  int  `json:"current"`
+	Target   int  `json:"target"`
+	Complete bool `json:"complete"`
 }
 
 func ValidateTeamRewardRule(rule TeamRewardRule) error {
@@ -93,26 +103,65 @@ func EvaluateTeamReward(rule TeamRewardRule, input TeamRewardProgressInput) (Tea
 			}
 			days = append(days, TeamRewardDayProgress{TeamRewardDayInput: day, RequiredPlayers: required, Qualifies: qualifies})
 		}
-		return rewardProgress(min(current, rule.RequiredDays), rule.RequiredDays, days), nil
+		units := make([]TeamRewardProgressUnit, 0, len(days))
+		for _, day := range days {
+			units = append(units, TeamRewardProgressUnit{
+				Current: min(day.QualifyingPlayers, day.RequiredPlayers),
+				Target:  max(1, day.RequiredPlayers), Complete: day.Qualifies,
+			})
+		}
+		return rewardProgress(min(current, rule.RequiredDays), rule.RequiredDays, days, units), nil
 	}
 
 	current := 0
+	units := make([]TeamRewardProgressUnit, 0, len(input.Players))
 	for _, player := range input.Players {
 		if player.QualifyingDays >= rule.RequiredDaysPerPlayer {
 			current++
 		}
+		units = append(units, TeamRewardProgressUnit{
+			Current:  min(player.QualifyingDays, rule.RequiredDaysPerPlayer),
+			Target:   rule.RequiredDaysPerPlayer,
+			Complete: player.QualifyingDays >= rule.RequiredDaysPerPlayer,
+		})
 	}
-	return rewardProgress(min(current, rule.RequiredPlayers), rule.RequiredPlayers, nil), nil
+	return rewardProgress(min(current, rule.RequiredPlayers), rule.RequiredPlayers, nil, units), nil
 }
 
-func rewardProgress(current, target int, days []TeamRewardDayProgress) TeamRewardProgress {
+func rewardProgress(current, target int, days []TeamRewardDayProgress, candidates []TeamRewardProgressUnit) TeamRewardProgress {
 	percent := 0
 	if target > 0 {
 		percent = min(100, int(math.Round(float64(current)*100/float64(target))))
 	}
+	sort.SliceStable(candidates, func(left, right int) bool {
+		leftRatio := float64(candidates[left].Current) / float64(candidates[left].Target)
+		rightRatio := float64(candidates[right].Current) / float64(candidates[right].Target)
+		if leftRatio == rightRatio {
+			return candidates[left].Current > candidates[right].Current
+		}
+		return leftRatio > rightRatio
+	})
+	units := append([]TeamRewardProgressUnit(nil), candidates[:min(len(candidates), target)]...)
+	for len(units) < target {
+		units = append(units, TeamRewardProgressUnit{Target: 1})
+	}
+	contribution := 0.0
+	started := 0
+	for _, unit := range units {
+		contribution += float64(unit.Current) / float64(unit.Target)
+		if unit.Current > 0 {
+			started++
+		}
+	}
+	contributionPercent := 0
+	if target > 0 {
+		contributionPercent = min(100, int(math.Round(contribution*100/float64(target))))
+	}
+	achieved := current >= target
 	return TeamRewardProgress{
 		Current: current, Target: target, Percent: percent,
-		Close: percent >= 80 && percent < 100, Achieved: current >= target,
-		Days: days,
+		ContributionPercent: contributionPercent, Started: started,
+		Close: contributionPercent >= 80 && !achieved, Achieved: achieved,
+		Days: days, Units: units,
 	}
 }
