@@ -23,8 +23,10 @@ describe("connected training dashboard gateway", () => {
       summary: {
         weeklySessions: 2,
         weeklyMomentumCredits: 2,
+        momentumScore: 34,
         rolling30Sessions: 5,
         currentStreak: 2,
+        currentCheckInStreak: 3,
         longestStreak: 3,
         effortPoints: 42,
         activityDays: [],

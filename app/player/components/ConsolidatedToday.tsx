@@ -53,8 +53,10 @@ export function ConsolidatedToday() {
     (training?.dashboard?.summary.weeklyMomentumCredits ??
       prototypePlayer.weeklySessions) + localRestCredit;
   const weeklyGoal = training?.dashboard?.team.weeklyGoal ?? WEEKLY_GOAL;
-  const currentStreak =
-    training?.dashboard?.summary.currentStreak ?? prototypePlayer.currentStreak;
+  const momentumScore = training?.dashboard?.summary.momentumScore ?? 68;
+  const checkInStreak =
+    training?.dashboard?.summary.currentCheckInStreak ??
+    prototypePlayer.currentStreak;
   const unlockedByToday =
     dev.settings.today === "complete"
       ? true
@@ -111,11 +113,10 @@ export function ConsolidatedToday() {
     <div className="player-page player-page--today">
       {dev.settings.momentumVisible ? (
         <MomentumStatus
-          weeklySessions={weeklyMomentumCredits}
+          momentumScore={momentumScore}
+          weeklyCheckIns={weeklyMomentumCredits}
           weeklyGoal={weeklyGoal}
-          currentStreak={currentStreak}
-          restDay={restDay}
-          planComplete={unlockedByToday}
+          checkInStreak={checkInStreak}
           stateOverride={
             dev.settings.momentumBand === "real"
               ? undefined

@@ -270,12 +270,8 @@
 
 .momentum-status__gauge strong {
   color: #102d28;
-  font-size: 1.55rem;
+  font-size: 2rem;
   line-height: 1;
-}
-
-.momentum-status__gauge strong span {
-  font-size: 0.85rem;
 }
 
 .momentum-status__gauge small {
@@ -306,6 +302,14 @@
   color: #57665f;
   font-size: 0.8rem;
   font-weight: 750;
+}
+
+.momentum-status__explainer {
+  margin-top: 0.38rem;
+  color: #69766f;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.4;
 }
 
 .momentum-status__guidance {

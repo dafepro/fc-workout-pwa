@@ -30,10 +30,9 @@ but the current Today hierarchy repeats the same decision in several places.
   adaptive next-action area.
 - The Team lounge card is useful before completion because it explains the gate,
   but becomes duplicate navigation after completion.
-- The existing dashboard provides weekly sessions, weekly goal, current activity
-  streak, and recent activity days. The Canvas also durably stores submitted
-  planned-rest days. Those sources replace the synthetic Momentum score on the
-  default experience.
+- The dashboard now derives a personal Momentum score and check-in streak from
+  approved activity history plus durable planned-rest records. The score is a
+  projection, not a mutable points balance.
 
 ## Information hierarchy
 
@@ -53,47 +52,45 @@ state model or visual treatment of Team pulse.
 
 ### Data and meaning
 
-The primary gauge is `weeklyMomentumCredits / weeklyGoal`, using the
-authenticated training dashboard. A credit is either an approved recorded
-activity or a submitted prescribed-rest day. Rest does not add a second credit
-when an activity already exists on that same team-local day. The visible fill is
-capped at 100%, while the number may say `4 of 3` so above-goal participation is
-truthful without encouraging maximization.
+The primary gauge is a backend-derived 0–100 Momentum score. Each team-local day
+may contribute up to three approved activities with diminishing credit: `1`,
+`0.25`, then `0.125`; a fourth or later activity adds nothing. Planned rest earns
+the first daily credit but does not stack as another activity. Opening the app,
+raw result size, effort, and tiredness add no score.
 
-The supporting continuity measure is the existing current activity streak. It is
-the run of distinct team-local days with an approved recorded activity, ending
-today or yesterday. Multiple activities on one day do not increase it. The UI
-calls this an **activity streak**, never a login streak, because opening the app
-alone is not progress.
+A daily credit is worth four points for its first 28 days, then fades gradually
+to zero by day 56. There is no missed-day subtraction and the current streak is
+not part of the formula. This lets showing up move the score more than an
+isolated gap can affect it, while keeping the gauge recent rather than lifetime.
+
+The supporting continuity measure is the current **check-in streak**: the run of
+distinct team-local days with an approved activity or planned rest, ending today
+or yesterday. Multiple activities on one day do not increase the streak, and
+merely signing in never counts.
 
 The gauge has four plain-language states:
 
-| Condition                    | State     |
-| ---------------------------- | --------- |
-| No plan days this week       | Ready     |
-| One plan day, below the goal | Started   |
-| Two or more, below the goal  | Building  |
-| Weekly goal met              | On a roll |
-
-When a one-day weekly goal is met by the first credit, the state is `On a roll`;
-the condition matters more than forcing every label to appear.
+| Momentum score | State     |
+| -------------- | --------- |
+| 0              | Ready     |
+| 1–24           | Started   |
+| 25–64          | Building  |
+| 65–100         | On a roll |
 
 ### Guidance
 
-The card explains exactly how to fill the gauge:
+The card explains that regular check-ins matter most and that only the second and
+third activities receive smaller boosts. The team weekly target moves into a
+brief note: below target it names check-ins completed and remaining; after target
+it becomes encouragement. The target is never the primary gauge.
 
-- below goal: say how many plan days remain this week and identify today's
-  recommended plan as the clearest next step;
-- at goal: confirm that the weekly goal is complete and say recovery still
-  counts as a good choice;
-- above goal: do not add a bonus tier, points, pressure, or a larger target.
-
-The activity streak is descriptive. The card never uses loss framing such as
+The check-in streak is descriptive. The card never uses loss framing such as
 `save your streak`, and never recommends an extra workout merely to extend it.
 
 ### Interaction and accessibility
 
-- Use a real progressbar with the plan-day count as its accessible value.
+- Use a real progressbar with the composite score out of 100 as its accessible
+  value.
 - Keep the number, state label, and hint visible so color is never the only
   carrier of meaning.
 - Animate the gauge once when data settles; honor `prefers-reduced-motion`.
@@ -166,27 +163,27 @@ docs/
   CONSOLIDATED_HOME_ENGAGEMENT_PLAN.md       # now: approved UX contract
   OPEN_DECISIONS.md                          # now: durable product decisions
 app/player/
-  momentum-progress.ts                       # now: pure gauge/state projection
+  momentum-progress.ts                       # now: pure score/state projection
   momentum-progress.test.ts                  # now: boundary and safety copy tests
   content.ts                                 # now: centralized player copy
   player.css                                 # now: responsive Momentum treatment
   components/
     ConsolidatedToday.tsx                    # now: passes live progress data
-    MomentumStatus.tsx                       # now: accessible gauge and streak
+    MomentumStatus.tsx                       # now: composite gauge and check-ins
     WhatsNext.tsx                            # now: adaptive action state machine
     TeamPulse.tsx                            # now: safe recent-activity list
 app/data/
   training-dashboard-gateway.ts             # now: safe Team pulse read projection
   reaction-gateway.ts                       # now: predefined private cheer write
 backend/internal/store/
-  training_dashboard.go                     # now: gated safe Team pulse projection
+  training_dashboard.go                     # now: score, streak, and safe Team pulse
 ```
 
 ## Delivery and test sequence
 
-1. Add failing unit tests for zero, one, building, met, and above-goal progress;
-   pluralization; activity streak copy; and no volume-maximizing advice.
-2. Replace the synthetic default Momentum band with the pure weekly projection.
+1. Add failing tests for daily diminishing returns, rest, age-out, time zones,
+   deleted entries, score bands, pluralization, and no volume-maximizing advice.
+2. Replace the weekly gauge with the derived composite Momentum projection.
 3. Update the component and styles, including reduced motion and 320 px behavior.
 4. Run the targeted component/domain tests, formatting, lint, type checks, and
    production build.
@@ -195,12 +192,12 @@ backend/internal/store/
 
 ## Assumptions and deferred decisions
 
-- The dashboard's weekly Momentum credit and team goal are authoritative. The
-  credit is derived from existing training entries and Canvas rest records, so
-  no new mutable score or schema is needed.
+- Momentum is derived from existing training entries and Canvas rest records, so
+  no new mutable score or schema is needed. Backdated entries and deletions
+  recalculate it automatically.
 - Submitting prescribed rest counts as showing up; opening the app alone does
-  not. Planned rest does not increase the activity streak, which remains an
-  explicitly labeled run of recorded-activity days.
+  not. Planned rest increases the check-in streak but never stacks as a separate
+  activity on the same day.
 - A future plan ledger may replace this derived participation count if plans
   become fully scheduled and backdatable. The current choice is intentionally
   explainable and reversible.

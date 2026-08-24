@@ -742,15 +742,18 @@ Momentum Alpha needs independent PWA install/offline behavior.
 - Decided: the default Today surface separates three jobs: Momentum measures
   personal progress, What's next directs the next action, and Team pulse supplies
   safe social motivation. Team rewards remains a separate real-world team goal.
-- Decided: Momentum uses the authenticated weekly plan-day credit and team
-  weekly goal as its explainable gauge, plus the existing current activity
-  streak as descriptive continuity. A plan-day credit is an approved recorded
-  activity or a submitted prescribed-rest day, counted at most once per
-  team-local day. It adds no synthetic mutable score or schema.
-- Decided: Momentum states are `Ready`, `Started`, `Building`, and `On a roll`.
-  Guidance names the remaining weekly plan days below goal and recommends
-  recovery rather than extra volume once the goal is met. Streak copy never uses
-  loss framing or recommends work solely to preserve a streak.
+- Revised 2026-08-24: Momentum is a backend-derived 0–100 personal score rather
+  than the team weekly goal in gauge form. On each team-local day, the first
+  approved activity earns full credit, the second one-quarter, the third
+  one-eighth, and later activities zero. Planned rest earns the first daily
+  credit without stacking as another activity. Credits hold full weight for 28
+  days, then fade gradually to zero by day 56; there is no missed-day deduction,
+  streak multiplier, result-value reward, or mutable balance.
+- Revised 2026-08-24: the supporting label is `check-in streak`, counting
+  distinct consecutive team-local days with an approved activity or planned
+  rest and ending today or yesterday. Merely opening the app does not count.
+  `Ready`, `Started`, `Building`, and `On a roll` are score bands. The weekly
+  team target appears only as contextual progress or reached-goal encouragement.
 - Implemented: What's next replaces the separate workout, completion advice,
   and Team lounge cards with one adaptive recommendation surface. Before
   completion it focuses on the plan. After completion it recommends cooldown or

@@ -10,31 +10,24 @@ import {
 } from "../momentum-progress";
 
 export function MomentumStatus({
-  weeklySessions,
+  momentumScore,
+  weeklyCheckIns,
   weeklyGoal,
-  currentStreak,
-  restDay,
-  planComplete,
+  checkInStreak,
   stateOverride,
 }: {
-  weeklySessions: number;
+  momentumScore: number;
+  weeklyCheckIns: number;
   weeklyGoal: number;
-  currentStreak: number;
-  restDay: boolean;
-  planComplete: boolean;
+  checkInStreak: number;
   stateOverride?: MomentumProgressState;
 }) {
   const auth = useOptionalAuth();
   const copy = playerExperienceCopy.momentum;
-  const progress = momentumProgress(weeklySessions, weeklyGoal);
+  const progress = momentumProgress(momentumScore);
   const state = stateOverride ?? progress.state;
   const stateCopy = copy.states[state];
-  const hint = guidance(
-    progress.remaining,
-    restDay,
-    planComplete,
-    copy.guidance,
-  );
+  const hint = weeklyGuidance(weeklyCheckIns, weeklyGoal, copy);
   const gaugeStyle = {
     "--momentum-progress": `${progress.percentage * 3.6}deg`,
   } as CSSProperties;
@@ -60,7 +53,7 @@ export function MomentumStatus({
         </div>
         <p className="momentum-status__streak">
           <span aria-hidden="true">↗</span>
-          {copy.streak(Math.max(0, Math.floor(currentStreak)))}
+          {copy.streak(Math.max(0, Math.floor(checkInStreak)))}
         </p>
       </header>
 
@@ -68,20 +61,15 @@ export function MomentumStatus({
         <div
           className="momentum-status__gauge"
           role="progressbar"
-          aria-label={copy.accessibleGauge(
-            progress.weeklySessions,
-            progress.weeklyGoal,
-          )}
+          aria-label={copy.accessibleGauge(progress.score)}
           aria-valuemin={0}
-          aria-valuemax={progress.weeklyGoal}
-          aria-valuenow={progress.gaugeValue}
+          aria-valuemax={100}
+          aria-valuenow={progress.score}
           style={gaugeStyle}
         >
           <div>
-            <strong>
-              {progress.weeklySessions} <span>of {progress.weeklyGoal}</span>
-            </strong>
-            <small>{copy.thisWeek}</small>
+            <strong>{progress.score}</strong>
+            <small>{copy.gaugeLabel}</small>
           </div>
         </div>
         <div className="momentum-status__copy">
@@ -89,6 +77,7 @@ export function MomentumStatus({
             <span className="momentum-status__preview">{copy.preview}</span>
           ) : null}
           <p className="momentum-status__detail">{stateCopy.detail}</p>
+          <p className="momentum-status__explainer">{copy.explainer}</p>
           <div className="momentum-status__guidance">
             <span aria-hidden="true">→</span>
             <div>
@@ -102,15 +91,14 @@ export function MomentumStatus({
   );
 }
 
-function guidance(
-  remaining: number,
-  restDay: boolean,
-  planComplete: boolean,
-  copy: typeof playerExperienceCopy.momentum.guidance,
+function weeklyGuidance(
+  weeklyCheckIns: number,
+  weeklyGoal: number,
+  copy: typeof playerExperienceCopy.momentum,
 ): string {
-  if (remaining === 0) return copy.goalComplete;
-  const progress = copy.remaining(remaining);
-  if (restDay) return `${progress} ${copy.plannedRest}`;
-  if (planComplete) return `${progress} ${copy.planComplete}`;
-  return `${progress} ${copy.recommendedPlan}`;
+  const checkIns = Math.max(0, Math.floor(weeklyCheckIns));
+  const goal = Math.max(1, Math.floor(weeklyGoal));
+  if (checkIns >= goal) return copy.weeklyComplete(goal);
+  if (checkIns === 0) return copy.firstCheckIn;
+  return copy.weeklyProgress(checkIns, goal - checkIns);
 }

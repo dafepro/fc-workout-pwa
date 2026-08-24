@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
+	"math"
 	"sort"
 	"strconv"
 	"time"
@@ -51,8 +52,10 @@ type PersonalActivityDay struct {
 type PersonalTrainingSummary struct {
 	WeeklySessions        int                   `json:"weeklySessions"`
 	WeeklyMomentumCredits int                   `json:"weeklyMomentumCredits"`
+	MomentumScore         int                   `json:"momentumScore"`
 	Rolling30Sessions     int                   `json:"rolling30Sessions"`
 	CurrentStreak         int                   `json:"currentStreak"`
+	CurrentCheckInStreak  int                   `json:"currentCheckInStreak"`
 	LongestStreak         int                   `json:"longestStreak"`
 	EffortPoints          int                   `json:"effortPoints"`
 	ActivityDays          []PersonalActivityDay `json:"activityDays"`
@@ -111,14 +114,14 @@ func (store *Store) TrainingDashboard(ctx context.Context, actor domain.Actor, t
 		return TrainingDashboardProjection{}, err
 	}
 	weekStart, _ := domain.LeaderboardPeriodStart(domain.PeriodWeekly, now, team.CreatedAt, location)
-	restDays, err := store.personalRestDayKeys(ctx, actor.PlayerID, teamID, weekStart, now, location)
+	restDays, err := store.personalRestDayKeys(ctx, actor.PlayerID, teamID, team.CreatedAt, now, location)
 	if err != nil {
 		return TrainingDashboardProjection{}, err
 	}
 	seasonMetrics := domain.ParticipationMetrics(entries, now, team.CreatedAt, location)[actor.PlayerID]
 	weekMetrics := domain.ParticipationMetrics(entries, now, weekStart, location)[actor.PlayerID]
-	momentumCredits := weeklyMomentumCredits(entries, restDays, weekStart, now, location, weekMetrics.Sessions)
-	summary := buildPersonalSummary(entries, actor.PlayerID, now, location, weekMetrics.Sessions, momentumCredits, seasonMetrics.EffortPoints)
+	momentumCredits := weeklyMomentumCredits(entries, restDays, weekStart, now, location)
+	summary := buildPersonalSummary(entries, restDays, actor.PlayerID, now, location, weekMetrics.Sessions, momentumCredits, seasonMetrics.EffortPoints)
 	activeCount, err := store.activeTeamMembersThisWeek(ctx, teamID, weekStart, now, now.In(location).Format("2006-01-02"))
 	if err != nil {
 		return TrainingDashboardProjection{}, err
@@ -306,7 +309,7 @@ func (store *Store) activeAssignment(ctx context.Context, teamID, teamDay string
 	return &item, nil
 }
 
-func buildPersonalSummary(entries []domain.ProjectionEntry, playerID string, now time.Time, location *time.Location, weeklySessions, weeklyMomentumCredits, effortPoints int) PersonalTrainingSummary {
+func buildPersonalSummary(entries []domain.ProjectionEntry, restDays []string, playerID string, now time.Time, location *time.Location, weeklySessions, weeklyMomentumCredits, effortPoints int) PersonalTrainingSummary {
 	today := localDateStart(now, location)
 	counts := make(map[string]int)
 	for _, entry := range entries {
@@ -348,24 +351,94 @@ func buildPersonalSummary(entries []domain.ProjectionEntry, playerID string, now
 	}
 	season := domain.ParticipationMetrics(entries, now, time.Time{}, location)[playerID]
 	return PersonalTrainingSummary{WeeklySessions: weeklySessions, WeeklyMomentumCredits: weeklyMomentumCredits, Rolling30Sessions: rolling,
-		CurrentStreak: season.StreakDays, LongestStreak: longest, EffortPoints: effortPoints, ActivityDays: days}
+		MomentumScore: momentumScore(counts, restDays, today), CurrentStreak: season.StreakDays,
+		CurrentCheckInStreak: currentCheckInStreak(counts, restDays, today), LongestStreak: longest,
+		EffortPoints: effortPoints, ActivityDays: days}
 }
 
-func weeklyMomentumCredits(entries []domain.ProjectionEntry, restDays []string, weekStart, now time.Time, location *time.Location, weeklySessions int) int {
+func weeklyMomentumCredits(entries []domain.ProjectionEntry, restDays []string, weekStart, now time.Time, location *time.Location) int {
 	entryDays := make(map[string]bool)
+	weekStartKey := weekStart.In(location).Format("2006-01-02")
+	todayKey := now.In(location).Format("2006-01-02")
 	for _, entry := range entries {
 		if entry.OccurredAt.Before(weekStart) || entry.OccurredAt.After(now) {
 			continue
 		}
 		entryDays[entry.OccurredAt.In(location).Format("2006-01-02")] = true
 	}
-	credits := weeklySessions
+	credits := len(entryDays)
 	for _, dayKey := range restDays {
+		if dayKey < weekStartKey || dayKey > todayKey {
+			continue
+		}
 		if !entryDays[dayKey] {
 			credits++
 		}
 	}
 	return credits
+}
+
+func momentumScore(activityCounts map[string]int, restDays []string, today time.Time) int {
+	rest := make(map[string]bool, len(restDays))
+	for _, dayKey := range restDays {
+		rest[dayKey] = true
+	}
+	total := 0.0
+	for age := 0; age < 56; age++ {
+		dayKey := today.AddDate(0, 0, -age).Format("2006-01-02")
+		credit := dailyMomentumCredit(activityCounts[dayKey], rest[dayKey])
+		if credit == 0 {
+			continue
+		}
+		weight := 4.0
+		if age >= 28 {
+			weight *= float64(56-age) / 28
+		}
+		total += credit * weight
+	}
+	return min(100, int(math.Round(total)))
+}
+
+func dailyMomentumCredit(activityCount int, plannedRest bool) float64 {
+	credit := 0.0
+	if activityCount > 0 {
+		credit = 1
+	}
+	if activityCount > 1 {
+		credit += .25
+	}
+	if activityCount > 2 {
+		credit += .125
+	}
+	if plannedRest && credit < 1 {
+		return 1
+	}
+	return credit
+}
+
+func currentCheckInStreak(activityCounts map[string]int, restDays []string, today time.Time) int {
+	checkIns := make(map[string]bool, len(activityCounts)+len(restDays))
+	for dayKey, count := range activityCounts {
+		if count > 0 {
+			checkIns[dayKey] = true
+		}
+	}
+	for _, dayKey := range restDays {
+		checkIns[dayKey] = true
+	}
+	anchor := today
+	if !checkIns[anchor.Format("2006-01-02")] {
+		anchor = anchor.AddDate(0, 0, -1)
+		if !checkIns[anchor.Format("2006-01-02")] {
+			return 0
+		}
+	}
+	streak := 0
+	for checkIns[anchor.Format("2006-01-02")] {
+		streak++
+		anchor = anchor.AddDate(0, 0, -1)
+	}
+	return streak
 }
 
 func (store *Store) activeTeamMembersThisWeek(ctx context.Context, teamID string, start, now time.Time, teamDay string) (int, error) {

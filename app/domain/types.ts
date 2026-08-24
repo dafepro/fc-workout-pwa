@@ -79,8 +79,10 @@ export interface TrainingDashboard {
   summary: {
     weeklySessions: number;
     weeklyMomentumCredits: number;
+    momentumScore: number;
     rolling30Sessions: number;
     currentStreak: number;
+    currentCheckInStreak: number;
     longestStreak: number;
     effortPoints: number;
     activityDays: ActivityDay[];

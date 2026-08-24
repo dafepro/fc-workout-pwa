@@ -55,8 +55,10 @@ const dashboard: TrainingDashboard = {
   summary: {
     weeklySessions: 3,
     weeklyMomentumCredits: 3,
+    momentumScore: 68,
     rolling30Sessions: 9,
     currentStreak: 4,
+    currentCheckInStreak: 5,
     longestStreak: 7,
     effortPoints: 120,
     activityDays: [],

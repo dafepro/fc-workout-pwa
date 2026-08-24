@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -166,6 +167,153 @@ func TestTrainingDashboardCountsPlannedRestOnceTowardWeeklyMomentum(t *testing.T
 	}
 	if !projection.TeamPulse.Unlocked || len(projection.TeamPulse.RecentActivities) == 0 {
 		t.Fatalf("submitted planned rest did not unlock Team pulse: %+v", projection.TeamPulse)
+	}
+}
+
+func TestTrainingDashboardBuildsMomentumWithDiminishingDailyActivities(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+	ctx := context.Background()
+	actor := domain.Actor{Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-one"}
+	if _, err := db.ExecContext(ctx, `DELETE FROM training_entries WHERE player_id = 'player-mason'`); err != nil {
+		t.Fatal(err)
+	}
+
+	wantScores := []int{4, 5, 6, 6}
+	for index, want := range wantScores {
+		stamp := now.Add(-time.Duration(index+1) * time.Minute)
+		if _, err := db.ExecContext(ctx, `INSERT INTO training_entries (
+			id, player_id, team_id, activity_definition_id, occurred_at, result_value,
+			result_unit, effort_level, exhaustion_level, created_at, delete_eligible_until
+		) VALUES (?, 'player-mason', 'team-one', 'hill-sprints', ?, 8, 'reps', 3, 3, ?, ?)`,
+			fmt.Sprintf("momentum-entry-%d", index), stamp.Format(time.RFC3339Nano),
+			stamp.Format(time.RFC3339Nano), stamp.Add(24*time.Hour).Format(time.RFC3339Nano)); err != nil {
+			t.Fatal(err)
+		}
+		projection, err := repository.TrainingDashboard(ctx, actor, "team-one", now)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if projection.Summary.MomentumScore != want {
+			t.Fatalf("%d same-day activities produced Momentum %d, want %d", index+1, projection.Summary.MomentumScore, want)
+		}
+		if projection.Summary.WeeklyMomentumCredits != 1 {
+			t.Fatalf("%d same-day activities produced %d weekly check-ins, want 1", index+1, projection.Summary.WeeklyMomentumCredits)
+		}
+	}
+}
+
+func TestTrainingDashboardCheckInStreakIncludesPlannedRest(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+	ctx := context.Background()
+	actor := domain.Actor{Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-one"}
+	if _, err := db.ExecContext(ctx, `UPDATE training_entries SET occurred_at = '2026-08-10T12:00:00Z' WHERE id = 'entry-mason'`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.ExecContext(ctx, `INSERT INTO training_entries (
+		id, player_id, team_id, activity_definition_id, occurred_at, result_value,
+		result_unit, effort_level, exhaustion_level, created_at, delete_eligible_until
+	) VALUES ('momentum-bonus', 'player-mason', 'team-one', 'distance-run',
+		'2026-08-11T12:00:00Z', 1, 'miles', 3, 3, '2026-08-11T12:00:00Z', '2026-08-12T12:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.ExecContext(ctx, `INSERT INTO team_canvas_rest_days
+		(team_id, player_id, day_key, created_at) VALUES
+		('team-one', 'player-mason', '2026-08-09', '2026-08-09T12:00:00Z'),
+		('team-one', 'player-mason', '2026-08-12', '2026-08-12T12:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+
+	projection, err := repository.TrainingDashboard(ctx, actor, "team-one", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if projection.Summary.CurrentCheckInStreak != 4 {
+		t.Fatalf("check-in streak = %d, want 4", projection.Summary.CurrentCheckInStreak)
+	}
+	if projection.Summary.MomentumScore != 16 {
+		t.Fatalf("four recent check-in days produced Momentum %d, want 16", projection.Summary.MomentumScore)
+	}
+	if projection.Summary.WeeklyMomentumCredits != 3 {
+		t.Fatalf("weekly check-ins included an older rest day: %d", projection.Summary.WeeklyMomentumCredits)
+	}
+}
+
+func TestTrainingDashboardMomentumFadesOldCheckInsWithoutAMissedDayPenalty(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+	ctx := context.Background()
+	actor := domain.Actor{Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-one"}
+	if _, err := db.ExecContext(ctx, `DELETE FROM training_entries WHERE player_id = 'player-mason'`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.ExecContext(ctx, `UPDATE teams SET created_at = '2026-05-01T00:00:00Z' WHERE id = 'team-one'`); err != nil {
+		t.Fatal(err)
+	}
+	for index, age := range []int{0, 28, 55, 56} {
+		stamp := now.AddDate(0, 0, -age)
+		if _, err := db.ExecContext(ctx, `INSERT INTO training_entries (
+			id, player_id, team_id, activity_definition_id, occurred_at, result_value,
+			result_unit, effort_level, exhaustion_level, created_at, delete_eligible_until
+		) VALUES (?, 'player-mason', 'team-one', 'hill-sprints', ?, 8, 'reps', 3, 3, ?, ?)`,
+			fmt.Sprintf("aged-momentum-entry-%d", index), stamp.Format(time.RFC3339Nano),
+			stamp.Format(time.RFC3339Nano), stamp.Add(24*time.Hour).Format(time.RFC3339Nano)); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	projection, err := repository.TrainingDashboard(ctx, actor, "team-one", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if projection.Summary.MomentumScore != 8 {
+		t.Fatalf("Momentum score = %d, want 8 from recent and gently aged check-ins", projection.Summary.MomentumScore)
+	}
+}
+
+func TestTrainingDashboardMomentumUsesTeamDaysAndIgnoresDeletedEntries(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	now := time.Date(2026, time.August, 12, 6, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+	ctx := context.Background()
+	actor := domain.Actor{Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-one"}
+	if _, err := db.ExecContext(ctx, `DELETE FROM training_entries WHERE player_id = 'player-mason'`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.ExecContext(ctx, `INSERT INTO training_entries (
+		id, player_id, team_id, activity_definition_id, occurred_at, result_value,
+		result_unit, effort_level, exhaustion_level, created_at, delete_eligible_until
+	) VALUES ('before-local-midnight', 'player-mason', 'team-one', 'hill-sprints',
+		'2026-08-12T04:59:59Z', 8, 'reps', 3, 3, '2026-08-12T04:59:59Z', '2026-08-13T04:59:59Z')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.ExecContext(ctx, `INSERT INTO training_entries (
+		id, player_id, team_id, activity_definition_id, occurred_at, result_value,
+		result_unit, effort_level, exhaustion_level, created_at, delete_eligible_until, deleted_at
+	) VALUES ('deleted-after-local-midnight', 'player-mason', 'team-one', 'hill-sprints',
+		'2026-08-12T05:00:00Z', 8, 'reps', 3, 3, '2026-08-12T05:00:00Z',
+		'2026-08-13T05:00:00Z', '2026-08-12T05:30:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.ExecContext(ctx, `INSERT INTO team_canvas_rest_days
+		(team_id, player_id, day_key, created_at) VALUES
+		('team-one', 'player-mason', '2026-08-10', '2026-08-10T12:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+
+	projection, err := repository.TrainingDashboard(ctx, actor, "team-one", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if projection.Summary.CurrentCheckInStreak != 2 {
+		t.Fatalf("team-local check-in streak = %d, want 2", projection.Summary.CurrentCheckInStreak)
+	}
+	if projection.Summary.MomentumScore != 8 {
+		t.Fatalf("Momentum score = %d, want 8", projection.Summary.MomentumScore)
 	}
 }
 

@@ -5,36 +5,24 @@ export type MomentumProgressState =
   | "on-a-roll";
 
 export interface MomentumProgress {
-  weeklySessions: number;
-  weeklyGoal: number;
-  gaugeValue: number;
+  score: number;
   percentage: number;
-  remaining: number;
   state: MomentumProgressState;
 }
 
-export function momentumProgress(
-  weeklySessions: number,
-  weeklyGoal: number,
-): MomentumProgress {
-  const sessions = Math.max(0, Math.floor(weeklySessions));
-  const goal = Math.max(1, Math.floor(weeklyGoal));
-  const gaugeValue = Math.min(sessions, goal);
-  const remaining = Math.max(0, goal - sessions);
+export function momentumProgress(momentumScore: number): MomentumProgress {
+  const score = Math.min(100, Math.max(0, Math.round(momentumScore)));
 
   return {
-    weeklySessions: sessions,
-    weeklyGoal: goal,
-    gaugeValue,
-    percentage: Math.round((gaugeValue / goal) * 100),
-    remaining,
+    score,
+    percentage: score,
     state:
-      remaining === 0
+      score >= 65
         ? "on-a-roll"
-        : sessions === 0
-          ? "ready"
-          : sessions === 1
-            ? "started"
-            : "building",
+        : score >= 25
+          ? "building"
+          : score === 0
+            ? "ready"
+            : "started",
   };
 }

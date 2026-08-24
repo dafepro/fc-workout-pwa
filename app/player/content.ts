@@ -10,37 +10,36 @@ export const playerExperienceCopy = {
     states: {
       ready: {
         label: "Ready",
-        detail: "A fresh week starts with one good choice.",
+        detail: "Your next check-in starts the gauge.",
       },
       started: {
         label: "Started",
-        detail: "Your first plan day has the week moving.",
+        detail: "You showed up. Keep that rhythm going.",
       },
       building: {
         label: "Building",
-        detail: "Your steady choices are adding up.",
+        detail: "Recent check-ins are building a steady rhythm.",
       },
       "on-a-roll": {
         label: "On a roll",
-        detail: "You reached the team’s weekly plan goal.",
+        detail: "Your recent check-ins are keeping Momentum strong.",
       },
     },
-    thisWeek: "this week",
+    gaugeLabel: "Momentum",
     preview: "Preview state",
     streak: (days: number) =>
-      `${days.toLocaleString("en-US")}-day activity streak`,
-    accessibleGauge: (sessions: number, goal: number) =>
-      `Weekly Momentum: ${sessions} of ${goal} plan days`,
-    guidanceLabel: "How to fill it",
-    guidance: {
-      goalComplete:
-        "Weekly goal complete. Recovery is a good next move; there’s no need to add more.",
-      remaining: (count: number) =>
-        `${count.toLocaleString("en-US")} more ${count === 1 ? "plan day completes" : "plan days complete"} this week’s goal.`,
-      recommendedPlan: "Today’s recommended plan is the clearest next step.",
-      planComplete: "No need to add more today.",
-      plannedRest: "Today, stick with planned recovery.",
-    },
+      `${days.toLocaleString("en-US")}-day check-in streak`,
+    accessibleGauge: (score: number) =>
+      `Momentum: ${score.toLocaleString("en-US")} out of 100`,
+    guidanceLabel: "This week",
+    firstCheckIn:
+      "Your first check-in starts this week’s team target. Planned rest counts too.",
+    weeklyProgress: (checkIns: number, remaining: number) =>
+      `${checkIns.toLocaleString("en-US")} ${checkIns === 1 ? "check-in" : "check-ins"} this week. ${remaining.toLocaleString("en-US")} more ${remaining === 1 ? "reaches" : "reach"} your team’s target.`,
+    weeklyComplete: (goal: number) =>
+      `You reached your team’s ${goal.toLocaleString("en-US")}-check-in target this week. Nice consistency.`,
+    explainer:
+      "Regular check-ins build it most. A second and third activity add smaller boosts; more won’t change it.",
   },
   today: {
     eyebrow: "Today",

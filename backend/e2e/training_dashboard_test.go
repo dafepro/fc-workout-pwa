@@ -17,7 +17,7 @@ func TestTrainingDashboardOwnsAssignmentCatalogAndCompletion(t *testing.T) {
 	assertStatus(t, initial, http.StatusOK)
 	body := readBody(initial)
 	_ = initial.Body.Close()
-	for _, expected := range []string{`"weeklyGoal":3`, `"activityDefinitionId":"hill-sprints"`, `"catalogKey":"hill_sprints_8x6"`, `"completed":false`, `"streakComparison"`} {
+	for _, expected := range []string{`"weeklyGoal":3`, `"momentumScore":0`, `"currentCheckInStreak":0`, `"activityDefinitionId":"hill-sprints"`, `"catalogKey":"hill_sprints_8x6"`, `"completed":false`, `"streakComparison"`} {
 		if !strings.Contains(body, expected) {
 			t.Fatalf("dashboard missing %s: %s", expected, body)
 		}

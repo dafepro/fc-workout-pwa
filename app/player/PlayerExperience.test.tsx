@@ -95,13 +95,13 @@ describe("consolidated default player experience", () => {
     ).not.toBeInTheDocument();
     expect(
       screen.getByRole("progressbar", {
-        name: "Weekly Momentum: 2 of 3 plan days",
+        name: "Momentum: 68 out of 100",
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText("How to fill it")).toBeInTheDocument();
+    expect(screen.getByText("This week")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "1 more plan day completes this week’s goal. Today’s recommended plan is the clearest next step.",
+        "2 check-ins this week. 1 more reaches your team’s target.",
       ),
     ).toBeInTheDocument();
     expect(
@@ -128,7 +128,7 @@ describe("consolidated default player experience", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save workout" }));
     expect(
       screen.getByText(
-        "1 more plan day completes this week’s goal. No need to add more today.",
+        "2 check-ins this week. 1 more reaches your team’s target.",
       ),
     ).toBeInTheDocument();
     expect(
@@ -148,7 +148,7 @@ describe("consolidated default player experience", () => {
     ).toBeEnabled();
   });
 
-  it("counts a submitted planned-rest day toward weekly Momentum", async () => {
+  it("counts a submitted planned-rest day toward the weekly note", async () => {
     renderExperience(
       <ConsolidatedToday />,
       beginDay(initialTeamCanvasState(), {
@@ -159,7 +159,7 @@ describe("consolidated default player experience", () => {
 
     expect(
       screen.getByRole("progressbar", {
-        name: "Weekly Momentum: 2 of 3 plan days",
+        name: "Momentum: 68 out of 100",
       }),
     ).toBeInTheDocument();
 
@@ -168,9 +168,9 @@ describe("consolidated default player experience", () => {
     );
 
     expect(
-      await screen.findByRole("progressbar", {
-        name: "Weekly Momentum: 3 of 3 plan days",
-      }),
+      await screen.findByText(
+        "You reached your team’s 3-check-in target this week. Nice consistency.",
+      ),
     ).toBeInTheDocument();
     expect(screen.getByText("Planned rest logged")).toBeInTheDocument();
     expect(
@@ -266,13 +266,13 @@ describe("consolidated default player experience", () => {
     fireEvent.click(screen.getByLabelText("Show Momentum card"));
     expect(
       screen.getByText(
-        "1 more plan day completes this week’s goal. Today, stick with planned recovery.",
+        "2 check-ins this week. 1 more reaches your team’s target.",
       ),
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Reset dev controls" }));
 
-    expect(screen.getByLabelText("Momentum is building")).toBeInTheDocument();
+    expect(screen.getByLabelText("Momentum is on-a-roll")).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "Hill Sprints" }),
     ).toBeInTheDocument();

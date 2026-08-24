@@ -4,74 +4,72 @@ import { describe, expect, it } from "vitest";
 import { MomentumStatus } from "./MomentumStatus";
 
 describe("MomentumStatus", () => {
-  it("shows a real weekly gauge, activity streak, and a specific way to fill it", () => {
+  it("features the composite score and supporting check-in streak", () => {
     render(
       <MomentumStatus
-        weeklySessions={2}
+        momentumScore={68}
+        weeklyCheckIns={2}
         weeklyGoal={3}
-        currentStreak={4}
-        restDay={false}
-        planComplete={false}
-      />,
-    );
-
-    expect(screen.getByText("Building")).toBeInTheDocument();
-    expect(screen.getByText("4-day activity streak")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "1 more plan day completes this week’s goal. Today’s recommended plan is the clearest next step.",
-      ),
-    ).toBeInTheDocument();
-
-    const gauge = screen.getByRole("progressbar", {
-      name: "Weekly Momentum: 2 of 3 plan days",
-    });
-    expect(gauge).toHaveTextContent("2 of 3");
-    expect(gauge).toHaveAttribute("aria-valuenow", "2");
-    expect(gauge).toHaveAttribute("aria-valuemax", "3");
-  });
-
-  it("uses singular streak copy without pressuring another workout", () => {
-    render(
-      <MomentumStatus
-        weeklySessions={4}
-        weeklyGoal={3}
-        currentStreak={1}
-        restDay={false}
-        planComplete={true}
+        checkInStreak={4}
       />,
     );
 
     expect(screen.getByText("On a roll")).toBeInTheDocument();
-    expect(
-      screen.getByRole("progressbar", {
-        name: "Weekly Momentum: 4 of 3 plan days",
-      }),
-    ).toHaveTextContent("4 of 3");
-    expect(screen.getByText("1-day activity streak")).toBeInTheDocument();
+    expect(screen.getByText("4-day check-in streak")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Weekly goal complete. Recovery is a good next move; there’s no need to add more.",
+        "2 check-ins this week. 1 more reaches your team’s target.",
       ),
     ).toBeInTheDocument();
-    expect(screen.queryByText(/save your streak/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Regular check-ins build it most. A second and third activity add smaller boosts; more won’t change it.",
+      ),
+    ).toBeInTheDocument();
+
+    const gauge = screen.getByRole("progressbar", {
+      name: "Momentum: 68 out of 100",
+    });
+    expect(gauge).toHaveTextContent("68");
+    expect(gauge).toHaveTextContent("Momentum");
+    expect(gauge).toHaveAttribute("aria-valuenow", "68");
+    expect(gauge).toHaveAttribute("aria-valuemax", "100");
   });
 
-  it("protects a planned rest day even when the weekly gauge is not full", () => {
+  it("moves the weekly target into encouragement after it is reached", () => {
     render(
       <MomentumStatus
-        weeklySessions={1}
+        momentumScore={42}
+        weeklyCheckIns={4}
         weeklyGoal={3}
-        currentStreak={0}
-        restDay
-        planComplete={false}
+        checkInStreak={1}
       />,
     );
 
-    expect(screen.getByText("Started")).toBeInTheDocument();
+    expect(screen.getByText("Building")).toBeInTheDocument();
+    expect(screen.getByText("1-day check-in streak")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "2 more plan days complete this week’s goal. Today, stick with planned recovery.",
+        "You reached your team’s 3-check-in target this week. Nice consistency.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/of 3/i)).not.toBeInTheDocument();
+  });
+
+  it("keeps the initial state encouraging without presenting a weekly fraction", () => {
+    render(
+      <MomentumStatus
+        momentumScore={0}
+        weeklyCheckIns={0}
+        weeklyGoal={3}
+        checkInStreak={0}
+      />,
+    );
+
+    expect(screen.getByText("Ready")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Your first check-in starts this week’s team target. Planned rest counts too.",
       ),
     ).toBeInTheDocument();
   });
