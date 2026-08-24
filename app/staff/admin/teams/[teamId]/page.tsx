@@ -1,5 +1,6 @@
 import { requireOperator } from "../../guard";
 import { AssignmentPanel } from "../../../console/team/AssignmentPanel";
+import { TrainingPlanPrototype } from "../../../console/team/training-plans/TrainingPlanPrototype";
 
 export default async function OperatorTeamTrainingPage({
   params,
@@ -8,5 +9,10 @@ export default async function OperatorTeamTrainingPage({
 }) {
   await requireOperator();
   const { teamId } = await params;
-  return <AssignmentPanel teamId={teamId} />;
+  return (
+    <>
+      <TrainingPlanPrototype teamId={teamId} />
+      <AssignmentPanel teamId={teamId} />
+    </>
+  );
 }

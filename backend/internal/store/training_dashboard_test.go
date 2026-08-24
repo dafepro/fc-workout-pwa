@@ -70,6 +70,44 @@ func TestTrainingDashboardReturnsOwnedCatalogAssignmentAndSafeSummary(t *testing
 	}
 }
 
+func TestTrainingDashboardProjectsPublishedTrainingAndRestDays(t *testing.T) {
+	for _, test := range []struct {
+		name      string
+		startsOn  string
+		wantKind  string
+		completed bool
+	}{
+		{name: "training activity", startsOn: "2026-08-12", wantKind: "training", completed: true},
+		{name: "planned rest", startsOn: "2026-08-09", wantKind: "rest", completed: false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			repository, db := socialProjectionStore(t)
+			now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
+			seedSocialProjection(t, db, now)
+			if _, err := store.NewStaffStore(db).PublishTrainingPlan(context.Background(), "team-one", store.TrainingPlanInput{
+				TemplateID: "in-season-balance-v1", StartsOn: test.startsOn,
+			}); err != nil {
+				t.Fatal(err)
+			}
+
+			projection, err := repository.TrainingDashboard(context.Background(), domain.Actor{
+				Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-one",
+			}, "team-one", now)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if projection.CurrentPlanDay == nil || projection.CurrentPlanDay.Kind != test.wantKind ||
+				projection.CurrentPlanDay.Completed != test.completed {
+				t.Fatalf("unexpected current plan day: %+v", projection.CurrentPlanDay)
+			}
+			if test.wantKind == "training" && (len(projection.CurrentPlanDay.Blocks) != 1 ||
+				projection.CurrentPlanDay.Blocks[0].ActivityDefinitionID != "hill-sprints") {
+				t.Fatalf("unexpected current plan blocks: %+v", projection.CurrentPlanDay.Blocks)
+			}
+		})
+	}
+}
+
 func TestTrainingDashboardKeepsRecentTeamActivityBehindTodaysGate(t *testing.T) {
 	repository, db := socialProjectionStore(t)
 	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)

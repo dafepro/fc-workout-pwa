@@ -81,6 +81,7 @@ class LocalTrainingDashboardGateway implements TrainingDashboardGateway {
         dueOn: new Date().toISOString().slice(0, 10),
         completed: false,
       },
+      currentPlanDay: null,
       summary: {
         weeklySessions: entriesWithinDays(initialEntries, 7).length,
         weeklyMomentumCredits: entriesWithinDays(initialEntries, 7).length,

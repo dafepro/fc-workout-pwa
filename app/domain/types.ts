@@ -72,10 +72,27 @@ export interface TrainingAssignment {
   completed: boolean;
 }
 
+export interface CurrentTrainingPlanDay {
+  planId: string;
+  templateName: string;
+  occursOn: string;
+  kind: "training" | "recovery" | "rest";
+  focus: "speed" | "endurance" | "recovery";
+  durationMinutes: number;
+  intensity: "easy" | "steady" | "hard";
+  completed: boolean;
+  blocks: {
+    activityDefinitionId: ActivityId;
+    label: string;
+    durationMinutes: number;
+  }[];
+}
+
 export interface TrainingDashboard {
   team: SocialTeam;
   activities: ActivityDefinition[];
   currentAssignment: TrainingAssignment | null;
+  currentPlanDay: CurrentTrainingPlanDay | null;
   summary: {
     weeklySessions: number;
     weeklyMomentumCredits: number;

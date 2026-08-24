@@ -301,6 +301,9 @@ func (store *Store) ResetE2EFixtures(ctx context.Context, now time.Time) error {
 		"DELETE FROM team_canvas_rest_days",
 		"DELETE FROM training_entries",
 		"DELETE FROM assignments",
+		"DELETE FROM training_plan_blocks",
+		"DELETE FROM training_plan_days",
+		"DELETE FROM training_plans",
 		// Staff state as well, or a second run of the console suite collides with
 		// the operator the first run created. The order is foreign-key order:
 		// audit rows, then everything hanging off an account, then the accounts,

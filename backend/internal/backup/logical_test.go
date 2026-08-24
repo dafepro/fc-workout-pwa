@@ -38,6 +38,9 @@ var exportedTables = []string{
 	"team_rewards",
 	"team_reward_events",
 	"activity_definitions",
+	"training_plans",
+	"training_plan_days",
+	"training_plan_blocks",
 	"assignment_catalog",
 	"assignments",
 	"training_entries",
@@ -474,6 +477,20 @@ func fullyPopulatedDatabase(t *testing.T, ctx context.Context) string {
 			'avatar_part', 'avatar-head-dog', 1, '2026-08-03T12:00:00Z',
 			X'000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f'
 		)`,
+		`INSERT INTO training_plans (
+			id, team_id, template_id, template_version, template_name, template_summary,
+			starts_on, ends_on, status, created_at
+		) VALUES (
+			'plan-one', 'team-hill-striders', 'in-season-balance-v1', 1,
+			'In-season balance', 'A balanced week.', '2026-08-03', '2026-08-09',
+			'published', '2026-08-01T00:00:00Z'
+		)`,
+		`INSERT INTO training_plan_days (
+			plan_id, day_index, occurs_on, kind, focus, duration_minutes, intensity
+		) VALUES ('plan-one', 0, '2026-08-03', 'training', 'speed', 20, 'hard')`,
+		`INSERT INTO training_plan_blocks (
+			plan_id, day_index, block_index, activity_definition_id, label, duration_minutes
+		) VALUES ('plan-one', 0, 0, 'hill-sprints', 'Hill sprints', 12)`,
 		`UPDATE training_entries SET idempotency_key = 'entry-key-1', assignment_id = 'assignment-hill-sprints'
 		 WHERE id = 'entry-mason-recent'`,
 		`UPDATE training_entries SET deleted_at = '2026-08-01T00:00:00Z' WHERE id = 'entry-mason-expired'`,

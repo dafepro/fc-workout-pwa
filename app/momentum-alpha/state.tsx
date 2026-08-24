@@ -108,7 +108,12 @@ export function MomentumAlphaProvider({
   );
 
   useEffect(() => {
-    if (!teamCanvasGateway || dashboard?.currentAssignment) return;
+    if (
+      !teamCanvasGateway ||
+      dashboard?.currentAssignment ||
+      dashboard?.currentPlanDay
+    )
+      return;
     let active = true;
     void teamCanvasGateway.load().then(
       (projection) => {
@@ -119,7 +124,11 @@ export function MomentumAlphaProvider({
     return () => {
       active = false;
     };
-  }, [dashboard?.currentAssignment, teamCanvasGateway]);
+  }, [
+    dashboard?.currentAssignment,
+    dashboard?.currentPlanDay,
+    teamCanvasGateway,
+  ]);
 
   const localPresentation = useMemo<MomentumPresentation>(
     () => ({

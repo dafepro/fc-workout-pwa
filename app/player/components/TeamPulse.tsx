@@ -32,9 +32,11 @@ export function TeamPulse({
 }: TeamPulseProps) {
   const [pending, setPending] = useState<string | null>(null);
   const [sent, setSent] = useState<Set<string>>(() => new Set());
+  const [expanded, setExpanded] = useState(false);
   const [error, setError] = useState("");
   const copy = playerExperienceCopy.teamPulse;
-  const visibleActivities = activities.slice(0, 5);
+  const recentActivities = activities.slice(0, 5);
+  const visibleActivities = recentActivities.slice(0, expanded ? 5 : 3);
 
   async function cheer(item: TeamPulseActivity, key: string) {
     setPending(key);
@@ -74,7 +76,7 @@ export function TeamPulse({
       ) : visibleActivities.length === 0 ? (
         <p className="team-pulse__empty">{copy.empty}</p>
       ) : (
-        <ul aria-label={copy.listLabel}>
+        <ul id="team-pulse-list" aria-label={copy.listLabel}>
           {visibleActivities.map((activity, index) => {
             const key = `${activity.playerId}-${activity.activityName}-${index}`;
             const wasSent = sent.has(key);
@@ -113,6 +115,20 @@ export function TeamPulse({
           })}
         </ul>
       )}
+
+      {unlocked && recentActivities.length > 3 ? (
+        <button
+          type="button"
+          className={`team-pulse__expand${expanded ? " is-expanded" : ""}`}
+          aria-controls="team-pulse-list"
+          aria-expanded={expanded}
+          aria-label={expanded ? copy.showLessLabel : copy.showMoreLabel}
+          onClick={() => setExpanded((current) => !current)}
+        >
+          <span>{expanded ? copy.showLess : copy.showMore}</span>
+          <span className="team-pulse__chevron" aria-hidden="true" />
+        </button>
+      ) : null}
 
       {unlocked ? (
         <small className="team-pulse__private">{copy.privateDetail}</small>

@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { migrateAvatarConfiguration } from "../../avatar/config";
+import { useAvatarIdentity } from "../../state/avatar-identity-context";
 import { useOptionalAuth } from "../../state/auth-context";
 import { teamCanvasStamp } from "../catalog";
 import { teamCanvasCopy } from "../content";
@@ -27,6 +29,7 @@ export function TeamCanvasBoard({
   stampUnlocks?: TeamCanvasStampUnlockPort;
 }) {
   const auth = useOptionalAuth();
+  const avatarIdentity = useAvatarIdentity();
   const {
     state,
     connectedStatus,
@@ -66,15 +69,19 @@ export function TeamCanvasBoard({
 
   const connectedView = connectedStatus === "ready" && connectedProjection;
   const currentPlayerID = connectedView
-    ? (auth?.currentPlayerID ?? "")
+    ? (auth?.currentPlayerID ?? avatarIdentity.currentPlayerID)
     : teamCanvasMock.player.id;
+  const savedAvatar = migrateAvatarConfiguration(avatarIdentity.avatarConfig);
   const teamName = connectedView
     ? connectedProjection.team.name
     : teamCanvasMock.team.name;
   const members: BoardMember[] = connectedView
     ? connectedProjection.members.map((member) => ({
         player: member.player,
-        avatar: member.avatarConfiguration,
+        avatar:
+          member.player.id === currentPlayerID && savedAvatar
+            ? savedAvatar
+            : member.avatarConfiguration,
         position: member.position,
         starDayKeys: member.starDayKeys,
       }))
@@ -87,7 +94,7 @@ export function TeamCanvasBoard({
         })),
         {
           player: teamCanvasMock.player,
-          avatar: teamCanvasMock.playerAvatar,
+          avatar: savedAvatar ?? teamCanvasMock.playerAvatar,
           position: localProjection!.avatarPosition,
           starDayKeys: localProjection!.starDayKeys,
         },

@@ -290,7 +290,14 @@ export function TeamCanvasProvider({
             true,
             teamID,
           ).get();
-          const assignment = dashboard.currentAssignment;
+          const planDay = dashboard.currentPlanDay;
+          const assignment = planDay ? null : dashboard.currentAssignment;
+          const plannedActivity =
+            planDay && planDay.kind !== "rest"
+              ? dashboard.activities.find(
+                  ({ id }) => id === planDay.blocks[0]?.activityDefinitionId,
+                )
+              : undefined;
           const assignedActivity = dashboard.activities.find(
             ({ id }) => id === assignment?.activityDefinitionId,
           );
@@ -303,7 +310,7 @@ export function TeamCanvasProvider({
           const activity =
             input.completion === "approved-alternative"
               ? alternative
-              : (assignedActivity ?? displayedPlanActivity);
+              : (plannedActivity ?? assignedActivity ?? displayedPlanActivity);
           if (!activity)
             throw new Error("Today’s approved activity is unavailable.");
           const target = assignment?.targetValue ?? activity.defaultValue;

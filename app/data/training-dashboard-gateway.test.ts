@@ -20,6 +20,23 @@ describe("connected training dashboard gateway", () => {
         },
       ],
       currentAssignment: null,
+      currentPlanDay: {
+        planId: "plan-one",
+        templateName: "Return to rhythm",
+        occursOn: "2026-08-24",
+        kind: "training",
+        focus: "endurance",
+        durationMinutes: 20,
+        intensity: "easy",
+        completed: false,
+        blocks: [
+          {
+            activityDefinitionId: "hill-sprints",
+            label: "Hill sprints",
+            durationMinutes: 12,
+          },
+        ],
+      },
       summary: {
         weeklySessions: 2,
         weeklyMomentumCredits: 2,
@@ -59,6 +76,10 @@ describe("connected training dashboard gateway", () => {
       team: { id: "team-real", weeklyGoal: 4 },
       activities: [{ id: "hill-sprints", min: 1, max: 20, defaultValue: 8 }],
       summary: { effortPoints: 42 },
+      currentPlanDay: {
+        planId: "plan-one",
+        blocks: [{ activityDefinitionId: "hill-sprints" }],
+      },
       teamPulse: {
         recentActivities: [{ playerId: "player-ava", recency: "Today" }],
       },

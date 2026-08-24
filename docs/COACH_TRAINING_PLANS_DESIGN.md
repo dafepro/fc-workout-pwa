@@ -1,6 +1,6 @@
 # Coach Training Plans Design
 
-Status: product and technical direction; not yet implemented
+Status: curated whole-team publication, immutable history, and player Today projection implemented; structured day editing remains
 
 ## Problem
 
@@ -36,7 +36,7 @@ Each template visibly previews hard, easy, recovery, and rest days before assign
 
 ## Staff builder
 
-1. Choose team/players, start date, and template.
+1. Choose a team, start date, and template. Selected-player plans are deferred.
 2. Review a horizontal week strip and vertical day-card list.
 3. Edit a day using structured controls for duration, intensity, focus, and approved blocks.
 4. Insert rest/recovery, duplicate a day, or move a future day with accessible buttons.
@@ -77,14 +77,15 @@ The weekly overview is a calm sequence of day intents, not a performance compari
 
 ## Delivery slices
 
-1. Plan/template domain, validation tests, and curated seed templates.
-2. Staff template chooser and read-only schedule preview.
-3. Structured plan editor and publication flow.
-4. Player Today projection and missed-day behavior.
-5. Staff rescheduling and plan-history audit view.
+1. Plan/template domain, validation tests, and curated seed templates. **Implemented in the backend-owned catalog.**
+2. Staff template chooser and read-only schedule preview. **Implemented.**
+3. Whole-team publication and immutable plan-history snapshots. **Implemented.**
+4. Structured day editor and safe revalidation.
+5. Player Today projection and missed-day behavior. **Implemented for the current calendar day.**
+6. Staff cancellation/rescheduling and expanded plan-history audit view.
 
 ## Open decisions
 
-- Exact duration and intensity bounds by age band need a coaching/content owner.
-- Decide whether first release assigns only to a whole team or also to selected players.
+- Exact duration and intensity bounds by age band need a coaching/content owner before mainline release. The development templates conservatively cap active days at 20 minutes, separate hard days, and include recovery/rest.
+- Decided for the first release: plans apply to the whole team. Selected-player plans can extend the model later.
 - Decide how existing single-activity assignments migrate or coexist during rollout.

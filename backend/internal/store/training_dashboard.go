@@ -81,10 +81,23 @@ type StreakComparisonProjection struct {
 	Message     string `json:"message"`
 }
 
+type CurrentTrainingPlanDay struct {
+	PlanID          string              `json:"planId"`
+	TemplateName    string              `json:"templateName"`
+	OccursOn        string              `json:"occursOn"`
+	Kind            string              `json:"kind"`
+	Focus           string              `json:"focus"`
+	DurationMinutes int                 `json:"durationMinutes"`
+	Intensity       string              `json:"intensity"`
+	Completed       bool                `json:"completed"`
+	Blocks          []TrainingPlanBlock `json:"blocks"`
+}
+
 type TrainingDashboardProjection struct {
 	Team              SocialTeam                     `json:"team"`
 	Activities        []ActivityDefinitionProjection `json:"activities"`
 	CurrentAssignment *AssignmentProjection          `json:"currentAssignment"`
+	CurrentPlanDay    *CurrentTrainingPlanDay        `json:"currentPlanDay"`
 	Summary           PersonalTrainingSummary        `json:"summary"`
 	TeamPulse         TeamPulseProjection            `json:"teamPulse"`
 	StreakComparison  StreakComparisonProjection     `json:"streakComparison"`
@@ -109,7 +122,12 @@ func (store *Store) TrainingDashboard(ctx context.Context, actor domain.Actor, t
 	if err != nil {
 		return TrainingDashboardProjection{}, err
 	}
-	assignment, err := store.currentAssignment(ctx, actor.PlayerID, teamID, now.In(location).Format("2006-01-02"), location)
+	teamDay := now.In(location).Format("2006-01-02")
+	assignment, err := store.currentAssignment(ctx, actor.PlayerID, teamID, teamDay, location)
+	if err != nil {
+		return TrainingDashboardProjection{}, err
+	}
+	planDay, err := store.currentTrainingPlanDay(ctx, actor.PlayerID, teamID, teamDay, location)
 	if err != nil {
 		return TrainingDashboardProjection{}, err
 	}
@@ -135,10 +153,59 @@ func (store *Store) TrainingDashboard(ctx context.Context, actor domain.Actor, t
 		}
 	}
 	return TrainingDashboardProjection{
-		Team: team.SocialTeam, Activities: activities, CurrentAssignment: assignment, Summary: summary,
+		Team: team.SocialTeam, Activities: activities, CurrentAssignment: assignment, CurrentPlanDay: planDay, Summary: summary,
 		TeamPulse:        pulse,
 		StreakComparison: streakComparison(actor.PlayerID, now.In(location).Format("2006-01-02"), summary.CurrentStreak),
 	}, nil
+}
+
+func (store *Store) currentTrainingPlanDay(ctx context.Context, playerID, teamID, teamDay string, location *time.Location) (*CurrentTrainingPlanDay, error) {
+	var item CurrentTrainingPlanDay
+	var dayIndex int
+	err := store.db.QueryRowContext(ctx, `SELECT p.id, p.template_name, d.day_index,
+		d.occurs_on, d.kind, d.focus, d.duration_minutes, d.intensity
+		FROM training_plans p
+		JOIN training_plan_days d ON d.plan_id = p.id
+		WHERE p.team_id = ? AND p.status = 'published' AND d.occurs_on = ?
+		ORDER BY p.created_at DESC LIMIT 1`, teamID, teamDay).Scan(
+		&item.PlanID, &item.TemplateName, &dayIndex, &item.OccursOn, &item.Kind,
+		&item.Focus, &item.DurationMinutes, &item.Intensity)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("load current training plan day: %w", err)
+	}
+	item.Blocks, err = loadTrainingPlanBlocks(ctx, store.db, item.PlanID, dayIndex)
+	if err != nil {
+		return nil, err
+	}
+	if item.Kind == string(domain.TrainingPlanRest) {
+		err = store.db.QueryRowContext(ctx, `SELECT EXISTS (
+			SELECT 1 FROM team_canvas_rest_days
+			WHERE team_id = ? AND player_id = ? AND day_key = ?
+		)`, teamID, playerID, teamDay).Scan(&item.Completed)
+	} else {
+		dayStart, parseErr := time.ParseInLocation("2006-01-02", teamDay, location)
+		if parseErr != nil {
+			return nil, fmt.Errorf("parse training plan team day: %w", parseErr)
+		}
+		err = store.db.QueryRowContext(ctx, `SELECT NOT EXISTS (
+			SELECT 1 FROM training_plan_blocks b
+			WHERE b.plan_id = ? AND b.day_index = ? AND NOT EXISTS (
+				SELECT 1 FROM training_entries e
+				WHERE e.player_id = ? AND e.team_id = ? AND e.deleted_at IS NULL
+				  AND e.activity_definition_id = b.activity_definition_id
+				  AND julianday(e.occurred_at) >= julianday(?)
+				  AND julianday(e.occurred_at) < julianday(?)
+			)
+		)`, item.PlanID, dayIndex, playerID, teamID,
+			dayStart.UTC().Format(time.RFC3339Nano), dayStart.AddDate(0, 0, 1).UTC().Format(time.RFC3339Nano)).Scan(&item.Completed)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("load current training plan completion: %w", err)
+	}
+	return &item, nil
 }
 
 func completedToday(entries []domain.ProjectionEntry, restDays []string, now time.Time, location *time.Location) bool {

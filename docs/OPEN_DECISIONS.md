@@ -861,5 +861,16 @@ Momentum Alpha needs independent PWA install/offline behavior.
   and rest days. Missed days stay missed by default; the app never stacks or
   suggests catching up on workload. Full design:
   `COACH_TRAINING_PLANS_DESIGN.md`.
-- Still open: plan bounds by age band, whole-team versus selected-player
-  assignment in the first release, and migration of current assignments.
+- Implemented on the development branch: a backend-owned, versioned catalog,
+  whole-team publication, overlap protection, immutable day/block snapshots,
+  and staff plan history. For the first release, plans apply to the whole team;
+  selected-player plans are deferred.
+- Interim coexistence rule: when a published plan has a day for today, that day
+  controls the player's recommendation ahead of a legacy assignment. On dates
+  with no published plan day, the existing assignment behavior is unchanged.
+- Assumption pending coaching-owner review before mainline: the initial
+  development templates use conservative bounds (active days no longer than 20
+  minutes, no consecutive hard days, and recovery/rest in every week).
+- Still open: final bounds by age band, structured day-editing controls,
+  cancellation/rescheduling behavior, multi-block day completion UX, and
+  migration or coexistence of current assignments.

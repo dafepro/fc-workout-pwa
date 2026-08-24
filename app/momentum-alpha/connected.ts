@@ -46,6 +46,7 @@ export interface ConnectedMomentumModel extends MomentumPresentation {
   recentPlanFollowers: number;
   now: Date;
   assignment: TrainingDashboard["currentAssignment"];
+  planDay: TrainingDashboard["currentPlanDay"];
   activitiesBySelection: Partial<Record<PlanSelection, ActivityDefinition>>;
   activitiesByExtra: Partial<Record<ExtraActivity, ActivityDefinition>>;
   recoveryActivity: ActivityDefinition | null;
@@ -64,12 +65,21 @@ export function connectedMomentumModel(
   now: Date,
   plannedRestComplete = false,
 ): ConnectedMomentumModel {
-  const assignment = dashboard.currentAssignment;
-  const primaryActivity = assignment
+  const planDay = dashboard.currentPlanDay;
+  const assignment = planDay ? null : dashboard.currentAssignment;
+  const plannedActivityID =
+    planDay && planDay.kind !== "rest"
+      ? planDay.blocks[0]?.activityDefinitionId
+      : undefined;
+  const primaryActivity = plannedActivityID
     ? (dashboard.activities.find(
-        (activity) => activity.id === assignment.activityDefinitionId,
+        (activity) => activity.id === plannedActivityID,
       ) ?? null)
-    : null;
+    : assignment
+      ? (dashboard.activities.find(
+          (activity) => activity.id === assignment.activityDefinitionId,
+        ) ?? null)
+      : null;
   const playerEntries = entries
     .filter((entry) => entry.playerId === currentPlayerID)
     .sort((left, right) => left.occurredAt.localeCompare(right.occurredAt));
@@ -105,12 +115,20 @@ export function connectedMomentumModel(
   const history = playerEntries.map((entry) =>
     historyEntry(entry, dashboard.activities),
   );
-  const primaryComplete = Boolean(assignment?.completed || plannedRestComplete);
+  const primaryComplete = Boolean(
+    planDay?.completed || assignment?.completed || plannedRestComplete,
+  );
 
   return {
     state: {
       version: 1,
-      dayKind: assignment ? "training" : "rest",
+      dayKind: planDay
+        ? planDay.kind === "rest"
+          ? "rest"
+          : "training"
+        : assignment
+          ? "training"
+          : "rest",
       personalMomentum: Math.min(
         92,
         20 +
@@ -135,10 +153,11 @@ export function connectedMomentumModel(
     recentPlanFollowers: dashboard.teamPulse.activeThisWeek,
     now,
     assignment,
+    planDay,
     activitiesBySelection,
     activitiesByExtra,
     recoveryActivity,
-    plan: planContent(assignment, primaryActivity, now),
+    plan: planContent(planDay, assignment, primaryActivity, now),
     alternatives,
     recovery: recoveryActivity
       ? {
@@ -208,10 +227,36 @@ export function momentumExtraInput(
 }
 
 function planContent(
+  planDay: TrainingDashboard["currentPlanDay"],
   assignment: TrainingDashboard["currentAssignment"],
   activity: ActivityDefinition | null,
   now: Date,
 ): MomentumPlanContent {
+  if (planDay?.kind === "rest" || (!planDay && (!assignment || !activity))) {
+    return {
+      dateLabel: dateLabel(now),
+      activity: momentumAlphaCopy.connected.restActivity,
+      workload: momentumAlphaCopy.connected.restWorkload,
+      instruction: momentumAlphaCopy.connected.restInstruction,
+      goal: momentumAlphaCopy.connected.restGoal,
+      stretch: momentumAlphaCopy.connected.restStretch,
+      reasons: [...momentumAlphaCopy.connected.restReasons],
+    };
+  }
+  if (planDay && activity) {
+    return {
+      dateLabel: dateLabel(now),
+      activity: activity.name,
+      workload: `${planDay.durationMinutes} min · ${capitalize(planDay.intensity)}`,
+      instruction: activity.instructions[0] ?? activity.description,
+      goal: `Goal · ${formatValue(activity.defaultValue, activity.unit)}`,
+      stretch: `Stretch · ${formatValue(steppedValue(activity.defaultValue * 1.25, activity.step, activity.max), activity.unit)}`,
+      reasons: [
+        `${planDay.templateName} places ${planDay.focus} here in the week.`,
+        "The plan keeps tomorrow’s workload separate even if a day is missed.",
+      ],
+    };
+  }
   if (!assignment || !activity) {
     return {
       dateLabel: dateLabel(now),
@@ -240,6 +285,10 @@ function planContent(
     stretch: `Stretch · ${formatValue(stretch, assignment.targetUnit)}`,
     reasons: [...momentumAlphaCopy.connected.assignedReasons],
   };
+}
+
+function capitalize(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function alternativeContent(

@@ -52,6 +52,7 @@ const dashboard: TrainingDashboard = {
     dueOn: "2026-08-21",
     completed: true,
   },
+  currentPlanDay: null,
   summary: {
     weeklySessions: 3,
     weeklyMomentumCredits: 3,
@@ -152,5 +153,76 @@ describe("connected Momentum", () => {
     expect(model.state.primaryComplete).toBe(false);
     expect(model.state.primaryChoice).toBeNull();
     expect(model.state.history).toHaveLength(1);
+  });
+
+  it("uses a published plan day ahead of a legacy assignment", () => {
+    const model = connectedMomentumModel(
+      {
+        ...dashboard,
+        currentPlanDay: {
+          planId: "plan-one",
+          templateName: "Return to rhythm",
+          occursOn: "2026-08-21",
+          kind: "training",
+          focus: "endurance",
+          durationMinutes: 20,
+          intensity: "easy",
+          completed: false,
+          blocks: [
+            {
+              activityDefinitionId: "timed-run-walk",
+              label: "Timed run or walk",
+              durationMinutes: 20,
+            },
+          ],
+        },
+      },
+      [],
+      "player-one",
+      new Date("2026-08-21T18:00:00Z"),
+    );
+
+    expect(model.plan).toMatchObject({
+      activity: "Timed run/walk",
+      workload: "20 min · Easy",
+    });
+    expect(model.assignment).toBeNull();
+    expect(
+      momentumCompletionInput(model, {
+        choice: "goal",
+        feeling: "good",
+        planSelection: "prescribed",
+      }),
+    ).toMatchObject({
+      activityId: "timed-run-walk",
+      assignmentId: undefined,
+      value: 20,
+    });
+  });
+
+  it("projects a completed planned-rest day without a workout", () => {
+    const model = connectedMomentumModel(
+      {
+        ...dashboard,
+        currentPlanDay: {
+          planId: "plan-one",
+          templateName: "In-season balance",
+          occursOn: "2026-08-21",
+          kind: "rest",
+          focus: "recovery",
+          durationMinutes: 0,
+          intensity: "easy",
+          completed: true,
+          blocks: [],
+        },
+      },
+      [],
+      "player-one",
+      new Date("2026-08-21T18:00:00Z"),
+    );
+
+    expect(model.state.dayKind).toBe("rest");
+    expect(model.state.primaryComplete).toBe(true);
+    expect(model.plan.activity).toBe("Planned recovery day");
   });
 });

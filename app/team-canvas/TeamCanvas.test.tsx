@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppViewSelect } from "../components/AppViewSelect";
+import { defaultAvatar } from "../avatar/config";
 import { AvatarIdentityProvider } from "../state/avatar-identity-context";
 import { TeamCanvasBoard } from "./components/TeamCanvasBoard";
 import { TeamCanvasMe } from "./components/TeamCanvasMe";
@@ -198,6 +199,45 @@ describe("Team Canvas application", () => {
     expect(
       screen.queryByText(/8 reps|10 reps|effort 5|tiredness 4/i),
     ).toBeNull();
+  });
+
+  it("updates the current player's lounge avatar when their saved look changes", () => {
+    const complete = recordPrimary(initialTeamCanvasState(), {
+      completion: "goal",
+      effort: 4,
+      tiredness: 3,
+    });
+    const view = render(
+      <AvatarIdentityProvider
+        value={{ currentPlayerID: "mason", avatarConfig: {} }}
+      >
+        <TeamCanvasProvider initialState={complete}>
+          <TeamCanvasBoard />
+        </TeamCanvasProvider>
+      </AvatarIdentityProvider>,
+    );
+    const mason = screen.getByRole("button", { name: /Move Mason/i });
+    expect(
+      mason.querySelector('.avatar-art__layer--head circle[r="17.5"]'),
+    ).toBeInTheDocument();
+
+    view.rerender(
+      <AvatarIdentityProvider
+        value={{
+          currentPlayerID: "mason",
+          avatarConfig: { ...defaultAvatar(), head: "person-tall" },
+        }}
+      >
+        <TeamCanvasProvider initialState={complete}>
+          <TeamCanvasBoard />
+        </TeamCanvasProvider>
+      </AvatarIdentityProvider>,
+    );
+
+    const updatedMason = screen.getByRole("button", { name: /Move Mason/i });
+    expect(
+      updatedMason.querySelector('.avatar-art__layer--head ellipse[rx="14.5"]'),
+    ).toBeInTheDocument();
   });
 
   it("creates an owner-editable live piece with circular attached controls", () => {

@@ -1314,6 +1314,42 @@
   outline-offset: 2px;
 }
 
+.team-pulse .team-pulse__expand {
+  display: flex;
+  min-height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  margin: 0.15rem auto 0;
+  padding: 0.35rem 0.8rem;
+  border: 0;
+  background: transparent;
+  color: #356443;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.team-pulse__chevron {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-0.12rem) rotate(45deg);
+  transition: transform 160ms ease;
+}
+
+.team-pulse__expand.is-expanded .team-pulse__chevron {
+  transform: translateY(0.12rem) rotate(225deg);
+}
+
+.team-pulse .team-pulse__expand:focus-visible {
+  border-radius: 999px;
+  outline: 3px solid rgb(36 107 74 / 28%);
+  outline-offset: 1px;
+}
+
 .team-pulse__private {
   display: block;
   margin-top: 0.45rem;

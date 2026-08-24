@@ -50,6 +50,8 @@ type StaffRepository interface {
 	EndAssignment(context.Context, string, string) (string, error)
 	ListAssignments(context.Context, string) ([]store.AssignmentSummary, error)
 	CurrentAssignmentCompletion(context.Context, string) (store.AssignmentCompletion, error)
+	PublishTrainingPlan(context.Context, string, store.TrainingPlanInput) (store.TrainingPlan, error)
+	ListTrainingPlans(context.Context, string) ([]store.TrainingPlan, error)
 }
 
 type CredentialManager interface {
@@ -101,6 +103,9 @@ func (service *service) registerStaffRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("PATCH /v1/staff/teams/{teamId}/assignments/{assignmentId}", service.updateAssignment)
 	mux.HandleFunc("DELETE /v1/staff/teams/{teamId}/assignments/{assignmentId}", service.deleteAssignment)
 	mux.HandleFunc("POST /v1/staff/teams/{teamId}/assignments/{assignmentId}/end", service.endAssignment)
+	mux.HandleFunc("GET /v1/staff/training-plan-templates", service.listTrainingPlanTemplates)
+	mux.HandleFunc("GET /v1/staff/teams/{teamId}/training-plans", service.listTrainingPlans)
+	mux.HandleFunc("POST /v1/staff/teams/{teamId}/training-plans", service.publishTrainingPlan)
 	mux.HandleFunc("GET /v1/staff/players/{playerId}", service.getPlayerDetail)
 	mux.HandleFunc("POST /v1/staff/players/{playerId}/credential", service.repairCredential)
 	mux.HandleFunc("POST /v1/staff/players/{playerId}/deactivate", service.deactivatePlayer)

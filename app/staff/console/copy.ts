@@ -337,6 +337,48 @@ export const consoleCopy = {
     deleteConfirm:
       "Deleting removes this assignment. It only works before it has started and while nothing has been logged or sent against it.",
   },
+  trainingPlans: {
+    regionLabel: "Training plan builder",
+    eyebrow: "Planned training",
+    title: "Choose a weekly plan",
+    scope: "Whole team",
+    intro:
+      "Choose a curated sequence, preview its dates, then publish one shared plan for the team.",
+    loading: "Loading training plans…",
+    catalogLoadFailed: "The training-plan catalog could not be loaded.",
+    choose: "Plan template",
+    startsOn: "Plan starts",
+    day: (number: number) => `Day ${number}`,
+    scheduleLabel: "Plan schedule",
+    kind: {
+      training: "Training",
+      recovery: "Recovery",
+      rest: "Rest",
+    },
+    focus: {
+      speed: "Speed",
+      endurance: "Endurance",
+      recovery: "Recovery",
+    },
+    intensity: {
+      easy: "Easy",
+      steady: "Steady",
+      hard: "Hard",
+    },
+    noWorkout: "No workout to log",
+    missedDays:
+      "Missed days stay missed. The plan keeps moving forward and never stacks catch-up work onto the next day.",
+    contentReview:
+      "These conservative development templates still need coaching-owner review before a mainline release.",
+    publishAction: "Publish plan",
+    publishing: "Publishing…",
+    loadingHistory: "Loading published plans…",
+    historyTitle: "Published plans",
+    status: {
+      published: "Published",
+      cancelled: "Cancelled",
+    },
+  },
   audit: {
     title: "Audit trail",
     accountLabel: "Account id",

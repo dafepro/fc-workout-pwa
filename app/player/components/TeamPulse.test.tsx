@@ -73,7 +73,7 @@ describe("TeamPulse", () => {
     expect(screen.queryByText("Ava R.")).not.toBeInTheDocument();
   });
 
-  it("shows at most five safe recent activities with one-tap cheers", () => {
+  it("starts with three safe activities and expands to the five-entry feed", () => {
     render(
       <TeamPulse
         activeThisWeek={6}
@@ -85,10 +85,23 @@ describe("TeamPulse", () => {
     );
 
     const list = screen.getByRole("list", { name: "Recent team activity" });
-    expect(within(list).getAllByRole("listitem")).toHaveLength(5);
+    expect(within(list).getAllByRole("listitem")).toHaveLength(3);
     expect(screen.getByText("Ava R.")).toBeInTheDocument();
     expect(screen.getByText("Hill Sprints · Today")).toBeInTheDocument();
+    expect(screen.queryByText("Mia S.")).not.toBeInTheDocument();
+    const showMore = screen.getByRole("button", {
+      name: "Show more team activity",
+    });
+    expect(showMore).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(showMore);
+
+    expect(within(list).getAllByRole("listitem")).toHaveLength(5);
+    expect(screen.getByText("Mia S.")).toBeInTheDocument();
     expect(screen.queryByText("Ethan M.")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Show less team activity" }),
+    ).toHaveAttribute("aria-expanded", "true");
     expect(
       screen.queryByText(/reps|minutes|effort|tired/i),
     ).not.toBeInTheDocument();
