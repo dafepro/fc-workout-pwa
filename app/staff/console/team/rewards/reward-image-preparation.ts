@@ -2,6 +2,8 @@ const MAXIMUM_DIMENSION = 2048;
 const MAXIMUM_PIXELS = 4_000_000;
 const MAXIMUM_SOURCE_BYTES = 12 * 1024 * 1024;
 
+export const REWARD_IMAGE_TRANSFER_BYTES = 750 * 1024;
+
 interface DecodedRewardImage {
   source: CanvasImageSource;
   width: number;
@@ -124,7 +126,7 @@ const browserRewardImagePlatform: RewardImagePlatform = {
     context.fillStyle = "#f5f7ff";
     context.fillRect(0, 0, width, height);
     context.drawImage(decoded.source, 0, 0, width, height);
-    for (const quality of [0.86, 0.76, 0.66, 0.56]) {
+    for (const quality of [0.86, 0.76, 0.66, 0.56, 0.46, 0.36]) {
       const blob = await canvasBlob(canvas, quality);
       if (blob.size <= maximumBytes) return blob;
     }

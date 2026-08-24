@@ -4,6 +4,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TeamRewardsPrototype } from "./TeamRewardsPrototype";
 import { prepareRewardImage } from "./reward-image-preparation";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn() }),
+}));
+
 vi.mock("./reward-image-preparation", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./reward-image-preparation")>()),
   prepareRewardImage: vi.fn(),
@@ -12,6 +16,8 @@ vi.mock("./reward-image-preparation", async (importOriginal) => ({
 describe("staff team rewards prototype", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    vi.unstubAllGlobals();
+    vi.clearAllMocks();
     vi.mocked(prepareRewardImage).mockResolvedValue(
       "data:image/jpeg;base64,c2FmZQ==",
     );
@@ -109,6 +115,35 @@ describe("staff team rewards prototype", () => {
     expect(
       await screen.findByLabelText("What does the image show?"),
     ).toBeInTheDocument();
+  });
+
+  it("keeps connected image transfers below the edge-safe payload budget", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(() =>
+        Promise.resolve(
+          new Response(JSON.stringify({ items: [] }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        ),
+      ),
+    );
+    render(<TeamRewardsPrototype teamId="team-connected" connected />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Create a team reward" }),
+    );
+    const photo = new File(["phone-photo"], "pizza.jpg", {
+      type: "image/jpeg",
+    });
+
+    fireEvent.change(screen.getByLabelText("Prize image (optional)"), {
+      target: { files: [photo] },
+    });
+
+    await waitFor(() =>
+      expect(prepareRewardImage).toHaveBeenCalledWith(photo, 750 * 1024),
+    );
   });
 
   it("cancels without erasing the reward record", () => {

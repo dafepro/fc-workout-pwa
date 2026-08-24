@@ -776,10 +776,10 @@ Momentum Alpha needs independent PWA install/offline behavior.
   Connected Today and Team surfaces render no reward card until one is
   published. The local design prototype retains its preview fixture.
 - Implemented: optional coach images are accepted only as bounded JPEG/PNG,
-  with ordinary camera photos prepared to the server budget in the browser,
-  then decoded and orientation-corrected on the backend, center-cropped, and
-  stored as metadata-free 1200 × 800 and 360 × 240 JPEGs behind authenticated
-  routes. Backend validation remains authoritative.
+  with ordinary camera photos prepared to a 750 KiB edge-safe transfer in the
+  browser, then decoded and orientation-corrected on the backend,
+  center-cropped, and stored as metadata-free 1200 × 800 and 360 × 240 JPEGs
+  behind authenticated routes. Backend validation remains authoritative.
   Files use opaque keys on the protected VM data volume, are included in both
   encrypted backup formats and restore drills, and unattached uploads expire
   after 24 hours. The store interface preserves a later move to object storage.

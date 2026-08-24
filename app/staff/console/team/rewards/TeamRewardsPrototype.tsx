@@ -37,6 +37,7 @@ import {
 } from "./team-reward-console-gateway";
 import {
   prepareRewardImage,
+  REWARD_IMAGE_TRANSFER_BYTES,
   RewardImagePreparationError,
 } from "./reward-image-preparation";
 
@@ -64,7 +65,7 @@ function LocalTeamRewards({ teamId }: { teamId: string }) {
       rewards={rewards}
       prototype
       imageEnabled
-      imageMaxBytes={750 * 1024}
+      imageMaxBytes={REWARD_IMAGE_TRANSFER_BYTES}
       imageHint={copy.prototypeImageHint}
       imageTooLargeMessage={copy.prototypeImageTooLarge}
       progressFor={(reward) => prototypeRewardProgress(reward.rule)}
@@ -96,7 +97,7 @@ function ConnectedTeamRewards({ teamId }: { teamId: string }) {
       )}
       prototype={false}
       imageEnabled
-      imageMaxBytes={3 * 1024 * 1024}
+      imageMaxBytes={REWARD_IMAGE_TRANSFER_BYTES}
       imageHint={copy.imageHint}
       imageTooLargeMessage={copy.imageTooLarge}
       progressFor={(reward) =>

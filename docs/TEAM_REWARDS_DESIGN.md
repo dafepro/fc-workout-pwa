@@ -350,8 +350,8 @@ an authenticated team-scoped endpoint.
 
 - accepted input: JPEG or PNG;
 - maximum selected source: 12 MiB in the staff browser;
-- the browser downsizes or compresses ordinary camera photos to a maximum 3 MiB
-  upload inside the server's decoded-dimension budget;
+- the browser downsizes or compresses ordinary camera photos to a maximum 750
+  KiB upload inside the edge and server decoded-dimension budgets;
 - maximum server upload: 3 MiB;
 - maximum decoded dimensions: 2048 × 2048 and 4 million pixels;
 - reject SVG, GIF, video, remote URLs, and ambiguous MIME types;
