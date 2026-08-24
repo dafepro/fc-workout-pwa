@@ -29,6 +29,8 @@ var exportedTables = []string{
 	"clubs",
 	"teams",
 	"players",
+	"player_unlocks",
+	"daily_drop_claims",
 	"accounts",
 	"team_memberships",
 	"coach_team_assignments",
@@ -462,6 +464,16 @@ func fullyPopulatedDatabase(t *testing.T, ctx context.Context) string {
 		`INSERT INTO team_reward_events (id, reward_id, actor_account_id, event_type, occurred_at)
 		 VALUES ('reward-event-one', 'reward-one', 'account-coach', 'published', '2026-08-02T00:00:00Z')`,
 		`UPDATE team_memberships SET active_to = '2026-06-30' WHERE player_id = 'player-zoe'`,
+		`INSERT INTO player_unlocks (player_id, item_kind, item_id, source, unlocked_at, viewed_at)
+		 VALUES ('player-mason', 'avatar_part', 'avatar-head-dog', 'daily_drop', '2026-08-03T12:00:00Z', NULL)`,
+		`INSERT INTO daily_drop_claims (
+			id, player_id, claim_day, time_zone, item_kind, item_id, catalog_version,
+			claimed_at, idempotency_key_hash
+		) VALUES (
+			'daily-drop-one', 'player-mason', '2026-08-03', 'America/Chicago',
+			'avatar_part', 'avatar-head-dog', 1, '2026-08-03T12:00:00Z',
+			X'000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f'
+		)`,
 		`UPDATE training_entries SET idempotency_key = 'entry-key-1', assignment_id = 'assignment-hill-sprints'
 		 WHERE id = 'entry-mason-recent'`,
 		`UPDATE training_entries SET deleted_at = '2026-08-01T00:00:00Z' WHERE id = 'entry-mason-expired'`,

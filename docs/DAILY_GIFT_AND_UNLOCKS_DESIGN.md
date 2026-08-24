@@ -1,6 +1,12 @@
 # Daily Drop and Unlocks Design
 
-Status: proposed design for implementation
+Status: backend foundation in progress
+
+## Implementation status
+
+The first backend slice now provides the versioned award catalog, a durable unlock ledger, once-per-day claims, hashed idempotency keys, non-duplicate selection, collection-complete results, logical-backup coverage, and authenticated status/claim/inventory endpoints. It uses the deployment’s configured team timezone until the multi-team timezone decision is resolved.
+
+Player UI, viewed/new acknowledgement, inventory-aware avatar validation, and the Team Canvas unlock adapter remain to be implemented.
 
 ## Product intent
 

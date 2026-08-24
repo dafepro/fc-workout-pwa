@@ -88,6 +88,33 @@ var logicalTables = []logicalTable{
 		},
 	},
 	{
+		Name:    "player_unlocks",
+		OrderBy: []string{"player_id", "item_kind", "item_id"},
+		Fields: []logicalField{
+			textField("player_id"),
+			textField("item_kind"),
+			textField("item_id"),
+			textField("source"),
+			textField("unlocked_at"),
+			nullable(textField("viewed_at")),
+		},
+	},
+	{
+		Name:    "daily_drop_claims",
+		OrderBy: []string{"id"},
+		Fields: []logicalField{
+			textField("id"),
+			textField("player_id"),
+			textField("claim_day"),
+			textField("time_zone"),
+			nullable(textField("item_kind")),
+			nullable(textField("item_id")),
+			integerField("catalog_version"),
+			textField("claimed_at"),
+			blobField("idempotency_key_hash"),
+		},
+	},
+	{
 		Name:    "accounts",
 		OrderBy: []string{"id"},
 		Fields: []logicalField{
