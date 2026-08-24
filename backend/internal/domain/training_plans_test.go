@@ -18,6 +18,11 @@ func TestTrainingPlanCatalogIsVersionedValidAndDefensivelyCopied(t *testing.T) {
 		if errors := domain.ValidateTrainingPlanTemplate(template); len(errors) != 0 {
 			t.Fatalf("template %s validation errors: %v", template.ID, errors)
 		}
+		for _, day := range template.Days {
+			if day.Blocks == nil {
+				t.Fatalf("template %s day %d must serialize blocks as an empty array, not null", template.ID, day.Offset)
+			}
+		}
 	}
 
 	templates[0].Days[0].Kind = "rest"

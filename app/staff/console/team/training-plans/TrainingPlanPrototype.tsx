@@ -121,8 +121,10 @@ export function TrainingPlanPrototype({ teamId }: { teamId: string }) {
                   : ""}
               </span>
             </div>
-            {day.blocks.length > 0 ? (
-              <small>{day.blocks.map(({ label }) => label).join(" + ")}</small>
+            {(day.blocks ?? []).length > 0 ? (
+              <small>
+                {(day.blocks ?? []).map(({ label }) => label).join(" + ")}
+              </small>
             ) : (
               <small>{copy.noWorkout}</small>
             )}

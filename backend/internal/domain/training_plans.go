@@ -145,7 +145,7 @@ func planBlock(activityID, label string, duration int) TrainingPlanBlock {
 }
 
 func planDay(offset int, kind TrainingPlanDayKind, focus string, duration int, intensity TrainingPlanIntensity, blocks ...TrainingPlanBlock) TrainingPlanDay {
-	return TrainingPlanDay{Offset: offset, Kind: kind, Focus: TrainingPlanFocus(focus), DurationMinutes: duration, Intensity: intensity, Blocks: blocks}
+	return TrainingPlanDay{Offset: offset, Kind: kind, Focus: TrainingPlanFocus(focus), DurationMinutes: duration, Intensity: intensity, Blocks: append([]TrainingPlanBlock{}, blocks...)}
 }
 
 func cloneTrainingPlanTemplate(template TrainingPlanTemplate) TrainingPlanTemplate {
@@ -153,7 +153,7 @@ func cloneTrainingPlanTemplate(template TrainingPlanTemplate) TrainingPlanTempla
 	result.Days = make([]TrainingPlanDay, len(template.Days))
 	for index, day := range template.Days {
 		result.Days[index] = day
-		result.Days[index].Blocks = append([]TrainingPlanBlock(nil), day.Blocks...)
+		result.Days[index].Blocks = append([]TrainingPlanBlock{}, day.Blocks...)
 	}
 	return result
 }

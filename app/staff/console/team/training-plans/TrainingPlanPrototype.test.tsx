@@ -127,7 +127,7 @@ function planTemplate(id: string, name: string): TrainingPlanTemplate {
       intensity: "easy",
       blocks:
         offset === 3 || offset === 6
-          ? []
+          ? (null as unknown as TrainingPlanTemplate["days"][number]["blocks"])
           : [
               {
                 activityDefinitionId: "timed-run-walk",
