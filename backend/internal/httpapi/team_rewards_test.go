@@ -70,8 +70,8 @@ func TestTeamRewardRoutesAuthorizeStaffAndReturnAPlayerSafeProjection(t *testing
 	}
 	mediaID := jsonStringField(t, uploaded.Body.String(), "id")
 	create := httptest.NewRequest(http.MethodPost, "/v1/staff/teams/team-one/rewards", bytes.NewBufferString(`{
-		"prizeTitle":"Pizza after practice","prizeDescription":"Celebrate together.","startsOn":"2026-08-23",
-		"mediaId":"`+mediaID+`","rule":{"version":1,"kind":"qualifying_team_days","participationScope":"any_approved_workout","requiredDays":3,"minimumRosterPercent":80}}
+		"prizeTitle":"Pizza after practice 🍕","prizeDescription":"Nine teammates earn pizza 🍕🍕","startsOn":"2026-08-23",
+		"mediaId":"`+mediaID+`","rule":{"version":1,"kind":"teammate_consistency","participationScope":"recommended_workout","requiredPlayers":9,"requiredDaysPerPlayer":3}}
 	`))
 	create.Header.Set("Authorization", "Bearer staff")
 	create.Header.Set("Content-Type", "application/json")
@@ -87,6 +87,9 @@ func TestTeamRewardRoutesAuthorizeStaffAndReturnAPlayerSafeProjection(t *testing
 	staffHandler.ServeHTTP(published, publish)
 	if published.Code != http.StatusOK {
 		t.Fatalf("publish status = %d body=%s", published.Code, published.Body.String())
+	}
+	if !strings.Contains(published.Body.String(), `"requiredPlayers":9`) || !strings.Contains(published.Body.String(), `🍕🍕`) {
+		t.Fatalf("published reward omitted configured player target or emoji text: %s", published.Body.String())
 	}
 
 	playerHandler := httpapi.NewHandler(config.Config{},

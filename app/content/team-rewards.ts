@@ -49,13 +49,14 @@ export const teamRewardCopy = {
     imageGuidance:
       "Show the prize, not players. Do not upload people, contact details, schedules, QR codes, or private team information.",
     imageHint:
-      "JPEG or PNG, up to 3 MB and 2048 × 2048 pixels. We crop it to 3:2, correct phone orientation, and remove metadata.",
+      "JPEG or PNG, up to 12 MB. Large phone photos are resized safely; we crop to 3:2, correct orientation, and remove metadata.",
     prototypeImageHint:
-      "JPEG or PNG, up to 750 KB in this browser-only prototype.",
-    imageTooLarge: "Choose an image smaller than 3 MB.",
-    prototypeImageTooLarge: "Choose an image smaller than 750 KB.",
+      "JPEG or PNG, up to 12 MB. Large photos are resized for this browser-only preview.",
+    imageTooLarge: "Choose an image smaller than 12 MB.",
+    prototypeImageTooLarge: "Choose an image smaller than 12 MB.",
     imageWrongType: "Choose a PNG or JPEG image.",
     imageReadFailed: "That image could not be read. Choose another one.",
+    imagePreparing: "Preparing photo…",
     imageAltLabel: "What does the image show?",
     imageAltOptions: {
       prize_image: "The prize",

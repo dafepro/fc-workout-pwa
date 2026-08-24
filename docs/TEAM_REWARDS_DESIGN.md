@@ -349,7 +349,10 @@ Player uploads remain prohibited. A reward accepts one staff-only image through
 an authenticated team-scoped endpoint.
 
 - accepted input: JPEG or PNG;
-- maximum upload: 3 MiB;
+- maximum selected source: 12 MiB in the staff browser;
+- the browser downsizes or compresses ordinary camera photos to a maximum 3 MiB
+  upload inside the server's decoded-dimension budget;
+- maximum server upload: 3 MiB;
 - maximum decoded dimensions: 2048 × 2048 and 4 million pixels;
 - reject SVG, GIF, video, remote URLs, and ambiguous MIME types;
 - inspect magic bytes and decoded dimensions server-side;
@@ -366,7 +369,8 @@ public URLs. The implemented adapter stores opaque, non-guessable keys in the
 protected `/data/reward-media` volume. It atomically writes mode-0600 files and
 never exposes storage paths through an API.
 
-The server, rather than the browser, is authoritative. It decodes the bytes,
+Client preparation is a usability optimization, not a trust boundary. The
+server remains authoritative: it decodes the bytes,
 applies JPEG orientation, center-crops to 3:2, flattens transparency, and
 re-encodes metadata-free JPEG renditions at 1200 × 800 and 360 × 240. Display
 images remain below 1 MiB. A single-process semaphore bounds decoding to one

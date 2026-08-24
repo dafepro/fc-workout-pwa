@@ -1,6 +1,11 @@
 "use client";
 
-import { ChangeEvent, useState } from "react";
+import {
+  ChangeEvent,
+  type Dispatch,
+  type SetStateAction,
+  useState,
+} from "react";
 
 import { teamRewardCopy } from "../../../../content/team-rewards";
 import {
@@ -30,6 +35,10 @@ import {
   type StaffTeamRewardsResponse,
   withStaffRewardImageURL,
 } from "./team-reward-console-gateway";
+import {
+  prepareRewardImage,
+  RewardImagePreparationError,
+} from "./reward-image-preparation";
 
 const copy = teamRewardCopy.staff;
 
@@ -344,12 +353,13 @@ function RewardEditor({
   imageTooLargeMessage: string;
   imageError: string;
   busy: boolean;
-  setDraft: (reward: PrototypeTeamReward) => void;
+  setDraft: Dispatch<SetStateAction<PrototypeTeamReward | null>>;
   onImageError: (message: string) => void;
   onPublish: () => void | Promise<void>;
   onDiscard: () => void;
 }) {
   const [invalidNumberFields, setInvalidNumberFields] = useState<string[]>([]);
+  const [imagePreparing, setImagePreparing] = useState(false);
   const updateRule = (patch: Partial<TeamRewardRule>) =>
     setDraft({
       ...draft,
@@ -369,28 +379,32 @@ function RewardEditor({
   };
 
   const chooseImage = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const input = event.currentTarget;
+    const file = input.files?.[0];
     if (!file) return;
     if (!(["image/png", "image/jpeg"] as string[]).includes(file.type)) {
-      event.target.value = "";
+      input.value = "";
       onImageError(copy.imageWrongType);
       return;
     }
-    if (file.size > imageMaxBytes) {
-      event.target.value = "";
-      onImageError(imageTooLargeMessage);
-      return;
-    }
-    const reader = new FileReader();
-    reader.addEventListener("load", () => {
-      setDraft({ ...draft, imageDataUrl: String(reader.result) });
-      onImageError("");
-    });
-    reader.addEventListener("error", () => {
-      event.target.value = "";
-      onImageError(copy.imageReadFailed);
-    });
-    reader.readAsDataURL(file);
+    setImagePreparing(true);
+    onImageError("");
+    void prepareRewardImage(file, imageMaxBytes)
+      .then((imageDataUrl) =>
+        setDraft((current) =>
+          current ? { ...current, imageDataUrl } : current,
+        ),
+      )
+      .catch((error: unknown) => {
+        input.value = "";
+        onImageError(
+          error instanceof RewardImagePreparationError &&
+            error.code === "too_large"
+            ? imageTooLargeMessage
+            : copy.imageReadFailed,
+        );
+      })
+      .finally(() => setImagePreparing(false));
   };
 
   return (
@@ -434,9 +448,15 @@ function RewardEditor({
                 id="reward-prize-image"
                 type="file"
                 accept="image/png,image/jpeg"
+                disabled={imagePreparing}
                 onChange={chooseImage}
               />
               <p className="console-hint">{imageHint}</p>
+              {imagePreparing ? (
+                <p className="console-hint" role="status">
+                  {copy.imagePreparing}
+                </p>
+              ) : null}
               {imageError ? <p role="alert">{imageError}</p> : null}
               {draft.imageDataUrl ? (
                 <>
@@ -622,7 +642,10 @@ function RewardEditor({
             type="button"
             className="button button--lime"
             disabled={
-              busy || !draft.prizeTitle.trim() || invalidNumberFields.length > 0
+              busy ||
+              imagePreparing ||
+              !draft.prizeTitle.trim() ||
+              invalidNumberFields.length > 0
             }
             onClick={onPublish}
           >

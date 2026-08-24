@@ -1,10 +1,21 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TeamRewardsPrototype } from "./TeamRewardsPrototype";
+import { prepareRewardImage } from "./reward-image-preparation";
+
+vi.mock("./reward-image-preparation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./reward-image-preparation")>()),
+  prepareRewardImage: vi.fn(),
+}));
 
 describe("staff team rewards prototype", () => {
-  beforeEach(() => window.localStorage.clear());
+  beforeEach(() => {
+    window.localStorage.clear();
+    vi.mocked(prepareRewardImage).mockResolvedValue(
+      "data:image/jpeg;base64,c2FmZQ==",
+    );
+  });
 
   it("guides a coach from an empty state to one active reward", () => {
     render(<TeamRewardsPrototype teamId="team-1" />);
@@ -77,6 +88,27 @@ describe("staff team rewards prototype", () => {
     expect(
       screen.getByRole("button", { name: "Publish reward" }),
     ).toBeEnabled();
+  });
+
+  it("prepares a selected photo before storing its preview", async () => {
+    render(<TeamRewardsPrototype teamId="team-2" />);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Create a team reward" }),
+    );
+    const photo = new File(["phone-photo"], "pizza.jpg", {
+      type: "image/jpeg",
+    });
+
+    fireEvent.change(screen.getByLabelText("Prize image (optional)"), {
+      target: { files: [photo] },
+    });
+
+    await waitFor(() =>
+      expect(prepareRewardImage).toHaveBeenCalledWith(photo, 750 * 1024),
+    );
+    expect(
+      await screen.findByLabelText("What does the image show?"),
+    ).toBeInTheDocument();
   });
 
   it("cancels without erasing the reward record", () => {
