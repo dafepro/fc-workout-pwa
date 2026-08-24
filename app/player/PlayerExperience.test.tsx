@@ -136,7 +136,9 @@ describe("consolidated default player experience", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText("Ava R.")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Log today’s plan" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Record planned workout" }),
+    );
     expect(screen.getByRole("slider", { name: "Effort" })).toBeInTheDocument();
     expect(
       screen.getByRole("slider", { name: "Tiredness" }),

@@ -1,6 +1,6 @@
 # Player Plan Recommendations and Loot
 
-Status: approved direction; first demo slice in progress
+Status: approved direction; connected plan timeline implemented
 
 ## Problem
 
@@ -50,7 +50,8 @@ type PlayerRecommendation = {
     name: string;
     dayNumber: number;
     dayCount: number;
-    window: [PlanDaySummary | null, PlanDaySummary, PlanDaySummary | null];
+    days: PlanDaySummary[];
+    todayIndex: number;
   };
   today: PlanDayDetail;
 };
@@ -60,24 +61,32 @@ type PlayerRecommendation = {
 player-authored text. The first implementation can project only `coach_plan`
 and a conservative predefined suggestion while reserving `team_default`.
 
-## Three-panel What's next card
+## Browsable What's next timeline
 
-When a coach plan covers today, What's next becomes a three-day triptych:
+When a coach plan covers today, What's next becomes a horizontal schedule:
 
-- **Yesterday** is a narrow, left-faded summary. Completed uses lime and a
-  check; recorded rest uses blue; missed uses neutral gray with `No check-in`.
-  Red and failure language are not used.
-- **Today** is the dominant center panel with plan source, day number, focus,
-  duration, intensity, approved blocks, “why today” copy, and one explicit log
-  or rest-check-in action. Multi-block days advance to the first unfinished
-  block rather than pretending the day is complete after one activity.
-- **Tomorrow** is a narrow, desaturated preview. It is visibly noninteractive
-  and never permits logging ahead.
+- **Today** is selected initially and receives the strongest size, opacity,
+  border, label, and content hierarchy. It includes plan source, day number,
+  focus, duration, intensity, the first unfinished approved block, and “why
+  today” copy.
+- **Past days** remain browseable. Completed training is green with a check,
+  missed training uses a muted purple treatment and missed icon, and planned
+  rest retains a neutral recovery state. A missing day is never manufactured
+  merely to preserve a carousel shape.
+- **Future days** remain legible enough to build anticipation but are dimmed
+  and time-locked with copy such as `Come back Tuesday`. They cannot be
+  completed early.
+- **Tomorrow peeks in** at the right edge and fades into the container, teaching
+  the horizontal swipe without adding a separate tutorial.
+- **The action is not part of a day card.** One full-width control sits below
+  the timeline. On Today it records the planned workout or planned rest. On any
+  other selected day it becomes `Jump back to today`; browsing never creates a
+  false logging affordance.
 
-At 320 CSS pixels the side panels are partially visible context bookends, not
-three equally compressed cards. The current panel retains a complete readable
-action. At wider widths all three panels may be fully visible while the current
-day remains dominant.
+At 320 CSS pixels Today remains fully readable while the next card has a narrow
+visible slice. Native horizontal scrolling and snap points support touch,
+trackpad, keyboard-focus, and pointer selection. Reduced-motion preferences
+remove cosmetic transitions without changing navigation.
 
 A missed prior day stays missed. The card does not suggest catching up, sliding
 the schedule, or doubling workload. Backdating an activity genuinely completed
@@ -145,12 +154,12 @@ a one-day plan from the same catalog and validation path.
 
 ## Suggested implementation slices
 
-1. Project yesterday, today, and tomorrow for a published plan and render the
-   read-only triptych using existing completion inference.
+1. Project every published plan day and render the browseable timeline using
+   authoritative completion inference.
 2. Remove new assignment creation from the staff Training route while retaining
    legacy history.
 3. Add explicit plan-day/block provenance to training and rest records.
-4. Make multi-block completion and the triptych action use that provenance.
+4. Make multi-block completion and the timeline action use that provenance.
 5. Grant and claim the three-day and seven-day plan drops through the unlock
    ledger.
 6. Add the bounded suggestion-engine fallback and its explanation keys.
@@ -171,15 +180,15 @@ app/
     recommendation-model.test.ts
     components/
       WhatsNext.tsx                           no-plan and completed states
-      PlanTriptych.tsx                        three-day plan UI
-      PlanTriptych.test.tsx
-    player.css                                responsive triptych
+      PlanTimeline.tsx                        browseable plan schedule
+      PlanTimeline.test.tsx
+    player.css                                responsive timeline and states
   staff/console/team/
     training-plans/TrainingPlanPrototype.tsx  unified staff workspace
     LegacyAssignmentHistory.tsx               migration-only history
 backend/
   internal/store/
-    training_dashboard.go                     authoritative three-day window
+    training_dashboard.go                     authoritative complete plan window
     training_dashboard_test.go
   internal/domain/
     plan_rewards.go                           later authoritative tiers
@@ -190,11 +199,14 @@ backend/
 
 ## Demo acceptance criteria
 
-- A published plan shows yesterday, today, and tomorrow in What's next.
+- A published plan exposes every scheduled day in What's next and starts on
+  Today.
 - Today remains readable and actionable at 320 CSS pixels.
 - Completed, rest, missed, and future states are distinguishable without red or
   punitive language.
-- Tomorrow has no interactive affordance.
+- Tomorrow peeks in and future days show a time-lock with no early logging.
+- Selecting any non-Today card replaces logging with `Jump back to today`.
+- No empty past card is rendered at the beginning of a plan.
 - The card names the coach plan and day position.
 - A date without a plan uses the existing safe recommendation hero.
 - Staff sees one primary plan workflow and cannot create another overlapping

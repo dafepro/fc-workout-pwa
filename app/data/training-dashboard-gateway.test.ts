@@ -55,6 +55,7 @@ describe("connected training dashboard gateway", () => {
           blocks: [],
         },
         tomorrow: null,
+        days: [],
       },
       summary: {
         weeklySessions: 2,

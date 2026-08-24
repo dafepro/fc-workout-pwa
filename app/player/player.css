@@ -365,28 +365,32 @@
   box-shadow: 0 18px 40px rgb(8 47 39 / 18%);
 }
 
-.whats-next--triptych {
-  padding: 0.9rem 0.55rem 0.7rem;
+.plan-timeline {
+  padding: 0.9rem 0 0.75rem;
   background:
-    radial-gradient(circle at 50% 0, rgb(52 118 169 / 28%), transparent 13rem),
+    radial-gradient(
+      circle at 72% 13%,
+      rgb(52 118 169 / 34%),
+      transparent 14rem
+    ),
     linear-gradient(145deg, #061f3b, #082f27 76%);
 }
 
-.plan-triptych__heading {
+.plan-timeline__heading {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.7rem;
-  padding: 0.15rem 0.55rem 0.8rem;
+  padding: 0.15rem 1rem 0.75rem;
 }
 
-.plan-triptych__heading h2 {
+.plan-timeline__heading h2 {
   margin: 0.12rem 0 0;
   font-size: clamp(1.15rem, 5.6vw, 1.7rem);
   line-height: 1.08;
 }
 
-.plan-triptych__heading > span {
+.plan-timeline__heading > span {
   flex: 0 0 auto;
   padding: 0.3rem 0.52rem;
   border: 1px solid rgb(200 245 42 / 30%);
@@ -396,124 +400,317 @@
   font-weight: 850;
 }
 
-.plan-triptych {
-  display: grid;
-  grid-template-columns: 3.05rem minmax(0, 1fr) 3.05rem;
-  align-items: stretch;
-  gap: 0.35rem;
+.plan-timeline__viewport {
+  position: relative;
+  overflow: hidden;
 }
 
-.plan-bookend {
+.plan-timeline__viewport::after {
+  position: absolute;
+  z-index: 2;
+  inset: 0 0 0 auto;
+  width: 3.7rem;
+  background: linear-gradient(90deg, transparent, #082f27 92%);
+  content: "";
+  pointer-events: none;
+}
+
+.plan-timeline__track {
+  display: flex;
+  gap: 0.55rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding: 0.25rem 3.6rem 0.5rem 0.85rem;
+  scroll-padding-inline: 0.85rem;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  touch-action: pan-x;
+}
+
+.plan-timeline__track::-webkit-scrollbar {
+  display: none;
+}
+
+.plan-day-card {
   position: relative;
   display: flex;
-  min-width: 0;
+  min-height: 17.25rem;
+  flex: 0 0 calc(100% - 3.85rem);
   flex-direction: column;
-  justify-content: center;
-  gap: 0.4rem;
+  align-items: flex-start;
   overflow: hidden;
-  padding: 0.65rem 0.25rem;
-  border: 1px solid rgb(255 255 255 / 10%);
-  border-radius: 0.9rem;
-  background: rgb(255 255 255 / 8%);
-  color: #d6e1de;
+  padding: 1rem;
+  border: 1px solid rgb(255 255 255 / 13%);
+  border-radius: 1.15rem;
+  background: rgb(255 255 255 / 7%);
+  color: #eef8f5;
+  font: inherit;
+  text-align: left;
+  scroll-snap-align: center;
+  cursor: pointer;
+  opacity: 0.76;
+  transition:
+    border-color 160ms ease,
+    opacity 160ms ease,
+    transform 160ms ease;
 }
 
-.plan-bookend::after {
+.plan-day-card::before {
   position: absolute;
-  inset: 0;
-  pointer-events: none;
+  top: 2.6rem;
+  right: -1.5rem;
+  width: 8.5rem;
+  height: 8.5rem;
+  border: 1rem solid rgb(80 163 218 / 11%);
+  border-radius: 50%;
   content: "";
+  pointer-events: none;
 }
 
-.plan-bookend--yesterday::after {
-  background: linear-gradient(90deg, rgb(4 24 43 / 50%), transparent 80%);
-}
-
-.plan-bookend--tomorrow::after {
-  background: linear-gradient(270deg, rgb(4 24 43 / 62%), transparent 80%);
-}
-
-.plan-bookend > * {
+.plan-day-card > * {
   position: relative;
   z-index: 1;
 }
 
-.plan-bookend > span,
-.plan-bookend small {
-  color: #aebeba;
-  font-size: 0.58rem;
-  font-weight: 850;
-  letter-spacing: 0.02em;
+.plan-day-card.is-selected {
+  opacity: 1;
+  transform: translateY(-0.12rem);
+}
+
+.plan-day-card.is-today {
+  border: 2px solid var(--lime);
+  background:
+    radial-gradient(
+      circle at 88% 20%,
+      rgb(53 116 170 / 44%),
+      transparent 10rem
+    ),
+    linear-gradient(145deg, #082644, #08372e 76%);
+  box-shadow: 0 12px 26px rgb(0 0 0 / 22%);
+  opacity: 1;
+}
+
+.plan-day-card.is-completed {
+  border-color: rgb(111 216 136 / 44%);
+  background: linear-gradient(145deg, rgb(32 111 72 / 52%), rgb(8 47 39 / 88%));
+}
+
+.plan-day-card.is-missed {
+  border-color: rgb(213 116 164 / 32%);
+  background: linear-gradient(145deg, rgb(93 46 92 / 58%), rgb(31 39 65 / 90%));
+}
+
+.plan-day-card.is-rest {
+  border-color: rgb(119 180 219 / 30%);
+  background: linear-gradient(
+    145deg,
+    rgb(27 76 104 / 58%),
+    rgb(17 50 61 / 92%)
+  );
+}
+
+.plan-day-card.is-future {
+  filter: saturate(0.55);
+  opacity: 0.56;
+}
+
+.plan-day-card.is-future::after {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background: linear-gradient(145deg, rgb(6 31 59 / 6%), rgb(6 31 59 / 34%));
+  content: "";
+  pointer-events: none;
+}
+
+.plan-day-card.is-future.is-selected {
+  opacity: 0.78;
+}
+
+.plan-day-card__topline {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.plan-day-card__day {
+  padding: 0.25rem 0.55rem;
+  border: 1px solid rgb(255 255 255 / 15%);
+  border-radius: 999px;
+  color: #dceae6;
+  font-size: 0.66rem;
+  font-weight: 950;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 
-.plan-bookend > span {
-  font-size: 0.45rem;
-  letter-spacing: 0;
+.plan-day-card.is-today .plan-day-card__day {
+  border-color: var(--lime);
+  background: var(--lime);
+  color: #092637;
 }
 
-.plan-bookend strong {
-  overflow: hidden;
-  font-size: 0.72rem;
-  line-height: 1.18;
-  text-overflow: ellipsis;
-}
-
-.plan-bookend.is-complete {
-  border-color: rgb(200 245 42 / 34%);
-  background: rgb(200 245 42 / 13%);
-}
-
-.plan-bookend.is-complete small {
-  color: var(--lime);
-}
-
-.plan-bookend.is-rest {
-  background: rgb(74 151 211 / 12%);
-}
-
-.plan-triptych__today {
-  min-width: 0;
-}
-
-.plan-triptych__today > .whats-next {
-  height: 100%;
-  border: 1px solid rgb(255 255 255 / 12%);
-  border-radius: 1.05rem;
-  box-shadow: 0 12px 26px rgb(0 0 0 / 18%);
-}
-
-.plan-triptych__today .whats-next--plan,
-.plan-triptych__today .whats-next--rest {
-  padding: 0.9rem;
-}
-
-.plan-triptych__today .whats-next__mark {
-  display: none;
-}
-
-.plan-triptych__today .whats-next__heading {
+.plan-day-card__state-icon {
   display: grid;
-  gap: 0.35rem;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 50%;
+  background: rgb(255 255 255 / 7%);
+  font-weight: 950;
 }
 
-.plan-triptych__today .whats-next__heading h1 {
-  font-size: clamp(1.45rem, 7vw, 2.5rem);
+.plan-day-card__padlock {
+  position: relative;
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.62rem;
+  margin-top: 0.2rem;
+  border: 0.12rem solid currentcolor;
+  border-radius: 0.16rem;
 }
 
-.plan-triptych__today .whats-next__heading > div,
-.plan-triptych__today .whats-next__goal,
-.plan-triptych__today .whats-next__instruction {
-  max-width: none;
+.plan-day-card__padlock::before {
+  position: absolute;
+  bottom: 0.42rem;
+  left: 50%;
+  width: 0.42rem;
+  height: 0.42rem;
+  border: 0.12rem solid currentcolor;
+  border-bottom: 0;
+  border-radius: 0.42rem 0.42rem 0 0;
+  content: "";
+  transform: translateX(-50%);
 }
 
-.plan-triptych__today .whats-next__heading > span {
+.plan-day-card.is-completed .plan-day-card__state-icon {
+  background: #78d98d;
+  color: #073622;
+}
+
+.plan-day-card.is-missed .plan-day-card__state-icon {
+  background: #d46e9f;
+  color: #40132d;
+}
+
+.plan-day-card__eyebrow {
+  margin-top: 1rem;
+  color: var(--lime);
+  font-size: 0.68rem;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.plan-day-card strong {
+  margin-top: 0.28rem;
+  font-size: clamp(1.5rem, 7vw, 2.25rem);
+  line-height: 1.02;
+}
+
+.plan-day-card__workload {
   width: fit-content;
-  margin: 0;
+  margin-top: 0.7rem;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 0.5rem;
+  color: #e1efeb;
+  font-size: 0.75rem;
+  font-weight: 800;
 }
 
-.plan-triptych__policy {
-  margin: 0.65rem 0.55rem 0;
+.plan-day-card__goal {
+  margin-top: 0.9rem;
+  color: var(--lime);
+  font-size: 0.92rem;
+  font-weight: 900;
+}
+
+.plan-day-card__instruction {
+  margin-top: 0.5rem;
+  color: #cfdfda;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.plan-day-card__lock {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: auto;
+  color: #c8d8d3;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.plan-timeline__swipe-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  margin: 0.35rem 0 0.75rem;
+  color: #a9bdb7;
+  font-size: 0.65rem;
+  font-weight: 750;
+}
+
+.plan-timeline__action,
+.plan-timeline__footer {
+  padding-inline: 1rem;
+}
+
+.plan-timeline__primary,
+.plan-timeline__return {
+  display: flex;
+  width: 100%;
+  min-height: 3.45rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  border: 0;
+  border-radius: 0.9rem;
+  background: var(--lime);
+  color: #092e26;
+  font: inherit;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.plan-timeline__primary:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.plan-timeline__action .whats-next__log {
+  min-height: 3.45rem;
+}
+
+.plan-timeline__complete-action {
+  display: flex;
+  min-height: 3.45rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid rgb(111 216 136 / 42%);
+  border-radius: 0.9rem;
+  background: rgb(111 216 136 / 13%);
+  color: #baf2c6;
+  font-weight: 900;
+}
+
+.plan-timeline__footer .whats-next__why {
+  margin-top: 0.8rem;
+}
+
+.plan-timeline__policy {
+  margin: 0.75rem 1rem 0;
+  padding-top: 0.65rem;
+  border-top: 1px solid rgb(255 255 255 / 9%);
   color: #b9cbc6;
   font-size: 0.68rem;
   font-weight: 700;
@@ -1742,29 +1939,19 @@
     align-items: center;
   }
 
-  .whats-next--triptych {
-    padding: 1.15rem;
+  .plan-day-card {
+    min-height: 18.5rem;
+    flex-basis: min(28rem, calc(100% - 8rem));
   }
 
-  .plan-triptych {
-    grid-template-columns: minmax(8rem, 0.85fr) minmax(18rem, 2.4fr) minmax(
-        8rem,
-        0.85fr
-      );
-    gap: 0.7rem;
+  .plan-timeline__track {
+    padding-right: 7.5rem;
+    padding-left: 1.15rem;
+    scroll-padding-inline: 1.15rem;
   }
 
-  .plan-bookend {
-    padding: 1rem 0.85rem;
-  }
-
-  .plan-bookend > span {
-    font-size: 0.58rem;
-    letter-spacing: 0.02em;
-  }
-
-  .plan-bookend strong {
-    font-size: 0.9rem;
+  .plan-timeline__viewport::after {
+    width: 6.5rem;
   }
 
   .whats-next__primary-action,
@@ -1777,6 +1964,16 @@
 
   .player-dev-console__toggles {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plan-day-card {
+    transition: none;
+  }
+
+  .plan-timeline__track {
+    scroll-behavior: auto;
   }
 }
 

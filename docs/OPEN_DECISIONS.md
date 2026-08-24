@@ -884,10 +884,14 @@ Momentum Alpha needs independent PWA install/offline behavior.
   source. Published coach plans take priority, an optional team default is
   reserved inside plan settings, and a bounded suggestion engine fills genuinely
   unplanned days.
-- Decided: a coach-plan day renders as a yesterday/today/tomorrow triptych in
-  What's next. Yesterday is neutral completion context, today owns the action,
-  and tomorrow is a noninteractive preview. Missed work never rolls forward or
-  prompts catch-up.
+- Decided: a coach plan renders as a horizontally browsable day timeline in
+  What's next. Today is the initial, dominant card; real past days remain
+  browseable; the next future card peeks in and fades at the edge; and no empty
+  past card is invented. Future days expose plan context under a time-lock and
+  cannot be completed early. The full-width action below the timeline records
+  only today; while another day is selected it becomes `Jump back to today`.
+  Completed, missed, planned-rest, current, and locked states are visually
+  distinct. Missed work never rolls forward or prompts catch-up.
 - Decided: completing three distinct days in a seven-day plan earns one Daily
   Drop-compatible loot grant; completing all seven earns one additional grant.
   Planned-rest check-ins count, while extra activity volume does not.

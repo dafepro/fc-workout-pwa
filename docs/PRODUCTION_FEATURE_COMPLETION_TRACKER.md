@@ -102,7 +102,13 @@ Completion gates:
       day, and block all match.
 - [x] Make repeated submissions idempotent without marking another block done.
 - [x] Project completion per block and per day.
-- [x] Make the triptych action select the first unfinished block.
+- [x] Project the complete published plan timeline without issuing nested
+      database reads while an outer result set remains open.
+- [x] Replace the fixed triptych with a Today-first swipe timeline and distinct
+      completed, missed, planned-rest, current, and locked states.
+- [x] Replace logging with `Jump back to today` whenever another day is
+      selected.
+- [x] Make the timeline action select the first unfinished block.
 - [x] Record planned rest against the same plan-day contract.
 - [x] Recalculate unlatched completion after an eligible entry deletion.
 - [x] Remove connected-mode dependence on Momentum/Canvas mock completion state.

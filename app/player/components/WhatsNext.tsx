@@ -12,7 +12,7 @@ import {
   decideWhatsNext,
   type WhatsNextSecondaryAction,
 } from "../whats-next-model";
-import { PlanTriptych } from "./PlanTriptych";
+import { PlanTimeline } from "./PlanTimeline";
 
 interface WhatsNextProps {
   restDay: boolean;
@@ -85,24 +85,65 @@ export function WhatsNext({
     }
   }
 
-  if (planComplete) {
-    return (
-      <CompletedNext
-        restDay={restDay}
-        cooldownComplete={cooldownComplete}
-        teamAvailable={teamAvailable}
-        previewOnly={previewOnly}
-        recentEffort={recentEffort}
-        recentTiredness={recentTiredness}
-        recovery={recovery}
-        pending={pending}
-        error={connectedError ?? actionError}
-        onRecordCooldown={() => runAction("cooldown", () => onRecordCooldown())}
-      />
-    );
+  const completionRecommendations = (
+    <CompletedNext
+      restDay={restDay}
+      cooldownComplete={cooldownComplete}
+      teamAvailable={teamAvailable}
+      previewOnly={previewOnly}
+      recentEffort={recentEffort}
+      recentTiredness={recentTiredness}
+      recovery={recovery}
+      pending={pending}
+      error={connectedError ?? actionError}
+      onRecordCooldown={() => runAction("cooldown", () => onRecordCooldown())}
+    />
+  );
+
+  if (planComplete && !planWindow) {
+    return completionRecommendations;
   }
 
   if (restDay) {
+    if (planWindow) {
+      return (
+        <>
+          <PlanTimeline
+            plan={planWindow}
+            todayDetails={{
+              activity: copy.restTitle,
+              workload: copy.restWorkload,
+              goal: copy.restGoal,
+              instruction: copy.restDetail,
+            }}
+          >
+            {planComplete ? (
+              <TodayCompleteStatus label={copy.planCompleteStatus} />
+            ) : (
+              <>
+                <button
+                  className="plan-timeline__primary"
+                  type="button"
+                  disabled={previewOnly || pending !== null}
+                  onClick={() => runAction("rest", () => onRecordRest())}
+                >
+                  {previewOnly
+                    ? copy.previewOnly
+                    : pending === "rest"
+                      ? copy.saving
+                      : copy.recordRest}
+                </button>
+                {connectedError || actionError ? (
+                  <p role="alert">{connectedError ?? actionError}</p>
+                ) : null}
+              </>
+            )}
+          </PlanTimeline>
+          {planComplete ? completionRecommendations : null}
+        </>
+      );
+    }
+
     const restCard = (
       <section className="whats-next whats-next--rest">
         <p className="player-eyebrow">{copy.eyebrow}</p>
@@ -124,35 +165,11 @@ export function WhatsNext({
         ) : null}
       </section>
     );
-    return planWindow ? (
-      <PlanTriptych plan={planWindow}>{restCard}</PlanTriptych>
-    ) : (
-      restCard
-    );
+    return restCard;
   }
 
-  const planCard = (
-    <section
-      className="whats-next whats-next--plan"
-      aria-labelledby="whats-next-plan-title"
-    >
-      <span
-        className="whats-next__mark"
-        data-testid="workout-mark"
-        aria-hidden="true"
-      >
-        ↗
-      </span>
-      <div className="whats-next__heading">
-        <div>
-          <p className="player-eyebrow">{copy.eyebrow}</p>
-          <h1 id="whats-next-plan-title">{plan.activity}</h1>
-        </div>
-        <span>{plan.workload}</span>
-      </div>
-      <p className="whats-next__goal">{plan.goal}</p>
-      <p className="whats-next__instruction">{plan.instruction}</p>
-
+  const planAction = (
+    <>
       {expanded ? (
         <div className="today-checkin">
           <div
@@ -226,21 +243,77 @@ export function WhatsNext({
           <span aria-hidden="true">›</span>
         </button>
       )}
+    </>
+  );
 
-      <details className="whats-next__why">
-        <summary>{playerExperienceCopy.today.why}</summary>
-        <ul>
-          {plan.reasons.map((reason) => (
-            <li key={reason}>{reason}</li>
-          ))}
-        </ul>
-      </details>
+  const planWhy = (
+    <details className="whats-next__why">
+      <summary>{playerExperienceCopy.today.why}</summary>
+      <ul>
+        {plan.reasons.map((reason) => (
+          <li key={reason}>{reason}</li>
+        ))}
+      </ul>
+    </details>
+  );
+
+  if (planWindow) {
+    return (
+      <>
+        <PlanTimeline
+          plan={planWindow}
+          todayDetails={{
+            activity: plan.activity,
+            workload: plan.workload,
+            goal: plan.goal,
+            instruction: plan.instruction,
+          }}
+          footer={planWhy}
+        >
+          {planComplete ? (
+            <TodayCompleteStatus label={copy.planCompleteStatus} />
+          ) : (
+            planAction
+          )}
+        </PlanTimeline>
+        {planComplete ? completionRecommendations : null}
+      </>
+    );
+  }
+
+  return (
+    <section
+      className="whats-next whats-next--plan"
+      aria-labelledby="whats-next-plan-title"
+    >
+      <span
+        className="whats-next__mark"
+        data-testid="workout-mark"
+        aria-hidden="true"
+      >
+        ↗
+      </span>
+      <div className="whats-next__heading">
+        <div>
+          <p className="player-eyebrow">{copy.eyebrow}</p>
+          <h1 id="whats-next-plan-title">{plan.activity}</h1>
+        </div>
+        <span>{plan.workload}</span>
+      </div>
+      <p className="whats-next__goal">{plan.goal}</p>
+      <p className="whats-next__instruction">{plan.instruction}</p>
+      {planAction}
+      {planWhy}
     </section>
   );
-  return planWindow ? (
-    <PlanTriptych plan={planWindow}>{planCard}</PlanTriptych>
-  ) : (
-    planCard
+}
+
+function TodayCompleteStatus({ label }: { label: string }) {
+  return (
+    <p className="plan-timeline__complete-action">
+      <span aria-hidden="true">✓</span>
+      {label}
+    </p>
   );
 }
 

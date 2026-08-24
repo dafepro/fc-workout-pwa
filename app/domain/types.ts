@@ -107,6 +107,7 @@ export interface TrainingPlanWindow {
   yesterday: CurrentTrainingPlanDay | null;
   today: CurrentTrainingPlanDay;
   tomorrow: CurrentTrainingPlanDay | null;
+  days: CurrentTrainingPlanDay[];
 }
 
 export interface TrainingDashboard {

@@ -1,6 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { describe, expect, it, vi } from "vitest";
+import type {
+  CurrentTrainingPlanDay,
+  TrainingPlanWindow,
+} from "../../domain/types";
 import { WhatsNext } from "./WhatsNext";
 
 const plan = {
@@ -25,6 +29,21 @@ const common = {
   onRecordCooldown: vi.fn().mockResolvedValue(undefined),
 };
 
+const planWindow: TrainingPlanWindow = {
+  planId: "plan-one",
+  templateName: "Speed and recovery",
+  dayNumber: 2,
+  dayCount: 3,
+  yesterday: null,
+  today: planDay(1, "2026-08-24", "Hill Sprints"),
+  tomorrow: planDay(2, "2026-08-25", "Tempo Run"),
+  days: [
+    { ...planDay(0, "2026-08-23", "Easy Run"), completed: true },
+    planDay(1, "2026-08-24", "Hill Sprints"),
+    planDay(2, "2026-08-25", "Tempo Run"),
+  ],
+};
+
 describe("WhatsNext", () => {
   it("makes the recommended plan the single pre-completion action card", () => {
     render(
@@ -39,7 +58,7 @@ describe("WhatsNext", () => {
     expect(screen.getByText("What’s next")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Hill Sprints" })).toBeVisible();
     expect(
-      screen.getByRole("button", { name: "Log today’s plan" }),
+      screen.getByRole("button", { name: "Record planned workout" }),
     ).toBeVisible();
     expect(screen.queryByText("Today is in the books")).not.toBeInTheDocument();
     expect(
@@ -63,6 +82,60 @@ describe("WhatsNext", () => {
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText(plan.instruction)).not.toBeInTheDocument();
+  });
+
+  it("uses the coach-plan timeline without putting logging inside a day card", () => {
+    render(
+      <WhatsNext
+        {...common}
+        planWindow={planWindow}
+        restDay={false}
+        planComplete={false}
+        cooldownComplete={false}
+      />,
+    );
+
+    const todayCard = screen.getByRole("button", {
+      name: /Today, Hill Sprints/i,
+    });
+    expect(todayCard).toHaveAttribute("aria-current", "date");
+    expect(todayCard).not.toHaveTextContent("Record planned workout");
+    expect(
+      screen.getByRole("button", { name: "Record planned workout" }),
+    ).toBeVisible();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Tuesday, Tempo Run, locked/i }),
+    );
+    expect(
+      screen.getByRole("button", { name: "Jump back to today" }),
+    ).toBeVisible();
+  });
+
+  it("keeps today’s plan status visible after the plan is completed", () => {
+    render(
+      <WhatsNext
+        {...common}
+        planWindow={{
+          ...planWindow,
+          today: { ...planWindow.today, completed: true },
+          days: planWindow.days.map((day) =>
+            day.dayIndex === planWindow.today.dayIndex
+              ? { ...day, completed: true }
+              : day,
+          ),
+        }}
+        restDay={false}
+        planComplete
+        cooldownComplete={false}
+      />,
+    );
+
+    expect(
+      screen.getByRole("region", { name: "This week’s coach plan" }),
+    ).toBeVisible();
+    expect(screen.getByText("Today’s workout is in the books.")).toBeVisible();
+    expect(screen.getByText("Recommended next")).toBeVisible();
   });
 
   it("presents one recommendation and clearly typed secondary actions", () => {
@@ -181,3 +254,30 @@ describe("WhatsNext", () => {
     ).not.toBeInTheDocument();
   });
 });
+
+function planDay(
+  dayIndex: number,
+  occursOn: string,
+  label: string,
+): CurrentTrainingPlanDay {
+  return {
+    planId: "plan-one",
+    dayIndex,
+    templateName: "Speed and recovery",
+    occursOn,
+    kind: "training" as const,
+    focus: "speed" as const,
+    durationMinutes: 20,
+    intensity: "hard" as const,
+    completed: false,
+    blocks: [
+      {
+        blockIndex: 0,
+        activityDefinitionId: "hill-sprints",
+        label,
+        durationMinutes: 20,
+        completed: false,
+      },
+    ],
+  };
+}

@@ -135,6 +135,9 @@ func TestTrainingDashboardProjectsYesterdayTodayAndTomorrowFromOnePlan(t *testin
 	if window.TemplateName != "In-season balance" || window.DayNumber != 2 || window.DayCount != 7 {
 		t.Fatalf("unexpected plan identity: %+v", window)
 	}
+	if len(window.Days) != 7 || window.Days[0].DayIndex != 0 || window.Days[6].DayIndex != 6 {
+		t.Fatalf("complete plan timeline was not projected: %+v", window.Days)
+	}
 	if window.Yesterday == nil || window.Yesterday.OccursOn != "2026-08-11" || window.Yesterday.Completed {
 		t.Fatalf("unexpected yesterday: %+v", window.Yesterday)
 	}

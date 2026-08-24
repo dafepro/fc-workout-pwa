@@ -95,13 +95,14 @@ type CurrentTrainingPlanDay struct {
 }
 
 type TrainingPlanWindow struct {
-	PlanID       string                  `json:"planId"`
-	TemplateName string                  `json:"templateName"`
-	DayNumber    int                     `json:"dayNumber"`
-	DayCount     int                     `json:"dayCount"`
-	Yesterday    *CurrentTrainingPlanDay `json:"yesterday"`
-	Today        CurrentTrainingPlanDay  `json:"today"`
-	Tomorrow     *CurrentTrainingPlanDay `json:"tomorrow"`
+	PlanID       string                   `json:"planId"`
+	TemplateName string                   `json:"templateName"`
+	DayNumber    int                      `json:"dayNumber"`
+	DayCount     int                      `json:"dayCount"`
+	Yesterday    *CurrentTrainingPlanDay  `json:"yesterday"`
+	Today        CurrentTrainingPlanDay   `json:"today"`
+	Tomorrow     *CurrentTrainingPlanDay  `json:"tomorrow"`
+	Days         []CurrentTrainingPlanDay `json:"days"`
 }
 
 type TrainingDashboardProjection struct {
@@ -211,10 +212,49 @@ func (store *Store) currentTrainingPlan(ctx context.Context, playerID, teamID, t
 	if err != nil {
 		return nil, err
 	}
+	days, err := store.trainingPlanDays(ctx, planID, playerID, teamID, location)
+	if err != nil {
+		return nil, err
+	}
 	return &TrainingPlanWindow{
 		PlanID: planID, TemplateName: today.TemplateName, DayNumber: dayIndex + 1,
-		DayCount: dayCount, Yesterday: yesterday, Today: *today, Tomorrow: tomorrow,
+		DayCount: dayCount, Yesterday: yesterday, Today: *today, Tomorrow: tomorrow, Days: days,
 	}, nil
+}
+
+func (store *Store) trainingPlanDays(ctx context.Context, planID, playerID, teamID string, location *time.Location) ([]CurrentTrainingPlanDay, error) {
+	rows, err := store.db.QueryContext(ctx, `SELECT occurs_on FROM training_plan_days
+		WHERE plan_id = ? ORDER BY day_index`, planID)
+	if err != nil {
+		return nil, fmt.Errorf("list training plan timeline: %w", err)
+	}
+	dayKeys := make([]string, 0)
+	for rows.Next() {
+		var dayKey string
+		if err = rows.Scan(&dayKey); err != nil {
+			_ = rows.Close()
+			return nil, fmt.Errorf("scan training plan timeline: %w", err)
+		}
+		dayKeys = append(dayKeys, dayKey)
+	}
+	if err = rows.Err(); err != nil {
+		_ = rows.Close()
+		return nil, fmt.Errorf("iterate training plan timeline: %w", err)
+	}
+	if err = rows.Close(); err != nil {
+		return nil, fmt.Errorf("close training plan timeline: %w", err)
+	}
+	days := make([]CurrentTrainingPlanDay, 0, len(dayKeys))
+	for _, dayKey := range dayKeys {
+		day, _, loadErr := store.trainingPlanDay(ctx, planID, playerID, teamID, dayKey, location)
+		if loadErr != nil {
+			return nil, loadErr
+		}
+		if day != nil {
+			days = append(days, *day)
+		}
+	}
+	return days, nil
 }
 
 func (store *Store) trainingPlanDay(ctx context.Context, planID, playerID, teamID, teamDay string, location *time.Location) (*CurrentTrainingPlanDay, int, error) {
