@@ -37,10 +37,10 @@ export function PlayerDevConsole() {
               onChange={select("momentumBand")}
             >
               <option value="real">Live value</option>
-              <option value="warming-up">Warming up</option>
+              <option value="ready">Ready</option>
+              <option value="started">Started</option>
               <option value="building">Building</option>
-              <option value="rolling">Rolling</option>
-              <option value="strong">Strong</option>
+              <option value="on-a-roll">On a roll</option>
             </select>
           </label>
           <label>

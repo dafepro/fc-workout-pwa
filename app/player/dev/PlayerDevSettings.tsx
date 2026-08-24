@@ -1,15 +1,15 @@
 "use client";
 
 import { createContext, useContext, useMemo, useState } from "react";
-import type { MomentumBand } from "../../momentum-alpha/model";
 import { useOptionalAuth } from "../../state/auth-context";
+import type { MomentumProgressState } from "../momentum-progress";
 
 export type TodayPreview = "real" | "training" | "rest" | "complete";
 export type TeamAccessPreview = "real" | "locked";
 
 export interface PlayerDevSettings {
   momentumVisible: boolean;
-  momentumBand: "real" | MomentumBand;
+  momentumBand: "real" | MomentumProgressState;
   today: TodayPreview;
   teamAccess: TeamAccessPreview;
   rewardsVisible: boolean;
@@ -96,7 +96,7 @@ export function usePlayerDevSettings(): PlayerDevSettingsContextValue {
 
 function parseSettings(raw: string): PlayerDevSettings {
   const parsed = JSON.parse(raw) as Partial<PlayerDevSettings>;
-  const momentumBands = ["real", "warming-up", "building", "rolling", "strong"];
+  const momentumBands = ["real", "ready", "started", "building", "on-a-roll"];
   const todayValues = ["real", "training", "rest", "complete"];
   const teamAccessValues = ["real", "locked"];
   return {

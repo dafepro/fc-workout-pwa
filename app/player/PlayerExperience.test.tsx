@@ -90,11 +90,15 @@ describe("consolidated default player experience", () => {
       screen.queryByRole("img", { name: /Zoomi/ }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole("progressbar", { name: "Momentum path: Rolling" }),
+      screen.getByRole("progressbar", {
+        name: "Weekly Momentum: 2 of 3 approved activities",
+      }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Today’s best move")).toBeInTheDocument();
+    expect(screen.getByText("How to fill it")).toBeInTheDocument();
     expect(
-      screen.getByText("Aim for the goal. Stretch stays optional."),
+      screen.getByText(
+        "1 more approved activity completes this week’s goal. Today’s recommended plan is the clearest next step.",
+      ),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "Hill Sprints" }),
@@ -116,7 +120,9 @@ describe("consolidated default player experience", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Save workout" }));
     expect(
-      screen.getByText("Hard work is done. Keep the next move easy."),
+      screen.getByText(
+        "1 more approved activity completes this week’s goal. No need to add more today.",
+      ),
     ).toBeInTheDocument();
   });
 
@@ -184,7 +190,7 @@ describe("consolidated default player experience", () => {
     );
 
     fireEvent.change(screen.getByLabelText("Momentum preview"), {
-      target: { value: "strong" },
+      target: { value: "on-a-roll" },
     });
     fireEvent.change(screen.getByLabelText("Today preview"), {
       target: { value: "complete" },
@@ -194,7 +200,7 @@ describe("consolidated default player experience", () => {
 
     expect(screen.getByText("Today is in the books")).toBeInTheDocument();
     expect(
-      screen.queryByLabelText("Momentum is strong"),
+      screen.queryByLabelText("Momentum preview is on-a-roll"),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByText("Team rewards coming soon"),
@@ -206,13 +212,13 @@ describe("consolidated default player experience", () => {
     fireEvent.click(screen.getByLabelText("Show Momentum card"));
     expect(
       screen.getByText(
-        "Protect today’s recovery. Rest keeps your rhythm steady.",
+        "1 more approved activity completes this week’s goal. Today, stick with planned recovery.",
       ),
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Reset dev controls" }));
 
-    expect(screen.getByLabelText("Momentum is rolling")).toBeInTheDocument();
+    expect(screen.getByLabelText("Momentum is building")).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "Hill Sprints" }),
     ).toBeInTheDocument();

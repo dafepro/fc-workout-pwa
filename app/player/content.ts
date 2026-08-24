@@ -7,24 +7,39 @@ export const playerExperienceCopy = {
   },
   momentum: {
     eyebrow: "Your momentum",
-    detail: {
-      "warming-up": "Every plan-following day starts the rhythm.",
-      building: "Your steady choices are adding up.",
-      rolling: "You’ve found a steady rhythm.",
-      strong: "Your consistent rhythm is holding strong.",
+    states: {
+      ready: {
+        label: "Ready",
+        detail: "A fresh week starts with one good choice.",
+      },
+      started: {
+        label: "Started",
+        detail: "Your first activity has the week moving.",
+      },
+      building: {
+        label: "Building",
+        detail: "Your steady choices are adding up.",
+      },
+      "on-a-roll": {
+        label: "On a roll",
+        detail: "You reached the team’s weekly activity goal.",
+      },
     },
-    path: {
-      "warming-up": "Start",
-      building: "Build",
-      rolling: "Roll",
-      strong: "Strong",
-    },
-    recommendationLabel: "Today’s best move",
-    recommendation: {
-      goal: "Aim for the goal. Stretch stays optional.",
-      recovery: "Hard work is done. Keep the next move easy.",
-      rest: "Protect today’s recovery. Rest keeps your rhythm steady.",
-      team: "Your plan is logged. The Team lounge is open.",
+    thisWeek: "this week",
+    preview: "Preview state",
+    streak: (days: number) =>
+      `${days.toLocaleString("en-US")}-day activity streak`,
+    accessibleGauge: (sessions: number, goal: number) =>
+      `Weekly Momentum: ${sessions} of ${goal} approved activities`,
+    guidanceLabel: "How to fill it",
+    guidance: {
+      goalComplete:
+        "Weekly goal complete. Recovery is a good next move; there’s no need to add more.",
+      remaining: (count: number) =>
+        `${count.toLocaleString("en-US")} more approved ${count === 1 ? "activity completes" : "activities complete"} this week’s goal.`,
+      recommendedPlan: "Today’s recommended plan is the clearest next step.",
+      planComplete: "No need to add more today.",
+      plannedRest: "Today, stick with planned recovery.",
     },
   },
   today: {

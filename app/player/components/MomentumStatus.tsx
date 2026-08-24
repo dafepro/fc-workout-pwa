@@ -1,95 +1,116 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { PlayerAvatar } from "../../components/PlayerAvatar";
-import { momentumAlphaCopy } from "../../momentum-alpha/content";
-import type { MomentumBand } from "../../momentum-alpha/model";
 import { useOptionalAuth } from "../../state/auth-context";
 import { playerExperienceCopy } from "../content";
-
-const bands: MomentumBand[] = ["warming-up", "building", "rolling", "strong"];
+import {
+  momentumProgress,
+  type MomentumProgressState,
+} from "../momentum-progress";
 
 export function MomentumStatus({
-  band,
+  weeklySessions,
+  weeklyGoal,
+  currentStreak,
   restDay,
   planComplete,
-  recoveryComplete,
+  stateOverride,
 }: {
-  band: MomentumBand;
+  weeklySessions: number;
+  weeklyGoal: number;
+  currentStreak: number;
   restDay: boolean;
   planComplete: boolean;
-  recoveryComplete: boolean;
+  stateOverride?: MomentumProgressState;
 }) {
   const auth = useOptionalAuth();
   const copy = playerExperienceCopy.momentum;
-  const activeBand = bands.indexOf(band);
-  const recommendation = restDay
-    ? copy.recommendation.rest
-    : planComplete && !recoveryComplete
-      ? copy.recommendation.recovery
-      : planComplete
-        ? copy.recommendation.team
-        : copy.recommendation.goal;
+  const progress = momentumProgress(weeklySessions, weeklyGoal);
+  const state = stateOverride ?? progress.state;
+  const stateCopy = copy.states[state];
+  const hint = guidance(
+    progress.remaining,
+    restDay,
+    planComplete,
+    copy.guidance,
+  );
+  const gaugeStyle = {
+    "--momentum-progress": `${progress.percentage * 3.6}deg`,
+  } as CSSProperties;
 
   return (
     <section
-      className={`momentum-status momentum-status--${band}`}
-      aria-label={`Momentum is ${band}`}
+      className={`momentum-status momentum-status--${state}`}
+      aria-label={`${stateOverride ? "Momentum preview is" : "Momentum is"} ${state}`}
     >
-      <div className="momentum-status__heading">
-        {auth ? (
-          <PlayerAvatar
-            player={auth.currentPlayer}
-            size="small"
-            emphasizeSelf={false}
-          />
-        ) : null}
-        <div>
-          <p className="player-eyebrow">{copy.eyebrow}</p>
-          <strong>{momentumAlphaCopy.trail.bands[band]}</strong>
+      <header className="momentum-status__header">
+        <div className="momentum-status__identity">
+          {auth ? (
+            <PlayerAvatar
+              player={auth.currentPlayer}
+              size="small"
+              emphasizeSelf={false}
+            />
+          ) : null}
+          <div>
+            <p className="player-eyebrow">{copy.eyebrow}</p>
+            <h2>{stateCopy.label}</h2>
+          </div>
         </div>
-      </div>
+        <p className="momentum-status__streak">
+          <span aria-hidden="true">↗</span>
+          {copy.streak(Math.max(0, Math.floor(currentStreak)))}
+        </p>
+      </header>
 
-      <p className="momentum-status__detail">{copy.detail[band]}</p>
-
-      <span className="momentum-status__signal" aria-hidden="true">
-        <i />
-        <i />
-        <i />
-      </span>
-
-      <div
-        className="momentum-status__path"
-        role="progressbar"
-        aria-label={`Momentum path: ${momentumAlphaCopy.trail.bands[band]}`}
-        aria-valuemin={1}
-        aria-valuemax={bands.length}
-        aria-valuenow={activeBand + 1}
-      >
-        <span className="momentum-status__path-line" aria-hidden="true" />
-        {bands.map((item, index) => (
-          <span
-            key={item}
-            className={
-              index === activeBand
-                ? "is-active"
-                : index < activeBand
-                  ? "is-passed"
-                  : ""
-            }
-          >
-            <i aria-hidden="true" />
-            <small>{copy.path[item]}</small>
-          </span>
-        ))}
-      </div>
-
-      <div className="momentum-status__recommendation">
-        <span aria-hidden="true">↗</span>
-        <div>
-          <small>{copy.recommendationLabel}</small>
-          <p>{recommendation}</p>
+      <div className="momentum-status__body">
+        <div
+          className="momentum-status__gauge"
+          role="progressbar"
+          aria-label={copy.accessibleGauge(
+            progress.weeklySessions,
+            progress.weeklyGoal,
+          )}
+          aria-valuemin={0}
+          aria-valuemax={progress.weeklyGoal}
+          aria-valuenow={progress.gaugeValue}
+          style={gaugeStyle}
+        >
+          <div>
+            <strong>
+              {progress.weeklySessions} <span>of {progress.weeklyGoal}</span>
+            </strong>
+            <small>{copy.thisWeek}</small>
+          </div>
+        </div>
+        <div className="momentum-status__copy">
+          {stateOverride ? (
+            <span className="momentum-status__preview">{copy.preview}</span>
+          ) : null}
+          <p className="momentum-status__detail">{stateCopy.detail}</p>
+          <div className="momentum-status__guidance">
+            <span aria-hidden="true">→</span>
+            <div>
+              <small>{copy.guidanceLabel}</small>
+              <p>{hint}</p>
+            </div>
+          </div>
         </div>
       </div>
     </section>
   );
+}
+
+function guidance(
+  remaining: number,
+  restDay: boolean,
+  planComplete: boolean,
+  copy: typeof playerExperienceCopy.momentum.guidance,
+): string {
+  if (remaining === 0) return copy.goalComplete;
+  const progress = copy.remaining(remaining);
+  if (restDay) return `${progress} ${copy.plannedRest}`;
+  if (planComplete) return `${progress} ${copy.planComplete}`;
+  return `${progress} ${copy.recommendedPlan}`;
 }

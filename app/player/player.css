@@ -111,17 +111,23 @@
 }
 
 .momentum-status {
+  --momentum-accent: #9bc925;
+  --momentum-ink: #123f32;
   position: relative;
   display: grid;
-  min-height: 13.5rem;
-  gap: 0.65rem;
+  gap: 0.85rem;
   margin-bottom: 0.9rem;
   overflow: hidden;
-  padding: 1rem;
+  padding: 1rem 1rem 1.05rem;
   border: 1px solid #dfe2d7;
   border-radius: 1.35rem;
   background:
-    radial-gradient(circle at 92% 4%, rgb(200 245 42 / 26%), transparent 8rem),
+    radial-gradient(
+      circle at 96% 2%,
+      color-mix(in srgb, var(--momentum-accent) 22%, transparent),
+      transparent 9rem
+    ),
+    linear-gradient(135deg, rgb(255 255 255 / 96%), rgb(247 249 242 / 96%)),
     #fff;
   box-shadow:
     0 10px 28px rgb(18 61 47 / 7%),
@@ -130,12 +136,13 @@
 
 .momentum-status::before {
   position: absolute;
-  z-index: 0;
-  top: 0;
-  left: 0;
-  width: 0.35rem;
-  height: 100%;
-  background: var(--lime);
+  right: -2.25rem;
+  bottom: -3.25rem;
+  width: 8rem;
+  height: 8rem;
+  border: 1px solid color-mix(in srgb, var(--momentum-accent) 34%, transparent);
+  border-radius: 45% 55% 62% 38%;
+  transform: rotate(24deg);
   content: "";
 }
 
@@ -143,231 +150,212 @@
   margin-bottom: 0;
 }
 
-.momentum-status__heading {
+.momentum-status--ready {
+  --momentum-accent: #aeb8b2;
+  --momentum-ink: #41574e;
+}
+
+.momentum-status--started {
+  --momentum-accent: #5db9c5;
+  --momentum-ink: #145766;
+}
+
+.momentum-status--building {
+  --momentum-accent: #a8d82e;
+  --momentum-ink: #315d27;
+}
+
+.momentum-status--on-a-roll {
+  --momentum-accent: var(--lime);
+  --momentum-ink: #0b3b2d;
+}
+
+.momentum-status__header {
   position: relative;
   z-index: 2;
   display: flex;
-  max-width: 72%;
   align-items: center;
-  gap: 0.55rem;
-  padding-left: 0.25rem;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
-.momentum-status__heading .player-avatar {
+.momentum-status__identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.momentum-status__identity .player-avatar {
   flex: 0 0 auto;
-  width: 2.2rem;
-  height: 2.2rem;
+  width: 2.35rem;
+  height: 2.35rem;
   border: 2px solid #fff;
   box-shadow: 0 3px 10px rgb(8 47 39 / 18%);
 }
 
-.momentum-status__heading strong {
-  display: block;
-  color: #102d28;
-  font-size: 1.35rem;
+.momentum-status__identity h2 {
+  margin: 0;
+  color: var(--momentum-ink);
+  font-size: clamp(1.25rem, 5vw, 1.55rem);
   line-height: 1;
 }
 
-.momentum-status__detail {
-  position: relative;
-  z-index: 2;
-  width: 72%;
-  min-height: 1.5rem;
-  padding-left: 0.25rem;
-  color: #64716d;
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
-.momentum-status__signal {
-  position: absolute;
-  z-index: 1;
-  top: 1.35rem;
-  right: 1.1rem;
+.momentum-status__streak {
   display: flex;
-  width: 5.4rem;
-  height: 2.8rem;
+  flex: 0 0 auto;
   align-items: center;
-  justify-content: space-between;
-  transform: rotate(-8deg);
-}
-
-.momentum-status__signal::before {
-  position: absolute;
-  right: 0.25rem;
-  left: 0.25rem;
-  height: 0.38rem;
+  gap: 0.35rem;
+  padding: 0.42rem 0.6rem;
+  border: 1px solid color-mix(in srgb, var(--momentum-accent) 48%, #d8dfd7);
   border-radius: 999px;
-  background: linear-gradient(90deg, #123f32, var(--lime));
-  content: "";
+  background: rgb(255 255 255 / 78%);
+  color: #355449;
+  font-size: 0.68rem;
+  font-weight: 900;
 }
 
-.momentum-status__signal i {
-  position: relative;
-  width: 0.65rem;
-  height: 0.65rem;
-  border: 2px solid #fff;
+.momentum-status__streak span {
+  display: grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  place-items: center;
   border-radius: 50%;
-  background: #123f32;
-  box-shadow: 0 0 0 1px rgb(18 63 50 / 12%);
+  background: var(--momentum-accent);
+  color: #0c352a;
 }
 
-.momentum-status__signal i:last-child {
-  width: 1.35rem;
-  height: 1.35rem;
-  background: var(--lime);
-  box-shadow: 0 0 0 0.35rem rgb(200 245 42 / 20%);
-}
-
-.momentum-status__path {
+.momentum-status__body {
   position: relative;
   z-index: 2;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  align-items: start;
-  margin-top: 0.3rem;
-  padding: 0.65rem 0.45rem 0.25rem;
-  border: 1px solid rgb(18 63 50 / 10%);
-  border-radius: 1rem;
-  background: rgb(255 255 255 / 76%);
-  backdrop-filter: blur(5px);
-}
-
-.momentum-status__path-line {
-  position: absolute;
-  top: 0.92rem;
-  right: 12.5%;
-  left: 12.5%;
-  height: 0.25rem;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #dfe6d9;
-}
-
-.momentum-status__path-line::after {
-  display: block;
-  width: 0;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #0d4635, var(--lime));
-  content: "";
-  transition: width 500ms ease;
-}
-
-.momentum-status--warming-up .momentum-status__path-line::after {
-  width: 4%;
-}
-
-.momentum-status--building .momentum-status__path-line::after {
-  width: 35%;
-}
-
-.momentum-status--rolling .momentum-status__path-line::after {
-  width: 68%;
-}
-
-.momentum-status--strong .momentum-status__path-line::after {
-  width: 100%;
-}
-
-.momentum-status__path > span:not(.momentum-status__path-line) {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
+  grid-template-columns: 7.25rem minmax(0, 1fr);
   align-items: center;
-  gap: 0.38rem;
-  color: #7b847d;
+  gap: 1rem;
+}
+
+.momentum-status__gauge {
+  display: grid;
+  width: 7.25rem;
+  aspect-ratio: 1;
+  place-items: center;
+  position: relative;
+  border-radius: 50%;
+  background: conic-gradient(
+    from -90deg,
+    var(--momentum-accent) var(--momentum-progress),
+    #e4e9e1 var(--momentum-progress)
+  );
+  box-shadow:
+    inset 0 0 0 1px rgb(18 63 50 / 5%),
+    0 8px 20px rgb(18 63 50 / 10%);
+  animation: momentum-gauge-enter 600ms ease-out both;
+}
+
+.momentum-status__gauge::before {
+  position: absolute;
+  inset: 0.7rem;
+  border-radius: inherit;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px rgb(18 63 50 / 8%);
+  content: "";
+}
+
+.momentum-status__gauge > div {
+  position: relative;
+  z-index: 1;
+  display: grid;
   text-align: center;
 }
 
-.momentum-status__path i {
-  position: relative;
-  z-index: 1;
-  width: 0.78rem;
-  height: 0.78rem;
-  border: 3px solid #fff;
-  border-radius: 0.25rem;
-  background: #cfd8c9;
-  box-shadow: 0 0 0 1px rgb(11 59 45 / 12%);
-  transform: rotate(30deg);
+.momentum-status__gauge strong {
+  color: #102d28;
+  font-size: 1.55rem;
+  line-height: 1;
 }
 
-.momentum-status__path .is-passed i,
-.momentum-status__path .is-active i {
-  background: var(--lime);
+.momentum-status__gauge strong span {
+  font-size: 0.85rem;
 }
 
-.momentum-status__path .is-active i {
-  box-shadow:
-    0 0 0 1px #123f32,
-    0 0 0 5px rgb(200 245 42 / 22%);
-  animation: momentum-path-pulse 2.2s ease-out infinite;
+.momentum-status__gauge small {
+  margin-top: 0.25rem;
+  color: #69766f;
+  font-size: 0.65rem;
+  font-weight: 850;
 }
 
-.momentum-status__path .is-active small {
-  color: #123f32;
-  font-weight: 950;
+.momentum-status__copy {
+  min-width: 0;
 }
 
-.momentum-status__path small {
-  overflow: hidden;
-  max-width: 100%;
-  font-size: 0.64rem;
-  font-weight: 800;
-  text-overflow: ellipsis;
+.momentum-status__preview {
+  display: inline-flex;
+  margin-bottom: 0.35rem;
+  padding: 0.2rem 0.42rem;
+  border-radius: 999px;
+  background: #e8ebe6;
+  color: #596660;
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-.momentum-status__recommendation {
-  position: relative;
-  z-index: 2;
+.momentum-status__detail {
+  color: #57665f;
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.momentum-status__guidance {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: 0.65rem;
-  padding: 0.65rem 0.75rem;
+  align-items: start;
+  gap: 0.55rem;
+  margin-top: 0.65rem;
+  padding: 0.62rem 0.68rem;
   border-radius: 0.9rem;
-  background: #123f32;
+  background: var(--momentum-ink);
   color: #fff;
 }
 
-.momentum-status__recommendation > span {
+.momentum-status__guidance > span {
   display: grid;
-  width: 1.8rem;
-  height: 1.8rem;
+  width: 1.4rem;
+  height: 1.4rem;
   place-items: center;
-  border-radius: 0.55rem;
-  background: var(--lime);
+  border-radius: 50%;
+  background: var(--momentum-accent);
   color: #123f32;
   font-weight: 950;
 }
 
-.momentum-status__recommendation small {
+.momentum-status__guidance small {
   display: block;
   margin-bottom: 0.1rem;
-  color: var(--lime);
-  font-size: 0.62rem;
+  color: color-mix(in srgb, var(--momentum-accent) 80%, white);
+  font-size: 0.58rem;
   font-weight: 900;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
-.momentum-status__recommendation p {
+.momentum-status__guidance p {
   color: #eef7f1;
-  font-size: 0.8rem;
+  font-size: 0.73rem;
   font-weight: 750;
+  line-height: 1.35;
 }
 
-@keyframes momentum-path-pulse {
-  0%,
-  100% {
-    box-shadow:
-      0 0 0 1px #123f32,
-      0 0 0 3px rgb(200 245 42 / 16%);
+@keyframes momentum-gauge-enter {
+  from {
+    opacity: 0;
+    transform: rotate(-10deg) scale(0.92);
   }
-  50% {
-    box-shadow:
-      0 0 0 1px #123f32,
-      0 0 0 7px rgb(200 245 42 / 28%);
+  to {
+    opacity: 1;
+    transform: rotate(0) scale(1);
   }
 }
 
@@ -1221,24 +1209,48 @@
   }
 
   .momentum-status {
-    min-height: 14.25rem;
-    padding: 0.85rem;
+    padding: 0.85rem 0.8rem 0.9rem;
   }
 
-  .momentum-status__heading,
+  .momentum-status__header {
+    align-items: flex-start;
+    gap: 0.45rem;
+  }
+
+  .momentum-status__streak {
+    max-width: 7.7rem;
+    padding: 0.35rem 0.48rem;
+    font-size: 0.62rem;
+  }
+
+  .momentum-status__body {
+    grid-template-columns: 5.8rem minmax(0, 1fr);
+    gap: 0.65rem;
+  }
+
+  .momentum-status__gauge {
+    width: 5.8rem;
+  }
+
+  .momentum-status__gauge::before {
+    inset: 0.56rem;
+  }
+
+  .momentum-status__gauge strong {
+    font-size: 1.25rem;
+  }
+
   .momentum-status__detail {
-    width: 68%;
-    max-width: 68%;
+    font-size: 0.72rem;
   }
 
-  .momentum-status__signal {
-    top: 1.45rem;
-    right: 0.7rem;
-    width: 4.7rem;
+  .momentum-status__guidance {
+    gap: 0.4rem;
+    padding: 0.5rem;
   }
 
-  .momentum-status__recommendation p {
-    font-size: 0.74rem;
+  .momentum-status__guidance p {
+    font-size: 0.66rem;
   }
 
   .player-rewards {

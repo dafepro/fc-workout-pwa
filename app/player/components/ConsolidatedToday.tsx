@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { momentumBand } from "../../momentum-alpha/model";
+import { players, WEEKLY_GOAL } from "../../data/mockData";
 import { useMomentumAlpha } from "../../momentum-alpha/state";
+import { useOptionalTraining } from "../../state/training-context";
 import { teamCanvasCopy } from "../../team-canvas/content";
 import type { CompletionKind } from "../../team-canvas/model";
 import { useTeamCanvas } from "../../team-canvas/state";
@@ -16,6 +17,7 @@ import { MomentumStatus } from "./MomentumStatus";
 export function ConsolidatedToday() {
   const momentum = useMomentumAlpha();
   const canvas = useTeamCanvas();
+  const training = useOptionalTraining();
   const dev = usePlayerDevSettings();
   const [expanded, setExpanded] = useState(false);
   const [completion, setCompletion] = useState<CompletionKind>("goal");
@@ -23,9 +25,13 @@ export function ConsolidatedToday() {
   const [tiredness, setTiredness] = useState(3);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
-  const liveBand = momentumBand(momentum.state.personalMomentum);
-  const band =
-    dev.settings.momentumBand === "real" ? liveBand : dev.settings.momentumBand;
+  const prototypePlayer = players[0];
+  const weeklySessions =
+    training?.dashboard?.summary.weeklySessions ??
+    prototypePlayer.weeklySessions;
+  const weeklyGoal = training?.dashboard?.team.weeklyGoal ?? WEEKLY_GOAL;
+  const currentStreak =
+    training?.dashboard?.summary.currentStreak ?? prototypePlayer.currentStreak;
   const livePlanComplete =
     canvas.connectedStatus === "local"
       ? canvas.state.primaryComplete
@@ -72,10 +78,16 @@ export function ConsolidatedToday() {
     <div className="player-page player-page--today">
       {dev.settings.momentumVisible ? (
         <MomentumStatus
-          band={band}
+          weeklySessions={weeklySessions}
+          weeklyGoal={weeklyGoal}
+          currentStreak={currentStreak}
           restDay={restDay}
           planComplete={unlockedByToday}
-          recoveryComplete={momentum.state.recoveryComplete}
+          stateOverride={
+            dev.settings.momentumBand === "real"
+              ? undefined
+              : dev.settings.momentumBand
+          }
         />
       ) : null}
 
