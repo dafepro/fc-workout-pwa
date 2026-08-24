@@ -182,7 +182,22 @@ jobs:
           else
             echo "created=true" >>"$GITHUB_OUTPUT"
           fi
-          tofu apply -input=false -auto-approve
+          if ! tofu apply -input=false -auto-approve; then
+            if [ "${{ inputs.operation }}" != "update" ]; then
+              exit 1
+            fi
+            echo "::warning::Provider refresh failed; checking whether a no-refresh, no-change update is safe."
+            fallback_plan="$RUNNER_TEMP/dev-no-refresh.tfplan"
+            set +e
+            tofu plan -input=false -refresh=false -detailed-exitcode -out="$fallback_plan"
+            fallback_status=$?
+            set -e
+            if [ "$fallback_status" -ne 0 ]; then
+              echo "Refusing the no-refresh fallback because the infrastructure plan is not empty." >&2
+              exit 1
+            fi
+            tofu apply -input=false -auto-approve "$fallback_plan"
+          fi
           tofu output -raw deploy_host >"$RUNNER_TEMP/dev-host"
 
       - name: Pin the new host key for this run

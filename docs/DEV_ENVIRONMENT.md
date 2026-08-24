@@ -4,6 +4,12 @@ The dev environment is a separate, disposable deployment at
 `dev.zoomigo.quicktrack.cc`. It does not use Cloudflare Access, an identity
 provider, or an email allowlist. A shared outer password is the invitation.
 
+An `update` normally refreshes all OpenTofu provider state before deployment.
+If that refresh fails, the workflow may continue only when a second
+`-refresh=false` plan reports zero infrastructure changes. Create, reset,
+destroy, and any nonempty plan still fail closed; the fallback can deploy an
+already-verified application artifact but cannot apply or conceal drift.
+
 ## Security boundary
 
 Every PWA request reaches the custom Worker gate before application routing,
