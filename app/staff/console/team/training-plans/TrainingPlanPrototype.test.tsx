@@ -10,9 +10,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { TrainingPlan, TrainingPlanTemplate } from "./model";
 import { TrainingPlanPrototype } from "./TrainingPlanPrototype";
 
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: vi.fn() }),
-}));
+vi.mock("next/navigation", () => {
+  const router = { replace: vi.fn() };
+  return { useRouter: () => router };
+});
 
 const templates: TrainingPlanTemplate[] = [
   planTemplate("in-season-balance-v1", "In-season balance"),
@@ -111,6 +112,35 @@ describe("TrainingPlanPrototype", () => {
       ).toBe(true),
     );
   });
+
+  it("refreshes obsolete controls when another coach already changed the plan", async () => {
+    const calls = stubPlanBackend(
+      [publishedPlan("plan-future", "2099-08-24")],
+      {
+        staleAction: "cancel",
+      },
+    );
+    render(<TrainingPlanPrototype teamId="team-one" />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Cancel plan" }));
+    fireEvent.click(screen.getByRole("button", { name: "Yes, cancel plan" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /changed in another session/i,
+    );
+    await waitFor(() =>
+      expect(
+        calls.filter(
+          ({ method, url }) =>
+            method === "GET" && url.endsWith("/training-plans"),
+        ),
+      ).toHaveLength(2),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "Cancel plan" })).toBeNull(),
+    );
+    expect(screen.getByText("Cancelled")).toBeInTheDocument();
+  });
 });
 
 interface PlanCall {
@@ -119,7 +149,10 @@ interface PlanCall {
   body?: Record<string, unknown>;
 }
 
-function stubPlanBackend(initialPlans: TrainingPlan[] = []): PlanCall[] {
+function stubPlanBackend(
+  initialPlans: TrainingPlan[] = [],
+  options: { staleAction?: "cancel" | "reschedule" } = {},
+): PlanCall[] {
   const calls: PlanCall[] = [];
   let plans: TrainingPlan[] = [...initialPlans];
   vi.stubGlobal(
@@ -153,6 +186,21 @@ function stubPlanBackend(initialPlans: TrainingPlan[] = []): PlanCall[] {
       }
       if (url.endsWith("/reschedule") && method === "POST") {
         const oldID = url.split("/").at(-2)!;
+        if (options.staleAction === "reschedule") {
+          plans = plans.map((plan) =>
+            plan.id === oldID ? { ...plan, status: "cancelled" } : plan,
+          );
+          return Response.json(
+            {
+              error: {
+                code: "training_plan_changed",
+                message:
+                  "That plan changed in another session. The latest plan history is shown.",
+              },
+            },
+            { status: 409 },
+          );
+        }
         plans = plans.map((plan) =>
           plan.id === oldID ? { ...plan, status: "cancelled" } : plan,
         );
@@ -168,6 +216,18 @@ function stubPlanBackend(initialPlans: TrainingPlan[] = []): PlanCall[] {
         plans = plans.map((plan) =>
           plan.id === planID ? { ...plan, status: "cancelled" } : plan,
         );
+        if (options.staleAction === "cancel") {
+          return Response.json(
+            {
+              error: {
+                code: "training_plan_changed",
+                message:
+                  "That plan changed in another session. The latest plan history is shown.",
+              },
+            },
+            { status: 409 },
+          );
+        }
         return Response.json(plans.find((plan) => plan.id === planID));
       }
       if (url.endsWith("/training-plans")) return Response.json({ plans });

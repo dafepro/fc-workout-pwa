@@ -54,7 +54,7 @@ A major flow is complete only when:
 
 - [x] Exercise the staff planner UI rather than publishing plans through test
       setup APIs alone.
-- [ ] Cover publish, player Today presentation, completion, revisit, cancel,
+- [x] Cover publish, player Today presentation, completion, revisit, cancel,
       reschedule, stale-conflict behavior, and planned recovery.
 - [ ] Obtain coaching-owner approval for the numeric 5–20 minute development
       bounds before mainline eligibility.
@@ -118,6 +118,13 @@ saved Avatar rendered in Team Lounge.
 The merged repository also passes its deterministic Prettier check. The
 baseline cleanup is isolated in a formatting-only revision so it does not hide
 behavior changes.
+
+H2 lifecycle evidence now spans staff publication and atomic rescheduling,
+player Today presentation, training and planned-recovery completion, completed
+state after reload, cancellation removal from Today with retained history, and
+a recoverable stale-coach conflict that refreshes obsolete controls. The
+coaching-owner decision on numeric development bounds remains the only open H2
+gate.
 
 Proposed file tree:
 

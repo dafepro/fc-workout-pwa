@@ -117,6 +117,17 @@ func TestTrainingPlanRoutesRescheduleAndCancelFuturePlans(t *testing.T) {
 	if cancelled.Code != http.StatusOK || !strings.Contains(cancelled.Body.String(), `"status":"cancelled"`) {
 		t.Fatalf("cancel status=%d body=%s", cancelled.Code, cancelled.Body.String())
 	}
+	staleCancel := authenticatedRequest(t, handler, http.MethodPost,
+		"/v1/staff/teams/team-one/training-plans/"+replacement.ID+"/cancel", nil)
+	if staleCancel.Code != http.StatusConflict || !strings.Contains(staleCancel.Body.String(), `"training_plan_changed"`) {
+		t.Fatalf("stale cancel status=%d body=%s", staleCancel.Code, staleCancel.Body.String())
+	}
+	staleReschedule := authenticatedRequest(t, handler, http.MethodPost,
+		"/v1/staff/teams/team-one/training-plans/"+replacement.ID+"/reschedule",
+		bytes.NewBufferString(`{"templateId":"quick-check-in-v1","startsOn":"2099-08-26"}`))
+	if staleReschedule.Code != http.StatusConflict || !strings.Contains(staleReschedule.Body.String(), `"training_plan_changed"`) {
+		t.Fatalf("stale reschedule status=%d body=%s", staleReschedule.Code, staleReschedule.Body.String())
+	}
 }
 
 func authenticatedRequest(t *testing.T, handler http.Handler, method, path string, body *bytes.Buffer) *httptest.ResponseRecorder {

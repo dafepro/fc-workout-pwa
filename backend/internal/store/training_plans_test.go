@@ -112,6 +112,28 @@ func TestCancelAndRescheduleTrainingPlanRetainLinkedHistory(t *testing.T) {
 	}
 }
 
+func TestTrainingPlanActionsReportStalePublishedState(t *testing.T) {
+	staff, teamID, _ := assignmentStaffStore(t)
+	ctx := context.Background()
+	plan, err := staff.PublishTrainingPlan(ctx, teamID, store.TrainingPlanInput{
+		TemplateID: "quick-check-in-v1", StartsOn: "2099-08-24",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = staff.CancelTrainingPlan(ctx, teamID, plan.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = staff.CancelTrainingPlan(ctx, teamID, plan.ID); !errors.Is(err, store.ErrTrainingPlanState) {
+		t.Fatalf("second cancellation error = %v, want ErrTrainingPlanState", err)
+	}
+	if _, err = staff.RescheduleTrainingPlan(ctx, teamID, plan.ID, store.TrainingPlanInput{
+		TemplateID: "quick-check-in-v1", StartsOn: "2099-08-25",
+	}); !errors.Is(err, store.ErrTrainingPlanState) {
+		t.Fatalf("stale reschedule error = %v, want ErrTrainingPlanState", err)
+	}
+}
+
 func TestRescheduleTrainingPlanRefusesStartedSnapshots(t *testing.T) {
 	staff, teamID, _ := assignmentStaffStore(t)
 	ctx := context.Background()

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ConsoleNotice } from "../../ConsoleChrome";
-import { consoleRequest, messageFor } from "../../api";
+import { ConsoleError, consoleRequest, messageFor } from "../../api";
 import { consoleCopy } from "../../copy";
 import { useResource } from "../../useResource";
 import {
@@ -78,6 +78,7 @@ export function TrainingPlanPrototype({ teamId }: { teamId: string }) {
       plans.reload();
     } catch (error) {
       setActionError(messageFor(error));
+      reconcileChangedPlan(error);
     } finally {
       setBusy(false);
     }
@@ -120,9 +121,24 @@ export function TrainingPlanPrototype({ teamId }: { teamId: string }) {
       plans.reload();
     } catch (error) {
       setActionError(messageFor(error));
+      reconcileChangedPlan(error);
     } finally {
       setBusy(false);
     }
+  }
+
+  function reconcileChangedPlan(error: unknown) {
+    if (
+      !(error instanceof ConsoleError) ||
+      error.code !== "training_plan_changed"
+    ) {
+      return;
+    }
+    setStartsOn("");
+    setDraftDays([]);
+    setEditingPlanID("");
+    setConfirmCancelID("");
+    plans.reload();
   }
 
   return (

@@ -12,6 +12,7 @@ import (
 var (
 	ErrTrainingPlanOverlap = errors.New("training plan overlaps an existing published plan")
 	ErrTrainingPlanStarted = errors.New("only future training plans can be rescheduled")
+	ErrTrainingPlanState   = errors.New("training plan is no longer published")
 )
 
 type TrainingPlanInput struct {
@@ -88,7 +89,11 @@ func (staff *StaffStore) CancelTrainingPlan(ctx context.Context, teamID, planID 
 		return TrainingPlan{}, err
 	}
 	if changed == 0 {
-		return TrainingPlan{}, ErrStaffNotFound
+		current, loadErr := loadTrainingPlan(ctx, staff.db, planID)
+		if loadErr != nil || current.TeamID != teamID {
+			return TrainingPlan{}, ErrStaffNotFound
+		}
+		return TrainingPlan{}, ErrTrainingPlanState
 	}
 	return loadTrainingPlan(ctx, staff.db, planID)
 }
@@ -104,11 +109,14 @@ func (staff *StaffStore) RescheduleTrainingPlan(ctx context.Context, teamID, pla
 	}
 	defer func() { _ = tx.Rollback() }()
 	original, err := loadTrainingPlan(ctx, tx, planID)
-	if err != nil || original.TeamID != teamID || original.Status != "published" {
-		if err != nil {
-			return TrainingPlan{}, err
-		}
+	if err != nil {
+		return TrainingPlan{}, err
+	}
+	if original.TeamID != teamID {
 		return TrainingPlan{}, ErrStaffNotFound
+	}
+	if original.Status != "published" {
+		return TrainingPlan{}, ErrTrainingPlanState
 	}
 	var zone string
 	if err = tx.QueryRowContext(ctx, `SELECT time_zone FROM teams WHERE id = ?`, teamID).Scan(&zone); err != nil {
@@ -122,9 +130,17 @@ func (staff *StaffStore) RescheduleTrainingPlan(ctx context.Context, teamID, pla
 		return TrainingPlan{}, ErrTrainingPlanStarted
 	}
 	stamp := stampNow(staff.now)
-	if _, err = tx.ExecContext(ctx, `UPDATE training_plans SET status = 'cancelled', cancelled_at = ?
-		WHERE id = ?`, stamp, planID); err != nil {
+	result, err := tx.ExecContext(ctx, `UPDATE training_plans SET status = 'cancelled', cancelled_at = ?
+		WHERE id = ? AND team_id = ? AND status = 'published'`, stamp, planID, teamID)
+	if err != nil {
 		return TrainingPlan{}, err
+	}
+	changed, err := result.RowsAffected()
+	if err != nil {
+		return TrainingPlan{}, err
+	}
+	if changed == 0 {
+		return TrainingPlan{}, ErrTrainingPlanState
 	}
 	replacement, err := staff.insertTrainingPlan(ctx, tx, teamID, input.StartsOn, planID, template, start)
 	if err != nil {

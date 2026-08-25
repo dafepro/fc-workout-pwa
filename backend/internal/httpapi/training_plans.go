@@ -67,6 +67,9 @@ func (service *service) cancelTrainingPlan(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	plan, err := service.staffStore.CancelTrainingPlan(r.Context(), teamID, planID)
+	if writeTrainingPlanStateError(w, r, err) {
+		return
+	}
 	if service.writeStaffStoreError(w, r, err) {
 		return
 	}
@@ -93,6 +96,9 @@ func (service *service) rescheduleTrainingPlan(w http.ResponseWriter, r *http.Re
 	plan, err := service.staffStore.RescheduleTrainingPlan(r.Context(), teamID, planID, store.TrainingPlanInput{
 		TemplateID: request.TemplateID, StartsOn: request.StartsOn, Days: request.Days,
 	})
+	if writeTrainingPlanStateError(w, r, err) {
+		return
+	}
 	if errors.Is(err, store.ErrTrainingPlanStarted) {
 		writeError(w, r, http.StatusConflict, "training_plan_started",
 			"This plan has already started. Cancel it if needed; completed and missed days will not move.")
@@ -109,4 +115,13 @@ func (service *service) rescheduleTrainingPlan(w http.ResponseWriter, r *http.Re
 	service.record(r.Context(), actor, "training_plan.reschedule", "training_plan", plan.ID,
 		map[string]any{"teamId": teamID, "replacesPlanId": planID, "startsOn": plan.StartsOn, "endsOn": plan.EndsOn})
 	writeJSON(w, http.StatusCreated, plan)
+}
+
+func writeTrainingPlanStateError(w http.ResponseWriter, r *http.Request, err error) bool {
+	if !errors.Is(err, store.ErrTrainingPlanState) {
+		return false
+	}
+	writeError(w, r, http.StatusConflict, "training_plan_changed",
+		"That plan changed in another session. The latest plan history is shown.")
+	return true
 }
