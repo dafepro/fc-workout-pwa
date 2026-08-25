@@ -181,8 +181,6 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	mux.HandleFunc("GET /v1/me/training-dashboard", service.getTrainingDashboard)
 	mux.HandleFunc("POST /v1/me/training-entries", service.createTrainingEntry)
 	mux.HandleFunc("PUT /v1/me/avatar", service.updateAvatar)
-	mux.HandleFunc("GET /v1/me/daily-drop", service.getDailyDrop)
-	mux.HandleFunc("POST /v1/me/daily-drop/claim", service.claimDailyDrop)
 	mux.HandleFunc("GET /v1/me/prize-boxes", service.getPrizeBoxes)
 	mux.HandleFunc("POST /v1/me/prize-boxes/claim-daily", service.claimDailyPrizeBox)
 	mux.HandleFunc("POST /v1/me/prize-boxes/{boxId}/open", service.openPrizeBox)

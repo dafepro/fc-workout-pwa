@@ -12,8 +12,6 @@ import (
 )
 
 type dailyDropRepository interface {
-	DailyDropStatus(context.Context, string, time.Time) (store.DailyDropStatus, error)
-	ClaimDailyDrop(context.Context, store.ClaimDailyDropInput) (store.ClaimDailyDropResult, error)
 	PrizeBoxOverview(context.Context, string, time.Time) (store.PrizeBoxOverview, error)
 	ClaimDailyPrizeBox(context.Context, store.ClaimDailyPrizeBoxInput) (store.ClaimDailyPrizeBoxResult, error)
 	OpenPrizeBox(context.Context, store.OpenPrizeBoxInput) (store.OpenPrizeBoxResult, error)
@@ -125,46 +123,6 @@ func (service *service) markPlayerUnlockViewed(w http.ResponseWriter, r *http.Re
 		return
 	}
 	writeJSON(w, http.StatusOK, item)
-}
-
-func (service *service) getDailyDrop(w http.ResponseWriter, r *http.Request) {
-	actor, repository, ok := service.dailyDropActor(w, r)
-	if !ok {
-		return
-	}
-	status, err := repository.DailyDropStatus(r.Context(), actor.PlayerID, service.now().UTC())
-	if err != nil {
-		writeError(w, r, http.StatusInternalServerError, "internal_error", "The daily gift could not be loaded.")
-		return
-	}
-	writeJSON(w, http.StatusOK, status)
-}
-
-func (service *service) claimDailyDrop(w http.ResponseWriter, r *http.Request) {
-	actor, repository, ok := service.dailyDropActor(w, r)
-	if !ok {
-		return
-	}
-	idempotencyKey, valid := prizeBoxIdempotencyKey(w, r)
-	if !valid {
-		return
-	}
-	result, err := repository.ClaimDailyDrop(r.Context(), store.ClaimDailyDropInput{
-		PlayerID: actor.PlayerID, IdempotencyKey: idempotencyKey, Now: service.now().UTC(),
-	})
-	if errors.Is(err, store.ErrDailyDropIdempotencyConflict) {
-		writeError(w, r, http.StatusConflict, "idempotency_conflict", "That Idempotency-Key was already used for another daily gift.")
-		return
-	}
-	if err != nil {
-		writeError(w, r, http.StatusInternalServerError, "internal_error", "The daily gift could not be opened.")
-		return
-	}
-	status := http.StatusCreated
-	if result.Replayed {
-		status = http.StatusOK
-	}
-	writeJSON(w, status, result)
 }
 
 func (service *service) listPlayerUnlocks(w http.ResponseWriter, r *http.Request) {

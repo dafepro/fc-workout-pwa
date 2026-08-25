@@ -65,7 +65,7 @@ A major flow is complete only when:
 - [x] Prove an Avatar reward can be equipped and appears in Team Lounge after a
       reload.
 - [x] Prove a Team Lounge item can enter the supported placement flow.
-- [ ] Retire or isolate the legacy Daily Drop surface so one backend authority
+- [x] Retire or isolate the legacy Daily Drop surface so one backend authority
       owns reward claims and inventory.
 
 ### H4 — Team Reward operations
@@ -158,6 +158,13 @@ equipped, saved, rendered in Team Lounge, and retained after reload. An earned
 lion stamp enters the real Canvas placement flow. That proof exposed and fixed
 a production boundary where developer stamp controls could accidentally replace
 permanent earned ownership instead of supplementing it.
+
+The third H3 slice keeps Daily Drop as the deliberate daily check-in incentive
+while consolidating it into Prize Boxes. The supported claim adds one sealed
+box without requiring a workout; opening remains separate. The dead
+immediate-reveal component/gateway and both legacy public routes are removed,
+leaving one player-facing transaction authority without renaming historical
+database vocabulary.
 
 Proposed file tree:
 

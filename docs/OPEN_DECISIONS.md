@@ -960,6 +960,15 @@ Momentum Alpha needs independent PWA install/offline behavior.
 
 ## Prize Boxes UX and transaction boundary (2026-08-25)
 
+- Decided: Daily Drop remains the product's once-per-player-day check-in reward.
+  It requires a deliberate claim in Prize Boxes but no workout. Claiming adds
+  one sealed box to the unopened pool; opening and revealing the item is a
+  separate action. Workout and plan boxes remain independent.
+- Decided: the sealed Prize Boxes claim/open API is the only player-facing
+  reward transaction authority. The obsolete Daily Drop card, client gateway,
+  proxy allowlist entries, and immediate-reveal HTTP routes are retired. The
+  existing `daily_drop` schema and catalog names remain internal historical
+  vocabulary until a future data migration warrants renaming them.
 - Decided: claiming today's free box and opening a mystery box are separate.
   Claim adds a sealed server-owned box; only opening chooses and grants an item.
 - Decided: the landing page contains only light Zoomi branding, daily claim,
@@ -1017,8 +1026,8 @@ Momentum Alpha needs independent PWA install/offline behavior.
   ordered secondary rows. Team pulse and active team-reward progress stay on
   Team rather than competing with today's action.
 - Decided: “Prize boxes” is the general player-facing destination name. Daily
-  Drop remains an internal claim cadence and API concept, not a promise in the
-  permanent Today hierarchy.
+  Drop remains the daily check-in cadence and product concept, consolidated
+  within Prize Boxes rather than competing in the permanent Today hierarchy.
 - Superseded: the horizontal full-card plan carousel and its separate action,
   plus the large post-completion “What's next?” recommendation card. The
   scheduling authority and missed-day rules in

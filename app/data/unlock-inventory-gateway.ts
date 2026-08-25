@@ -1,5 +1,6 @@
-import type { UnlockItemKind } from "./daily-drop-gateway";
 import { isPrizeItem, type PrizeItem } from "./prize-box-gateway";
+
+export type UnlockItemKind = "avatar_part" | "canvas_stamp";
 
 export interface PlayerUnlock {
   item: PrizeItem;

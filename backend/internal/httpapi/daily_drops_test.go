@@ -17,7 +17,7 @@ import (
 	"github.com/dafepro/fc-workout-pwa/backend/internal/store"
 )
 
-func TestDailyDropRoutesClaimWithoutTrainingAndReturnTheUnlockedCollection(t *testing.T) {
+func TestLegacyDailyDropRoutesAreRetired(t *testing.T) {
 	ctx := context.Background()
 	db, err := database.Open(ctx, "file:"+filepath.ToSlash(filepath.Join(t.TempDir(), "daily-drop-http.db")))
 	if err != nil {
@@ -42,59 +42,16 @@ func TestDailyDropRoutesClaimWithoutTrainingAndReturnTheUnlockedCollection(t *te
 		}}),
 	)
 
-	statusRequest := httptest.NewRequest(http.MethodGet, "/v1/me/daily-drop", nil)
-	statusRequest.Header.Set("Authorization", "Bearer player")
-	statusResponse := httptest.NewRecorder()
-	handler.ServeHTTP(statusResponse, statusRequest)
-	if statusResponse.Code != http.StatusOK || !strings.Contains(statusResponse.Body.String(), `"state":"available"`) {
-		t.Fatalf("status=%d body=%s", statusResponse.Code, statusResponse.Body.String())
-	}
-
-	missingKey := httptest.NewRequest(http.MethodPost, "/v1/me/daily-drop/claim", nil)
-	missingKey.Header.Set("Authorization", "Bearer player")
-	missingResponse := httptest.NewRecorder()
-	handler.ServeHTTP(missingResponse, missingKey)
-	if missingResponse.Code != http.StatusBadRequest {
-		t.Fatalf("missing key status=%d body=%s", missingResponse.Code, missingResponse.Body.String())
-	}
-
-	claimRequest := httptest.NewRequest(http.MethodPost, "/v1/me/daily-drop/claim", nil)
-	claimRequest.Header.Set("Authorization", "Bearer player")
-	claimRequest.Header.Set("Idempotency-Key", "daily-drop-browser-key")
-	claimResponse := httptest.NewRecorder()
-	handler.ServeHTTP(claimResponse, claimRequest)
-	if claimResponse.Code != http.StatusCreated {
-		t.Fatalf("claim status=%d body=%s", claimResponse.Code, claimResponse.Body.String())
-	}
-	var claimed struct {
-		Claim struct {
-			Item struct {
-				Kind string `json:"kind"`
-				ID   string `json:"id"`
-			} `json:"item"`
-		} `json:"claim"`
-	}
-	if err := json.Unmarshal(claimResponse.Body.Bytes(), &claimed); err != nil {
-		t.Fatal(err)
-	}
-	if claimed.Claim.Item.ID == "" {
-		t.Fatalf("claim omitted item: %s", claimResponse.Body.String())
-	}
-
-	unlocksRequest := httptest.NewRequest(http.MethodGet, "/v1/me/unlocks?kind="+claimed.Claim.Item.Kind, nil)
-	unlocksRequest.Header.Set("Authorization", "Bearer player")
-	unlocksResponse := httptest.NewRecorder()
-	handler.ServeHTTP(unlocksResponse, unlocksRequest)
-	if unlocksResponse.Code != http.StatusOK || !strings.Contains(unlocksResponse.Body.String(), claimed.Claim.Item.ID) {
-		t.Fatalf("unlocks status=%d body=%s", unlocksResponse.Code, unlocksResponse.Body.String())
-	}
-
-	viewedRequest := httptest.NewRequest(http.MethodPost, "/v1/me/unlocks/"+claimed.Claim.Item.ID+"/viewed", nil)
-	viewedRequest.Header.Set("Authorization", "Bearer player")
-	viewedResponse := httptest.NewRecorder()
-	handler.ServeHTTP(viewedResponse, viewedRequest)
-	if viewedResponse.Code != http.StatusOK || !strings.Contains(viewedResponse.Body.String(), `"viewedAt":`) {
-		t.Fatalf("viewed status=%d body=%s", viewedResponse.Code, viewedResponse.Body.String())
+	for _, request := range []*http.Request{
+		httptest.NewRequest(http.MethodGet, "/v1/me/daily-drop", nil),
+		httptest.NewRequest(http.MethodPost, "/v1/me/daily-drop/claim", nil),
+	} {
+		request.Header.Set("Authorization", "Bearer player")
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+		if response.Code != http.StatusNotFound {
+			t.Fatalf("%s %s status=%d body=%s", request.Method, request.URL.Path, response.Code, response.Body.String())
+		}
 	}
 
 	var trainingEntries int
@@ -102,7 +59,7 @@ func TestDailyDropRoutesClaimWithoutTrainingAndReturnTheUnlockedCollection(t *te
 		t.Fatal(err)
 	}
 	if trainingEntries != 0 {
-		t.Fatalf("daily drop created %d training entries", trainingEntries)
+		t.Fatalf("retired daily drop route created %d training entries", trainingEntries)
 	}
 }
 

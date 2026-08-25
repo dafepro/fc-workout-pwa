@@ -396,6 +396,7 @@ Update this table in the same commit that materially changes a vertical slice.
 | 2026-08-25 | H5 · analytics storage      | This delivery change | Browser-shaped event validation through production D1 storage functions and the real SQLite migration to canonical-route operator aggregates                             | Dev host admission                   |
 | 2026-08-25 | H3 · Prize Box replay       | This delivery change | Browser-gateway and public-API replay proofs return the original sealed box and unlock while preserving one durable opened item                                          | Earned-item destination proofs       |
 | 2026-08-25 | H3 · reward destinations    | This delivery change | Exact E2E-gated catalog grants prove earned Avatar equipment persists into Team Lounge and an earned lounge stamp enters real placement; dev controls preserve ownership | Consolidate legacy Daily Drop        |
+| 2026-08-25 | H3 · Daily Drop authority   | This delivery change | Daily check-in remains a no-workout sealed-box claim; obsolete immediate-reveal UI, gateway, proxy allowlist, and public API routes are retired                          | Team Reward concern lifecycle        |
 
 ## Linked designs
 
