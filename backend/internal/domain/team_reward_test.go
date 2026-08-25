@@ -77,6 +77,23 @@ func TestTeamRewardConsistencyCountsEachTeammateOnce(t *testing.T) {
 	}
 }
 
+func TestTeamRewardConsistencyKeepsTheDayTargetOnUnstartedUnits(t *testing.T) {
+	rule := domain.TeamRewardRule{
+		Version: 1, Kind: domain.RewardRuleTeammateConsistency,
+		ParticipationScope: domain.RewardParticipationApproved,
+		RequiredPlayers:    3, RequiredDaysPerPlayer: 5,
+	}
+	progress, err := domain.EvaluateTeamReward(rule, domain.TeamRewardProgressInput{
+		Players: []domain.TeamRewardPlayerInput{{PlayerID: "p1", QualifyingDays: 2}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if progress.Units[1].Target != 5 || progress.Units[2].Target != 5 {
+		t.Fatalf("unstarted teammates lost the five-day target: %+v", progress.Units)
+	}
+}
+
 func TestTeamRewardRuleRejectsUnboundedValues(t *testing.T) {
 	invalid := []domain.TeamRewardRule{
 		{Version: 1, Kind: domain.RewardRuleQualifyingTeamDays, ParticipationScope: domain.RewardParticipationRecommended, RequiredDays: 0, MinimumRosterPercent: 80},

@@ -100,6 +100,28 @@ describe("team reward rules", () => {
     expect(progress.achieved).toBe(false);
   });
 
+  it("keeps the configured day target on teammates who have not started", () => {
+    const progress = evaluateTeamReward(
+      {
+        version: 1,
+        kind: "teammate_consistency",
+        requiredPlayers: 3,
+        requiredDaysPerPlayer: 5,
+        participationScope: "any_approved_workout",
+      },
+      {
+        days: [],
+        players: [{ playerId: "p1", qualifyingDays: 2 }],
+      },
+    );
+
+    expect(progress.units).toEqual([
+      { current: 2, target: 5, complete: false },
+      { current: 0, target: 5, complete: false },
+      { current: 0, target: 5, complete: false },
+    ]);
+  });
+
   it("rejects unsafe or unbounded rule values", () => {
     expect(
       validateTeamRewardRule({

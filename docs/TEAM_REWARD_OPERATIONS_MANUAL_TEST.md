@@ -32,8 +32,10 @@ and the seeded Hill Striders players; do not upload a real child's photo.
    on the reward.
 2. Confirm there is no text field. Choose one predefined reason and confirm it
    gains a selected state without sending immediately.
-3. Tap **Send report** and confirm the private-review acknowledgment. Trigger a
-   failed request once and confirm the selected reason remains available to retry.
+3. Tap **Send report** and confirm the reason panel closes, the acknowledgment
+   appears to its right, and the prize image stays anchored while the panel opens
+   and closes. Trigger a failed request once and confirm the selected reason
+   remains available to retry.
 4. As the operator, open **Reward concerns**. Confirm the reason, team, prize,
    and time appear, but no reporter identity or workout details do.
 5. Resolve one disposable report with **Hide reward**. Confirm the player no
@@ -49,3 +51,13 @@ and the seeded Hill Striders players; do not upload a real child's photo.
    history after an API restart/media cleanup pass.
 3. While signed in as the coach, request another team's reward URL. Confirm the
    API refuses it and does not reveal whether that team has a reward.
+
+## Recommended-plan progress
+
+1. Publish a teammate-consistency reward whose participation scope is
+   **Recommended workout** and whose day target is at least three.
+2. Complete a legacy assigned workout, a coach training-plan workout, and a
+   prescribed plan-rest day with disposable players on distinct team-local days.
+3. Refresh Team. Confirm every completed plan day appears once, planned rest
+   counts once, extra same-day activity adds nothing, and unstarted units retain
+   the configured day target rather than displaying `0/1`.

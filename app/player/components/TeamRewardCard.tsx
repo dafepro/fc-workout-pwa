@@ -121,53 +121,55 @@ export function TeamRewardCard({
           </p>
         ) : null}
         {onReport ? (
-          <details className="player-rewards__report">
-            <summary>{teamRewardCopy.reportConcern}</summary>
-            <p>{teamRewardCopy.reportHint}</p>
-            <div>
-              {teamRewardCopy.reportReasons.map((reason) => (
+          <div className="player-rewards__report-row">
+            {reportState !== "sent" ? (
+              <details className="player-rewards__report">
+                <summary>{teamRewardCopy.reportConcern}</summary>
+                <p>{teamRewardCopy.reportHint}</p>
+                <div>
+                  {teamRewardCopy.reportReasons.map((reason) => (
+                    <button
+                      type="button"
+                      key={reason.value}
+                      aria-pressed={selectedReason === reason.value}
+                      disabled={reportState === "sending"}
+                      onClick={() => {
+                        setSelectedReason(reason.value);
+                        setReportState("idle");
+                      }}
+                    >
+                      {reason.label}
+                    </button>
+                  ))}
+                </div>
                 <button
+                  className="player-rewards__report-send"
                   type="button"
-                  key={reason.value}
-                  aria-pressed={selectedReason === reason.value}
-                  disabled={reportState === "sending" || reportState === "sent"}
+                  disabled={!selectedReason || reportState === "sending"}
                   onClick={() => {
-                    setSelectedReason(reason.value);
-                    setReportState("idle");
+                    if (!selectedReason) return;
+                    setReportState("sending");
+                    void onReport(selectedReason).then(
+                      () => setReportState("sent"),
+                      () => setReportState("error"),
+                    );
                   }}
                 >
-                  {reason.label}
+                  {reportState === "sending"
+                    ? teamRewardCopy.reportSending
+                    : teamRewardCopy.reportSend}
                 </button>
-              ))}
-            </div>
-            <button
-              className="player-rewards__report-send"
-              type="button"
-              disabled={
-                !selectedReason ||
-                reportState === "sending" ||
-                reportState === "sent"
-              }
-              onClick={() => {
-                if (!selectedReason) return;
-                setReportState("sending");
-                void onReport(selectedReason).then(
-                  () => setReportState("sent"),
-                  () => setReportState("error"),
-                );
-              }}
-            >
-              {reportState === "sending"
-                ? teamRewardCopy.reportSending
-                : teamRewardCopy.reportSend}
-            </button>
+                {reportState === "error" ? (
+                  <small role="alert">{teamRewardCopy.reportFailed}</small>
+                ) : null}
+              </details>
+            ) : null}
             {reportState === "sent" ? (
-              <small role="status">{teamRewardCopy.reportSent}</small>
+              <small className="player-rewards__report-toast" role="status">
+                {teamRewardCopy.reportSent}
+              </small>
             ) : null}
-            {reportState === "error" ? (
-              <small role="alert">{teamRewardCopy.reportFailed}</small>
-            ) : null}
-          </details>
+          </div>
         ) : null}
       </div>
       <div className="player-rewards__visual">

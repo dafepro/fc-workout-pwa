@@ -110,7 +110,7 @@ func EvaluateTeamReward(rule TeamRewardRule, input TeamRewardProgressInput) (Tea
 				Target:  max(1, day.RequiredPlayers), Complete: day.Qualifies,
 			})
 		}
-		return rewardProgress(min(current, rule.RequiredDays), rule.RequiredDays, days, units), nil
+		return rewardProgress(min(current, rule.RequiredDays), rule.RequiredDays, days, units, 1), nil
 	}
 
 	current := 0
@@ -125,10 +125,10 @@ func EvaluateTeamReward(rule TeamRewardRule, input TeamRewardProgressInput) (Tea
 			Complete: player.QualifyingDays >= rule.RequiredDaysPerPlayer,
 		})
 	}
-	return rewardProgress(min(current, rule.RequiredPlayers), rule.RequiredPlayers, nil, units), nil
+	return rewardProgress(min(current, rule.RequiredPlayers), rule.RequiredPlayers, nil, units, rule.RequiredDaysPerPlayer), nil
 }
 
-func rewardProgress(current, target int, days []TeamRewardDayProgress, candidates []TeamRewardProgressUnit) TeamRewardProgress {
+func rewardProgress(current, target int, days []TeamRewardDayProgress, candidates []TeamRewardProgressUnit, emptyUnitTarget int) TeamRewardProgress {
 	percent := 0
 	if target > 0 {
 		percent = min(100, int(math.Round(float64(current)*100/float64(target))))
@@ -143,7 +143,7 @@ func rewardProgress(current, target int, days []TeamRewardDayProgress, candidate
 	})
 	units := append([]TeamRewardProgressUnit(nil), candidates[:min(len(candidates), target)]...)
 	for len(units) < target {
-		units = append(units, TeamRewardProgressUnit{Target: 1})
+		units = append(units, TeamRewardProgressUnit{Target: emptyUnitTarget})
 	}
 	contribution := 0.0
 	started := 0

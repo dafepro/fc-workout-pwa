@@ -369,21 +369,22 @@ func (store *Store) evaluateTeamReward(ctx context.Context, queryer rewardQuerye
 	}
 
 	end := today.AddDate(0, 0, 1)
-	entryRows, err := queryer.QueryContext(ctx, `SELECT player_id, occurred_at, COALESCE(assignment_id, '')
-		FROM training_entries WHERE team_id = ? AND deleted_at IS NULL AND occurred_at >= ? AND occurred_at < ?`,
+	entryFilter := ""
+	if reward.Rule.ParticipationScope == domain.RewardParticipationRecommended {
+		entryFilter = " AND assignment_id IS NOT NULL"
+	}
+	entryRows, err := queryer.QueryContext(ctx, `SELECT player_id, occurred_at
+		FROM training_entries WHERE team_id = ? AND deleted_at IS NULL AND occurred_at >= ? AND occurred_at < ?`+entryFilter,
 		reward.TeamID, start.UTC().Format(time.RFC3339Nano), end.UTC().Format(time.RFC3339Nano))
 	if err != nil {
 		return domain.TeamRewardProgress{}, fmt.Errorf("load reward entries: %w", err)
 	}
 	qualifyingByDay := map[string]map[string]struct{}{}
 	for entryRows.Next() {
-		var playerID, occurredAt, assignmentID string
-		if err = entryRows.Scan(&playerID, &occurredAt, &assignmentID); err != nil {
+		var playerID, occurredAt string
+		if err = entryRows.Scan(&playerID, &occurredAt); err != nil {
 			entryRows.Close()
 			return domain.TeamRewardProgress{}, fmt.Errorf("scan reward entry: %w", err)
-		}
-		if reward.Rule.ParticipationScope == domain.RewardParticipationRecommended && assignmentID == "" {
-			continue
 		}
 		occurred, parseErr := time.Parse(time.RFC3339Nano, occurredAt)
 		if parseErr != nil {
@@ -400,6 +401,53 @@ func (store *Store) evaluateTeamReward(ctx context.Context, queryer rewardQuerye
 	}
 	if err = entryRows.Close(); err != nil {
 		return domain.TeamRewardProgress{}, fmt.Errorf("close reward entries: %w", err)
+	}
+	if reward.Rule.ParticipationScope == domain.RewardParticipationRecommended {
+		planRows, planErr := queryer.QueryContext(ctx, `SELECT e.player_id, d.occurs_on
+			FROM training_entries e
+			JOIN training_plan_days d ON d.plan_id = e.training_plan_id
+				AND d.day_index = e.training_plan_day_index
+			JOIN (
+				SELECT plan_id, day_index, COUNT(*) AS required_blocks
+				FROM training_plan_blocks GROUP BY plan_id, day_index
+			) required ON required.plan_id = d.plan_id AND required.day_index = d.day_index
+			WHERE e.team_id = ? AND e.deleted_at IS NULL
+				AND e.training_plan_id IS NOT NULL AND d.occurs_on >= ? AND d.occurs_on <= ?
+			GROUP BY e.player_id, e.training_plan_id, e.training_plan_day_index, d.occurs_on, required.required_blocks
+			HAVING COUNT(DISTINCT e.training_plan_block_index) >= required.required_blocks`,
+			reward.TeamID, reward.StartsOn, todayKey)
+		if planErr != nil {
+			return domain.TeamRewardProgress{}, fmt.Errorf("load reward plan completions: %w", planErr)
+		}
+		for planRows.Next() {
+			var playerID, day string
+			if err = planRows.Scan(&playerID, &day); err != nil {
+				planRows.Close()
+				return domain.TeamRewardProgress{}, fmt.Errorf("scan reward plan completion: %w", err)
+			}
+			addRewardParticipationDay(qualifyingByDay, memberships, playerID, day)
+		}
+		if err = planRows.Close(); err != nil {
+			return domain.TeamRewardProgress{}, fmt.Errorf("close reward plan completions: %w", err)
+		}
+
+		restRows, restErr := queryer.QueryContext(ctx, `SELECT player_id, day_key
+			FROM team_canvas_rest_days WHERE team_id = ? AND training_plan_id IS NOT NULL
+				AND day_key >= ? AND day_key <= ?`, reward.TeamID, reward.StartsOn, todayKey)
+		if restErr != nil {
+			return domain.TeamRewardProgress{}, fmt.Errorf("load reward prescribed rest: %w", restErr)
+		}
+		for restRows.Next() {
+			var playerID, day string
+			if err = restRows.Scan(&playerID, &day); err != nil {
+				restRows.Close()
+				return domain.TeamRewardProgress{}, fmt.Errorf("scan reward prescribed rest: %w", err)
+			}
+			addRewardParticipationDay(qualifyingByDay, memberships, playerID, day)
+		}
+		if err = restRows.Close(); err != nil {
+			return domain.TeamRewardProgress{}, fmt.Errorf("close reward prescribed rest: %w", err)
+		}
 	}
 
 	input := domain.TeamRewardProgressInput{}
@@ -495,4 +543,14 @@ func membershipActiveOn(memberships []rewardMembership, playerID, day string) bo
 		}
 	}
 	return false
+}
+
+func addRewardParticipationDay(days map[string]map[string]struct{}, memberships []rewardMembership, playerID, day string) {
+	if !membershipActiveOn(memberships, playerID, day) {
+		return
+	}
+	if days[day] == nil {
+		days[day] = map[string]struct{}{}
+	}
+	days[day][playerID] = struct{}{}
 }

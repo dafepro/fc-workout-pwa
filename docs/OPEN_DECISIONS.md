@@ -973,6 +973,13 @@ Momentum Alpha needs independent PWA install/offline behavior.
   without a second mascot treatment on the tracks.
 - Decided: a player concern reason is selected visibly, then sent with a separate
   confirmation action. Selecting a reason alone never submits it.
+- Refined: after a concern is sent, its expanded reason panel closes and is
+  replaced by a compact right-aligned acknowledgment. The prize image remains
+  anchored to the card top while report details expand.
+- Fixed: recommended-workout reward progress recognizes complete coach-plan
+  days and plan-provenance rest alongside legacy assigned workouts. It counts
+  at most one participation per player/team day, and empty teammate units retain
+  the configured days-per-player target.
 
 ## Focused Today hierarchy (2026-08-24)
 

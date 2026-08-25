@@ -1502,7 +1502,7 @@
 
 .player-rewards__visual {
   width: 100%;
-  align-self: center;
+  align-self: start;
 }
 
 .player-rewards__visual img {
@@ -1572,8 +1572,16 @@
   font-size: 0.9rem;
 }
 
-.player-rewards__report {
+.player-rewards__report-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.5rem;
   margin-top: 0.65rem;
+}
+
+.player-rewards__report {
+  min-width: 0;
   font-size: 0.72rem;
 }
 
@@ -1632,6 +1640,19 @@
 .player-rewards__report small {
   display: block;
   margin-top: 0.45rem;
+}
+
+.player-rewards__report-toast {
+  max-width: 8.5rem;
+  margin: -0.15rem 0 0;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #9fbe55;
+  border-radius: 0.55rem;
+  background: #eff8d9;
+  color: #315516;
+  font-size: 0.65rem;
+  line-height: 1.25;
+  text-align: right;
 }
 
 @media (max-width: 23rem) {

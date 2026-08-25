@@ -128,6 +128,7 @@ export function evaluateTeamReward(
         target: Math.max(1, day.requiredPlayers),
         complete: day.qualifies,
       })),
+      1,
     );
   }
 
@@ -146,6 +147,7 @@ export function evaluateTeamReward(
       target: rule.requiredDaysPerPlayer,
       complete: player.qualifyingDays >= rule.requiredDaysPerPlayer,
     })),
+    rule.requiredDaysPerPlayer,
   );
 }
 
@@ -154,6 +156,7 @@ function rewardProgress(
   target: number,
   days: RewardDayProgress[],
   candidates: RewardProgressUnit[],
+  emptyUnitTarget: number,
 ): TeamRewardProgress {
   const units = [...candidates]
     .sort(
@@ -163,7 +166,7 @@ function rewardProgress(
     )
     .slice(0, target);
   while (units.length < target) {
-    units.push({ current: 0, target: 1, complete: false });
+    units.push({ current: 0, target: emptyUnitTarget, complete: false });
   }
 
   const contributionPercent = progressPercent(

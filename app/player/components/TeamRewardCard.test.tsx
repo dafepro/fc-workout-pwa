@@ -119,6 +119,8 @@ describe("TeamRewardCard", () => {
 
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
     fireEvent.click(screen.getByText("Report a concern"));
+    const reportPanel = screen.getByText("Report a concern").closest("details");
+    expect(reportPanel).toHaveAttribute("open");
     const reason = screen.getByRole("button", {
       name: "Personal information",
     });
@@ -133,5 +135,9 @@ describe("TeamRewardCard", () => {
     expect(
       await screen.findByText("Concern sent for private review."),
     ).toBeInTheDocument();
+    expect(reportPanel).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveClass(
+      "player-rewards__report-toast",
+    );
   });
 });

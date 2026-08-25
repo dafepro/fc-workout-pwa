@@ -103,6 +103,46 @@ func TestTeammateConsistencyRewardPublishesWithRealProgress(t *testing.T) {
 	}
 }
 
+func TestRecommendedRewardCountsCompletedPlanDaysAndPrescribedRest(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+	if _, err := db.Exec(`DELETE FROM training_entries`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO accounts (id, club_id, role, status, created_at)
+		VALUES ('account-plan-coach', 'club-one', 'coach', 'active', '2026-01-01T00:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+	plan := publishPrizeBoxTestPlan(t, db, "2026-08-08")
+	completePlanTrainingDay(t, db, plan.ID, 0, "player-mason", "reward-plan-day-zero")
+	completePlanTrainingDay(t, db, plan.ID, 1, "player-mason", "reward-plan-day-one")
+	completePlanRestDay(t, db, plan.ID, 3, "player-ava")
+
+	reward, err := repository.CreateTeamReward(context.Background(), store.CreateTeamRewardInput{
+		TeamID: "team-one", CreatedByAccountID: "account-plan-coach",
+		PrizeTitle: "Team celebration", StartsOn: "2026-08-08", Now: now,
+		Rule: domain.TeamRewardRule{
+			Version: 1, Kind: domain.RewardRuleTeammateConsistency,
+			ParticipationScope: domain.RewardParticipationRecommended,
+			RequiredPlayers:    2, RequiredDaysPerPlayer: 2,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	projection, err := repository.PublishTeamReward(context.Background(), "team-one", reward.ID, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if projection.Progress.Current != 1 || projection.Progress.Started != 2 || len(projection.Progress.Units) != 2 {
+		t.Fatalf("unexpected recommended plan progress: %+v", projection.Progress)
+	}
+	if projection.Progress.Units[0].Current != 2 || projection.Progress.Units[1].Current != 1 {
+		t.Fatalf("plan and prescribed-rest days were not counted: %+v", projection.Progress.Units)
+	}
+}
+
 func TestTeamRewardAchievementLatchesAfterAuthoritativeProgress(t *testing.T) {
 	repository, db := socialProjectionStore(t)
 	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
