@@ -412,6 +412,29 @@ func (store *Store) ResetE2EFixtures(ctx context.Context, now time.Time) error {
 	return tx.Commit()
 }
 
+func (store *Store) GrantE2EUnlocks(ctx context.Context, playerID string, itemIDs []string, now time.Time) error {
+	tx, err := store.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	for index, itemID := range itemIDs {
+		item, found := domain.DailyDropCatalogItem(itemID)
+		if !found {
+			return fmt.Errorf("grant e2e unlock: unknown catalog item %q", itemID)
+		}
+		unlockedAt := now.UTC().Add(time.Duration(index) * time.Nanosecond).Format(time.RFC3339Nano)
+		if _, err := tx.ExecContext(ctx, `INSERT INTO player_unlocks
+			(player_id, item_kind, item_id, source, unlocked_at)
+			VALUES (?, ?, ?, 'daily_drop', ?)
+			ON CONFLICT(player_id, item_kind, item_id) DO NOTHING`,
+			playerID, item.Kind, item.ID, unlockedAt); err != nil {
+			return fmt.Errorf("grant e2e unlock: %w", err)
+		}
+	}
+	return tx.Commit()
+}
+
 // withinWeek keeps a fixture occurrence no earlier than the start of the
 // team-local week the projections count from.
 func withinWeek(occurredAt, weekStart time.Time) string {

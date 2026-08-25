@@ -62,9 +62,9 @@ A major flow is complete only when:
 ### H3 — Reward and identity loop
 
 - [x] Prove Prize Box claim and open idempotency through the browser and API.
-- [ ] Prove an Avatar reward can be equipped and appears in Team Lounge after a
+- [x] Prove an Avatar reward can be equipped and appears in Team Lounge after a
       reload.
-- [ ] Prove a Team Lounge item can enter the supported placement flow.
+- [x] Prove a Team Lounge item can enter the supported placement flow.
 - [ ] Retire or isolate the legacy Daily Drop surface so one backend authority
       owns reward claims and inventory.
 
@@ -150,8 +150,14 @@ Prize Boxes, and the prize collection.
 The first H3 proof replays the browser-generated claim and open keys through the
 same-origin player gateway, then repeats both operations through the public Go
 API. Both paths return the original box/unlock and leave exactly one opened
-item. The existing Avatar and Canvas journeys remain useful but do not yet prove
-that a newly earned reward—not a base option or dev stamp—reaches its destination.
+item.
+
+The second H3 proof grants exact catalog rewards only through an E2E-gated test
+seam, then follows the real player destination links. An earned dog head is
+equipped, saved, rendered in Team Lounge, and retained after reload. An earned
+lion stamp enters the real Canvas placement flow. That proof exposed and fixed
+a production boundary where developer stamp controls could accidentally replace
+permanent earned ownership instead of supplementing it.
 
 Proposed file tree:
 

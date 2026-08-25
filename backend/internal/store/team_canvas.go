@@ -289,7 +289,7 @@ func (store *Store) createTeamCanvasPiece(ctx context.Context, actor domain.Acto
 		return TeamCanvasPiece{}, err
 	}
 	allowed, err := store.playerCanUseCanvasStamp(ctx, actor.PlayerID, assetID)
-	if allowDeveloper {
+	if allowDeveloper && !allowed {
 		allowed = containsCanvas(projection.Settings.StampChoices, assetID)
 	}
 	if err != nil {

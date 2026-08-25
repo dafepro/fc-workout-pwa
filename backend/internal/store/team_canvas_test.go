@@ -206,7 +206,7 @@ func TestTeamCanvasPlacementRequiresPermanentStampOwnershipButKeepsPlacementSlot
 		VALUES ('player-mason', 'canvas_stamp', 'canvas-stamp-target', 'daily_drop', '2026-08-12T17:00:00Z')`); err != nil {
 		t.Fatal(err)
 	}
-	piece, err := repository.CreateTeamCanvasPiece(context.Background(), actor, "team-one", "target", now)
+	piece, err := repository.CreateTeamCanvasPieceForDevelopment(context.Background(), actor, "team-one", "target", now)
 	if err != nil {
 		t.Fatal(err)
 	}

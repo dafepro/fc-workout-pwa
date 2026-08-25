@@ -105,6 +105,7 @@ type Repository interface {
 
 type fixtureResetter interface {
 	ResetE2EFixtures(context.Context, time.Time) error
+	GrantE2EUnlocks(context.Context, string, []string, time.Time) error
 }
 
 type Option func(*service)
@@ -204,6 +205,7 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	mux.HandleFunc("GET /v1/teams/{teamId}/canvas/socket", service.connectTeamCanvasSocket)
 	if _, ok := service.store.(fixtureResetter); cfg.EnableE2EFixtures && ok {
 		mux.HandleFunc("POST /__e2e/reset", service.resetE2EFixtures)
+		mux.HandleFunc("POST /__e2e/unlocks", service.grantE2EUnlocks)
 	}
 	if cfg.EnableDevAccess && service.devAccess != nil {
 		mux.HandleFunc("GET /__dev/access", service.getDevAccess)
@@ -666,6 +668,31 @@ func (service *service) resetE2EFixtures(w http.ResponseWriter, r *http.Request)
 	// address, so its own volume would throttle it. The limits are untouched.
 	for _, throttle := range service.throttles {
 		throttle.reset()
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (service *service) grantE2EUnlocks(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("X-E2E-Reset-Key") != service.cfg.E2EResetKey {
+		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
+		return
+	}
+	resetter, ok := service.store.(fixtureResetter)
+	if !ok {
+		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
+		return
+	}
+	var request struct {
+		PlayerID string   `json:"playerId"`
+		ItemIDs  []string `json:"itemIds"`
+	}
+	if decodeStrictJSON(w, r, &request) != nil || request.PlayerID == "" || len(request.ItemIDs) == 0 || len(request.ItemIDs) > 10 {
+		writeError(w, r, http.StatusBadRequest, "invalid_request", "Choose a fixture player and up to ten reward items.")
+		return
+	}
+	if err := resetter.GrantE2EUnlocks(r.Context(), request.PlayerID, request.ItemIDs, service.now().UTC()); err != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid_request", "The fixture rewards could not be granted.")
+		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
