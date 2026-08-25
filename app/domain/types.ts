@@ -110,12 +110,29 @@ export interface TrainingPlanWindow {
   days: CurrentTrainingPlanDay[];
 }
 
+export interface TodayRecommendation {
+  source: "coach_plan" | "team_default" | "suggestion";
+  explanationKey:
+    | "coach_plan_today"
+    | "team_default_today"
+    | "recent_check_in_recovery"
+    | "routine_builder";
+  kind: "training" | "recovery" | "rest";
+  activityDefinitionId?: ActivityId;
+  targetValue?: number;
+  targetUnit?: ActivityDefinition["unit"];
+  durationMinutes: number;
+  intensity: "easy" | "steady" | "hard";
+  completed: boolean;
+}
+
 export interface TrainingDashboard {
   team: SocialTeam;
   activities: ActivityDefinition[];
   currentAssignment: TrainingAssignment | null;
   currentPlanDay: CurrentTrainingPlanDay | null;
   currentPlan: TrainingPlanWindow | null;
+  todayRecommendation: TodayRecommendation;
   summary: {
     weeklySessions: number;
     weeklyMomentumCredits: number;

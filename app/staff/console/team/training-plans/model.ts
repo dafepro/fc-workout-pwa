@@ -47,7 +47,26 @@ export interface TrainingPlan {
   status: "published" | "cancelled";
   createdAt: string;
   cancelledAt?: string;
+  replacesPlanId?: string;
+  replacedByPlanId?: string;
   days: readonly PublishedTrainingPlanDay[];
+}
+
+export function editablePlanDays(
+  days: readonly TrainingPlanDay[] | readonly PublishedTrainingPlanDay[],
+): TrainingPlanDay[] {
+  return days.map((day, offset) => ({
+    offset,
+    kind: day.kind,
+    focus: day.focus,
+    durationMinutes: day.durationMinutes,
+    intensity: day.intensity,
+    blocks: (day.blocks ?? []).map((block) => ({
+      activityDefinitionId: block.activityDefinitionId,
+      label: block.label,
+      durationMinutes: block.durationMinutes,
+    })),
+  }));
 }
 
 export interface DatedTrainingPlanDay extends TrainingPlanDay {

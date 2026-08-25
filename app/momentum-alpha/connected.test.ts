@@ -54,6 +54,17 @@ const dashboard: TrainingDashboard = {
   },
   currentPlanDay: null,
   currentPlan: null,
+  todayRecommendation: {
+    source: "team_default",
+    explanationKey: "team_default_today",
+    kind: "training",
+    activityDefinitionId: "timed-run-walk",
+    targetValue: 20,
+    targetUnit: "minutes",
+    durationMinutes: 20,
+    intensity: "steady",
+    completed: true,
+  },
   summary: {
     weeklySessions: 3,
     weeklyMomentumCredits: 3,
@@ -86,6 +97,38 @@ const entries: TrainingEntry[] = [
 ];
 
 describe("connected Momentum", () => {
+  it("uses the server-selected suggestion and explanation on an unplanned day", () => {
+    const model = connectedMomentumModel(
+      {
+        ...dashboard,
+        currentAssignment: null,
+        todayRecommendation: {
+          source: "suggestion",
+          explanationKey: "recent_check_in_recovery",
+          kind: "training",
+          activityDefinitionId: "recovery-walk-jog",
+          targetValue: 15,
+          targetUnit: "minutes",
+          durationMinutes: 15,
+          intensity: "easy",
+          completed: false,
+        },
+      },
+      [],
+      "player-one",
+      new Date("2026-08-21T18:00:00Z"),
+    );
+
+    expect(model.state.dayKind).toBe("training");
+    expect(model.plan).toMatchObject({
+      activity: "Recovery walk/jog",
+      workload: "15 min · Easy",
+      reasons: [
+        "You checked in recently, so today’s option keeps the effort easy.",
+      ],
+    });
+  });
+
   it("projects the real assignment, team, and persisted player history", () => {
     const model = connectedMomentumModel(
       dashboard,

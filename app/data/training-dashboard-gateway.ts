@@ -196,6 +196,17 @@ class LocalTrainingDashboardGateway implements TrainingDashboardGateway {
           },
         ],
       },
+      todayRecommendation: {
+        source: "coach_plan",
+        explanationKey: "coach_plan_today",
+        kind: "training",
+        activityDefinitionId: "hill-sprints",
+        targetValue: 8,
+        targetUnit: "reps",
+        durationMinutes: 20,
+        intensity: "hard",
+        completed: false,
+      },
       summary: {
         weeklySessions: entriesWithinDays(initialEntries, 7).length,
         weeklyMomentumCredits: entriesWithinDays(initialEntries, 7).length,

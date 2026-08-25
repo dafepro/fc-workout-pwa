@@ -52,6 +52,8 @@ type StaffRepository interface {
 	CurrentAssignmentCompletion(context.Context, string) (store.AssignmentCompletion, error)
 	PublishTrainingPlan(context.Context, string, store.TrainingPlanInput) (store.TrainingPlan, error)
 	ListTrainingPlans(context.Context, string) ([]store.TrainingPlan, error)
+	CancelTrainingPlan(context.Context, string, string) (store.TrainingPlan, error)
+	RescheduleTrainingPlan(context.Context, string, string, store.TrainingPlanInput) (store.TrainingPlan, error)
 }
 
 type CredentialManager interface {
@@ -106,6 +108,8 @@ func (service *service) registerStaffRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/staff/training-plan-templates", service.listTrainingPlanTemplates)
 	mux.HandleFunc("GET /v1/staff/teams/{teamId}/training-plans", service.listTrainingPlans)
 	mux.HandleFunc("POST /v1/staff/teams/{teamId}/training-plans", service.publishTrainingPlan)
+	mux.HandleFunc("POST /v1/staff/teams/{teamId}/training-plans/{planId}/cancel", service.cancelTrainingPlan)
+	mux.HandleFunc("POST /v1/staff/teams/{teamId}/training-plans/{planId}/reschedule", service.rescheduleTrainingPlan)
 	mux.HandleFunc("GET /v1/staff/players/{playerId}", service.getPlayerDetail)
 	mux.HandleFunc("POST /v1/staff/players/{playerId}/credential", service.repairCredential)
 	mux.HandleFunc("POST /v1/staff/players/{playerId}/deactivate", service.deactivatePlayer)

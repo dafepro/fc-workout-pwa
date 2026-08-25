@@ -51,6 +51,7 @@ export const playerExperienceCopy = {
     recommendationFallback:
       "Nothing is scheduled today, so here’s a useful option.",
     coachPlan: "Coach plan",
+    teamDefault: "Team default",
     restPurpose: "Rest supports consistency",
     restGoal: "Goal: Return refreshed and ready.",
     restInstruction:

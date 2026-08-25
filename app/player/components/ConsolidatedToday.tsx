@@ -146,6 +146,7 @@ export function connectedTodayComplete(
   return (
     dashboard?.currentPlanDay?.completed ??
     dashboard?.currentAssignment?.completed ??
+    dashboard?.todayRecommendation.completed ??
     false
   );
 }
@@ -169,39 +170,23 @@ export function connectedTodayPresentation(
   dashboard: TrainingDashboard,
   projectedPlan: MomentumPlanContent,
 ): {
-  source: "coach-plan" | "recommendation";
+  source: "coach-plan" | "team-default" | "recommendation";
   restDay: boolean;
   plan: MomentumPlanContent;
 } {
-  if (dashboard.currentPlanDay || dashboard.currentAssignment) {
+  if (dashboard.todayRecommendation.source !== "suggestion") {
     return {
-      source: "coach-plan",
+      source:
+        dashboard.todayRecommendation.source === "coach_plan"
+          ? "coach-plan"
+          : "team-default",
       restDay: dashboard.currentPlanDay?.kind === "rest",
       plan: projectedPlan,
     };
   }
-
-  const activity =
-    dashboard.activities.find(
-      (candidate) => candidate.id === "recovery-walk-jog",
-    ) ?? dashboard.activities[0];
-  if (!activity) {
-    return { source: "recommendation", restDay: false, plan: projectedPlan };
-  }
-
   return {
     source: "recommendation",
-    restDay: false,
-    plan: {
-      dateLabel: projectedPlan.dateLabel,
-      activity: activity.name,
-      workload: `${activity.defaultValue.toLocaleString("en-US")} ${activity.unit} · Easy`,
-      instruction: activity.instructions[0] ?? activity.description,
-      goal: `Goal · ${activity.defaultValue.toLocaleString("en-US")} ${activity.unit}`,
-      stretch: projectedPlan.stretch,
-      reasons: [
-        "Nothing is scheduled today, so this keeps the effort light and useful.",
-      ],
-    },
+    restDay: dashboard.todayRecommendation.kind === "rest",
+    plan: projectedPlan,
   };
 }

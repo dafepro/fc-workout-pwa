@@ -34,8 +34,9 @@ func (service *service) publishTrainingPlan(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	var request struct {
-		TemplateID string `json:"templateId"`
-		StartsOn   string `json:"startsOn"`
+		TemplateID string                   `json:"templateId"`
+		StartsOn   string                   `json:"startsOn"`
+		Days       []domain.TrainingPlanDay `json:"days"`
 	}
 	if err := decodeStrictJSON(w, r, &request); err != nil {
 		writeError(w, r, http.StatusBadRequest, "invalid_request", "The request is invalid.")
@@ -44,6 +45,7 @@ func (service *service) publishTrainingPlan(w http.ResponseWriter, r *http.Reque
 	plan, err := service.staffStore.PublishTrainingPlan(r.Context(), teamID, store.TrainingPlanInput{
 		TemplateID: request.TemplateID,
 		StartsOn:   request.StartsOn,
+		Days:       request.Days,
 	})
 	if errors.Is(err, store.ErrTrainingPlanOverlap) {
 		writeError(w, r, http.StatusConflict, "training_plan_overlap",
@@ -55,5 +57,56 @@ func (service *service) publishTrainingPlan(w http.ResponseWriter, r *http.Reque
 	}
 	service.record(r.Context(), actor, "training_plan.publish", "training_plan", plan.ID,
 		map[string]any{"teamId": teamID, "templateId": plan.TemplateID, "startsOn": plan.StartsOn, "endsOn": plan.EndsOn})
+	writeJSON(w, http.StatusCreated, plan)
+}
+
+func (service *service) cancelTrainingPlan(w http.ResponseWriter, r *http.Request) {
+	teamID, planID := r.PathValue("teamId"), r.PathValue("planId")
+	actor, ok := service.teamActor(w, r, teamID)
+	if !ok {
+		return
+	}
+	plan, err := service.staffStore.CancelTrainingPlan(r.Context(), teamID, planID)
+	if service.writeStaffStoreError(w, r, err) {
+		return
+	}
+	service.record(r.Context(), actor, "training_plan.cancel", "training_plan", plan.ID,
+		map[string]any{"teamId": teamID, "startsOn": plan.StartsOn, "endsOn": plan.EndsOn})
+	writeJSON(w, http.StatusOK, plan)
+}
+
+func (service *service) rescheduleTrainingPlan(w http.ResponseWriter, r *http.Request) {
+	teamID, planID := r.PathValue("teamId"), r.PathValue("planId")
+	actor, ok := service.teamActor(w, r, teamID)
+	if !ok {
+		return
+	}
+	var request struct {
+		TemplateID string                   `json:"templateId"`
+		StartsOn   string                   `json:"startsOn"`
+		Days       []domain.TrainingPlanDay `json:"days"`
+	}
+	if err := decodeStrictJSON(w, r, &request); err != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid_request", "The request is invalid.")
+		return
+	}
+	plan, err := service.staffStore.RescheduleTrainingPlan(r.Context(), teamID, planID, store.TrainingPlanInput{
+		TemplateID: request.TemplateID, StartsOn: request.StartsOn, Days: request.Days,
+	})
+	if errors.Is(err, store.ErrTrainingPlanStarted) {
+		writeError(w, r, http.StatusConflict, "training_plan_started",
+			"This plan has already started. Cancel it if needed; completed and missed days will not move.")
+		return
+	}
+	if errors.Is(err, store.ErrTrainingPlanOverlap) {
+		writeError(w, r, http.StatusConflict, "training_plan_overlap",
+			"Those dates overlap another published plan. Choose a different start date.")
+		return
+	}
+	if service.writeStaffStoreError(w, r, err) {
+		return
+	}
+	service.record(r.Context(), actor, "training_plan.reschedule", "training_plan", plan.ID,
+		map[string]any{"teamId": teamID, "replacesPlanId": planID, "startsOn": plan.StartsOn, "endsOn": plan.EndsOn})
 	writeJSON(w, http.StatusCreated, plan)
 }

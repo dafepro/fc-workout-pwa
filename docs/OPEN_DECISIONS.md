@@ -869,11 +869,18 @@ Momentum Alpha needs independent PWA install/offline behavior.
   controls the player's recommendation ahead of a legacy assignment. On dates
   with no published plan day, the existing assignment behavior is unchanged.
 - Assumption pending coaching-owner review before mainline: the initial
-  development templates use conservative bounds (active days no longer than 20
-  minutes, no consecutive hard days, and recovery/rest in every week).
-- Still open: final bounds by age band, structured day-editing controls,
-  cancellation/rescheduling behavior, multi-block day completion UX, and
-  migration or coexistence of current assignments.
+  development templates and structured editor enforce 5–20 active minutes, no
+  consecutive hard days, predefined blocks, and recovery/rest in every week.
+- Implemented: a one-day preset uses the same validation/publication path;
+  future rescheduling atomically cancels and links the old snapshot to a new
+  plan; started plans may be cancelled but never shifted.
+- Implemented: the dashboard server selects `coach_plan`, `team_default`, or a
+  bounded `suggestion` plus an approved explanation key. Suggestions use only
+  team-private check-in recency, make no medical inference, prescribe no
+  catch-up work, and close after any current-day fitness check-in.
+- Still open: coaching-owner final bounds by age band and richer multi-block
+  day completion UX. Existing legacy assignments remain history/coexistence
+  data and are not restored as a normal creation workflow.
 
 ## Unified player recommendations and plan loot (2026-08-24)
 

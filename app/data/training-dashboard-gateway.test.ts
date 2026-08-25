@@ -57,6 +57,17 @@ describe("connected training dashboard gateway", () => {
         tomorrow: null,
         days: [],
       },
+      todayRecommendation: {
+        source: "coach_plan",
+        explanationKey: "coach_plan_today",
+        kind: "training",
+        activityDefinitionId: "hill-sprints",
+        targetValue: 8,
+        targetUnit: "reps",
+        durationMinutes: 20,
+        intensity: "easy",
+        completed: false,
+      },
       summary: {
         weeklySessions: 2,
         weeklyMomentumCredits: 2,
@@ -101,6 +112,10 @@ describe("connected training dashboard gateway", () => {
         blocks: [{ activityDefinitionId: "hill-sprints" }],
       },
       currentPlan: { planId: "plan-one", dayNumber: 1, dayCount: 7 },
+      todayRecommendation: {
+        source: "coach_plan",
+        explanationKey: "coach_plan_today",
+      },
       teamPulse: {
         recentActivities: [{ playerId: "player-ava", recency: "Today" }],
       },

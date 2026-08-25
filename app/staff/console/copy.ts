@@ -347,6 +347,12 @@ export const consoleCopy = {
     loading: "Loading training plans…",
     catalogLoadFailed: "The training-plan catalog could not be loaded.",
     choose: "Plan template",
+    customize: "Customize future days",
+    customizeHint:
+      "Adjust only predefined day types, focus, intensity, duration, and approved activities before publishing.",
+    dayType: "Day type",
+    duration: "Minutes",
+    activity: "Activity",
     startsOn: "Plan starts",
     day: (number: number) => `Day ${number}`,
     scheduleLabel: "Plan schedule",
@@ -371,12 +377,26 @@ export const consoleCopy = {
     contentReview:
       "These conservative development templates still need coaching-owner review before a mainline release.",
     publishAction: "Publish plan",
+    rescheduleAction: "Reschedule",
+    reschedulingAction: "Publish replacement",
+    cancelAction: "Cancel plan",
+    cancelQuestion:
+      "Cancel this plan? Its dates, completed days, and missed days stay in history.",
+    confirmCancel: "Yes, cancel plan",
+    keepPlan: "Keep plan",
+    replaces: "Replacement plan",
+    replaced: "Rescheduled",
+    editReplacement:
+      "Choose a new start date below. The original will be cancelled only if the replacement publishes.",
     publishing: "Publishing…",
     loadingHistory: "Loading published plans…",
     historyTitle: "Published plans",
     status: {
       published: "Published",
       cancelled: "Cancelled",
+      active: "Active",
+      upcoming: "Upcoming",
+      completed: "Completed",
     },
     legacy: {
       loading: "Loading legacy assignment history…",

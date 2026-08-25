@@ -57,23 +57,71 @@ describe("TrainingPlanPrototype", () => {
     await waitFor(() =>
       expect(calls.some((call) => call.method === "POST")).toBe(true),
     );
-    expect(calls.find((call) => call.method === "POST")?.body).toEqual({
+    expect(calls.find((call) => call.method === "POST")?.body).toMatchObject({
       templateId: "speed-recovery-v1",
       startsOn: "2026-08-24",
+      days: expect.arrayContaining([
+        expect.objectContaining({ offset: 0, durationMinutes: 15 }),
+      ]),
     });
     expect(await screen.findByText("Published plans")).toBeInTheDocument();
     expect(screen.getByText("Aug 24 – Aug 30")).toBeInTheDocument();
   });
+
+  it("customizes predefined fields and reschedules a future plan as a replacement", async () => {
+    const futurePlan = publishedPlan("plan-future", "2099-08-24");
+    const calls = stubPlanBackend([futurePlan]);
+    render(<TrainingPlanPrototype teamId="team-one" />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Reschedule" }));
+    fireEvent.change(screen.getByLabelText("Plan starts"), {
+      target: { value: "2099-08-25" },
+    });
+    fireEvent.click(screen.getAllByText("Customize future days")[0]);
+    fireEvent.change(screen.getByLabelText("Tue, Aug 25 Minutes"), {
+      target: { value: "15" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Publish replacement" }),
+    );
+
+    await waitFor(() =>
+      expect(
+        calls.some((call) => call.url.endsWith("/plan-future/reschedule")),
+      ).toBe(true),
+    );
+    expect(
+      calls.find((call) => call.url.endsWith("/plan-future/reschedule"))?.body,
+    ).toMatchObject({ startsOn: "2099-08-25" });
+  });
+
+  it("requires confirmation before cancelling while retaining the history row", async () => {
+    const calls = stubPlanBackend([publishedPlan("plan-future", "2099-08-24")]);
+    render(<TrainingPlanPrototype teamId="team-one" />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Cancel plan" }));
+    expect(
+      screen.getByText(/completed days, and missed days stay in history/i),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Yes, cancel plan" }));
+
+    await waitFor(() =>
+      expect(
+        calls.some((call) => call.url.endsWith("/plan-future/cancel")),
+      ).toBe(true),
+    );
+  });
 });
 
 interface PlanCall {
+  url: string;
   method: string;
   body?: Record<string, unknown>;
 }
 
-function stubPlanBackend(): PlanCall[] {
+function stubPlanBackend(initialPlans: TrainingPlan[] = []): PlanCall[] {
   const calls: PlanCall[] = [];
-  let plans: TrainingPlan[] = [];
+  let plans: TrainingPlan[] = [...initialPlans];
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init: RequestInit = {}) => {
@@ -81,7 +129,7 @@ function stubPlanBackend(): PlanCall[] {
       const body = init.body
         ? (JSON.parse(String(init.body)) as Record<string, unknown>)
         : undefined;
-      calls.push({ method, body });
+      calls.push({ url, method, body });
       if (url.endsWith("/training-plan-templates")) {
         return Response.json({ templates });
       }
@@ -103,6 +151,25 @@ function stubPlanBackend(): PlanCall[] {
         plans = [published];
         return Response.json(published, { status: 201 });
       }
+      if (url.endsWith("/reschedule") && method === "POST") {
+        const oldID = url.split("/").at(-2)!;
+        plans = plans.map((plan) =>
+          plan.id === oldID ? { ...plan, status: "cancelled" } : plan,
+        );
+        const replacement = {
+          ...publishedPlan("plan-replacement", String(body?.startsOn)),
+          replacesPlanId: oldID,
+        };
+        plans = [replacement, ...plans];
+        return Response.json(replacement, { status: 201 });
+      }
+      if (url.endsWith("/cancel") && method === "POST") {
+        const planID = url.split("/").at(-2)!;
+        plans = plans.map((plan) =>
+          plan.id === planID ? { ...plan, status: "cancelled" } : plan,
+        );
+        return Response.json(plans.find((plan) => plan.id === planID));
+      }
       if (url.endsWith("/training-plans")) return Response.json({ plans });
       return Response.json(
         { error: { message: "Not found" } },
@@ -123,7 +190,7 @@ function planTemplate(id: string, name: string): TrainingPlanTemplate {
       offset,
       kind: offset === 3 || offset === 6 ? "rest" : "training",
       focus: offset === 3 || offset === 6 ? "recovery" : "endurance",
-      durationMinutes: offset === 3 || offset === 6 ? 0 : 18,
+      durationMinutes: offset === 3 || offset === 6 ? 0 : 15,
       intensity: "easy",
       blocks:
         offset === 3 || offset === 6
@@ -132,9 +199,30 @@ function planTemplate(id: string, name: string): TrainingPlanTemplate {
               {
                 activityDefinitionId: "timed-run-walk",
                 label: "Timed run or walk",
-                durationMinutes: 18,
+                durationMinutes: 15,
               },
             ],
+    })),
+  };
+}
+
+function publishedPlan(id: string, startsOn: string): TrainingPlan {
+  const template = templates[0];
+  return {
+    id,
+    teamId: "team-one",
+    templateId: template.id,
+    templateVersion: 1,
+    templateName: template.name,
+    templateSummary: template.summary,
+    startsOn,
+    endsOn: startsOn,
+    status: "published",
+    createdAt: "2026-08-20T12:00:00Z",
+    days: template.days.map((day, index) => ({
+      ...day,
+      index,
+      occursOn: startsOn,
     })),
   };
 }

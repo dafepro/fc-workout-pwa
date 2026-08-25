@@ -109,6 +109,17 @@ describe("consolidated default player experience", () => {
         currentPlan: null,
         currentPlanDay: null,
         currentAssignment: null,
+        todayRecommendation: {
+          source: "suggestion",
+          explanationKey: "recent_check_in_recovery",
+          kind: "training",
+          activityDefinitionId: "recovery-walk-jog",
+          targetValue: 10,
+          targetUnit: "minutes",
+          durationMinutes: 10,
+          intensity: "easy",
+          completed: false,
+        },
         activities: [
           {
             id: "recovery-walk-jog",
@@ -122,18 +133,50 @@ describe("consolidated default player experience", () => {
       } as never,
       {
         dateLabel: "Today",
-        activity: "Planned recovery",
-        workload: "Recovery day",
-        instruction: "Rest.",
-        goal: "Rest",
+        activity: "Easy recovery walk",
+        workload: "10 min · Easy",
+        instruction: "Keep the pace easy.",
+        goal: "Goal · 10 minutes",
         stretch: "None",
-        reasons: [],
+        reasons: [
+          "You checked in recently, so today’s option keeps the effort easy.",
+        ],
       },
     );
 
     expect(presentation.source).toBe("recommendation");
     expect(presentation.restDay).toBe(false);
     expect(presentation.plan.activity).toBe("Easy recovery walk");
+    expect(presentation.plan.reasons).toEqual([
+      "You checked in recently, so today’s option keeps the effort easy.",
+    ]);
+  });
+
+  it("names a legacy team item as a team default instead of a coach plan", () => {
+    const presentation = connectedTodayPresentation(
+      {
+        currentPlan: null,
+        currentPlanDay: null,
+        currentAssignment: { id: "legacy" },
+        todayRecommendation: {
+          source: "team_default",
+          explanationKey: "team_default_today",
+          kind: "training",
+          completed: false,
+        },
+      } as never,
+      {
+        dateLabel: "Today",
+        activity: "Hill sprints",
+        workload: "8 reps · Steady",
+        instruction: "Use a safe hill.",
+        goal: "Goal · 8 reps",
+        stretch: "None",
+        reasons: ["This is the current team activity from your coach."],
+      },
+    );
+
+    expect(presentation.source).toBe("team-default");
   });
 
   it("uses a persistent Today, Team, and Me navigation", () => {

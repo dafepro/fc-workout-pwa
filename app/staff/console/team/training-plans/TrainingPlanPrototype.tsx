@@ -7,7 +7,9 @@ import { consoleCopy } from "../../copy";
 import { useResource } from "../../useResource";
 import {
   buildDatedPlan,
+  editablePlanDays,
   type TrainingPlan,
+  type TrainingPlanDay,
   type TrainingPlanTemplate,
 } from "./model";
 
@@ -21,15 +23,31 @@ export function TrainingPlanPrototype({ teamId }: { teamId: string }) {
   );
   const [templateID, setTemplateID] = useState("");
   const [startsOn, setStartsOn] = useState("");
+  const [draftDays, setDraftDays] = useState<TrainingPlanDay[]>([]);
+  const [editingPlanID, setEditingPlanID] = useState("");
+  const [confirmCancelID, setConfirmCancelID] = useState("");
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
   const catalog = templates.data?.templates ?? [];
   const template = catalog.find(({ id }) => id === templateID) ?? catalog[0];
+  const planDays = draftDays.length > 0 ? draftDays : (template?.days ?? []);
+  const activityChoices = Array.from(
+    new Map(
+      catalog.flatMap((item) =>
+        item.days.flatMap((day) =>
+          (day.blocks ?? []).map((block) => [
+            block.activityDefinitionId,
+            block,
+          ]),
+        ),
+      ),
+    ).values(),
+  );
   const schedule = startsOn
     ? template
-      ? buildDatedPlan(template, startsOn)
+      ? buildDatedPlan({ ...template, days: planDays }, startsOn)
       : []
-    : (template?.days ?? []).map((day) => ({
+    : planDays.map((day) => ({
         ...day,
         date: "",
         dayLabel: copy.day(day.offset + 1),
@@ -47,11 +65,58 @@ export function TrainingPlanPrototype({ teamId }: { teamId: string }) {
     setBusy(true);
     setActionError("");
     try {
-      await consoleRequest(`v1/staff/teams/${teamId}/training-plans`, {
+      const path = editingPlanID
+        ? `v1/staff/teams/${teamId}/training-plans/${editingPlanID}/reschedule`
+        : `v1/staff/teams/${teamId}/training-plans`;
+      await consoleRequest(path, {
         method: "POST",
-        body: { templateId: template.id, startsOn },
+        body: { templateId: template.id, startsOn, days: planDays },
       });
       setStartsOn("");
+      setDraftDays([]);
+      setEditingPlanID("");
+      plans.reload();
+    } catch (error) {
+      setActionError(messageFor(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function chooseTemplate(candidate: TrainingPlanTemplate) {
+    setTemplateID(candidate.id);
+    setDraftDays(editablePlanDays(candidate.days));
+    setEditingPlanID("");
+  }
+
+  function updateDay(index: number, update: Partial<TrainingPlanDay>) {
+    setDraftDays((current) => {
+      const source =
+        current.length > 0 ? current : editablePlanDays(template.days);
+      return source.map((day, dayIndex) =>
+        dayIndex === index ? normalizeEditedDay({ ...day, ...update }) : day,
+      );
+    });
+  }
+
+  function beginReschedule(plan: TrainingPlan) {
+    setTemplateID(plan.templateId);
+    setDraftDays(editablePlanDays(plan.days));
+    setStartsOn(plan.startsOn);
+    setEditingPlanID(plan.id);
+    setActionError("");
+  }
+
+  async function cancelPlan(planID: string) {
+    if (busy) return;
+    setBusy(true);
+    setActionError("");
+    try {
+      await consoleRequest(
+        `v1/staff/teams/${teamId}/training-plans/${planID}/cancel`,
+        { method: "POST" },
+      );
+      setConfirmCancelID("");
       plans.reload();
     } catch (error) {
       setActionError(messageFor(error));
@@ -84,7 +149,7 @@ export function TrainingPlanPrototype({ teamId }: { teamId: string }) {
               name="training-plan-template"
               value={candidate.id}
               checked={candidate.id === template.id}
-              onChange={() => setTemplateID(candidate.id)}
+              onChange={() => chooseTemplate(candidate)}
             />
             <span>
               <strong>{candidate.name}</strong>
@@ -108,8 +173,11 @@ export function TrainingPlanPrototype({ teamId }: { teamId: string }) {
         <h3>{template.name}</h3>
         <p>{template.summary}</p>
       </div>
+      {editingPlanID ? (
+        <p className="training-plan__policy">{copy.editReplacement}</p>
+      ) : null}
       <ol className="training-plan__schedule" aria-label={copy.scheduleLabel}>
-        {schedule.map((day) => (
+        {schedule.map((day, index) => (
           <li key={day.offset} className={`is-${day.kind}`}>
             <span className="training-plan__date">{day.dayLabel}</span>
             <div>
@@ -128,6 +196,126 @@ export function TrainingPlanPrototype({ teamId }: { teamId: string }) {
             ) : (
               <small>{copy.noWorkout}</small>
             )}
+            <details className="training-plan__editor">
+              <summary>{copy.customize}</summary>
+              <p>{copy.customizeHint}</p>
+              <div>
+                <label>
+                  {copy.dayType}
+                  <select
+                    aria-label={`${day.dayLabel} ${copy.dayType}`}
+                    value={day.kind}
+                    onChange={(event) =>
+                      updateDay(index, {
+                        kind: event.target.value as TrainingPlanDay["kind"],
+                      })
+                    }
+                  >
+                    <option value="training">{copy.kind.training}</option>
+                    <option value="recovery">{copy.kind.recovery}</option>
+                    <option value="rest">{copy.kind.rest}</option>
+                  </select>
+                </label>
+                {day.kind === "training" ? (
+                  <>
+                    <label>
+                      {copy.focus[day.focus]}
+                      <select
+                        aria-label={`${day.dayLabel} Focus`}
+                        value={day.focus}
+                        onChange={(event) =>
+                          updateDay(index, {
+                            focus: event.target
+                              .value as TrainingPlanDay["focus"],
+                          })
+                        }
+                      >
+                        <option value="speed">{copy.focus.speed}</option>
+                        <option value="endurance">
+                          {copy.focus.endurance}
+                        </option>
+                        <option value="recovery">{copy.focus.recovery}</option>
+                      </select>
+                    </label>
+                    <label>
+                      {copy.duration}
+                      <input
+                        aria-label={`${day.dayLabel} ${copy.duration}`}
+                        type="number"
+                        min="5"
+                        max="20"
+                        step="5"
+                        value={day.durationMinutes}
+                        onChange={(event) =>
+                          updateDay(index, {
+                            durationMinutes: Number(event.target.value),
+                            blocks: day.blocks.map((block) => ({
+                              ...block,
+                              durationMinutes: Number(event.target.value),
+                            })),
+                          })
+                        }
+                      />
+                    </label>
+                    <label>
+                      {copy.intensity[day.intensity]}
+                      <select
+                        aria-label={`${day.dayLabel} Intensity`}
+                        value={day.intensity}
+                        onChange={(event) =>
+                          updateDay(index, {
+                            intensity: event.target
+                              .value as TrainingPlanDay["intensity"],
+                          })
+                        }
+                      >
+                        <option value="easy">{copy.intensity.easy}</option>
+                        <option value="steady">{copy.intensity.steady}</option>
+                        <option value="hard">{copy.intensity.hard}</option>
+                      </select>
+                    </label>
+                    <label>
+                      {copy.activity}
+                      <select
+                        aria-label={`${day.dayLabel} ${copy.activity}`}
+                        value={day.blocks[0]?.activityDefinitionId ?? ""}
+                        onChange={(event) => {
+                          const block = activityChoices.find(
+                            (choice) =>
+                              choice.activityDefinitionId ===
+                              event.target.value,
+                          );
+                          if (block)
+                            updateDay(index, {
+                              blocks: [
+                                {
+                                  ...block,
+                                  durationMinutes: day.durationMinutes,
+                                },
+                              ],
+                            });
+                        }}
+                      >
+                        {activityChoices.map((choice) => (
+                          <option
+                            key={choice.activityDefinitionId}
+                            value={choice.activityDefinitionId}
+                          >
+                            {choice.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </>
+                ) : day.kind === "recovery" ? (
+                  <small>
+                    15 min · {copy.intensity.easy} · Recovery walk or jog
+                  </small>
+                ) : (
+                  <small>{copy.noWorkout}</small>
+                )}
+              </div>
+            </details>
           </li>
         ))}
       </ol>
@@ -141,7 +329,11 @@ export function TrainingPlanPrototype({ teamId }: { teamId: string }) {
           disabled={!startsOn || busy}
           onClick={() => void publish()}
         >
-          {busy ? copy.publishing : copy.publishAction}
+          {busy
+            ? copy.publishing
+            : editingPlanID
+              ? copy.reschedulingAction
+              : copy.publishAction}
         </button>
       </div>
 
@@ -162,7 +354,51 @@ export function TrainingPlanPrototype({ teamId }: { teamId: string }) {
                   <strong>{plan.templateName}</strong>
                   <small>{formatPlanRange(plan.startsOn, plan.endsOn)}</small>
                 </span>
-                <small>{copy.status[plan.status]}</small>
+                <span className="training-plan__history-actions">
+                  <small>
+                    {plan.replacedByPlanId
+                      ? copy.replaced
+                      : plan.replacesPlanId
+                        ? copy.replaces
+                        : planStatusLabel(plan, copy.status)}
+                  </small>
+                  {plan.status === "published" ? (
+                    <>
+                      {plan.startsOn > calendarToday() ? (
+                        <button
+                          type="button"
+                          onClick={() => beginReschedule(plan)}
+                        >
+                          {copy.rescheduleAction}
+                        </button>
+                      ) : null}
+                      {confirmCancelID === plan.id ? (
+                        <span>
+                          <small>{copy.cancelQuestion}</small>
+                          <button
+                            type="button"
+                            onClick={() => void cancelPlan(plan.id)}
+                          >
+                            {copy.confirmCancel}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmCancelID("")}
+                          >
+                            {copy.keepPlan}
+                          </button>
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmCancelID(plan.id)}
+                        >
+                          {copy.cancelAction}
+                        </button>
+                      )}
+                    </>
+                  ) : null}
+                </span>
               </li>
             ))}
           </ul>
@@ -170,6 +406,70 @@ export function TrainingPlanPrototype({ teamId }: { teamId: string }) {
       ) : null}
     </section>
   );
+}
+
+function normalizeEditedDay(day: TrainingPlanDay): TrainingPlanDay {
+  if (day.kind === "rest") {
+    return {
+      ...day,
+      focus: "recovery",
+      intensity: "easy",
+      durationMinutes: 0,
+      blocks: [],
+    };
+  }
+  if (day.kind === "recovery") {
+    return {
+      ...day,
+      focus: "recovery",
+      intensity: "easy",
+      durationMinutes: 15,
+      blocks: [
+        {
+          activityDefinitionId: "recovery-walk-jog",
+          label: "Recovery walk or jog",
+          durationMinutes: 15,
+        },
+      ],
+    };
+  }
+  const duration = day.durationMinutes > 0 ? day.durationMinutes : 15;
+  return {
+    ...day,
+    durationMinutes: duration,
+    blocks:
+      day.blocks.length > 0
+        ? day.blocks.map((block) => ({ ...block, durationMinutes: duration }))
+        : [
+            {
+              activityDefinitionId: "timed-run-walk",
+              label: "Timed run or walk",
+              durationMinutes: duration,
+            },
+          ],
+  };
+}
+
+function calendarToday(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+function planStatusLabel(
+  plan: TrainingPlan,
+  labels: {
+    published: string;
+    cancelled: string;
+    active: string;
+    upcoming: string;
+    completed: string;
+  },
+): string {
+  if (plan.status === "cancelled") return labels.cancelled;
+  const today = calendarToday();
+  if (plan.startsOn > today) return labels.upcoming;
+  if (plan.endsOn < today) return labels.completed;
+  return labels.active;
 }
 
 function formatPlanRange(startsOn: string, endsOn: string): string {

@@ -135,6 +135,14 @@ export const momentumAlphaCopy = {
     restGoal: "Goal · planned rest",
     restStretch: "Stretch · not needed",
     restReasons: ["There is no coach-assigned training session due today."],
+    recommendationReasons: {
+      coach_plan_today: "Your coach placed this activity here in the plan.",
+      team_default_today: "This is the current team activity from your coach.",
+      recent_check_in_recovery:
+        "You checked in recently, so today’s option keeps the effort easy.",
+      routine_builder:
+        "Nothing is scheduled today, so this short option can keep your rhythm going.",
+    },
     recoveryWorkload: "Recovery · comfortable effort",
     assignedWorkload: "Coach assigned · steady effort",
     assignedReasons: [

@@ -251,6 +251,7 @@ var logicalTables = []logicalTable{
 			textField("status"),
 			textField("created_at"),
 			nullable(textField("cancelled_at")),
+			nullable(textField("replaces_plan_id")),
 		},
 	},
 	{

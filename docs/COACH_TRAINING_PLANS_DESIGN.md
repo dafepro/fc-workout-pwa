@@ -1,6 +1,6 @@
 # Coach Training Plans Design
 
-Status: curated whole-team publication, immutable history, and three-day player projection implemented; structured day editing remains
+Status: whole-team and one-day publication, structured editing, linked future rescheduling, cancellation, immutable started snapshots, and player projection implemented; coaching-owner numeric approval remains
 
 ## Problem
 
@@ -80,9 +80,9 @@ The weekly overview is a calm sequence of day intents, not a performance compari
 1. Plan/template domain, validation tests, and curated seed templates. **Implemented in the backend-owned catalog.**
 2. Staff template chooser and read-only schedule preview. **Implemented.**
 3. Whole-team publication and immutable plan-history snapshots. **Implemented.**
-4. Structured day editor and safe revalidation.
+4. Structured day editor and safe server revalidation. **Implemented with predefined controls.**
 5. Player Today projection and missed-day behavior. **Implemented as a yesterday/today/tomorrow plan window.**
-6. Staff cancellation/rescheduling and expanded plan-history audit view.
+6. Staff cancellation/rescheduling and expanded plan history. **Implemented; future plans are replaced atomically, while started plans never shift.**
 
 ## Open decisions
 

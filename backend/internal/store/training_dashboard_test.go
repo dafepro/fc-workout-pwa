@@ -100,12 +100,83 @@ func TestTrainingDashboardProjectsPublishedTrainingAndRestDays(t *testing.T) {
 				projection.CurrentPlanDay.Completed != test.completed {
 				t.Fatalf("unexpected current plan day: %+v", projection.CurrentPlanDay)
 			}
+			if projection.TodayRecommendation.Source != "coach_plan" ||
+				projection.TodayRecommendation.ExplanationKey != "coach_plan_today" {
+				t.Fatalf("published plan did not own today's recommendation: %+v", projection.TodayRecommendation)
+			}
 			if test.wantKind == "training" && (len(projection.CurrentPlanDay.Blocks) != 1 ||
 				projection.CurrentPlanDay.Blocks[0].ActivityDefinitionID != "hill-sprints" ||
 				projection.CurrentPlanDay.Blocks[0].Completed) {
 				t.Fatalf("unexpected current plan blocks: %+v", projection.CurrentPlanDay.Blocks)
 			}
 		})
+	}
+}
+
+func TestTrainingDashboardChoosesOneServerOwnedUnplannedRecommendation(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+	ctx := context.Background()
+	actor := domain.Actor{Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-one"}
+
+	projection, err := repository.TrainingDashboard(ctx, actor, "team-one", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if projection.TodayRecommendation.Source != "team_default" ||
+		projection.TodayRecommendation.ActivityDefinitionID != "hill-sprints" ||
+		projection.TodayRecommendation.ExplanationKey != "team_default_today" {
+		t.Fatalf("legacy team default projection = %+v", projection.TodayRecommendation)
+	}
+
+	if _, err = db.ExecContext(ctx, `DELETE FROM assignments WHERE team_id = 'team-one'`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = db.ExecContext(ctx, `UPDATE training_entries SET occurred_at = '2026-08-11T12:00:00Z' WHERE player_id = 'player-mason'`); err != nil {
+		t.Fatal(err)
+	}
+	projection, err = repository.TrainingDashboard(ctx, actor, "team-one", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if projection.TodayRecommendation.Source != "suggestion" ||
+		projection.TodayRecommendation.ActivityDefinitionID != "recovery-walk-jog" ||
+		projection.TodayRecommendation.ExplanationKey != "recent_check_in_recovery" ||
+		projection.TodayRecommendation.Intensity != "easy" {
+		t.Fatalf("recent-check-in suggestion = %+v", projection.TodayRecommendation)
+	}
+
+	if _, err = db.ExecContext(ctx, `DELETE FROM training_entries WHERE player_id = 'player-mason'`); err != nil {
+		t.Fatal(err)
+	}
+	projection, err = repository.TrainingDashboard(ctx, actor, "team-one", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if projection.TodayRecommendation.ActivityDefinitionID != "timed-run-walk" ||
+		projection.TodayRecommendation.ExplanationKey != "routine_builder" ||
+		projection.TodayRecommendation.DurationMinutes > 20 {
+		t.Fatalf("routine-building suggestion = %+v", projection.TodayRecommendation)
+	}
+}
+
+func TestTrainingDashboardClosesAnUnplannedSuggestionAfterAnyCurrentDayCheckIn(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+	ctx := context.Background()
+	if _, err := db.ExecContext(ctx, `DELETE FROM assignments WHERE team_id = 'team-one'`); err != nil {
+		t.Fatal(err)
+	}
+	projection, err := repository.TrainingDashboard(ctx, domain.Actor{
+		Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-one",
+	}, "team-one", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if projection.TodayRecommendation.Source != "suggestion" || !projection.TodayRecommendation.Completed {
+		t.Fatalf("current-day check-in did not close the suggestion: %+v", projection.TodayRecommendation)
 	}
 }
 

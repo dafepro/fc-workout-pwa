@@ -3,6 +3,7 @@ package httpapi_test
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -64,6 +65,57 @@ func TestTrainingPlanRoutesPublishImmutableTeamSchedules(t *testing.T) {
 		bytes.NewBufferString(`{"templateId":"return-to-rhythm-v1","startsOn":"2026-08-30"}`))
 	if overlap.Code != http.StatusConflict || !strings.Contains(overlap.Body.String(), `"training_plan_overlap"`) {
 		t.Fatalf("overlap status=%d body=%s", overlap.Code, overlap.Body.String())
+	}
+}
+
+func TestTrainingPlanRoutesRescheduleAndCancelFuturePlans(t *testing.T) {
+	ctx := context.Background()
+	db, err := database.Open(ctx, "file:"+filepath.ToSlash(filepath.Join(t.TempDir(), "training-plan-operations.db")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if err = database.Migrate(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	for _, statement := range []string{
+		`INSERT INTO clubs (id, name, created_at) VALUES ('club-one', 'ZoomiGo Club', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO teams (id, club_id, name, season_id, weekly_default_goal, time_zone, created_at)
+		 VALUES ('team-one', 'club-one', 'Trailblazers', 'season-2026', 3, 'UTC', '2026-01-01T00:00:00Z')`,
+	} {
+		if _, err = db.ExecContext(ctx, statement); err != nil {
+			t.Fatal(err)
+		}
+	}
+	handler := httpapi.NewHandler(config.Config{},
+		httpapi.WithStaffRepository(store.NewStaffStore(db)),
+		httpapi.WithAuthenticator(socialAuthenticator{actor: domain.Actor{
+			AccountID: "account-coach", Role: domain.RoleCoach, ClubID: "club-one", AssignedTeamIDs: []string{"team-one"},
+		}}),
+	)
+	published := authenticatedRequest(t, handler, http.MethodPost, "/v1/staff/teams/team-one/training-plans",
+		bytes.NewBufferString(`{"templateId":"quick-check-in-v1","startsOn":"2099-08-24"}`))
+	if published.Code != http.StatusCreated {
+		t.Fatalf("publish status=%d body=%s", published.Code, published.Body.String())
+	}
+	var plan store.TrainingPlan
+	if err = json.NewDecoder(published.Body).Decode(&plan); err != nil {
+		t.Fatal(err)
+	}
+	replaced := authenticatedRequest(t, handler, http.MethodPost,
+		"/v1/staff/teams/team-one/training-plans/"+plan.ID+"/reschedule",
+		bytes.NewBufferString(`{"templateId":"quick-check-in-v1","startsOn":"2099-08-25"}`))
+	if replaced.Code != http.StatusCreated || !strings.Contains(replaced.Body.String(), `"replacesPlanId":"`+plan.ID+`"`) {
+		t.Fatalf("reschedule status=%d body=%s", replaced.Code, replaced.Body.String())
+	}
+	var replacement store.TrainingPlan
+	if err = json.NewDecoder(replaced.Body).Decode(&replacement); err != nil {
+		t.Fatal(err)
+	}
+	cancelled := authenticatedRequest(t, handler, http.MethodPost,
+		"/v1/staff/teams/team-one/training-plans/"+replacement.ID+"/cancel", nil)
+	if cancelled.Code != http.StatusOK || !strings.Contains(cancelled.Body.String(), `"status":"cancelled"`) {
+		t.Fatalf("cancel status=%d body=%s", cancelled.Code, cancelled.Body.String())
 	}
 }
 

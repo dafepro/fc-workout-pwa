@@ -67,11 +67,13 @@ export function connectedMomentumModel(
 ): ConnectedMomentumModel {
   const planDay = dashboard.currentPlanDay;
   const assignment = planDay ? null : dashboard.currentAssignment;
+  const recommendation = dashboard.todayRecommendation;
   const plannedActivityID =
     planDay && planDay.kind !== "rest"
       ? (planDay.blocks.find((block) => !block.completed) ?? planDay.blocks[0])
           ?.activityDefinitionId
-      : undefined;
+      : (assignment?.activityDefinitionId ??
+        recommendation.activityDefinitionId);
   const primaryActivity = plannedActivityID
     ? (dashboard.activities.find(
         (activity) => activity.id === plannedActivityID,
@@ -117,7 +119,8 @@ export function connectedMomentumModel(
     historyEntry(entry, dashboard.activities),
   );
   const primaryComplete = Boolean(
-    planDay?.completed || assignment?.completed || plannedRestComplete,
+    (planDay?.completed ?? assignment?.completed ?? recommendation.completed) ||
+      plannedRestComplete,
   );
 
   return {
@@ -127,7 +130,7 @@ export function connectedMomentumModel(
         ? planDay.kind === "rest"
           ? "rest"
           : "training"
-        : assignment
+        : assignment || recommendation.kind !== "rest"
           ? "training"
           : "rest",
       personalMomentum: Math.min(
@@ -158,7 +161,13 @@ export function connectedMomentumModel(
     activitiesBySelection,
     activitiesByExtra,
     recoveryActivity,
-    plan: planContent(planDay, assignment, primaryActivity, now),
+    plan: planContent(
+      planDay,
+      assignment,
+      recommendation,
+      primaryActivity,
+      now,
+    ),
     alternatives,
     recovery: recoveryActivity
       ? {
@@ -239,6 +248,7 @@ export function momentumExtraInput(
 function planContent(
   planDay: TrainingDashboard["currentPlanDay"],
   assignment: TrainingDashboard["currentAssignment"],
+  recommendation: TrainingDashboard["todayRecommendation"],
   activity: ActivityDefinition | null,
   now: Date,
 ): MomentumPlanContent {
@@ -250,7 +260,11 @@ function planContent(
       instruction: momentumAlphaCopy.connected.restInstruction,
       goal: momentumAlphaCopy.connected.restGoal,
       stretch: momentumAlphaCopy.connected.restStretch,
-      reasons: [...momentumAlphaCopy.connected.restReasons],
+      reasons: [
+        momentumAlphaCopy.connected.recommendationReasons[
+          recommendation.explanationKey
+        ],
+      ],
     };
   }
   if (planDay) {
@@ -273,8 +287,29 @@ function planContent(
         ? `Stretch · ${formatValue(steppedValue(activity.defaultValue * 1.25, activity.step, activity.max), activity.unit)}`
         : momentumAlphaCopy.connected.unavailableActivityStretch,
       reasons: [
-        `${planDay.templateName} places ${planDay.focus} here in the week.`,
-        "The plan keeps tomorrow’s workload separate even if a day is missed.",
+        momentumAlphaCopy.connected.recommendationReasons[
+          recommendation.explanationKey
+        ],
+      ],
+    };
+  }
+  if (!assignment && recommendation.source === "suggestion" && activity) {
+    const target = recommendation.targetValue ?? activity.defaultValue;
+    const workloadValue =
+      recommendation.durationMinutes > 0
+        ? `${recommendation.durationMinutes} min`
+        : formatValue(target, recommendation.targetUnit ?? activity.unit);
+    return {
+      dateLabel: dateLabel(now),
+      activity: activity.name,
+      workload: `${workloadValue} · ${capitalize(recommendation.intensity)}`,
+      instruction: activity.instructions[0] ?? activity.description,
+      goal: `Goal · ${formatValue(target, recommendation.targetUnit ?? activity.unit)}`,
+      stretch: momentumAlphaCopy.connected.unavailableActivityStretch,
+      reasons: [
+        momentumAlphaCopy.connected.recommendationReasons[
+          recommendation.explanationKey
+        ],
       ],
     };
   }
@@ -304,7 +339,11 @@ function planContent(
     instruction: activity.instructions[0] ?? activity.description,
     goal: `Goal · ${formatValue(assignment.targetValue, assignment.targetUnit)}`,
     stretch: `Stretch · ${formatValue(stretch, assignment.targetUnit)}`,
-    reasons: [...momentumAlphaCopy.connected.assignedReasons],
+    reasons: [
+      momentumAlphaCopy.connected.recommendationReasons[
+        recommendation.explanationKey
+      ],
+    ],
   };
 }
 

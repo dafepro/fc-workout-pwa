@@ -1,7 +1,7 @@
 # Player Plan Recommendations and Loot
 
-Status: recommendation authority retained; player presentation superseded by
-`FOCUSED_TODAY_FLOW.md`
+Status: server recommendation authority and one-day coach plan implemented;
+player presentation superseded by `FOCUSED_TODAY_FLOW.md`
 
 ## Problem
 
@@ -16,7 +16,7 @@ be authoritative.
 
 Training plans are the single coach scheduling mechanism.
 
-- A plan may cover one day or several days. A future one-day quick-plan preset
+- A plan may cover one day or several days. The one-day quick-plan preset
   replaces the common “assign one activity” use case.
 - The staff console does not offer new legacy assignments after this cutover.
   Existing assignments remain readable and enforceable until they end so
@@ -40,7 +40,7 @@ product copy and APIs must not make two coach concepts appear equivalent.
 ## Recommendation contract
 
 The server, rather than the browser, resolves recommendation precedence. The
-dashboard projection grows one nullable recommendation object:
+dashboard projection includes one recommendation object:
 
 ```ts
 type PlayerRecommendation = {
@@ -59,8 +59,10 @@ type PlayerRecommendation = {
 ```
 
 `explanationKey` selects server-approved copy; it is not coach- or
-player-authored text. The first implementation can project only `coach_plan`
-and a conservative predefined suggestion while reserving `team_default`.
+player-authored text. The implementation projects `coach_plan`, maps a
+still-live legacy team item to the reserved `team_default` source, and otherwise
+selects a conservative predefined suggestion. The browser does not choose the
+fallback activity.
 
 ## Browsable What's next timeline
 

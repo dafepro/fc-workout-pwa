@@ -39,8 +39,9 @@ are superseded and must not return through an unfinished older slice.
   independent durable boxes without consuming that daily claim.
 - Plan-aware training and rest records carry backend-validated plan, day, and
   block provenance. Completion is recalculated after eligible deletion.
-- Coaches can select a curated whole-team plan, preview it, publish an immutable
-  snapshot, and read plan and legacy-assignment history.
+- Coaches can select a curated whole-team or one-day plan, make predefined
+  structured edits, publish a validated snapshot, cancel it, atomically
+  replace a future plan, and read linked plan and legacy-assignment history.
 - Team Rewards has guided creation, one active reward per team, safe aggregate
   progress, canonical staff image handling, lifecycle/audit records, and a
   connected player card on Team.
@@ -62,11 +63,8 @@ are superseded and must not return through an unfinished older slice.
 
 ### Remaining gaps
 
-- The server does not yet resolve a no-plan recommendation. The browser chooses
-  the current fallback and cannot truthfully distinguish a team default from a
-  suggestion engine.
-- Training-plan editing, cancellation, rescheduling, and one-day quick plans are
-  absent.
+- Coaching-owner approval of the conservative 5–20 minute development bounds
+  is still required before the planner is eligible for mainline release.
 - Team Reward email, reporting/moderation, and bounded correction operations are
   absent.
 - The Team Canvas adapter exists, but extraction/library selection, compatibility
@@ -74,15 +72,15 @@ are superseded and must not return through an unfinished older slice.
 
 ## Prioritized delivery order
 
-| Priority | Slice                                          | Player or staff outcome                                                                                | Status           | Depends on                                 |
-| -------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ---------------- | ------------------------------------------ |
-| P0       | J · Focused Today correctness                  | Current plan identity, failures, navigation, and 320-pixel browser flow are trustworthy                | Delivered        | Focused Today baseline                     |
-| P0       | K · Team Pulse on Team                         | Players see three recent safe activities and may deliberately reveal two more or cheer                 | Delivered        | Existing Team Pulse API/component          |
-| P1       | L · Plan participation prize boxes             | Three and seven distinct plan days grant durable claimable boxes exactly once                          | Delivered        | Prize boxes and plan provenance, delivered |
-| P1       | M · Coach planner and recommendation authority | Coaches have one complete scheduling workflow and unplanned players get an explained server suggestion | Partial          | Plan publication/provenance, delivered     |
-| P1       | N · Team Reward operations                     | A real coach promise has correction, moderation, and deduplicated staff notification paths             | Partial          | Durable Team Rewards/media, delivered      |
-| P2       | O · Team Canvas production boundary            | One supported renderer/transport owns cosmetic play behind a frozen app contract                       | Partial          | Shared stamp adapter, delivered            |
-| P2       | P · Beta and launch reconciliation             | Current docs, safety decisions, browser support, observability, and release evidence agree             | Parallel/blocked | Owner and operator decisions               |
+| Priority | Slice                                          | Player or staff outcome                                                                                | Status                 | Depends on                                 |
+| -------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ---------------------- | ------------------------------------------ |
+| P0       | J · Focused Today correctness                  | Current plan identity, failures, navigation, and 320-pixel browser flow are trustworthy                | Delivered              | Focused Today baseline                     |
+| P0       | K · Team Pulse on Team                         | Players see three recent safe activities and may deliberately reveal two more or cheer                 | Delivered              | Existing Team Pulse API/component          |
+| P1       | L · Plan participation prize boxes             | Three and seven distinct plan days grant durable claimable boxes exactly once                          | Delivered              | Prize boxes and plan provenance, delivered |
+| P1       | M · Coach planner and recommendation authority | Coaches have one complete scheduling workflow and unplanned players get an explained server suggestion | Delivered; review gate | Coaching-owner numeric approval            |
+| P1       | N · Team Reward operations                     | A real coach promise has correction, moderation, and deduplicated staff notification paths             | Partial                | Durable Team Rewards/media, delivered      |
+| P2       | O · Team Canvas production boundary            | One supported renderer/transport owns cosmetic play behind a frozen app contract                       | Partial                | Shared stamp adapter, delivered            |
+| P2       | P · Beta and launch reconciliation             | Current docs, safety decisions, browser support, observability, and release evidence agree             | Parallel/blocked       | Owner and operator decisions               |
 
 P0 is intentionally small and first. The redesign should be reliable before a
 new reward loop or another planner capability is layered onto it.
@@ -171,25 +169,33 @@ server truthfully explains what fills an unplanned day.
 
 Completion gates:
 
-- [ ] Add structured editing for future duration, intensity, focus, approved
+- [x] Add structured editing for future duration, intensity, focus, approved
       blocks, recovery, and rest; published past/today snapshots remain
       immutable.
-- [ ] Enforce age-band duration, hard-day spacing, approved blocks, and
-      recovery/rest rules on the server. Obtain coaching/content-owner approval
-      for the numeric bounds before mainline release.
-- [ ] Add explicit cancellation and future rescheduling with retained event and
+- [x] Enforce conservative duration, hard-day spacing, approved-block, and
+      recovery/rest rules on the server.
+- [ ] Obtain coaching/content-owner approval for the numeric age-band bounds
+      before mainline release.
+- [x] Add explicit cancellation and future rescheduling with retained event and
       plan history. Never slide missed work forward automatically.
-- [ ] Add a one-day quick-plan preset through the same publication and
+- [x] Add a one-day quick-plan preset through the same publication and
       validation path; do not restore assignment creation as a second workflow.
-- [ ] Project one server-owned recommendation source: coach plan, reserved team
+- [x] Project one server-owned recommendation source: coach plan, reserved team
       default, or bounded suggestion.
-- [ ] Base the first suggestion on conservative predefined rules and safe
+- [x] Base the first suggestion on conservative predefined rules and safe
       private recency/recovery inputs; never infer medical state or prescribe
       catch-up work.
-- [ ] Replace browser-authored explanation and detail copy with server-approved
+- [x] Replace browser-authored explanation and detail copy with server-approved
       keys and catalog content.
-- [ ] Expand plan history enough for a coach to understand active, upcoming,
+- [x] Expand plan history enough for a coach to understand active, upcoming,
       completed, cancelled, and rescheduled versions.
+
+Delivered with one atomic replacement path: only a plan whose first day is
+still future may be rescheduled. The old snapshot is cancelled and linked to
+the new plan in the same transaction, so a failed replacement leaves the old
+plan published. Started plans may be cancelled but never shifted. The server
+also owns the Today source and explanation key; an unplanned suggestion closes
+after any current-day fitness check-in without changing team-visible data.
 
 ## Slice N — Team Reward operations
 
@@ -276,8 +282,8 @@ this completion plan.
    Pulse on Team, update the connected 320-pixel browser journey, and deploy for
    review.
 2. **L:** finish the loop already implied by seven-day plans and Prize boxes.
-3. **M:** complete the coach planner and move recommendation authority to the
-   backend before expanding plan content.
+3. **M:** delivered; obtain coaching-owner approval for its development bounds
+   before mainline, then continue with Team Reward operations.
 
 Team Reward operations can proceed alongside M only when notification/provider
 and moderation decisions have owners. Canvas extraction should wait until a
@@ -319,6 +325,8 @@ Update this table in the same commit that materially changes a vertical slice.
 | 2026-08-24 | V2 audit baseline           | This planning change | Reviewed current routes, components, backend boundaries, tests, linked designs, required product/safety docs, and all repository mockups                                 | J–P                                  |
 | 2026-08-24 | J · completed-plan identity | Working tree         | Failing-then-passing regression proves completed Hill Sprints remains Hill Sprints                                                                                       | Commit/deploy plus remaining J gates |
 | 2026-08-24 | J + K · correctness/pulse   | This delivery change | Targeted unit/component tests plus connected 320-pixel Docker journeys cover failure truth, training/recovery revisits, plans, boxes, Team Pulse, cheering, and overflow | Manual dev review; then slice L      |
+| 2026-08-24 | L · plan prize boxes        | `2553647f`           | Durable three-day/seven-day grants, shared claim queue, deletion/cancellation boundaries, backup coverage, and targeted connected browser flow                           | Manual dev review                    |
+| 2026-08-25 | M · planner/recommendations | This delivery change | Server-owned Today source, safe recency suggestion, structured planner, one-day preset, linked atomic reschedule, cancellation, history, and targeted browser/API tests  | Coaching-owner numeric approval      |
 
 ## Linked designs
 
@@ -331,3 +339,4 @@ Update this table in the same commit that materially changes a vertical slice.
 - `TEAM_CANVAS_PHYSICS_DESIGN.md`
 - `OBSERVABILITY_PLAN.md`
 - `FOCUSED_TODAY_TEAM_PULSE_MANUAL_TEST.md`
+- `COACH_PLANNER_RECOMMENDATION_MANUAL_TEST.md`

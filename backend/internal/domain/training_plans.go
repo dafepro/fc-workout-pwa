@@ -77,6 +77,13 @@ var trainingPlanCatalog = []TrainingPlanTemplate{
 			planDay(6, TrainingPlanRecovery, "recovery", 15, TrainingPlanEasy, planBlock("recovery-walk-jog", "Recovery walk or jog", 15)),
 		},
 	},
+	{
+		ID: "quick-check-in-v1", Version: 1, Name: "One-day quick plan",
+		Summary: "A single easy training day when a full week is not needed.",
+		Days: []TrainingPlanDay{
+			planDay(0, TrainingPlanTraining, "endurance", 15, TrainingPlanEasy, planBlock("timed-run-walk", "Timed run or walk", 15)),
+		},
+	},
 }
 
 func TrainingPlanTemplates() []TrainingPlanTemplate {
@@ -103,23 +110,42 @@ func ValidateTrainingPlanTemplate(template TrainingPlanTemplate) []string {
 		"distance-run": true, "recovery-walk-jog": true,
 	}
 	for index, day := range template.Days {
+		validKind := day.Kind == TrainingPlanTraining || day.Kind == TrainingPlanRecovery || day.Kind == TrainingPlanRest
+		validFocus := day.Focus == "speed" || day.Focus == "endurance" || day.Focus == "recovery"
+		validIntensity := day.Intensity == TrainingPlanEasy || day.Intensity == TrainingPlanSteady || day.Intensity == TrainingPlanHard
+		if !validKind || !validFocus || !validIntensity {
+			errors = appendOnce(errors, "Plan focus and intensity must use approved options.")
+		}
 		if day.Offset != index {
 			errors = appendOnce(errors, "Plan days must be consecutive and start on day zero.")
 		}
 		if day.Kind == TrainingPlanRest {
-			if day.DurationMinutes != 0 || len(day.Blocks) != 0 {
+			if day.DurationMinutes != 0 || len(day.Blocks) != 0 || day.Focus != "recovery" || day.Intensity != TrainingPlanEasy {
 				errors = appendOnce(errors, "Training days need blocks and rest days must stay empty.")
 			}
-		} else if day.DurationMinutes <= 0 || len(day.Blocks) == 0 {
-			errors = appendOnce(errors, "Training days need blocks and rest days must stay empty.")
+		} else {
+			if day.DurationMinutes < 5 || day.DurationMinutes > 20 {
+				errors = appendOnce(errors, "Active plan days must be between 5 and 20 minutes.")
+			}
+			if len(day.Blocks) == 0 {
+				errors = appendOnce(errors, "Training days need blocks and rest days must stay empty.")
+			}
 		}
+		totalBlockMinutes := 0
 		for _, block := range day.Blocks {
+			totalBlockMinutes += block.DurationMinutes
 			if !validActivities[block.ActivityDefinitionID] || block.DurationMinutes <= 0 || block.DurationMinutes > day.DurationMinutes {
 				errors = appendOnce(errors, "Every block must use an approved activity and fit within its day.")
 			}
 			if (block.ActivityDefinitionID == "timed-run-walk" || block.ActivityDefinitionID == "recovery-walk-jog") && block.DurationMinutes%5 != 0 {
 				errors = appendOnce(errors, "Duration activities must use supported five-minute steps.")
 			}
+		}
+		if totalBlockMinutes > day.DurationMinutes {
+			errors = appendOnce(errors, "The total block time must fit within its day.")
+		}
+		if day.Kind == TrainingPlanRecovery && (day.Focus != "recovery" || day.Intensity != TrainingPlanEasy || len(day.Blocks) != 1 || day.Blocks[0].ActivityDefinitionID != "recovery-walk-jog") {
+			errors = appendOnce(errors, "Recovery days must stay easy and use recovery activities.")
 		}
 		if index > 0 && day.Intensity == TrainingPlanHard && template.Days[index-1].Intensity == TrainingPlanHard {
 			errors = appendOnce(errors, "Hard days must not be consecutive.")

@@ -219,6 +219,73 @@ test("a connected planned recovery day checks in without becoming a workout", as
   await expectNoHorizontalOverflow(page);
 });
 
+test("coach quick plans keep structured edits and linked reschedule history", async () => {
+  const api = await request.newContext({ baseURL: apiBaseURL });
+  const headers = { Authorization: "Bearer e2e-coach-hill" };
+  const templates = await api.get("/v1/staff/training-plan-templates", {
+    headers,
+  });
+  expect(templates.ok()).toBe(true);
+  const quick = (await templates.json()).templates.find(
+    (template: { id: string }) => template.id === "quick-check-in-v1",
+  );
+  expect(quick).toBeTruthy();
+  quick.days[0].durationMinutes = 10;
+  quick.days[0].blocks[0].durationMinutes = 10;
+
+  const published = await api.post(
+    "/v1/staff/teams/team-hill-striders/training-plans",
+    {
+      headers,
+      data: {
+        templateId: quick.id,
+        startsOn: "2099-08-24",
+        days: quick.days,
+      },
+    },
+  );
+  expect(published.status()).toBe(201);
+  const original = await published.json();
+  expect(original.days).toMatchObject([
+    { durationMinutes: 10, blocks: [{ durationMinutes: 10 }] },
+  ]);
+
+  const rescheduled = await api.post(
+    `/v1/staff/teams/team-hill-striders/training-plans/${original.id}/reschedule`,
+    {
+      headers,
+      data: {
+        templateId: quick.id,
+        startsOn: "2099-08-25",
+        days: quick.days,
+      },
+    },
+  );
+  expect(rescheduled.status()).toBe(201);
+  const replacement = await rescheduled.json();
+  expect(replacement.replacesPlanId).toBe(original.id);
+
+  const history = await api.get(
+    "/v1/staff/teams/team-hill-striders/training-plans",
+    { headers },
+  );
+  const plans = (await history.json()).plans;
+  expect(
+    plans.find((plan: { id: string }) => plan.id === original.id),
+  ).toMatchObject({
+    status: "cancelled",
+    replacedByPlanId: replacement.id,
+  });
+
+  const cancelled = await api.post(
+    `/v1/staff/teams/team-hill-striders/training-plans/${replacement.id}/cancel`,
+    { headers },
+  );
+  expect(cancelled.status()).toBe(200);
+  expect((await cancelled.json()).status).toBe("cancelled");
+  await api.dispose();
+});
+
 async function expectNoHorizontalOverflow(
   page: import("@playwright/test").Page,
 ) {

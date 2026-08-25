@@ -8,7 +8,7 @@ import type { MomentumPlanContent } from "../../momentum-alpha/connected";
 import { playerExperienceCopy } from "../content";
 
 interface TodayPlanHeroProps {
-  source: "coach-plan" | "recommendation";
+  source: "coach-plan" | "team-default" | "recommendation";
   restDay: boolean;
   complete: boolean;
   previewOnly: boolean;
@@ -86,7 +86,11 @@ export function TodayPlanHero({
         <div>
           <span className="today-plan-hero__today">{copy.today}</span>
           <small>
-            {source === "coach-plan" ? copy.coachPlan : copy.recommended}
+            {source === "coach-plan"
+              ? copy.coachPlan
+              : source === "team-default"
+                ? copy.teamDefault
+                : copy.recommended}
           </small>
         </div>
         {complete ? (

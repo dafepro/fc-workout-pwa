@@ -105,15 +105,28 @@ type TrainingPlanWindow struct {
 	Days         []CurrentTrainingPlanDay `json:"days"`
 }
 
+type TodayRecommendationProjection struct {
+	Source               string  `json:"source"`
+	ExplanationKey       string  `json:"explanationKey"`
+	Kind                 string  `json:"kind"`
+	ActivityDefinitionID string  `json:"activityDefinitionId,omitempty"`
+	TargetValue          float64 `json:"targetValue,omitempty"`
+	TargetUnit           string  `json:"targetUnit,omitempty"`
+	DurationMinutes      int     `json:"durationMinutes"`
+	Intensity            string  `json:"intensity"`
+	Completed            bool    `json:"completed"`
+}
+
 type TrainingDashboardProjection struct {
-	Team              SocialTeam                     `json:"team"`
-	Activities        []ActivityDefinitionProjection `json:"activities"`
-	CurrentAssignment *AssignmentProjection          `json:"currentAssignment"`
-	CurrentPlanDay    *CurrentTrainingPlanDay        `json:"currentPlanDay"`
-	CurrentPlan       *TrainingPlanWindow            `json:"currentPlan"`
-	Summary           PersonalTrainingSummary        `json:"summary"`
-	TeamPulse         TeamPulseProjection            `json:"teamPulse"`
-	StreakComparison  StreakComparisonProjection     `json:"streakComparison"`
+	Team                SocialTeam                     `json:"team"`
+	Activities          []ActivityDefinitionProjection `json:"activities"`
+	CurrentAssignment   *AssignmentProjection          `json:"currentAssignment"`
+	CurrentPlanDay      *CurrentTrainingPlanDay        `json:"currentPlanDay"`
+	CurrentPlan         *TrainingPlanWindow            `json:"currentPlan"`
+	TodayRecommendation TodayRecommendationProjection  `json:"todayRecommendation"`
+	Summary             PersonalTrainingSummary        `json:"summary"`
+	TeamPulse           TeamPulseProjection            `json:"teamPulse"`
+	StreakComparison    StreakComparisonProjection     `json:"streakComparison"`
 }
 
 func (store *Store) TrainingDashboard(ctx context.Context, actor domain.Actor, teamID string, now time.Time) (TrainingDashboardProjection, error) {
@@ -148,6 +161,7 @@ func (store *Store) TrainingDashboard(ctx context.Context, actor domain.Actor, t
 	if plan != nil {
 		planDay = &plan.Today
 	}
+	recommendation := todayRecommendation(activities, entries, assignment, planDay, now, location)
 	weekStart, _ := domain.LeaderboardPeriodStart(domain.PeriodWeekly, now, team.CreatedAt, location)
 	restDays, err := store.personalRestDayKeys(ctx, actor.PlayerID, teamID, team.CreatedAt, now, location)
 	if err != nil {
@@ -170,10 +184,87 @@ func (store *Store) TrainingDashboard(ctx context.Context, actor domain.Actor, t
 		}
 	}
 	return TrainingDashboardProjection{
-		Team: team.SocialTeam, Activities: activities, CurrentAssignment: assignment, CurrentPlanDay: planDay, CurrentPlan: plan, Summary: summary,
+		Team: team.SocialTeam, Activities: activities, CurrentAssignment: assignment, CurrentPlanDay: planDay, CurrentPlan: plan,
+		TodayRecommendation: recommendation, Summary: summary,
 		TeamPulse:        pulse,
 		StreakComparison: streakComparison(actor.PlayerID, now.In(location).Format("2006-01-02"), summary.CurrentStreak),
 	}, nil
+}
+
+func todayRecommendation(
+	activities []ActivityDefinitionProjection,
+	entries []domain.ProjectionEntry,
+	assignment *AssignmentProjection,
+	planDay *CurrentTrainingPlanDay,
+	now time.Time,
+	location *time.Location,
+) TodayRecommendationProjection {
+	byID := make(map[string]ActivityDefinitionProjection, len(activities))
+	for _, activity := range activities {
+		byID[activity.ID] = activity
+	}
+	if planDay != nil {
+		item := TodayRecommendationProjection{
+			Source: "coach_plan", ExplanationKey: "coach_plan_today", Kind: planDay.Kind,
+			DurationMinutes: planDay.DurationMinutes, Intensity: planDay.Intensity, Completed: planDay.Completed,
+		}
+		if block := nextPlanBlock(planDay.Blocks); block != nil {
+			item.ActivityDefinitionID = block.ActivityDefinitionID
+			if activity, ok := byID[block.ActivityDefinitionID]; ok {
+				item.TargetValue, item.TargetUnit = activity.DefaultValue, activity.Unit
+			}
+		}
+		return item
+	}
+	if assignment != nil {
+		return TodayRecommendationProjection{
+			Source: "team_default", ExplanationKey: "team_default_today", Kind: "training",
+			ActivityDefinitionID: assignment.ActivityDefinitionID, TargetValue: assignment.TargetValue,
+			TargetUnit: assignment.TargetUnit, Intensity: "steady", Completed: assignment.Completed,
+		}
+	}
+
+	today := localDateStart(now, location)
+	recentCheckIn, completed := false, false
+	for _, entry := range entries {
+		day := localDateStart(entry.OccurredAt, location)
+		if day.Equal(today) {
+			completed = true
+		}
+		if day.Equal(today.AddDate(0, 0, -1)) {
+			recentCheckIn = true
+		}
+	}
+	activityID, explanationKey := "timed-run-walk", "routine_builder"
+	if recentCheckIn {
+		activityID, explanationKey = "recovery-walk-jog", "recent_check_in_recovery"
+	}
+	activity, ok := byID[activityID]
+	if !ok && len(activities) > 0 {
+		activity = activities[0]
+		activityID = activity.ID
+	}
+	duration := 0
+	if activity.Unit == "minutes" {
+		duration = int(activity.DefaultValue)
+	}
+	return TodayRecommendationProjection{
+		Source: "suggestion", ExplanationKey: explanationKey, Kind: "training",
+		ActivityDefinitionID: activityID, TargetValue: activity.DefaultValue,
+		TargetUnit: activity.Unit, DurationMinutes: duration, Intensity: "easy", Completed: completed,
+	}
+}
+
+func nextPlanBlock(blocks []TrainingPlanBlock) *TrainingPlanBlock {
+	for index := range blocks {
+		if !blocks[index].Completed {
+			return &blocks[index]
+		}
+	}
+	if len(blocks) > 0 {
+		return &blocks[0]
+	}
+	return nil
 }
 
 func (store *Store) currentTrainingPlan(ctx context.Context, playerID, teamID, teamDay string, location *time.Location) (*TrainingPlanWindow, error) {
