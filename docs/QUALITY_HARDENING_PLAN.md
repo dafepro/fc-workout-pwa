@@ -44,9 +44,15 @@ A major flow is complete only when:
       Today rather than the activity catalog default.
 - [x] Run the complete API and browser Docker E2E suite from a clean database.
 
+### H1b — Deterministic repository gate
+
+- [x] Restore the repository-wide Prettier baseline so the documented formatting
+      gate is actionable on the merged branch.
+- [x] Keep the formatting-only cleanup separate from functional hardening.
+
 ### H2 — Coach plan to player completion
 
-- [ ] Exercise the staff planner UI rather than publishing plans through test
+- [x] Exercise the staff planner UI rather than publishing plans through test
       setup APIs alone.
 - [ ] Cover publish, player Today presentation, completion, revisit, cancel,
       reschedule, stale-conflict behavior, and planned recovery.
@@ -108,6 +114,10 @@ journeys pass at the release boundary. The browser suite now includes coach plan
 publication and atomic rescheduling, a 15-minute plan shown and saved as 15
 minutes, sealed Prize Box claim/open/collection, Avatar v5 face layers, and the
 saved Avatar rendered in Team Lounge.
+
+The merged repository also passes its deterministic Prettier check. The
+baseline cleanup is isolated in a formatting-only revision so it does not hide
+behavior changes.
 
 Proposed file tree:
 

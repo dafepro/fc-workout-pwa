@@ -389,6 +389,7 @@ Update this table in the same commit that materially changes a vertical slice.
 | 2026-08-25 | L2/N · mobile polish        | This delivery change | True-alpha bounded mascot art, viewport help modal, compact outcome controls, isolated Canvas/workout errors, and explicit concern confirmation                          | Manual Pixel 10/dev review           |
 | 2026-08-25 | H1 · quality baseline       | `67d52ea`            | Merged main observability with Momentum rewards/media/Canvas wiring; Go tests, vet, contracts, and observability configuration tests pass                                | Repair stale E2E contracts           |
 | 2026-08-25 | H1 · trustworthy E2E gate   | This delivery change | Current WebSocket Canvas, Avatar v5, sealed Prize Boxes, staff plan publish/reschedule, exact planned duration, and 33 browser journeys pass in Docker                   | Begin H2/H5 coverage                 |
+| 2026-08-25 | H1b · formatting baseline   | This delivery change | Repository-wide deterministic Prettier baseline restored in an isolated mechanical revision                                                                              | Begin H2/H5 coverage                 |
 
 ## Linked designs
 
