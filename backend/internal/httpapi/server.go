@@ -182,6 +182,7 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	mux.HandleFunc("GET /v1/teams/{teamId}/activity", service.getTeamActivity)
 	mux.HandleFunc("GET /v1/teams/{teamId}/leaderboards", service.getLeaderboard)
 	mux.HandleFunc("GET /v1/teams/{teamId}/reward", service.getPlayerTeamReward)
+	mux.HandleFunc("POST /v1/teams/{teamId}/rewards/{rewardId}/reports", service.reportPlayerTeamReward)
 	mux.HandleFunc("GET /v1/teams/{teamId}/reward-media/{mediaId}", service.getPlayerTeamRewardMedia)
 	mux.HandleFunc("GET /v1/teams/{teamId}/canvas", service.getTeamCanvas)
 	mux.HandleFunc("POST /v1/teams/{teamId}/canvas/rest", service.recordTeamCanvasRest)

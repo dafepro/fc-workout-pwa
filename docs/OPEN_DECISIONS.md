@@ -952,3 +952,22 @@ Momentum Alpha needs independent PWA install/offline behavior.
   badge only from an authoritative `available` claim status. Secondary-page
   return-to-Today navigation appears before the page heading rather than after
   long content.
+
+## Team Reward operations (2026-08-25)
+
+- Decided: published reward starts, rules, and thresholds are immutable. A
+  coach who published the wrong promise cancels it and creates a corrected
+  reward; the cancelled record and its image remain in staff history.
+- Decided: media referenced by any reward state is retained and included in
+  backup. Cleanup deletes only media that was never attached to a reward.
+- Decided: Resend is the production transactional provider and
+  `rewards@notify.zoomigo.quicktrack.cc` is the selected sender. Development,
+  local Docker, and production until DNS/key setup is complete use the
+  non-delivering sink.
+- Implemented: close and achieved transitions capture active assigned coaches
+  in the same SQLite transaction as the transition marker. A direct jump to
+  achieved omits close; later assignment changes never alter the captured
+  recipient set.
+- Implemented: player concerns use three predefined reasons, reveal no reporter
+  identity to team staff, and enter an operator-only queue. Operators may hide
+  or cancel the reward; both the report and resolution are audited.

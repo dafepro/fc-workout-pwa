@@ -130,6 +130,7 @@ export const consoleCopy = {
     teams: "Teams",
     accounts: "Staff accounts",
     audit: "Audit trail",
+    rewardReports: "Reward concerns",
     analytics: "Product analytics",
     backToSearch: "Back to search",
   },
@@ -151,6 +152,26 @@ export const consoleCopy = {
     empty: "No product events have arrived yet.",
     smallCohort:
       "This breakdown appears after at least five players are active, so one child's pattern is not singled out.",
+  },
+  rewardReports: {
+    title: "Reward concerns",
+    intro:
+      "Private player reports appear here without the reporter's identity. Review the reward, then hide it or cancel it.",
+    empty: "No reward concerns need review.",
+    hide: "Hide reward",
+    cancel: "Cancel reward",
+    hideQuestion:
+      "Hide this reward from players? Staff will keep the reward and report history.",
+    cancelQuestion:
+      "Cancel this reward? It will stop being active and disappear from player views.",
+    confirmHide: "Yes, hide it",
+    confirmCancel: "Yes, cancel it",
+    resolved: "Resolved",
+    reasons: {
+      personal_information: "Personal information",
+      inappropriate_content: "Image or words feel wrong",
+      wrong_team: "Not for this team",
+    },
   },
   credential: {
     heading: "Login",

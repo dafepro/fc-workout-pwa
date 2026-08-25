@@ -146,6 +146,62 @@ describe("staff team rewards prototype", () => {
     );
   });
 
+  it("shows aggregate permanent email failure without recipient or player detail", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            items: [
+              {
+                id: "reward-one",
+                teamId: "team-connected",
+                status: "active",
+                prizeTitle: "Team picnic",
+                prizeDescription: "Celebrate together.",
+                startsOn: "2026-08-25",
+                rule: {
+                  version: 1,
+                  kind: "qualifying_team_days",
+                  participationScope: "any_approved_workout",
+                  requiredDays: 5,
+                  minimumRosterPercent: 80,
+                },
+                progress: {
+                  current: 4,
+                  target: 5,
+                  percent: 80,
+                  contributionPercent: 80,
+                  started: 4,
+                  close: true,
+                  achieved: false,
+                  units: [],
+                },
+                notifications: [
+                  {
+                    kind: "close",
+                    status: "failed",
+                    recipientCount: 2,
+                    sentCount: 1,
+                    failedCount: 1,
+                  },
+                ],
+              },
+            ],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      ),
+    );
+
+    render(<TeamRewardsPrototype teamId="team-connected" connected />);
+
+    expect(
+      await screen.findByText("Close: failed for 2 staff"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/@|Mason/i)).not.toBeInTheDocument();
+  });
+
   it("cancels without erasing the reward record", () => {
     render(<TeamRewardsPrototype teamId="team-3" />);
     fireEvent.click(

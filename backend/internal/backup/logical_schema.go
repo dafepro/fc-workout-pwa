@@ -207,6 +207,8 @@ var logicalTables = []logicalTable{
 			textField("created_at"),
 			textField("updated_at"),
 			nullable(textField("media_id")),
+			nullable(textField("hidden_at")),
+			nullable(textField("close_notified_at")),
 		},
 	},
 	{
@@ -218,6 +220,36 @@ var logicalTables = []logicalTable{
 			nullable(textField("actor_account_id")),
 			textField("event_type"),
 			textField("occurred_at"),
+		},
+	},
+	{
+		Name:    "team_reward_notification_outbox",
+		OrderBy: []string{"id"},
+		Fields: []logicalField{
+			textField("id"), textField("reward_id"), textField("team_id"), textField("notification_kind"),
+			textField("recipient_account_id"), textField("recipient_email"), textField("team_name"),
+			textField("prize_title"), textField("goal_text"), integerField("progress_current"),
+			integerField("progress_target"), textField("dashboard_path"), textField("status"),
+			integerField("attempts"), textField("next_attempt_at"), nullable(textField("claimed_at")),
+			nullable(textField("provider_message_id")), nullable(textField("last_error_code")),
+			textField("created_at"), textField("updated_at"),
+		},
+	},
+	{
+		Name:    "team_reward_reports",
+		OrderBy: []string{"id"},
+		Fields: []logicalField{
+			textField("id"), textField("reward_id"), textField("reporter_player_id"), textField("reason"),
+			textField("status"), nullable(textField("resolution")), textField("created_at"),
+			nullable(textField("resolved_at")), nullable(textField("resolved_by_account_id")),
+		},
+	},
+	{
+		Name:    "team_reward_moderation_events",
+		OrderBy: []string{"id"},
+		Fields: []logicalField{
+			textField("id"), textField("report_id"), textField("reward_id"),
+			nullable(textField("actor_account_id")), textField("event_type"), textField("occurred_at"),
 		},
 	},
 	{

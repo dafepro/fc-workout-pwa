@@ -90,6 +90,10 @@ jobs:
           STAFF_SECRET_KEY: ${{ secrets.STAFF_SECRET_KEY }}
           PLAYER_LOGIN_URL: ${{ vars.PLAYER_LOGIN_URL }}
           STAFF_SETUP_URL: ${{ vars.STAFF_SETUP_URL }}
+          REWARD_MAILER_MODE: ${{ vars.REWARD_MAILER_MODE }}
+          REWARD_EMAIL_FROM: ${{ vars.REWARD_EMAIL_FROM }}
+          REWARD_EMAIL_BASE_URL: ${{ vars.REWARD_EMAIL_BASE_URL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           PRODUCTION_DATA_APPROVED: ${{ vars.PRODUCTION_DATA_APPROVED }}
           BACKUP_S3_ENDPOINT: ${{ vars.BACKUP_S3_ENDPOINT }}
           BACKUP_S3_BUCKET: ${{ vars.BACKUP_S3_BUCKET }}

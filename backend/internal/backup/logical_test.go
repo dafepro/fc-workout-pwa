@@ -38,6 +38,9 @@ var exportedTables = []string{
 	"team_reward_media",
 	"team_rewards",
 	"team_reward_events",
+	"team_reward_notification_outbox",
+	"team_reward_reports",
+	"team_reward_moderation_events",
 	"activity_definitions",
 	"training_plans",
 	"training_plan_days",
@@ -467,6 +470,28 @@ func fullyPopulatedDatabase(t *testing.T, ctx context.Context) string {
 		)`,
 		`INSERT INTO team_reward_events (id, reward_id, actor_account_id, event_type, occurred_at)
 		 VALUES ('reward-event-one', 'reward-one', 'account-coach', 'published', '2026-08-02T00:00:00Z')`,
+		`INSERT INTO team_reward_notification_outbox (
+			id, reward_id, team_id, notification_kind, recipient_account_id, recipient_email,
+			team_name, prize_title, goal_text, progress_current, progress_target, dashboard_path,
+			status, attempts, next_attempt_at, created_at, updated_at
+		) VALUES (
+			'reward-notice-one', 'reward-one', 'team-hill-striders', 'close', 'account-coach',
+			'coach@example.test', 'Hill Striders', 'Team pizza', 'Team goal.', 8, 10,
+			'/staff/teams/team-hill-striders/rewards', 'pending', 1,
+			'2026-08-02T00:05:00Z', '2026-08-02T00:00:00Z', '2026-08-02T00:01:00Z'
+		)`,
+		`INSERT INTO team_reward_reports (
+			id, reward_id, reporter_player_id, reason, status, created_at
+		) VALUES (
+			'reward-report-one', 'reward-one', 'player-mason', 'personal_information', 'open',
+			'2026-08-02T00:02:00Z'
+		)`,
+		`INSERT INTO team_reward_moderation_events (
+			id, report_id, reward_id, actor_account_id, event_type, occurred_at
+		) VALUES (
+			'reward-moderation-one', 'reward-report-one', 'reward-one', NULL, 'reported',
+			'2026-08-02T00:02:00Z'
+		)`,
 		`UPDATE team_memberships SET active_to = '2026-06-30' WHERE player_id = 'player-zoe'`,
 		`INSERT INTO player_unlocks (player_id, item_kind, item_id, source, unlocked_at, viewed_at)
 		 VALUES ('player-mason', 'avatar_part', 'avatar-head-dog', 'daily_drop', '2026-08-03T12:00:00Z', NULL)`,

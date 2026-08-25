@@ -79,6 +79,11 @@ export const STAFF_ROUTES: ConsoleRoute[] = [
 
 /** Platform operator only, matching `operatorActor` in the backend. */
 export const OPERATOR_ROUTES: ConsoleRoute[] = [
+  { method: "GET", pattern: /^v1\/staff\/reward-reports$/ },
+  {
+    method: "POST",
+    pattern: /^v1\/staff\/reward-reports\/[^/]+\/resolve$/,
+  },
   { method: "GET", pattern: /^v1\/staff\/search$/ },
   { method: "GET", pattern: /^v1\/staff\/clubs$/ },
   { method: "POST", pattern: /^v1\/staff\/clubs$/ },

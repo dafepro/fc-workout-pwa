@@ -11,6 +11,10 @@ import {
 } from "./console-routes";
 
 const STAFF_HANDLERS = join(process.cwd(), "backend/internal/httpapi/staff.go");
+const REWARD_HANDLERS = join(
+  process.cwd(),
+  "backend/internal/httpapi/team_rewards.go",
+);
 
 /**
  * Reads the backend's own division of these paths: the route table, and for
@@ -19,28 +23,31 @@ const STAFF_HANDLERS = join(process.cwd(), "backend/internal/httpapi/staff.go");
  * drifts, and the drift is a gateway that admits what the backend refuses.
  */
 function backendOperatorPaths(): Map<string, boolean> {
-  const source = readFileSync(STAFF_HANDLERS, "utf8");
+  const routeSource = readFileSync(STAFF_HANDLERS, "utf8");
+  const sources = [routeSource, readFileSync(REWARD_HANDLERS, "utf8")];
 
   const gateOf = new Map<string, string>();
-  let handler = "";
-  for (const line of source.split("\n")) {
-    const declaration = line.match(/^func \(service \*service\) (\w+)\(/);
-    if (declaration) {
-      handler = declaration[1];
-      continue;
-    }
-    if (!handler) continue;
-    const gate = line.match(
-      /service\.(operatorActor|staffActor|teamActor|playerActor)\(/,
-    );
-    if (gate) {
-      gateOf.set(handler, gate[1]);
-      handler = "";
+  for (const source of sources) {
+    let handler = "";
+    for (const line of source.split("\n")) {
+      const declaration = line.match(/^func \(service \*service\) (\w+)\(/);
+      if (declaration) {
+        handler = declaration[1];
+        continue;
+      }
+      if (!handler) continue;
+      const gate = line.match(
+        /service\.(operatorActor|staffActor|teamActor|playerActor)\(/,
+      );
+      if (gate) {
+        gateOf.set(handler, gate[1]);
+        handler = "";
+      }
     }
   }
 
   const routes = new Map<string, boolean>();
-  for (const [, method, path, name] of source.matchAll(
+  for (const [, method, path, name] of routeSource.matchAll(
     /mux\.HandleFunc\("(\w+) \/(v1\/staff\/[^"]*)", service\.(\w+)\)/g,
   )) {
     routes.set(`${method} ${path}`, gateOf.get(name) === "operatorActor");

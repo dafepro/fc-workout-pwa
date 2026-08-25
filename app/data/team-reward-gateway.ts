@@ -23,6 +23,28 @@ export interface PlayerTeamReward {
   imageUrl?: string;
 }
 
+export type TeamRewardReportReason =
+  | "personal_information"
+  | "inappropriate_content"
+  | "wrong_team";
+
+export async function reportPlayerTeamReward(
+  teamId: string,
+  rewardId: string,
+  reason: TeamRewardReportReason,
+) {
+  const response = await fetch(
+    `/api/zoomigo/v1/teams/${encodeURIComponent(teamId)}/rewards/${encodeURIComponent(rewardId)}/reports`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason }),
+    },
+  );
+  if (response.status === 409) return;
+  if (!response.ok) throw new Error("The concern could not be sent.");
+}
+
 export async function loadPlayerTeamReward(
   teamId: string,
 ): Promise<PlayerTeamReward | null> {

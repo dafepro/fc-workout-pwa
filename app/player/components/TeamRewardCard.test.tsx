@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { createPrototypeReward } from "../../data/team-reward-prototype";
 import { TeamRewardCard } from "./TeamRewardCard";
@@ -90,5 +90,43 @@ describe("TeamRewardCard", () => {
     expect(screen.getByText("9/10")).toBeInTheDocument();
     expect(screen.getByText("4/10")).toBeInTheDocument();
     expect(screen.queryByText(/p1|p2/i)).not.toBeInTheDocument();
+  });
+
+  it("keeps reporting quiet and limits it to predefined anonymous reasons", async () => {
+    const reward = {
+      ...createPrototypeReward("team-1", new Date("2026-08-23T12:00:00Z")),
+      status: "active" as const,
+    };
+    const onReport = vi.fn().mockResolvedValue(undefined);
+    render(
+      <TeamRewardCard
+        reward={reward}
+        progress={{
+          current: 0,
+          target: 2,
+          percent: 0,
+          contributionPercent: 0,
+          started: 0,
+          close: false,
+          achieved: false,
+          days: [],
+          units: [],
+        }}
+        placement="team"
+        onReport={onReport}
+      />,
+    );
+
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText("Report a concern"));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Personal information" }),
+    );
+    await waitFor(() =>
+      expect(onReport).toHaveBeenCalledWith("personal_information"),
+    );
+    expect(
+      await screen.findByText("Concern sent for private review."),
+    ).toBeInTheDocument();
   });
 });

@@ -1,6 +1,9 @@
 import { playerExperienceCopy } from "../content";
 import { prototypeRewardProgress } from "../../data/team-reward-prototype";
-import { usePlayerTeamReward } from "../../data/team-reward-gateway";
+import {
+  reportPlayerTeamReward,
+  usePlayerTeamReward,
+} from "../../data/team-reward-gateway";
 import { useTeamRewardPrototype } from "../../data/use-team-reward-prototype";
 import { useOptionalAuth } from "../../state/auth-context";
 import { usePlayerDevSettings } from "../dev/PlayerDevSettings";
@@ -24,6 +27,9 @@ export function TeamRewardsPreview({
         reward={connected.reward}
         progress={connected.reward.progress}
         placement={placement}
+        onReport={(reason) =>
+          reportPlayerTeamReward(teamId, connected.reward!.id, reason)
+        }
       />
     );
   }

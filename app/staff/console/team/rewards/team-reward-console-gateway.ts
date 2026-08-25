@@ -7,6 +7,13 @@ import { ConsoleError, consoleFormRequest, consoleRequest } from "../../api";
 
 export interface StaffTeamReward extends PrototypeTeamReward {
   progress: TeamRewardProgress;
+  notifications?: Array<{
+    kind: "close" | "achieved";
+    status: "pending" | "sent" | "failed";
+    recipientCount: number;
+    sentCount: number;
+    failedCount: number;
+  }>;
 }
 
 export interface StaffTeamRewardsResponse {

@@ -1579,6 +1579,47 @@
   font-size: 0.9rem;
 }
 
+.player-rewards__report {
+  margin-top: 0.65rem;
+  font-size: 0.72rem;
+}
+
+.player-rewards__report summary {
+  width: fit-content;
+  color: #59655f;
+  cursor: pointer;
+  font-weight: 750;
+  text-decoration: underline;
+  text-underline-offset: 0.15rem;
+}
+
+.player-rewards__report p {
+  margin: 0.45rem 0;
+  font-size: 0.7rem;
+}
+
+.player-rewards__report > div {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.player-rewards__report button {
+  min-height: 2.2rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid #cbd6ce;
+  border-radius: 0.55rem;
+  background: #fff;
+  color: #233b34;
+  font: inherit;
+  font-weight: 800;
+  text-align: left;
+}
+
+.player-rewards__report small {
+  display: block;
+  margin-top: 0.45rem;
+}
+
 @media (max-width: 23rem) {
   .player-rewards--active {
     grid-template-columns: minmax(0, 1fr) 4.5rem;

@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { loadPlayerTeamReward } from "./team-reward-gateway";
+import {
+  loadPlayerTeamReward,
+  reportPlayerTeamReward,
+} from "./team-reward-gateway";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -94,5 +97,22 @@ describe("player team reward gateway", () => {
       imageUrl:
         "/api/zoomigo/v1/teams/team-one/reward-media/media-one?variant=thumbnail",
     });
+  });
+
+  it("submits only a predefined concern to the team-scoped reward", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(null, { status: 201 })),
+    );
+
+    await reportPlayerTeamReward("team-one", "reward-one", "wrong_team");
+
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/zoomigo/v1/teams/team-one/rewards/reward-one/reports",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ reason: "wrong_team" }),
+      }),
+    );
   });
 });

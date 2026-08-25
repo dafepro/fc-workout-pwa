@@ -1,5 +1,7 @@
+"use client";
+
 import Image from "next/image";
-import type { CSSProperties } from "react";
+import { type CSSProperties, useState } from "react";
 
 import {
   teamRewardCopy,
@@ -11,11 +13,13 @@ import {
 import type { PrototypeRewardStatus } from "../../data/team-reward-prototype";
 import type { TeamRewardProgress } from "../../domain/team-rewards";
 import type { TeamRewardRule } from "../../domain/team-rewards";
+import type { TeamRewardReportReason } from "../../data/team-reward-gateway";
 
 export function TeamRewardCard({
   reward,
   progress,
   placement,
+  onReport,
 }: {
   reward: {
     id: string;
@@ -29,7 +33,11 @@ export function TeamRewardCard({
   };
   progress: TeamRewardProgress;
   placement: "today" | "team" | "preview";
+  onReport?: (reason: TeamRewardReportReason) => Promise<void>;
 }) {
+  const [reportState, setReportState] = useState<
+    "idle" | "sending" | "sent" | "error"
+  >("idle");
   const headingId = `team-reward-${placement}-${reward.id}`;
   const achieved = reward.status === "achieved" || progress.achieved;
   const imageUrl = reward.imageDataUrl ?? reward.imageUrl;
@@ -109,6 +117,36 @@ export function TeamRewardCard({
             <strong>{teamRewardCopy.achieved}</strong>
             {teamRewardCopy.achievedBody}
           </p>
+        ) : null}
+        {onReport ? (
+          <details className="player-rewards__report">
+            <summary>{teamRewardCopy.reportConcern}</summary>
+            <p>{teamRewardCopy.reportHint}</p>
+            <div>
+              {teamRewardCopy.reportReasons.map((reason) => (
+                <button
+                  type="button"
+                  key={reason.value}
+                  disabled={reportState === "sending" || reportState === "sent"}
+                  onClick={() => {
+                    setReportState("sending");
+                    void onReport(reason.value).then(
+                      () => setReportState("sent"),
+                      () => setReportState("error"),
+                    );
+                  }}
+                >
+                  {reason.label}
+                </button>
+              ))}
+            </div>
+            {reportState === "sent" ? (
+              <small role="status">{teamRewardCopy.reportSent}</small>
+            ) : null}
+            {reportState === "error" ? (
+              <small role="alert">{teamRewardCopy.reportFailed}</small>
+            ) : null}
+          </details>
         ) : null}
       </div>
       <div className="player-rewards__visual">

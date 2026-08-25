@@ -12,6 +12,9 @@ export function AdminNav() {
       <Link href={routes.staffAdminTeams}>{consoleCopy.admin.teams}</Link>
       <Link href={routes.staffAdminAccounts}>{consoleCopy.admin.accounts}</Link>
       <Link href={routes.staffAdminAudit}>{consoleCopy.admin.audit}</Link>
+      <Link href={routes.staffAdminRewardReports}>
+        {consoleCopy.admin.rewardReports}
+      </Link>
       <Link href={routes.staffAdminAnalytics}>
         {consoleCopy.admin.analytics}
       </Link>

@@ -22,6 +22,9 @@ type TeamRewardRepository interface {
 	TeamRewardMediaForPlayer(context.Context, domain.Actor, string, string, time.Time) (store.TeamRewardMedia, error)
 	ExpireUnattachedTeamRewardMedia(context.Context, time.Time, time.Time) ([]store.TeamRewardMedia, error)
 	RestoreExpiredTeamRewardMedia(context.Context, string) error
+	ReportTeamReward(context.Context, domain.Actor, string, string, store.TeamRewardReportReason, time.Time) (store.TeamRewardReport, error)
+	ListTeamRewardReports(context.Context) ([]store.TeamRewardReport, error)
+	ResolveTeamRewardReport(context.Context, string, string, store.TeamRewardReportResolution, time.Time) (store.TeamRewardReport, error)
 }
 
 func WithTeamRewardRepository(repository TeamRewardRepository) Option {
@@ -121,6 +124,64 @@ func (service *service) getPlayerTeamReward(w http.ResponseWriter, r *http.Reque
 	writeJSON(w, http.StatusOK, reward)
 }
 
+func (service *service) reportPlayerTeamReward(w http.ResponseWriter, r *http.Request) {
+	actor, ok := service.authenticate(w, r)
+	if !ok {
+		return
+	}
+	if actor.Role != domain.RolePlayer || actor.PlayerID == "" {
+		writeError(w, r, http.StatusForbidden, "forbidden", "This account cannot report a team reward.")
+		return
+	}
+	if !service.rewardsReady(w, r) {
+		return
+	}
+	var request struct {
+		Reason store.TeamRewardReportReason `json:"reason"`
+	}
+	if err := decodeStrictJSON(w, r, &request); err != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid_request", "Choose one of the listed concerns.")
+		return
+	}
+	report, err := service.rewards.ReportTeamReward(r.Context(), actor, r.PathValue("teamId"), r.PathValue("rewardId"), request.Reason, service.now().UTC())
+	if service.writeRewardError(w, r, err) {
+		return
+	}
+	writeJSON(w, http.StatusCreated, map[string]string{"id": report.ID, "status": report.Status})
+}
+
+func (service *service) listTeamRewardReports(w http.ResponseWriter, r *http.Request) {
+	if _, ok := service.operatorActor(w, r); !ok || !service.rewardsReady(w, r) {
+		return
+	}
+	reports, err := service.rewards.ListTeamRewardReports(r.Context())
+	if service.writeRewardError(w, r, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"items": reports})
+}
+
+func (service *service) resolveTeamRewardReport(w http.ResponseWriter, r *http.Request) {
+	actor, ok := service.operatorActor(w, r)
+	if !ok || !service.rewardsReady(w, r) {
+		return
+	}
+	var request struct {
+		Resolution store.TeamRewardReportResolution `json:"resolution"`
+	}
+	if err := decodeStrictJSON(w, r, &request); err != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid_request", "Choose hide or cancel.")
+		return
+	}
+	report, err := service.rewards.ResolveTeamRewardReport(r.Context(), r.PathValue("reportId"), actor.AccountID, request.Resolution, service.now().UTC())
+	if service.writeRewardError(w, r, err) {
+		return
+	}
+	service.record(r.Context(), actor, "team_reward.report_resolve", "team_reward", report.RewardID,
+		map[string]any{"teamId": report.TeamID, "resolution": report.Resolution})
+	writeJSON(w, http.StatusOK, report)
+}
+
 func (service *service) rewardsReady(w http.ResponseWriter, r *http.Request) bool {
 	if service.rewards == nil {
 		writeError(w, r, http.StatusServiceUnavailable, "not_ready", "Team rewards are not ready.")
@@ -142,6 +203,8 @@ func (service *service) writeRewardError(w http.ResponseWriter, r *http.Request,
 		writeError(w, r, http.StatusConflict, "active_team_reward_exists", "This team already has an active reward.")
 	case errors.Is(err, store.ErrTeamRewardState):
 		writeError(w, r, http.StatusConflict, "team_reward_state", "That reward cannot be changed from its current state.")
+	case errors.Is(err, store.ErrTeamRewardReportExists):
+		writeError(w, r, http.StatusConflict, "team_reward_report_exists", "You already reported a concern about this reward.")
 	default:
 		requestID, _ := r.Context().Value(requestIDKey).(string)
 		slog.Error("team reward request failed", "method", r.Method, "path", r.URL.Path, "request_id", requestID, "error", err)

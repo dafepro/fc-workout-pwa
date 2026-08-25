@@ -4499,6 +4499,46 @@ h2 {
   margin-top: 1rem;
 }
 
+.reward-notification-list {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.5rem 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.reward-notification-list li {
+  padding: 0.55rem 0.7rem;
+  border-left: 0.3rem solid var(--purple);
+  border-radius: 0.55rem;
+  background: var(--canvas);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.reward-notification-list li[data-status="sent"] {
+  border-left-color: #6fae16;
+}
+
+.reward-notification-list li[data-status="failed"] {
+  border-left-color: #b23b61;
+}
+
+.reward-report-queue {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.reward-report-queue .console-card {
+  margin: 0;
+}
+
+.reward-report-queue time {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
 .reward-day-progress h3 {
   margin: 0 0 0.5rem;
   font-size: 0.9rem;

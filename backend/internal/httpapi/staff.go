@@ -119,6 +119,8 @@ func (service *service) registerStaffRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v1/staff/accounts/{accountId}/team-assignments", service.assignCoach)
 	mux.HandleFunc("DELETE /v1/staff/accounts/{accountId}/team-assignments/{teamId}", service.unassignCoach)
 	mux.HandleFunc("GET /v1/staff/audit", service.getAudit)
+	mux.HandleFunc("GET /v1/staff/reward-reports", service.listTeamRewardReports)
+	mux.HandleFunc("POST /v1/staff/reward-reports/{reportId}/resolve", service.resolveTeamRewardReport)
 }
 
 // staffActor authenticates and refuses a player token outright, so no player

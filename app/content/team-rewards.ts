@@ -57,6 +57,15 @@ export const teamRewardCopy = {
   active: "Active reward",
   achieved: "Goal reached!",
   achievedBody: "Your coach knows. Keep an eye out for what comes next.",
+  reportConcern: "Report a concern",
+  reportHint: "Choose a reason. Your name is not shown to team staff.",
+  reportSent: "Concern sent for private review.",
+  reportFailed: "That could not be sent. Try again.",
+  reportReasons: [
+    { value: "personal_information", label: "Personal information" },
+    { value: "inappropriate_content", label: "Image or words feel wrong" },
+    { value: "wrong_team", label: "Not for this team" },
+  ] as const,
   staff: {
     title: "Team rewards",
     intro:
@@ -127,5 +136,9 @@ export const teamRewardCopy = {
     dayCounted: "Counted",
     dayNotCounted: "Not yet",
     imageAlt: (title: string) => `Prize preview for ${title}`,
+    notifications: "Staff email notices",
+    notificationEmpty: "No close or achieved notice has been queued yet.",
+    notificationStatus: (kind: string, status: string, recipients: number) =>
+      `${kind === "achieved" ? "Achieved" : "Close"}: ${status} for ${recipients} staff`,
   },
 } as const;

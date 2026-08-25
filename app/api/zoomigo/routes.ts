@@ -14,6 +14,10 @@ const PLAYER_ROUTES = [
   { method: "GET", pattern: /^v1\/teams\/[^/]+\/activity$/ },
   { method: "GET", pattern: /^v1\/teams\/[^/]+\/leaderboards$/ },
   { method: "GET", pattern: /^v1\/teams\/[^/]+\/reward$/ },
+  {
+    method: "POST",
+    pattern: /^v1\/teams\/[^/]+\/rewards\/[^/]+\/reports$/,
+  },
   { method: "GET", pattern: /^v1\/teams\/[^/]+\/reward-media\/[^/]+$/ },
   { method: "GET", pattern: /^v1\/teams\/[^/]+\/canvas$/ },
   { method: "POST", pattern: /^v1\/teams\/[^/]+\/canvas\/rest$/ },

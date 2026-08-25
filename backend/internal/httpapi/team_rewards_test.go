@@ -122,9 +122,46 @@ func TestTeamRewardRoutesAuthorizeStaffAndReturnAPlayerSafeProjection(t *testing
 	if imageResponse.Code != http.StatusOK || imageResponse.Header().Get("Content-Type") != "image/jpeg" {
 		t.Fatalf("image status=%d type=%q body=%s", imageResponse.Code, imageResponse.Header().Get("Content-Type"), imageResponse.Body.String())
 	}
-	config, format, err := image.DecodeConfig(bytes.NewReader(imageResponse.Body.Bytes()))
-	if err != nil || format != "jpeg" || config.Width != 360 || config.Height != 240 {
-		t.Fatalf("served image = %s %dx%d err=%v", format, config.Width, config.Height, err)
+	imageConfig, format, err := image.DecodeConfig(bytes.NewReader(imageResponse.Body.Bytes()))
+	if err != nil || format != "jpeg" || imageConfig.Width != 360 || imageConfig.Height != 240 {
+		t.Fatalf("served image = %s %dx%d err=%v", format, imageConfig.Width, imageConfig.Height, err)
+	}
+	reportRequest := httptest.NewRequest(http.MethodPost, "/v1/teams/team-one/rewards/"+id+"/reports",
+		bytes.NewBufferString(`{"reason":"personal_information"}`))
+	reportRequest.Header.Set("Authorization", "Bearer player")
+	reportRequest.Header.Set("Content-Type", "application/json")
+	reportResponse := httptest.NewRecorder()
+	playerHandler.ServeHTTP(reportResponse, reportRequest)
+	if reportResponse.Code != http.StatusCreated {
+		t.Fatalf("report status=%d body=%s", reportResponse.Code, reportResponse.Body.String())
+	}
+	reportID := jsonStringField(t, reportResponse.Body.String(), "id")
+
+	operatorHandler := httpapi.NewHandler(config.Config{}, httpapi.WithStore(repository),
+		httpapi.WithTeamRewardRepository(repository), httpapi.WithStaffRepository(store.NewStaffStore(db)),
+		httpapi.WithAuthenticator(socialAuthenticator{actor: domain.Actor{
+			AccountID: "account-coach", Role: domain.RolePlatformAdmin,
+		}}))
+	listReports := httptest.NewRequest(http.MethodGet, "/v1/staff/reward-reports", nil)
+	listReports.Header.Set("Authorization", "Bearer operator")
+	reportsResponse := httptest.NewRecorder()
+	operatorHandler.ServeHTTP(reportsResponse, listReports)
+	if reportsResponse.Code != http.StatusOK || !strings.Contains(reportsResponse.Body.String(), `"reason":"personal_information"`) || strings.Contains(reportsResponse.Body.String(), "player-one") {
+		t.Fatalf("operator reports status=%d body=%s", reportsResponse.Code, reportsResponse.Body.String())
+	}
+	resolveRequest := httptest.NewRequest(http.MethodPost, "/v1/staff/reward-reports/"+reportID+"/resolve",
+		bytes.NewBufferString(`{"resolution":"hide"}`))
+	resolveRequest.Header.Set("Authorization", "Bearer operator")
+	resolveRequest.Header.Set("Content-Type", "application/json")
+	resolveResponse := httptest.NewRecorder()
+	operatorHandler.ServeHTTP(resolveResponse, resolveRequest)
+	if resolveResponse.Code != http.StatusOK {
+		t.Fatalf("resolve status=%d body=%s", resolveResponse.Code, resolveResponse.Body.String())
+	}
+	afterHide := httptest.NewRecorder()
+	playerHandler.ServeHTTP(afterHide, get)
+	if afterHide.Code != http.StatusNoContent {
+		t.Fatalf("hidden reward status=%d body=%s", afterHide.Code, afterHide.Body.String())
 	}
 }
 

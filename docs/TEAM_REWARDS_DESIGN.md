@@ -2,9 +2,9 @@
 
 Status: design approved for phased implementation. The browser-local prototype
 and the first durable slice are implemented: lifecycle, authorization,
-authoritative workout progress, staff controls, the safe player projection, and
-canonical reward-image storage. Notification email and reporting remain later
-phases.
+authoritative workout progress, staff controls, the safe player projection,
+canonical reward-image storage, durable close/achieved notices, and private
+report moderation.
 
 ## Outcome
 
@@ -18,18 +18,18 @@ assessment results, effort-level maximization, or repeated workouts on one day.
 
 ## Design direction
 
-| Decision               | Status                 | Direction                                                                                                                                                 |
-| ---------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Author                 | Confirmed              | A trusted coach assigned to the team; platform administrators retain global authority.                                                                    |
-| Prize content          | Confirmed              | Coach-authored short text and one optional uploaded image may publish directly to the team.                                                               |
-| Goal authoring         | Confirmed              | A guided template UI backed by a versioned, extensible rule model. No arbitrary AND/OR builder in the first release.                                      |
-| Percentage explanation | Confirmed              | A day qualifies when the stated percentage of that day's active roster participates. The reward asks for a number of qualifying days.                     |
-| Membership             | Confirmed              | Eligibility is evaluated against active membership on each team-local day.                                                                                |
-| Corrections            | Confirmed in principle | Progress recalculates before achievement when eligible entries, membership dates, or permitted reward dates change. The exact backdate limit is proposed. |
-| Concurrent rewards     | Confirmed              | One published active reward per team. Coaches may keep drafts and prepare the next reward.                                                                |
-| Fulfillment            | Recommended baseline   | No delivery acknowledgment or claim workflow. Achievement is the terminal product state.                                                                  |
-| Player completion copy | Recommended baseline   | “Goal reached! Your coach knows. Keep an eye out for what comes next.” Copy must not promise a delivery date.                                             |
-| Email                  | Recommended baseline   | Send one close notification and one achieved notification to the team's assigned coaches.                                                                 |
+| Decision               | Status               | Direction                                                                                                                                                                                      |
+| ---------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Author                 | Confirmed            | A trusted coach assigned to the team; platform administrators retain global authority.                                                                                                         |
+| Prize content          | Confirmed            | Coach-authored short text and one optional uploaded image may publish directly to the team.                                                                                                    |
+| Goal authoring         | Confirmed            | A guided template UI backed by a versioned, extensible rule model. No arbitrary AND/OR builder in the first release.                                                                           |
+| Percentage explanation | Confirmed            | A day qualifies when the stated percentage of that day's active roster participates. The reward asks for a number of qualifying days.                                                          |
+| Membership             | Confirmed            | Eligibility is evaluated against active membership on each team-local day.                                                                                                                     |
+| Corrections            | Confirmed            | Published starts and thresholds are immutable. A mistaken promise is cancelled and recreated; authoritative activity and membership corrections still recalculate progress before achievement. |
+| Concurrent rewards     | Confirmed            | One published active reward per team. Coaches may keep drafts and prepare the next reward.                                                                                                     |
+| Fulfillment            | Recommended baseline | No delivery acknowledgment or claim workflow. Achievement is the terminal product state.                                                                                                       |
+| Player completion copy | Recommended baseline | “Goal reached! Your coach knows. Keep an eye out for what comes next.” Copy must not promise a delivery date.                                                                                  |
+| Email                  | Recommended baseline | Send one close notification and one achieved notification to the team's assigned coaches.                                                                                                      |
 
 ## Product principles
 
@@ -192,7 +192,7 @@ The coach sees this explanation before publishing:
 | --------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | Draft     | Hidden                                            | Edit prize, image, rule, and dates; preview; delete draft.                                                                   |
 | Scheduled | Visible only to staff                             | Edit or cancel; automatically activates on `startsOn`.                                                                       |
-| Active    | Visible to team                                   | Edit prize presentation; move start earlier or correct dates with confirmation; cancel. Rule kind and thresholds are locked. |
+| Active    | Visible to team                                   | Monitor aggregate progress or cancel. Start, rule, and thresholds are locked; a mistaken promise is cancelled and recreated. |
 | Close     | Still `active`; presentation emphasis only        | No special action required. One email is queued at 80% progress.                                                             |
 | Achieved  | Visible celebration                               | View final snapshot. No delivery acknowledgment. Publish a later reward when ready.                                          |
 | Ended     | Visible briefly with neutral copy                 | Duplicate or archive. No player blame language.                                                                              |
@@ -256,7 +256,7 @@ Show:
 - a staff-only drill-down with players grouped by the printed rule, never ranked;
 - notification state: close email pending/sent and achieved email pending/sent;
 - audit timeline;
-- **Adjust dates**, **Edit prize**, and **Cancel reward** actions.
+- **Cancel reward** action and immutable publication details.
 
 Rule kind, thresholds, and participation scope become read-only at publication.
 To change the deal, the coach cancels and duplicates it into a corrected draft.
@@ -417,9 +417,12 @@ message ID and result, and retries with bounded exponential backoff. Unique
 `reward + notification kind + recipient` keys prevent duplicates across
 restarts.
 
-Dev uses a non-delivering sink visible in the staff dev console or structured
-logs. Production requires a selected provider, verified sending domain,
-SPF/DKIM, suppression handling, and an operator alert for sustained failures.
+Dev uses a non-delivering sink visible in the staff reward dashboard and safe
+structured logs. Production uses Resend's HTTPS API with the same outbox key as
+its provider idempotency key. The selected sender is
+`rewards@notify.zoomigo.quicktrack.cc`; enabling it still requires domain
+verification, SPF/DKIM, a sending-only API key, suppression handling, and an
+operator alert for sustained failures.
 
 ## Evaluation and consistency
 

@@ -43,6 +43,8 @@ type TeamReward struct {
 	Rule               domain.TeamRewardRule `json:"rule"`
 	AchievedAt         string                `json:"achievedAt,omitempty"`
 	CancelledAt        string                `json:"cancelledAt,omitempty"`
+	HiddenAt           string                `json:"hiddenAt,omitempty"`
+	CloseNotifiedAt    string                `json:"-"`
 	CreatedAt          string                `json:"createdAt"`
 	UpdatedAt          string                `json:"updatedAt"`
 	MediaID            string                `json:"mediaId,omitempty"`
@@ -51,7 +53,8 @@ type TeamReward struct {
 
 type TeamRewardProjection struct {
 	TeamReward
-	Progress domain.TeamRewardProgress `json:"progress"`
+	Progress      domain.TeamRewardProgress       `json:"progress"`
+	Notifications []TeamRewardNotificationSummary `json:"notifications,omitempty"`
 }
 
 type PlayerTeamRewardProjection struct {
@@ -273,7 +276,7 @@ func (store *Store) TeamRewardForPlayer(ctx context.Context, actor domain.Actor,
 	}
 	var rewardID string
 	err = store.db.QueryRowContext(ctx, `SELECT id FROM team_rewards WHERE team_id = ?
-		AND status IN ('active', 'achieved')
+		AND status IN ('active', 'achieved') AND hidden_at IS NULL
 		ORDER BY CASE status WHEN 'active' THEN 0 ELSE 1 END, updated_at DESC LIMIT 1`, teamID).Scan(&rewardID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return PlayerTeamRewardProjection{}, ErrTeamRewardUnavailable
@@ -295,10 +298,13 @@ func (store *Store) TeamRewardForPlayer(ctx context.Context, actor domain.Actor,
 }
 
 func (store *Store) teamRewardProjection(ctx context.Context, teamID, rewardID string, now time.Time) (TeamRewardProjection, error) {
+	if err := store.refreshTeamRewardState(ctx, teamID, rewardID, now); err != nil {
+		return TeamRewardProjection{}, err
+	}
 	reward, err := scanTeamReward(store.db.QueryRowContext(ctx, `SELECT r.id, r.team_id, r.created_by_account_id,
 		r.status, r.prize_title, r.prize_description, r.starts_on, r.time_zone, r.rule_version, r.rule_kind,
 		r.participation_scope, r.required_days, r.minimum_roster_percent, r.required_players,
-		r.required_days_per_player, r.achieved_at, r.cancelled_at, r.created_at, r.updated_at,
+		r.required_days_per_player, r.achieved_at, r.cancelled_at, r.hidden_at, r.close_notified_at, r.created_at, r.updated_at,
 		COALESCE(r.media_id, ''), COALESCE(m.alt_kind, '')
 		FROM team_rewards r LEFT JOIN team_reward_media m ON m.id = r.media_id AND m.deleted_at IS NULL
 		WHERE r.id = ? AND r.team_id = ?`, rewardID, teamID))
@@ -308,7 +314,7 @@ func (store *Store) teamRewardProjection(ctx context.Context, teamID, rewardID s
 	if err != nil {
 		return TeamRewardProjection{}, fmt.Errorf("load team reward: %w", err)
 	}
-	progress, err := store.evaluateTeamReward(ctx, reward, now)
+	progress, err := store.evaluateTeamReward(ctx, store.db, reward, now)
 	if err != nil {
 		return TeamRewardProjection{}, err
 	}
@@ -318,23 +324,18 @@ func (store *Store) teamRewardProjection(ctx context.Context, teamID, rewardID s
 		progress.Close = false
 		progress.Achieved = true
 	}
-	if reward.Status == TeamRewardActive && progress.Achieved {
-		stamp := now.UTC().Format(time.RFC3339Nano)
-		result, updateErr := store.db.ExecContext(ctx, `UPDATE team_rewards SET status = 'achieved', achieved_at = ?, updated_at = ?
-			WHERE id = ? AND status = 'active'`, stamp, stamp, reward.ID)
-		if updateErr != nil {
-			return TeamRewardProjection{}, fmt.Errorf("latch reward achievement: %w", updateErr)
-		}
-		if changed, _ := result.RowsAffected(); changed == 1 {
-			reward.Status, reward.AchievedAt, reward.UpdatedAt = TeamRewardAchieved, stamp, stamp
-			_, _ = store.db.ExecContext(ctx, `INSERT INTO team_reward_events
-				(id, reward_id, event_type, occurred_at) VALUES (?, ?, 'achieved', ?)`, newID("reward_event"), reward.ID, stamp)
-		}
+	notifications, err := store.notificationSummary(ctx, reward.ID)
+	if err != nil {
+		return TeamRewardProjection{}, fmt.Errorf("load reward notification summary: %w", err)
 	}
-	return TeamRewardProjection{TeamReward: reward, Progress: progress}, nil
+	return TeamRewardProjection{TeamReward: reward, Progress: progress, Notifications: notifications}, nil
 }
 
-func (store *Store) evaluateTeamReward(ctx context.Context, reward TeamReward, now time.Time) (domain.TeamRewardProgress, error) {
+type rewardQueryer interface {
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+}
+
+func (store *Store) evaluateTeamReward(ctx context.Context, queryer rewardQueryer, reward TeamReward, now time.Time) (domain.TeamRewardProgress, error) {
 	location, err := time.LoadLocation(reward.TimeZone)
 	if err != nil {
 		return domain.TeamRewardProgress{}, fmt.Errorf("load captured reward time zone: %w", err)
@@ -348,7 +349,7 @@ func (store *Store) evaluateTeamReward(ctx context.Context, reward TeamReward, n
 		return domain.EvaluateTeamReward(reward.Rule, domain.TeamRewardProgressInput{})
 	}
 	todayKey := today.Format("2006-01-02")
-	rows, err := store.db.QueryContext(ctx, `SELECT player_id, active_from, COALESCE(active_to, '')
+	rows, err := queryer.QueryContext(ctx, `SELECT player_id, active_from, COALESCE(active_to, '')
 		FROM team_memberships WHERE team_id = ? AND active_from <= ?
 		AND (active_to IS NULL OR active_to >= ?)`, reward.TeamID, todayKey, reward.StartsOn)
 	if err != nil {
@@ -368,7 +369,7 @@ func (store *Store) evaluateTeamReward(ctx context.Context, reward TeamReward, n
 	}
 
 	end := today.AddDate(0, 0, 1)
-	entryRows, err := store.db.QueryContext(ctx, `SELECT player_id, occurred_at, COALESCE(assignment_id, '')
+	entryRows, err := queryer.QueryContext(ctx, `SELECT player_id, occurred_at, COALESCE(assignment_id, '')
 		FROM training_entries WHERE team_id = ? AND deleted_at IS NULL AND occurred_at >= ? AND occurred_at < ?`,
 		reward.TeamID, start.UTC().Format(time.RFC3339Nano), end.UTC().Format(time.RFC3339Nano))
 	if err != nil {
@@ -431,13 +432,13 @@ type rewardRow interface {
 func scanTeamReward(row rewardRow) (TeamReward, error) {
 	var reward TeamReward
 	var requiredDays, rosterPercent, requiredPlayers, daysPerPlayer sql.NullInt64
-	var achievedAt, cancelledAt sql.NullString
+	var achievedAt, cancelledAt, hiddenAt, closeNotifiedAt sql.NullString
 	var altKind TeamRewardMediaAltKind
 	err := row.Scan(&reward.ID, &reward.TeamID, &reward.CreatedByAccountID, &reward.Status,
 		&reward.PrizeTitle, &reward.PrizeDescription, &reward.StartsOn, &reward.TimeZone,
 		&reward.Rule.Version, &reward.Rule.Kind, &reward.Rule.ParticipationScope,
 		&requiredDays, &rosterPercent, &requiredPlayers, &daysPerPlayer,
-		&achievedAt, &cancelledAt, &reward.CreatedAt, &reward.UpdatedAt, &reward.MediaID, &altKind)
+		&achievedAt, &cancelledAt, &hiddenAt, &closeNotifiedAt, &reward.CreatedAt, &reward.UpdatedAt, &reward.MediaID, &altKind)
 	if err != nil {
 		return TeamReward{}, err
 	}
@@ -445,7 +446,8 @@ func scanTeamReward(row rewardRow) (TeamReward, error) {
 	reward.Rule.MinimumRosterPercent = int(rosterPercent.Int64)
 	reward.Rule.RequiredPlayers = int(requiredPlayers.Int64)
 	reward.Rule.RequiredDaysPerPlayer = int(daysPerPlayer.Int64)
-	reward.AchievedAt, reward.CancelledAt = achievedAt.String, cancelledAt.String
+	reward.AchievedAt, reward.CancelledAt, reward.HiddenAt = achievedAt.String, cancelledAt.String, hiddenAt.String
+	reward.CloseNotifiedAt = closeNotifiedAt.String
 	reward.ImageAlt = altKind.AltText()
 	return reward, nil
 }

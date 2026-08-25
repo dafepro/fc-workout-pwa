@@ -261,6 +261,10 @@ function ActiveReward({
   progress: TeamRewardProgress;
   onCancel?: () => void | Promise<void>;
 }) {
+  const notifications =
+    "notifications" in reward
+      ? ((reward as StaffTeamReward).notifications ?? [])
+      : [];
   return (
     <>
       <section className="console-card">
@@ -284,6 +288,22 @@ function ActiveReward({
           </span>
         </div>
         <p className="console-hint">{copy.progressHint}</p>
+        <h3>{copy.notifications}</h3>
+        {notifications.length ? (
+          <ul className="reward-notification-list">
+            {notifications.map((notice) => (
+              <li key={notice.kind} data-status={notice.status}>
+                {copy.notificationStatus(
+                  notice.kind,
+                  notice.status,
+                  notice.recipientCount,
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="console-hint">{copy.notificationEmpty}</p>
+        )}
         {progress.days?.length ? (
           <div className="reward-day-progress">
             <h3>{copy.recentDays}</h3>

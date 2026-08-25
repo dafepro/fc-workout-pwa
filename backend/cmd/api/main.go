@@ -15,6 +15,7 @@ import (
 	"github.com/dafepro/fc-workout-pwa/backend/internal/config"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/httpapi"
+	"github.com/dafepro/fc-workout-pwa/backend/internal/notifications"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/rewardmedia"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/staffauth"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/store"
@@ -45,6 +46,14 @@ func run() error {
 		return fmt.Errorf("migrate database: %w", err)
 	}
 	repository := store.New(db, cfg.TeamTimeZone)
+	mailer := notifications.Mailer(notifications.Sink{})
+	if cfg.RewardMailerMode == "resend" {
+		mailer = notifications.Resend{APIKey: cfg.ResendAPIKey}
+	}
+	go notifications.Run(ctx, notifications.Sender{
+		Outbox: repository, Mailer: mailer, From: cfg.RewardEmailFrom, BaseURL: cfg.RewardEmailBaseURL,
+	})
+	go monitorTeamRewardTransitions(ctx, repository)
 	media, err := rewardmedia.NewFileStore(cfg.RewardMediaDir)
 	if err != nil {
 		return fmt.Errorf("open reward media storage: %w", err)
@@ -111,6 +120,27 @@ func run() error {
 			return fmt.Errorf("shutdown: %w", err)
 		}
 		return nil
+	}
+}
+
+func monitorTeamRewardTransitions(ctx context.Context, repository *store.Store) {
+	refresh := func() {
+		refreshContext, cancel := context.WithTimeout(ctx, 15*time.Second)
+		defer cancel()
+		if err := repository.RefreshActiveTeamRewards(refreshContext, time.Now().UTC()); err != nil {
+			slog.Warn("team reward transition refresh failed", "error", err)
+		}
+	}
+	refresh()
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			refresh()
+		}
 	}
 }
 

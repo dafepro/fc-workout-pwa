@@ -22,6 +22,10 @@ services:
       APP_ENV: ${APP_ENV:-production}
       DATABASE_URL: file:/data/zoomigo.db
       REWARD_MEDIA_DIR: /data/reward-media
+      REWARD_MAILER_MODE: ${REWARD_MAILER_MODE:-sink}
+      REWARD_EMAIL_FROM: ${REWARD_EMAIL_FROM:-ZoomiGo Rewards <rewards@example.invalid>}
+      REWARD_EMAIL_BASE_URL: ${REWARD_EMAIL_BASE_URL:-http://localhost:3000}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
       GOMEMLIMIT: 192MiB
       GOMAXPROCS: "1"
       PORT: "8080"

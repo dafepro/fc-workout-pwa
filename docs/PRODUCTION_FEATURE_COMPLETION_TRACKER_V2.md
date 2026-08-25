@@ -204,27 +204,36 @@ been published.
 
 Completion gates:
 
-- [ ] Persist a transactional notification outbox and send one close notice and
+- [x] Persist a transactional notification outbox and send one close notice and
       one achieved notice to active assigned staff. A direct jump to achieved
       sends only the achieved notice.
-- [ ] Select an email provider/sending domain, while keeping a local
+- [x] Select an email provider/sending domain, while keeping a local
       non-delivering adapter and sink as the default Docker test path.
-- [ ] Show retry/permanent-failure state to staff without child-level activity
+- [x] Show retry/permanent-failure state to staff without child-level activity
       details in email, logs, or metrics.
-- [ ] Add a quiet predefined player report action, operator-only moderation
+- [x] Add a quiet predefined player report action, operator-only moderation
       queue, audit events, and hide/cancel resolution before use with real youth
       data.
-- [ ] Implement a bounded incorrect-start correction with recalculation and
+- [x] Implement a bounded incorrect-start correction with recalculation and
       retained history, or explicitly adopt cancel-and-recreate as the product
       policy.
-- [ ] Decide cancelled/historical media retention and prove cleanup cannot break
+- [x] Decide cancelled/historical media retention and prove cleanup cannot break
       an active or achieved reward image.
-- [ ] Add a 320-pixel Docker journey covering creation, camera-style image,
+- [x] Add a 320-pixel Docker journey covering creation, camera-style image,
       publication, partial progress, close/achieved transitions, notifications,
       cancellation, and another-team refusal.
 
 No prize-delivery acknowledgment, shipping state, player claim, or coach-to-
 player message is required.
+
+Delivered with a SQLite outbox, bounded retry/permanent-failure states, a local
+non-delivering sink, and a Resend adapter whose request reuses the durable
+outbox id as its idempotency key. Publication details are immutable under the
+cancel-and-recreate correction policy. Player reports are predefined and
+anonymous to team staff; only operators can review and hide/cancel. Referenced
+media is retained in every reward state. Production delivery remains in sink
+mode until the selected notify subdomain, API key, and suppression/alert
+operations are configured.
 
 ## Slice O — Team Canvas production boundary
 
