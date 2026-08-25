@@ -43,6 +43,23 @@ describe("validateClientBatch", () => {
     });
   });
 
+  it("accepts name-free bounded Team Canvas health buckets", () => {
+    expect(
+      validateClientBatch(
+        batch("team_canvas_health_sample", {
+          connection: "connected",
+          reconnects: 1,
+          input_latency: "under_150ms",
+          correction: "under_1",
+          host_epoch: 2,
+          dropped_frames: 3,
+          checkpoint_age: "under_30s",
+        }),
+        NOW,
+      ).events[0].properties,
+    ).not.toHaveProperty("player_id");
+  });
+
   it.each(["distance", "effort", "exhaustion", "player_id", "url"])(
     "rejects the forbidden or unknown %s property",
     (property) => {

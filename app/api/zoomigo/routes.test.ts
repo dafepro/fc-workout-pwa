@@ -36,4 +36,17 @@ describe("player API route allowlist", () => {
       false,
     );
   });
+
+  it("allows the Canvas socket contract but not retired live transports", () => {
+    expect(allowsPlayerRoute("GET", "v1/teams/team-one/canvas")).toBe(true);
+    expect(
+      allowsPlayerRoute("POST", "v1/teams/team-one/canvas/socket-ticket"),
+    ).toBe(true);
+    expect(allowsPlayerRoute("GET", "v1/teams/team-one/canvas/events")).toBe(
+      false,
+    );
+    expect(allowsPlayerRoute("PUT", "v1/teams/team-one/canvas/avatar")).toBe(
+      false,
+    );
+  });
 });

@@ -1,6 +1,6 @@
 # Team Canvas realtime design
 
-Status: implementation draft for the alternate Team Canvas alpha.
+Status: production boundary implemented for the single-replica built-in Canvas.
 
 ## Outcome
 
@@ -116,17 +116,20 @@ interactive offline from its last snapshot, clearly marks itself reconnecting,
 and sends only the latest avatar target when connectivity returns. Stamp edits
 continue to use their existing durable API and show a save error when offline.
 
-## Implementation slices
+## Implemented production boundary
 
-1. Add the socket ticket, WebSocket room transport, telemetry, and SSE fallback.
-2. Put avatar input and current server frames on the socket, removing movement
-   requests from the hot path.
-3. Add the worker simulation and client prediction while the server remains the
-   canonical snapshot source.
-4. Add host lease/snapshots and bounded checkpoint persistence; stop the server
-   step loop after parity tests pass.
-5. Add `BroadcastChannel` ownership and remove the SSE fallback after the beta
-   demonstrates stable reconnect and background behavior.
+1. The application owns identity, access, inventory, placement actions,
+   lifecycle/errors, reduced motion, and telemetry through widget contract v1.
+2. The built-in renderer and its 60 Hz worker are the only supported Canvas
+   implementation. A replacement library must implement v1 and replace it.
+3. One-time socket tickets and `BroadcastChannel` ownership provide one live
+   socket per visible browser. Hidden owners release to a visible sibling.
+4. Host snapshots are validated and checkpointed at bounded intervals. The old
+   REST-avatar, EventSource, and server simulation paths are removed.
+5. Reconnects, input-to-render latency, correction distance, host epochs,
+   dropped frames, and checkpoint age are bounded and sampled without identity.
+6. Deployments accept only `TEAM_CANVAS_ROOM_ROUTING=single-replica`. A shared
+   coordinator is required before horizontal API scaling.
 
 ## Proposed file tree
 

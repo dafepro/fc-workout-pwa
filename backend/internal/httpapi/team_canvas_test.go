@@ -1,7 +1,6 @@
 package httpapi_test
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -89,15 +88,29 @@ func TestTeamCanvasRoutesGatePersistAndBroadcast(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = socket.CloseNow() })
 	var socketMessage struct {
-		Version int             `json:"v"`
-		Type    string          `json:"type"`
-		Frame   json.RawMessage `json:"frame"`
+		Version   int             `json:"v"`
+		Type      string          `json:"type"`
+		Frame     json.RawMessage `json:"frame"`
+		Code      string          `json:"code"`
+		HostEpoch uint64          `json:"hostEpoch"`
 	}
 	if err := wsjson.Read(ctx, socket, &socketMessage); err != nil {
 		t.Fatal(err)
 	}
-	if socketMessage.Version != 1 || socketMessage.Type != "room.ready" || !strings.Contains(string(socketMessage.Frame), `"playerId":"player-mason"`) {
+	if socketMessage.Version != 1 || socketMessage.Type != "room.ready" || socketMessage.HostEpoch != 1 || !strings.Contains(string(socketMessage.Frame), `"playerId":"player-mason"`) {
 		t.Fatalf("socket ready = %#v", socketMessage)
+	}
+	if err := wsjson.Write(ctx, socket, map[string]any{
+		"v": 1, "type": "avatar.target", "messageId": "tampered-move",
+		"position": map[string]float64{"x": 900, "y": 48},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := wsjson.Read(ctx, socket, &socketMessage); err != nil {
+		t.Fatal(err)
+	}
+	if socketMessage.Type != "error" || socketMessage.Code != "invalid_message" {
+		t.Fatalf("tampered socket update = %#v", socketMessage)
 	}
 	if err := wsjson.Write(ctx, socket, map[string]any{
 		"v": 1, "type": "avatar.target", "messageId": "move-one",
@@ -126,46 +139,12 @@ func TestTeamCanvasRoutesGatePersistAndBroadcast(t *testing.T) {
 		t.Fatalf("snapshot did not contain connected canvas fields: %s", snapshotBytes)
 	}
 
-	streamRequest, err := http.NewRequest(http.MethodGet, server.URL+"/v1/teams/team-one/canvas/events", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	streamRequest.Header.Set("Authorization", "Bearer test-session")
-	stream, err := server.Client().Do(streamRequest)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = stream.Body.Close() })
-	if stream.StatusCode != http.StatusOK || stream.Header.Get("Content-Type") != "text/event-stream" {
-		t.Fatalf("stream status/type = %d %q", stream.StatusCode, stream.Header.Get("Content-Type"))
-	}
-	scanner := bufio.NewScanner(stream.Body)
-	if !scanner.Scan() || scanner.Text() != "event: ready" {
-		t.Fatalf("first stream line = %q", scanner.Text())
-	}
-	if !scanner.Scan() || !strings.HasPrefix(scanner.Text(), "data: ") {
-		t.Fatalf("ready data line = %q", scanner.Text())
-	}
-	if !scanner.Scan() || scanner.Text() != "" {
-		t.Fatalf("ready terminator = %q", scanner.Text())
-	}
-	physicsData := scanTeamCanvasHTTPEvent(t, scanner, "physics")
-	if !strings.Contains(physicsData, `"sceneId":"top-down-field"`) || !strings.Contains(physicsData, `"playerId":"player-mason"`) {
-		t.Fatalf("initial physics data = %s", physicsData)
-	}
-
-	avatar := teamCanvasRequest(t, server.Client(), http.MethodPut, server.URL+"/v1/teams/team-one/canvas/avatar", `{"x":120,"y":-8}`)
-	if avatar.StatusCode != http.StatusOK {
-		t.Fatalf("avatar status = %d", avatar.StatusCode)
-	}
-	avatarBytes, _ := io.ReadAll(avatar.Body)
-	_ = avatar.Body.Close()
-	if !strings.Contains(string(avatarBytes), `"x":94`) || !strings.Contains(string(avatarBytes), `"y":6`) {
-		t.Fatalf("avatar was not persisted with server bounds: %s", avatarBytes)
-	}
-	physicsData = scanTeamCanvasHTTPEvent(t, scanner, "physics")
-	if !strings.Contains(physicsData, `"playerId":"player-mason"`) {
-		t.Fatalf("live avatar update was not broadcast: %s", physicsData)
+	for _, legacyPath := range []string{"events", "avatar"} {
+		legacy := teamCanvasRequest(t, server.Client(), http.MethodGet, server.URL+"/v1/teams/team-one/canvas/"+legacyPath, "")
+		if legacy.StatusCode != http.StatusNotFound {
+			t.Fatalf("legacy canvas %s status = %d, want 404", legacyPath, legacy.StatusCode)
+		}
+		_ = legacy.Body.Close()
 	}
 
 	settings := teamCanvasRequest(t, server.Client(), http.MethodPut, server.URL+"/v1/teams/team-one/canvas/dev-settings", `{"backgroundAssetId":"cosmic-stadium","backgroundColor":"#112233","textColor":"#FFFFFF","textSize":128,"textStyle":"bubble","stampChoices":["spark-cleat","zoomigo-mark","bolt","star","rocket"],"developerStampLimit":3}`)
@@ -217,21 +196,6 @@ func TestTeamCanvasRoutesGatePersistAndBroadcast(t *testing.T) {
 		t.Fatalf("production honored developer stamps: %d %s", productionSnapshot.Code, productionSnapshot.Body.String())
 	}
 
-}
-
-func scanTeamCanvasHTTPEvent(t *testing.T, scanner *bufio.Scanner, event string) string {
-	t.Helper()
-	if !scanner.Scan() || scanner.Text() != "event: "+event {
-		t.Fatalf("event line = %q, want %q", scanner.Text(), event)
-	}
-	if !scanner.Scan() || !strings.HasPrefix(scanner.Text(), "data: ") {
-		t.Fatalf("event data = %q", scanner.Text())
-	}
-	data := strings.TrimPrefix(scanner.Text(), "data: ")
-	if !scanner.Scan() || scanner.Text() != "" {
-		t.Fatalf("event terminator = %q", scanner.Text())
-	}
-	return data
 }
 
 func teamCanvasRequest(t *testing.T, client *http.Client, method, url, body string) *http.Response {

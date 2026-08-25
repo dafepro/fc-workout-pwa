@@ -1012,6 +1012,37 @@
   border-top: 1px solid var(--tc-line);
 }
 
+.tc-toolbox__telemetry {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.tc-toolbox__telemetry div {
+  display: flex;
+  min-width: 0;
+  justify-content: space-between;
+  gap: 0.4rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.55rem;
+  background: #edf4f0;
+  font-size: 0.66rem;
+}
+
+.tc-toolbox__telemetry dt {
+  color: var(--tc-muted);
+}
+
+.tc-toolbox__telemetry dd {
+  margin: 0;
+  overflow: hidden;
+  color: var(--tc-ink);
+  font-weight: 850;
+  text-overflow: ellipsis;
+}
+
 .tc-toolbox__body label,
 .tc-toolbox__body fieldset {
   display: grid;

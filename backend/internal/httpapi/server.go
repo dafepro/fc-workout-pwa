@@ -124,16 +124,7 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	}
 	service.canvasTickets = newTeamCanvasSocketTickets(service.now)
 	service.canvasRooms = newTeamCanvasRealtimeRooms()
-	service.canvasPhysics = newTeamCanvasPhysicsManager(
-		func(ctx context.Context, teamID, weekKey string, checkpoint canvasphysics.Checkpoint, now time.Time) error {
-			physicsStore, ok := service.store.(teamCanvasPhysicsRepository)
-			if !ok {
-				return nil
-			}
-			return physicsStore.SaveTeamCanvasPhysicsCheckpoint(ctx, teamID, weekKey, checkpoint, now)
-		},
-		service.canvasEvents.publishPhysics,
-	)
+	service.canvasPhysics = newTeamCanvasPhysicsManager()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -186,12 +177,10 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	mux.HandleFunc("GET /v1/teams/{teamId}/reward-media/{mediaId}", service.getPlayerTeamRewardMedia)
 	mux.HandleFunc("GET /v1/teams/{teamId}/canvas", service.getTeamCanvas)
 	mux.HandleFunc("POST /v1/teams/{teamId}/canvas/rest", service.recordTeamCanvasRest)
-	mux.HandleFunc("PUT /v1/teams/{teamId}/canvas/avatar", service.updateTeamCanvasAvatar)
 	mux.HandleFunc("POST /v1/teams/{teamId}/canvas/pieces", service.createTeamCanvasPiece)
 	mux.HandleFunc("PUT /v1/teams/{teamId}/canvas/pieces/{pieceId}", service.updateTeamCanvasPiece)
 	mux.HandleFunc("DELETE /v1/teams/{teamId}/canvas/pieces/{pieceId}", service.deleteTeamCanvasPiece)
 	mux.HandleFunc("PUT /v1/teams/{teamId}/canvas/dev-settings", service.updateTeamCanvasSettings)
-	mux.HandleFunc("GET /v1/teams/{teamId}/canvas/events", service.streamTeamCanvasEvents)
 	mux.HandleFunc("POST /v1/teams/{teamId}/canvas/socket-ticket", service.createTeamCanvasSocketTicket)
 	mux.HandleFunc("GET /v1/teams/{teamId}/canvas/socket", service.connectTeamCanvasSocket)
 	if _, ok := service.store.(fixtureResetter); cfg.EnableE2EFixtures && ok {

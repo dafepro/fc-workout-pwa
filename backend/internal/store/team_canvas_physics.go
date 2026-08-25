@@ -17,9 +17,9 @@ func (store *Store) teamCanvasPhysicsProjection(
 	fallback := TeamCanvasPhysicsProjection{
 		Version: 1, SceneID: canvasphysics.SceneFor(backgroundAssetID).ID,
 	}
-	var encoded string
-	err := store.db.QueryRowContext(ctx, `SELECT scene_state_json FROM team_canvas_scene_states
-		WHERE team_id = ? AND week_key = ?`, teamID, weekKey).Scan(&encoded)
+	var encoded, checkpointAt string
+	err := store.db.QueryRowContext(ctx, `SELECT scene_state_json, updated_at FROM team_canvas_scene_states
+		WHERE team_id = ? AND week_key = ?`, teamID, weekKey).Scan(&encoded, &checkpointAt)
 	if err != nil {
 		return fallback
 	}
@@ -28,7 +28,7 @@ func (store *Store) teamCanvasPhysicsProjection(
 		return fallback
 	}
 	return TeamCanvasPhysicsProjection{
-		Version: state.Version, SceneID: state.SceneID, Sequence: state.Sequence,
+		Version: state.Version, SceneID: state.SceneID, Sequence: state.Sequence, CheckpointAt: checkpointAt,
 	}
 }
 

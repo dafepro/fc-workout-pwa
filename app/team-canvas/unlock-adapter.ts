@@ -1,6 +1,6 @@
 import type { PlayerUnlock } from "../data/unlock-inventory-gateway";
 import { findTeamCanvasStamp } from "./catalog";
-import type { TeamCanvasStampUnlockPort } from "./components/TeamCanvasBoard";
+import type { TeamCanvasStampUnlockPort } from "../player/team-canvas/widget-contract";
 
 export const INCLUDED_CANVAS_STAMP_IDS = [
   "bolt",

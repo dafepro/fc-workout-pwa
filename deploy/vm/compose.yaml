@@ -26,6 +26,7 @@ services:
       REWARD_EMAIL_FROM: ${REWARD_EMAIL_FROM:-ZoomiGo Rewards <rewards@example.invalid>}
       REWARD_EMAIL_BASE_URL: ${REWARD_EMAIL_BASE_URL:-http://localhost:3000}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
+      TEAM_CANVAS_ROOM_ROUTING: ${TEAM_CANVAS_ROOM_ROUTING:-single-replica}
       GOMEMLIMIT: 192MiB
       GOMAXPROCS: "1"
       PORT: "8080"

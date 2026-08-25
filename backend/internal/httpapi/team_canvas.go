@@ -2,9 +2,7 @@ package httpapi
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -162,33 +160,6 @@ func (service *service) recordTeamCanvasRest(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (service *service) updateTeamCanvasAvatar(w http.ResponseWriter, r *http.Request) {
-	actor, ok := service.authenticate(w, r)
-	if !ok {
-		return
-	}
-	if !service.teamCanvasStoreReady(w, r) {
-		return
-	}
-	var position store.TeamCanvasPosition
-	if err := decodeStrictJSON(w, r, &position); err != nil {
-		writeError(w, r, http.StatusBadRequest, "invalid_request", "The avatar position is invalid.")
-		return
-	}
-	teamID := r.PathValue("teamId")
-	now := service.now().UTC()
-	service.syncTeamCanvasPhysics(r.Context(), actor, teamID, now)
-	position, err := service.store.UpdateTeamCanvasAvatar(r.Context(), actor, teamID, position, now)
-	if service.writeTeamCanvasError(w, r, err) {
-		return
-	}
-	service.canvasPhysics.moveAvatar(teamID, actor.PlayerID, position, now)
-	service.canvasEvents.publishAvatar(teamID, teamCanvasAvatarInputFrame{
-		PlayerID: actor.PlayerID, Position: position,
-	})
-	writeJSON(w, http.StatusOK, position)
-}
-
 func (service *service) createTeamCanvasPiece(w http.ResponseWriter, r *http.Request) {
 	actor, ok := service.authenticate(w, r)
 	if !ok {
@@ -295,56 +266,6 @@ func (service *service) updateTeamCanvasSettings(w http.ResponseWriter, r *http.
 	writeJSON(w, http.StatusOK, settings)
 }
 
-func (service *service) streamTeamCanvasEvents(w http.ResponseWriter, r *http.Request) {
-	actor, ok := service.authenticate(w, r)
-	if !ok {
-		return
-	}
-	projection, ok := service.loadTeamCanvas(w, r, actor)
-	if !ok {
-		return
-	}
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		writeError(w, r, http.StatusInternalServerError, "stream_unavailable", "Live team updates are unavailable.")
-		return
-	}
-	teamID := r.PathValue("teamId")
-	service.canvasPhysics.sync(teamID, projection, service.now().UTC())
-	updates, unsubscribe := service.canvasEvents.subscribe(teamID)
-	defer unsubscribe()
-	disconnectPhysics := service.canvasPhysics.connect(teamID)
-	defer disconnectPhysics()
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	writeCanvasEvent(w, "ready", teamID)
-	if frame, exists := service.canvasPhysics.frame(teamID); exists {
-		writePhysicsEvent(w, frame)
-	}
-	flusher.Flush()
-	heartbeat := time.NewTicker(20 * time.Second)
-	defer heartbeat.Stop()
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-updates.canvas:
-			writeCanvasEvent(w, "canvas", teamID)
-			flusher.Flush()
-		case frame := <-updates.physics:
-			writePhysicsEvent(w, frame)
-			flusher.Flush()
-		case piece := <-updates.pieces:
-			writeTeamCanvasSSE(w, "piece", piece)
-			flusher.Flush()
-		case <-heartbeat.C:
-			_, _ = fmt.Fprint(w, ": keep-alive\n\n")
-			flusher.Flush()
-		}
-	}
-}
-
 func (service *service) syncTeamCanvasPhysics(ctx context.Context, actor domain.Actor, teamID string, now time.Time) {
 	projection, err := service.store.TeamCanvas(ctx, actor, teamID, now)
 	if err == nil {
@@ -413,20 +334,4 @@ func availableDeveloperStamps(projection store.TeamCanvasProjection) int {
 		return 0
 	}
 	return available
-}
-
-func writeCanvasEvent(w http.ResponseWriter, event, teamID string) {
-	payload, _ := json.Marshal(struct {
-		TeamID string `json:"teamId"`
-	}{TeamID: teamID})
-	_, _ = fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event, payload)
-}
-
-func writePhysicsEvent(w http.ResponseWriter, frame teamCanvasPhysicsFrame) {
-	writeTeamCanvasSSE(w, "physics", frame)
-}
-
-func writeTeamCanvasSSE(w http.ResponseWriter, event string, value any) {
-	payload, _ := json.Marshal(value)
-	_, _ = fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event, payload)
 }

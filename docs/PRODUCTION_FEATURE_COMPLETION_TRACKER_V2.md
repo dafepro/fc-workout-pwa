@@ -67,8 +67,9 @@ are superseded and must not return through an unfinished older slice.
   is still required before the planner is eligible for mainline release.
 - Team Reward email, reporting/moderation, and bounded correction operations are
   absent.
-- The Team Canvas adapter exists, but extraction/library selection, compatibility
-  path removal, telemetry, and multi-replica strategy remain unfinished.
+- The built-in Team Canvas is frozen behind widget contract v1, owns the only
+  renderer/worker path, reports anonymous health, and remains explicitly
+  single-replica until a shared coordinator is implemented.
 
 ## Prioritized delivery order
 
@@ -78,8 +79,8 @@ are superseded and must not return through an unfinished older slice.
 | P0       | K · Team Pulse on Team                         | Players see three recent safe activities and may deliberately reveal two more or cheer                 | Delivered              | Existing Team Pulse API/component          |
 | P1       | L · Plan participation prize boxes             | Three and seven distinct plan days grant durable claimable boxes exactly once                          | Delivered              | Prize boxes and plan provenance, delivered |
 | P1       | M · Coach planner and recommendation authority | Coaches have one complete scheduling workflow and unplanned players get an explained server suggestion | Delivered; review gate | Coaching-owner numeric approval            |
-| P1       | N · Team Reward operations                     | A real coach promise has correction, moderation, and deduplicated staff notification paths             | Partial                | Durable Team Rewards/media, delivered      |
-| P2       | O · Team Canvas production boundary            | One supported renderer/transport owns cosmetic play behind a frozen app contract                       | Partial                | Shared stamp adapter, delivered            |
+| P1       | N · Team Reward operations                     | A real coach promise has correction, moderation, and deduplicated staff notification paths             | Delivered              | Durable Team Rewards/media, delivered      |
+| P2       | O · Team Canvas production boundary            | One supported renderer/transport owns cosmetic play behind a frozen app contract                       | Delivered              | Shared stamp adapter, delivered            |
 | P2       | P · Beta and launch reconciliation             | Current docs, safety decisions, browser support, observability, and release evidence agree             | Parallel/blocked       | Owner and operator decisions               |
 
 P0 is intentionally small and first. The redesign should be reliable before a
@@ -243,21 +244,28 @@ physics.
 
 Completion gates:
 
-- [ ] Freeze and contract-test the widget contract for identity, room access,
+- [x] Freeze and contract-test the widget contract for identity, room access,
       owned stamps, placement actions, lifecycle, errors, and reduced motion.
-- [ ] Decide between extracting the built-in Canvas and integrating a dedicated
+- [x] Decide between extracting the built-in Canvas and integrating a dedicated
       library. Do not keep two live renderers or physics engines.
-- [ ] Measure reconnects, input-to-render latency, correction distance, host
+- [x] Measure reconnects, input-to-render latency, correction distance, host
       epochs, dropped frames, and checkpoint age without player names.
-- [ ] Remove the old server-loop/SSE compatibility path after socket/worker
+- [x] Remove the old server-loop/SSE compatibility path after socket/worker
       parity and rollback evidence.
-- [ ] Choose sticky room routing or a shared coordinator before more than one
+- [x] Choose sticky room routing or a shared coordinator before more than one
       API replica can own a room.
-- [ ] Run multi-tab, reconnect, background/foreground, tampered-client, and
+- [x] Run multi-tab, reconnect, background/foreground, tampered-client, and
       reduced-motion beta tests.
 
 This slice is not required merely to merge the Focused Today UI while the
 single-replica built-in Canvas remains the supported implementation.
+
+Delivered with the built-in Canvas as the only v1 adapter, a contract-tested
+application host boundary, WebSocket/worker-only live movement, bounded
+name-free telemetry, visible reconnect state, hidden-tab socket handoff, strict
+host snapshot validation, and a single-replica configuration guard. The
+previous exact dev revision remains the rollback artifact; no second renderer,
+physics engine, or transport is retained in the running application.
 
 ## Slice P — beta and launch reconciliation
 
@@ -336,6 +344,7 @@ Update this table in the same commit that materially changes a vertical slice.
 | 2026-08-24 | J + K · correctness/pulse   | This delivery change | Targeted unit/component tests plus connected 320-pixel Docker journeys cover failure truth, training/recovery revisits, plans, boxes, Team Pulse, cheering, and overflow | Manual dev review; then slice L      |
 | 2026-08-24 | L · plan prize boxes        | `2553647f`           | Durable three-day/seven-day grants, shared claim queue, deletion/cancellation boundaries, backup coverage, and targeted connected browser flow                           | Manual dev review                    |
 | 2026-08-25 | M · planner/recommendations | This delivery change | Server-owned Today source, safe recency suggestion, structured planner, one-day preset, linked atomic reschedule, cancellation, history, and targeted browser/API tests  | Coaching-owner numeric approval      |
+| 2026-08-25 | O · Canvas boundary         | This delivery change | Frozen widget contract, one renderer/worker, WebSocket-only transport, anonymous telemetry, host handoff and connected 320-pixel coverage                                | Manual dev beta review               |
 
 ## Linked designs
 

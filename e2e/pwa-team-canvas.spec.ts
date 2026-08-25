@@ -131,24 +131,38 @@ test("connected Team Canvas uses durable pieces, settings, and realtime updates"
   expect((await rotationSaved).ok()).toBe(true);
 
   await ownedStamp.click();
-  const ownedOrbit = ownedStamp.locator("..");
-  const movingStyle = await ownedOrbit.getAttribute("style");
+  const firstAvatarStyle = await ownAvatar.getAttribute("style");
   const api = await request.newContext({ baseURL: apiBaseURL });
-  await page.waitForTimeout(300);
-  for (const position of [
-    { x: 25, y: 42 },
-    { x: 70, y: 42 },
-  ]) {
-    const movement = await api.put(
-      "/v1/teams/team-hill-striders/canvas/avatar",
-      { headers: masonHeaders, data: position },
-    );
-    expect(movement.ok()).toBe(true);
-    await page.waitForTimeout(500);
-  }
+  const secondPage = await page.context().newPage();
+  secondPage.on("websocket", (socket) => {
+    if (socket.url().endsWith("/canvas/socket")) socketURLs.push(socket.url());
+  });
+  await secondPage.goto("/team-canvas/team");
+  await expect(
+    secondPage.getByLabel("Hill Striders weekly canvas"),
+  ).toBeVisible();
+  await expect.poll(() => socketURLs.length).toBe(1);
+  const secondAvatar = secondPage.getByRole("button", {
+    name: "Move Mason’s avatar",
+  });
+  const secondAvatarBox = await secondAvatar.boundingBox();
+  if (!secondAvatarBox)
+    throw new Error("Second tab avatar has no bounding box");
+  await secondPage.mouse.move(
+    secondAvatarBox.x + secondAvatarBox.width / 2,
+    secondAvatarBox.y + secondAvatarBox.height / 2,
+  );
+  await secondPage.mouse.down();
+  await secondPage.mouse.move(
+    secondAvatarBox.x + secondAvatarBox.width / 2 + 55,
+    secondAvatarBox.y + secondAvatarBox.height / 2,
+    { steps: 4 },
+  );
+  await secondPage.mouse.up();
   await expect
-    .poll(() => ownedOrbit.getAttribute("style"))
-    .not.toBe(movingStyle);
+    .poll(() => ownAvatar.getAttribute("style"))
+    .not.toBe(firstAvatarStyle);
+  await secondPage.close();
   await ownedStamp.click();
 
   await ownedStamp.hover();
@@ -201,17 +215,15 @@ test("connected Team Canvas uses durable pieces, settings, and realtime updates"
     /cosmic-stadium\.png/,
   );
 
-  const avatarUpdate = await api.put(
-    "/v1/teams/team-hill-striders/canvas/avatar",
-    { headers: masonHeaders, data: { x: 84, y: 22 } },
-  );
-  expect(avatarUpdate.ok()).toBe(true);
-  await expect
-    .poll(() => ownAvatar.getAttribute("style"))
-    .toContain("left: 84%");
-
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.reload();
+  await expect.poll(() => socketURLs.length).toBeGreaterThanOrEqual(2);
   await expect(page.getByLabel("Hill Striders weekly canvas")).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    ),
+  ).toBe(true);
   await expect(page.locator(".tc-board")).toHaveClass(/tc-board--bubble/);
   await expect(
     page.getByRole("button", { name: /Edit .* live stamp/ }),

@@ -14,14 +14,21 @@ export interface TeamCanvasDeviceCoordinator {
 type ChannelMessage =
   | { type: "hello"; sender: string }
   | { type: "lease"; owner: string; until: number }
+  | { type: "release"; owner: string }
   | { type: "outbound"; sender: string; payload: string }
   | { type: "inbound"; sender: string; payload: string };
 
 const leaseMilliseconds = 3200;
 
+interface CoordinatorEnvironment {
+  visible(): boolean;
+  listen(handler: () => void): () => void;
+}
+
 export function createTeamCanvasDeviceCoordinator(
   teamID: string,
   callbacks: CoordinatorCallbacks,
+  environment: CoordinatorEnvironment = browserEnvironment(),
 ): TeamCanvasDeviceCoordinator {
   if (typeof BroadcastChannel === "undefined") {
     queueMicrotask(() => callbacks.onOwnershipChange(true));
@@ -47,12 +54,13 @@ export function createTeamCanvasDeviceCoordinator(
     callbacks.onOwnershipChange(next);
   };
   const announce = () => {
+    if (!environment.visible()) return;
     leaseUntil = Date.now() + leaseMilliseconds;
     ownerID = id;
     channel.postMessage({ type: "lease", owner: id, until: leaseUntil });
   };
   const claimIfVacant = () => {
-    if (closed || leaseUntil > Date.now()) return;
+    if (closed || !environment.visible() || leaseUntil > Date.now()) return;
     ownerID = id;
     setOwner(true);
     announce();
@@ -93,6 +101,12 @@ export function createTeamCanvasDeviceCoordinator(
       leaseUntil = message.until;
       return;
     }
+    if (message.type === "release" && message.owner === ownerID) {
+      ownerID = null;
+      leaseUntil = 0;
+      queueMicrotask(claimIfVacant);
+      return;
+    }
     if (
       message.type === "outbound" &&
       owner &&
@@ -111,10 +125,23 @@ export function createTeamCanvasDeviceCoordinator(
   };
 
   channel.postMessage({ type: "hello", sender: id });
+  const stopVisibility = environment.listen(() => {
+    if (!environment.visible() && owner) {
+      setOwner(false);
+      ownerID = null;
+      leaseUntil = 0;
+      channel.postMessage({ type: "release", owner: id });
+      return;
+    }
+    if (environment.visible()) {
+      channel.postMessage({ type: "hello", sender: id });
+      claimIfVacant();
+    }
+  });
   const claimTimer = setTimeout(claimIfVacant, 120);
   const heartbeat = setInterval(() => {
     if (closed) return;
-    if (owner) announce();
+    if (owner && environment.visible()) announce();
     else if (leaseUntil <= Date.now()) claimIfVacant();
   }, 1000);
 
@@ -139,8 +166,21 @@ export function createTeamCanvasDeviceCoordinator(
       closed = true;
       clearTimeout(claimTimer);
       clearInterval(heartbeat);
+      stopVisibility();
       setOwner(false);
       channel.close();
+    },
+  };
+}
+
+function browserEnvironment(): CoordinatorEnvironment {
+  return {
+    visible: () =>
+      typeof document === "undefined" || document.visibilityState === "visible",
+    listen(handler) {
+      if (typeof document === "undefined") return () => {};
+      document.addEventListener("visibilitychange", handler);
+      return () => document.removeEventListener("visibilitychange", handler);
     },
   };
 }

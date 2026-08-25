@@ -177,6 +177,7 @@ export function TodayPlanHero({
                 aria-label={teamCanvasCopy.today.formTitle}
               >
                 <button
+                  className="today-plan-hero__target-choice"
                   type="button"
                   aria-pressed={completion === "goal"}
                   onClick={() => setCompletion("goal")}
@@ -184,6 +185,7 @@ export function TodayPlanHero({
                   {teamCanvasCopy.today.goal}
                 </button>
                 <button
+                  className="today-plan-hero__target-choice"
                   type="button"
                   aria-pressed={completion === "reach"}
                   onClick={() => setCompletion("reach")}

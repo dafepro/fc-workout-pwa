@@ -23,6 +23,9 @@ func TestTeamCanvasRealtimeRoomElectsVisibleHostAndRejectsFollowers(t *testing.T
 	if !firstHost || secondHost {
 		t.Fatalf("host roles = first %v, second %v", firstHost, secondHost)
 	}
+	if epoch, _ := rooms.details("team-one", now); epoch != 1 {
+		t.Fatalf("initial host epoch = %d, want 1", epoch)
+	}
 	if rooms.publish("team-one", "second", teamCanvasPhysicsFrame{Sequence: 4}) {
 		t.Fatal("follower published a canonical snapshot")
 	}
@@ -40,7 +43,7 @@ func TestTeamCanvasRealtimeRoomElectsVisibleHostAndRejectsFollowers(t *testing.T
 
 	disconnectFirst()
 	message := <-secondMessages
-	if message.Type != "host.granted" {
+	if message.Type != "host.granted" || message.HostEpoch != 2 {
 		t.Fatalf("host handoff message = %#v", message)
 	}
 	if !rooms.publish("team-one", "second", teamCanvasPhysicsFrame{
@@ -68,6 +71,9 @@ func TestTeamCanvasRealtimeRoomHandsOffWhenHostIsHidden(t *testing.T) {
 	}
 	if message := <-secondMessages; message.Type != "host.granted" {
 		t.Fatalf("visible successor message = %#v", message)
+	}
+	if epoch, _ := rooms.details("team-one", now); epoch != 2 {
+		t.Fatalf("visibility handoff epoch = %d, want 2", epoch)
 	}
 }
 

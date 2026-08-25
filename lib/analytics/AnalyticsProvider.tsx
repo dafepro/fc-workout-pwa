@@ -139,3 +139,7 @@ export function useAnalytics(): AnalyticsClient {
   }
   return client;
 }
+
+export function useOptionalAnalytics(): AnalyticsClient | null {
+  return useContext(AnalyticsContext);
+}

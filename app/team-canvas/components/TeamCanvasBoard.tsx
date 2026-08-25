@@ -15,7 +15,10 @@ import {
 } from "../model";
 import { teamCanvasRoutes } from "../routes";
 import { useTeamCanvas } from "../state";
-import type { StampAsset } from "../model";
+import type {
+  TeamCanvasStampUnlockPort,
+  TeamCanvasWidgetContract,
+} from "../../player/team-canvas/widget-contract";
 import { BoardSurface, type BoardMember } from "./BoardSurface";
 import { CanvasDevToolbox } from "./CanvasDevToolbox";
 import { StampAssetView, stampAssetLabel } from "./StampAsset";
@@ -24,13 +27,16 @@ export function TeamCanvasBoard({
   showDeveloperTools = true,
   todayHref = teamCanvasRoutes.today,
   stampUnlocks,
+  host,
 }: {
   showDeveloperTools?: boolean;
   todayHref?: string;
   stampUnlocks?: TeamCanvasStampUnlockPort;
+  host?: TeamCanvasWidgetContract;
 }) {
   const auth = useOptionalAuth();
   const avatarIdentity = useAvatarIdentity();
+  const canvas = useTeamCanvas();
   const {
     state,
     connectedStatus,
@@ -45,10 +51,27 @@ export function TeamCanvasBoard({
     deletePiece,
     clearPiece,
     saveSettings,
-  } = useTeamCanvas();
+  } = host
+    ? {
+        state: host.room.localState,
+        connectedStatus: host.access.state,
+        connectedProjection: host.room.projection,
+        localSettings: host.room.localSettings,
+        connectedError: host.access.error,
+        selectedPieceId: host.room.selectedPieceID,
+        moveAvatar: host.actions.moveAvatar,
+        chooseStamp: host.actions.placeStamp,
+        togglePiece: host.actions.togglePiece,
+        editPiece: host.actions.editPiece,
+        deletePiece: host.actions.deletePiece,
+        clearPiece: host.actions.clearPiece,
+        saveSettings: host.actions.saveSettings,
+      }
+    : canvas;
   const localProjection = teamCanvasProjection(state);
   const copy = teamCanvasCopy.board;
   const viewedNewStamps = useRef(false);
+  const connection = host?.lifecycle.connection ?? canvas.connectionState;
 
   if (connectedStatus === "loading") {
     return <p className="tc-opening">{copy.loading}</p>;
@@ -70,10 +93,14 @@ export function TeamCanvasBoard({
   }
 
   const connectedView = connectedStatus === "ready" && connectedProjection;
-  const currentPlayerID = connectedView
-    ? (auth?.currentPlayerID ?? avatarIdentity.currentPlayerID)
-    : teamCanvasMock.player.id;
-  const savedAvatar = migrateAvatarConfiguration(avatarIdentity.avatarConfig);
+  const currentPlayerID = host
+    ? host.identity.playerID
+    : connectedView
+      ? (auth?.currentPlayerID ?? avatarIdentity.currentPlayerID)
+      : teamCanvasMock.player.id;
+  const savedAvatar = host
+    ? host.identity.avatar
+    : migrateAvatarConfiguration(avatarIdentity.avatarConfig);
   const teamName = connectedView
     ? connectedProjection.team.name
     : teamCanvasMock.team.name;
@@ -153,6 +180,17 @@ export function TeamCanvasBoard({
           {connectedError}
         </p>
       ) : null}
+      {!connectedError &&
+      connection !== "connected" &&
+      connection !== "local" ? (
+        <p className="tc-sync-error" role="status">
+          {connection === "reconnecting"
+            ? copy.reconnecting
+            : connection === "connecting"
+              ? copy.connecting
+              : copy.unavailable}
+        </p>
+      ) : null}
 
       <BoardSurface
         teamName={teamName}
@@ -171,6 +209,7 @@ export function TeamCanvasBoard({
         onEditPiece={editPiece}
         onDeletePiece={(pieceId) => void deletePiece(pieceId)}
         onClearPiece={clearPiece}
+        reducedMotion={host?.lifecycle.reducedMotion}
       />
       <p className="tc-board-hint">
         {pieces.some(({ physics }) => physics)
@@ -236,19 +275,12 @@ export function TeamCanvasBoard({
           key={`${settings.revision}-${settings.backgroundAssetId}`}
           settings={settings}
           onSave={saveSettings}
+          connection={connection}
+          telemetry={host?.telemetry ?? canvas.telemetry}
         />
       ) : null}
     </div>
   );
-}
-
-export interface TeamCanvasStampUnlockPort {
-  availableCount: number;
-  choices: StampAsset[];
-  status?: "loading" | "error" | "ready";
-  newAssetIDs?: string[];
-  unlock(asset: StampAsset): Promise<void>;
-  viewNew?(): void | Promise<void>;
 }
 
 function LockedCanvas({ todayHref }: { todayHref: string }) {

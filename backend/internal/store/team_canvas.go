@@ -81,9 +81,10 @@ type TeamCanvasPiece struct {
 }
 
 type TeamCanvasPhysicsProjection struct {
-	Version  int    `json:"v"`
-	SceneID  string `json:"sceneId"`
-	Sequence uint64 `json:"sequence"`
+	Version      int    `json:"v"`
+	SceneID      string `json:"sceneId"`
+	Sequence     uint64 `json:"sequence"`
+	CheckpointAt string `json:"checkpointAt,omitempty"`
 }
 
 type TeamCanvasProjection struct {

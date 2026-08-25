@@ -34,25 +34,26 @@ const (
 )
 
 type Config struct {
-	Environment        string
-	Port               int
-	DatabaseURL        string
-	RewardMediaDir     string
-	RewardMailerMode   string
-	RewardEmailFrom    string
-	RewardEmailBaseURL string
-	ResendAPIKey       string
-	AllowedOrigin      string
-	TeamTimeZone       *time.Location
-	TeamTimeZoneID     string
-	ShutdownTimeout    time.Duration
-	EnableE2EFixtures  bool
-	E2EResetKey        string
-	EnableDevAccess    bool
-	DevAPIGatewayToken string
-	DevResetKey        string
-	DevFixtureSeed     string
-	DevAdminPassword   string
+	Environment           string
+	Port                  int
+	DatabaseURL           string
+	RewardMediaDir        string
+	RewardMailerMode      string
+	RewardEmailFrom       string
+	RewardEmailBaseURL    string
+	ResendAPIKey          string
+	TeamCanvasRoomRouting string
+	AllowedOrigin         string
+	TeamTimeZone          *time.Location
+	TeamTimeZoneID        string
+	ShutdownTimeout       time.Duration
+	EnableE2EFixtures     bool
+	E2EResetKey           string
+	EnableDevAccess       bool
+	DevAPIGatewayToken    string
+	DevResetKey           string
+	DevFixtureSeed        string
+	DevAdminPassword      string
 	// Zero disables the corresponding login throttle.
 	LoginAttemptsPerMinute            int
 	GlobalLoginAttemptsPerMinute      int
@@ -73,23 +74,24 @@ type Config struct {
 
 func Load(getenv func(string) string) (Config, error) {
 	cfg := Config{
-		Environment:        valueOrDefault(getenv("APP_ENV"), "development"),
-		DatabaseURL:        valueOrDefault(getenv("DATABASE_URL"), defaultDatabaseURL),
-		RewardMediaDir:     valueOrDefault(strings.TrimSpace(getenv("REWARD_MEDIA_DIR")), defaultRewardMediaDir),
-		RewardMailerMode:   valueOrDefault(strings.TrimSpace(getenv("REWARD_MAILER_MODE")), "sink"),
-		RewardEmailFrom:    valueOrDefault(strings.TrimSpace(getenv("REWARD_EMAIL_FROM")), "ZoomiGo Rewards <rewards@example.invalid>"),
-		RewardEmailBaseURL: valueOrDefault(strings.TrimSpace(getenv("REWARD_EMAIL_BASE_URL")), "http://localhost:3000"),
-		ResendAPIKey:       strings.TrimSpace(getenv("RESEND_API_KEY")),
-		AllowedOrigin:      valueOrDefault(getenv("ALLOWED_ORIGIN"), "http://localhost:3000"),
-		TeamTimeZoneID:     valueOrDefault(getenv("TEAM_TIME_ZONE"), defaultTeamTimeZone),
-		ShutdownTimeout:    defaultShutdownTimeout,
-		E2EResetKey:        getenv("E2E_RESET_KEY"),
-		DevAPIGatewayToken: strings.TrimSpace(getenv("DEV_API_GATEWAY_TOKEN")),
-		DevResetKey:        strings.TrimSpace(getenv("DEV_RESET_KEY")),
-		DevFixtureSeed:     strings.TrimSpace(getenv("DEV_FIXTURE_SEED")),
-		DevAdminPassword:   getenv("DEV_ADMIN_PASSWORD"),
-		PlayerLoginURL:     strings.TrimSpace(getenv("PLAYER_LOGIN_URL")),
-		StaffSetupURL:      strings.TrimSpace(getenv("STAFF_SETUP_URL")),
+		Environment:           valueOrDefault(getenv("APP_ENV"), "development"),
+		DatabaseURL:           valueOrDefault(getenv("DATABASE_URL"), defaultDatabaseURL),
+		RewardMediaDir:        valueOrDefault(strings.TrimSpace(getenv("REWARD_MEDIA_DIR")), defaultRewardMediaDir),
+		RewardMailerMode:      valueOrDefault(strings.TrimSpace(getenv("REWARD_MAILER_MODE")), "sink"),
+		RewardEmailFrom:       valueOrDefault(strings.TrimSpace(getenv("REWARD_EMAIL_FROM")), "ZoomiGo Rewards <rewards@example.invalid>"),
+		RewardEmailBaseURL:    valueOrDefault(strings.TrimSpace(getenv("REWARD_EMAIL_BASE_URL")), "http://localhost:3000"),
+		ResendAPIKey:          strings.TrimSpace(getenv("RESEND_API_KEY")),
+		TeamCanvasRoomRouting: valueOrDefault(strings.TrimSpace(getenv("TEAM_CANVAS_ROOM_ROUTING")), "single-replica"),
+		AllowedOrigin:         valueOrDefault(getenv("ALLOWED_ORIGIN"), "http://localhost:3000"),
+		TeamTimeZoneID:        valueOrDefault(getenv("TEAM_TIME_ZONE"), defaultTeamTimeZone),
+		ShutdownTimeout:       defaultShutdownTimeout,
+		E2EResetKey:           getenv("E2E_RESET_KEY"),
+		DevAPIGatewayToken:    strings.TrimSpace(getenv("DEV_API_GATEWAY_TOKEN")),
+		DevResetKey:           strings.TrimSpace(getenv("DEV_RESET_KEY")),
+		DevFixtureSeed:        strings.TrimSpace(getenv("DEV_FIXTURE_SEED")),
+		DevAdminPassword:      getenv("DEV_ADMIN_PASSWORD"),
+		PlayerLoginURL:        strings.TrimSpace(getenv("PLAYER_LOGIN_URL")),
+		StaffSetupURL:         strings.TrimSpace(getenv("STAFF_SETUP_URL")),
 	}
 	cfg.ProductionDataApproved = getenv("PRODUCTION_DATA_APPROVED") == "true"
 	if cfg.RewardMailerMode != "sink" && cfg.RewardMailerMode != "resend" {
@@ -97,6 +99,9 @@ func Load(getenv func(string) string) (Config, error) {
 	}
 	if cfg.RewardMailerMode == "resend" && (cfg.ResendAPIKey == "" || !strings.HasPrefix(cfg.RewardEmailBaseURL, "https://")) {
 		return Config{}, fmt.Errorf("resend reward mail requires RESEND_API_KEY and an https REWARD_EMAIL_BASE_URL")
+	}
+	if cfg.TeamCanvasRoomRouting != "single-replica" {
+		return Config{}, fmt.Errorf("TEAM_CANVAS_ROOM_ROUTING must be single-replica until the shared coordinator is implemented")
 	}
 
 	if raw := getenv("ENABLE_E2E_FIXTURES"); raw != "" {

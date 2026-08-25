@@ -82,53 +82,24 @@ describe("HTTP team canvas gateway", () => {
     expect(projection.availableRewards).toBe(1);
   });
 
-  it("delivers validated structured physics frames from the live stream", async () => {
-    const listeners = new Map<string, EventListener>();
-    const close = vi.fn();
-    class FakeEventSource {
-      constructor(public readonly url: string) {}
-      addEventListener(name: string, listener: EventListener) {
-        listeners.set(name, listener);
-      }
-      close = close;
-    }
-    vi.stubGlobal("EventSource", FakeEventSource);
-    const onPhysics = vi.fn();
-    const onPiece = vi.fn();
+  it("retries the socket without creating the retired EventSource fallback", async () => {
+    const eventSource = vi.fn();
+    const fetchMock = vi.fn().mockRejectedValue(new Error("offline"));
+    vi.stubGlobal("EventSource", eventSource);
+    vi.stubGlobal("fetch", fetchMock);
+    const onLifecycle = vi.fn();
 
     const unsubscribe = createTeamCanvasGateway("team-one").subscribe({
       onChange: vi.fn(),
-      onPhysics,
-      onPiece,
+      onPhysics: vi.fn(),
+      onPiece: vi.fn(),
+      onLifecycle,
     });
-    await vi.waitFor(() => expect(listeners.has("physics")).toBe(true));
-    listeners.get("physics")?.(
-      new MessageEvent("physics", {
-        data: JSON.stringify({
-          v: 1,
-          teamId: "team-one",
-          weekKey: "2026-08-17",
-          sceneId: "top-down-field",
-          sequence: 4,
-          bodies: [],
-          avatars: [],
-        }),
-      }),
-    );
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
 
-    expect(onPhysics).toHaveBeenCalledWith(
-      expect.objectContaining({ sequence: 4, sceneId: "top-down-field" }),
-    );
-    listeners.get("piece")?.(
-      new MessageEvent("piece", {
-        data: '{"id":"piece-one","x":44,"y":55,"size":50,"rotation":24,"revision":4}',
-      }),
-    );
-    expect(onPiece).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "piece-one", x: 44, revision: 4 }),
-    );
+    expect(onLifecycle).toHaveBeenCalledWith("connecting");
+    expect(eventSource).not.toHaveBeenCalled();
     unsubscribe();
-    expect(close).toHaveBeenCalledOnce();
   });
 
   it("uses the authenticated socket for latest avatar targets and room frames", async () => {
@@ -223,7 +194,6 @@ describe("HTTP team canvas gateway", () => {
     vi.stubGlobal("fetch", fetchMock);
     const gateway = createTeamCanvasGateway("team-one");
 
-    await gateway.moveAvatar({ x: 84, y: 12 });
     await gateway.updatePiece("piece-one", {
       x: 50,
       y: 50,
@@ -244,11 +214,6 @@ describe("HTTP team canvas gateway", () => {
 
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
-      "/api/zoomigo/v1/teams/team-one/canvas/avatar",
-      expect.objectContaining({ method: "PUT", body: '{"x":84,"y":12}' }),
-    );
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      2,
       "/api/zoomigo/v1/teams/team-one/canvas/pieces/piece-one",
       expect.objectContaining({
         method: "PUT",
@@ -256,16 +221,16 @@ describe("HTTP team canvas gateway", () => {
       }),
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
-      3,
+      2,
       "/api/zoomigo/v1/teams/team-one/canvas/pieces/piece-one",
       expect.objectContaining({ method: "DELETE" }),
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
-      4,
+      3,
       "/api/zoomigo/v1/teams/team-one/canvas/dev-settings",
       expect.objectContaining({ method: "PUT" }),
     );
-    expect(JSON.parse(fetchMock.mock.calls[3][1].body)).toMatchObject({
+    expect(JSON.parse(fetchMock.mock.calls[2][1].body)).toMatchObject({
       developerStampLimit: 8,
     });
   });

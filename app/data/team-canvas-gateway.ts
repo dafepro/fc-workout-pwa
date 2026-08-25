@@ -18,6 +18,14 @@ import {
   createTeamCanvasDeviceCoordinator,
   type TeamCanvasDeviceCoordinator,
 } from "../team-canvas/realtime/coordinator";
+import {
+  boundedTeamCanvasTelemetry,
+  EMPTY_TEAM_CANVAS_TELEMETRY,
+} from "../team-canvas/realtime/telemetry";
+import type {
+  TeamCanvasConnectionState,
+  TeamCanvasTelemetry,
+} from "../player/team-canvas/widget-contract";
 
 export interface TeamCanvasSettings {
   backgroundAssetId: string;
@@ -45,6 +53,7 @@ export interface ConnectedTeamCanvasProjection {
     v: 1;
     sceneId: TeamCanvasPhysicsFrame["sceneId"];
     sequence: number;
+    checkpointAt?: string;
   };
   settings: TeamCanvasSettings;
   stampChoices: StampAsset[];
@@ -71,6 +80,8 @@ export interface TeamCanvasGateway {
     onChange(): void;
     onPhysics(frame: TeamCanvasPhysicsFrame): void;
     onPiece(frame: TeamCanvasPieceFrame): void;
+    onLifecycle?(state: TeamCanvasConnectionState): void;
+    onTelemetry?(telemetry: TeamCanvasTelemetry): void;
   }): () => void;
 }
 
@@ -107,6 +118,7 @@ class HTTPTeamCanvasGateway implements TeamCanvasGateway {
   private physicsWorker: Worker | null = null;
   private socketPlayerID: string | null = null;
   private deviceCoordinator: TeamCanvasDeviceCoordinator | null = null;
+  private telemetry = EMPTY_TEAM_CANVAS_TELEMETRY;
 
   constructor(teamID: string) {
     this.root = `/api/zoomigo/v1/teams/${encodeURIComponent(teamID)}/canvas`;
@@ -150,30 +162,29 @@ class HTTPTeamCanvasGateway implements TeamCanvasGateway {
   }
 
   async moveAvatar(position: BoardPosition): Promise<BoardPosition> {
-    if (this.socket?.readyState === 1 || this.deviceCoordinator) {
-      if (this.socketPlayerID) {
-        this.physicsWorker?.postMessage({
-          type: "avatar",
-          playerId: this.socketPlayerID,
-          position,
-          at: performance.now(),
-        });
-      }
-      this.sendRealtime(
-        JSON.stringify({
-          v: 1,
-          type: "avatar.target",
-          messageId: `move-${Date.now().toString(36)}-${++this.movementSequence}`,
-          position,
-        }),
+    if (!this.deviceCoordinator) {
+      throw new TeamCanvasGatewayError(
+        "canvas_live_unavailable",
+        "The live team canvas is reconnecting.",
       );
-      return position;
     }
-    const response = await this.request("/avatar", {
-      method: "PUT",
-      body: JSON.stringify(position),
-    });
-    return (await response.json()) as BoardPosition;
+    if (this.socketPlayerID) {
+      this.physicsWorker?.postMessage({
+        type: "avatar",
+        playerId: this.socketPlayerID,
+        position,
+        at: performance.now(),
+      });
+    }
+    this.sendRealtime(
+      JSON.stringify({
+        v: 1,
+        type: "avatar.target",
+        messageId: `move-${Date.now().toString(36)}-${++this.movementSequence}`,
+        position,
+      }),
+    );
+    return position;
   }
 
   async createPiece(assetID: string): Promise<ProjectedBoardPiece> {
@@ -231,28 +242,31 @@ class HTTPTeamCanvasGateway implements TeamCanvasGateway {
     onChange(): void;
     onPhysics(frame: TeamCanvasPhysicsFrame): void;
     onPiece(frame: TeamCanvasPieceFrame): void;
+    onLifecycle?(state: TeamCanvasConnectionState): void;
+    onTelemetry?(telemetry: TeamCanvasTelemetry): void;
   }): () => void {
     let stopped = false;
-    let events: EventSource | null = null;
     let visibilityHandler: (() => void) | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let presenceTimer: ReturnType<typeof setInterval> | null = null;
     let pendingSocketPayload: string | null = null;
-    const startEventsFallback = () => {
-      if (stopped || events || typeof EventSource === "undefined") return;
-      events = new EventSource(`${this.root}/events`);
-      events.addEventListener("ready", handlers.onChange);
-      events.addEventListener("canvas", handlers.onChange);
-      events.addEventListener("physics", (event) => {
-        if (!(event instanceof MessageEvent)) return;
-        const frame = parseTeamCanvasPhysicsFrame(String(event.data));
-        if (frame) handlers.onPhysics(frame);
-      });
-      events.addEventListener("piece", (event) => {
-        if (!(event instanceof MessageEvent)) return;
-        const frame = parseTeamCanvasPieceFrame(String(event.data));
-        if (frame) handlers.onPiece(frame);
-      });
+    let reconnectDelay = 350;
+    let opened = false;
+    const lifecycle = (state: TeamCanvasConnectionState) =>
+      handlers.onLifecycle?.(state);
+    const updateTelemetry = (patch: Partial<TeamCanvasTelemetry>) => {
+      this.telemetry = boundedTeamCanvasTelemetry(this.telemetry, patch);
+      handlers.onTelemetry?.(this.telemetry);
+    };
+    const scheduleReconnect = () => {
+      if (stopped || !this.deviceCoordinator?.isOwner() || reconnectTimer)
+        return;
+      lifecycle(opened ? "reconnecting" : "connecting");
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        void startSocket();
+      }, reconnectDelay);
+      reconnectDelay = Math.min(5000, reconnectDelay * 2);
     };
     const processRealtimeMessage = (encoded: string) => {
       if (encoded.length > 72 * 1024) return;
@@ -262,6 +276,8 @@ class HTTPTeamCanvasGateway implements TeamCanvasGateway {
         frame?: unknown;
         playerId?: unknown;
         host?: unknown;
+        hostEpoch?: unknown;
+        checkpointAgeMs?: unknown;
         position?: unknown;
       };
       try {
@@ -274,7 +290,10 @@ class HTTPTeamCanvasGateway implements TeamCanvasGateway {
         const frame = parseTeamCanvasPhysicsFrame(
           JSON.stringify(message.frame),
         );
-        if (!frame) return;
+        if (!frame) {
+          updateTelemetry({ droppedFrames: this.telemetry.droppedFrames + 1 });
+          return;
+        }
         if (message.type === "room.ready") {
           this.socketPlayerID =
             typeof message.playerId === "string" ? message.playerId : null;
@@ -283,11 +302,27 @@ class HTTPTeamCanvasGateway implements TeamCanvasGateway {
             message.host === true &&
               (this.deviceCoordinator?.isOwner() ?? true),
             handlers.onPhysics,
+            updateTelemetry,
           );
+          updateTelemetry({
+            hostEpoch:
+              typeof message.hostEpoch === "number"
+                ? message.hostEpoch
+                : this.telemetry.hostEpoch,
+            checkpointAgeMs:
+              typeof message.checkpointAgeMs === "number"
+                ? message.checkpointAgeMs
+                : this.telemetry.checkpointAgeMs,
+          });
         } else if (this.physicsWorker) {
           this.physicsWorker.postMessage({ type: "reconcile", frame });
         } else {
-          this.startPhysicsWorker(frame, false, handlers.onPhysics);
+          this.startPhysicsWorker(
+            frame,
+            false,
+            handlers.onPhysics,
+            updateTelemetry,
+          );
         }
       } else if (message.type === "piece.changed") {
         const frame = parseTeamCanvasPieceFrame(JSON.stringify(message.frame));
@@ -319,6 +354,12 @@ class HTTPTeamCanvasGateway implements TeamCanvasGateway {
           at: performance.now(),
         });
       } else if (message.type === "host.granted") {
+        updateTelemetry({
+          hostEpoch:
+            typeof message.hostEpoch === "number"
+              ? message.hostEpoch
+              : this.telemetry.hostEpoch + 1,
+        });
         this.physicsWorker?.postMessage({
           type: "host",
           host: this.deviceCoordinator?.isOwner() ?? true,
@@ -329,6 +370,7 @@ class HTTPTeamCanvasGateway implements TeamCanvasGateway {
     };
     const startSocket = async () => {
       if (stopped || !this.deviceCoordinator?.isOwner() || this.socket) return;
+      lifecycle(opened ? "reconnecting" : "connecting");
       try {
         const response = await this.request("/socket-ticket", {
           method: "POST",
@@ -357,6 +399,9 @@ class HTTPTeamCanvasGateway implements TeamCanvasGateway {
           );
         };
         socket.onopen = () => {
+          opened = true;
+          reconnectDelay = 350;
+          lifecycle("connected");
           visibilityHandler?.();
           presenceTimer = setInterval(() => visibilityHandler?.(), 1000);
           if (pendingSocketPayload) {
@@ -375,12 +420,13 @@ class HTTPTeamCanvasGateway implements TeamCanvasGateway {
           presenceTimer = null;
           if (this.socket === socket) this.socket = null;
           if (!stopped && this.deviceCoordinator?.isOwner()) {
-            reconnectTimer = setTimeout(() => void startSocket(), 350);
+            updateTelemetry({ reconnects: this.telemetry.reconnects + 1 });
+            scheduleReconnect();
           }
         };
         socket.onerror = () => socket.close();
       } catch {
-        if (this.deviceCoordinator?.isOwner()) startEventsFallback();
+        if (this.deviceCoordinator?.isOwner()) scheduleReconnect();
       }
     };
     this.deviceCoordinator = createTeamCanvasDeviceCoordinator(this.root, {
@@ -403,7 +449,7 @@ class HTTPTeamCanvasGateway implements TeamCanvasGateway {
       stopped = true;
       if (reconnectTimer) clearTimeout(reconnectTimer);
       if (presenceTimer) clearInterval(presenceTimer);
-      events?.close();
+      lifecycle("unavailable");
       if (visibilityHandler)
         document.removeEventListener("visibilitychange", visibilityHandler);
       this.socket?.close();
@@ -420,6 +466,7 @@ class HTTPTeamCanvasGateway implements TeamCanvasGateway {
     frame: TeamCanvasPhysicsFrame,
     host: boolean,
     onPhysics: (frame: TeamCanvasPhysicsFrame) => void,
+    onTelemetry: (patch: Partial<TeamCanvasTelemetry>) => void,
   ) {
     this.physicsWorker?.terminate();
     if (typeof Worker === "undefined") {
@@ -432,7 +479,30 @@ class HTTPTeamCanvasGateway implements TeamCanvasGateway {
     );
     this.physicsWorker = worker;
     worker.onmessage = (event: MessageEvent) => {
-      const message = event.data as { type?: unknown; frame?: unknown };
+      const message = event.data as {
+        type?: unknown;
+        frame?: unknown;
+        inputToRenderMs?: unknown;
+        correctionDistance?: unknown;
+        droppedFrames?: unknown;
+      };
+      if (message.type === "telemetry") {
+        onTelemetry({
+          inputToRenderMs:
+            typeof message.inputToRenderMs === "number"
+              ? message.inputToRenderMs
+              : undefined,
+          correctionDistance:
+            typeof message.correctionDistance === "number"
+              ? message.correctionDistance
+              : undefined,
+          droppedFrames:
+            typeof message.droppedFrames === "number"
+              ? message.droppedFrames
+              : undefined,
+        });
+        return;
+      }
       const parsed = parseTeamCanvasPhysicsFrame(JSON.stringify(message.frame));
       if (!parsed) return;
       if (message.type === "frame") onPhysics(parsed);

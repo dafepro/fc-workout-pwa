@@ -656,8 +656,7 @@ Momentum Alpha needs independent PWA install/offline behavior.
 ## Team Canvas Alpha client-hosted realtime physics (2026-08-21)
 
 - Superseded: REST avatar samples, per-tab SSE streams, and a continuously
-  running server-authoritative room are no longer the primary connected path.
-  They remain temporarily as compatibility and initialization code.
+  running server-authoritative room are removed from the connected path.
 - Decided: cosmetic physics is client-hosted and non-scoring. The server remains
   authoritative for identity, unlock, rewards, ownership, catalog capabilities,
   day/week boundaries, and durable checkpoints.
@@ -677,9 +676,31 @@ Momentum Alpha needs independent PWA install/offline behavior.
   star, reward, or canvas access.
 - Decided: dynamic checkpoints and the latest avatar target persist at a bounded
   cadence plus lifecycle boundaries. Animation frames are never database rows.
-- Still open before multi-replica beta: sticky room routing versus a shared room
-  coordinator, measured correction thresholds, and operational host-epoch
-  telemetry.
+- Resolved by the production boundary below: shared coordination is required
+  before multi-replica beta, and bounded correction/host telemetry is live.
+
+## Team Canvas production boundary (2026-08-25)
+
+- Decided: the built-in Canvas is the sole supported v1 renderer and worker
+  engine. The application passes it a frozen host contract containing identity,
+  access, inventory, placement actions, lifecycle/error state, reduced-motion
+  preference, and anonymous health telemetry. A future library must implement
+  this contract; it does not run alongside the built-in renderer.
+- Decided: WebSocket plus the browser worker is the only connected realtime
+  path. The REST avatar endpoint, EventSource stream, and continuously stepping
+  server engine are removed. A socket failure stays visibly reconnecting with
+  capped backoff instead of changing authority or engines.
+- Decided: Team Canvas health records reconnect count, input-to-render bucket,
+  correction-distance bucket, host epoch, dropped frames, and checkpoint-age
+  bucket. Client analytics and the development console contain no player name,
+  player ID, workout detail, or room snapshot.
+- Decided: production and development remain explicitly single-replica for room
+  ownership. `TEAM_CANVAS_ROOM_ROUTING` accepts only `single-replica`; a shared
+  coordinator is the chosen prerequisite before increasing the API replica
+  count. Round-robin or uncoordinated scaling must fail configuration review.
+- Implemented: the browser-level socket lease now releases when its owner tab is
+  hidden so a visible sibling can connect. Room host epochs increment on every
+  server-side handoff, and tampered positions/snapshots remain rejected.
 
 ## Disposable dev real-data preview (2026-08-21)
 

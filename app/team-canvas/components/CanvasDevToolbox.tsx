@@ -9,13 +9,28 @@ import {
 } from "../catalog";
 import { teamCanvasCopy } from "../content";
 import { stampAssetLabel } from "./StampAsset";
+import type {
+  TeamCanvasConnectionState,
+  TeamCanvasTelemetry,
+} from "../../player/team-canvas/widget-contract";
 
 export function CanvasDevToolbox({
   settings,
   onSave,
+  connection = "local",
+  telemetry = {
+    reconnects: 0,
+    inputToRenderMs: null,
+    correctionDistance: 0,
+    hostEpoch: 0,
+    droppedFrames: 0,
+    checkpointAgeMs: null,
+  },
 }: {
   settings: TeamCanvasSettings;
   onSave(settings: TeamCanvasSettings): Promise<void>;
+  connection?: TeamCanvasConnectionState;
+  telemetry?: TeamCanvasTelemetry;
 }) {
   const [draft, setDraft] = useState(settings);
   const [saving, setSaving] = useState(false);
@@ -28,6 +43,36 @@ export function CanvasDevToolbox({
         <span>{copy.summary}</span>
       </summary>
       <div className="tc-toolbox__body">
+        <dl className="tc-toolbox__telemetry" aria-label="Live Canvas health">
+          <div>
+            <dt>Connection</dt>
+            <dd>{connection}</dd>
+          </div>
+          <div>
+            <dt>Reconnects</dt>
+            <dd>{telemetry.reconnects}</dd>
+          </div>
+          <div>
+            <dt>Input to render</dt>
+            <dd>{formatMilliseconds(telemetry.inputToRenderMs)}</dd>
+          </div>
+          <div>
+            <dt>Correction</dt>
+            <dd>{telemetry.correctionDistance.toFixed(1)}</dd>
+          </div>
+          <div>
+            <dt>Host epoch</dt>
+            <dd>{telemetry.hostEpoch}</dd>
+          </div>
+          <div>
+            <dt>Dropped frames</dt>
+            <dd>{telemetry.droppedFrames}</dd>
+          </div>
+          <div>
+            <dt>Checkpoint age</dt>
+            <dd>{formatMilliseconds(telemetry.checkpointAgeMs)}</dd>
+          </div>
+        </dl>
         <label>
           <span>{copy.background}</span>
           <select
@@ -150,6 +195,10 @@ export function CanvasDevToolbox({
       </div>
     </details>
   );
+}
+
+function formatMilliseconds(value: number | null) {
+  return value === null ? "—" : `${Math.round(value)} ms`;
 }
 
 function swapStampChoice(

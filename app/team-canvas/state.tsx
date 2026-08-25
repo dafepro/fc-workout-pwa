@@ -30,6 +30,11 @@ import type {
   StampAsset,
   TeamCanvasState,
 } from "./model";
+import type {
+  TeamCanvasConnectionState,
+  TeamCanvasTelemetry,
+} from "../player/team-canvas/widget-contract";
+import { EMPTY_TEAM_CANVAS_TELEMETRY } from "./realtime/telemetry";
 import { createLatestInputQueue, type LatestInputQueue } from "./live-input";
 import {
   applyTeamCanvasPhysicsFrame,
@@ -56,14 +61,21 @@ import {
 export const TEAM_CANVAS_STORAGE_KEY = "zoomigo-team-canvas-alpha-v2";
 const TEAM_CANVAS_SETTINGS_KEY = "zoomigo-team-canvas-alpha-settings-v1";
 
-type ConnectedStatus = "local" | "loading" | "locked" | "ready" | "error";
+export type ConnectedStatus =
+  | "local"
+  | "loading"
+  | "locked"
+  | "ready"
+  | "error";
 
-interface TeamCanvasContextValue {
+export interface TeamCanvasContextValue {
   state: TeamCanvasState;
   connectedStatus: ConnectedStatus;
   connectedProjection: ConnectedTeamCanvasProjection | null;
   localSettings: TeamCanvasSettings;
   connectedError: string | null;
+  connectionState: TeamCanvasConnectionState;
+  telemetry: TeamCanvasTelemetry;
   selectedPieceId: string | null;
   justCompletedPrimary: boolean;
   complete(input: {
@@ -128,6 +140,11 @@ export function TeamCanvasProvider({
   const [remoteSelectedPieceId, setRemoteSelectedPieceId] = useState<
     string | null
   >(null);
+  const [connectionState, setConnectionState] =
+    useState<TeamCanvasConnectionState>(connected ? "connecting" : "local");
+  const [telemetry, setTelemetry] = useState<TeamCanvasTelemetry>(
+    EMPTY_TEAM_CANVAS_TELEMETRY,
+  );
   const [localSettings, setLocalSettings] = useState(() =>
     loadLocalSettings(state),
   );
@@ -220,6 +237,8 @@ export function TeamCanvasProvider({
               }
             : current,
         ),
+      onLifecycle: setConnectionState,
+      onTelemetry: setTelemetry,
     });
   }, [connectedState.status, currentPlayerID, gateway, refresh]);
 
@@ -277,6 +296,8 @@ export function TeamCanvasProvider({
       connectedProjection: connectedState.projection,
       localSettings,
       connectedError: connectedState.error,
+      connectionState,
+      telemetry,
       selectedPieceId: gateway ? remoteSelectedPieceId : state.selectedPieceId,
       justCompletedPrimary,
       async complete(input) {
@@ -586,6 +607,7 @@ export function TeamCanvasProvider({
     }),
     [
       connectedState,
+      connectionState,
       currentPlayerID,
       gateway,
       justCompletedPrimary,
@@ -597,6 +619,7 @@ export function TeamCanvasProvider({
       store,
       teamID,
       training,
+      telemetry,
     ],
   );
 

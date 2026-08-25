@@ -21,7 +21,6 @@ const PLAYER_ROUTES = [
   { method: "GET", pattern: /^v1\/teams\/[^/]+\/reward-media\/[^/]+$/ },
   { method: "GET", pattern: /^v1\/teams\/[^/]+\/canvas$/ },
   { method: "POST", pattern: /^v1\/teams\/[^/]+\/canvas\/rest$/ },
-  { method: "PUT", pattern: /^v1\/teams\/[^/]+\/canvas\/avatar$/ },
   { method: "POST", pattern: /^v1\/teams\/[^/]+\/canvas\/pieces$/ },
   { method: "PUT", pattern: /^v1\/teams\/[^/]+\/canvas\/pieces\/[^/]+$/ },
   {
@@ -29,7 +28,6 @@ const PLAYER_ROUTES = [
     pattern: /^v1\/teams\/[^/]+\/canvas\/pieces\/[^/]+$/,
   },
   { method: "PUT", pattern: /^v1\/teams\/[^/]+\/canvas\/dev-settings$/ },
-  { method: "GET", pattern: /^v1\/teams\/[^/]+\/canvas\/events$/ },
   {
     method: "POST",
     pattern: /^v1\/teams\/[^/]+\/canvas\/socket-ticket$/,

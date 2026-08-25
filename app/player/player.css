@@ -2686,6 +2686,26 @@
   color: #172f27;
 }
 
+.today-plan-hero__check-in .today-plan-hero__target-choice,
+.today-plan-hero__check-in .today-checkin__alternative {
+  border-color: #a9b9b2;
+  background: #edf2ef;
+  color: #17342a;
+}
+
+.today-plan-hero__check-in .today-plan-hero__target-choice[aria-pressed="true"],
+.today-plan-hero__check-in .today-checkin__alternative[aria-pressed="true"] {
+  border-color: #54700d;
+  background: #d9f47a;
+  color: #203500;
+  box-shadow: inset 0 0 0 1px #54700d;
+}
+
+.today-plan-hero__check-in .today-plan-hero__target-choice:focus-visible,
+.today-plan-hero__check-in .today-checkin__alternative:focus-visible {
+  outline-color: #315ec8;
+}
+
 .today-plan-hero__check-in-actions {
   gap: 0.55rem;
 }

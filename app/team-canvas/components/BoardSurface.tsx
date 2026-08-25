@@ -51,6 +51,7 @@ interface BoardSurfaceProps {
   onEditPiece(pieceId: string, patch: Partial<BoardTransform>): void;
   onDeletePiece(pieceId: string): void;
   onClearPiece(): void;
+  reducedMotion?: boolean;
 }
 
 export interface BoardMember {
@@ -85,6 +86,7 @@ export function BoardSurface({
   onEditPiece,
   onDeletePiece,
   onClearPiece,
+  reducedMotion,
 }: BoardSurfaceProps) {
   const [liveTick, setLiveTick] = useState(0);
   const [draggingPieceId, setDraggingPieceId] = useState<string | null>(null);
@@ -123,7 +125,11 @@ export function BoardSurface({
     samples: AvatarMotionSample[],
   ) => {
     stopAvatarMomentum();
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    if (
+      reducedMotion ??
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+    )
+      return;
     let momentum = {
       position,
       velocity: avatarReleaseVelocity(samples),
@@ -152,16 +158,16 @@ export function BoardSurface({
   );
   useEffect(() => {
     if (!simulatePeers) return;
-    const reduced = window.matchMedia?.(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
+    const reduced =
+      reducedMotion ??
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     if (reduced) return;
     const timer = window.setInterval(
       () => setLiveTick((tick) => tick + 1),
       680,
     );
     return () => window.clearInterval(timer);
-  }, [simulatePeers]);
+  }, [reducedMotion, simulatePeers]);
 
   return (
     <div

@@ -52,6 +52,7 @@ func TestLoadRejectsInvalidValues(t *testing.T) {
 		{"ENABLE_E2E_FIXTURES": "sometimes"},
 		{"ENABLE_E2E_FIXTURES": "true", "APP_ENV": "production", "E2E_RESET_KEY": "not-empty"},
 		{"ENABLE_DEV_ACCESS": "sometimes"},
+		{"TEAM_CANVAS_ROOM_ROUTING": "round-robin"},
 		{"ENABLE_DEV_ACCESS": "true", "APP_ENV": "production", "DEV_API_GATEWAY_TOKEN": "not-empty"},
 		{"LOGIN_ATTEMPTS_PER_MINUTE": "-1"},
 		{"LOGIN_ATTEMPTS_PER_MINUTE": "plenty"},

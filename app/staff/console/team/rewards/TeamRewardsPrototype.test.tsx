@@ -197,7 +197,9 @@ describe("staff team rewards prototype", () => {
     render(<TeamRewardsPrototype teamId="team-connected" connected />);
 
     expect(
-      await screen.findByText("Close: failed for 2 staff"),
+      await screen.findByText("Close: failed for 2 staff", undefined, {
+        timeout: 3000,
+      }),
     ).toBeInTheDocument();
     expect(screen.queryByText(/@|Mason/i)).not.toBeInTheDocument();
   });

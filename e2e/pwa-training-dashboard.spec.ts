@@ -106,6 +106,14 @@ test("the consolidated default completes today's plan and opens Team Canvas", as
   await expect(
     page.getByRole("button", { name: "Save workout" }),
   ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Goal · 8 reps" })).toHaveCSS(
+    "color",
+    "rgb(32, 53, 0)",
+  );
+  await expect(page.getByRole("button", { name: "Reach · 10 reps" })).toHaveCSS(
+    "color",
+    "rgb(23, 52, 42)",
+  );
   await page.getByRole("button", { name: "Cancel" }).click();
   await startWorkout.click();
   await page.getByRole("button", { name: "Reach · 10 reps" }).click();

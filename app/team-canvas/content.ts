@@ -94,6 +94,9 @@ export const teamCanvasCopy = {
     rotateRight: "Rotate right",
     loading: "Opening the live team canvas…",
     connectedError: "The live canvas is having trouble syncing.",
+    reconnecting: "Reconnecting the live lounge. Your last view stays visible.",
+    connecting: "Connecting the live lounge…",
+    unavailable: "Live movement is unavailable. We’ll keep trying safely.",
     toolbox: {
       title: "Canvas dev console",
       summary: "Tune the live lounge scene and stamp playground",

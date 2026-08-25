@@ -108,4 +108,57 @@ describe("Team Canvas device socket coordinator", () => {
     first.close();
     late.close();
   });
+
+  it("releases a hidden owner so a visible sibling can take the socket", async () => {
+    vi.stubGlobal("BroadcastChannel", FakeBroadcastChannel);
+    let firstVisible = true;
+    let secondVisible = true;
+    let firstVisibility = () => {};
+    let secondVisibility = () => {};
+    const firstOwnership = vi.fn();
+    const secondOwnership = vi.fn();
+    const first = createTeamCanvasDeviceCoordinator(
+      "team-one",
+      callbacks(firstOwnership),
+      {
+        visible: () => firstVisible,
+        listen: (handler) => {
+          firstVisibility = handler;
+          return () => {};
+        },
+      },
+    );
+    const second = createTeamCanvasDeviceCoordinator(
+      "team-one",
+      callbacks(secondOwnership),
+      {
+        visible: () => secondVisible,
+        listen: (handler) => {
+          secondVisibility = handler;
+          return () => {};
+        },
+      },
+    );
+    await vi.waitFor(() =>
+      expect([first.isOwner(), second.isOwner()]).toContain(true),
+    );
+    const ownerIsFirst = first.isOwner();
+    firstVisible = !ownerIsFirst;
+    secondVisible = ownerIsFirst;
+    if (ownerIsFirst) firstVisibility();
+    else secondVisibility();
+    await vi.waitFor(() =>
+      expect(ownerIsFirst ? second.isOwner() : first.isOwner()).toBe(true),
+    );
+    first.close();
+    second.close();
+  });
 });
+
+function callbacks(onOwnershipChange: ReturnType<typeof vi.fn>) {
+  return {
+    onOwnershipChange,
+    onInbound: vi.fn(),
+    onOutbound: vi.fn(),
+  };
+}

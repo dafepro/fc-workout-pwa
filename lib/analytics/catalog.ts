@@ -18,6 +18,20 @@ export interface ProductEventProperties {
   };
   route_summary: { route: RouteName; active_ms: number; views: number };
   connectivity_changed: { state: "online" | "offline" };
+  team_canvas_health_sample: {
+    connection: "connecting" | "connected" | "reconnecting" | "unavailable";
+    reconnects: number;
+    input_latency:
+      | "unknown"
+      | "under_50ms"
+      | "under_150ms"
+      | "under_500ms"
+      | "over_500ms";
+    correction: "none" | "under_1" | "under_5" | "over_5";
+    host_epoch: number;
+    dropped_frames: number;
+    checkpoint_age: "unknown" | "under_30s" | "under_2m" | "over_2m";
+  };
   app_installed: EmptyProperties;
   training_entry_started: {
     source: "home_assignment" | "fab" | "navigation";
@@ -80,6 +94,7 @@ export const clientEventNames = [
   "app_visit_started",
   "route_summary",
   "connectivity_changed",
+  "team_canvas_health_sample",
   "app_installed",
   "training_entry_started",
   "training_activity_selected",
@@ -207,6 +222,50 @@ function propertiesFor(
     case "connectivity_changed":
       exactKeys(value, ["state"], name);
       return { state: oneOf(value.state, ["online", "offline"], "state") };
+    case "team_canvas_health_sample":
+      exactKeys(
+        value,
+        [
+          "connection",
+          "reconnects",
+          "input_latency",
+          "correction",
+          "host_epoch",
+          "dropped_frames",
+          "checkpoint_age",
+        ],
+        name,
+      );
+      return {
+        connection: oneOf(
+          value.connection,
+          ["connecting", "connected", "reconnecting", "unavailable"],
+          "connection",
+        ),
+        reconnects: integer(value.reconnects, 0, 1000, "reconnects"),
+        input_latency: oneOf(
+          value.input_latency,
+          ["unknown", "under_50ms", "under_150ms", "under_500ms", "over_500ms"],
+          "input_latency",
+        ),
+        correction: oneOf(
+          value.correction,
+          ["none", "under_1", "under_5", "over_5"],
+          "correction",
+        ),
+        host_epoch: integer(value.host_epoch, 0, 1_000_000, "host_epoch"),
+        dropped_frames: integer(
+          value.dropped_frames,
+          0,
+          1_000_000,
+          "dropped_frames",
+        ),
+        checkpoint_age: oneOf(
+          value.checkpoint_age,
+          ["unknown", "under_30s", "under_2m", "over_2m"],
+          "checkpoint_age",
+        ),
+      };
     case "app_installed":
     case "avatar_builder_opened":
     case "session_history_opened":

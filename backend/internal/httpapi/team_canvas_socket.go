@@ -46,15 +46,17 @@ type teamCanvasSocketMessage struct {
 }
 
 type teamCanvasSocketOutput struct {
-	Version   int                       `json:"v"`
-	Type      string                    `json:"type"`
-	MessageID string                    `json:"messageId,omitempty"`
-	Frame     any                       `json:"frame,omitempty"`
-	PlayerID  string                    `json:"playerId,omitempty"`
-	Position  *store.TeamCanvasPosition `json:"position,omitempty"`
-	Host      bool                      `json:"host,omitempty"`
-	Code      string                    `json:"code,omitempty"`
-	Message   string                    `json:"message,omitempty"`
+	Version         int                       `json:"v"`
+	Type            string                    `json:"type"`
+	MessageID       string                    `json:"messageId,omitempty"`
+	Frame           any                       `json:"frame,omitempty"`
+	PlayerID        string                    `json:"playerId,omitempty"`
+	Position        *store.TeamCanvasPosition `json:"position,omitempty"`
+	Host            bool                      `json:"host,omitempty"`
+	HostEpoch       uint64                    `json:"hostEpoch,omitempty"`
+	CheckpointAgeMS int64                     `json:"checkpointAgeMs,omitempty"`
+	Code            string                    `json:"code,omitempty"`
+	Message         string                    `json:"message,omitempty"`
 }
 
 func newTeamCanvasSocketTickets(now func() time.Time) *teamCanvasSocketTickets {
@@ -173,6 +175,8 @@ func (service *service) connectTeamCanvasSocket(w http.ResponseWriter, r *http.R
 	frame, _ := service.canvasPhysics.frame(teamID)
 	connectionID := newRequestID()
 	frame, host, disconnectRoom := service.canvasRooms.connect(teamID, connectionID, frame, outgoing, service.now().UTC())
+	service.canvasRooms.observeCheckpoint(teamID, projection.Physics.CheckpointAt)
+	hostEpoch, checkpointAge := service.canvasRooms.details(teamID, service.now().UTC())
 	defer func() {
 		if checkpoint, save := service.canvasRooms.checkpoint(teamID, service.now().UTC(), true); save {
 			service.saveTeamCanvasHostSnapshot(teamID, checkpoint)
@@ -183,6 +187,7 @@ func (service *service) connectTeamCanvasSocket(w http.ResponseWriter, r *http.R
 
 	if !writeTeamCanvasSocket(ctx, connection, teamCanvasSocketOutput{
 		Version: 1, Type: "room.ready", Frame: frame, PlayerID: claim.Actor.PlayerID, Host: host,
+		HostEpoch: hostEpoch, CheckpointAgeMS: checkpointAge.Milliseconds(),
 	}) {
 		return
 	}

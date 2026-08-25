@@ -90,6 +90,15 @@ describe("focused Today components", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Start workout" }));
     expect(screen.getByRole("button", { name: "Save workout" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Goal · 8 reps" })).toHaveClass(
+      "today-plan-hero__target-choice",
+    );
+    expect(
+      screen.getByRole("button", { name: "Goal · 8 reps" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByRole("button", { name: "Reach · 10 reps" }),
+    ).toHaveAttribute("aria-pressed", "false");
     expect(onComplete).not.toHaveBeenCalled();
   });
 
