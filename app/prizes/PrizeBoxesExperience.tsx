@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import {
   connectedPrizeBoxGateway,
@@ -30,6 +31,7 @@ export function PrizeBoxesExperience({
   const [openingID, setOpeningID] = useState<string | null>(null);
   const [openError, setOpenError] = useState(false);
   const [reveal, setReveal] = useState<OpenedPrizeBox | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [reload, setReload] = useState(0);
   const claimKey = useRef<string | null>(null);
   const openKeys = useRef(new Map<string, string>());
@@ -49,6 +51,15 @@ export function PrizeBoxesExperience({
       active = false;
     };
   }, [connected, gateway, reload]);
+
+  useEffect(() => {
+    if (!helpOpen) return;
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setHelpOpen(false);
+    }
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [helpOpen]);
 
   async function claimDaily() {
     if (!overview || overview.dailyState !== "available" || claiming) return;
@@ -112,24 +123,21 @@ export function PrizeBoxesExperience({
         </div>
         <Image
           className="prize-boxes-header__zoomi"
-          src="/rewards/zoomi-found-box.png"
-          alt="Zoomi standing beside a prize box"
-          width={160}
-          height={160}
+          src="/rewards/zoomi-found-box-v2.png"
+          alt="Zoomi the Dalmatian beside a prize box"
+          width={192}
+          height={128}
           priority
           unoptimized
         />
-        <details className="prize-boxes-help">
-          <summary aria-label={prizeBoxCopy.help}>?</summary>
-          <div>
-            <h2>{prizeBoxCopy.help}</h2>
-            <ol>
-              {prizeBoxCopy.helpItems.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ol>
-          </div>
-        </details>
+        <button
+          type="button"
+          className="prize-boxes-help"
+          aria-label={prizeBoxCopy.help}
+          onClick={() => setHelpOpen(true)}
+        >
+          ?
+        </button>
       </header>
 
       {loadingFailed ? (
@@ -152,7 +160,6 @@ export function PrizeBoxesExperience({
         </section>
       ) : (
         <>
-          <PrizeStatus overview={overview} />
           <DailyFreeBox
             overview={overview}
             claiming={claiming}
@@ -172,27 +179,38 @@ export function PrizeBoxesExperience({
       {reveal ? (
         <PrizeReveal reveal={reveal} onClose={() => setReveal(null)} />
       ) : null}
+      {helpOpen
+        ? createPortal(
+            <PrizeHelpModal onClose={() => setHelpOpen(false)} />,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
 
-function PrizeStatus({ overview }: { overview: PrizeBoxOverview }) {
-  const stats = [
-    {
-      value: overview.dailyState === "available" ? 1 : 0,
-      label: prizeBoxCopy.status.claimNow,
-    },
-    { value: overview.readyCount, label: prizeBoxCopy.status.ready },
-    { value: overview.earnedTotal, label: prizeBoxCopy.status.earned },
-  ];
+function PrizeHelpModal({ onClose }: { onClose(): void }) {
   return (
-    <section className="prize-status" aria-label="Prize box status">
-      {stats.map((stat) => (
-        <div key={stat.label}>
-          <strong className="prize-status__value">{stat.value}</strong>
-          <span>{stat.label}</span>
-        </div>
-      ))}
+    <section
+      className="prize-help-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="prize-help-title"
+    >
+      <div className="prize-help-modal__panel">
+        <header>
+          <h2 id="prize-help-title">{prizeBoxCopy.help}</h2>
+          <button type="button" autoFocus onClick={onClose}>
+            <span aria-hidden="true">×</span>
+            <span className="sr-only">{prizeBoxCopy.closeHelp}</span>
+          </button>
+        </header>
+        <ol>
+          {prizeBoxCopy.helpItems.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ol>
+      </div>
     </section>
   );
 }

@@ -92,7 +92,7 @@ describe("TeamRewardCard", () => {
     expect(screen.queryByText(/p1|p2/i)).not.toBeInTheDocument();
   });
 
-  it("keeps reporting quiet and limits it to predefined anonymous reasons", async () => {
+  it("confirms a predefined anonymous reason before sending the report", async () => {
     const reward = {
       ...createPrototypeReward("team-1", new Date("2026-08-23T12:00:00Z")),
       status: "active" as const,
@@ -119,9 +119,14 @@ describe("TeamRewardCard", () => {
 
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
     fireEvent.click(screen.getByText("Report a concern"));
-    fireEvent.click(
-      screen.getByRole("button", { name: "Personal information" }),
-    );
+    const reason = screen.getByRole("button", {
+      name: "Personal information",
+    });
+    fireEvent.click(reason);
+    expect(reason).toHaveAttribute("aria-pressed", "true");
+    expect(onReport).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Send report" }));
     await waitFor(() =>
       expect(onReport).toHaveBeenCalledWith("personal_information"),
     );

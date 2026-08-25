@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { WorkoutOutcomeChoices } from "../../components/WorkoutOutcomeChoices";
 import { WorkoutNoteField } from "../../components/WorkoutNoteField";
 import { FeelTracks } from "../../team-canvas/components/FeelTracks";
 import { teamCanvasCopy } from "../../team-canvas/content";
@@ -18,7 +19,6 @@ interface TodayPlanHeroProps {
     MomentumPlanContent,
     "activity" | "workload" | "goal" | "instruction" | "reasons"
   >;
-  connectedError?: string | null;
   onComplete(input: {
     completion: CompletionKind;
     effort: number;
@@ -35,7 +35,6 @@ export function TodayPlanHero({
   previewOnly,
   actionUnavailable = false,
   plan,
-  connectedError = null,
   onComplete,
   onRecordRest,
 }: TodayPlanHeroProps) {
@@ -179,36 +178,11 @@ export function TodayPlanHero({
             </p>
           ) : (
             <>
-              <div
+              <WorkoutOutcomeChoices
                 className="today-checkin__targets"
-                role="group"
-                aria-label={copy.outcomeGroup}
-              >
-                <button
-                  className="today-plan-hero__target-choice"
-                  type="button"
-                  aria-pressed={completion === "goal"}
-                  onClick={() => setCompletion("goal")}
-                >
-                  {copy.completedAsListed}
-                </button>
-                <button
-                  className="today-plan-hero__target-choice"
-                  type="button"
-                  aria-pressed={completion === "partial"}
-                  onClick={() => setCompletion("partial")}
-                >
-                  {copy.finishedPart}
-                </button>
-                <button
-                  className="today-plan-hero__target-choice"
-                  type="button"
-                  aria-pressed={completion === "reach"}
-                  onClick={() => setCompletion("reach")}
-                >
-                  {copy.addedExtra}
-                </button>
-              </div>
+                value={completion}
+                onChange={setCompletion}
+              />
               <FeelTracks
                 effort={effort}
                 tiredness={tiredness}
@@ -238,9 +212,9 @@ export function TodayPlanHero({
           </div>
         </div>
       ) : null}
-      {connectedError || error ? (
+      {error ? (
         <p className="today-plan-hero__error" role="alert">
-          {connectedError ?? error}
+          {error}
         </p>
       ) : null}
     </section>

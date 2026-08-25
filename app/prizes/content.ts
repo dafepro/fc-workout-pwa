@@ -4,11 +4,7 @@ export const prizeBoxCopy = {
   subtitle: "Earn from workouts. Open to reveal items for you and the team.",
   back: "Back to Today",
   help: "How Prize Boxes work",
-  status: {
-    claimNow: "Claim now",
-    ready: "Ready to open",
-    earned: "Earned total",
-  },
+  closeHelp: "Close help",
   daily: {
     eyebrow: "Daily freebie",
     available: "Ready to claim!",

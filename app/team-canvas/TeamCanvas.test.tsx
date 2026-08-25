@@ -127,9 +127,7 @@ describe("Team Canvas application", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Record today’s plan" }),
     );
-    fireEvent.click(
-      screen.getByRole("button", { name: "Added something extra" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Extra!" }));
     expect(screen.queryByRole("combobox")).toBeNull();
     fireEvent.change(screen.getByRole("slider", { name: "Effort" }), {
       target: { value: "5" },

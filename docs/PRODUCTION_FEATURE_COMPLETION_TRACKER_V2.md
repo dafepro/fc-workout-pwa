@@ -382,6 +382,7 @@ Update this table in the same commit that materially changes a vertical slice.
 | 2026-08-25 | M · planner/recommendations | This delivery change | Server-owned Today source, safe recency suggestion, structured planner, one-day preset, linked atomic reschedule, cancellation, history, and targeted browser/API tests  | Coaching-owner numeric approval      |
 | 2026-08-25 | O · Canvas boundary         | This delivery change | Frozen widget contract, one renderer/worker, WebSocket-only transport, anonymous telemetry, host handoff and connected 320-pixel coverage                                | Manual dev beta review               |
 | 2026-08-25 | L2 · Prize Boxes UX         | This delivery change | Separate sealed-box claim/open API, durable pool, restrained landing, actual art/rarity reveal, collection/history, destination links, and targeted tests                | Manual dev review; connected E2E     |
+| 2026-08-25 | L2/N · mobile polish        | This delivery change | True-alpha bounded mascot art, viewport help modal, compact outcome controls, isolated Canvas/workout errors, and explicit concern confirmation                          | Manual Pixel 10/dev review           |
 
 ## Linked designs
 

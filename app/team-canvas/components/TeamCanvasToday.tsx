@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { WorkoutNoteField } from "../../components/WorkoutNoteField";
-import { playerExperienceCopy } from "../../player/content";
+import { WorkoutOutcomeChoices } from "../../components/WorkoutOutcomeChoices";
 import { FeelTracks } from "./FeelTracks";
 import { teamCanvasCopy } from "../content";
 import type { CompletionKind } from "../model";
@@ -131,33 +131,11 @@ export function TeamCanvasToday() {
         {expanded ? (
           <div className="tc-checkin">
             <h2>{copy.formTitle}</h2>
-            <div
+            <WorkoutOutcomeChoices
               className="tc-targets"
-              role="group"
-              aria-label={copy.formTitle}
-            >
-              <button
-                type="button"
-                aria-pressed={completion === "goal"}
-                onClick={() => setCompletion("goal")}
-              >
-                {playerExperienceCopy.focusedToday.completedAsListed}
-              </button>
-              <button
-                type="button"
-                aria-pressed={completion === "partial"}
-                onClick={() => setCompletion("partial")}
-              >
-                {playerExperienceCopy.focusedToday.finishedPart}
-              </button>
-              <button
-                type="button"
-                aria-pressed={completion === "reach"}
-                onClick={() => setCompletion("reach")}
-              >
-                {playerExperienceCopy.focusedToday.addedExtra}
-              </button>
-            </div>
+              value={completion}
+              onChange={setCompletion}
+            />
             <FeelTracks
               effort={effort}
               tiredness={tiredness}

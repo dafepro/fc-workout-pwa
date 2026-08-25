@@ -90,18 +90,20 @@ describe("focused Today components", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Start workout" }));
     expect(screen.getByRole("button", { name: "Save workout" })).toBeVisible();
-    expect(
-      screen.getByRole("button", { name: "Completed as listed" }),
-    ).toHaveClass("today-plan-hero__target-choice");
-    expect(
-      screen.getByRole("button", { name: "Completed as listed" }),
-    ).toHaveAttribute("aria-pressed", "true");
-    expect(
-      screen.getByRole("button", { name: "Finished part of it" }),
-    ).toHaveAttribute("aria-pressed", "false");
-    expect(
-      screen.getByRole("button", { name: "Added something extra" }),
-    ).toHaveAttribute("aria-pressed", "false");
+    const choices = within(
+      screen.getByRole("group", {
+        name: "How much of the workout did you finish?",
+      }),
+    ).getAllByRole("button");
+    expect(choices.map((choice) => choice.textContent)).toEqual([
+      "Almost…",
+      "Did it!",
+      "Extra!",
+    ]);
+    expect(choices[1]).toHaveClass("workout-outcome-choice");
+    expect(choices[1]).toHaveAttribute("aria-pressed", "true");
+    expect(choices[0]).toHaveAttribute("aria-pressed", "false");
+    expect(choices[2]).toHaveAttribute("aria-pressed", "false");
     expect(
       screen.queryByRole("button", { name: /coach-approved alternative/i }),
     ).not.toBeInTheDocument();
@@ -129,9 +131,7 @@ describe("focused Today components", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Start workout" }));
-    fireEvent.click(
-      screen.getByRole("button", { name: "Finished part of it" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Almost…" }));
     fireEvent.click(screen.getByText("Add a note"));
     const noteField = screen.getByPlaceholderText(
       "Add details about your workout for you and your coach to keep an eye on.",
@@ -150,6 +150,34 @@ describe("focused Today components", () => {
         note: "Left calf felt tight after rep four.",
       }),
     );
+  });
+
+  it("keeps lounge stamp failures out of the workout recorder", async () => {
+    render(
+      <TodayPlanHero
+        source="coach-plan"
+        restDay={false}
+        complete={false}
+        previewOnly={false}
+        plan={{
+          activity: "Hill Sprints",
+          workload: "20 min · Moderate",
+          goal: "Goal · 8 reps",
+          instruction: "Find a short hill with clear footing.",
+          reasons: [],
+        }}
+        onComplete={vi.fn().mockResolvedValue(false)}
+        onRecordRest={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Start workout" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save workout" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "That workout could not be saved",
+    );
+    expect(screen.queryByText(/stamp reward is unavailable/i)).toBeNull();
   });
 
   it("does not offer recording when a planned activity is unavailable", () => {

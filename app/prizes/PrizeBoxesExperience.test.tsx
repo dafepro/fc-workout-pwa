@@ -49,14 +49,32 @@ describe("PrizeBoxesExperience", () => {
     );
 
     expect(await screen.findByText("Prize boxes")).toBeVisible();
+    expect(
+      screen.queryByRole("region", { name: "Prize box status" }),
+    ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Claim daily box" }));
 
     expect(await screen.findByText("Daily box claimed")).toBeVisible();
     expect(screen.getByText("Added to your boxes.")).toBeVisible();
-    expect(
-      screen.getByText("1", { selector: ".prize-status__value" }),
-    ).toBeVisible();
+    expect(screen.getByText("1 to open")).toBeVisible();
     expect(open).not.toHaveBeenCalled();
+  });
+
+  it("opens help in a viewport-level dialog that can be dismissed", async () => {
+    render(<PrizeBoxesExperience connected gateway={gateway()} />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "How Prize Boxes work" }),
+    );
+
+    const dialog = screen.getByRole("dialog", {
+      name: "How Prize Boxes work",
+    });
+    expect(dialog).toHaveClass("prize-help-modal");
+    expect(dialog).toHaveTextContent("Claiming adds a sealed box");
+
+    fireEvent.click(screen.getByRole("button", { name: "Close help" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("opens a selected box and focuses the reveal on actual item art and destination", async () => {

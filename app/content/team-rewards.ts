@@ -59,6 +59,8 @@ export const teamRewardCopy = {
   achievedBody: "Your coach knows. Keep an eye out for what comes next.",
   reportConcern: "Report a concern",
   reportHint: "Choose a reason. Your name is not shown to team staff.",
+  reportSend: "Send report",
+  reportSending: "Sending…",
   reportSent: "Concern sent for private review.",
   reportFailed: "That could not be sent. Try again.",
   reportReasons: [

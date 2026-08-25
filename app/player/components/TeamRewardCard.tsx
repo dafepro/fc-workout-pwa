@@ -38,6 +38,8 @@ export function TeamRewardCard({
   const [reportState, setReportState] = useState<
     "idle" | "sending" | "sent" | "error"
   >("idle");
+  const [selectedReason, setSelectedReason] =
+    useState<TeamRewardReportReason | null>(null);
   const headingId = `team-reward-${placement}-${reward.id}`;
   const achieved = reward.status === "achieved" || progress.achieved;
   const imageUrl = reward.imageDataUrl ?? reward.imageUrl;
@@ -127,19 +129,38 @@ export function TeamRewardCard({
                 <button
                   type="button"
                   key={reason.value}
+                  aria-pressed={selectedReason === reason.value}
                   disabled={reportState === "sending" || reportState === "sent"}
                   onClick={() => {
-                    setReportState("sending");
-                    void onReport(reason.value).then(
-                      () => setReportState("sent"),
-                      () => setReportState("error"),
-                    );
+                    setSelectedReason(reason.value);
+                    setReportState("idle");
                   }}
                 >
                   {reason.label}
                 </button>
               ))}
             </div>
+            <button
+              className="player-rewards__report-send"
+              type="button"
+              disabled={
+                !selectedReason ||
+                reportState === "sending" ||
+                reportState === "sent"
+              }
+              onClick={() => {
+                if (!selectedReason) return;
+                setReportState("sending");
+                void onReport(selectedReason).then(
+                  () => setReportState("sent"),
+                  () => setReportState("error"),
+                );
+              }}
+            >
+              {reportState === "sending"
+                ? teamRewardCopy.reportSending
+                : teamRewardCopy.reportSend}
+            </button>
             {reportState === "sent" ? (
               <small role="status">{teamRewardCopy.reportSent}</small>
             ) : null}

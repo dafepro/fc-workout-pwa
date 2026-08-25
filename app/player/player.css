@@ -1608,6 +1608,27 @@
   text-align: left;
 }
 
+.player-rewards__report > div button[aria-pressed="true"] {
+  border-color: #52721a;
+  background: #e8f5c7;
+  box-shadow: inset 0 0 0 1px #52721a;
+}
+
+.player-rewards__report .player-rewards__report-send {
+  width: 100%;
+  margin-top: 0.55rem;
+  border-color: #315d16;
+  background: #315d16;
+  color: #fff;
+  text-align: center;
+}
+
+.player-rewards__report .player-rewards__report-send:disabled {
+  border-color: #cbd6ce;
+  background: #edf1ef;
+  color: #849089;
+}
+
 .player-rewards__report small {
   display: block;
   margin-top: 0.45rem;
@@ -2683,32 +2704,46 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.today-plan-hero__check-in .today-plan-hero__target-choice {
-  padding: 0.55rem 0.35rem;
-  line-height: 1.15;
-}
-
 .today-plan-hero__check-in .workout-note {
   border-color: #c4cfca;
   background: #f5f7f6;
 }
 
-.today-plan-hero__check-in .today-plan-hero__target-choice {
+.today-plan-hero__check-in .workout-outcome-choice {
+  min-width: 0;
+  min-height: 6.7rem;
+  display: grid;
+  align-content: end;
+  justify-items: center;
+  gap: 0.25rem;
+  overflow: hidden;
+  padding: 0.3rem 0.2rem 0.55rem;
   border-color: #a9b9b2;
   background: #edf2ef;
   color: #17342a;
+  line-height: 1.05;
 }
 
-.today-plan-hero__check-in
-  .today-plan-hero__target-choice[aria-pressed="true"] {
+.today-plan-hero__check-in .workout-outcome-choice[aria-pressed="true"] {
   border-color: #54700d;
   background: #d9f47a;
   color: #203500;
   box-shadow: inset 0 0 0 1px #54700d;
 }
 
-.today-plan-hero__check-in .today-plan-hero__target-choice:focus-visible {
+.today-plan-hero__check-in .workout-outcome-choice:focus-visible {
   outline-color: #315ec8;
+}
+
+.today-plan-hero__check-in .workout-outcome-choice img {
+  width: 4.2rem;
+  height: 3.8rem;
+  object-fit: contain;
+}
+
+.today-plan-hero__check-in .workout-outcome-choice span {
+  font-size: 0.78rem;
+  font-weight: 950;
 }
 
 .today-plan-hero__check-in-actions {
@@ -3005,7 +3040,6 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) 7.8rem;
   align-items: end;
-  overflow: hidden;
   padding: 1.1rem;
   border: 1px solid var(--prize-line);
   border-radius: 1.3rem;
@@ -3039,13 +3073,14 @@
 }
 
 .prize-boxes-header__zoomi {
-  position: absolute;
-  right: -0.8rem;
-  bottom: -2.7rem;
-  width: 10rem;
-  height: 10rem;
+  position: relative;
+  z-index: 1;
+  align-self: center;
+  width: 100%;
+  max-width: 9rem;
+  height: auto;
   object-fit: contain;
-  object-position: center bottom;
+  object-position: center;
 }
 
 .prize-boxes-help {
@@ -3053,9 +3088,6 @@
   z-index: 4;
   top: 0.7rem;
   right: 0.7rem;
-}
-
-.prize-boxes-help summary {
   width: 2rem;
   height: 2rem;
   display: grid;
@@ -3066,18 +3098,26 @@
   color: #fff;
   font-weight: 950;
   cursor: pointer;
-  list-style: none;
 }
 
-.prize-boxes-help summary::-webkit-details-marker {
-  display: none;
+.prize-help-modal {
+  position: fixed;
+  z-index: 140;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: max(1rem, env(safe-area-inset-top))
+    max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom))
+    max(1rem, env(safe-area-inset-left));
+  background: rgb(0 20 22 / 76%);
+  backdrop-filter: blur(8px);
 }
 
-.prize-boxes-help > div {
-  position: absolute;
-  top: 2.4rem;
-  right: 0;
-  width: min(18rem, calc(100vw - 4rem));
+.prize-help-modal__panel {
+  width: min(100%, 28rem);
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 1rem;
   border: 1px solid #d6e8df;
   border-radius: 1rem;
@@ -3086,12 +3126,31 @@
   box-shadow: 0 18px 48px rgb(0 18 19 / 30%);
 }
 
-.prize-boxes-help h2 {
-  margin: 0;
-  font-size: 1rem;
+.prize-help-modal__panel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
-.prize-boxes-help ol {
+.prize-help-modal__panel h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.prize-help-modal__panel header button {
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  border: 1px solid #cbd8d2;
+  border-radius: 999px;
+  background: #f2f6f4;
+  color: #153e33;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.prize-help-modal__panel ol {
   display: grid;
   gap: 0.5rem;
   margin: 0.75rem 0 0;
@@ -3099,39 +3158,6 @@
   font-size: 0.78rem;
   font-weight: 750;
   line-height: 1.35;
-}
-
-.prize-status {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  border: 1px solid var(--prize-line);
-  border-radius: 1.1rem;
-  background: rgb(0 25 28 / 42%);
-}
-
-.prize-status > div {
-  min-width: 0;
-  display: grid;
-  place-items: center;
-  gap: 0.1rem;
-  padding: 0.8rem 0.35rem;
-  text-align: center;
-}
-
-.prize-status > div + div {
-  border-left: 1px solid var(--prize-line);
-}
-
-.prize-status__value {
-  color: #fff;
-  font-size: 1.4rem;
-  line-height: 1;
-}
-
-.prize-status span:last-child {
-  color: var(--prize-muted);
-  font-size: 0.64rem;
-  font-weight: 850;
 }
 
 .daily-free-box {
@@ -3556,9 +3582,7 @@
   }
 
   .prize-boxes-header__zoomi {
-    right: -1.5rem;
-    width: 8.3rem;
-    height: 8.3rem;
+    width: 7.6rem;
   }
 
   .daily-free-box {

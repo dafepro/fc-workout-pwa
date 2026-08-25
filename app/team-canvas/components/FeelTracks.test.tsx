@@ -9,7 +9,7 @@ describe("FeelTracks", () => {
   it("uses two direct native tracks with friendly current values", () => {
     const onEffortChange = vi.fn();
     const onTirednessChange = vi.fn();
-    render(
+    const { container } = render(
       <FeelTracks
         effort={4}
         tiredness={3}
@@ -23,6 +23,7 @@ describe("FeelTracks", () => {
     expect(screen.getByRole("slider", { name: "Tiredness" })).toHaveValue("3");
     expect(screen.getByText("😅 Hard")).toBeInTheDocument();
     expect(screen.getByText("🙂 A little tired")).toBeInTheDocument();
+    expect(container.querySelectorAll(".tc-feel-track__zoomi")).toHaveLength(2);
 
     fireEvent.change(screen.getByRole("slider", { name: "Effort" }), {
       target: { value: "5" },

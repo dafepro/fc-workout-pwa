@@ -30,13 +30,15 @@ and the seeded Hill Striders players; do not upload a real child's photo.
 
 1. As an active Hill Striders player, open Team and expand **Report a concern**
    on the reward.
-2. Confirm there is no text field. Choose one predefined reason and confirm the
-   private-review acknowledgment.
-3. As the operator, open **Reward concerns**. Confirm the reason, team, prize,
+2. Confirm there is no text field. Choose one predefined reason and confirm it
+   gains a selected state without sending immediately.
+3. Tap **Send report** and confirm the private-review acknowledgment. Trigger a
+   failed request once and confirm the selected reason remains available to retry.
+4. As the operator, open **Reward concerns**. Confirm the reason, team, prize,
    and time appear, but no reporter identity or workout details do.
-4. Resolve one disposable report with **Hide reward**. Confirm the player no
+5. Resolve one disposable report with **Hide reward**. Confirm the player no
    longer sees the reward or its image while staff history remains.
-5. Repeat with another reward and **Cancel reward**. Confirm its status changes
+6. Repeat with another reward and **Cancel reward**. Confirm its status changes
    to cancelled and a new reward can be published.
 
 ## Correction, retention, and refusal

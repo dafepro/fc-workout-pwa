@@ -102,7 +102,6 @@ export function ConsolidatedToday() {
         complete={unlockedByToday}
         previewOnly={previewingToday}
         actionUnavailable={actionUnavailable}
-        connectedError={canvas.connectedError}
         plan={todayPlan}
         onComplete={(input) => canvas.complete(input)}
         onRecordRest={() => canvas.recordRest()}

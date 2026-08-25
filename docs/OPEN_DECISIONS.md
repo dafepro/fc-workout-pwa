@@ -944,9 +944,10 @@ Momentum Alpha needs independent PWA install/offline behavior.
 
 - Decided: claiming today's free box and opening a mystery box are separate.
   Claim adds a sealed server-owned box; only opening chooses and grants an item.
-- Decided: the landing page contains only light Zoomi branding, three summary
-  values, daily claim, grouped unopened boxes, three recent items, and a route
-  to All prizes. Collection and chronological history live one level deeper.
+- Decided: the landing page contains only light Zoomi branding, daily claim,
+  grouped unopened boxes, three recent items, and a route to All prizes. The
+  redundant three-value status strip is removed; collection and chronological
+  history live one level deeper.
 - Decided: unopened normal boxes do not disclose item rarity. Opened items
   always expose actual catalog art, name, text-plus-color rarity, source, and
   destination.
@@ -959,6 +960,15 @@ Momentum Alpha needs independent PWA install/offline behavior.
 - Assumption: catalog item IDs remain unique per player for now. Collection
   grouping supports duplicate counts so consumable Team Lounge copies can be
   introduced without redesigning the inventory UI.
+- Decided: Prize Boxes help is a viewport modal rendered outside the card so it
+  remains usable after scrolling, on narrow phones, and across orientation changes.
+- Decided: scheduled-workout errors and Team Canvas inventory/stamp errors are
+  separate presentation channels. A stale lounge error never appears in Today.
+- Decided: workout completion uses the compact ordered scale Almost / Did it /
+  Extra, with Did it selected in the middle by default. The stored completion
+  values remain partial / as listed / extra.
+- Decided: a player concern reason is selected visibly, then sent with a separate
+  confirmation action. Selecting a reason alone never submits it.
 
 ## Focused Today hierarchy (2026-08-24)
 

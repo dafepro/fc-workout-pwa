@@ -1,5 +1,8 @@
 "use client";
 
+import Image from "next/image";
+import type { CSSProperties } from "react";
+
 import { teamCanvasCopy } from "../content";
 
 export function FeelTracks({
@@ -59,16 +62,35 @@ function FeelTrack({
         <strong>{name}</strong>
         <output>{labels[value - 1]}</output>
       </span>
-      <input
-        type="range"
-        min="1"
-        max="7"
-        step="1"
-        value={value}
-        aria-label={name}
-        aria-valuetext={labels[value - 1]}
-        onChange={(event) => onChange(Number(event.target.value))}
-      />
+      <span
+        className="tc-feel-track__control"
+        style={
+          { "--feel-position": `${((value - 1) / 6) * 100}%` } as CSSProperties
+        }
+      >
+        <Image
+          className="tc-feel-track__zoomi"
+          src={
+            name === "Effort"
+              ? "/workouts/zoomi-did-it.png"
+              : "/workouts/zoomi-almost.png"
+          }
+          alt=""
+          width={38}
+          height={35}
+          unoptimized
+        />
+        <input
+          type="range"
+          min="1"
+          max="7"
+          step="1"
+          value={value}
+          aria-label={name}
+          aria-valuetext={labels[value - 1]}
+          onChange={(event) => onChange(Number(event.target.value))}
+        />
+      </span>
       <span className="tc-feel-track__ends" aria-hidden="true">
         <span>{low}</span>
         <span>{high}</span>

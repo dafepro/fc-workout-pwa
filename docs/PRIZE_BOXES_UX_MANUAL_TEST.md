@@ -13,13 +13,16 @@ pixels and once at a normal phone width.
 ## Claim and open separation
 
 1. Open **Prize boxes** and verify Today, the Rewards heading, and help are immediately visible.
-2. Tap **Claim daily box** once.
-3. Confirm the daily card becomes a quiet claimed state and no item or rarity is revealed.
-4. Confirm **Your boxes** gains one sealed box and the ready count increases.
-5. Reload the page. Confirm the box is still waiting and no duplicate daily box appears.
-6. Tap one box. Confirm the opening control disables while the request is in flight.
-7. Confirm the reveal shows actual item art, name, rarity text, and Avatar or Team Lounge destination.
-8. Use the destination action, or keep it in the collection. Reload and confirm the box cannot be reopened or rerolled.
+2. Confirm there is no Claim now / Ready to open / Earned total summary strip.
+3. On a Pixel-class portrait viewport, confirm all four paws, the prize box, and Zoomi's tail remain inside the header with a genuinely transparent background.
+4. Scroll halfway down the page, open **How Prize Boxes work**, and confirm it covers the viewport rather than the card. Rotate once, scroll the panel if needed, then close it with both × and Escape.
+5. Tap **Claim daily box** once.
+6. Confirm the daily card becomes a quiet claimed state and no item or rarity is revealed.
+7. Confirm **Your boxes** gains one sealed box.
+8. Reload the page. Confirm the box is still waiting and no duplicate daily box appears.
+9. Tap one box. Confirm the opening control disables while the request is in flight.
+10. Confirm the reveal shows actual item art, name, rarity text, and Avatar or Team Lounge destination.
+11. Use the destination action, or keep it in the collection. Reload and confirm the box cannot be reopened or rerolled.
 
 ## Collection and history
 
