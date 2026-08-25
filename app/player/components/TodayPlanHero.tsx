@@ -12,6 +12,7 @@ interface TodayPlanHeroProps {
   restDay: boolean;
   complete: boolean;
   previewOnly: boolean;
+  actionUnavailable?: boolean;
   plan: Pick<
     MomentumPlanContent,
     "activity" | "workload" | "goal" | "instruction" | "reasons"
@@ -30,6 +31,7 @@ export function TodayPlanHero({
   restDay,
   complete,
   previewOnly,
+  actionUnavailable = false,
   plan,
   connectedError = null,
   onComplete,
@@ -54,9 +56,9 @@ export function TodayPlanHero({
     try {
       const saved = await onComplete({ completion, effort, tiredness });
       if (saved) setCheckInOpen(false);
-      else setError(playerExperienceCopy.whatsNext.saveError);
+      else setError(copy.saveError);
     } catch {
-      setError(playerExperienceCopy.whatsNext.saveError);
+      setError(copy.saveError);
     } finally {
       setPending(false);
     }
@@ -69,7 +71,7 @@ export function TodayPlanHero({
       await onRecordRest();
       setCheckInOpen(false);
     } catch {
-      setError(playerExperienceCopy.whatsNext.actionError);
+      setError(copy.actionError);
     } finally {
       setPending(false);
     }
@@ -141,7 +143,13 @@ export function TodayPlanHero({
         </div>
       ) : null}
 
-      {!complete && !checkInOpen ? (
+      {!complete && actionUnavailable ? (
+        <p className="today-plan-hero__error" role="alert">
+          {copy.activityUnavailable}
+        </p>
+      ) : null}
+
+      {!complete && !actionUnavailable && !checkInOpen ? (
         <button
           className="today-plan-hero__primary"
           type="button"

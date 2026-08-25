@@ -163,4 +163,21 @@ describe("TeamPulse", () => {
       screen.getByRole("button", { name: "Cheer Ava for Hill Sprints" }),
     ).toBeEnabled();
   });
+
+  it("explains an unlocked feed with no recent activity", () => {
+    render(
+      <TeamPulse
+        activeThisWeek={0}
+        activities={[]}
+        teamId="team-one"
+        unlocked
+        onSendReaction={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByText("Your team’s next check-in will show here."),
+    ).toBeVisible();
+    expect(screen.queryByRole("list")).not.toBeInTheDocument();
+  });
 });

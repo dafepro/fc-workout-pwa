@@ -1,14 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { useOptionalTraining } from "../../state/training-context";
 import { teamCanvasCopy } from "../../team-canvas/content";
 import { TeamCanvasWidget } from "../team-canvas/TeamCanvasWidget";
 import { playerExperienceCopy } from "../content";
 import { usePlayerDevSettings } from "../dev/PlayerDevSettings";
 import { TeamRewardsPreview } from "./TeamRewardsPreview";
+import { TeamPulse } from "./TeamPulse";
 
 export function ConsolidatedTeam() {
   const dev = usePlayerDevSettings();
+  const training = useOptionalTraining();
+  const pulse = training?.dashboard?.teamPulse;
   return (
     <div className="player-page player-page--team">
       <TeamRewardsPreview placement="team" />
@@ -22,7 +26,18 @@ export function ConsolidatedTeam() {
           <Link href="/">{teamCanvasCopy.locked.action}</Link>
         </section>
       ) : (
-        <TeamCanvasWidget />
+        <>
+          {training?.dashboard && pulse ? (
+            <TeamPulse
+              activeThisWeek={pulse.activeThisWeek}
+              activities={pulse.recentActivities}
+              teamId={training.dashboard.team.id}
+              unlocked={pulse.unlocked}
+              onSendReaction={training.sendReaction}
+            />
+          ) : null}
+          <TeamCanvasWidget />
+        </>
       )}
     </div>
   );

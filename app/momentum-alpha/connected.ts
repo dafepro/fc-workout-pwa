@@ -69,7 +69,8 @@ export function connectedMomentumModel(
   const assignment = planDay ? null : dashboard.currentAssignment;
   const plannedActivityID =
     planDay && planDay.kind !== "rest"
-      ? planDay.blocks.find((block) => !block.completed)?.activityDefinitionId
+      ? (planDay.blocks.find((block) => !block.completed) ?? planDay.blocks[0])
+          ?.activityDefinitionId
       : undefined;
   const primaryActivity = plannedActivityID
     ? (dashboard.activities.find(
@@ -241,7 +242,7 @@ function planContent(
   activity: ActivityDefinition | null,
   now: Date,
 ): MomentumPlanContent {
-  if (planDay?.kind === "rest" || (!planDay && (!assignment || !activity))) {
+  if (planDay?.kind === "rest") {
     return {
       dateLabel: dateLabel(now),
       activity: momentumAlphaCopy.connected.restActivity,
@@ -252,14 +253,25 @@ function planContent(
       reasons: [...momentumAlphaCopy.connected.restReasons],
     };
   }
-  if (planDay && activity) {
+  if (planDay) {
+    const plannedBlock =
+      planDay.blocks.find((block) => !block.completed) ?? planDay.blocks[0];
+    const activityName =
+      activity?.name ?? plannedBlock?.label ?? planDay.templateName;
     return {
       dateLabel: dateLabel(now),
-      activity: activity.name,
+      activity: activityName,
       workload: `${planDay.durationMinutes} min · ${capitalize(planDay.intensity)}`,
-      instruction: activity.instructions[0] ?? activity.description,
-      goal: `Goal · ${formatValue(activity.defaultValue, activity.unit)}`,
-      stretch: `Stretch · ${formatValue(steppedValue(activity.defaultValue * 1.25, activity.step, activity.max), activity.unit)}`,
+      instruction:
+        activity?.instructions[0] ??
+        activity?.description ??
+        momentumAlphaCopy.connected.unavailableActivityInstruction,
+      goal: activity
+        ? `Goal · ${formatValue(activity.defaultValue, activity.unit)}`
+        : momentumAlphaCopy.connected.unavailableActivityGoal,
+      stretch: activity
+        ? `Stretch · ${formatValue(steppedValue(activity.defaultValue * 1.25, activity.step, activity.max), activity.unit)}`
+        : momentumAlphaCopy.connected.unavailableActivityStretch,
       reasons: [
         `${planDay.templateName} places ${planDay.focus} here in the week.`,
         "The plan keeps tomorrow’s workload separate even if a day is missed.",

@@ -13,6 +13,7 @@ import { CompactPlayerStatus } from "./CompactPlayerStatus";
 import { PlanWeekStrip } from "./PlanWeekStrip";
 import { TodayPlanHero } from "./TodayPlanHero";
 import { TodaySecondaryActions } from "./TodaySecondaryActions";
+import { TodayDashboardError } from "./ConsolidatedToday";
 
 const plan: TrainingPlanWindow = {
   planId: "plan-one",
@@ -90,6 +91,34 @@ describe("focused Today components", () => {
     fireEvent.click(screen.getByRole("button", { name: "Start workout" }));
     expect(screen.getByRole("button", { name: "Save workout" })).toBeVisible();
     expect(onComplete).not.toHaveBeenCalled();
+  });
+
+  it("does not offer recording when a planned activity is unavailable", () => {
+    render(
+      <TodayPlanHero
+        source="coach-plan"
+        restDay={false}
+        complete={false}
+        previewOnly={false}
+        actionUnavailable
+        plan={{
+          activity: "Footwork circuit",
+          workload: "20 min · Easy",
+          goal: "Goal · Complete today’s planned activity",
+          instruction: "Check with your coach before starting.",
+          reasons: [],
+        }}
+        onComplete={vi.fn()}
+        onRecordRest={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      /needs an update from your coach/i,
+    );
+    expect(
+      screen.queryByRole("button", { name: "Start workout" }),
+    ).not.toBeInTheDocument();
   });
 
   it("turns the same hero into closure instead of adding What’s next", () => {
@@ -185,6 +214,17 @@ describe("focused Today components", () => {
     await waitFor(() =>
       expect(screen.queryByText("1 unopened")).not.toBeInTheDocument(),
     );
+  });
+
+  it("makes a failed connected dashboard visible and retryable", () => {
+    const onRetry = vi.fn();
+    render(<TodayDashboardError retrying={false} onRetry={onRetry} />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Today’s plan could not be loaded",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(onRetry).toHaveBeenCalledOnce();
   });
 });
 

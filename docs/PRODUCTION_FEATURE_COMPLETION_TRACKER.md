@@ -1,6 +1,10 @@
 # Production feature completion tracker
 
-Status: active
+Status: superseded by `PRODUCTION_FEATURE_COMPLETION_TRACKER_V2.md`
+
+This file preserves the original slice definitions and delivery record. The v2
+tracker reevaluates the remaining work after the Focused Today redesign; use it
+for new implementation and delivery updates.
 
 This tracker closes the recently started product work that is not yet complete
 enough to port to a production-mergeable branch as a finished feature. A slice

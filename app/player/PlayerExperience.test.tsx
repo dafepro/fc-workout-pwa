@@ -8,6 +8,7 @@ import {
 import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AvatarIdentityProvider } from "../state/avatar-identity-context";
+import { TrainingProvider } from "../state/training-context";
 import {
   createPrototypeReward,
   publishPrototypeReward,
@@ -61,6 +62,27 @@ function renderExperience(
           </PlayerDevSettingsProvider>
         </TeamCanvasProvider>
       </MomentumAlphaProvider>
+    </AvatarIdentityProvider>,
+  );
+}
+
+function renderExperienceWithTraining(
+  children: React.ReactNode,
+  initialCanvasState = initialTeamCanvasState(),
+) {
+  return render(
+    <AvatarIdentityProvider
+      value={{ currentPlayerID: "mason", avatarConfig: {} }}
+    >
+      <TrainingProvider>
+        <MomentumAlphaProvider>
+          <TeamCanvasProvider initialState={initialCanvasState}>
+            <PlayerDevSettingsProvider enabled={false}>
+              {children}
+            </PlayerDevSettingsProvider>
+          </TeamCanvasProvider>
+        </MomentumAlphaProvider>
+      </TrainingProvider>
     </AvatarIdentityProvider>,
   );
 }
@@ -252,6 +274,27 @@ describe("consolidated default player experience", () => {
     expect(screen.getByText("Team stamps")).toBeInTheDocument();
     expect(screen.getByTestId("reward-mark")).toBeInTheDocument();
     expect(screen.queryByText("Canvas dev console")).not.toBeInTheDocument();
+  });
+
+  it("puts the three-entry Team Pulse on Team and expands to five", async () => {
+    const complete = recordPrimary(initialTeamCanvasState(), {
+      completion: "goal",
+      effort: 4,
+      tiredness: 3,
+    });
+    renderExperienceWithTraining(<ConsolidatedTeam />, complete);
+
+    const pulse = await screen.findByRole("region", {
+      name: "Latest from your team",
+    });
+    expect(within(pulse).getAllByRole("listitem")).toHaveLength(3);
+
+    fireEvent.click(
+      within(pulse).getByRole("button", {
+        name: "Show more team activity",
+      }),
+    );
+    expect(within(pulse).getAllByRole("listitem")).toHaveLength(5);
   });
 
   it("makes the Canvas console available only with the dev capability", () => {

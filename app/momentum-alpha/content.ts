@@ -124,6 +124,10 @@ export const momentumAlphaCopy = {
     recoveryLoading: "Your recovery plan is still loading.",
     activitiesLoading: "The approved activities are still loading.",
     activityUnavailable: "That approved activity is unavailable.",
+    unavailableActivityInstruction:
+      "Follow today’s planned block. If the details look incomplete, check with your coach before starting.",
+    unavailableActivityGoal: "Goal · Complete today’s planned activity",
+    unavailableActivityStretch: "Stretch · Not needed",
     recoveryUnavailable: "A recovery activity is unavailable.",
     restActivity: "Planned recovery day",
     restWorkload: "Rest supports consistency",

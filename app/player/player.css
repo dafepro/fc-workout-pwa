@@ -41,6 +41,37 @@
   font-weight: 800;
 }
 
+.today-dashboard-error {
+  display: grid;
+  gap: 0.8rem;
+  padding: 1.2rem;
+  border: 1px solid #e6c7cb;
+  border-radius: 1.2rem;
+  background: #fff;
+  color: #3f282c;
+  box-shadow: 0 8px 24px rgb(25 50 42 / 5%);
+}
+
+.today-dashboard-error h1,
+.today-dashboard-error p {
+  margin: 0;
+}
+
+.today-dashboard-error button {
+  width: fit-content;
+  min-height: 2.75rem;
+  padding: 0.55rem 0.9rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: #0b4937;
+  color: #fff;
+  font-weight: 900;
+}
+
+.today-dashboard-error button:disabled {
+  opacity: 0.62;
+}
+
 .player-bottom-nav {
   position: fixed;
   z-index: 80;

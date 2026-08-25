@@ -204,6 +204,129 @@ describe("connected Momentum", () => {
     });
   });
 
+  it("keeps the planned workout visible after every block is completed", () => {
+    const model = connectedMomentumModel(
+      {
+        ...dashboard,
+        currentPlanDay: {
+          planId: "plan-one",
+          dayIndex: 0,
+          templateName: "Return to rhythm",
+          occursOn: "2026-08-21",
+          kind: "training",
+          focus: "endurance",
+          durationMinutes: 20,
+          intensity: "easy",
+          completed: true,
+          blocks: [
+            {
+              blockIndex: 0,
+              activityDefinitionId: "timed-run-walk",
+              label: "Timed run or walk",
+              durationMinutes: 20,
+              completed: true,
+            },
+          ],
+        },
+      },
+      [],
+      "player-one",
+      new Date("2026-08-21T18:00:00Z"),
+    );
+
+    expect(model.state.dayKind).toBe("training");
+    expect(model.state.primaryComplete).toBe(true);
+    expect(model.plan.activity).toBe("Timed run/walk");
+  });
+
+  it("advances a multi-block day to the first unfinished block", () => {
+    const model = connectedMomentumModel(
+      {
+        ...dashboard,
+        currentPlanDay: {
+          planId: "plan-one",
+          dayIndex: 0,
+          templateName: "Speed and recovery",
+          occursOn: "2026-08-21",
+          kind: "training",
+          focus: "recovery",
+          durationMinutes: 35,
+          intensity: "steady",
+          completed: false,
+          blocks: [
+            {
+              blockIndex: 0,
+              activityDefinitionId: "timed-run-walk",
+              label: "Timed run or walk",
+              durationMinutes: 20,
+              completed: true,
+            },
+            {
+              blockIndex: 1,
+              activityDefinitionId: "recovery-walk-jog",
+              label: "Recovery walk or jog",
+              durationMinutes: 15,
+              completed: false,
+            },
+          ],
+        },
+      },
+      [],
+      "player-one",
+      new Date("2026-08-21T18:00:00Z"),
+    );
+
+    expect(model.plan.activity).toBe("Recovery walk/jog");
+    expect(
+      momentumCompletionInput(model, {
+        choice: "goal",
+        feeling: "good",
+        planSelection: "prescribed",
+      }),
+    ).toMatchObject({
+      activityId: "recovery-walk-jog",
+      plan: { planId: "plan-one", dayIndex: 0, blockIndex: 1 },
+    });
+  });
+
+  it("keeps a training day truthful when its catalog activity is unavailable", () => {
+    const model = connectedMomentumModel(
+      {
+        ...dashboard,
+        currentPlanDay: {
+          planId: "plan-one",
+          dayIndex: 0,
+          templateName: "Return to rhythm",
+          occursOn: "2026-08-21",
+          kind: "training",
+          focus: "endurance",
+          durationMinutes: 20,
+          intensity: "easy",
+          completed: false,
+          blocks: [
+            {
+              blockIndex: 0,
+              activityDefinitionId: "retired-activity" as never,
+              label: "Footwork circuit",
+              durationMinutes: 20,
+              completed: false,
+            },
+          ],
+        },
+      },
+      [],
+      "player-one",
+      new Date("2026-08-21T18:00:00Z"),
+    );
+
+    expect(model.state.dayKind).toBe("training");
+    expect(model.plan).toMatchObject({
+      activity: "Footwork circuit",
+      workload: "20 min · Easy",
+    });
+    expect(model.plan.activity).not.toBe("Planned recovery day");
+  });
+
   it("projects a completed planned-rest day without a workout", () => {
     const model = connectedMomentumModel(
       {
