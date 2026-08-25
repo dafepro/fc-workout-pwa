@@ -3,19 +3,19 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
-  connectedDailyDropGateway,
-  type DailyDropGateway,
-} from "../../data/daily-drop-gateway";
+  connectedPrizeBoxGateway,
+  type PrizeBoxGateway,
+} from "../../data/prize-box-gateway";
 import { playerExperienceCopy } from "../content";
 
 export function TodaySecondaryActions({
   teamLocked,
   prizeBoxesConnected = false,
-  prizeBoxGateway = connectedDailyDropGateway,
+  prizeBoxGateway = connectedPrizeBoxGateway,
 }: {
   teamLocked: boolean;
   prizeBoxesConnected?: boolean;
-  prizeBoxGateway?: DailyDropGateway;
+  prizeBoxGateway?: PrizeBoxGateway;
 }) {
   const copy = playerExperienceCopy.focusedToday;
   const [unopenedPrizeBoxes, setUnopenedPrizeBoxes] = useState(0);
@@ -24,11 +24,14 @@ export function TodaySecondaryActions({
   useEffect(() => {
     if (!prizeBoxesConnected) return;
     let active = true;
-    void prizeBoxGateway.status().then(
-      (status) => {
+    void prizeBoxGateway.overview().then(
+      (overview) => {
         if (!active) return;
-        setUnopenedPrizeBoxes(status.availableCount);
-        setPendingPlanBoxes(status.pendingPlanBoxes);
+        setUnopenedPrizeBoxes(overview.readyCount);
+        setPendingPlanBoxes(
+          overview.unopened.filter(({ source }) => source !== "daily_check_in")
+            .length,
+        );
       },
       () => {
         if (!active) return;

@@ -1,7 +1,8 @@
-import type { DailyDropItem, UnlockItemKind } from "./daily-drop-gateway";
+import type { UnlockItemKind } from "./daily-drop-gateway";
+import { isPrizeItem, type PrizeItem } from "./prize-box-gateway";
 
 export interface PlayerUnlock {
-  item: DailyDropItem;
+  item: PrizeItem;
   source: string;
   unlockedAt: string;
   viewedAt?: string;
@@ -40,17 +41,8 @@ function isPlayerUnlock(value: unknown): value is PlayerUnlock {
   if (!value || typeof value !== "object") return false;
   const unlock = value as Record<string, unknown>;
   if (!unlock.item || typeof unlock.item !== "object") return false;
-  const item = unlock.item as Record<string, unknown>;
   return (
-    typeof item.id === "string" &&
-    IDENTIFIER.test(item.id) &&
-    (item.kind === "avatar_part" || item.kind === "canvas_stamp") &&
-    typeof item.slot === "string" &&
-    IDENTIFIER.test(item.slot) &&
-    typeof item.assetId === "string" &&
-    IDENTIFIER.test(item.assetId) &&
-    typeof item.label === "string" &&
-    Number.isSafeInteger(item.catalogVersion) &&
+    isPrizeItem(unlock.item) &&
     typeof unlock.source === "string" &&
     typeof unlock.unlockedAt === "string" &&
     Number.isFinite(Date.parse(unlock.unlockedAt)) &&

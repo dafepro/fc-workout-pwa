@@ -51,6 +51,75 @@ func TestDailyDropClaimIsOncePerDayIdempotentAndNeedsNoWorkout(t *testing.T) {
 	}
 }
 
+func TestPrizeBoxDailyClaimStaysSealedUntilAnIdempotentOpen(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	ctx := context.Background()
+	now := time.Date(2026, time.August, 24, 14, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+
+	claimed, err := repository.ClaimDailyPrizeBox(ctx, store.ClaimDailyPrizeBoxInput{
+		PlayerID: "player-mason", IdempotencyKey: "claim-daily-box", Now: now,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if claimed.Box.Source != store.PrizeBoxDailyCheckIn || claimed.Box.State != store.PrizeBoxUnopened {
+		t.Fatalf("daily claim = %+v, want sealed daily box", claimed)
+	}
+	var unlocks int
+	if err = db.QueryRow(`SELECT COUNT(*) FROM player_unlocks WHERE player_id = 'player-mason'`).Scan(&unlocks); err != nil {
+		t.Fatal(err)
+	}
+	if unlocks != 0 {
+		t.Fatalf("claim created %d unlocks, want 0 before opening", unlocks)
+	}
+
+	overview, err := repository.PrizeBoxOverview(ctx, "player-mason", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if overview.DailyState != store.PrizeBoxDailyClaimed || overview.ReadyCount != 1 ||
+		len(overview.Unopened) != 1 || overview.Unopened[0].ID != claimed.Box.ID {
+		t.Fatalf("overview after claim = %+v", overview)
+	}
+
+	opened, err := repository.OpenPrizeBox(ctx, store.OpenPrizeBoxInput{
+		PlayerID: "player-mason", BoxID: claimed.Box.ID, IdempotencyKey: "open-daily-box", Now: now.Add(time.Minute),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if opened.Claim.Item == nil || opened.Claim.State != store.DailyDropClaimed || opened.Replayed {
+		t.Fatalf("opened box = %+v", opened)
+	}
+	replayed, err := repository.OpenPrizeBox(ctx, store.OpenPrizeBoxInput{
+		PlayerID: "player-mason", BoxID: claimed.Box.ID, IdempotencyKey: "open-daily-box", Now: now.Add(2 * time.Minute),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !replayed.Replayed || replayed.Claim.Item == nil || replayed.Claim.Item.ID != opened.Claim.Item.ID {
+		t.Fatalf("open replay rerolled: first=%+v replay=%+v", opened, replayed)
+	}
+	overview, err = repository.PrizeBoxOverview(ctx, "player-mason", now.Add(3*time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if overview.ReadyCount != 0 || len(overview.Recent) != 1 || overview.Recent[0].Item.ID != opened.Claim.Item.ID {
+		t.Fatalf("overview after open = %+v", overview)
+	}
+	if _, err = db.Exec(`INSERT INTO daily_drop_claims
+		(id, player_id, claim_day, time_zone, catalog_version, claimed_at, idempotency_key_hash)
+		VALUES ('daily-drop-second', 'player-mason', '2026-08-23', 'UTC', 1, ?, randomblob(32))`, now.Add(3*time.Minute).Format(time.RFC3339Nano)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = repository.OpenPrizeBox(ctx, store.OpenPrizeBoxInput{
+		PlayerID: "player-mason", BoxID: "daily-drop-second", IdempotencyKey: "open-daily-box", Now: now.Add(4 * time.Minute),
+	}); !errors.Is(err, store.ErrDailyDropIdempotencyConflict) {
+		t.Fatalf("reused open key on another box error = %v, want idempotency conflict", err)
+	}
+}
+
 func TestDailyDropAwardsEveryItemWithoutDuplicatesThenCompletes(t *testing.T) {
 	repository, db := socialProjectionStore(t)
 	start := time.Date(2026, time.August, 1, 12, 0, 0, 0, time.UTC)

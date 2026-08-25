@@ -60,6 +60,19 @@ func TestMigrateUpgradesAnExistingFoundationDatabase(t *testing.T) {
 			t.Fatalf("training entry %s column count = %d, want 1", column, columnCount)
 		}
 	}
+	for table, columns := range map[string][]string{
+		"daily_drop_claims":     {"opened_at", "open_idempotency_key_hash"},
+		"plan_prize_box_grants": {"opened_at"},
+	} {
+		for _, column := range columns {
+			if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM pragma_table_info(?) WHERE name = ?`, table, column).Scan(&columnCount); err != nil {
+				t.Fatal(err)
+			}
+			if columnCount != 1 {
+				t.Fatalf("%s.%s column count = %d, want 1", table, column, columnCount)
+			}
+		}
+	}
 	// Rebuilding a parent table is where a foreign key quietly starts pointing
 	// at the archive copy instead of the live one, and nothing else would notice
 	// until a write failed in production.
@@ -95,8 +108,8 @@ func TestMigrateUpgradesAnExistingFoundationDatabase(t *testing.T) {
 	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM schema_migrations`).Scan(&migrationCount); err != nil {
 		t.Fatal(err)
 	}
-	if migrationCount != 26 {
-		t.Fatalf("migration count = %d, want 26", migrationCount)
+	if migrationCount != 27 {
+		t.Fatalf("migration count = %d, want 27", migrationCount)
 	}
 }
 
@@ -109,7 +122,9 @@ func TestPlanPrizeBoxMigrationPreservesPopulatedUnlocks(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = db.Close() })
 	if _, err = db.ExecContext(ctx, `CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL);
-		INSERT INTO schema_migrations (version, applied_at) VALUES (23, '2026-08-24T00:00:00Z')`); err != nil {
+		INSERT INTO schema_migrations (version, applied_at) VALUES
+			(23, '2026-08-24T00:00:00Z'),
+			(27, '2026-08-24T00:00:00Z')`); err != nil {
 		t.Fatal(err)
 	}
 	if err = Migrate(ctx, db); err != nil {
@@ -120,7 +135,7 @@ func TestPlanPrizeBoxMigrationPreservesPopulatedUnlocks(t *testing.T) {
 		INSERT INTO player_unlocks (player_id, item_kind, item_id, source, unlocked_at) VALUES ('player-prize-migration', 'avatar_part', 'avatar-head-dog', 'daily_drop', '2026-08-24T12:00:00Z')`); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = db.ExecContext(ctx, `DELETE FROM schema_migrations WHERE version = 23`); err != nil {
+	if _, err = db.ExecContext(ctx, `DELETE FROM schema_migrations WHERE version IN (23, 27)`); err != nil {
 		t.Fatal(err)
 	}
 	if err = Migrate(ctx, db); err != nil {

@@ -103,6 +103,25 @@ Initial prototype supports whole-team, one-time challenges.
 - unlockedAt
 - viewedAt optional
 
+Catalog metadata projected with an unlock includes a stable art key, label,
+destination (`avatar` or `team_lounge`), and restrained rarity (`common`,
+`uncommon`, `rare`, or `epic`). Rarity is descriptive only: there is no purchase,
+currency, trading, or player-visible performance ranking attached to it.
+
+## PrizeBox
+
+- id
+- playerId
+- source: daily_check_in | plan_participation_3 | plan_completion_7
+- earnedAt
+- openedAt optional while sealed
+- openIdempotencyKeyHash optional until opened
+- awarded item metadata optional until opened
+
+Claiming a daily box and opening it are separate transactions. An unopened box
+never exposes the eventual item's rarity. Opening and inserting the unlock are
+atomic and idempotent.
+
 ## PlanPrizeBoxGrant
 
 - id
@@ -110,7 +129,7 @@ Initial prototype supports whole-team, one-time challenges.
 - trainingPlanId
 - source: plan_participation_3 | plan_completion_7
 - earnedAt
-- claim metadata optional until opened
+- claim/open metadata optional until opened
 
 The unique player, plan, and source tuple latches each tier once. Completion is
 derived from distinct proven plan days; planned rest counts, while repeated

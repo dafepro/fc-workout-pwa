@@ -112,6 +112,8 @@ var logicalTables = []logicalTable{
 			integerField("catalog_version"),
 			textField("claimed_at"),
 			blobField("idempotency_key_hash"),
+			nullable(textField("opened_at")),
+			nullable(blobField("open_idempotency_key_hash")),
 		},
 	},
 	{
@@ -130,6 +132,7 @@ var logicalTables = []logicalTable{
 			nullable(integerField("catalog_version")),
 			nullable(textField("claimed_at")),
 			nullable(blobField("idempotency_key_hash")),
+			nullable(textField("opened_at")),
 		},
 	},
 	{

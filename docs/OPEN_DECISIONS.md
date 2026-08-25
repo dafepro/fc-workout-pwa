@@ -940,6 +940,26 @@ Momentum Alpha needs independent PWA install/offline behavior.
   Destination actions become available only with the corresponding inventory
   consumer.
 
+## Prize Boxes UX and transaction boundary (2026-08-25)
+
+- Decided: claiming today's free box and opening a mystery box are separate.
+  Claim adds a sealed server-owned box; only opening chooses and grants an item.
+- Decided: the landing page contains only light Zoomi branding, three summary
+  values, daily claim, grouped unopened boxes, three recent items, and a route
+  to All prizes. Collection and chronological history live one level deeper.
+- Decided: unopened normal boxes do not disclose item rarity. Opened items
+  always expose actual catalog art, name, text-plus-color rarity, source, and
+  destination.
+- Decided: initial rarity is Common, Uncommon, Rare, and Epic. Legendary,
+  crafting, currency, trading, purchases, and conversion remain out of scope.
+- Decided: Zoomi may appear in the header and earned/opening moment, but never
+  narrates every row or replaces the prize as reveal focus.
+- Decided: Today's Prize boxes badge counts only already-claimed unopened boxes.
+  A merely available daily freebie does not inflate it.
+- Assumption: catalog item IDs remain unique per player for now. Collection
+  grouping supports duplicate counts so consumable Team Lounge copies can be
+  introduced without redesigning the inventory UI.
+
 ## Focused Today hierarchy (2026-08-24)
 
 - Decided: Today answers one primary question: what the player is supposed to

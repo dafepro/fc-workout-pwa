@@ -279,6 +279,52 @@ The seven-day window is a display projection, not deletion or reaction
 retention. When more matching badges remain, `nextCursor` is non-null and the
 client may request the next page without exposing cursor internals.
 
+## Prize boxes and collection
+
+### `GET /v1/me/prize-boxes`
+
+Returns the authenticated player's daily state, sealed boxes, simple totals,
+and at most three recently opened items. Normal sealed boxes expose source and
+earned time only; they never disclose their eventual item or rarity.
+
+```json
+{
+  "day": "2026-08-25",
+  "dailyState": "available",
+  "readyCount": 1,
+  "earnedTotal": 8,
+  "openedTotal": 7,
+  "unopened": [
+    {
+      "id": "plan_prize_opaque",
+      "state": "unopened",
+      "source": "plan_participation_3",
+      "earnedAt": "2026-08-25T12:00:00Z"
+    }
+  ],
+  "recent": []
+}
+```
+
+### `POST /v1/me/prize-boxes/claim-daily`
+
+Requires `Idempotency-Key`. Creates or replays today's sealed daily box. The
+response includes `box` and deliberately omits item and rarity metadata.
+
+### `POST /v1/me/prize-boxes/{boxId}/open`
+
+Requires a separate `Idempotency-Key`. The box must belong to the authenticated
+player and still be sealed. Opening, catalog selection, and unlock insertion are
+one transaction. An identical replay returns the same claim and never rerolls.
+The opened item projection includes `rarity` (`common`, `uncommon`, `rare`, or
+`epic`) and `destination` (`avatar` or `team_lounge`).
+
+### `GET /v1/me/unlocks?kind=avatar_part|canvas_stamp`
+
+Returns only the authenticated player's enabled catalog items, including safe
+art key, label, rarity, destination, source, unlock time, and optional viewed
+time. Clients group repeated item IDs for collection display.
+
 ## QR + PIN sessions
 
 `POST /v1/auth/sessions` accepts a 256-bit URL-safe QR credential, exactly four PIN digits, and `rememberDevice`. Trivial repeated PINs plus `1234` and `4321` cannot be issued. The bearer token is returned only to the PWA's server-side gateway. Invalid credentials share the same `401 invalid_login` response. Five consecutive failures lock the credential for 15 minutes; later failure windows double, and the tenth recorded failure revokes the credential and its sessions. Malformed/unknown QR values do not trigger Argon2, and the API admits only one Argon2 login at a time to protect the small VM; excess concurrent work receives `429 login_temporarily_busy` with `Retry-After: 2`.

@@ -8,7 +8,7 @@ import {
 import "@testing-library/jest-dom/vitest";
 import { describe, expect, it, vi } from "vitest";
 import type { TrainingPlanWindow } from "../../domain/types";
-import type { DailyDropGateway } from "../../data/daily-drop-gateway";
+import type { PrizeBoxGateway } from "../../data/prize-box-gateway";
 import { CompactPlayerStatus } from "./CompactPlayerStatus";
 import { PlanWeekStrip } from "./PlanWeekStrip";
 import { TodayPlanHero } from "./TodayPlanHero";
@@ -238,15 +238,37 @@ describe("focused Today components", () => {
   });
 
   it("badges prize boxes only when an unopened box is available", async () => {
-    const availableGateway: DailyDropGateway = {
-      status: vi.fn().mockResolvedValue({
-        state: "available",
+    const availableGateway: PrizeBoxGateway = {
+      overview: vi.fn().mockResolvedValue({
         day: "2026-08-24",
-        availableCount: 3,
-        pendingPlanBoxes: 2,
-        nextSource: "plan_participation_3",
+        dailyState: "available",
+        readyCount: 3,
+        earnedTotal: 7,
+        openedTotal: 4,
+        unopened: [
+          {
+            id: "box-1",
+            state: "unopened",
+            source: "plan_participation_3",
+            earnedAt: "2026-08-24T10:00:00Z",
+          },
+          {
+            id: "box-2",
+            state: "unopened",
+            source: "plan_completion_7",
+            earnedAt: "2026-08-24T10:00:00Z",
+          },
+          {
+            id: "box-3",
+            state: "unopened",
+            source: "daily_check_in",
+            earnedAt: "2026-08-24T10:00:00Z",
+          },
+        ],
+        recent: [],
       }),
-      claim: vi.fn(),
+      claimDaily: vi.fn(),
+      open: vi.fn(),
     };
     const { rerender } = render(
       <TodaySecondaryActions
@@ -261,14 +283,18 @@ describe("focused Today components", () => {
       "Prize box earned! Saved to Prize boxes.",
     );
 
-    const claimedGateway: DailyDropGateway = {
-      status: vi.fn().mockResolvedValue({
-        state: "collection_complete",
+    const claimedGateway: PrizeBoxGateway = {
+      overview: vi.fn().mockResolvedValue({
         day: "2026-08-24",
-        availableCount: 0,
-        pendingPlanBoxes: 0,
+        dailyState: "collection_complete",
+        readyCount: 0,
+        earnedTotal: 7,
+        openedTotal: 7,
+        unopened: [],
+        recent: [],
       }),
-      claim: vi.fn(),
+      claimDaily: vi.fn(),
+      open: vi.fn(),
     };
     rerender(
       <TodaySecondaryActions

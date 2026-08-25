@@ -129,3 +129,18 @@ Make the top positions feel special, but show a clear message that every player'
 - QR/PIN security placeholder
 
 Do not add editable free-form profile fields.
+
+## 6. Prize boxes
+
+The landing screen remains a short secondary loop, not another home dashboard:
+
+1. Back to Today, Rewards heading, concise explanation, and one restrained Zoomi illustration.
+2. Three values only: claim available, unopened ready, and earned total.
+3. Daily freebie card. Claiming deposits a sealed box and changes the card to a quiet claimed state.
+4. Grouped unopened boxes. Selecting one begins the opening flow.
+5. Three recently earned items with actual art, rarity text, destination, and time.
+6. `View all prizes` opens Collection/History with All, Team Lounge, and Avatar filters.
+
+The reveal names the item and its destination and provides a real destination
+link. Normal mystery boxes never disclose item rarity before opening. All
+controls and artwork fit at 320 CSS pixels, and motion is optional.

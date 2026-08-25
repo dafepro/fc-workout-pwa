@@ -1,31 +1,43 @@
 package domain
 
 type UnlockItemKind string
+type UnlockRarity string
+type UnlockDestination string
 
 const (
 	UnlockAvatarPart  UnlockItemKind = "avatar_part"
 	UnlockCanvasStamp UnlockItemKind = "canvas_stamp"
+
+	UnlockCommon   UnlockRarity = "common"
+	UnlockUncommon UnlockRarity = "uncommon"
+	UnlockRare     UnlockRarity = "rare"
+	UnlockEpic     UnlockRarity = "epic"
+
+	UnlockDestinationAvatar     UnlockDestination = "avatar"
+	UnlockDestinationTeamLounge UnlockDestination = "team_lounge"
 )
 
 type UnlockItem struct {
-	ID             string         `json:"id"`
-	Kind           UnlockItemKind `json:"kind"`
-	Slot           string         `json:"slot"`
-	AssetID        string         `json:"assetId"`
-	Label          string         `json:"label"`
-	CatalogVersion int            `json:"catalogVersion"`
+	ID             string            `json:"id"`
+	Kind           UnlockItemKind    `json:"kind"`
+	Slot           string            `json:"slot"`
+	AssetID        string            `json:"assetId"`
+	Label          string            `json:"label"`
+	CatalogVersion int               `json:"catalogVersion"`
+	Rarity         UnlockRarity      `json:"rarity"`
+	Destination    UnlockDestination `json:"destination"`
 }
 
 var dailyDropCatalog = []UnlockItem{
-	{ID: "avatar-head-dog", Kind: UnlockAvatarPart, Slot: "head", AssetID: "dog", Label: "Rover the dog", CatalogVersion: 1},
-	{ID: "avatar-head-cheetah", Kind: UnlockAvatarPart, Slot: "head", AssetID: "cheetah", Label: "Zoomi the cheetah", CatalogVersion: 1},
-	{ID: "avatar-head-fox", Kind: UnlockAvatarPart, Slot: "head", AssetID: "fox", Label: "Scout the fox", CatalogVersion: 1},
-	{ID: "canvas-stamp-shield", Kind: UnlockCanvasStamp, Slot: "stamp", AssetID: "shield", Label: "Shield stamp", CatalogVersion: 1},
-	{ID: "canvas-stamp-target", Kind: UnlockCanvasStamp, Slot: "stamp", AssetID: "target", Label: "Target stamp", CatalogVersion: 1},
-	{ID: "canvas-stamp-rainbow", Kind: UnlockCanvasStamp, Slot: "stamp", AssetID: "rainbow", Label: "Rainbow stamp", CatalogVersion: 1},
-	{ID: "canvas-stamp-lion", Kind: UnlockCanvasStamp, Slot: "stamp", AssetID: "lion", Label: "Lion stamp", CatalogVersion: 1},
-	{ID: "canvas-stamp-rocket", Kind: UnlockCanvasStamp, Slot: "stamp", AssetID: "rocket", Label: "Rocket stamp", CatalogVersion: 1},
-	{ID: "canvas-stamp-sparkles", Kind: UnlockCanvasStamp, Slot: "stamp", AssetID: "sparkles", Label: "Sparkles stamp", CatalogVersion: 1},
+	{ID: "avatar-head-dog", Kind: UnlockAvatarPart, Slot: "head", AssetID: "dog", Label: "Rover the dog", CatalogVersion: 1, Rarity: UnlockCommon, Destination: UnlockDestinationAvatar},
+	{ID: "avatar-head-cheetah", Kind: UnlockAvatarPart, Slot: "head", AssetID: "cheetah", Label: "Zoomi the cheetah", CatalogVersion: 1, Rarity: UnlockRare, Destination: UnlockDestinationAvatar},
+	{ID: "avatar-head-fox", Kind: UnlockAvatarPart, Slot: "head", AssetID: "fox", Label: "Scout the fox", CatalogVersion: 1, Rarity: UnlockUncommon, Destination: UnlockDestinationAvatar},
+	{ID: "canvas-stamp-shield", Kind: UnlockCanvasStamp, Slot: "stamp", AssetID: "shield", Label: "Shield stamp", CatalogVersion: 1, Rarity: UnlockCommon, Destination: UnlockDestinationTeamLounge},
+	{ID: "canvas-stamp-target", Kind: UnlockCanvasStamp, Slot: "stamp", AssetID: "target", Label: "Target stamp", CatalogVersion: 1, Rarity: UnlockCommon, Destination: UnlockDestinationTeamLounge},
+	{ID: "canvas-stamp-rainbow", Kind: UnlockCanvasStamp, Slot: "stamp", AssetID: "rainbow", Label: "Rainbow stamp", CatalogVersion: 1, Rarity: UnlockRare, Destination: UnlockDestinationTeamLounge},
+	{ID: "canvas-stamp-lion", Kind: UnlockCanvasStamp, Slot: "stamp", AssetID: "lion", Label: "Lion stamp", CatalogVersion: 1, Rarity: UnlockEpic, Destination: UnlockDestinationTeamLounge},
+	{ID: "canvas-stamp-rocket", Kind: UnlockCanvasStamp, Slot: "stamp", AssetID: "rocket", Label: "Rocket stamp", CatalogVersion: 1, Rarity: UnlockUncommon, Destination: UnlockDestinationTeamLounge},
+	{ID: "canvas-stamp-sparkles", Kind: UnlockCanvasStamp, Slot: "stamp", AssetID: "sparkles", Label: "Sparkles stamp", CatalogVersion: 1, Rarity: UnlockUncommon, Destination: UnlockDestinationTeamLounge},
 }
 
 var includedCanvasStampAssets = map[string]bool{

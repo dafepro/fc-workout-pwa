@@ -14,8 +14,15 @@ func TestDailyDropCatalogUsesStableAvatarAndCanvasItems(t *testing.T) {
 	kinds := map[domain.UnlockItemKind]bool{}
 	ids := map[string]bool{}
 	for _, item := range items {
-		if item.ID == "" || item.AssetID == "" || item.Label == "" || item.CatalogVersion != 1 {
+		if item.ID == "" || item.AssetID == "" || item.Label == "" || item.CatalogVersion != 1 ||
+			item.Rarity == "" || item.Destination == "" {
 			t.Fatalf("invalid catalog item: %+v", item)
+		}
+		if item.Kind == domain.UnlockAvatarPart && item.Destination != domain.UnlockDestinationAvatar {
+			t.Fatalf("avatar item destination = %q", item.Destination)
+		}
+		if item.Kind == domain.UnlockCanvasStamp && item.Destination != domain.UnlockDestinationTeamLounge {
+			t.Fatalf("canvas item destination = %q", item.Destination)
 		}
 		if ids[item.ID] {
 			t.Fatalf("duplicate catalog id: %s", item.ID)

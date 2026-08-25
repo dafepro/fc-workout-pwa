@@ -13,6 +13,8 @@ const target: PlayerUnlock = {
     assetId: "target",
     label: "Target stamp",
     catalogVersion: 1,
+    rarity: "common",
+    destination: "team_lounge",
   },
   source: "daily_drop",
   unlockedAt: "2026-08-24T14:00:00Z",

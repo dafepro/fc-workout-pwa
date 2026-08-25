@@ -33,10 +33,10 @@ are superseded and must not return through an unfinished older slice.
 - Momentum and check-in streaks are backend-derived. Up to three daily
   activities contribute with diminishing returns, planned rest counts, and a
   missed day does not subtract points.
-- Prize boxes have a durable once-per-day claim, stable retry behavior, a shared
-  unlock inventory, Avatar Studio ownership enforcement, and a Team Canvas
-  stamp adapter. Three-day and seven-day plan participation tiers now add
-  independent durable boxes without consuming that daily claim.
+- Prize boxes have a durable sealed pool with separate idempotent claim/open
+  actions, a restrained landing page, actual reward reveals, collection/history,
+  and shared Avatar/Team Lounge inventory. Three-day and seven-day plan tiers add
+  independent boxes without consuming the daily freebie.
 - Plan-aware training and rest records carry backend-validated plan, day, and
   block provenance. Completion is recalculated after eligible deletion.
 - Coaches can select a curated whole-team or one-day plan, make predefined
@@ -182,6 +182,22 @@ path. The server reconciles historical proven completions on status reads and
 also awards inside new workout/rest writes. Once inserted, a tier grant is never
 revoked by a later eligible entry deletion or by plan cancellation. Deleting a
 record before a threshold still prevents that threshold from being earned.
+
+## Slice L2 — Prize Boxes UX and sealed pool
+
+Outcome: rewards form a short optional loop—claim or earn a sealed box, open it
+now or later, understand the actual item, and use it in Avatar or Team Lounge.
+
+Completion gates:
+
+- [x] Separate daily claim from item reveal and persist unopened daily/plan boxes.
+- [x] Make opening box-specific, transactional, server-selected, and idempotent.
+- [x] Keep the landing page to status, daily claim, unopened pool, three recent items, and one collection route.
+- [x] Add Common through Epic metadata using both text and restrained color.
+- [x] Render actual avatar/stamp assets on reveal, collection, and history.
+- [x] Add destination links and group collection duplicates without introducing currency or crafting.
+- [x] Make Today's badge count claimed-but-unopened boxes only.
+- [ ] Complete manual review at 320 CSS pixels and one connected Docker browser journey before mainline merge.
 
 ## Slice M — coach planner and recommendation authority
 
@@ -365,6 +381,7 @@ Update this table in the same commit that materially changes a vertical slice.
 | 2026-08-24 | L · plan prize boxes        | `2553647f`           | Durable three-day/seven-day grants, shared claim queue, deletion/cancellation boundaries, backup coverage, and targeted connected browser flow                           | Manual dev review                    |
 | 2026-08-25 | M · planner/recommendations | This delivery change | Server-owned Today source, safe recency suggestion, structured planner, one-day preset, linked atomic reschedule, cancellation, history, and targeted browser/API tests  | Coaching-owner numeric approval      |
 | 2026-08-25 | O · Canvas boundary         | This delivery change | Frozen widget contract, one renderer/worker, WebSocket-only transport, anonymous telemetry, host handoff and connected 320-pixel coverage                                | Manual dev beta review               |
+| 2026-08-25 | L2 · Prize Boxes UX         | This delivery change | Separate sealed-box claim/open API, durable pool, restrained landing, actual art/rarity reveal, collection/history, destination links, and targeted tests                | Manual dev review; connected E2E     |
 
 ## Linked designs
 
@@ -378,3 +395,4 @@ Update this table in the same commit that materially changes a vertical slice.
 - `OBSERVABILITY_PLAN.md`
 - `FOCUSED_TODAY_TEAM_PULSE_MANUAL_TEST.md`
 - `COACH_PLANNER_RECOMMENDATION_MANUAL_TEST.md`
+- `PRIZE_BOXES_UX_MANUAL_TEST.md`

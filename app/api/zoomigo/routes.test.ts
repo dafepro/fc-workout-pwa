@@ -6,6 +6,13 @@ describe("player API route allowlist", () => {
   it("allows only the player Daily Drop contract", () => {
     expect(allowsPlayerRoute("GET", "v1/me/daily-drop")).toBe(true);
     expect(allowsPlayerRoute("POST", "v1/me/daily-drop/claim")).toBe(true);
+    expect(allowsPlayerRoute("GET", "v1/me/prize-boxes")).toBe(true);
+    expect(allowsPlayerRoute("POST", "v1/me/prize-boxes/claim-daily")).toBe(
+      true,
+    );
+    expect(
+      allowsPlayerRoute("POST", "v1/me/prize-boxes/prize-box-one/open"),
+    ).toBe(true);
     expect(allowsPlayerRoute("GET", "v1/me/unlocks")).toBe(true);
     expect(
       allowsPlayerRoute("POST", "v1/me/unlocks/avatar-head-dog/viewed"),

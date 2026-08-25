@@ -107,6 +107,8 @@ describe("AvatarBuilder", () => {
         assetId: "dog",
         label: "Rover the dog",
         catalogVersion: 1,
+        rarity: "common",
+        destination: "avatar",
       },
       source: "daily_drop",
       unlockedAt: "2026-08-24T14:00:00Z",
