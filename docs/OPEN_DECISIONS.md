@@ -909,3 +909,32 @@ Momentum Alpha needs independent PWA install/offline behavior.
 - The disconnected prototype does not create a second local collection.
   Destination actions become available only with the corresponding inventory
   consumer.
+
+## Focused Today hierarchy (2026-08-24)
+
+- Decided: Today answers one primary question: what the player is supposed to
+  do today. A scheduled coach workout or recovery day owns the hero; a bounded
+  predefined recommendation appears only when no coach item covers today.
+- Decided: starting an activity reveals a confirmation step. Neither the hero
+  card nor its initial action saves training or recovery data immediately.
+- Decided: successful completion transforms the same hero into a closure state.
+  Today does not create a second post-completion recommendation dashboard.
+- Decided: Momentum is a compact linked summary on Today. Its full gauge,
+  weekly context, and improvement guidance live at `/progress`.
+- Decided: a compact seven-day strip follows the hero. Full day cards live at
+  `/plan`; substantial instructions live at `/plan/{dayIndex}`. Future days may
+  expose their place and workload but keep actionable instructions time-locked.
+- Decided: Team lounge, additional activity, prize boxes, and Momentum are
+  ordered secondary rows. Team pulse and active team-reward progress stay on
+  Team rather than competing with today's action.
+- Decided: “Prize boxes” is the general player-facing destination name. Daily
+  Drop remains an internal claim cadence and API concept, not a promise in the
+  permanent Today hierarchy.
+- Superseded: the horizontal full-card plan carousel and its separate action,
+  plus the large post-completion “What's next?” recommendation card. The
+  scheduling authority and missed-day rules in
+  `PLAYER_PLAN_RECOMMENDATIONS_DESIGN.md` remain valid.
+- Assumption: the current plan projection is sufficient for the first detail
+  page. Personalized coach notes and richer interval instructions will replace
+  the bounded system copy when those fields become authoritative.
+- Full interaction specification: `FOCUSED_TODAY_FLOW.md`.

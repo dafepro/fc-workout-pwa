@@ -15,7 +15,7 @@ changes a large vertical slice.
 
 | Slice | Vertical outcome                                                                                  | Depends on                    | Status      |
 | ----- | ------------------------------------------------------------------------------------------------- | ----------------------------- | ----------- |
-| A     | Daily Drop can be opened safely from Today                                                        | Existing claim API            | Delivered   |
+| A     | A prize box can be opened safely from the player rewards destination                              | Existing claim API            | Delivered   |
 | B     | One shared inventory governs avatar options                                                       | A                             | Delivered   |
 | C     | The Team Canvas consumes shared stamp unlocks through its port                                    | A                             | Delivered   |
 | D     | Coach-plan logging records authoritative day and block provenance                                 | Existing plan projection      | Delivered   |
@@ -23,6 +23,7 @@ changes a large vertical slice.
 | F     | Coaches can safely edit future plan days and players receive an explained fallback recommendation | D                             | Not started |
 | G     | Team Rewards has correction, moderation, and deduplicated staff notification operations           | Existing durable reward slice | Not started |
 | H     | Team Canvas has a production library boundary and multi-replica room strategy                     | C                             | Not started |
+| I     | Today answers what the player should do now, with the week and extras progressively disclosed     | Existing plan projection      | Delivered   |
 
 The order is deliberate. Daily Drop first exposes the already durable backend
 behavior. Inventory consumers follow before plan participation can award items.
@@ -30,8 +31,8 @@ Plan provenance then makes plan completion and its rewards trustworthy.
 
 ## Slice A — Daily Drop player loop
 
-Outcome: an authenticated player can see, open, retry, and revisit today's free
-Daily Drop without recording an activity or changing Momentum.
+Outcome: an authenticated player can see, open, retry, and revisit an available
+prize box without recording an activity or changing Momentum.
 
 Implemented foundation:
 
@@ -45,7 +46,8 @@ Implemented foundation:
 Completion gates:
 
 - [x] Same-origin player proxy explicitly allows only the Daily Drop routes.
-- [x] Today loads the server-owned status without blocking the primary action.
+- [x] The Prize boxes destination loads server-owned status without blocking
+      Today's primary action.
 - [x] Available, opening, revealed, collected, collection-complete, and retry
       states fit at 320 CSS pixels.
 - [x] A failed claim reuses the same idempotency key and cannot reroll an item.
@@ -54,6 +56,25 @@ Completion gates:
 - [x] Reduced motion removes the reveal movement.
 - [x] Component, gateway, proxy-allowlist, and connected browser coverage pass.
 - [x] `docs/DAILY_GIFT_AND_UNLOCKS_DESIGN.md` reflects delivered behavior.
+
+## Slice I — focused Today flow
+
+Outcome: the player can answer “What am I supposed to do today?” before any
+progress, reward, or team feature asks for attention.
+
+Completion gates:
+
+- [x] A coach plan or planned recovery day owns the hero and its single action.
+- [x] A predefined recommendation appears only when nothing is scheduled.
+- [x] Momentum and the check-in streak fit in one linked status row.
+- [x] The home plan view summarizes seven states without seven full cards.
+- [x] Full plan and day-detail routes progressively disclose plan context.
+- [x] Starting a workout or rest check-in opens confirmation before saving.
+- [x] Completion transforms the same hero and does not create another dashboard.
+- [x] Team lounge, additional activity, prize boxes, and Momentum are compact,
+      ordered destinations.
+- [x] The obsolete carousel and post-completion recommendation model are removed.
+- [x] Focused component and player-experience tests cover hierarchy and actions.
 
 ## Slice B — shared inventory and Avatar Studio
 

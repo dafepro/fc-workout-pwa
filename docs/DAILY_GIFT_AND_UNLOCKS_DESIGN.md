@@ -1,6 +1,6 @@
 # Daily Drop and Unlocks Design
 
-Status: Daily Drop and shared Avatar/Team Canvas inventory implemented
+Status: prize-box player destination and shared Avatar/Team Canvas inventory implemented
 
 ## Implementation status
 
@@ -10,9 +10,9 @@ collection-complete results, logical-backup coverage, and authenticated
 status/claim/inventory endpoints. It uses the deployment’s configured team
 timezone until the multi-team timezone decision is resolved.
 
-The connected Today view now loads that status, opens a drop with one stable
-idempotency key across retries, announces the result, and returns as a quiet
-collected or collection-complete state. Opening a drop does not create a
+The connected Prize boxes destination loads that status, opens a box with one
+stable idempotency key across retries, announces the result, and returns as a
+quiet collected or collection-complete state. Opening a box does not create a
 training entry or change Momentum. The local disconnected prototype does not
 invent a second collection.
 
@@ -30,17 +30,24 @@ backend rejects placement of a known unowned stamp even from a modified client.
 
 ## Product intent
 
-Give a player one small, free reason to check in each day without requiring or encouraging another workout. The player opens a branded **Daily Drop** and receives either an avatar part or a Team Canvas stamp.
+Give a player one small, free reason to check in without requiring or
+encouraging another workout. The player opens a branded prize box and receives
+either an avatar part or a Team Canvas stamp.
 
-“Lootbox” is an implementation shorthand only. Player-facing copy must use “Daily Drop” or “daily gift.” This feature has no purchase, paid reroll, trade, cash value, odds display, or streak multiplier.
+“Lootbox” and “Daily Drop” are implementation shorthand only. The permanent
+player destination uses **Prize boxes** so the interface does not promise a
+prize every day. This feature has no purchase, paid reroll, trade, cash value,
+odds display, or streak multiplier.
 
 ## Player flow
 
-1. The authenticated Today view asks for Daily Drop status.
-2. If today is available, a compact sealed-drop card appears below the primary next action. It never blocks logging or navigation.
-3. The player chooses **Open today’s drop**. That single POST both records the daily claim and returns the awarded item.
-4. A short, reduced-motion-safe reveal shows the item, its collection, and one relevant action: **Try it on** or **Use in Team lounge**.
-5. After dismissal, the card becomes a quiet “Collected today” state. The new item has a badge in its destination picker until viewed.
+1. Today always exposes a compact **View prize boxes** destination row.
+2. The authenticated Prize boxes page asks for claim status.
+3. If a box is available, the player chooses **Open prize box**. That single
+   POST both records the claim and returns the awarded item.
+4. A short, reduced-motion-safe reveal shows the item and its collection.
+5. Returning later shows a quiet collected or collection-complete state. The
+   new item has a badge in its destination picker until viewed.
 
 Opening the app or claiming a drop does not increase Momentum. Momentum continues to represent fitness participation through an approved activity or planned rest.
 

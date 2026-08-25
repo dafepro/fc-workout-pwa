@@ -2297,3 +2297,651 @@
     inset-block: 1.28rem;
   }
 }
+
+/* Focused Today flow: one primary decision, then week context and destinations. */
+.player-page--today {
+  display: grid;
+  width: min(100%, 44rem);
+  gap: 0.9rem;
+  align-items: start;
+}
+
+.player-status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+  padding: 0.2rem 0.1rem;
+}
+
+.player-status__info {
+  margin: 0.25rem 0 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.75rem;
+  background: #e8f0eb;
+  color: #485b53;
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.player-status-row .player-avatar,
+.player-status-row__avatar {
+  flex: 0 0 auto;
+  width: 2.35rem;
+  height: 2.35rem;
+}
+
+.player-status-row__avatar {
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #0b3b2d;
+  color: var(--lime);
+  font-weight: 950;
+}
+
+.player-status-row__summary {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 0.85rem;
+  color: #183f34;
+}
+
+.player-status-row__summary > span {
+  display: flex;
+  align-items: baseline;
+  gap: 0.28rem;
+}
+
+.player-status-row__summary > span + span {
+  padding-left: 0.85rem;
+  border-left: 1px solid #d6ddd7;
+}
+
+.player-status-row__summary small {
+  color: #69736f;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.player-status-row__summary strong {
+  font-size: 1rem;
+  font-weight: 950;
+}
+
+.player-status-row__streak > span {
+  font-size: 0.9rem;
+}
+
+.player-status-row__info {
+  display: grid;
+  width: 1.65rem;
+  height: 1.65rem;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #aeb9b4;
+  border-radius: 999px;
+  background: transparent;
+  color: #53635d;
+  font-size: 0.78rem;
+  font-weight: 950;
+}
+
+.today-plan-hero {
+  position: relative;
+  display: grid;
+  gap: 0.85rem;
+  overflow: hidden;
+  padding: 1.15rem;
+  border: 1px solid rgb(102 169 77 / 38%);
+  border-radius: 1.45rem;
+  background:
+    radial-gradient(
+      circle at 92% 10%,
+      rgb(200 245 42 / 18%),
+      transparent 10rem
+    ),
+    linear-gradient(145deg, #0a4937, #073126);
+  color: #fff;
+  box-shadow: 0 16px 35px rgb(8 55 41 / 16%);
+}
+
+.today-plan-hero::after {
+  position: absolute;
+  top: 3.6rem;
+  right: -2.6rem;
+  width: 9rem;
+  height: 9rem;
+  border: 1.5rem solid rgb(115 207 186 / 8%);
+  border-radius: 999px;
+  content: "";
+}
+
+.today-plan-hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.today-plan-hero--rest {
+  background:
+    radial-gradient(
+      circle at 90% 12%,
+      rgb(200 245 42 / 18%),
+      transparent 10rem
+    ),
+    linear-gradient(145deg, #10513a, #07392d);
+}
+
+.today-plan-hero--complete {
+  border-color: rgb(200 245 42 / 65%);
+  box-shadow:
+    inset 0 0 0 1px rgb(200 245 42 / 25%),
+    0 16px 35px rgb(8 55 41 / 14%);
+}
+
+.today-plan-hero__header,
+.today-plan-hero__header > div,
+.today-plan-hero__metadata,
+.today-plan-hero__check-in-actions {
+  display: flex;
+  align-items: center;
+}
+
+.today-plan-hero__header {
+  justify-content: space-between;
+}
+
+.today-plan-hero__header > div {
+  gap: 0.55rem;
+}
+
+.today-plan-hero__header small {
+  color: rgb(255 255 255 / 68%);
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.today-plan-hero__today {
+  padding: 0.34rem 0.65rem;
+  border-radius: 999px;
+  background: var(--lime);
+  color: #163523;
+  font-size: 0.67rem;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.today-plan-hero__complete-mark {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border-radius: 999px;
+  background: #8bda65;
+  color: #0b3b2d;
+  font-size: 1.2rem;
+  font-weight: 950;
+}
+
+.today-plan-hero h1 {
+  max-width: 22rem;
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1.65rem, 7vw, 2.25rem);
+  line-height: 1.02;
+}
+
+.today-plan-hero p {
+  margin: 0;
+}
+
+.today-plan-hero__fallback {
+  color: rgb(255 255 255 / 78%);
+  font-size: 0.85rem;
+}
+
+.today-plan-hero__metadata {
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.today-plan-hero__metadata span {
+  padding: 0.38rem 0.55rem;
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 0.55rem;
+  background: rgb(255 255 255 / 8%);
+  color: rgb(255 255 255 / 86%);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.today-plan-hero__goal {
+  color: var(--lime);
+  font-weight: 900;
+}
+
+.today-plan-hero__details-toggle {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #d6e9e2;
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
+.today-plan-hero__details {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.85rem;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 0.85rem;
+  background: rgb(0 22 17 / 22%);
+  color: rgb(255 255 255 / 82%);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.today-plan-hero__details ul {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding-left: 1.15rem;
+}
+
+.today-plan-hero__primary,
+.today-plan-hero__check-in-actions button:last-child,
+.plan-detail__action {
+  width: 100%;
+  min-height: 3.35rem;
+  border: 0;
+  border-radius: 0.85rem;
+  background: var(--lime);
+  color: #153622;
+  font-size: 0.95rem;
+  font-weight: 950;
+  box-shadow: 0 0.28rem 0 #80a614;
+}
+
+.today-plan-hero__check-in {
+  display: grid;
+  gap: 0.8rem;
+  padding: 0.85rem;
+  border-radius: 1rem;
+  background: rgb(255 255 255 / 96%);
+  color: #172f27;
+}
+
+.today-plan-hero__check-in-actions {
+  gap: 0.55rem;
+}
+
+.today-plan-hero__check-in-actions button {
+  min-height: 2.8rem;
+}
+
+.today-plan-hero__check-in-actions button:first-child {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: #59645f;
+  font-weight: 850;
+}
+
+.today-plan-hero__check-in-actions button:last-child {
+  min-width: 0;
+  flex: 1;
+  min-height: 2.8rem;
+}
+
+.today-plan-hero__closure {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.today-plan-hero__closure > p:first-child {
+  color: var(--lime);
+  font-size: 0.78rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.today-plan-hero__closure > p:last-child {
+  color: rgb(255 255 255 / 78%);
+}
+
+.today-plan-hero__error {
+  color: #ffd9dd;
+  font-weight: 800;
+}
+
+.plan-week-strip,
+.today-secondary-actions {
+  padding: 1rem;
+  border: 1px solid #dfe4dc;
+  border-radius: 1.2rem;
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 8px 24px rgb(25 50 42 / 5%);
+}
+
+.plan-week-strip__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.plan-week-strip__heading strong {
+  color: #1b3d32;
+}
+
+.plan-week-strip__heading > span {
+  color: #66736d;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.plan-week-strip ol {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.25rem;
+  margin: 0.9rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plan-week-strip li {
+  display: grid;
+  min-width: 0;
+  gap: 0.28rem;
+  justify-items: center;
+  padding: 0.5rem 0.08rem;
+  border-radius: 0.65rem;
+  background: #f1f3ef;
+  color: #65706b;
+  text-align: center;
+}
+
+.plan-week-strip li small,
+.plan-week-strip li strong {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 0.57rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plan-week-strip li > span {
+  font-size: 0.72rem;
+}
+
+.plan-week-strip li.is-today {
+  background: #e9f9b9;
+  color: #214a2b;
+  box-shadow: inset 0 0 0 1px #b0d832;
+}
+
+.plan-week-strip li.is-complete {
+  background: #dff4df;
+  color: #28713a;
+}
+
+.plan-week-strip li.is-missed {
+  background: #efe5f1;
+  color: #7b4d79;
+}
+
+.plan-week-strip li.is-rest {
+  background: #e9eeec;
+  color: #576761;
+}
+
+.plan-week-strip li.is-locked {
+  opacity: 0.52;
+}
+
+.plan-week-strip__link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 2.5rem;
+  color: #245c49;
+  font-size: 0.83rem;
+  font-weight: 900;
+}
+
+.today-secondary-actions h2 {
+  margin: 0 0 0.65rem;
+  color: #203d34;
+  font-size: 0.76rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.today-secondary-actions ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.today-secondary-actions li + li {
+  border-top: 1px solid #e5e9e5;
+}
+
+.today-secondary-actions a {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) auto;
+  gap: 0.7rem;
+  align-items: center;
+  min-height: 3.7rem;
+  color: #1e3b32;
+}
+
+.today-secondary-actions a > span:nth-child(2) {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.today-secondary-actions small {
+  overflow: hidden;
+  color: #6d7672;
+  font-size: 0.7rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.today-secondary-actions__icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: 0.62rem;
+  background: #e8f3ed;
+  color: #2b6a52;
+  font-size: 0.78rem;
+  font-weight: 950;
+}
+
+.plan-page,
+.plan-detail,
+.prize-boxes-page,
+.progress-page {
+  display: grid;
+  gap: 1rem;
+}
+
+.plan-page--empty,
+.prize-boxes-page__empty {
+  padding: 1.2rem;
+  border: 1px solid #dfe4dc;
+  border-radius: 1rem;
+  background: #fff;
+}
+
+.plan-overview {
+  display: grid;
+  gap: 1rem;
+}
+
+.plan-overview > header h1,
+.plan-detail h1,
+.prize-boxes-page h1,
+.progress-page h1 {
+  margin: 0;
+  color: #183c31;
+}
+
+.plan-overview > header p:last-child {
+  margin: 0.25rem 0 0;
+  color: #66736d;
+  font-weight: 800;
+}
+
+.plan-overview__days {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.plan-overview__day {
+  overflow: hidden;
+  border: 1px solid #dfe4dc;
+  border-radius: 1rem;
+  background: #fff;
+}
+
+.plan-overview__day a {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 0.65rem;
+  align-items: center;
+  padding: 0.9rem;
+  color: #193b31;
+}
+
+.plan-overview__day h2 {
+  margin: 0.12rem 0;
+  font-size: 1rem;
+}
+
+.plan-overview__day p,
+.plan-overview__day small {
+  margin: 0;
+  color: #68736e;
+  font-size: 0.72rem;
+}
+
+.plan-overview__status {
+  padding: 0.32rem 0.5rem;
+  border-radius: 999px;
+  background: #eef1ee;
+  color: #5b6761;
+  font-size: 0.65rem;
+  font-weight: 900;
+}
+
+.plan-overview__day--today {
+  border-color: #a6cc36;
+  background: #f7fde8;
+}
+
+.plan-overview__day--completed .plan-overview__status {
+  background: #def3df;
+  color: #24713a;
+}
+
+.plan-overview__day--missed .plan-overview__status {
+  background: #efe5f1;
+  color: #7b4d79;
+}
+
+.plan-overview__day--upcoming {
+  opacity: 0.68;
+}
+
+.plan-overview__back,
+.plan-detail__back {
+  color: #315e4f;
+  font-weight: 850;
+}
+
+.plan-detail > header,
+.plan-detail > section {
+  padding: 1rem;
+  border: 1px solid #dfe4dc;
+  border-radius: 1rem;
+  background: #fff;
+}
+
+.plan-detail > header {
+  color: #173c30;
+  background: linear-gradient(145deg, #eff8d5, #fff);
+}
+
+.plan-detail > header > div {
+  display: flex;
+  justify-content: space-between;
+  color: #3f695a;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.plan-detail h2 {
+  margin-top: 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.plan-detail__locked {
+  background: #eef1ef !important;
+  color: #53615b;
+}
+
+.plan-detail__action {
+  display: grid;
+  place-items: center;
+}
+
+@media (max-width: 22rem) {
+  .player-status-row__summary {
+    gap: 0.45rem;
+  }
+
+  .player-status-row__summary > span + span {
+    padding-left: 0.45rem;
+  }
+
+  .player-status-row__summary small {
+    font-size: 0.58rem;
+  }
+
+  .plan-week-strip {
+    padding-inline: 0.7rem;
+  }
+
+  .plan-week-strip ol {
+    gap: 0.12rem;
+  }
+}
+
+@media (min-width: 64rem) {
+  .player-page--today {
+    display: grid;
+    width: min(100%, 44rem);
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.9rem;
+    padding-top: 2rem;
+  }
+}

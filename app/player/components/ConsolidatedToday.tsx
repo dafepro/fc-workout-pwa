@@ -1,32 +1,16 @@
 "use client";
 
-import {
-  players,
-  recentTeamActivities,
-  WEEKLY_GOAL,
-} from "../../data/mockData";
+import { players } from "../../data/mockData";
+import type { MomentumPlanContent } from "../../momentum-alpha/connected";
 import { useMomentumAlpha } from "../../momentum-alpha/state";
 import { useOptionalTraining } from "../../state/training-context";
 import { useTeamCanvas } from "../../team-canvas/state";
-import { TeamRewardsPreview } from "./TeamRewardsPreview";
 import { usePlayerDevSettings } from "../dev/PlayerDevSettings";
-import { MomentumStatus } from "./MomentumStatus";
-import { DailyDropCard } from "./DailyDropCard";
-import { TeamPulse } from "./TeamPulse";
-import { WhatsNext } from "./WhatsNext";
 import type { TrainingDashboard } from "../../domain/types";
-
-const prototypePulse = {
-  activeThisWeek: 8,
-  unlocked: true,
-  recentActivities: recentTeamActivities,
-};
-
-const emptyPulse = {
-  activeThisWeek: 0,
-  unlocked: false,
-  recentActivities: [],
-};
+import { CompactPlayerStatus } from "./CompactPlayerStatus";
+import { PlanWeekStrip } from "./PlanWeekStrip";
+import { TodayPlanHero } from "./TodayPlanHero";
+import { TodaySecondaryActions } from "./TodaySecondaryActions";
 
 export function ConsolidatedToday() {
   const momentum = useMomentumAlpha();
@@ -38,23 +22,16 @@ export function ConsolidatedToday() {
     canvas.connectedStatus === "local"
       ? canvas.state.primaryComplete
       : connectedTodayComplete(training?.dashboard ?? null);
+  const connectedPresentation = training?.dashboard
+    ? connectedTodayPresentation(training.dashboard, momentum.presentation.plan)
+    : null;
   const restDay =
     dev.settings.today === "rest" ||
     (dev.settings.today === "real" &&
-      (momentum.state.dayKind === "rest" ||
-        (canvas.connectedStatus === "local" &&
-          canvas.state.dayKind === "rest")));
-  const localRestCredit =
-    !training?.connected &&
-    dev.settings.today === "real" &&
-    restDay &&
-    canvas.state.completion === "rest"
-      ? 1
-      : 0;
-  const weeklyMomentumCredits =
-    (training?.dashboard?.summary.weeklyMomentumCredits ??
-      prototypePlayer.weeklySessions) + localRestCredit;
-  const weeklyGoal = training?.dashboard?.team.weeklyGoal ?? WEEKLY_GOAL;
+      (connectedPresentation?.restDay ??
+        (momentum.state.dayKind === "rest" ||
+          (canvas.connectedStatus === "local" &&
+            canvas.state.dayKind === "rest"))));
   const momentumScore = training?.dashboard?.summary.momentumScore ?? 68;
   const checkInStreak =
     training?.dashboard?.summary.currentCheckInStreak ??
@@ -67,41 +44,10 @@ export function ConsolidatedToday() {
         : livePlanComplete;
   const unlocked =
     dev.settings.teamAccess === "locked" ? false : unlockedByToday;
-  const previewingToday =
-    dev.settings.today !== "real" || dev.settings.whatsNext !== "real";
-  const liveCooldownComplete =
-    canvas.connectedStatus === "local"
-      ? canvas.state.cooldownComplete
-      : (canvas.connectedProjection?.cooldownComplete ??
-        momentum.state.recoveryComplete);
-  const assignmentEntry = training?.dashboard?.currentAssignment
-    ? training.entries.find(
-        (entry) =>
-          entry.assignmentId === training.dashboard?.currentAssignment?.id,
-      )
-    : undefined;
-  const liveRecentEffort = training?.connected
-    ? assignmentEntry?.effortLevel
-    : canvas.state.effort;
-  const liveRecentTiredness = training?.connected
-    ? assignmentEntry?.exhaustionLevel
-    : canvas.state.tiredness;
-  const cooldownComplete =
-    dev.settings.whatsNext === "lounge" || dev.settings.whatsNext === "all-set"
-      ? true
-      : dev.settings.whatsNext === "cooldown" ||
-          dev.settings.whatsNext === "recovery"
-        ? false
-        : liveCooldownComplete;
-  const recentEffort =
-    dev.settings.whatsNext === "recovery" ? 6 : liveRecentEffort;
-  const recentTiredness =
-    dev.settings.whatsNext === "recovery" ? 6 : liveRecentTiredness;
-  const whatsNextTeamAvailable =
-    dev.settings.whatsNext === "all-set" ? false : unlocked;
-  const pulse =
-    training?.dashboard?.teamPulse ??
-    (training?.connected ? emptyPulse : prototypePulse);
+  const previewingToday = dev.settings.today !== "real";
+  const planWindow = training?.dashboard?.currentPlan ?? null;
+  const source = connectedPresentation?.source ?? "recommendation";
+  const todayPlan = connectedPresentation?.plan ?? momentum.presentation.plan;
 
   if (canvas.connectedStatus === "loading" || momentum.loading) {
     return (
@@ -114,53 +60,26 @@ export function ConsolidatedToday() {
   return (
     <div className="player-page player-page--today">
       {dev.settings.momentumVisible ? (
-        <MomentumStatus
+        <CompactPlayerStatus
           momentumScore={momentumScore}
-          weeklyCheckIns={weeklyMomentumCredits}
-          weeklyGoal={weeklyGoal}
           checkInStreak={checkInStreak}
-          stateOverride={
-            dev.settings.momentumBand === "real"
-              ? undefined
-              : dev.settings.momentumBand
-          }
         />
       ) : null}
 
-      <WhatsNext
+      <TodayPlanHero
+        source={source}
         restDay={restDay}
-        planComplete={unlockedByToday}
-        cooldownComplete={cooldownComplete}
-        teamAvailable={whatsNextTeamAvailable}
+        complete={unlockedByToday}
         previewOnly={previewingToday}
-        recentEffort={recentEffort}
-        recentTiredness={recentTiredness}
         connectedError={canvas.connectedError}
-        plan={momentum.presentation.plan}
-        planWindow={training?.dashboard?.currentPlan}
-        recovery={momentum.presentation.recovery}
+        plan={todayPlan}
         onComplete={(input) => canvas.complete(input)}
         onRecordRest={() => canvas.recordRest()}
-        onRecordCooldown={() => canvas.recordCooldown()}
       />
 
-      <DailyDropCard connected={training?.connected ?? false} />
+      {planWindow ? <PlanWeekStrip plan={planWindow} /> : null}
 
-      <TeamRewardsPreview placement="today" />
-
-      <TeamPulse
-        activeThisWeek={pulse.activeThisWeek}
-        activities={pulse.recentActivities}
-        teamId={training?.dashboard?.team.id ?? "team-hill-striders"}
-        unlocked={unlocked && pulse.unlocked}
-        onSendReaction={
-          training?.sendReaction ??
-          (async () => ({
-            id: crypto.randomUUID(),
-            remainingForRecipientWindow: 4,
-          }))
-        }
-      />
+      <TodaySecondaryActions teamLocked={!unlocked} />
     </div>
   );
 }
@@ -173,4 +92,45 @@ export function connectedTodayComplete(
     dashboard?.currentAssignment?.completed ??
     false
   );
+}
+
+export function connectedTodayPresentation(
+  dashboard: TrainingDashboard,
+  projectedPlan: MomentumPlanContent,
+): {
+  source: "coach-plan" | "recommendation";
+  restDay: boolean;
+  plan: MomentumPlanContent;
+} {
+  if (dashboard.currentPlanDay || dashboard.currentAssignment) {
+    return {
+      source: "coach-plan",
+      restDay: dashboard.currentPlanDay?.kind === "rest",
+      plan: projectedPlan,
+    };
+  }
+
+  const activity =
+    dashboard.activities.find(
+      (candidate) => candidate.id === "recovery-walk-jog",
+    ) ?? dashboard.activities[0];
+  if (!activity) {
+    return { source: "recommendation", restDay: false, plan: projectedPlan };
+  }
+
+  return {
+    source: "recommendation",
+    restDay: false,
+    plan: {
+      dateLabel: projectedPlan.dateLabel,
+      activity: activity.name,
+      workload: `${activity.defaultValue.toLocaleString("en-US")} ${activity.unit} · Easy`,
+      instruction: activity.instructions[0] ?? activity.description,
+      goal: `Goal · ${activity.defaultValue.toLocaleString("en-US")} ${activity.unit}`,
+      stretch: projectedPlan.stretch,
+      reasons: [
+        "Nothing is scheduled today, so this keeps the effort light and useful.",
+      ],
+    },
+  };
 }

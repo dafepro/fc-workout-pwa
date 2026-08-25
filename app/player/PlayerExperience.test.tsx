@@ -24,6 +24,7 @@ import { PlayerShell } from "./PlayerShell";
 import { PlayerDevConsole } from "./components/PlayerDevConsole";
 import { ConsolidatedTeam } from "./components/ConsolidatedTeam";
 import {
+  connectedTodayPresentation,
   connectedTodayComplete,
   ConsolidatedToday,
 } from "./components/ConsolidatedToday";
@@ -80,6 +81,39 @@ describe("consolidated default player experience", () => {
     ).toBe(true);
   });
 
+  it("uses a safe recommendation instead of calling an unscheduled day planned rest", () => {
+    const presentation = connectedTodayPresentation(
+      {
+        currentPlan: null,
+        currentPlanDay: null,
+        currentAssignment: null,
+        activities: [
+          {
+            id: "recovery-walk-jog",
+            name: "Easy recovery walk",
+            defaultValue: 10,
+            unit: "minutes",
+            description: "Move at a relaxed pace.",
+            instructions: ["Keep the pace easy."],
+          },
+        ],
+      } as never,
+      {
+        dateLabel: "Today",
+        activity: "Planned recovery",
+        workload: "Recovery day",
+        instruction: "Rest.",
+        goal: "Rest",
+        stretch: "None",
+        reasons: [],
+      },
+    );
+
+    expect(presentation.source).toBe("recommendation");
+    expect(presentation.restDay).toBe(false);
+    expect(presentation.plan.activity).toBe("Easy recovery walk");
+  });
+
   it("uses a persistent Today, Team, and Me navigation", () => {
     renderExperience(
       <PlayerShell>
@@ -105,40 +139,36 @@ describe("consolidated default player experience", () => {
     expect(screen.queryByLabelText("Record training")).not.toBeInTheDocument();
   });
 
-  it("keeps the complete daily check-in inline and previews Team rewards", () => {
+  it("leads with today, keeps progress compact, and turns completion into closure", () => {
     renderExperience(<ConsolidatedToday />);
 
     expect(
       screen.queryByRole("img", { name: /Zoomi/ }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole("progressbar", {
-        name: "Momentum: 68 out of 100",
-      }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("This week")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "2 check-ins this week. 1 more reaches your team’s target.",
-      ),
-    ).toBeInTheDocument();
+      screen.getByRole("link", { name: /Momentum 68, 5-day check-in streak/ }),
+    ).toHaveAttribute("href", "/progress");
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "Hill Sprints" }),
     ).toBeInTheDocument();
-    expect(screen.getByTestId("workout-mark")).toBeInTheDocument();
-    expect(screen.getByText("Team rewards coming soon")).toBeInTheDocument();
-    expect(screen.getByTestId("reward-mark")).toBeInTheDocument();
+    expect(screen.getByText("Today")).toBeInTheDocument();
     expect(
-      screen.queryByRole("link", { name: /Team lounge/ }),
+      screen.queryByText("Team rewards coming soon"),
     ).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Team lounge/ })).toHaveAttribute(
+      "href",
+      "/team",
+    );
     expect(
-      screen.getByText("Team pulse unlocks after today’s check-in."),
-    ).toBeInTheDocument();
+      screen.getByRole("link", { name: /View prize boxes/ }),
+    ).toHaveAttribute("href", "/prizes");
+    expect(
+      screen.queryByText("Team pulse unlocks after today’s check-in."),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText("Ava R.")).not.toBeInTheDocument();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Record planned workout" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Start workout" }));
     expect(screen.getByRole("slider", { name: "Effort" })).toBeInTheDocument();
     expect(
       screen.getByRole("slider", { name: "Tiredness" }),
@@ -146,29 +176,15 @@ describe("consolidated default player experience", () => {
     expect(screen.getByRole("button", { name: "Save workout" })).toBeVisible();
 
     fireEvent.click(screen.getByRole("button", { name: "Save workout" }));
+    expect(screen.getByText("Today complete")).toBeInTheDocument();
+    expect(screen.getByText(/completed today’s plan/)).toBeInTheDocument();
+    expect(screen.queryByText("Recommended next")).not.toBeInTheDocument();
     expect(
-      screen.getByText(
-        "2 check-ins this week. 1 more reaches your team’s target.",
-      ),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "What’s next?" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Recommended next")).toBeInTheDocument();
-    expect(screen.getByText("Easy recovery walk")).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: /Open Team lounge/ }),
-    ).toHaveAttribute("href", "/team");
-    expect(
-      screen.getByRole("heading", { name: "Latest from your team" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Ava R.")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Cheer Ava for Hill Sprints" }),
-    ).toBeEnabled();
+      screen.queryByRole("heading", { name: "Latest from your team" }),
+    ).not.toBeInTheDocument();
   });
 
-  it("counts a submitted planned-rest day toward the weekly note", async () => {
+  it("records planned rest through a confirmation and closes today", async () => {
     renderExperience(
       <ConsolidatedToday />,
       beginDay(initialTeamCanvasState(), {
@@ -178,21 +194,17 @@ describe("consolidated default player experience", () => {
     );
 
     expect(
-      screen.getByRole("progressbar", {
-        name: "Momentum: 68 out of 100",
-      }),
+      screen.getByRole("link", { name: /Momentum 68/ }),
     ).toBeInTheDocument();
 
+    fireEvent.click(screen.getByRole("button", { name: "Start recovery day" }));
+    expect(screen.getByText(/Confirm when you have checked in/)).toBeVisible();
     fireEvent.click(
-      screen.getByRole("button", { name: "Record planned rest" }),
+      screen.getByRole("button", { name: "Complete recovery check-in" }),
     );
 
-    expect(
-      await screen.findByText(
-        "You reached your team’s 3-check-in target this week. Nice consistency.",
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Planned rest logged")).toBeInTheDocument();
+    expect(await screen.findByText("Today complete")).toBeInTheDocument();
+    expect(screen.getByText(/Planned recovery logged/)).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /Log additional/ }),
     ).not.toBeInTheDocument();
@@ -206,7 +218,7 @@ describe("consolidated default player experience", () => {
     expect(screen.queryByText("Elena")).not.toBeInTheDocument();
   });
 
-  it("shows a dev-published reward in the reserved player slot", async () => {
+  it("keeps a published reward out of Today’s permanent hierarchy", async () => {
     const reward = publishPrototypeReward(
       {
         ...createPrototypeReward("team-hill-striders"),
@@ -218,10 +230,10 @@ describe("consolidated default player experience", () => {
 
     renderExperience(<ConsolidatedToday />, initialTeamCanvasState(), true);
 
-    expect(await screen.findByText("Pizza after practice")).toBeInTheDocument();
+    expect(screen.queryByText("Pizza after practice")).not.toBeInTheDocument();
     expect(
-      screen.queryByText("Team rewards coming soon"),
-    ).not.toBeInTheDocument();
+      screen.getByRole("link", { name: /View prize boxes/ }),
+    ).toHaveAttribute("href", "/prizes");
   });
 
   it("renders the Team Canvas widget after plan completion", () => {
@@ -267,36 +279,33 @@ describe("consolidated default player experience", () => {
     fireEvent.change(screen.getByLabelText("Today preview"), {
       target: { value: "complete" },
     });
-    fireEvent.click(screen.getByLabelText("Show Momentum card"));
+    fireEvent.click(screen.getByLabelText("Show Momentum status"));
     fireEvent.click(screen.getByLabelText("Show rewards preview"));
 
+    expect(screen.getByText("Today complete")).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "What’s next?" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByLabelText("Momentum preview is on-a-roll"),
+      screen.queryByRole("link", { name: /Momentum/ }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByText("Team rewards coming soon"),
     ).not.toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Today preview"), {
-      target: { value: "rest" },
-    });
-    fireEvent.click(screen.getByLabelText("Show Momentum card"));
+    fireEvent.click(screen.getByLabelText("Show Momentum status"));
     expect(
-      screen.getByText(
-        "2 check-ins this week. 1 more reaches your team’s target.",
-      ),
+      screen.getByRole("link", { name: /Momentum 68/ }),
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Reset dev controls" }));
 
-    expect(screen.getByLabelText("Momentum is on-a-roll")).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /Momentum 68/ }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "Hill Sprints" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Team rewards coming soon")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Team rewards coming soon"),
+    ).not.toBeInTheDocument();
   });
 
   it("does not render the ME dev console without the dev capability", () => {

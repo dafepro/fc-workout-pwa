@@ -47,7 +47,7 @@ describe("DailyDropCard", () => {
     );
 
     fireEvent.click(
-      await screen.findByRole("button", { name: "Open today’s drop" }),
+      await screen.findByRole("button", { name: "Open prize box" }),
     );
 
     expect(await screen.findByText("Unlocked: Rover the dog")).toBeVisible();
@@ -77,7 +77,7 @@ describe("DailyDropCard", () => {
       />,
     );
 
-    fireEvent.click(await screen.findByRole("button", { name: /Open today/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /Open prize/i }));
     fireEvent.click(
       await screen.findByRole("button", { name: "Try opening again" }),
     );
@@ -104,7 +104,7 @@ describe("DailyDropCard", () => {
     expect(await screen.findByText("Collected today")).toBeVisible();
     expect(screen.getByText("Rover the dog")).toBeVisible();
     expect(
-      screen.queryByRole("button", { name: /Open today/i }),
+      screen.queryByRole("button", { name: /Open prize/i }),
     ).not.toBeInTheDocument();
   });
 

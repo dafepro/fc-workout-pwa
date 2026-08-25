@@ -1,6 +1,7 @@
 # Player Plan Recommendations and Loot
 
-Status: approved direction; connected plan timeline implemented
+Status: recommendation authority retained; player presentation superseded by
+`FOCUSED_TODAY_FLOW.md`
 
 ## Problem
 
