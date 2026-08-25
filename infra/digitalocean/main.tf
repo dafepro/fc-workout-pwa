@@ -17,6 +17,7 @@ resource "digitalocean_droplet" "zoomigo" {
   image         = "ubuntu-24-04-x64"
   region        = var.region
   size          = var.droplet_size
+  resize_disk   = false
   monitoring    = true
   droplet_agent = true
   backups       = true
@@ -150,10 +151,12 @@ resource "digitalocean_uptime_check" "api" {
 }
 
 resource "digitalocean_uptime_alert" "api_down" {
-  name     = "ZoomiGo API unavailable"
-  check_id = digitalocean_uptime_check.api.id
-  type     = "down_global"
-  period   = "5m"
+  name       = "ZoomiGo API unavailable"
+  check_id   = digitalocean_uptime_check.api.id
+  type       = "down_global"
+  comparison = "less_than"
+  threshold  = 1
+  period     = "5m"
 
   notifications {
     email = var.alert_email_addresses
@@ -181,6 +184,10 @@ resource "cloudflare_d1_database" "analytics" {
   account_id            = var.cloudflare_account_id
   name                  = "zoomigo-product-analytics"
   primary_location_hint = "enam"
+
+  read_replication = {
+    mode = "disabled"
+  }
 
   lifecycle {
     prevent_destroy = true

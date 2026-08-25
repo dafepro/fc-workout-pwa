@@ -53,3 +53,22 @@ validate_host_directory() {
 compose() {
 	docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
 }
+
+record_observability_gauge() {
+	metric_name=$1
+	help_text=$2
+	metric_value=$3
+	observability_directory=$(env_value OBSERVABILITY_DATA_DIR)
+	[ -d "$observability_directory/textfile" ] || return 0
+	printf '%s' "$metric_name" | grep -Eq '^[a-z][a-z0-9_]*$' || fail "invalid observability metric name"
+	temporary_metric=$(mktemp "$observability_directory/textfile/.${metric_name}.XXXXXX")
+	trap 'rm -f -- "$temporary_metric"' EXIT HUP INT TERM
+	{
+		printf '# HELP %s %s\n' "$metric_name" "$help_text"
+		printf '# TYPE %s gauge\n' "$metric_name"
+		printf '%s %s\n' "$metric_name" "$metric_value"
+	} >"$temporary_metric"
+	chmod 0600 "$temporary_metric"
+	mv -- "$temporary_metric" "$observability_directory/textfile/${metric_name}.prom"
+	trap - EXIT HUP INT TERM
+}

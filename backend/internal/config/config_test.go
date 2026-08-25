@@ -22,6 +22,12 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.ShutdownTimeout != 10*time.Second {
 		t.Fatalf("ShutdownTimeout = %s", cfg.ShutdownTimeout)
 	}
+	if cfg.MetricsPort != 9090 {
+		t.Fatalf("MetricsPort = %d, want 9090", cfg.MetricsPort)
+	}
+	if cfg.ReleaseSHA != "unknown" {
+		t.Fatalf("ReleaseSHA = %q, want unknown", cfg.ReleaseSHA)
+	}
 	if cfg.LoginAttemptsPerMinute != defaultLoginAttemptsPerMinute {
 		t.Fatalf("LoginAttemptsPerMinute = %d, want %d", cfg.LoginAttemptsPerMinute, defaultLoginAttemptsPerMinute)
 	}
@@ -47,6 +53,8 @@ func TestLoadRejectsInvalidValues(t *testing.T) {
 	tests := []map[string]string{
 		{"PORT": "0"},
 		{"PORT": "not-a-port"},
+		{"METRICS_PORT": "0"},
+		{"METRICS_PORT": "8080"},
 		{"SHUTDOWN_TIMEOUT": "0s"},
 		{"TEAM_TIME_ZONE": "Not/AZone"},
 		{"ENABLE_E2E_FIXTURES": "sometimes"},

@@ -105,9 +105,10 @@ Before enabling Alloy in either environment:
 4. Require at least 256 MiB host `MemAvailable` at idle, at least 128 MiB during
    the worst test, no OOM/restart, under 1 MiB/hour swap-in after warm-up, at
    least 2 GiB free disk, and no material readiness or latency regression.
-5. Fail deployment if the VM is below 1 GiB RAM, disk headroom is below 2 GiB,
-   the configured series/log budgets are exceeded, or Compose lacks the memory,
-   CPU, PID, and bounded-storage settings.
+5. Fail deployment if Linux reports less than 900,000 KiB total RAM (the lower
+   bound for the selected 1 GiB VM class after platform reservations), disk
+   headroom is below 2 GiB, the configured series/log budgets are exceeded, or
+   Compose lacks the memory, CPU, PID, and bounded-storage settings.
 6. Automatically stop and roll back Alloy—not the API—if available memory stays
    below 128 MiB, disk reaches 70%, Alloy repeatedly restarts, or API readiness
    regresses during rollout.

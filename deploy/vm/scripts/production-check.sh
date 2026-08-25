@@ -34,6 +34,15 @@ running_services=$(compose ps --status running --services)
 printf '%s\n' "$running_services" | grep -Fx api >/dev/null || fail "the API container is not running"
 printf '%s\n' "$running_services" | grep -Fx caddy >/dev/null || fail "the Caddy container is not running"
 
+if [ "$(env_value ENABLE_OBSERVABILITY)" = true ]; then
+	alloy_container=$(compose --profile observability ps --quiet alloy)
+	[ -n "$alloy_container" ] || fail "Alloy container is not running"
+	alloy_state=$(docker inspect --format '{{.State.Status}}' "$alloy_container")
+	[ "$alloy_state" = running ] || fail "Alloy container is $alloy_state, not running"
+	alloy_restarts=$(docker inspect --format '{{.RestartCount}}' "$alloy_container")
+	[ "$alloy_restarts" -eq 0 ] || fail "Alloy container restarted $alloy_restarts times"
+fi
+
 curl --fail --silent --show-error "https://${site_address}/readyz" >/dev/null || fail "public readiness failed"
 private_status=$(curl --silent --output /dev/null --write-out '%{http_code}' "https://${site_address}/v1/me/training-entries")
 [ "$private_status" = "401" ] || fail "the unauthenticated private-route check returned HTTP $private_status, want 401"

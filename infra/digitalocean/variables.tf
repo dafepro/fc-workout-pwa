@@ -5,9 +5,9 @@ variable "region" {
 }
 
 variable "droplet_size" {
-  description = "Smallest regular Droplet size; verify current pricing before applying."
+  description = "Smallest production size admitted for the API and bounded observability collector."
   type        = string
-  default     = "s-1vcpu-512mb-10gb"
+  default     = "s-1vcpu-1gb"
 }
 
 variable "project_name" {

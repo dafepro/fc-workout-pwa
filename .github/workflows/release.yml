@@ -101,6 +101,13 @@ jobs:
           BACKUP_S3_REGION: ${{ vars.BACKUP_S3_REGION }}
           BACKUP_S3_ACCESS_KEY_ID: ${{ secrets.BACKUP_S3_ACCESS_KEY_ID }}
           BACKUP_S3_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_S3_SECRET_ACCESS_KEY }}
+          ENABLE_OBSERVABILITY: ${{ vars.PRODUCTION_OBSERVABILITY_ENABLED }}
+          GRAFANA_LOGS_URL: ${{ vars.GRAFANA_PRODUCTION_LOGS_URL }}
+          GRAFANA_LOGS_USERNAME: ${{ vars.GRAFANA_PRODUCTION_LOGS_USERNAME }}
+          GRAFANA_LOGS_TOKEN: ${{ secrets.GRAFANA_PRODUCTION_LOGS_TOKEN }}
+          GRAFANA_METRICS_URL: ${{ vars.GRAFANA_PRODUCTION_METRICS_URL }}
+          GRAFANA_METRICS_USERNAME: ${{ vars.GRAFANA_PRODUCTION_METRICS_USERNAME }}
+          GRAFANA_METRICS_TOKEN: ${{ secrets.GRAFANA_PRODUCTION_METRICS_TOKEN }}
         # pipefail so tee cannot mask a failing release; the log is captured so
         # the next step can report what the host said without anyone reading the
         # raw job output or opening an SSH session.

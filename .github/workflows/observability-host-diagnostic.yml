@@ -1,0 +1,33 @@
+name: Inspect production observability collector
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read fixed collector diagnostics
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          ZOOMIGO_DEPLOY_SSH_KEY: ${{ secrets.ZOOMIGO_DEPLOY_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          identity="$RUNNER_TEMP/deploy_ssh_key"
+          trap 'rm -f -- "$identity"' EXIT
+          (umask 077 && printf '%s\n' "$ZOOMIGO_DEPLOY_SSH_KEY" >"$identity")
+          ssh -i "$identity" \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile=infra/known_hosts \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" sh -s -- /opt/app/deploy/vm \
+            <scripts/observability-host-diagnostic.sh

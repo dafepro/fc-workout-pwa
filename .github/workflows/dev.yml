@@ -229,6 +229,13 @@ jobs:
           ZOOMIGO_API_BASE_URL: https://api-dev.zoomigo.quicktrack.cc
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ENABLE_OBSERVABILITY: ${{ vars.DEV_OBSERVABILITY_ENABLED }}
+          GRAFANA_LOGS_URL: ${{ vars.GRAFANA_DEV_LOGS_URL }}
+          GRAFANA_LOGS_USERNAME: ${{ vars.GRAFANA_DEV_LOGS_USERNAME }}
+          GRAFANA_LOGS_TOKEN: ${{ secrets.GRAFANA_DEV_LOGS_TOKEN }}
+          GRAFANA_METRICS_URL: ${{ vars.GRAFANA_DEV_METRICS_URL }}
+          GRAFANA_METRICS_USERNAME: ${{ vars.GRAFANA_DEV_METRICS_USERNAME }}
+          GRAFANA_METRICS_TOKEN: ${{ secrets.GRAFANA_DEV_METRICS_TOKEN }}
         run: |
           key_file="$RUNNER_TEMP/dev-deploy-key"
           printf '%s\n' "$DEV_DEPLOY_SSH_KEY_VALUE" >"$key_file"

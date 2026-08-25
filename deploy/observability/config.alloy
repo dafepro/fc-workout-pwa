@@ -1,0 +1,169 @@
+logging {
+  level  = "warn"
+  format = "json"
+}
+
+discovery.docker "zoomigo" {
+  host = "unix:///var/run/docker.sock"
+
+  filter {
+    name   = "label"
+    values = ["com.docker.compose.project=" + sys.env("COMPOSE_PROJECT_NAME")]
+  }
+}
+
+discovery.relabel "safe_logs" {
+  targets = []
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    regex         = "api"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service"
+  }
+}
+
+loki.source.docker "zoomigo" {
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.docker.zoomigo.targets
+  relabel_rules = discovery.relabel.safe_logs.rules
+  labels = {
+    environment = sys.env("APP_ENV"),
+    release     = sys.env("RELEASE_SHA"),
+  }
+  forward_to = [loki.process.safe.receiver]
+}
+
+loki.process "safe" {
+  stage.truncate {
+    rule {
+      limit  = "8KiB"
+      suffix = "[TRUNCATED]"
+    }
+  }
+
+  // Twelve 8 KiB lines per second stays below the 100 KiB/s sustained budget.
+  stage.limit {
+    rate  = 12
+    burst = 24
+    drop  = true
+  }
+
+  stage.json {
+    expressions = {
+      level = "level",
+    }
+  }
+
+  stage.labels {
+    values = {
+      level = "",
+    }
+  }
+
+  stage.replace {
+    expression = "(?i)(authorization|cookie|bearer|token|credential|pin|totp|email|cf-connecting-ip)[^ ,}]*"
+    replace    = "$1=[REDACTED]"
+  }
+
+  stage.replace {
+    expression = "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"
+    replace    = "[REDACTED_EMAIL]"
+  }
+
+  stage.replace {
+    expression = "(?:[0-9]{1,3}\\.){3}[0-9]{1,3}"
+    replace    = "[REDACTED_IP]"
+  }
+
+  stage.replace {
+    expression = "\\?[^ \\\"}]*"
+    replace    = "?[REDACTED_QUERY]"
+  }
+
+  forward_to = [loki.write.grafana_cloud.receiver]
+}
+
+loki.write "grafana_cloud" {
+  endpoint {
+    url = sys.env("GRAFANA_LOGS_URL")
+
+    basic_auth {
+      username = sys.env("GRAFANA_LOGS_USERNAME")
+      password = sys.env("GRAFANA_LOGS_TOKEN")
+    }
+  }
+}
+
+prometheus.exporter.unix "host" {
+  procfs_path = "/host/proc"
+  sysfs_path  = "/host/sys"
+  set_collectors = ["cpu", "loadavg", "meminfo", "stat", "textfile", "time", "uname"]
+
+  textfile {
+    directory = "/alloy-data/textfile"
+  }
+}
+
+prometheus.scrape "api" {
+  targets = [{
+    __address__ = "api:9090",
+    environment = sys.env("APP_ENV"),
+    service     = "api",
+    release     = sys.env("RELEASE_SHA"),
+  }]
+  scrape_interval = "30s"
+  sample_limit    = 500
+  forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+prometheus.scrape "host" {
+  targets         = prometheus.exporter.unix.host.targets
+  scrape_interval = "30s"
+  sample_limit    = 500
+  forward_to      = [prometheus.relabel.host.receiver]
+}
+
+prometheus.relabel "host" {
+  rule {
+    replacement  = "host"
+    target_label = "service"
+  }
+
+  forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+prometheus.remote_write "grafana_cloud" {
+  external_labels = {
+    environment = sys.env("APP_ENV"),
+    release     = sys.env("RELEASE_SHA"),
+  }
+
+  endpoint {
+    url = sys.env("GRAFANA_METRICS_URL")
+
+    basic_auth {
+      username = sys.env("GRAFANA_METRICS_USERNAME")
+      password = sys.env("GRAFANA_METRICS_TOKEN")
+    }
+
+    queue_config {
+      capacity             = 500
+      min_shards           = 1
+      max_shards           = 1
+      max_samples_per_send = 200
+      batch_send_deadline  = "5s"
+      sample_age_limit     = "2h"
+    }
+  }
+
+  wal {
+    truncate_frequency = "30m"
+    min_keepalive_time = "30m"
+    max_keepalive_time = "2h"
+  }
+}

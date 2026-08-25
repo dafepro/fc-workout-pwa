@@ -8,6 +8,7 @@ SCRIPT_DIRECTORY=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 "$SCRIPT_DIRECTORY/preflight.sh" "$ENV_FILE"
 site_address=$(require_env_value CADDY_SITE_ADDRESS)
 api_image=$(require_env_value API_IMAGE)
+enable_observability=$(env_value ENABLE_OBSERVABILITY)
 
 case "$api_image" in
 	zoomigo-api:*)
@@ -20,8 +21,16 @@ case "$api_image" in
 		compose pull api caddy
 		;;
 esac
+if [ "$enable_observability" = true ]; then
+	sh "$SCRIPT_DIRECTORY/observability-preflight.sh" "$ENV_FILE"
+	compose --profile observability pull alloy
+fi
 compose run --rm --no-deps caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
-compose up -d --wait --no-build --remove-orphans api caddy
+if [ "$enable_observability" = true ]; then
+	compose --profile observability up -d --wait --no-build --remove-orphans api caddy alloy
+else
+	compose up -d --wait --no-build --remove-orphans api caddy
+fi
 
 # Probe the API container directly before the public URL. The public probe
 # leaves the host, reaches Cloudflare, and comes back in, so on its own it
