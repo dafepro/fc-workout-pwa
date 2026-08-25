@@ -394,6 +394,7 @@ Update this table in the same commit that materially changes a vertical slice.
 | 2026-08-25 | H5 · operational outcomes   | This delivery change | Bounded feature, notification, and live Canvas metrics; internal-endpoint E2E; dashboard panels; and a paused notification failure alert                                 | Product analytics and dev admission  |
 | 2026-08-25 | H5 · product outcomes       | This delivery change | Strict privacy-tested Today, Prize Box, Team Reward, reward-destination, and anonymous staff planning/reward events                                                      | Ingestion-to-aggregate E2E           |
 | 2026-08-25 | H5 · analytics storage      | This delivery change | Browser-shaped event validation through production D1 storage functions and the real SQLite migration to canonical-route operator aggregates                             | Dev host admission                   |
+| 2026-08-25 | H3 · Prize Box replay       | This delivery change | Browser-gateway and public-API replay proofs return the original sealed box and unlock while preserving one durable opened item                                          | Earned-item destination proofs       |
 
 ## Linked designs
 

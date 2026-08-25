@@ -32,7 +32,17 @@ test("the consolidated default claims, opens, and keeps one sealed prize box", a
       response.request().method() === "POST",
   );
   await page.getByRole("button", { name: "Claim daily box" }).click();
-  expect((await claimed).status()).toBe(201);
+  const claimedResponse = await claimed;
+  expect(claimedResponse.status()).toBe(201);
+  const claimedBody = await claimedResponse.json();
+  const claimKey = claimedResponse.request().headers()["idempotency-key"];
+  expect(claimKey).toBeTruthy();
+  const claimReplay = await page.request.post(
+    "/api/zoomigo/v1/me/prize-boxes/claim-daily",
+    { headers: { "Idempotency-Key": claimKey } },
+  );
+  expect(claimReplay.status()).toBe(200);
+  expect((await claimReplay.json()).box.id).toBe(claimedBody.box.id);
   await expect(page.getByRole("status")).toContainText("Daily box claimed");
   await expect(page.getByText("1 to open")).toBeVisible();
 
@@ -43,7 +53,17 @@ test("the consolidated default claims, opens, and keeps one sealed prize box", a
       ) && response.request().method() === "POST",
   );
   await page.getByRole("button", { name: "Open Daily freebie box" }).click();
-  expect((await opened).status()).toBe(201);
+  const openedResponse = await opened;
+  expect(openedResponse.status()).toBe(201);
+  const openedBody = await openedResponse.json();
+  const openKey = openedResponse.request().headers()["idempotency-key"];
+  expect(openKey).toBeTruthy();
+  const openReplay = await page.request.post(
+    `/api/zoomigo/v1/me/prize-boxes/${claimedBody.box.id}/open`,
+    { headers: { "Idempotency-Key": openKey } },
+  );
+  expect(openReplay.status()).toBe(200);
+  expect((await openReplay.json()).claim).toEqual(openedBody.claim);
   const reveal = page.getByRole("dialog", { name: "Zoomi found something!" });
   await expect(reveal).toBeVisible();
   await expect(reveal.getByRole("status")).toBeVisible();

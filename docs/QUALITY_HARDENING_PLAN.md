@@ -61,7 +61,7 @@ A major flow is complete only when:
 
 ### H3 — Reward and identity loop
 
-- [ ] Prove Prize Box claim and open idempotency through the browser and API.
+- [x] Prove Prize Box claim and open idempotency through the browser and API.
 - [ ] Prove an Avatar reward can be equipped and appears in Team Lounge after a
       reload.
 - [ ] Prove a Team Lounge item can enter the supported placement flow.
@@ -85,8 +85,8 @@ A major flow is complete only when:
       rewards, media, notifications, or Canvas behavior.
 - [x] Add bounded operational outcomes for Prize Boxes, plans, Team Rewards,
       notification outbox, and Canvas connection lifecycle.
-  - [x] Extend product-event routes and the safe event catalog to Today, plans,
-        Prize Boxes, Avatar unlock use, Team Rewards, and staff planning.
+- [x] Extend product-event routes and the safe event catalog to Today, plans,
+      Prize Boxes, Avatar unlock use, Team Rewards, and staff planning.
 - [x] Add one local E2E proof from client event to aggregate analytics storage.
 - [ ] Pass the documented dev host admission test before enabling Alloy; do not
       enable it on a host below the admitted memory floor.
@@ -146,6 +146,12 @@ reads the operator aggregate back. The proof covers pseudonymous active-player
 counts, active minutes, row volume, and canonical route totals. Canonical route
 coverage now includes Today, Momentum, progress, the plan overview/day detail,
 Prize Boxes, and the prize collection.
+
+The first H3 proof replays the browser-generated claim and open keys through the
+same-origin player gateway, then repeats both operations through the public Go
+API. Both paths return the original box/unlock and leave exactly one opened
+item. The existing Avatar and Canvas journeys remain useful but do not yet prove
+that a newly earned reward—not a base option or dev stamp—reaches its destination.
 
 Proposed file tree:
 
