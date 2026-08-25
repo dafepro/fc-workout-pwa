@@ -1,4 +1,5 @@
 import { expect, request, test, type Page } from "@playwright/test";
+import { openReadyPage } from "./app-ready";
 import { FIXTURE_TEAM_ID, signInAsCoach } from "./staff-sign-in";
 
 const apiBaseURL = process.env.E2E_API_BASE_URL ?? "http://api:8080";
@@ -81,6 +82,92 @@ test("a team reward moves from camera-photo publication through notices and canc
   );
   expect(refused.status()).toBe(404);
   await expectNoOverflow(page);
+  await api.dispose();
+});
+
+test("a private player concern reaches operator review and resolution", async ({
+  page,
+}) => {
+  const api = await request.newContext({ baseURL: apiBaseURL });
+  expect(
+    (
+      await api.post("/__e2e/reset", {
+        headers: { "X-E2E-Reset-Key": resetKey },
+      })
+    ).status(),
+  ).toBe(204);
+
+  await signInAsCoach(page);
+  await page.getByRole("link", { name: "Hill Striders" }).click();
+  await page.getByRole("link", { name: "Rewards" }).click();
+  await page.getByRole("button", { name: "Create a team reward" }).click();
+  await page.getByLabel("Prize name").fill("Team recovery picnic");
+  await page
+    .getByLabel("What players should know")
+    .fill("A picnic when the team keeps showing up.");
+  await page.getByText("Teammate consistency", { exact: true }).click();
+  await page
+    .getByLabel("What counts as participation?")
+    .selectOption("any_approved_workout");
+  await page.getByLabel("Number of teammates").fill("1");
+  await page.getByLabel("Days per teammate").fill("2");
+  await page.getByLabel("Start date").fill(teamDate(0));
+  const published = page.waitForResponse(
+    (response) =>
+      /\/v1\/staff\/teams\/[^/]+\/rewards\/[^/]+\/publish$/.test(
+        response.url(),
+      ) && response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Publish reward" }).click();
+  const publishedBody = await (await published).json();
+  const rewardID = publishedBody.id as string;
+
+  await page.setViewportSize({ width: 320, height: 720 });
+  await openReadyPage(page, "/team");
+  await expect(page.getByText("Team recovery picnic")).toBeVisible();
+  await page.getByText("Report a concern").click();
+  await page.getByRole("button", { name: "Personal information" }).click();
+  const submitted = page.waitForResponse(
+    (response) =>
+      response.url().includes(`/rewards/${rewardID}/reports`) &&
+      response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Send report" }).click();
+  expect((await submitted).status()).toBe(201);
+  await expect(
+    page.getByRole("status").filter({
+      hasText: "Concern sent for private review.",
+    }),
+  ).toBeVisible();
+  await expect(page.getByText("Report a concern")).toHaveCount(0);
+
+  const operatorHeaders = { Authorization: "Bearer e2e-platform-admin" };
+  const queue = await api.get("/v1/staff/reward-reports", {
+    headers: operatorHeaders,
+  });
+  expect(queue.status()).toBe(200);
+  const queueBody = await queue.json();
+  expect(JSON.stringify(queueBody)).not.toContain("player-mason");
+  expect(queueBody.items).toHaveLength(1);
+  expect(queueBody.items[0]).toMatchObject({
+    rewardId: rewardID,
+    reason: "personal_information",
+    status: "open",
+  });
+
+  const resolved = await api.post(
+    `/v1/staff/reward-reports/${queueBody.items[0].id}/resolve`,
+    { headers: operatorHeaders, data: { resolution: "hide" } },
+  );
+  expect(resolved.status()).toBe(200);
+  expect(await resolved.json()).toMatchObject({
+    status: "resolved",
+    resolution: "hide",
+  });
+
+  await page.reload();
+  await expect(page.getByText("Team recovery picnic")).toHaveCount(0);
+  await expect(page).toHaveURL(/\/team$/);
   await api.dispose();
 });
 

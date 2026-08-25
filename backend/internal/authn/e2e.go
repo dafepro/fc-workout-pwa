@@ -45,6 +45,9 @@ func NewE2EFixtures() E2EFixtures {
 		"e2e-admin-other": {
 			AccountID: "account-admin-other", Role: domain.RoleClubAdmin, ClubID: "club-other",
 		},
+		"e2e-platform-admin": {
+			AccountID: "account-e2e-coach", Role: domain.RolePlatformAdmin,
+		},
 	}}
 }
 

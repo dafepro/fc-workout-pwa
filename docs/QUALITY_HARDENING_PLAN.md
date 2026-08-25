@@ -70,7 +70,7 @@ A major flow is complete only when:
 
 ### H4 — Team Reward operations
 
-- [ ] Cover player concern submission through operator review and resolution.
+- [x] Cover player concern submission through operator review and resolution.
 - [ ] Cover image validation, publish, progress correction, close, achievement,
       cancellation, and notification retry behavior.
 - [ ] Admit the production mail provider, sender domain, suppression behavior,
@@ -165,6 +165,12 @@ box without requiring a workout; opening remains separate. The dead
 immediate-reveal component/gateway and both legacy public routes are removed,
 leaving one player-facing transaction authority without renaming historical
 database vocabulary.
+
+The first H4 proof publishes through the real staff console, submits one of the
+predefined anonymous reasons through the connected player UI, verifies that the
+operator queue omits player identity, resolves the concern through the public
+operator contract, and confirms that a hidden reward disappears from the
+player's Team view. The operator token exists only in the E2E build.
 
 Proposed file tree:
 
