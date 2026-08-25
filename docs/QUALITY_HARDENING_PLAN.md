@@ -81,9 +81,9 @@ A major flow is complete only when:
 - [x] Merge the privacy-safe request logs, internal Prometheus endpoint,
       dashboards, alerts, bounded Alloy configuration, and read-only diagnostic
       workflow from main.
-- [ ] Verify the combined Momentum API exposes the new metrics without losing
+- [x] Verify the combined Momentum API exposes the new metrics without losing
       rewards, media, notifications, or Canvas behavior.
-- [ ] Add bounded operational outcomes for Prize Boxes, plans, Team Rewards,
+- [x] Add bounded operational outcomes for Prize Boxes, plans, Team Rewards,
       notification outbox, and Canvas connection lifecycle.
 - [ ] Extend product-event routes and the safe event catalog to Today, plans,
       Prize Boxes, Avatar unlock use, Team Rewards, and staff planning.
@@ -125,6 +125,14 @@ state after reload, cancellation removal from Today with retained history, and
 a recoverable stale-coach conflict that refreshes obsolete controls. The
 coaching-owner decision on numeric development bounds remains the only open H2
 gate.
+
+The first H5 slice adds one fixed-label feature outcome metric for plans, Prize
+Boxes, Team Rewards, notification delivery, and Canvas. Live Canvas connection
+and message counters are wired to the WebSocket lifecycle, notification sends
+record aggregate delivery outcomes, the internal metrics endpoint is covered
+through the merged E2E wiring, and Grafana receives feature and connection
+panels plus a paused notification-failure alert. Tests reject identity and
+response data in exported metric labels.
 
 Proposed file tree:
 

@@ -46,6 +46,8 @@ func TestOperationalMetricLabelsAreEnumerated(t *testing.T) {
 	metrics.ObserveAuth("player", "success")
 	metrics.SetCanvasConnections(2)
 	metrics.ObserveCanvasMessage("reaction", "success")
+	metrics.ObserveFeature("training_plans", "publish", "success")
+	metrics.ObserveFeature("private-team-id", "private-plan-id", "private-player-id")
 
 	if got := testutil.ToFloat64(metrics.SQLiteOperations.WithLabelValues("training_entries_create", "success")); got != 1 {
 		t.Fatalf("sqlite operations = %v, want 1", got)
@@ -55,6 +57,44 @@ func TestOperationalMetricLabelsAreEnumerated(t *testing.T) {
 	}
 	if got := testutil.ToFloat64(metrics.CanvasConnections); got != 2 {
 		t.Fatalf("canvas connections = %v, want 2", got)
+	}
+	if got := testutil.ToFloat64(metrics.FeatureOperations.WithLabelValues("training_plans", "publish", "success")); got != 1 {
+		t.Fatalf("plan operations = %v, want 1", got)
+	}
+	if got := testutil.ToFloat64(metrics.FeatureOperations.WithLabelValues("other", "other", "other")); got != 1 {
+		t.Fatalf("unbounded operation labels were not collapsed: %v", got)
+	}
+}
+
+func TestHTTPMetricsClassifyMajorFeatureOutcomes(t *testing.T) {
+	metrics := NewMetrics("test")
+	handler := HTTPMiddleware(nil, metrics)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/plan":
+			r.Pattern = "POST /v1/staff/teams/{teamId}/training-plans"
+			w.WriteHeader(http.StatusCreated)
+		case "/box":
+			r.Pattern = "POST /v1/me/prize-boxes/{boxId}/open"
+			SetErrorCode(w, "prize_box_unavailable")
+			w.WriteHeader(http.StatusNotFound)
+		case "/reward":
+			r.Pattern = "POST /v1/teams/{teamId}/rewards/{rewardId}/reports"
+			SetErrorCode(w, "team_reward_report_exists")
+			w.WriteHeader(http.StatusConflict)
+		}
+	}))
+
+	for _, path := range []string{"/plan", "/box", "/reward"} {
+		handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodPost, path, nil))
+	}
+	for _, want := range [][3]string{
+		{"training_plans", "publish", "success"},
+		{"prize_boxes", "open", "unavailable"},
+		{"team_rewards", "report", "conflict"},
+	} {
+		if got := testutil.ToFloat64(metrics.FeatureOperations.WithLabelValues(want[0], want[1], want[2])); got != 1 {
+			t.Fatalf("feature operation %v = %v, want 1", want, got)
+		}
 	}
 }
 

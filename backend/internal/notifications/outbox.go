@@ -16,12 +16,17 @@ type Outbox interface {
 	FailTeamRewardNotification(context.Context, string, string, bool, time.Time) error
 }
 
+type Observer interface {
+	ObserveNotification(operation, outcome string)
+}
+
 type Sender struct {
-	Outbox  Outbox
-	Mailer  Mailer
-	From    string
-	BaseURL string
-	Now     func() time.Time
+	Outbox   Outbox
+	Mailer   Mailer
+	From     string
+	BaseURL  string
+	Now      func() time.Time
+	Observer Observer
 }
 
 func (sender Sender) Drain(ctx context.Context) error {
@@ -31,25 +36,40 @@ func (sender Sender) Drain(ctx context.Context) error {
 	}
 	items, err := sender.Outbox.ClaimTeamRewardNotifications(ctx, now().UTC(), 10)
 	if err != nil {
+		sender.observe("drain", "error")
 		return err
 	}
+	sender.observe("drain", "success")
 	for _, item := range items {
 		message := rewardMessage(item, sender.From, sender.BaseURL)
 		providerID, sendErr := sender.Mailer.Send(ctx, message)
 		stamp := now().UTC()
 		if sendErr == nil {
 			if err = sender.Outbox.CompleteTeamRewardNotification(ctx, item.ID, providerID, stamp); err != nil {
+				sender.observe("delivery", "error")
 				return err
 			}
+			sender.observe("delivery", "success")
 			continue
 		}
 		code, permanent := DeliveryFailure(sendErr)
+		outcome := "retry"
+		if permanent {
+			outcome = "permanent_failure"
+		}
+		sender.observe("delivery", outcome)
 		slog.Warn("reward email delivery failed", "notification_kind", item.Kind, "error_code", code, "permanent", permanent)
 		if err = sender.Outbox.FailTeamRewardNotification(ctx, item.ID, code, permanent, stamp); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (sender Sender) observe(operation, outcome string) {
+	if sender.Observer != nil {
+		sender.Observer.ObserveNotification(operation, outcome)
+	}
 }
 
 func rewardMessage(item store.TeamRewardNotification, from, baseURL string) Message {

@@ -60,7 +60,14 @@ type service struct {
 	canvasTickets *teamCanvasSocketTickets
 	canvasRooms   *teamCanvasRealtimeRooms
 	middleware    func(http.Handler) http.Handler
+	operations    OperationalObserver
 	now           func() time.Time
+}
+
+type OperationalObserver interface {
+	AddCanvasConnection(float64)
+	ObserveCanvasMessage(kind, outcome string)
+	ObserveFeature(feature, operation, outcome string)
 }
 
 type teamCanvasPhysicsRepository interface {
@@ -120,6 +127,10 @@ func WithAuthFixtureReset(reset func(context.Context) error) Option {
 
 func WithMiddleware(middleware func(http.Handler) http.Handler) Option {
 	return func(service *service) { service.middleware = middleware }
+}
+
+func WithOperationalObserver(observer OperationalObserver) Option {
+	return func(service *service) { service.operations = observer }
 }
 
 func NewHandler(cfg config.Config, options ...Option) http.Handler {

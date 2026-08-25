@@ -156,6 +156,34 @@
       ],
       "title": "Container restarts",
       "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 6, "w": 12, "x": 6, "y": 20 },
+      "id": 12,
+      "targets": [
+        {
+          "expr": "sum by (feature,operation,outcome) (increase(zoomigo_feature_operations_total{environment=\"$environment\"}[15m]))",
+          "legendFormat": "{{feature}} · {{operation}} · {{outcome}}"
+        }
+      ],
+      "title": "Major feature outcomes",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": { "defaults": { "min": 0 }, "overrides": [] },
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 20 },
+      "id": 13,
+      "targets": [
+        {
+          "expr": "zoomigo_canvas_connections{environment=\"$environment\"}",
+          "legendFormat": "connections"
+        }
+      ],
+      "title": "Live Canvas connections",
+      "type": "stat"
     }
   ],
   "refresh": "30s",

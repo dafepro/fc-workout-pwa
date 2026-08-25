@@ -24,15 +24,17 @@ import (
 	"github.com/dafepro/fc-workout-pwa/backend/internal/config"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/httpapi"
+	"github.com/dafepro/fc-workout-pwa/backend/internal/observability"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/rewardmedia"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/staffauth"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/store"
 )
 
 type apiClient struct {
-	baseURL  string
-	resetKey string
-	client   *http.Client
+	baseURL    string
+	resetKey   string
+	client     *http.Client
+	metricsURL string
 }
 
 type apiError struct {
@@ -50,17 +52,21 @@ type apiError struct {
 func newAPIClient(t *testing.T) apiClient {
 	t.Helper()
 	baseURL := os.Getenv("E2E_BASE_URL")
+	metricsURL := os.Getenv("E2E_METRICS_BASE_URL")
 	if baseURL == "" {
-		baseURL = startLocalAPI(t)
+		baseURL, metricsURL = startLocalAPI(t)
+	} else if metricsURL == "" {
+		metricsURL = strings.Replace(baseURL, ":8080", ":9090", 1)
 	}
 	return apiClient{
-		baseURL:  strings.TrimRight(baseURL, "/"),
-		resetKey: valueOrDefault(os.Getenv("E2E_RESET_KEY"), "local-e2e-reset-only"),
-		client:   &http.Client{Timeout: 10 * time.Second},
+		baseURL:    strings.TrimRight(baseURL, "/"),
+		metricsURL: strings.TrimRight(metricsURL, "/"),
+		resetKey:   valueOrDefault(os.Getenv("E2E_RESET_KEY"), "local-e2e-reset-only"),
+		client:     &http.Client{Timeout: 10 * time.Second},
 	}
 }
 
-func startLocalAPI(t *testing.T) string {
+func startLocalAPI(t *testing.T) (string, string) {
 	t.Helper()
 	location, err := time.LoadLocation("America/Chicago")
 	if err != nil {
@@ -96,6 +102,8 @@ func startLocalAPI(t *testing.T) string {
 		ProductionDataApproved:       true,
 	}
 	repository := store.New(db, location)
+	metrics := observability.NewMetrics("e2e")
+	observedRepository := observability.NewObservedStore(repository, metrics)
 	media, err := rewardmedia.NewFileStore(filepath.Join(t.TempDir(), "reward-media"))
 	if err != nil {
 		t.Fatal(err)
@@ -104,7 +112,7 @@ func startLocalAPI(t *testing.T) string {
 	staff := staffauth.NewService(db, cfg.StaffSecretKey, authn.NewSlot())
 	server := httptest.NewServer(httpapi.NewHandler(
 		cfg,
-		httpapi.WithStore(repository),
+		httpapi.WithStore(observedRepository),
 		httpapi.WithAuthenticator(authn.Fallback{
 			Primary:   authn.Fallback{Primary: sessions, Secondary: authn.NewE2EFixtures()},
 			Secondary: staff,
@@ -119,9 +127,13 @@ func startLocalAPI(t *testing.T) string {
 		httpapi.WithAuthFixtureReset(func(ctx context.Context) error {
 			return sessions.ResetE2ECredential(ctx, "account-mason", e2eLoginPIN, e2eLoginCredential)
 		}),
+		httpapi.WithMiddleware(observability.HTTPMiddleware(nil, metrics)),
+		httpapi.WithOperationalObserver(metrics),
 	))
 	t.Cleanup(server.Close)
-	return server.URL
+	metricsServer := httptest.NewServer(metrics.Handler())
+	t.Cleanup(metricsServer.Close)
+	return server.URL, metricsServer.URL
 }
 
 // The CLI tests reach the same database the API is using, so the local path has

@@ -144,11 +144,13 @@ func (service *service) connectTeamCanvasSocket(w http.ResponseWriter, r *http.R
 	ticket := teamCanvasSocketTicket(r.Header.Values("Sec-WebSocket-Protocol"))
 	claim, ok := service.canvasTickets.consumeTeam(ticket, teamID)
 	if !ok {
+		service.observeCanvasConnection(0, "rejected")
 		writeError(w, r, http.StatusUnauthorized, "invalid_socket_ticket", "The live canvas ticket is invalid or expired.")
 		return
 	}
 	projection, err := service.store.TeamCanvas(r.Context(), claim.Actor, teamID, service.now().UTC())
 	if err != nil || projection.WeekKey != claim.WeekKey {
+		service.observeCanvasConnection(0, "error")
 		service.writeTeamCanvasError(w, r, err)
 		return
 	}
@@ -160,8 +162,11 @@ func (service *service) connectTeamCanvasSocket(w http.ResponseWriter, r *http.R
 	}
 	connection, err := websocket.Accept(w, r, options)
 	if err != nil {
+		service.observeCanvasConnection(0, "rejected")
 		return
 	}
+	service.observeCanvasConnection(1, "success")
+	defer service.observeCanvasConnection(-1, "disconnected")
 	defer connection.CloseNow()
 	connection.SetReadLimit(16 * 1024)
 	updates, unsubscribe := service.canvasEvents.subscribe(teamID)
@@ -270,6 +275,7 @@ func (service *service) readTeamCanvasSocket(
 			return
 		}
 		if message.Version != 1 || len(message.MessageID) > 64 {
+			service.observeCanvasMessage(message.Type, "invalid")
 			sendTeamCanvasSocketError(ctx, outgoing, message.MessageID)
 			continue
 		}
@@ -285,15 +291,18 @@ func (service *service) readTeamCanvasSocket(
 		switch message.Type {
 		case "presence.visible":
 			if message.Visible == nil {
+				service.observeCanvasMessage("presence", "invalid")
 				sendTeamCanvasSocketError(ctx, outgoing, message.MessageID)
 				continue
 			}
 			service.canvasRooms.setVisible(teamID, connectionID, *message.Visible, service.now().UTC())
+			service.observeCanvasMessage("presence", "success")
 			continue
 		case "physics.snapshot":
 			var frame teamCanvasPhysicsFrame
 			if json.Unmarshal(message.Frame, &frame) != nil || !validTeamCanvasHostFrame(frame) ||
 				!service.canvasRooms.publish(teamID, connectionID, frame) {
+				service.observeCanvasMessage("physics", "invalid")
 				sendTeamCanvasSocketError(ctx, outgoing, message.MessageID)
 				continue
 			}
@@ -301,9 +310,11 @@ func (service *service) readTeamCanvasSocket(
 			if checkpoint, save := service.canvasRooms.checkpoint(teamID, service.now().UTC(), false); save {
 				go service.saveTeamCanvasHostSnapshot(teamID, checkpoint)
 			}
+			service.observeCanvasMessage("physics", "success")
 			continue
 		case "avatar.target":
 			if len(message.MessageID) == 0 || !validTeamCanvasPosition(message.Position) {
+				service.observeCanvasMessage("avatar", "invalid")
 				sendTeamCanvasSocketError(ctx, outgoing, message.MessageID)
 				continue
 			}
@@ -313,6 +324,7 @@ func (service *service) readTeamCanvasSocket(
 			}
 			movementCount++
 			if movementCount > 30 {
+				service.observeCanvasMessage("avatar", "rate_limited")
 				select {
 				case outgoing <- teamCanvasSocketOutput{Version: 1, Type: "error", MessageID: message.MessageID, Code: "rate_limited", Message: "Live movement is arriving too quickly."}:
 				case <-ctx.Done():
@@ -321,6 +333,7 @@ func (service *service) readTeamCanvasSocket(
 				continue
 			}
 		default:
+			service.observeCanvasMessage(message.Type, "invalid")
 			sendTeamCanvasSocketError(ctx, outgoing, message.MessageID)
 			continue
 		}
@@ -339,9 +352,26 @@ func (service *service) readTeamCanvasSocket(
 		}
 		select {
 		case outgoing <- teamCanvasSocketOutput{Version: 1, Type: "avatar.accepted", MessageID: message.MessageID, Frame: position}:
+			service.observeCanvasMessage("avatar", "success")
 		case <-ctx.Done():
 			return
 		}
+	}
+}
+
+func (service *service) observeCanvasConnection(delta float64, outcome string) {
+	if service.operations == nil {
+		return
+	}
+	if delta != 0 {
+		service.operations.AddCanvasConnection(delta)
+	}
+	service.operations.ObserveFeature("canvas", "connection", outcome)
+}
+
+func (service *service) observeCanvasMessage(kind, outcome string) {
+	if service.operations != nil {
+		service.operations.ObserveCanvasMessage(kind, outcome)
 	}
 }
 

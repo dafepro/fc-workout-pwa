@@ -59,8 +59,9 @@ func run() error {
 	}
 	go notifications.Run(ctx, notifications.Sender{
 		Outbox: repository, Mailer: mailer, From: cfg.RewardEmailFrom, BaseURL: cfg.RewardEmailBaseURL,
+		Observer: metrics,
 	})
-	go monitorTeamRewardTransitions(ctx, repository)
+	go monitorTeamRewardTransitions(ctx, repository, metrics)
 	media, err := rewardmedia.NewFileStore(cfg.RewardMediaDir)
 	if err != nil {
 		return fmt.Errorf("open reward media storage: %w", err)
@@ -93,6 +94,7 @@ func run() error {
 		httpapi.WithStaffAccountManager(staff),
 		httpapi.WithCredentialManager(sessions),
 		httpapi.WithMiddleware(observability.HTTPMiddleware(logger, metrics)),
+		httpapi.WithOperationalObserver(metrics),
 	}
 	if resetAuthFixtures != nil {
 		handlerOptions = append(handlerOptions, httpapi.WithAuthFixtureReset(resetAuthFixtures))
@@ -126,13 +128,16 @@ func run() error {
 	}
 }
 
-func monitorTeamRewardTransitions(ctx context.Context, repository *store.Store) {
+func monitorTeamRewardTransitions(ctx context.Context, repository *store.Store, metrics *observability.Metrics) {
 	refresh := func() {
 		refreshContext, cancel := context.WithTimeout(ctx, 15*time.Second)
 		defer cancel()
 		if err := repository.RefreshActiveTeamRewards(refreshContext, time.Now().UTC()); err != nil {
+			metrics.ObserveFeature("team_rewards", "transition", "error")
 			slog.Warn("team reward transition refresh failed", "error", err)
+			return
 		}
+		metrics.ObserveFeature("team_rewards", "transition", "success")
 	}
 	refresh()
 	ticker := time.NewTicker(30 * time.Second)

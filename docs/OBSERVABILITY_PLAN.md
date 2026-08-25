@@ -156,6 +156,9 @@ initial bounded metric set is:
   histogram for predefined operation groups;
 - `zoomigo_auth_attempts_total{surface,outcome}` with aggregate outcomes only;
 - `zoomigo_canvas_connections` and predefined message/error counters;
+- `zoomigo_feature_operations_total{feature,operation,outcome}` with fixed
+  labels for plans, Prize Boxes, Team Rewards, notification delivery, and
+  Canvas lifecycle;
 - `zoomigo_build_info{version}`;
 - standard Go process/runtime metrics;
 - Alloy host metrics for CPU, memory, filesystem usage, and container restarts;

@@ -48,7 +48,8 @@ func TestSenderRecordsPermanentFailureWithoutChildDetail(t *testing.T) {
 	sender := notifications.Sender{Outbox: outbox,
 		Mailer: notifications.Resend{APIKey: "test", Endpoint: server.URL, Client: server.Client()},
 		From:   "ZoomiGo <rewards@example.test>", BaseURL: "https://app.example.test",
-		Now: func() time.Time { return time.Date(2026, 8, 25, 12, 0, 0, 0, time.UTC) },
+		Now:      func() time.Time { return time.Date(2026, 8, 25, 12, 0, 0, 0, time.UTC) },
+		Observer: &recordingNotificationObserver{},
 	}
 	if err := sender.Drain(context.Background()); err != nil {
 		t.Fatal(err)
@@ -59,6 +60,25 @@ func TestSenderRecordsPermanentFailureWithoutChildDetail(t *testing.T) {
 	if strings.Contains(body, "Mason") || !strings.Contains(body, "4 of 5") {
 		t.Fatalf("email payload contains child detail or omits aggregate progress: %s", body)
 	}
+	observer := sender.Observer.(*recordingNotificationObserver)
+	if !observer.saw("drain", "success") || !observer.saw("delivery", "permanent_failure") {
+		t.Fatalf("notification outcomes = %+v", observer.outcomes)
+	}
+}
+
+type recordingNotificationObserver struct{ outcomes [][2]string }
+
+func (observer *recordingNotificationObserver) ObserveNotification(operation, outcome string) {
+	observer.outcomes = append(observer.outcomes, [2]string{operation, outcome})
+}
+
+func (observer *recordingNotificationObserver) saw(operation, outcome string) bool {
+	for _, observed := range observer.outcomes {
+		if observed == [2]string{operation, outcome} {
+			return true
+		}
+	}
+	return false
 }
 
 type recordingOutbox struct {

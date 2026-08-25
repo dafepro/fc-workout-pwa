@@ -20,6 +20,7 @@ type Metrics struct {
 	AuthAttempts            *prometheus.CounterVec
 	CanvasConnections       prometheus.Gauge
 	CanvasMessages          *prometheus.CounterVec
+	FeatureOperations       *prometheus.CounterVec
 }
 
 func NewMetrics(version string) *Metrics {
@@ -64,6 +65,10 @@ func NewMetrics(version string) *Metrics {
 			Name: "zoomigo_canvas_messages_total",
 			Help: "Team Canvas messages by predefined kind and aggregate outcome.",
 		}, []string{"kind", "outcome"}),
+		FeatureOperations: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Name: "zoomigo_feature_operations_total",
+			Help: "Major feature operations by fixed feature, operation, and aggregate outcome.",
+		}, []string{"feature", "operation", "outcome"}),
 	}
 	registry.MustRegister(
 		collectors.NewGoCollector(),
@@ -77,6 +82,7 @@ func NewMetrics(version string) *Metrics {
 		metrics.AuthAttempts,
 		metrics.CanvasConnections,
 		metrics.CanvasMessages,
+		metrics.FeatureOperations,
 		prometheus.NewGaugeFunc(prometheus.GaugeOpts{
 			Name:        "zoomigo_build_info",
 			Help:        "Build information for the running API.",
@@ -99,6 +105,9 @@ func (metrics *Metrics) observeHTTP(method, route string, status int, code strin
 	}
 	if surface := authSurface(route); surface != "" {
 		metrics.ObserveAuth(surface, authOutcome(status, code))
+	}
+	if feature, operation := featureOperation(method, route); feature != "" {
+		metrics.ObserveFeature(feature, operation, featureOutcome(status, code))
 	}
 }
 
@@ -150,8 +159,70 @@ func (metrics *Metrics) SetCanvasConnections(value float64) {
 	metrics.CanvasConnections.Set(value)
 }
 
+func (metrics *Metrics) AddCanvasConnection(delta float64) {
+	metrics.CanvasConnections.Add(delta)
+}
+
 func (metrics *Metrics) ObserveCanvasMessage(kind, outcome string) {
-	metrics.CanvasMessages.WithLabelValues(boundedValue(kind, canvasKinds), boundedValue(outcome, outcomes)).Inc()
+	boundedOutcome := boundedValue(outcome, outcomes)
+	metrics.CanvasMessages.WithLabelValues(boundedValue(kind, canvasKinds), boundedOutcome).Inc()
+	metrics.ObserveFeature("canvas", "message", boundedOutcome)
+}
+
+func (metrics *Metrics) ObserveFeature(feature, operation, outcome string) {
+	metrics.FeatureOperations.WithLabelValues(
+		boundedValue(feature, features), boundedValue(operation, featureOperations), boundedValue(outcome, outcomes),
+	).Inc()
+}
+
+func (metrics *Metrics) ObserveNotification(operation, outcome string) {
+	metrics.ObserveFeature("notifications", operation, outcome)
+}
+
+func featureOperation(method, route string) (string, string) {
+	switch method + " " + route {
+	case "POST /v1/me/prize-boxes/claim-daily":
+		return "prize_boxes", "claim"
+	case "POST /v1/me/prize-boxes/{boxId}/open":
+		return "prize_boxes", "open"
+	case "POST /v1/staff/teams/{teamId}/training-plans":
+		return "training_plans", "publish"
+	case "POST /v1/staff/teams/{teamId}/training-plans/{planId}/cancel":
+		return "training_plans", "cancel"
+	case "POST /v1/staff/teams/{teamId}/training-plans/{planId}/reschedule":
+		return "training_plans", "reschedule"
+	case "POST /v1/staff/teams/{teamId}/rewards":
+		return "team_rewards", "create"
+	case "POST /v1/staff/teams/{teamId}/rewards/{rewardId}/publish":
+		return "team_rewards", "publish"
+	case "POST /v1/staff/teams/{teamId}/rewards/{rewardId}/cancel":
+		return "team_rewards", "cancel"
+	case "POST /v1/teams/{teamId}/rewards/{rewardId}/reports":
+		return "team_rewards", "report"
+	case "POST /v1/staff/reward-reports/{reportId}/resolve":
+		return "team_rewards", "resolve"
+	default:
+		return "", ""
+	}
+}
+
+func featureOutcome(status int, code string) string {
+	if status >= 200 && status < 300 {
+		return "success"
+	}
+	switch code {
+	case "prize_box_unavailable":
+		return "unavailable"
+	case "idempotency_conflict", "training_plan_overlap", "training_plan_started", "training_plan_changed",
+		"active_team_reward_exists", "team_reward_state", "team_reward_report_exists":
+		return "conflict"
+	case "not_found", "unlock_not_found":
+		return "not_found"
+	}
+	if status >= 400 && status < 500 {
+		return "invalid"
+	}
+	return "error"
 }
 
 func statusClass(status int) string {
@@ -176,5 +247,14 @@ var sqliteOperations = map[string]struct{}{
 }
 
 var authSurfaces = map[string]struct{}{"player": {}, "staff_password": {}, "staff_totp": {}, "staff_step_up": {}}
-var canvasKinds = map[string]struct{}{"connection": {}, "reaction": {}, "presence": {}, "stamp": {}}
-var outcomes = map[string]struct{}{"success": {}, "invalid": {}, "locked": {}, "throttled": {}, "busy": {}, "not_ready": {}, "conflict": {}, "error": {}}
+var canvasKinds = map[string]struct{}{"connection": {}, "avatar": {}, "physics": {}, "presence": {}, "reaction": {}, "stamp": {}}
+var features = map[string]struct{}{"prize_boxes": {}, "training_plans": {}, "team_rewards": {}, "notifications": {}, "canvas": {}}
+var featureOperations = map[string]struct{}{
+	"claim": {}, "open": {}, "create": {}, "publish": {}, "cancel": {}, "reschedule": {},
+	"report": {}, "resolve": {}, "transition": {}, "drain": {}, "delivery": {}, "connection": {}, "message": {},
+}
+var outcomes = map[string]struct{}{
+	"success": {}, "invalid": {}, "locked": {}, "throttled": {}, "busy": {}, "not_ready": {}, "conflict": {},
+	"unavailable": {}, "not_found": {}, "rejected": {}, "disconnected": {}, "rate_limited": {},
+	"permanent_failure": {}, "retry": {}, "error": {},
+}

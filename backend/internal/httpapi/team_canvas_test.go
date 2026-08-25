@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -43,11 +44,13 @@ func TestTeamCanvasRoutesGatePersistAndBroadcast(t *testing.T) {
 		}
 	}
 
+	observer := &recordingOperationalObserver{}
 	handler := httpapi.NewHandler(config.Config{Environment: "development", AllowedOrigin: "http://[::1]:3000"},
 		httpapi.WithStore(store.New(db, time.UTC)),
 		httpapi.WithAuthenticator(socialAuthenticator{actor: domain.Actor{
 			Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-one",
 		}}),
+		httpapi.WithOperationalObserver(observer),
 	)
 	server := httptest.NewServer(handler)
 	t.Cleanup(server.Close)
@@ -195,7 +198,71 @@ func TestTeamCanvasRoutesGatePersistAndBroadcast(t *testing.T) {
 	if productionSnapshot.Code != http.StatusOK || strings.Contains(productionSnapshot.Body.String(), `"availableRewards":3`) {
 		t.Fatalf("production honored developer stamps: %d %s", productionSnapshot.Code, productionSnapshot.Body.String())
 	}
+	_ = socket.Close(websocket.StatusNormalClosure, "done")
+	deadline := time.Now().Add(time.Second)
+	for time.Now().Before(deadline) && !observer.sawFeature("canvas", "connection", "disconnected") {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if observer.connectionCount() != 0 ||
+		!observer.sawFeature("canvas", "connection", "success") ||
+		!observer.sawMessage("avatar", "invalid") ||
+		!observer.sawMessage("avatar", "success") {
+		t.Fatalf("canvas operational outcomes = %+v", observer)
+	}
 
+}
+
+type recordingOperationalObserver struct {
+	mu          sync.Mutex
+	connections float64
+	features    [][3]string
+	messages    [][2]string
+}
+
+func (observer *recordingOperationalObserver) AddCanvasConnection(delta float64) {
+	observer.mu.Lock()
+	defer observer.mu.Unlock()
+	observer.connections += delta
+}
+
+func (observer *recordingOperationalObserver) ObserveCanvasMessage(kind, outcome string) {
+	observer.mu.Lock()
+	defer observer.mu.Unlock()
+	observer.messages = append(observer.messages, [2]string{kind, outcome})
+}
+
+func (observer *recordingOperationalObserver) ObserveFeature(feature, operation, outcome string) {
+	observer.mu.Lock()
+	defer observer.mu.Unlock()
+	observer.features = append(observer.features, [3]string{feature, operation, outcome})
+}
+
+func (observer *recordingOperationalObserver) sawFeature(feature, operation, outcome string) bool {
+	observer.mu.Lock()
+	defer observer.mu.Unlock()
+	for _, observed := range observer.features {
+		if observed == [3]string{feature, operation, outcome} {
+			return true
+		}
+	}
+	return false
+}
+
+func (observer *recordingOperationalObserver) connectionCount() float64 {
+	observer.mu.Lock()
+	defer observer.mu.Unlock()
+	return observer.connections
+}
+
+func (observer *recordingOperationalObserver) sawMessage(kind, outcome string) bool {
+	observer.mu.Lock()
+	defer observer.mu.Unlock()
+	for _, observed := range observer.messages {
+		if observed == [2]string{kind, outcome} {
+			return true
+		}
+	}
+	return false
 }
 
 func teamCanvasRequest(t *testing.T, client *http.Client, method, url, body string) *http.Response {

@@ -203,3 +203,32 @@ groups:
           }
         labels: { severity: page }
         isPaused: true
+      - uid: zoomigo-notification-delivery-failures
+        title: Team reward notification delivery failing
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: ${PROMETHEUS_DATASOURCE_UID}
+            model:
+              {
+                expr: 'sum(increase(zoomigo_feature_operations_total{feature="notifications",operation="delivery",outcome=~"retry|permanent_failure|error"}[15m]))',
+                instant: true,
+              }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              {
+                type: threshold,
+                expression: A,
+                conditions: [{ evaluator: { type: gt, params: [0] } }],
+              }
+        for: 1m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          {
+            summary: "A team reward notification could not be delivered",
+            dashboardUid: zoomigo-backend-overview,
+          }
+        labels: { severity: ticket }
+        isPaused: true
