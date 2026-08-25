@@ -18,6 +18,7 @@ import {
   type TeamCanvasSettings,
 } from "../data/team-canvas-gateway";
 import { createTrainingDashboardGateway } from "../data/training-dashboard-gateway";
+import { plannedActivityTarget } from "../domain/rules";
 import { createTrainingEntryGateway } from "../data/training-entry-gateway";
 import { useOptionalAuth } from "../state/auth-context";
 import { useOptionalTraining } from "../state/training-context";
@@ -331,7 +332,9 @@ export function TeamCanvasProvider({
             plannedActivity ?? assignedActivity ?? displayedPlanActivity;
           if (!activity)
             throw new Error("Today’s approved activity is unavailable.");
-          const target = assignment?.targetValue ?? activity.defaultValue;
+          const target =
+            assignment?.targetValue ??
+            plannedActivityTarget(activity, planBlock);
           const activityValue =
             input.completion === "reach"
               ? Math.ceil((target * 1.25) / activity.step) * activity.step

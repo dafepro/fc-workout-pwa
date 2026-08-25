@@ -4,6 +4,7 @@ import type {
   TrainingEntry,
   TrainingEntryInput,
 } from "../domain/types";
+import { plannedActivityTarget } from "../domain/rules";
 import type {
   CompletionChoice,
   ExtraActivity,
@@ -196,17 +197,18 @@ export function momentumCompletionInput(
   const activity = model.activitiesBySelection[input.planSelection];
   if (!activity)
     throw new Error(momentumAlphaCopy.connected.activityUnavailable);
+  const planBlock = model.planDay?.blocks.find((block) => !block.completed);
   const target =
     input.planSelection === "prescribed" && model.assignment
       ? model.assignment.targetValue
-      : activity.defaultValue;
+      : input.planSelection === "prescribed"
+        ? plannedActivityTarget(activity, planBlock)
+        : activity.defaultValue;
   const value =
     input.choice === "stretch"
       ? steppedValue(target * 1.25, activity.step, activity.max)
       : target;
   const levels = feelingLevels(input.feeling);
-  const planBlock = model.planDay?.blocks.find((block) => !block.completed);
-
   return {
     activityId: activity.id,
     assignmentId:
@@ -274,6 +276,9 @@ function planContent(
       planDay.blocks.find((block) => !block.completed) ?? planDay.blocks[0];
     const activityName =
       activity?.name ?? plannedBlock?.label ?? planDay.templateName;
+    const target = activity
+      ? plannedActivityTarget(activity, plannedBlock)
+      : null;
     return {
       dateLabel: dateLabel(now),
       activity: activityName,
@@ -282,12 +287,14 @@ function planContent(
         activity?.instructions[0] ??
         activity?.description ??
         momentumAlphaCopy.connected.unavailableActivityInstruction,
-      goal: activity
-        ? `Goal · ${formatValue(activity.defaultValue, activity.unit)}`
-        : momentumAlphaCopy.connected.unavailableActivityGoal,
-      stretch: activity
-        ? `Stretch · ${formatValue(steppedValue(activity.defaultValue * 1.25, activity.step, activity.max), activity.unit)}`
-        : momentumAlphaCopy.connected.unavailableActivityStretch,
+      goal:
+        activity && target !== null
+          ? `Goal · ${formatValue(target, activity.unit)}`
+          : momentumAlphaCopy.connected.unavailableActivityGoal,
+      stretch:
+        activity && target !== null
+          ? `Stretch · ${formatValue(steppedValue(target * 1.25, activity.step, activity.max), activity.unit)}`
+          : momentumAlphaCopy.connected.unavailableActivityStretch,
       reasons: [
         momentumAlphaCopy.connected.recommendationReasons[
           recommendation.explanationKey

@@ -163,6 +163,121 @@ describe("connected Team Canvas training", () => {
     );
   });
 
+  it("saves a duration activity using the coach plan block duration", async () => {
+    const requests: { url: string; init?: RequestInit }[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        requests.push({ url, init });
+        if (url.includes("/training-dashboard")) {
+          return Response.json({
+            team: { id: "team-new", name: "New Team", weeklyGoal: 3 },
+            activities: [
+              {
+                id: "recovery-walk-jog",
+                name: "Recovery Walk / Jog",
+                inputKind: "duration",
+                unit: "minutes",
+                minimumValue: 1,
+                maximumValue: 90,
+                stepValue: 1,
+                defaultValue: 20,
+              },
+            ],
+            currentAssignment: null,
+            currentPlanDay: {
+              planId: "plan-recovery",
+              dayIndex: 1,
+              templateName: "Speed and recovery",
+              occursOn: "2026-08-25",
+              kind: "recovery",
+              focus: "recovery",
+              durationMinutes: 15,
+              intensity: "easy",
+              completed: false,
+              blocks: [
+                {
+                  blockIndex: 0,
+                  activityDefinitionId: "recovery-walk-jog",
+                  label: "Recovery walk or jog",
+                  durationMinutes: 15,
+                  completed: false,
+                },
+              ],
+            },
+            summary: {},
+            teamPulse: {
+              activeThisWeek: 0,
+              unlocked: false,
+              recentActivities: [],
+            },
+            streakComparison: {},
+          });
+        }
+        if (
+          url.endsWith("/v1/me/training-entries") &&
+          init?.method === "POST"
+        ) {
+          const body = JSON.parse(String(init.body)) as {
+            activityDefinitionId: string;
+            occurredAt: string;
+            result: { kind: string; value: number; unit: string };
+            effortLevel: number;
+            exhaustionLevel: number;
+          };
+          return Response.json(
+            {
+              id: "entry-recovery",
+              playerId: "player-new",
+              teamId: "team-new",
+              activityDefinitionId: body.activityDefinitionId,
+              occurredAt: body.occurredAt,
+              result: body.result,
+              effortLevel: body.effortLevel,
+              exhaustionLevel: body.exhaustionLevel,
+              createdAt: body.occurredAt,
+              deleteEligibleUntil: body.occurredAt,
+            },
+            { status: 201 },
+          );
+        }
+        if (url.endsWith("/canvas")) {
+          return Response.json(
+            {
+              error: {
+                code: "team_canvas_locked",
+                message: "Finish today first.",
+              },
+            },
+            { status: 423 },
+          );
+        }
+        throw new Error(`Unexpected request: ${url}`);
+      }),
+    );
+
+    render(
+      <TeamCanvasProvider>
+        <CompleteTraining />
+      </TeamCanvasProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByText("locked")).toBeVisible());
+    fireEvent.click(screen.getByRole("button", { name: "Complete plan" }));
+    await waitFor(() => expect(screen.getByText("saved")).toBeVisible());
+
+    const create = requests.find(
+      ({ url, init }) =>
+        url.endsWith("/v1/me/training-entries") && init?.method === "POST",
+    );
+    expect(JSON.parse(String(create?.init?.body))).toMatchObject({
+      activityDefinitionId: "recovery-walk-jog",
+      plan: { planId: "plan-recovery", dayIndex: 1, blockIndex: 0 },
+      result: { kind: "duration", value: 15, unit: "minutes" },
+    });
+  });
+
   it("keeps a safe API rejection available to the player UI", async () => {
     vi.stubGlobal(
       "fetch",

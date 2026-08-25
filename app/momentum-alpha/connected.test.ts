@@ -286,6 +286,11 @@ describe("connected Momentum", () => {
     const model = connectedMomentumModel(
       {
         ...dashboard,
+        activities: activities.map((activity) =>
+          activity.id === "recovery-walk-jog"
+            ? { ...activity, defaultValue: 20 }
+            : activity,
+        ),
         currentPlanDay: {
           planId: "plan-one",
           dayIndex: 0,
@@ -320,6 +325,7 @@ describe("connected Momentum", () => {
     );
 
     expect(model.plan.activity).toBe("Recovery walk/jog");
+    expect(model.plan.goal).toBe("Goal · 15 minutes");
     expect(
       momentumCompletionInput(model, {
         choice: "goal",
@@ -328,6 +334,7 @@ describe("connected Momentum", () => {
       }),
     ).toMatchObject({
       activityId: "recovery-walk-jog",
+      value: 15,
       plan: { planId: "plan-one", dayIndex: 0, blockIndex: 1 },
     });
   });
