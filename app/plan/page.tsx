@@ -20,9 +20,11 @@ export default function PlayerPlanPage() {
   if (!plan) {
     return (
       <div className="player-page plan-page plan-page--empty">
+        <Link className="plan-overview__back" href="/">
+          ← {copy.backToToday}
+        </Link>
         <h1>{copy.fullPlanTitle}</h1>
         <p>{copy.planUnavailable}</p>
-        <Link href="/">← {copy.backToToday}</Link>
       </div>
     );
   }

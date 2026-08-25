@@ -32,9 +32,10 @@ and does not appear beside a competing coach item.
 
 ## Progress and week context
 
-The Today header shows the player's avatar, composite Momentum value, check-in
-streak, and an explanation affordance. It links to `/progress`, where the full
-gauge, weekly context, and improvement guidance remain available.
+The Today header shows the player's avatar, a small circular gauge, composite
+Momentum value, check-in streak, and an explanation affordance. It links to
+`/progress`, where the full gauge, weekly context, and improvement guidance
+remain available.
 
 When a plan exists, a seven-cell strip communicates completed, missed, planned
 rest, Today, and future locked states. `/plan` contains the complete stacked
@@ -53,6 +54,12 @@ Today always keeps these compact and ordered:
 Team activity, reward progress, and reward claims do not become permanent
 promotional cards on Today. A transient earned-prize celebration may be added
 after the durable event exists, then must collapse back to View prize boxes.
+The Prize boxes row shows a compact unopened badge only when the authoritative
+claim status reports an available box.
+
+Secondary pages place their return-to-Today affordance at the top left before
+the page heading. They do not defer the primary escape route to the bottom of
+long content.
 
 ## Extension constraints
 

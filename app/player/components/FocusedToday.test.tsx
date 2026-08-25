@@ -1,7 +1,14 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { describe, expect, it, vi } from "vitest";
 import type { TrainingPlanWindow } from "../../domain/types";
+import type { DailyDropGateway } from "../../data/daily-drop-gateway";
 import { CompactPlayerStatus } from "./CompactPlayerStatus";
 import { PlanWeekStrip } from "./PlanWeekStrip";
 import { TodayPlanHero } from "./TodayPlanHero";
@@ -34,7 +41,11 @@ describe("focused Today components", () => {
       name: /Momentum 21.5, 5-day check-in streak/i,
     });
     expect(summary).toHaveAttribute("href", "/progress");
-    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("progressbar", {
+        name: "Momentum 21.5 out of 100",
+      }),
+    ).toBeVisible();
 
     fireEvent.click(
       screen.getByRole("button", { name: "What Momentum means" }),
@@ -136,6 +147,44 @@ describe("focused Today components", () => {
     expect(
       within(list).getByRole("link", { name: /Your momentum/i }),
     ).toHaveAttribute("href", "/progress");
+  });
+
+  it("badges prize boxes only when an unopened box is available", async () => {
+    const availableGateway: DailyDropGateway = {
+      status: vi.fn().mockResolvedValue({
+        state: "available",
+        day: "2026-08-24",
+      }),
+      claim: vi.fn(),
+    };
+    const { rerender } = render(
+      <TodaySecondaryActions
+        teamLocked={false}
+        prizeBoxesConnected
+        prizeBoxGateway={availableGateway}
+      />,
+    );
+
+    expect(await screen.findByText("1 unopened")).toBeVisible();
+
+    const claimedGateway: DailyDropGateway = {
+      status: vi.fn().mockResolvedValue({
+        state: "collection_complete",
+        day: "2026-08-24",
+      }),
+      claim: vi.fn(),
+    };
+    rerender(
+      <TodaySecondaryActions
+        teamLocked={false}
+        prizeBoxesConnected
+        prizeBoxGateway={claimedGateway}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(screen.queryByText("1 unopened")).not.toBeInTheDocument(),
+    );
   });
 });
 

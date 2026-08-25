@@ -148,7 +148,9 @@ describe("consolidated default player experience", () => {
     expect(
       screen.getByRole("link", { name: /Momentum 68, 5-day check-in streak/ }),
     ).toHaveAttribute("href", "/progress");
-    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("progressbar", { name: "Momentum 68 out of 100" }),
+    ).toBeVisible();
     expect(
       screen.getByRole("heading", { name: "Hill Sprints" }),
     ).toBeInTheDocument();

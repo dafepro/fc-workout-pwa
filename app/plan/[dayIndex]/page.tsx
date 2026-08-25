@@ -24,8 +24,10 @@ export default function PlayerPlanDayPage() {
   if (!plan || !day) {
     return (
       <div className="player-page plan-detail plan-page--empty">
+        <Link className="plan-detail__back" href="/plan">
+          ← {copy.fullPlanTitle}
+        </Link>
         <h1>Plan day unavailable</h1>
-        <Link href="/plan">← {copy.fullPlan}</Link>
       </div>
     );
   }
@@ -39,8 +41,8 @@ export default function PlayerPlanDayPage() {
 
   return (
     <article className="player-page plan-detail">
-      <Link className="plan-detail__back" href="/plan">
-        ← {copy.fullPlanTitle}
+      <Link className="plan-detail__back" href={today ? "/" : "/plan"}>
+        ← {today ? copy.backToToday : copy.fullPlanTitle}
       </Link>
       <header>
         <div>
@@ -95,11 +97,6 @@ export default function PlayerPlanDayPage() {
           </section>
         </>
       )}
-      {today ? (
-        <Link className="plan-detail__action" href="/">
-          Go to today’s action
-        </Link>
-      ) : null}
     </article>
   );
 }

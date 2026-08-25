@@ -2345,19 +2345,43 @@
   min-width: 0;
   flex: 1;
   align-items: center;
-  gap: 0.85rem;
+  gap: 0.5rem;
   color: #183f34;
 }
 
-.player-status-row__summary > span {
+.player-status-row__metric,
+.player-status-row__streak {
   display: flex;
   align-items: baseline;
   gap: 0.28rem;
 }
 
-.player-status-row__summary > span + span {
-  padding-left: 0.85rem;
+.player-status-row__streak {
+  padding-left: 0.65rem;
   border-left: 1px solid #d6ddd7;
+}
+
+.player-status-row__gauge {
+  --player-momentum-progress: 0deg;
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 999px;
+  background: conic-gradient(
+    var(--lime) var(--player-momentum-progress),
+    #dce2dc var(--player-momentum-progress)
+  );
+  box-shadow: inset 0 0 0 1px rgb(19 67 51 / 8%);
+}
+
+.player-status-row__gauge > span {
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: inherit;
+  background: #f7f7f2;
+  box-shadow: inset 0 0 0 1px rgb(19 67 51 / 8%);
 }
 
 .player-status-row__summary small {
@@ -2559,8 +2583,7 @@
 }
 
 .today-plan-hero__primary,
-.today-plan-hero__check-in-actions button:last-child,
-.plan-detail__action {
+.today-plan-hero__check-in-actions button:last-child {
   width: 100%;
   min-height: 3.35rem;
   border: 0;
@@ -2773,6 +2796,22 @@
   font-weight: 950;
 }
 
+.today-secondary-actions__trailing {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.today-secondary-actions__badge {
+  padding: 0.28rem 0.48rem;
+  border-radius: 999px;
+  background: var(--lime);
+  color: #1e421f;
+  font-size: 0.62rem;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
 .plan-page,
 .plan-detail,
 .prize-boxes-page,
@@ -2871,7 +2910,16 @@
 
 .plan-overview__back,
 .plan-detail__back {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 2.35rem;
+  align-items: center;
+  padding: 0.42rem 0.68rem;
+  border: 1px solid #d8e0db;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 84%);
   color: #315e4f;
+  font-size: 0.78rem;
   font-weight: 850;
 }
 
@@ -2909,18 +2957,13 @@
   color: #53615b;
 }
 
-.plan-detail__action {
-  display: grid;
-  place-items: center;
-}
-
 @media (max-width: 22rem) {
   .player-status-row__summary {
     gap: 0.45rem;
   }
 
-  .player-status-row__summary > span + span {
-    padding-left: 0.45rem;
+  .player-status-row__streak {
+    padding-left: 0.4rem;
   }
 
   .player-status-row__summary small {

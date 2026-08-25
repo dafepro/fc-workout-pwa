@@ -55,5 +55,10 @@ describe("PlanOverview", () => {
     expect(
       screen.queryByRole("button", { name: /Start Tuesday/i }),
     ).not.toBeInTheDocument();
+    const back = screen.getByRole("link", { name: "Back to Today" });
+    const heading = screen.getByRole("heading", { name: "Speed and recovery" });
+    expect(
+      back.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });

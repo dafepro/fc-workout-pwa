@@ -81,10 +81,14 @@ export const playerExperienceCopy = {
     logAnotherDetail: "Record something outside the planned workout.",
     prizeBoxes: "View prize boxes",
     prizeBoxesDetail: "See available, earned, or unopened rewards.",
+    prizeBoxesUnopened: (count: number) =>
+      `${count.toLocaleString("en-US")} unopened`,
     yourMomentum: "Your momentum",
     yourMomentumDetail: "View your check-in streak and progress.",
     momentumSummary: (score: number, streak: number) =>
       `Momentum ${score.toLocaleString("en-US")}, ${streak.toLocaleString("en-US")}-day check-in streak`,
+    momentumGauge: (score: number) =>
+      `Momentum ${score.toLocaleString("en-US")} out of 100`,
     momentumInfo:
       "Momentum rewards showing up. Planned workouts, recovery, rest check-ins, and bonus activities all help.",
   },

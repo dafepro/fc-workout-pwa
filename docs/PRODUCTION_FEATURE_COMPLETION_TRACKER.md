@@ -66,13 +66,16 @@ Completion gates:
 
 - [x] A coach plan or planned recovery day owns the hero and its single action.
 - [x] A predefined recommendation appears only when nothing is scheduled.
-- [x] Momentum and the check-in streak fit in one linked status row.
+- [x] Momentum and the check-in streak fit in one linked status row with a
+      small circular gauge.
 - [x] The home plan view summarizes seven states without seven full cards.
 - [x] Full plan and day-detail routes progressively disclose plan context.
 - [x] Starting a workout or rest check-in opens confirmation before saving.
 - [x] Completion transforms the same hero and does not create another dashboard.
 - [x] Team lounge, additional activity, prize boxes, and Momentum are compact,
       ordered destinations.
+- [x] Prize boxes shows an unopened badge only from authoritative availability,
+      and secondary-page return navigation appears before the heading.
 - [x] The obsolete carousel and post-completion recommendation model are removed.
 - [x] Focused component and player-experience tests cover hierarchy and actions.
 

@@ -938,3 +938,8 @@ Momentum Alpha needs independent PWA install/offline behavior.
   page. Personalized coach notes and richer interval instructions will replace
   the bounded system copy when those fields become authoritative.
 - Full interaction specification: `FOCUSED_TODAY_FLOW.md`.
+- Refined: the compact Today status retains a small circular gauge beside the
+  composite Momentum number. The Prize boxes destination row shows an unopened
+  badge only from an authoritative `available` claim status. Secondary-page
+  return-to-Today navigation appears before the page heading rather than after
+  long content.

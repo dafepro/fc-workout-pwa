@@ -79,7 +79,10 @@ export function ConsolidatedToday() {
 
       {planWindow ? <PlanWeekStrip plan={planWindow} /> : null}
 
-      <TodaySecondaryActions teamLocked={!unlocked} />
+      <TodaySecondaryActions
+        teamLocked={!unlocked}
+        prizeBoxesConnected={training?.connected ?? false}
+      />
     </div>
   );
 }

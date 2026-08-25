@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { PlayerAvatar } from "../../components/PlayerAvatar";
 import { useOptionalAuth } from "../../state/auth-context";
 import { playerExperienceCopy } from "../content";
@@ -14,10 +14,13 @@ export function CompactPlayerStatus({
   checkInStreak: number;
 }) {
   const auth = useOptionalAuth();
-  const score = Math.max(0, Math.round(momentumScore * 10) / 10);
+  const score = Math.min(100, Math.max(0, Math.round(momentumScore * 10) / 10));
   const streak = Math.max(0, Math.floor(checkInStreak));
   const copy = playerExperienceCopy.focusedToday;
   const [infoOpen, setInfoOpen] = useState(false);
+  const gaugeStyle = {
+    "--player-momentum-progress": `${score * 3.6}deg`,
+  } as CSSProperties;
 
   return (
     <div className="player-status">
@@ -38,7 +41,18 @@ export function CompactPlayerStatus({
           href="/progress"
           aria-label={copy.momentumSummary(score, streak)}
         >
-          <span>
+          <span
+            className="player-status-row__gauge"
+            role="progressbar"
+            aria-label={copy.momentumGauge(score)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={score}
+            style={gaugeStyle}
+          >
+            <span aria-hidden="true" />
+          </span>
+          <span className="player-status-row__metric">
             <small>Momentum</small>
             <strong>{score}</strong>
           </span>

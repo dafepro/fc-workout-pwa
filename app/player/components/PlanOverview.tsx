@@ -11,6 +11,13 @@ export function PlanOverview({ plan }: { plan: TrainingPlanWindow }) {
 
   return (
     <section className="plan-overview">
+      <Link
+        className="plan-overview__back"
+        href="/"
+        aria-label={copy.backToToday}
+      >
+        ← {copy.backToToday}
+      </Link>
       <header>
         <p className="player-eyebrow">{copy.fullPlanTitle}</p>
         <h1>{plan.templateName}</h1>
@@ -25,9 +32,6 @@ export function PlanOverview({ plan }: { plan: TrainingPlanWindow }) {
           />
         ))}
       </div>
-      <Link className="plan-overview__back" href="/">
-        ← {copy.backToToday}
-      </Link>
     </section>
   );
 }
