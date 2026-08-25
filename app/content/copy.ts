@@ -48,6 +48,11 @@ export const copy = {
     additionalIntro:
       "Nothing will be saved until you choose an activity, review it, and press Save.",
     chooseBeforeSaving: "Choose an activity before saving.",
+    addNote: "Add a note",
+    noteLabel: "Workout note",
+    notePlaceholder:
+      "Add details about your workout for you and your coach to keep an eye on.",
+    notePrivacy: "Private to you and authorized staff.",
     saveActivity: (value: number, unit: string, activity: string) => {
       const displayUnit = value === 1 ? unit.replace(/s$/, "") : unit;
       return `Save ${value.toLocaleString("en-US")} ${displayUnit} · ${activity}`;

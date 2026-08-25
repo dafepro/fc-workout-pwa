@@ -49,6 +49,8 @@ are superseded and must not return through an unfinished older slice.
   cosmetic physics, and a replaceable application-level component boundary.
 - Avatar head, eyes, mouth, and facial hair are independent selections grouped
   under Head, and saving the current avatar updates the lounge presentation.
+- Workout check-ins use activity-independent completion outcomes and may retain
+  one bounded private note without exposing it to team surfaces.
 
 ### Findings resolved by slices J and K
 
@@ -85,6 +87,24 @@ are superseded and must not return through an unfinished older slice.
 
 P0 is intentionally small and first. The redesign should be reliable before a
 new reward loop or another planner capability is layered onto it.
+
+## Delivered follow-up — truthful workout check-ins (2026-08-25)
+
+- [x] Replace numeric Goal/Reach choices in the default and Team Canvas workout
+      confirmation with `Completed as listed`, `Finished part of it`, and
+      `Added something extra`.
+- [x] Remove the coach-approved-alternative control from those confirmation
+      flows; a partial workout remains the planned activity rather than being
+      rewritten as recovery.
+- [x] Add a shared collapsed note control to current, legacy connected, normal,
+      and additional workout logging paths.
+- [x] Canonicalize and persist outcome plus note on the backend with strict
+      values, a 500-character/2,000-byte ceiling, private session authorization,
+      populated-schema migration, and logical-backup coverage.
+- [x] Keep notes out of team projections and show them as plain text only in
+      private session detail.
+- [x] Cover the current 320-pixel browser flow, gateway serialization, store
+      validation, private API visibility, and backup/restore behavior.
 
 ## Slice J — Focused Today correctness and release hardening
 

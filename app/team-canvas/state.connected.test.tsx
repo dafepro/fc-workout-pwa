@@ -92,6 +92,8 @@ describe("connected Team Canvas training", () => {
             result: { kind: string; value: number; unit: string };
             effortLevel: number;
             exhaustionLevel: number;
+            completionOutcome?: string;
+            note?: string;
           };
           return Response.json(
             {
@@ -104,6 +106,8 @@ describe("connected Team Canvas training", () => {
               result: body.result,
               effortLevel: body.effortLevel,
               exhaustionLevel: body.exhaustionLevel,
+              completionOutcome: body.completionOutcome,
+              note: body.note,
               createdAt: body.occurredAt,
               deleteEligibleUntil: body.occurredAt,
             },
@@ -152,6 +156,7 @@ describe("connected Team Canvas training", () => {
       result: { kind: "repetitions", value: 8, unit: "reps" },
       effortLevel: 4,
       exhaustionLevel: 3,
+      completionOutcome: "as_listed",
     });
     expect(JSON.parse(String(create?.init?.body))).not.toHaveProperty(
       "assignmentId",

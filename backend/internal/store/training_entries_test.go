@@ -3,6 +3,7 @@ package store_test
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -138,5 +139,54 @@ func TestCreateTrainingEntryUsesTheTeamsCalendarForMembership(t *testing.T) {
 	}
 	if entry.TeamID != "team-one" || entry.PlayerID != "player-new" {
 		t.Fatalf("unexpected entry: %+v", entry)
+	}
+}
+
+func TestCreateTrainingEntryCanonicalizesPrivateNoteAndOutcome(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+	note := "  First set felt good.\r\nCalf tightened later.  "
+	outcome := "partial"
+
+	entry, err := repository.CreateTrainingEntry(context.Background(), store.CreateTrainingEntryInput{
+		PlayerID: "player-mason", IdempotencyKey: "private-note", Now: now,
+		Request: store.TrainingEntryRequest{
+			TeamID: "team-one", ActivityDefinitionID: "hill-sprints",
+			OccurredAt:  now.Format(time.RFC3339),
+			Result:      store.TrainingResult{Kind: "repetitions", Value: 7, Unit: "reps"},
+			EffortLevel: 4, ExhaustionLevel: 3, CompletionOutcome: outcome, Note: note,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if entry.CompletionOutcome != "partial" {
+		t.Fatalf("completion outcome = %v", entry.CompletionOutcome)
+	}
+	if entry.Note != "First set felt good.\nCalf tightened later." {
+		t.Fatalf("canonical note = %v", entry.Note)
+	}
+
+	loaded, err := repository.GetTrainingEntry(context.Background(), entry.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.Note != entry.Note {
+		t.Fatalf("stored note = %v", loaded.Note)
+	}
+
+	tooLong := strings.Repeat("a", 501)
+	_, err = repository.CreateTrainingEntry(context.Background(), store.CreateTrainingEntryInput{
+		PlayerID: "player-mason", IdempotencyKey: "note-too-long", Now: now,
+		Request: store.TrainingEntryRequest{
+			TeamID: "team-one", ActivityDefinitionID: "hill-sprints",
+			OccurredAt:  now.Format(time.RFC3339),
+			Result:      store.TrainingResult{Kind: "repetitions", Value: 8, Unit: "reps"},
+			EffortLevel: 4, ExhaustionLevel: 3, Note: tooLong,
+		},
+	})
+	if !errors.Is(err, store.ErrEntryDetailsNotAllowed) {
+		t.Fatalf("long note error = %v", err)
 	}
 }

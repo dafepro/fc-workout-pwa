@@ -3,6 +3,7 @@ import type {
   ActivityId,
   TrainingEntry,
   TrainingEntryInput,
+  WorkoutCompletionOutcome,
 } from "../domain/types";
 import { CURRENT_PLAYER_ID, initialEntries } from "./mockData";
 
@@ -41,6 +42,8 @@ interface APITrainingEntry {
   };
   effortLevel: number;
   exhaustionLevel: number;
+  completionOutcome?: WorkoutCompletionOutcome;
+  note?: string;
   createdAt: string;
   deleteEligibleUntil: string;
 }
@@ -85,6 +88,8 @@ class HTTPTrainingEntryGateway implements TrainingEntryGateway {
         },
         effortLevel: input.effortLevel,
         exhaustionLevel: input.exhaustionLevel,
+        completionOutcome: input.completionOutcome,
+        note: input.note,
       }),
     });
     await throwForError(response);
@@ -130,6 +135,8 @@ class LocalTrainingEntryGateway implements TrainingEntryGateway {
       exhaustionLevel: input.exhaustionLevel,
       assignmentId: input.assignmentId,
       plan: input.plan,
+      completionOutcome: input.completionOutcome,
+      note: input.note,
       createdAt: now.toISOString(),
       deleteEligibleUntil: createDeleteDeadline(now),
     };
@@ -183,6 +190,8 @@ function fromAPIEntry(entry: APITrainingEntry): TrainingEntry {
     deleteEligibleUntil: entry.deleteEligibleUntil,
     assignmentId: entry.assignmentId ?? undefined,
     plan: entry.plan ?? undefined,
+    completionOutcome: entry.completionOutcome,
+    note: entry.note,
   };
 }
 

@@ -56,8 +56,10 @@ Shared fields:
 - time
 - effort level, seven steps
 - exhaustion level, seven steps
+- optional collapsed workout note, private to the player and authorized staff
 
-No notes field.
+The note opens from **Add a note**, accepts at most 500 characters, and is
+stored and rendered as plain text. It is not team-visible.
 
 After saving:
 

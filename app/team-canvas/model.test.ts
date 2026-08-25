@@ -69,15 +69,15 @@ describe("Team Canvas rules", () => {
     );
   });
 
-  it("lets planned rest and an approved alternative unlock Team without stamps", () => {
+  it("lets planned rest and a partial check-in unlock Team without stamps", () => {
     const rest = recordPlannedRest(
       beginDay(initialTeamCanvasState(), {
         dayKey: "2026-08-21",
         dayKind: "rest",
       }),
     );
-    const alternative = recordPrimary(initialTeamCanvasState(), {
-      completion: "approved-alternative",
+    const partial = recordPrimary(initialTeamCanvasState(), {
+      completion: "partial",
       effort: 3,
       tiredness: 3,
     });
@@ -86,8 +86,8 @@ describe("Team Canvas rules", () => {
     expect(rest.completedDayKeys).toEqual(["2026-08-21"]);
     expect(availableRewardCount(rest)).toBe(0);
     expect(recordCooldown(rest)).toBe(rest);
-    expect(teamCanvasUnlocked(alternative)).toBe(true);
-    expect(availableRewardCount(alternative)).toBe(0);
+    expect(teamCanvasUnlocked(partial)).toBe(true);
+    expect(availableRewardCount(partial)).toBe(0);
   });
 
   it("keeps extra workouts private and outside stars, unlocks, and rewards", () => {

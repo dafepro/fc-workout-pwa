@@ -6,7 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 )
@@ -19,6 +22,7 @@ var (
 	ErrEntryDateNotAllowed        = errors.New("entry date is not allowed")
 	ErrEntryResultNotAllowed      = errors.New("entry result is not allowed")
 	ErrEntryLevelsNotAllowed      = errors.New("entry effort or exhaustion is not allowed")
+	ErrEntryDetailsNotAllowed     = errors.New("entry completion outcome or note is not allowed")
 	ErrEntryAssignmentUnavailable = errors.New("entry assignment is unavailable")
 	ErrEntryPlanUnavailable       = errors.New("entry training plan block is unavailable")
 )
@@ -44,6 +48,8 @@ type TrainingEntryRequest struct {
 	Result               TrainingResult          `json:"result"`
 	EffortLevel          int                     `json:"effortLevel"`
 	ExhaustionLevel      int                     `json:"exhaustionLevel"`
+	CompletionOutcome    string                  `json:"completionOutcome,omitempty"`
+	Note                 string                  `json:"note,omitempty"`
 }
 
 type CreateTrainingEntryInput struct {
@@ -64,6 +70,8 @@ type TrainingEntry struct {
 	Result               TrainingResult          `json:"result"`
 	EffortLevel          int                     `json:"effortLevel"`
 	ExhaustionLevel      int                     `json:"exhaustionLevel"`
+	CompletionOutcome    string                  `json:"completionOutcome,omitempty"`
+	Note                 string                  `json:"note,omitempty"`
 	CreatedAt            string                  `json:"createdAt"`
 	DeleteEligibleUntil  string                  `json:"deleteEligibleUntil"`
 	Resource             domain.SessionResource  `json:"-"`
@@ -78,6 +86,14 @@ func (store *Store) CreateTrainingEntry(ctx context.Context, input CreateTrainin
 		input.Request.ExhaustionLevel < 1 || input.Request.ExhaustionLevel > 7 {
 		return TrainingEntry{}, ErrEntryLevelsNotAllowed
 	}
+	if !validCompletionOutcome(input.Request.CompletionOutcome) {
+		return TrainingEntry{}, ErrEntryDetailsNotAllowed
+	}
+	note, err := canonicalTrainingNote(input.Request.Note)
+	if err != nil {
+		return TrainingEntry{}, ErrEntryDetailsNotAllowed
+	}
+	input.Request.Note = note
 	occurredAt, err := time.Parse(time.RFC3339, input.Request.OccurredAt)
 	if err != nil {
 		return TrainingEntry{}, ErrEntryDateNotAllowed
@@ -208,6 +224,8 @@ func (store *Store) CreateTrainingEntry(ctx context.Context, input CreateTrainin
 		Result:               input.Request.Result,
 		EffortLevel:          input.Request.EffortLevel,
 		ExhaustionLevel:      input.Request.ExhaustionLevel,
+		CompletionOutcome:    input.Request.CompletionOutcome,
+		Note:                 input.Request.Note,
 		CreatedAt:            createdAt,
 		DeleteEligibleUntil:  deleteEligibleUntil,
 		Resource: domain.SessionResource{
@@ -222,12 +240,14 @@ func (store *Store) CreateTrainingEntry(ctx context.Context, input CreateTrainin
 			id, player_id, team_id, activity_definition_id, assignment_id,
 			occurred_at, result_value, result_unit, effort_level, exhaustion_level,
 			created_at, delete_eligible_until, idempotency_key,
-			training_plan_id, training_plan_day_index, training_plan_block_index
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			training_plan_id, training_plan_day_index, training_plan_block_index,
+			completion_outcome, note
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		entry.ID, entry.PlayerID, entry.TeamID, entry.ActivityDefinitionID, entry.AssignmentID,
 		entry.OccurredAt, entry.Result.Value, entry.Result.Unit, entry.EffortLevel, entry.ExhaustionLevel,
 		entry.CreatedAt, entry.DeleteEligibleUntil, input.IdempotencyKey,
 		planID(entry.Plan), planDayIndex(entry.Plan), planBlockIndex(entry.Plan),
+		nullIfEmpty(entry.CompletionOutcome), nullIfEmpty(entry.Note),
 	)
 	if err != nil {
 		return TrainingEntry{}, fmt.Errorf("insert training entry: %w", err)
@@ -297,7 +317,7 @@ const trainingEntrySelect = `
 	       e.assignment_id, e.occurred_at, a.input_kind, e.result_value,
 	       e.result_unit, e.effort_level, e.exhaustion_level, e.created_at,
 	       e.delete_eligible_until, e.training_plan_id, e.training_plan_day_index,
-	       e.training_plan_block_index
+	       e.training_plan_block_index, e.completion_outcome, e.note
 	FROM training_entries e
 	JOIN teams t ON t.id = e.team_id
 	JOIN activity_definitions a ON a.id = e.activity_definition_id
@@ -312,13 +332,14 @@ func scanTrainingEntry(scanner rowScanner) (TrainingEntry, error) {
 	var assignmentID sql.NullString
 	var planID sql.NullString
 	var planDayIndex, planBlockIndex sql.NullInt64
+	var completionOutcome, note sql.NullString
 	var deleteEligibleUntil string
 	if err := scanner.Scan(
 		&entry.ID, &entry.PlayerID, &entry.TeamID, &entry.Resource.ClubID,
 		&entry.ActivityDefinitionID, &assignmentID, &entry.OccurredAt,
 		&entry.Result.Kind, &entry.Result.Value, &entry.Result.Unit,
 		&entry.EffortLevel, &entry.ExhaustionLevel, &entry.CreatedAt, &deleteEligibleUntil,
-		&planID, &planDayIndex, &planBlockIndex,
+		&planID, &planDayIndex, &planBlockIndex, &completionOutcome, &note,
 	); err != nil {
 		return TrainingEntry{}, err
 	}
@@ -329,6 +350,12 @@ func scanTrainingEntry(scanner rowScanner) (TrainingEntry, error) {
 		entry.Plan = &TrainingPlanProvenance{
 			PlanID: planID.String, DayIndex: int(planDayIndex.Int64), BlockIndex: int(planBlockIndex.Int64),
 		}
+	}
+	if completionOutcome.Valid {
+		entry.CompletionOutcome = completionOutcome.String
+	}
+	if note.Valid {
+		entry.Note = note.String
 	}
 	entry.DeleteEligibleUntil = deleteEligibleUntil
 	deadline, err := time.Parse(time.RFC3339, deleteEligibleUntil)
@@ -363,7 +390,37 @@ func sameTrainingEntryRequest(entry TrainingEntry, request TrainingEntryRequest,
 		planMatches &&
 		entry.OccurredAt == occurredAt.Format(time.RFC3339Nano) &&
 		entry.Result == request.Result && entry.EffortLevel == request.EffortLevel &&
-		entry.ExhaustionLevel == request.ExhaustionLevel
+		entry.ExhaustionLevel == request.ExhaustionLevel &&
+		entry.CompletionOutcome == request.CompletionOutcome && entry.Note == request.Note
+}
+
+func validCompletionOutcome(value string) bool {
+	return value == "" || value == "as_listed" || value == "partial" || value == "extra"
+}
+
+func canonicalTrainingNote(value string) (string, error) {
+	value = strings.ReplaceAll(value, "\r\n", "\n")
+	value = strings.ReplaceAll(value, "\r", "\n")
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return "", nil
+	}
+	if !utf8.ValidString(value) || utf8.RuneCountInString(value) > 500 || len(value) > 2000 {
+		return "", ErrEntryDetailsNotAllowed
+	}
+	for _, character := range value {
+		if unicode.IsControl(character) && character != '\n' {
+			return "", ErrEntryDetailsNotAllowed
+		}
+	}
+	return value, nil
+}
+
+func nullIfEmpty(value string) any {
+	if value == "" {
+		return nil
+	}
+	return value
 }
 
 func planID(plan *TrainingPlanProvenance) any {

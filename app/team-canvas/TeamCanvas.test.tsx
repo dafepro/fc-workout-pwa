@@ -117,7 +117,7 @@ describe("Team Canvas application", () => {
     expect(screen.queryByText("Team")).toBeNull();
   });
 
-  it("records Reach with two direct feel tracks, then shows cooldown separately", () => {
+  it("records added work with two direct feel tracks, then shows cooldown separately", () => {
     renderTeamCanvas(
       <TeamCanvasProvider>
         <TeamCanvasToday />
@@ -127,7 +127,9 @@ describe("Team Canvas application", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Record today’s plan" }),
     );
-    fireEvent.click(screen.getByRole("button", { name: "Reach · 10 reps" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Added something extra" }),
+    );
     expect(screen.queryByRole("combobox")).toBeNull();
     fireEvent.change(screen.getByRole("slider", { name: "Effort" }), {
       target: { value: "5" },

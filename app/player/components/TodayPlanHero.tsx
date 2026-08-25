@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { WorkoutNoteField } from "../../components/WorkoutNoteField";
 import { FeelTracks } from "../../team-canvas/components/FeelTracks";
 import { teamCanvasCopy } from "../../team-canvas/content";
 import type { CompletionKind } from "../../team-canvas/model";
@@ -22,6 +23,7 @@ interface TodayPlanHeroProps {
     completion: CompletionKind;
     effort: number;
     tiredness: number;
+    note?: string;
   }): Promise<boolean>;
   onRecordRest(): Promise<void>;
 }
@@ -43,6 +45,7 @@ export function TodayPlanHero({
   const [completion, setCompletion] = useState<CompletionKind>("goal");
   const [effort, setEffort] = useState(4);
   const [tiredness, setTiredness] = useState(3);
+  const [note, setNote] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const activity = restDay ? "Planned recovery day" : plan.activity;
@@ -54,7 +57,12 @@ export function TodayPlanHero({
     setPending(true);
     setError("");
     try {
-      const saved = await onComplete({ completion, effort, tiredness });
+      const saved = await onComplete({
+        completion,
+        effort,
+        tiredness,
+        note: note.trim() || undefined,
+      });
       if (saved) setCheckInOpen(false);
       else setError(copy.saveError);
     } catch {
@@ -174,7 +182,7 @@ export function TodayPlanHero({
               <div
                 className="today-checkin__targets"
                 role="group"
-                aria-label={teamCanvasCopy.today.formTitle}
+                aria-label={copy.outcomeGroup}
               >
                 <button
                   className="today-plan-hero__target-choice"
@@ -182,7 +190,15 @@ export function TodayPlanHero({
                   aria-pressed={completion === "goal"}
                   onClick={() => setCompletion("goal")}
                 >
-                  {teamCanvasCopy.today.goal}
+                  {copy.completedAsListed}
+                </button>
+                <button
+                  className="today-plan-hero__target-choice"
+                  type="button"
+                  aria-pressed={completion === "partial"}
+                  onClick={() => setCompletion("partial")}
+                >
+                  {copy.finishedPart}
                 </button>
                 <button
                   className="today-plan-hero__target-choice"
@@ -190,23 +206,16 @@ export function TodayPlanHero({
                   aria-pressed={completion === "reach"}
                   onClick={() => setCompletion("reach")}
                 >
-                  {teamCanvasCopy.today.reach}
+                  {copy.addedExtra}
                 </button>
               </div>
-              <button
-                className="today-checkin__alternative"
-                type="button"
-                aria-pressed={completion === "approved-alternative"}
-                onClick={() => setCompletion("approved-alternative")}
-              >
-                {teamCanvasCopy.today.alternative}
-              </button>
               <FeelTracks
                 effort={effort}
                 tiredness={tiredness}
                 onEffortChange={setEffort}
                 onTirednessChange={setTiredness}
               />
+              <WorkoutNoteField value={note} onChange={setNote} />
             </>
           )}
           <div className="today-plan-hero__check-in-actions">

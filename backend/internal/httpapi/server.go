@@ -354,6 +354,8 @@ func (service *service) createTrainingEntry(w http.ResponseWriter, r *http.Reque
 			writeError(w, r, http.StatusUnprocessableEntity, "entry_plan_unavailable", "That coach plan step is unavailable. Refresh the plan and try again.")
 		case errors.Is(err, store.ErrEntryLevelsNotAllowed):
 			writeError(w, r, http.StatusUnprocessableEntity, "entry_feelings_not_allowed", "Effort and exhaustion must use the seven-step scale.")
+		case errors.Is(err, store.ErrEntryDetailsNotAllowed):
+			writeError(w, r, http.StatusUnprocessableEntity, "entry_details_not_allowed", "Choose an available completion option and keep the private note within 500 characters.")
 		default:
 			writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")
 		}

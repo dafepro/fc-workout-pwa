@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { WorkoutNoteField } from "../../components/WorkoutNoteField";
+import { playerExperienceCopy } from "../../player/content";
 import { FeelTracks } from "./FeelTracks";
 import { teamCanvasCopy } from "../content";
 import type { CompletionKind } from "../model";
@@ -25,6 +27,7 @@ export function TeamCanvasToday() {
   const [completion, setCompletion] = useState<CompletionKind>("goal");
   const [effort, setEffort] = useState(4);
   const [tiredness, setTiredness] = useState(3);
+  const [note, setNote] = useState("");
   const copy = teamCanvasCopy.today;
 
   const cooldownPending =
@@ -138,35 +141,40 @@ export function TeamCanvasToday() {
                 aria-pressed={completion === "goal"}
                 onClick={() => setCompletion("goal")}
               >
-                {copy.goal}
+                {playerExperienceCopy.focusedToday.completedAsListed}
+              </button>
+              <button
+                type="button"
+                aria-pressed={completion === "partial"}
+                onClick={() => setCompletion("partial")}
+              >
+                {playerExperienceCopy.focusedToday.finishedPart}
               </button>
               <button
                 type="button"
                 aria-pressed={completion === "reach"}
                 onClick={() => setCompletion("reach")}
               >
-                {copy.reach}
+                {playerExperienceCopy.focusedToday.addedExtra}
               </button>
             </div>
-            <button
-              className="tc-alternative"
-              type="button"
-              aria-pressed={completion === "approved-alternative"}
-              onClick={() => setCompletion("approved-alternative")}
-            >
-              {copy.alternative}
-            </button>
             <FeelTracks
               effort={effort}
               tiredness={tiredness}
               onEffortChange={setEffort}
               onTirednessChange={setTiredness}
             />
+            <WorkoutNoteField value={note} onChange={setNote} />
             <button
               className="tc-save"
               type="button"
               onClick={() => {
-                void complete({ completion, effort, tiredness });
+                void complete({
+                  completion,
+                  effort,
+                  tiredness,
+                  note: note.trim() || undefined,
+                });
               }}
             >
               {copy.save}

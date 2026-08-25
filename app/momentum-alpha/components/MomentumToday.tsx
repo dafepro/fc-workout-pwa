@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { WorkoutNoteField } from "../../components/WorkoutNoteField";
 import { momentumAlphaCopy } from "../content";
 import type { CompletionChoice, Feeling, PlanSelection } from "../model";
 import { momentumBand, nextSuggestedWorkload } from "../model";
@@ -176,6 +177,7 @@ function CheckIn({
   const [feeling, setFeeling] = useState<Feeling | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [note, setNote] = useState("");
   const alternative = presentation.alternatives.find(
     (item) => item.id === selection,
   );
@@ -249,6 +251,7 @@ function CheckIn({
         <p className="ma-private-note">
           <span aria-hidden="true">◇</span> {momentumAlphaCopy.checkIn.privacy}
         </p>
+        <WorkoutNoteField value={note} onChange={setNote} />
         <button
           type="button"
           className="ma-button ma-button--primary ma-button--wide"
@@ -260,6 +263,7 @@ function CheckIn({
               choice,
               feeling,
               planSelection: selection,
+              note: note.trim() || undefined,
             });
             if (!result) {
               onComplete();

@@ -5,7 +5,8 @@ Run this only on the disposable development environment with seeded players.
 ## Workout choice contrast
 
 1. At 320 CSS pixels, open Today and start the planned Hill Sprints workout.
-2. Confirm **Goal · 8 reps** and **Reach · 10 reps** both have dark readable
+2. Confirm **Completed as listed**, **Finished part of it**, and **Added
+   something extra** all have dark readable
    text. The selected choice should have a lime fill and dark green outline;
    neither state should be white or lime text on white.
 3. Use keyboard focus and confirm the blue focus ring remains visible.

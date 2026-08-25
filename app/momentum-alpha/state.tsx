@@ -50,6 +50,7 @@ interface MomentumAlphaContextValue {
     choice: CompletionChoice;
     feeling: Feeling;
     planSelection: PlanSelection;
+    note?: string;
   }): void | Promise<void>;
   recordRest(): void | Promise<void>;
   recordRecovery(): void | Promise<void>;

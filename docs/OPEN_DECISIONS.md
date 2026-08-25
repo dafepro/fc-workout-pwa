@@ -992,3 +992,22 @@ Momentum Alpha needs independent PWA install/offline behavior.
 - Implemented: player concerns use three predefined reasons, reveal no reporter
   identity to team staff, and enter an operator-only queue. Operators may hide
   or cancel the reward; both the report and resolution are audited.
+
+## Workout check-in outcomes and private notes (2026-08-25)
+
+- Decided: the current workout confirmation uses workout-independent outcomes:
+  `Completed as listed`, `Finished part of it`, and `Added something extra`.
+  Numeric Goal/Reach labels and the coach-approved-alternative button are
+  retired from the default and Team Canvas workout check-ins.
+- Decided: `Added something extra` replaces “Above and beyond.” The calmer copy
+  records what happened without suggesting that extra work is always healthier
+  or more valuable for a youth player.
+- Decided: a partial result is still a valid fitness check-in. Its qualitative
+  outcome is retained for later analysis rather than being disguised as a
+  different activity.
+- Decided: workout forms may collect one optional private note. The control is
+  collapsed by default; the server trims it, normalizes line endings, rejects
+  controls, and caps it at 500 characters and 2,000 UTF-8 bytes.
+- Notes are plain text and inherit private-session authorization. They never
+  enter Team pulse, Canvas, rewards, leaderboards, client analytics, email, or
+  teammate-facing projections.

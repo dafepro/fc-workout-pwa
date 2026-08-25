@@ -106,17 +106,19 @@ test("the consolidated default completes today's plan and opens Team Canvas", as
   await expect(
     page.getByRole("button", { name: "Save workout" }),
   ).toBeVisible();
-  await expect(page.getByRole("button", { name: "Goal · 8 reps" })).toHaveCSS(
-    "color",
-    "rgb(32, 53, 0)",
-  );
-  await expect(page.getByRole("button", { name: "Reach · 10 reps" })).toHaveCSS(
-    "color",
-    "rgb(23, 52, 42)",
-  );
+  await expect(
+    page.getByRole("button", { name: "Completed as listed" }),
+  ).toHaveCSS("color", "rgb(32, 53, 0)");
+  await expect(
+    page.getByRole("button", { name: "Finished part of it" }),
+  ).toHaveCSS("color", "rgb(23, 52, 42)");
   await page.getByRole("button", { name: "Cancel" }).click();
   await startWorkout.click();
-  await page.getByRole("button", { name: "Reach · 10 reps" }).click();
+  await page.getByRole("button", { name: "Added something extra" }).click();
+  await page.getByText("Add a note").click();
+  await page
+    .getByRole("textbox", { name: "Workout note" })
+    .fill("Felt strong after the warm-up.");
   const effort = page.getByRole("slider", { name: "Effort" });
   const tiredness = page.getByRole("slider", { name: "Tiredness" });
   await effort.fill("5");
@@ -128,7 +130,12 @@ test("the consolidated default completes today's plan and opens Team Canvas", as
       response.request().method() === "POST",
   );
   await page.getByRole("button", { name: "Save workout" }).click();
-  expect((await created).status()).toBe(201);
+  const createdResponse = await created;
+  expect(createdResponse.status()).toBe(201);
+  expect(await createdResponse.json()).toMatchObject({
+    completionOutcome: "extra",
+    note: "Felt strong after the warm-up.",
+  });
 
   await expect(page.getByText("Today complete", { exact: true })).toBeVisible();
   await expect(

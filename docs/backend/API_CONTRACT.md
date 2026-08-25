@@ -70,11 +70,17 @@ Creates one entry for the authenticated player. `Idempotency-Key` is required. T
   "occurredAt": "2026-08-05T22:15:00Z",
   "result": { "kind": "repetitions", "value": 8, "unit": "reps" },
   "effortLevel": 4,
-  "exhaustionLevel": 3
+  "exhaustionLevel": 3,
+  "completionOutcome": "as_listed",
+  "note": "Felt smooth after warming up."
 }
 ```
 
 Activity kind, unit, range, backdating, and assignment eligibility are validated against server-owned definitions.
+`completionOutcome` is optional and limited to `as_listed`, `partial`, or
+`extra`. `note` is optional, canonicalized by the server, limited to 500 Unicode
+characters and 2,000 UTF-8 bytes, rendered as plain text, and governed by the
+same private-session authorization as the entry.
 
 A new entry returns `201`; an idempotent replay returns `200`. Future timestamps and dates earlier than seven team-local calendar days before today return `422 entry_date_not_allowed`.
 

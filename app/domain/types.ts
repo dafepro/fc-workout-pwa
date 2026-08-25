@@ -5,6 +5,7 @@ export type ActivityId =
   | "recovery-walk-jog";
 
 export type InputKind = "repetitions" | "duration" | "distance";
+export type WorkoutCompletionOutcome = "as_listed" | "partial" | "extra";
 
 export interface ActivityDefinition {
   id: ActivityId;
@@ -37,6 +38,8 @@ export interface TrainingEntry {
   deleteEligibleUntil: string;
   assignmentId?: string;
   plan?: TrainingPlanProvenance;
+  completionOutcome?: WorkoutCompletionOutcome;
+  note?: string;
 }
 
 export interface TrainingPlanProvenance {
@@ -57,6 +60,8 @@ export type TrainingEntryInput = Pick<
   inputKind: InputKind;
   assignmentId?: string;
   plan?: TrainingPlanProvenance;
+  completionOutcome?: WorkoutCompletionOutcome;
+  note?: string;
 };
 
 export interface ActivityDay {

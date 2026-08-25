@@ -1312,6 +1312,53 @@ h2 {
   display: grid;
   gap: 1rem;
 }
+
+.workout-note {
+  border: 1px solid color-mix(in srgb, var(--ink) 16%, transparent);
+  border-radius: 0.8rem;
+  background: color-mix(in srgb, var(--paper) 92%, var(--mint));
+  padding: 0.75rem 0.85rem;
+}
+
+.workout-note summary {
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 750;
+}
+
+.workout-note label,
+.workout-note textarea,
+.workout-note small {
+  display: block;
+  width: 100%;
+}
+
+.workout-note label {
+  margin-top: 0.7rem;
+}
+
+.workout-note label > span {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.workout-note textarea {
+  min-height: 5.5rem;
+  resize: vertical;
+}
+
+.workout-note textarea::placeholder {
+  color: #758078;
+  opacity: 1;
+}
+
+.workout-note small {
+  margin-top: 0.4rem;
+  color: var(--ink-soft);
+}
 .record-header {
   margin-bottom: 1rem;
 }
@@ -2218,9 +2265,26 @@ h2 {
 }
 
 .session-detail-feelings h2,
+.session-detail-note h2,
 .delete-session-card h2,
 .empty-session h1 {
   margin-bottom: 0.7rem;
+}
+
+.session-detail-note {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 0.9rem;
+  background: #f6f7fb;
+}
+
+.session-detail-note p {
+  margin: 0.45rem 0;
+  white-space: pre-wrap;
+}
+
+.session-detail-note small {
+  color: var(--muted);
 }
 
 .delete-session-card,

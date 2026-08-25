@@ -1,7 +1,7 @@
 import type { PhysicsBodyState } from "./physics";
 
 export type DayKind = "training" | "rest";
-export type CompletionKind = "goal" | "reach" | "approved-alternative";
+export type CompletionKind = "goal" | "reach" | "partial";
 export type RewardSource = "reach" | "cooldown";
 export type ExtraActivity = "ball-touches" | "easy-walk" | "mobility";
 
@@ -151,10 +151,10 @@ export function recordPrimary(
     input.completion === "reach" ? ["reach"] : [];
   const detail =
     input.completion === "goal"
-      ? "Goal followed"
+      ? "Completed as listed"
       : input.completion === "reach"
-        ? "Reach followed"
-        : "Coach-approved alternative";
+        ? "Added something extra"
+        : "Finished part of it";
 
   return {
     ...state,
@@ -169,10 +169,7 @@ export function recordPrimary(
       {
         id: historyId(state, "primary"),
         dayKey: state.dayKey,
-        title:
-          input.completion === "approved-alternative"
-            ? "Approved alternative"
-            : "Hill sprints",
+        title: "Hill sprints",
         detail,
         kind: "primary",
       },

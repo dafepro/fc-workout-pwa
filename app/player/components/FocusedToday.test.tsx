@@ -90,16 +90,66 @@ describe("focused Today components", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Start workout" }));
     expect(screen.getByRole("button", { name: "Save workout" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Goal · 8 reps" })).toHaveClass(
-      "today-plan-hero__target-choice",
-    );
     expect(
-      screen.getByRole("button", { name: "Goal · 8 reps" }),
+      screen.getByRole("button", { name: "Completed as listed" }),
+    ).toHaveClass("today-plan-hero__target-choice");
+    expect(
+      screen.getByRole("button", { name: "Completed as listed" }),
     ).toHaveAttribute("aria-pressed", "true");
     expect(
-      screen.getByRole("button", { name: "Reach · 10 reps" }),
+      screen.getByRole("button", { name: "Finished part of it" }),
     ).toHaveAttribute("aria-pressed", "false");
+    expect(
+      screen.getByRole("button", { name: "Added something extra" }),
+    ).toHaveAttribute("aria-pressed", "false");
+    expect(
+      screen.queryByRole("button", { name: /coach-approved alternative/i }),
+    ).not.toBeInTheDocument();
     expect(onComplete).not.toHaveBeenCalled();
+  });
+
+  it("saves an optional private workout note with the selected outcome", async () => {
+    const onComplete = vi.fn().mockResolvedValue(true);
+    render(
+      <TodayPlanHero
+        source="coach-plan"
+        restDay={false}
+        complete={false}
+        previewOnly={false}
+        plan={{
+          activity: "Hill Sprints",
+          workload: "20 min · Moderate",
+          goal: "Goal · 8 reps",
+          instruction: "Find a short hill with clear footing.",
+          reasons: [],
+        }}
+        onComplete={onComplete}
+        onRecordRest={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Start workout" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Finished part of it" }),
+    );
+    fireEvent.click(screen.getByText("Add a note"));
+    const noteField = screen.getByPlaceholderText(
+      "Add details about your workout for you and your coach to keep an eye on.",
+    );
+    expect(noteField).toHaveAttribute("maxlength", "500");
+    fireEvent.change(noteField, {
+      target: { value: "Left calf felt tight after rep four." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save workout" }));
+
+    await waitFor(() =>
+      expect(onComplete).toHaveBeenCalledWith({
+        completion: "partial",
+        effort: 4,
+        tiredness: 3,
+        note: "Left calf felt tight after rep four.",
+      }),
+    );
   });
 
   it("does not offer recording when a planned activity is unavailable", () => {
@@ -150,7 +200,7 @@ describe("focused Today components", () => {
     );
 
     expect(screen.getByText("Today complete")).toBeVisible();
-    expect(screen.getByText(/completed today’s plan/i)).toBeVisible();
+    expect(screen.getByText(/workout check-in is saved/i)).toBeVisible();
     expect(screen.queryByText("Recommended next")).not.toBeInTheDocument();
   });
 

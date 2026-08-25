@@ -902,7 +902,6 @@
 }
 
 .today-checkin__targets button,
-.today-checkin__alternative,
 .today-checkin__cancel,
 .today-checkin__save,
 .whats-next--rest button {
@@ -915,16 +914,10 @@
   cursor: pointer;
 }
 
-.today-checkin__targets button[aria-pressed="true"],
-.today-checkin__alternative[aria-pressed="true"] {
+.today-checkin__targets button[aria-pressed="true"] {
   border-color: var(--lime);
   background: rgb(200 245 42 / 16%);
   color: var(--lime);
-}
-
-.today-checkin__alternative {
-  width: 100%;
-  margin-top: 0.6rem;
 }
 
 .today-checkin .tc-feel-tracks {
@@ -2686,23 +2679,35 @@
   color: #172f27;
 }
 
-.today-plan-hero__check-in .today-plan-hero__target-choice,
-.today-plan-hero__check-in .today-checkin__alternative {
+.today-plan-hero__check-in .today-checkin__targets {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.today-plan-hero__check-in .today-plan-hero__target-choice {
+  padding: 0.55rem 0.35rem;
+  line-height: 1.15;
+}
+
+.today-plan-hero__check-in .workout-note {
+  border-color: #c4cfca;
+  background: #f5f7f6;
+}
+
+.today-plan-hero__check-in .today-plan-hero__target-choice {
   border-color: #a9b9b2;
   background: #edf2ef;
   color: #17342a;
 }
 
-.today-plan-hero__check-in .today-plan-hero__target-choice[aria-pressed="true"],
-.today-plan-hero__check-in .today-checkin__alternative[aria-pressed="true"] {
+.today-plan-hero__check-in
+  .today-plan-hero__target-choice[aria-pressed="true"] {
   border-color: #54700d;
   background: #d9f47a;
   color: #203500;
   box-shadow: inset 0 0 0 1px #54700d;
 }
 
-.today-plan-hero__check-in .today-plan-hero__target-choice:focus-visible,
-.today-plan-hero__check-in .today-checkin__alternative:focus-visible {
+.today-plan-hero__check-in .today-plan-hero__target-choice:focus-visible {
   outline-color: #315ec8;
 }
 

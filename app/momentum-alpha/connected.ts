@@ -190,6 +190,7 @@ export function momentumCompletionInput(
     choice: CompletionChoice;
     feeling: Feeling;
     planSelection: PlanSelection;
+    note?: string;
   },
 ): TrainingEntryInput {
   const activity = model.activitiesBySelection[input.planSelection];
@@ -222,6 +223,7 @@ export function momentumCompletionInput(
     value,
     unit: activity.unit,
     inputKind: activity.inputKind,
+    note: input.note,
     ...levels,
   };
 }

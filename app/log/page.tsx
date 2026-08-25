@@ -4,6 +4,7 @@ import { FormEvent, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ActivitySpecificFields } from "../components/ActivityFields";
 import { WorkoutSelect } from "../components/WorkoutSelect";
+import { WorkoutNoteField } from "../components/WorkoutNoteField";
 import { IntensityControls } from "../components/IntensityScale";
 import { copy } from "../content/copy";
 import { isBackdateAllowed, toDateInput } from "../domain/rules";
@@ -60,6 +61,7 @@ export default function LogPage() {
   const clock = useLocalSessionClock();
   const [effort, setEffort] = useState(4);
   const [exhaustion, setExhaustion] = useState(4);
+  const [note, setNote] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const selectedActivity = activities.find((item) => item.id === activityId);
@@ -124,6 +126,7 @@ export default function LogPage() {
         unit: activity.unit,
         effortLevel: effort,
         exhaustionLevel: exhaustion,
+        note: note.trim() || undefined,
       });
       router.push(`/?saved=1${completesAssignment ? "&completed=1" : ""}`);
     } catch (cause) {
@@ -212,6 +215,7 @@ export default function LogPage() {
               onEffortChange={setEffort}
               onExhaustionChange={setExhaustion}
             />
+            <WorkoutNoteField value={note} onChange={setNote} />
             {exhaustion >= 6 ? (
               <aside className="recovery-note">
                 <span aria-hidden="true">💧</span>

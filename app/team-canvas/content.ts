@@ -13,12 +13,9 @@ export const teamCanvasCopy = {
     trainingDescription:
       "Sprint for 6 seconds, then walk back fully before the next start.",
     trainingContext: "Demanding · assigned cooldown follows",
-    goal: "Goal · 8 reps",
-    reach: "Reach · 10 reps",
     addLabel: "Record today’s plan",
     formTitle: "What did you complete?",
     save: "Save workout",
-    alternative: "Coach-approved alternative",
     feel: {
       title: "How did it feel?",
       effortLow: "Easy",

@@ -244,7 +244,7 @@ describe("consolidated default player experience", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Save workout" }));
     expect(screen.getByText("Today complete")).toBeInTheDocument();
-    expect(screen.getByText(/completed today’s plan/)).toBeInTheDocument();
+    expect(screen.getByText(/workout check-in is saved/)).toBeInTheDocument();
     expect(screen.queryByText("Recommended next")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("heading", { name: "Latest from your team" }),

@@ -357,6 +357,11 @@ var logicalTables = []logicalTable{
 			textField("delete_eligible_until"),
 			nullable(textField("deleted_at")),
 			nullable(textField("idempotency_key")),
+			nullable(textField("training_plan_id")),
+			nullable(integerField("training_plan_day_index")),
+			nullable(integerField("training_plan_block_index")),
+			nullable(textField("completion_outcome")),
+			nullable(textField("note")),
 		},
 	},
 	{

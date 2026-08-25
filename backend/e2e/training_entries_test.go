@@ -24,6 +24,8 @@ type trainingEntryResponse struct {
 	OccurredAt           string `json:"occurredAt"`
 	EffortLevel          int    `json:"effortLevel"`
 	ExhaustionLevel      int    `json:"exhaustionLevel"`
+	CompletionOutcome    string `json:"completionOutcome"`
+	Note                 string `json:"note"`
 	CreatedAt            string `json:"createdAt"`
 	DeleteEligibleUntil  string `json:"deleteEligibleUntil"`
 	Result               struct {
@@ -48,6 +50,9 @@ func TestTrainingEntryLifecycleIsIdempotentAndPrivate(t *testing.T) {
 	if created.Result.Kind != "repetitions" || created.Result.Unit != "reps" || created.Result.Value != 8 {
 		t.Fatalf("unexpected structured result: %+v", created.Result)
 	}
+	if created.CompletionOutcome != "as_listed" || created.Note != "Felt smooth after warming up." {
+		t.Fatalf("unexpected private context: outcome=%q note=%q", created.CompletionOutcome, created.Note)
+	}
 
 	replayResponse := api.do(t, http.MethodPost, "/v1/me/training-entries", masonToken, "entry-create-1", payload)
 	assertStatus(t, replayResponse, http.StatusOK)
@@ -64,6 +69,9 @@ func TestTrainingEntryLifecycleIsIdempotentAndPrivate(t *testing.T) {
 	if !strings.Contains(ownerListBody, created.ID) {
 		t.Fatalf("owner list did not include created entry: %s", ownerListBody)
 	}
+	if !strings.Contains(ownerListBody, "Felt smooth after warming up.") {
+		t.Fatalf("owner list omitted the private note: %s", ownerListBody)
+	}
 
 	teammateList := api.do(t, http.MethodGet, "/v1/me/training-entries", avaToken, "", nil)
 	assertStatus(t, teammateList, http.StatusOK)
@@ -71,6 +79,9 @@ func TestTrainingEntryLifecycleIsIdempotentAndPrivate(t *testing.T) {
 	_ = teammateList.Body.Close()
 	if strings.Contains(teammateListBody, created.ID) {
 		t.Fatal("a private entry appeared in a teammate's Me list")
+	}
+	if strings.Contains(teammateListBody, "Felt smooth after warming up.") {
+		t.Fatal("a private note appeared in a teammate's Me list")
 	}
 
 	for _, test := range []struct {
@@ -136,6 +147,17 @@ func TestTrainingEntryRejectsUnsafeOrInvalidStructuredInput(t *testing.T) {
 	if mismatchError.Error.Code != "entry_result_not_allowed" {
 		t.Fatalf("mismatched result error = %q", mismatchError.Error.Code)
 	}
+
+	badDetails := validTrainingEntryPayload(time.Now().UTC().Add(-time.Hour))
+	badDetails["completionOutcome"] = "best_on_team"
+	badDetails["note"] = strings.Repeat("a", 501)
+	badDetailsResponse := api.do(t, http.MethodPost, "/v1/me/training-entries", masonToken, "bad-details", badDetails)
+	assertStatus(t, badDetailsResponse, http.StatusUnprocessableEntity)
+	var detailsError apiError
+	decodeJSON(t, badDetailsResponse, &detailsError)
+	if detailsError.Error.Code != "entry_details_not_allowed" {
+		t.Fatalf("invalid details error = %q", detailsError.Error.Code)
+	}
 }
 
 func TestPlayerDeletionWindowUsesTrustedServerTime(t *testing.T) {
@@ -165,7 +187,9 @@ func validTrainingEntryPayload(occurredAt time.Time) map[string]any {
 			"value": 8,
 			"unit":  "reps",
 		},
-		"effortLevel":     4,
-		"exhaustionLevel": 3,
+		"effortLevel":       4,
+		"exhaustionLevel":   3,
+		"completionOutcome": "as_listed",
+		"note":              "  Felt smooth after warming up.  ",
 	}
 }

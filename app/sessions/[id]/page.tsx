@@ -139,6 +139,13 @@ export default function SessionDetailPage() {
             detailed
           />
         </section>
+        {entry.note ? (
+          <section className="session-detail-note">
+            <h2>Workout note</h2>
+            <p>{entry.note}</p>
+            <small>Private to you and authorized staff.</small>
+          </section>
+        ) : null}
       </section>
 
       <section className="card delete-session-card">

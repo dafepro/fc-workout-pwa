@@ -88,7 +88,12 @@ Teammates must not see:
 - shuttle times
 - assessment scores
 - private trend charts
-- notes, because notes do not exist
+- private workout notes
+
+An optional workout note is visible only to the player and staff already
+authorized to view that player's private session. It is limited to 500
+characters and rendered as plain text. It must never appear in Team pulse,
+rewards, leaderboards, Canvas, analytics events, or notifications.
 
 ## Positive grouping
 

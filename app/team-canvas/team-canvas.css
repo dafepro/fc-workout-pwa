@@ -245,12 +245,15 @@
 
 .tc-targets {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.55rem;
 }
 
+.tc-checkin .workout-note {
+  text-align: left;
+}
+
 .tc-targets button,
-.tc-alternative,
 .tc-save {
   min-height: 3rem;
   border: 1px solid var(--tc-line);
@@ -267,20 +270,6 @@
   border-color: var(--tc-green-dark);
   background: #eaf8e5;
   box-shadow: inset 0 0 0 1px var(--tc-green-dark);
-}
-
-.tc-alternative {
-  min-height: auto;
-  padding: 0.45rem;
-  border: 0;
-  background: transparent;
-  color: var(--tc-muted);
-  text-decoration: underline;
-  text-underline-offset: 0.2rem;
-}
-
-.tc-alternative[aria-pressed="true"] {
-  color: var(--tc-green-dark);
 }
 
 .tc-extra label {

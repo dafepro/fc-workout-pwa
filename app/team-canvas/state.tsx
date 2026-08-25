@@ -82,6 +82,7 @@ export interface TeamCanvasContextValue {
     completion: CompletionKind;
     effort: number;
     tiredness: number;
+    note?: string;
   }): Promise<boolean>;
   recordRest(): Promise<void>;
   recordCooldown(): Promise<void>;
@@ -326,32 +327,22 @@ export function TeamCanvasProvider({
           const displayedPlanActivity = assignment
             ? undefined
             : dashboard.activities.find(({ id }) => id === "hill-sprints");
-          const alternative = dashboard.activities.find(
-            ({ id }) => id === "recovery-walk-jog",
-          );
           const activity =
-            input.completion === "approved-alternative"
-              ? alternative
-              : (plannedActivity ?? assignedActivity ?? displayedPlanActivity);
+            plannedActivity ?? assignedActivity ?? displayedPlanActivity;
           if (!activity)
             throw new Error("Today’s approved activity is unavailable.");
           const target = assignment?.targetValue ?? activity.defaultValue;
           const activityValue =
             input.completion === "reach"
               ? Math.ceil((target * 1.25) / activity.step) * activity.step
-              : input.completion === "approved-alternative"
-                ? activity.defaultValue
+              : input.completion === "partial"
+                ? Math.max(activity.min, target - activity.step)
                 : target;
           const entry = {
             activityId: activity.id,
-            assignmentId:
-              input.completion === "approved-alternative"
-                ? undefined
-                : assignment?.id,
+            assignmentId: assignment?.id,
             plan:
-              planDay &&
-              planBlock &&
-              input.completion !== "approved-alternative"
+              planDay && planBlock
                 ? {
                     planId: planDay.planId,
                     dayIndex: planDay.dayIndex,
@@ -364,6 +355,15 @@ export function TeamCanvasProvider({
             inputKind: activity.inputKind,
             effortLevel: input.effort,
             exhaustionLevel: input.tiredness,
+            completionOutcome:
+              input.completion === "goal"
+                ? ("as_listed" as const)
+                : input.completion === "reach"
+                  ? ("extra" as const)
+                  : input.completion === "partial"
+                    ? ("partial" as const)
+                    : undefined,
+            note: input.note,
           };
           if (training) {
             await training.addEntry(entry);

@@ -18,6 +18,8 @@ describe("connected training-entry gateway", () => {
           result: { kind: "repetitions", value: 8, unit: "reps" },
           effortLevel: 4,
           exhaustionLevel: 3,
+          completionOutcome: "partial",
+          note: "Stopped when my calf felt tight.",
           createdAt: "2026-08-24T12:01:00Z",
           deleteEligibleUntil: "2026-08-25T12:01:00Z",
         },
@@ -34,6 +36,8 @@ describe("connected training-entry gateway", () => {
       inputKind: "repetitions",
       effortLevel: 4,
       exhaustionLevel: 3,
+      completionOutcome: "partial",
+      note: "Stopped when my calf felt tight.",
       plan: { planId: "plan-one", dayIndex: 2, blockIndex: 0 },
     });
 
@@ -41,12 +45,16 @@ describe("connected training-entry gateway", () => {
       JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)),
     ).toMatchObject({
       plan: { planId: "plan-one", dayIndex: 2, blockIndex: 0 },
+      completionOutcome: "partial",
+      note: "Stopped when my calf felt tight.",
     });
     expect(entry.plan).toEqual({
       planId: "plan-one",
       dayIndex: 2,
       blockIndex: 0,
     });
+    expect(entry.completionOutcome).toBe("partial");
+    expect(entry.note).toBe("Stopped when my calf felt tight.");
   });
 
   it("preserves the server's opaque owner ID", async () => {

@@ -52,6 +52,14 @@ func TestMigrateUpgradesAnExistingFoundationDatabase(t *testing.T) {
 	if columnCount != 1 {
 		t.Fatalf("training entry idempotency column count = %d, want 1", columnCount)
 	}
+	for _, column := range []string{"completion_outcome", "note"} {
+		if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM pragma_table_info('training_entries') WHERE name = ?`, column).Scan(&columnCount); err != nil {
+			t.Fatal(err)
+		}
+		if columnCount != 1 {
+			t.Fatalf("training entry %s column count = %d, want 1", column, columnCount)
+		}
+	}
 	// Rebuilding a parent table is where a foreign key quietly starts pointing
 	// at the archive copy instead of the live one, and nothing else would notice
 	// until a write failed in production.
@@ -87,8 +95,8 @@ func TestMigrateUpgradesAnExistingFoundationDatabase(t *testing.T) {
 	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM schema_migrations`).Scan(&migrationCount); err != nil {
 		t.Fatal(err)
 	}
-	if migrationCount != 25 {
-		t.Fatalf("migration count = %d, want 25", migrationCount)
+	if migrationCount != 26 {
+		t.Fatalf("migration count = %d, want 26", migrationCount)
 	}
 }
 
