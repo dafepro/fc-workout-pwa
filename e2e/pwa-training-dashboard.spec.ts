@@ -13,7 +13,7 @@ test.beforeEach(async () => {
   await api.dispose();
 });
 
-test("the consolidated default opens one durable prize box", async ({
+test("the consolidated default claims, opens, and keeps one sealed prize box", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 320, height: 700 });
@@ -28,19 +28,37 @@ test("the consolidated default opens one durable prize box", async ({
 
   const claimed = page.waitForResponse(
     (response) =>
-      response.url().includes("/api/zoomigo/v1/me/daily-drop/claim") &&
+      response.url().includes("/api/zoomigo/v1/me/prize-boxes/claim-daily") &&
       response.request().method() === "POST",
   );
-  await page.getByRole("button", { name: "Open prize box" }).click();
-  expect([200, 201]).toContain((await claimed).status());
-  await expect(page.getByRole("status")).toContainText("Unlocked:");
+  await page.getByRole("button", { name: "Claim daily box" }).click();
+  expect((await claimed).status()).toBe(201);
+  await expect(page.getByRole("status")).toContainText("Daily box claimed");
+  await expect(page.getByText("1 to open")).toBeVisible();
+
+  const opened = page.waitForResponse(
+    (response) =>
+      /\/api\/zoomigo\/v1\/me\/prize-boxes\/[^/]+\/open$/.test(
+        response.url(),
+      ) && response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Open Daily freebie box" }).click();
+  expect((await opened).status()).toBe(201);
+  const reveal = page.getByRole("dialog", { name: "Zoomi found something!" });
+  await expect(reveal).toBeVisible();
+  await expect(reveal.getByRole("status")).toBeVisible();
+  await expect(reveal.getByRole("link", { name: /^Use / })).toBeVisible();
+  await reveal.getByRole("button", { name: "Keep in collection" }).click();
 
   await page.reload();
   await expect(
-    page.getByRole("heading", { name: "Collected today" }),
+    page.getByRole("heading", { name: "Recently earned" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Open prize box" }),
+    page.getByRole("button", { name: "Claim daily box" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Open Daily freebie box" }),
   ).toHaveCount(0);
 
   await page.goto("/");
@@ -60,19 +78,21 @@ test("three proven plan days add an independent claimable prize box", async ({
   await openReadyPage(page, "/");
 
   await expect(page.getByRole("status")).toContainText("Prize box earned!");
-  await expect(page.getByText("2 unopened")).toBeVisible();
+  await expect(page.getByText("1 unopened")).toBeVisible();
   await page.getByRole("link", { name: /View prize boxes/ }).click();
   await expect(
-    page.getByText("Earned for completing 3 days in your coach plan."),
+    page.getByRole("button", { name: "Open From workouts box" }),
   ).toBeVisible();
+  await page.getByRole("button", { name: "Claim daily box" }).click();
+  await expect(page.getByText("2 waiting")).toBeVisible();
 
-  await page.getByRole("button", { name: "Open prize box" }).click();
-  await page.getByRole("button", { name: "Open another prize box" }).click();
-  await expect(page.getByText("1 box ready to open")).toBeVisible();
-  await page.getByRole("button", { name: "Open prize box" }).click();
-  await expect(
-    page.getByRole("button", { name: /Open .*prize box/ }),
-  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Open From workouts box" }).click();
+  await page.getByRole("button", { name: "Keep in collection" }).click();
+  await page.getByRole("button", { name: "Open Daily freebie box" }).click();
+  await page.getByRole("button", { name: "Keep in collection" }).click();
+  await expect(page.getByRole("button", { name: /^Open .* box$/ })).toHaveCount(
+    0,
+  );
 
   await page.goto("/");
   await expect(page.getByText(/unopened/)).toHaveCount(0);
@@ -80,6 +100,36 @@ test("three proven plan days add an independent claimable prize box", async ({
     page.getByText("Prize box earned! Saved to Prize boxes."),
   ).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
+});
+
+test("Today displays and persists the coach-plan duration instead of the catalog default", async ({
+  page,
+}) => {
+  await publishPlan("quick-check-in-v1", teamDate(0));
+  await page.setViewportSize({ width: 320, height: 700 });
+  await openReadyPage(page, "/");
+
+  await expect(
+    page.getByRole("heading", { name: "Timed Run / Walk" }),
+  ).toBeVisible();
+  await expect(page.getByText("15 min · Easy")).toBeVisible();
+  await expect(page.getByText("Goal · 15 minutes")).toBeVisible();
+  await expect(page.getByText("Goal · 20 minutes")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Start workout" }).click();
+  const created = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/zoomigo/v1/me/training-entries") &&
+      response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Save workout" }).click();
+  const response = await created;
+  expect(response.status()).toBe(201);
+  expect(await response.json()).toMatchObject({
+    result: { kind: "duration", value: 15, unit: "minutes" },
+    plan: { dayIndex: 0, blockIndex: 0 },
+  });
+  await expect(page.getByText("Today complete", { exact: true })).toBeVisible();
 });
 
 test("the consolidated default completes today's plan and opens Team Canvas", async ({
@@ -106,15 +156,17 @@ test("the consolidated default completes today's plan and opens Team Canvas", as
   await expect(
     page.getByRole("button", { name: "Save workout" }),
   ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Completed as listed" }),
-  ).toHaveCSS("color", "rgb(32, 53, 0)");
-  await expect(
-    page.getByRole("button", { name: "Finished part of it" }),
-  ).toHaveCSS("color", "rgb(23, 52, 42)");
+  await expect(page.getByRole("button", { name: "Did it!" })).toHaveCSS(
+    "color",
+    "rgb(32, 53, 0)",
+  );
+  await expect(page.getByRole("button", { name: "Almost…" })).toHaveCSS(
+    "color",
+    "rgb(23, 52, 42)",
+  );
   await page.getByRole("button", { name: "Cancel" }).click();
   await startWorkout.click();
-  await page.getByRole("button", { name: "Added something extra" }).click();
+  await page.getByRole("button", { name: "Extra!" }).click();
   await page.getByText("Add a note").click();
   await page
     .getByRole("textbox", { name: "Workout note" })

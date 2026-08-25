@@ -60,8 +60,8 @@ test("a failed staff sign-in reveals nothing about the account", async ({
 // there was a coach fixture: the coach journey on the narrowest phone. One test
 // rather than four, because the point is that these screens are one workflow --
 // sign in, move between the three sections, provision a player and be unable to
-// close the reveal without acknowledging it, assign a workout that is not hill
-// sprints, and amend its window.
+// close the reveal without acknowledging it, publish a plan, and atomically
+// replace its future schedule.
 test("a coach works through the console at 320 pixels", async ({ page }) => {
   const api = await request.newContext({ baseURL: apiBaseURL });
   expect(
@@ -116,39 +116,23 @@ test("a coach works through the console at 320 pixels", async ({ page }) => {
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByText("Bailey Q")).toBeVisible();
 
-  // REQ-512 and REQ-510: every preset is assignable, in the athlete's picker.
+  // New scheduling authority: coaches publish curated plans; legacy assignments
+  // remain history and are not offered as a second creation workflow.
   await page.getByRole("link", { name: "Training" }).click();
-  const picker = page.getByRole("button", { name: /^Selected activity:/ });
-  // Clicked until it opens: the console does not gate its controls on
-  // hydration, so a click that lands before React has attached is swallowed
-  // silently. `aria-expanded` is the picker's own answer about whether the tap
-  // took, which is also what a screen reader is told.
-  await expect(async () => {
-    await picker.click();
-    await expect(picker).toHaveAttribute("aria-expanded", "true", {
-      timeout: 1_000,
-    });
-  }).toPass({ timeout: 10_000 });
-  // The radio itself is `opacity: 0` under its card, so click what a thumb
-  // would: the label.
-  await page
-    .locator(".activity-choice label", { hasText: "Distance Run (2 miles)" })
-    .click();
-  await page.locator("#assignment-starts-on").fill(isoDaysFromToday(1));
-  await page.locator("#assignment-due-on").fill(isoDaysFromToday(7));
-  await page.getByRole("button", { name: "Create assignment" }).click();
-  await expect(page.getByText("Distance Run").first()).toBeVisible();
+  const builder = page.getByRole("region", { name: "Training plan builder" });
+  await expect(builder).toBeVisible();
+  await builder.getByRole("radio", { name: /One-day quick plan/ }).check();
+  await builder.getByLabel("Plan starts").fill(isoDaysFromToday(1));
+  await builder.getByRole("button", { name: "Publish plan" }).click();
+  const history = page.getByRole("region", { name: "Published plans" });
+  await expect(history.getByText("One-day quick plan")).toBeVisible();
   await expectNoOverflow(page);
 
-  // REQ-513: the window a coach typed wrong is amendable.
-  await page.getByRole("button", { name: "Amend" }).first().click();
-  // The amendment form's fields are keyed by assignment id, which is also what
-  // keeps two open rows from sharing an id.
-  await page.locator('input[id^="amend-due-"]').fill(isoDaysFromToday(9));
-  await page.getByRole("button", { name: "Save changes" }).click();
-  await expect(
-    page.getByText(isoDaysFromToday(9), { exact: false }).first(),
-  ).toBeVisible();
+  await history.getByRole("button", { name: "Reschedule" }).click();
+  await builder.getByLabel("Plan starts").fill(isoDaysFromToday(2));
+  await builder.getByRole("button", { name: "Publish replacement" }).click();
+  await expect(history.getByText("Replacement plan")).toBeVisible();
+  await expect(history.getByText("Rescheduled")).toBeVisible();
   await expectNoOverflow(page);
 });
 

@@ -77,6 +77,7 @@ are superseded and must not return through an unfinished older slice.
 
 | Priority | Slice                                          | Player or staff outcome                                                                                | Status                 | Depends on                                 |
 | -------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ---------------------- | ------------------------------------------ |
+| P0       | H1 · Trustworthy release E2E gate              | Current Today, Prize Boxes, Avatar, and Canvas public contracts are proven from the candidate revision | Delivered              | Merged main observability baseline         |
 | P0       | J · Focused Today correctness                  | Current plan identity, failures, navigation, and 320-pixel browser flow are trustworthy                | Delivered              | Focused Today baseline                     |
 | P0       | K · Team Pulse on Team                         | Players see three recent safe activities and may deliberately reveal two more or cheer                 | Delivered              | Existing Team Pulse API/component          |
 | P1       | L · Plan participation prize boxes             | Three and seven distinct plan days grant durable claimable boxes exactly once                          | Delivered              | Prize boxes and plan provenance, delivered |
@@ -324,6 +325,9 @@ they remain release obligations:
 - [ ] Run one intentional full Docker E2E and VM smoke/recovery pass for the
       production-merge candidate; ordinary slices continue to use targeted
       tests.
+- [ ] Complete the H1–H6 quality ledger in `QUALITY_HARDENING_PLAN.md`; this
+      tracker remains the product-slice history while that document owns
+      release hardening.
 
 Bare-binary deployment, public demo mode, individual/subgroup plans, purchases,
 chat, comments, player uploads, and public performance rankings remain outside
@@ -383,6 +387,8 @@ Update this table in the same commit that materially changes a vertical slice.
 | 2026-08-25 | O · Canvas boundary         | This delivery change | Frozen widget contract, one renderer/worker, WebSocket-only transport, anonymous telemetry, host handoff and connected 320-pixel coverage                                | Manual dev beta review               |
 | 2026-08-25 | L2 · Prize Boxes UX         | This delivery change | Separate sealed-box claim/open API, durable pool, restrained landing, actual art/rarity reveal, collection/history, destination links, and targeted tests                | Manual dev review; connected E2E     |
 | 2026-08-25 | L2/N · mobile polish        | This delivery change | True-alpha bounded mascot art, viewport help modal, compact outcome controls, isolated Canvas/workout errors, and explicit concern confirmation                          | Manual Pixel 10/dev review           |
+| 2026-08-25 | H1 · quality baseline       | `67d52ea`            | Merged main observability with Momentum rewards/media/Canvas wiring; Go tests, vet, contracts, and observability configuration tests pass                                | Repair stale E2E contracts           |
+| 2026-08-25 | H1 · trustworthy E2E gate   | This delivery change | Current WebSocket Canvas, Avatar v5, sealed Prize Boxes, staff plan publish/reschedule, exact planned duration, and 33 browser journeys pass in Docker                   | Begin H2/H5 coverage                 |
 
 ## Linked designs
 

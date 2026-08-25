@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -154,7 +155,11 @@ func adminBinary(t *testing.T) string {
 			localAdminBinary.err = err
 			return
 		}
-		localAdminBinary.path = filepath.Join(directory, "zoomigo-admin")
+		name := "zoomigo-admin"
+		if runtime.GOOS == "windows" {
+			name += ".exe"
+		}
+		localAdminBinary.path = filepath.Join(directory, name)
 		build := exec.Command("go", "build", "-tags", "e2e", "-o", localAdminBinary.path, "../cmd/admin")
 		var stderr bytes.Buffer
 		build.Stderr = &stderr

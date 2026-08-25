@@ -70,15 +70,18 @@ func TestAvatarSaveIsScopedToTheCallerAndValidated(t *testing.T) {
 	_ = unauthenticated.Body.Close()
 }
 
-func TestPlayerCanSaveTheCompleteV4AvatarConfiguration(t *testing.T) {
+func TestPlayerCanSaveTheCompleteV5AvatarConfiguration(t *testing.T) {
 	api := newAPIClient(t)
 	api.reset(t)
 	look := map[string]string{
-		"version":         "4",
+		"version":         "5",
 		"background":      "solid",
 		"effect":          "pulse",
 		"kit":             "violet",
 		"head":            "person-round",
+		"eyes":            "eyes-soft",
+		"mouth":           "mouth-smile",
+		"facialHair":      "facial-hair-none",
 		"hat":             "cap",
 		"eyewear":         "round",
 		"headPalette":     "#66d0ff:#302c61",
@@ -160,8 +163,8 @@ func assertAvatarConfiguration(t *testing.T, response *http.Response, want map[s
 }
 
 func tooManyAvatarLayers() map[string]string {
-	layers := make(map[string]string, 13)
-	for index := range 13 {
+	layers := make(map[string]string, 16)
+	for index := range 16 {
 		layers[string(rune('a'+index))+"layer"] = "part"
 	}
 	return layers

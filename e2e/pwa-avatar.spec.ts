@@ -13,7 +13,7 @@ test.beforeEach(async () => {
   await api.dispose();
 });
 
-test("a player builds a v4 look with independent Gear sublayers", async ({
+test("a player builds a v5 look with independent face and Gear layers that reaches Team Lounge", async ({
   page,
 }) => {
   await openReadyPage(page, "/me");
@@ -30,6 +30,9 @@ test("a player builds a v4 look with independent Gear sublayers", async ({
     page.getByRole("radio", { name: /Rover the dog.*locked/i }),
   ).toBeDisabled();
   await page.getByRole("radio", { name: "Tall person" }).check();
+  await page.getByRole("radio", { name: "Focus eyes" }).check();
+  await page.getByRole("radio", { name: "Calm mouth" }).check();
+  await page.getByRole("radio", { name: "Mustache" }).check();
   await page.getByRole("button", { name: "Person color" }).click();
   await page.getByRole("button", { name: "Aqua" }).click();
   await expect(
@@ -73,6 +76,22 @@ test("a player builds a v4 look with independent Gear sublayers", async ({
   await expect(page.getByRole("status")).toContainText("Avatar saved");
   await expect(page.locator(".profile-hero .avatar-art")).toBeVisible();
 
+  const api = await request.newContext({ baseURL: apiBaseURL });
+  const rest = await api.post("/v1/teams/team-hill-striders/canvas/rest", {
+    headers: { Authorization: "Bearer e2e-player-mason" },
+    data: {},
+  });
+  expect(rest.status()).toBe(204);
+  await api.dispose();
+  await page.goto("/team");
+  const loungeAvatar = page.getByRole("button", {
+    name: "Move Mason’s avatar",
+  });
+  await expect(loungeAvatar).toBeVisible();
+  await expect(
+    loungeAvatar.locator('.avatar-art__layer--head ellipse[rx="14.5"]'),
+  ).toBeVisible();
+
   await page.reload();
   await page.locator("html[data-app-ready='true']").waitFor();
 
@@ -90,6 +109,9 @@ test("a player builds a v4 look with independent Gear sublayers", async ({
 
   await page.goto("/me");
   await page.getByRole("link", { name: "Customize avatar" }).click();
+  await expect(page.getByRole("radio", { name: "Focus eyes" })).toBeChecked();
+  await expect(page.getByRole("radio", { name: "Calm mouth" })).toBeChecked();
+  await expect(page.getByRole("radio", { name: "Mustache" })).toBeChecked();
   await page.getByRole("button", { name: "Gear" }).click();
   await expect(page.getByRole("radio", { name: "Cap" })).toBeChecked();
   await expect(
@@ -109,5 +131,6 @@ test("the Studio uses compact accessible controls without open text or upload", 
   await expect(builder.locator("input[type='file']")).toHaveCount(0);
   await expect(builder.locator("textarea")).toHaveCount(0);
   await expect(builder.locator(".avatar-choice__label")).toHaveCount(0);
-  await expect(builder.locator(".avatar-builder__tray")).toBeVisible();
+  await expect(builder.locator(".avatar-builder__tray")).toHaveCount(4);
+  await expect(builder.locator(".avatar-builder__tray").first()).toBeVisible();
 });

@@ -3,12 +3,16 @@
 package e2e_test
 
 import (
-	"bufio"
+	"context"
 	"encoding/json"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/coder/websocket"
+	"github.com/coder/websocket/wsjson"
 )
 
 type canvasSnapshot struct {
@@ -34,20 +38,37 @@ func TestTeamCanvasPersistsRewardsSettingsAndLiveInvalidations(t *testing.T) {
 	assertStatus(t, rest, http.StatusNoContent)
 	_ = rest.Body.Close()
 
-	stream := api.do(t, http.MethodGet, "/v1/teams/team-hill-striders/canvas/events", masonToken, "", nil)
-	assertStatus(t, stream, http.StatusOK)
-	defer stream.Body.Close()
-	if stream.Header.Get("Content-Type") != "text/event-stream" {
-		t.Fatalf("event stream content type = %q", stream.Header.Get("Content-Type"))
+	ticketResponse := api.do(t, http.MethodPost, "/v1/teams/team-hill-striders/canvas/socket-ticket", masonToken, "", map[string]any{})
+	assertStatus(t, ticketResponse, http.StatusCreated)
+	var ticket struct {
+		Ticket string `json:"ticket"`
 	}
-	scanner := bufio.NewScanner(stream.Body)
-	assertCanvasEvent(t, scanner, "ready")
-	assertCanvasEvent(t, scanner, "physics")
+	decodeJSON(t, ticketResponse, &ticket)
+	origin := "http://pwa.invalid"
+	if os.Getenv("E2E_BASE_URL") != "" {
+		origin = "http://[::1]:3000"
+	}
+	socketURL := strings.NewReplacer("https://", "wss://", "http://", "ws://").Replace(api.baseURL) + "/v1/teams/team-hill-striders/canvas/socket"
+	socket, dialResponse, err := websocket.Dial(t.Context(), socketURL, &websocket.DialOptions{
+		Subprotocols: []string{"zoomigo.team-canvas.v1", "ticket." + ticket.Ticket},
+		HTTPHeader:   http.Header{"Origin": []string{origin}},
+	})
+	if err != nil {
+		if dialResponse != nil {
+			t.Fatalf("socket dial status = %d: %v", dialResponse.StatusCode, err)
+		}
+		t.Fatal(err)
+	}
+	defer socket.CloseNow()
+	assertCanvasMessage(t, socket, "room.ready")
 
-	avatar := api.do(t, http.MethodPut, "/v1/teams/team-hill-striders/canvas/avatar", masonToken, "", map[string]any{"x": 120, "y": -8})
-	assertStatus(t, avatar, http.StatusOK)
-	_ = avatar.Body.Close()
-	assertCanvasEvent(t, scanner, "physics")
+	if err := wsjson.Write(t.Context(), socket, map[string]any{
+		"v": 1, "type": "avatar.target", "messageId": "move-one",
+		"position": map[string]float64{"x": 72, "y": 48},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	assertCanvasMessage(t, socket, "avatar.accepted")
 
 	reach := validTrainingEntryPayload(time.Now().UTC())
 	reach["assignmentId"] = "assignment-hill-sprints"
@@ -58,7 +79,7 @@ func TestTeamCanvasPersistsRewardsSettingsAndLiveInvalidations(t *testing.T) {
 		ID string `json:"id"`
 	}
 	decodeJSON(t, created, &reachEntry)
-	assertCanvasEvent(t, scanner, "canvas")
+	assertCanvasMessage(t, socket, "canvas.changed")
 
 	loaded := api.do(t, http.MethodGet, "/v1/teams/team-hill-striders/canvas", masonToken, "", nil)
 	assertStatus(t, loaded, http.StatusOK)
@@ -75,7 +96,7 @@ func TestTeamCanvasPersistsRewardsSettingsAndLiveInvalidations(t *testing.T) {
 	})
 	assertStatus(t, dynamicSettings, http.StatusOK)
 	_ = dynamicSettings.Body.Close()
-	assertCanvasEvent(t, scanner, "canvas")
+	assertCanvasMessage(t, socket, "canvas.changed")
 
 	pieceResponse := api.do(t, http.MethodPost, "/v1/teams/team-hill-striders/canvas/pieces", masonToken, "", map[string]any{"assetId": "soccer"})
 	assertStatus(t, pieceResponse, http.StatusCreated)
@@ -87,7 +108,7 @@ func TestTeamCanvasPersistsRewardsSettingsAndLiveInvalidations(t *testing.T) {
 	if len(piece.Physics) == 0 || string(piece.Physics) == "null" {
 		t.Fatalf("dynamic piece has no physics state: %+v", piece)
 	}
-	assertCanvasEvent(t, scanner, "canvas")
+	assertCanvasMessage(t, socket, "canvas.changed")
 
 	secondPiece := api.do(t, http.MethodPost, "/v1/teams/team-hill-striders/canvas/pieces", masonToken, "", map[string]any{"assetId": "balloon"})
 	assertStatus(t, secondPiece, http.StatusCreated)
@@ -95,14 +116,14 @@ func TestTeamCanvasPersistsRewardsSettingsAndLiveInvalidations(t *testing.T) {
 		ID string `json:"id"`
 	}
 	decodeJSON(t, secondPiece, &balloonPiece)
-	assertCanvasEvent(t, scanner, "canvas")
+	assertCanvasMessage(t, socket, "canvas.changed")
 	thirdPiece := api.do(t, http.MethodPost, "/v1/teams/team-hill-striders/canvas/pieces", masonToken, "", map[string]any{"assetId": "rocket"})
 	assertStatus(t, thirdPiece, http.StatusCreated)
 	var rocketPiece struct {
 		ID string `json:"id"`
 	}
 	decodeJSON(t, thirdPiece, &rocketPiece)
-	assertCanvasEvent(t, scanner, "canvas")
+	assertCanvasMessage(t, socket, "canvas.changed")
 	overLimit := api.do(t, http.MethodPost, "/v1/teams/team-hill-striders/canvas/pieces", masonToken, "", map[string]any{"assetId": "rocket"})
 	assertStatus(t, overLimit, http.StatusUnprocessableEntity)
 	_ = overLimit.Body.Close()
@@ -112,7 +133,7 @@ func TestTeamCanvasPersistsRewardsSettingsAndLiveInvalidations(t *testing.T) {
 	})
 	assertStatus(t, updatedPiece, http.StatusOK)
 	_ = updatedPiece.Body.Close()
-	assertCanvasEvent(t, scanner, "piece")
+	assertCanvasMessage(t, socket, "piece.changed")
 
 	settingsResponse := api.do(t, http.MethodPut, "/v1/teams/team-hill-striders/canvas/dev-settings", masonToken, "", map[string]any{
 		"backgroundAssetId":   "creature-quest-town",
@@ -125,7 +146,7 @@ func TestTeamCanvasPersistsRewardsSettingsAndLiveInvalidations(t *testing.T) {
 	})
 	assertStatus(t, settingsResponse, http.StatusOK)
 	_ = settingsResponse.Body.Close()
-	assertCanvasEvent(t, scanner, "canvas")
+	assertCanvasMessage(t, socket, "canvas.changed")
 
 	reloaded := api.do(t, http.MethodGet, "/v1/teams/team-hill-striders/canvas", masonToken, "", nil)
 	assertStatus(t, reloaded, http.StatusOK)
@@ -149,7 +170,7 @@ func TestTeamCanvasPersistsRewardsSettingsAndLiveInvalidations(t *testing.T) {
 	deletedPiece := api.do(t, http.MethodDelete, "/v1/teams/team-hill-striders/canvas/pieces/"+piece.ID, masonToken, "", nil)
 	assertStatus(t, deletedPiece, http.StatusNoContent)
 	_ = deletedPiece.Body.Close()
-	assertCanvasEvent(t, scanner, "canvas")
+	assertCanvasMessage(t, socket, "canvas.changed")
 	afterPieceDelete := api.do(t, http.MethodGet, "/v1/teams/team-hill-striders/canvas", masonToken, "", nil)
 	assertStatus(t, afterPieceDelete, http.StatusOK)
 	var afterPieceDeleteSnapshot canvasSnapshot
@@ -163,12 +184,12 @@ func TestTeamCanvasPersistsRewardsSettingsAndLiveInvalidations(t *testing.T) {
 		ID string `json:"id"`
 	}
 	decodeJSON(t, replacement, &replacementPiece)
-	assertCanvasEvent(t, scanner, "canvas")
+	assertCanvasMessage(t, socket, "canvas.changed")
 
 	deleted := api.do(t, http.MethodDelete, "/v1/training-entries/"+reachEntry.ID, masonToken, "", nil)
 	assertStatus(t, deleted, http.StatusNoContent)
 	_ = deleted.Body.Close()
-	assertCanvasEvent(t, scanner, "canvas")
+	assertCanvasMessage(t, socket, "canvas.changed")
 	afterDelete := api.do(t, http.MethodGet, "/v1/teams/team-hill-striders/canvas", masonToken, "", nil)
 	assertStatus(t, afterDelete, http.StatusOK)
 	deletedBody := readBody(afterDelete)
@@ -180,24 +201,26 @@ func TestTeamCanvasPersistsRewardsSettingsAndLiveInvalidations(t *testing.T) {
 	}
 }
 
-func assertCanvasEvent(t *testing.T, scanner *bufio.Scanner, expected string) {
+func assertCanvasMessage(t *testing.T, socket *websocket.Conn, expected string) {
 	t.Helper()
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
 	for {
-		if !scanner.Scan() || !strings.HasPrefix(scanner.Text(), "event: ") {
-			t.Fatalf("event line = %q, want %q", scanner.Text(), expected)
+		var message struct {
+			Type string `json:"type"`
+			Code string `json:"code"`
 		}
-		event := strings.TrimPrefix(scanner.Text(), "event: ")
-		if !scanner.Scan() || !strings.HasPrefix(scanner.Text(), "data: ") {
-			t.Fatalf("event data = %q", scanner.Text())
+		if err := wsjson.Read(ctx, socket, &message); err != nil {
+			t.Fatalf("read canvas socket waiting for %q: %v", expected, err)
 		}
-		if !scanner.Scan() || scanner.Text() != "" {
-			t.Fatalf("event terminator = %q", scanner.Text())
-		}
-		if event == expected {
+		if message.Type == expected {
 			return
 		}
-		if event != "physics" {
-			t.Fatalf("event = %q, want %q", event, expected)
+		switch message.Type {
+		case "avatar.input", "avatar.accepted", "physics.frame":
+			continue
+		default:
+			t.Fatalf("canvas socket message = %q (%s), want %q", message.Type, message.Code, expected)
 		}
 	}
 }
