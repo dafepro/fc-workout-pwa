@@ -9,6 +9,12 @@ describe("canonicalRoute", () => {
     ["/leaders", "leaders"],
     ["/me", "me"],
     ["/me/avatar", "avatar_builder"],
+    ["/momentum", "momentum"],
+    ["/progress", "progress"],
+    ["/plan", "plan"],
+    ["/plan/2", "plan_day"],
+    ["/prizes", "prize_boxes"],
+    ["/prizes/all", "prize_collection"],
     ["/sessions/entry-secret", "session_detail"],
     ["/login", "login"],
   ] as const)("maps %s without retaining identifiers", (path, expected) => {

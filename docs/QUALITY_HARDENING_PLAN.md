@@ -87,7 +87,7 @@ A major flow is complete only when:
       notification outbox, and Canvas connection lifecycle.
   - [x] Extend product-event routes and the safe event catalog to Today, plans,
         Prize Boxes, Avatar unlock use, Team Rewards, and staff planning.
-- [ ] Add one local E2E proof from client event to aggregate analytics storage.
+- [x] Add one local E2E proof from client event to aggregate analytics storage.
 - [ ] Pass the documented dev host admission test before enabling Alloy; do not
       enable it on a host below the admitted memory floor.
 
@@ -139,6 +139,13 @@ requirements, Prize Box claim/open, Team Reward reports, and staff plan/reward
 operations. Prize destination clicks record only `avatar` or `team_lounge` plus
 the two supported item kinds. Staff events remain anonymous aggregates; no
 identity, IDs, workout results, notes, reward text, or report reason is stored.
+
+The third H5 slice validates a browser-shaped route summary, writes it through
+the production storage functions into the real analytics SQLite migration, and
+reads the operator aggregate back. The proof covers pseudonymous active-player
+counts, active minutes, row volume, and canonical route totals. Canonical route
+coverage now includes Today, Momentum, progress, the plan overview/day detail,
+Prize Boxes, and the prize collection.
 
 Proposed file tree:
 
