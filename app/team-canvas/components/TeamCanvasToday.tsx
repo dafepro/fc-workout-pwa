@@ -130,7 +130,6 @@ export function TeamCanvasToday() {
 
         {expanded ? (
           <div className="tc-checkin">
-            <h2>{copy.formTitle}</h2>
             <WorkoutOutcomeChoices
               className="tc-targets"
               value={completion}

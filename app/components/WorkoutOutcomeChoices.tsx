@@ -37,23 +37,32 @@ export function WorkoutOutcomeChoices({
   className?: string;
 }) {
   return (
-    <div
-      className={className}
-      role="group"
-      aria-label={playerExperienceCopy.focusedToday.outcomeGroup}
-    >
-      {choices.map((choice) => (
-        <button
-          className="workout-outcome-choice"
-          type="button"
-          key={choice.value}
-          aria-pressed={value === choice.value}
-          onClick={() => onChange(choice.value)}
-        >
-          <Image src={choice.image} alt="" width={72} height={66} unoptimized />
-          <span>{choice.label}</span>
-        </button>
-      ))}
-    </div>
+    <fieldset className={`workout-outcome-choices ${className ?? ""}`}>
+      <legend>{playerExperienceCopy.focusedToday.finishPrompt}</legend>
+      <div className="workout-outcome-choices__options">
+        {choices.map((choice) => (
+          <button
+            className="workout-outcome-choice"
+            type="button"
+            key={choice.value}
+            data-outcome={choice.value}
+            aria-pressed={value === choice.value}
+            onClick={() => onChange(choice.value)}
+          >
+            <span className="workout-outcome-choice__image-frame">
+              <Image
+                className="workout-outcome-choice__image"
+                src={choice.image}
+                alt=""
+                width={80}
+                height={80}
+                unoptimized
+              />
+            </span>
+            <span>{choice.label}</span>
+          </button>
+        ))}
+      </div>
+    </fieldset>
   );
 }

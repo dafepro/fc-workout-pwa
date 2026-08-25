@@ -23,7 +23,7 @@ describe("FeelTracks", () => {
     expect(screen.getByRole("slider", { name: "Tiredness" })).toHaveValue("3");
     expect(screen.getByText("😅 Hard")).toBeInTheDocument();
     expect(screen.getByText("🙂 A little tired")).toBeInTheDocument();
-    expect(container.querySelectorAll(".tc-feel-track__zoomi")).toHaveLength(2);
+    expect(container.querySelectorAll(".tc-feel-track__zoomi")).toHaveLength(0);
 
     fireEvent.change(screen.getByRole("slider", { name: "Effort" }), {
       target: { value: "5" },

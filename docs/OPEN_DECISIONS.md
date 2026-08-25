@@ -967,6 +967,10 @@ Momentum Alpha needs independent PWA install/offline behavior.
 - Decided: workout completion uses the compact ordered scale Almost / Did it /
   Extra, with Did it selected in the middle by default. The stored completion
   values remain partial / as listed / extra.
+- Decided: outcome art uses a stable three-column stage: unselected heads are
+  compact and the selected head enlarges without reflow. Effort and tiredness
+  remain slim native sliders; their text/emoji output carries the feedback,
+  without a second mascot treatment on the tracks.
 - Decided: a player concern reason is selected visibly, then sent with a separate
   confirmation action. Selecting a reason alone never submits it.
 

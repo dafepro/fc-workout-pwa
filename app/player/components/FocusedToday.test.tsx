@@ -90,11 +90,11 @@ describe("focused Today components", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Start workout" }));
     expect(screen.getByRole("button", { name: "Save workout" })).toBeVisible();
-    const choices = within(
-      screen.getByRole("group", {
-        name: "How much of the workout did you finish?",
-      }),
-    ).getAllByRole("button");
+    expect(screen.getByText("Did you finish?")).toBeVisible();
+    const outcomeGroup = screen.getByRole("group", {
+      name: "Did you finish?",
+    });
+    const choices = within(outcomeGroup).getAllByRole("button");
     expect(choices.map((choice) => choice.textContent)).toEqual([
       "Almost…",
       "Did it!",
@@ -104,6 +104,9 @@ describe("focused Today components", () => {
     expect(choices[1]).toHaveAttribute("aria-pressed", "true");
     expect(choices[0]).toHaveAttribute("aria-pressed", "false");
     expect(choices[2]).toHaveAttribute("aria-pressed", "false");
+    expect(
+      outcomeGroup.querySelectorAll(".workout-outcome-choice__image"),
+    ).toHaveLength(3);
     expect(
       screen.queryByRole("button", { name: /coach-approved alternative/i }),
     ).not.toBeInTheDocument();

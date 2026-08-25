@@ -77,7 +77,7 @@ export const playerExperienceCopy = {
     retrying: "Trying again…",
     saveError: "That workout could not be saved. Please try again.",
     actionError: "That could not be saved. Please try again.",
-    outcomeGroup: "How much of the workout did you finish?",
+    finishPrompt: "Did you finish?",
     completedAsListed: "Did it!",
     finishedPart: "Almost…",
     addedExtra: "Extra!",
