@@ -52,6 +52,10 @@ export interface ProductEventProperties {
   session_history_opened: EmptyProperties;
   cheer_inbox_opened: EmptyProperties;
   challenge_action_selected: { action: "open_log" | "open_reaction" };
+  reward_destination_opened: {
+    destination: "avatar" | "team_lounge";
+    item_kind: "avatar_part" | "stamp";
+  };
   player_sign_in_succeeded: { remembered: boolean };
   player_sign_in_failed: {
     reason: "invalid" | "locked" | "busy" | "rate_limited" | "unavailable";
@@ -81,6 +85,26 @@ export interface ProductEventProperties {
       | "do-it";
   };
   avatar_saved: EmptyProperties;
+  today_requirement_recorded: {
+    source: "coach_plan" | "team_default" | "unplanned";
+    kind: "training" | "recovery";
+    outcome: "success" | "conflict" | "rejected" | "unavailable";
+  };
+  prize_box_operation: {
+    action: "claim" | "open";
+    outcome: "success" | "conflict" | "rejected" | "unavailable";
+  };
+  team_reward_reported: {
+    outcome: "created" | "duplicate" | "rejected" | "unavailable";
+  };
+  staff_plan_operation: {
+    action: "publish" | "reschedule" | "cancel";
+    outcome: "success" | "conflict" | "rejected" | "unavailable";
+  };
+  staff_reward_operation: {
+    action: "create" | "publish" | "cancel" | "resolve_report";
+    outcome: "success" | "conflict" | "rejected" | "unavailable";
+  };
   product_operation_completed: {
     operation: "training_entry" | "reaction" | "avatar" | "session";
     outcome: "success" | "failure";
@@ -104,6 +128,7 @@ export const clientEventNames = [
   "session_history_opened",
   "cheer_inbox_opened",
   "challenge_action_selected",
+  "reward_destination_opened",
 ] as const satisfies readonly ProductEventName[];
 
 export type ClientEventName = (typeof clientEventNames)[number];
@@ -324,6 +349,20 @@ function propertiesFor(
       return {
         action: oneOf(value.action, ["open_log", "open_reaction"], "action"),
       };
+    case "reward_destination_opened":
+      exactKeys(value, ["destination", "item_kind"], name);
+      return {
+        destination: oneOf(
+          value.destination,
+          ["avatar", "team_lounge"],
+          "destination",
+        ),
+        item_kind: oneOf(
+          value.item_kind,
+          ["avatar_part", "stamp"],
+          "item_kind",
+        ),
+      };
     case "player_sign_in_succeeded":
       exactKeys(value, ["remembered"], name);
       return { remembered: boolean(value.remembered, "remembered") };
@@ -391,6 +430,52 @@ function propertiesFor(
           "reaction",
         ),
       };
+    case "today_requirement_recorded":
+      exactKeys(value, ["source", "kind", "outcome"], name);
+      return {
+        source: oneOf(
+          value.source,
+          ["coach_plan", "team_default", "unplanned"],
+          "source",
+        ),
+        kind: oneOf(value.kind, ["training", "recovery"], "kind"),
+        outcome: featureOutcome(value.outcome),
+      };
+    case "prize_box_operation":
+      exactKeys(value, ["action", "outcome"], name);
+      return {
+        action: oneOf(value.action, ["claim", "open"], "action"),
+        outcome: featureOutcome(value.outcome),
+      };
+    case "team_reward_reported":
+      exactKeys(value, ["outcome"], name);
+      return {
+        outcome: oneOf(
+          value.outcome,
+          ["created", "duplicate", "rejected", "unavailable"],
+          "outcome",
+        ),
+      };
+    case "staff_plan_operation":
+      exactKeys(value, ["action", "outcome"], name);
+      return {
+        action: oneOf(
+          value.action,
+          ["publish", "reschedule", "cancel"],
+          "action",
+        ),
+        outcome: featureOutcome(value.outcome),
+      };
+    case "staff_reward_operation":
+      exactKeys(value, ["action", "outcome"], name);
+      return {
+        action: oneOf(
+          value.action,
+          ["create", "publish", "cancel", "resolve_report"],
+          "action",
+        ),
+        outcome: featureOutcome(value.outcome),
+      };
     case "product_operation_completed":
       exactKeys(value, ["operation", "outcome", "latency"], name);
       return {
@@ -407,6 +492,14 @@ function propertiesFor(
         ),
       };
   }
+}
+
+function featureOutcome(value: unknown) {
+  return oneOf(
+    value,
+    ["success", "conflict", "rejected", "unavailable"],
+    "outcome",
+  );
 }
 
 function record(value: unknown, label: string): Record<string, unknown> {

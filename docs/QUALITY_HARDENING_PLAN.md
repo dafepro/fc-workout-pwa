@@ -85,8 +85,8 @@ A major flow is complete only when:
       rewards, media, notifications, or Canvas behavior.
 - [x] Add bounded operational outcomes for Prize Boxes, plans, Team Rewards,
       notification outbox, and Canvas connection lifecycle.
-- [ ] Extend product-event routes and the safe event catalog to Today, plans,
-      Prize Boxes, Avatar unlock use, Team Rewards, and staff planning.
+  - [x] Extend product-event routes and the safe event catalog to Today, plans,
+        Prize Boxes, Avatar unlock use, Team Rewards, and staff planning.
 - [ ] Add one local E2E proof from client event to aggregate analytics storage.
 - [ ] Pass the documented dev host admission test before enabling Alloy; do not
       enable it on a host below the admitted memory floor.
@@ -133,6 +133,12 @@ record aggregate delivery outcomes, the internal metrics endpoint is covered
 through the merged E2E wiring, and Grafana receives feature and connection
 panels plus a paused notification-failure alert. Tests reject identity and
 response data in exported metric labels.
+
+The second H5 slice records authoritative, bounded outcomes for Today
+requirements, Prize Box claim/open, Team Reward reports, and staff plan/reward
+operations. Prize destination clicks record only `avatar` or `team_lounge` plus
+the two supported item kinds. Staff events remain anonymous aggregates; no
+identity, IDs, workout results, notes, reward text, or report reason is stored.
 
 Proposed file tree:
 

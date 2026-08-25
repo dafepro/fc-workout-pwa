@@ -15,6 +15,7 @@ import {
 } from "../data/prize-box-gateway";
 import { PrizeBoxVisual, PrizeItemArt } from "./PrizeItemArt";
 import { prizeBoxCopy, rarityLabel } from "./content";
+import { useOptionalAnalytics } from "../../lib/analytics/AnalyticsProvider";
 
 export function PrizeBoxesExperience({
   connected,
@@ -369,6 +370,7 @@ function PrizeReveal({
   onClose(): void;
 }) {
   const item = reveal.item;
+  const analytics = useOptionalAnalytics();
   return (
     <section
       className="prize-reveal"
@@ -397,6 +399,13 @@ function PrizeReveal({
             <Link
               className="button button--lime"
               href={item.destination === "team_lounge" ? "/team" : "/me/avatar"}
+              onClick={() =>
+                analytics?.track("reward_destination_opened", {
+                  destination: item.destination,
+                  item_kind:
+                    item.kind === "canvas_stamp" ? "stamp" : "avatar_part",
+                })
+              }
             >
               {item.destination === "team_lounge"
                 ? prizeBoxCopy.reveal.useTeam

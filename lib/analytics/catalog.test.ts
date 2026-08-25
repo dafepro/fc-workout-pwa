@@ -60,6 +60,28 @@ describe("validateClientBatch", () => {
     ).not.toHaveProperty("player_id");
   });
 
+  it("accepts only a bounded reward destination without item identity", () => {
+    expect(
+      validateClientBatch(
+        batch("reward_destination_opened", {
+          destination: "team_lounge",
+          item_kind: "stamp",
+        }),
+        NOW,
+      ).events[0].properties,
+    ).toEqual({ destination: "team_lounge", item_kind: "stamp" });
+    expect(() =>
+      validateClientBatch(
+        batch("reward_destination_opened", {
+          destination: "team_lounge",
+          item_kind: "stamp",
+          item_id: "private-unlock",
+        }),
+        NOW,
+      ),
+    ).toThrow(/properties/i);
+  });
+
   it.each(["distance", "effort", "exhaustion", "player_id", "url"])(
     "rejects the forbidden or unknown %s property",
     (property) => {
@@ -158,6 +180,33 @@ describe("validateServerEvent", () => {
         backdate_days: 0,
         repetitions: 8,
         effort: 4,
+      }),
+    ).toThrow(/properties/i);
+  });
+
+  it.each([
+    [
+      "today_requirement_recorded",
+      { source: "coach_plan", kind: "training", outcome: "success" },
+    ],
+    ["prize_box_operation", { action: "open", outcome: "unavailable" }],
+    ["team_reward_reported", { outcome: "created" }],
+    ["staff_plan_operation", { action: "reschedule", outcome: "conflict" }],
+    [
+      "staff_reward_operation",
+      { action: "resolve_report", outcome: "success" },
+    ],
+  ] as const)("accepts the bounded %s outcome", (name, properties) => {
+    expect(validateServerEvent(name, properties)).toEqual(properties);
+  });
+
+  it("refuses identities and content on major feature outcomes", () => {
+    expect(() =>
+      validateServerEvent("staff_reward_operation", {
+        action: "create",
+        outcome: "success",
+        team_id: "private-team",
+        prize_text: "pizza party",
       }),
     ).toThrow(/properties/i);
   });

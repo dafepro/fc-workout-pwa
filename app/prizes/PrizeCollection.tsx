@@ -10,6 +10,7 @@ import {
 import type { PrizeDestination } from "../data/prize-box-gateway";
 import { PrizeItemArt } from "./PrizeItemArt";
 import { rarityLabel } from "./content";
+import { useOptionalAnalytics } from "../../lib/analytics/AnalyticsProvider";
 
 type CollectionFilter = "all" | PrizeDestination;
 type CollectionView = "collection" | "history";
@@ -38,6 +39,7 @@ export function PrizeCollection({
   connected: boolean;
   gateway?: PrizeCollectionGateway;
 }) {
+  const analytics = useOptionalAnalytics();
   const [items, setItems] = useState<PlayerUnlock[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">(
     connected ? "loading" : "ready",
@@ -144,7 +146,18 @@ export function PrizeCollection({
                 {rarityLabel(unlock.item.rarity)}
               </span>
               <small>{destinationLabel(unlock.item.destination)}</small>
-              <Link href={destinationHref(unlock.item.destination)}>
+              <Link
+                href={destinationHref(unlock.item.destination)}
+                onClick={() =>
+                  analytics?.track("reward_destination_opened", {
+                    destination: unlock.item.destination,
+                    item_kind:
+                      unlock.item.kind === "canvas_stamp"
+                        ? "stamp"
+                        : "avatar_part",
+                  })
+                }
+              >
                 Use in {destinationLabel(unlock.item.destination)}
               </Link>
             </li>

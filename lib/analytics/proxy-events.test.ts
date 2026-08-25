@@ -60,4 +60,72 @@ describe("proxyEvents", () => {
       properties: { reason: "conflict" },
     });
   });
+
+  it("projects Today completion without plan identity or workout results", () => {
+    const events = proxyEvents(
+      "POST",
+      "v1/me/training-entries",
+      JSON.stringify({
+        activityDefinitionId: "hill-sprints",
+        plan: { planId: "private-plan", dayIndex: 2, blockIndex: 0 },
+        result: { value: 12 },
+        note: "private coach note",
+      }),
+      201,
+      20,
+    );
+    expect(events).toContainEqual({
+      name: "today_requirement_recorded",
+      properties: {
+        source: "coach_plan",
+        kind: "training",
+        outcome: "success",
+      },
+    });
+    expect(JSON.stringify(events)).not.toMatch(/private|value|note/);
+  });
+
+  it("projects planned recovery, Prize Box, and Team Reward outcomes", () => {
+    expect(
+      proxyEvents(
+        "POST",
+        "v1/teams/team-one/canvas/rest",
+        JSON.stringify({ planId: "private-plan", dayIndex: 1 }),
+        201,
+        20,
+      ),
+    ).toContainEqual({
+      name: "today_requirement_recorded",
+      properties: {
+        source: "coach_plan",
+        kind: "recovery",
+        outcome: "success",
+      },
+    });
+    expect(
+      proxyEvents(
+        "POST",
+        "v1/me/prize-boxes/private-box/open",
+        undefined,
+        409,
+        20,
+      ),
+    ).toEqual([
+      {
+        name: "prize_box_operation",
+        properties: { action: "open", outcome: "conflict" },
+      },
+    ]);
+    expect(
+      proxyEvents(
+        "POST",
+        "v1/teams/team-one/rewards/reward-one/reports",
+        JSON.stringify({ reason: "other" }),
+        201,
+        20,
+      ),
+    ).toEqual([
+      { name: "team_reward_reported", properties: { outcome: "created" } },
+    ]);
+  });
 });

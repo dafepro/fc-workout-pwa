@@ -392,6 +392,7 @@ Update this table in the same commit that materially changes a vertical slice.
 | 2026-08-25 | H1b · formatting baseline   | This delivery change | Repository-wide deterministic Prettier baseline restored in an isolated mechanical revision                                                                              | Begin H2/H5 coverage                 |
 | 2026-08-25 | H2 · plan lifecycle         | This delivery change | Staff/UI/store/HTTP and Docker API coverage prove publish, Today, completion/revisit, recovery, reschedule, cancellation/history, and recoverable stale-state handling   | Coaching-owner numeric approval      |
 | 2026-08-25 | H5 · operational outcomes   | This delivery change | Bounded feature, notification, and live Canvas metrics; internal-endpoint E2E; dashboard panels; and a paused notification failure alert                                 | Product analytics and dev admission  |
+| 2026-08-25 | H5 · product outcomes       | This delivery change | Strict privacy-tested Today, Prize Box, Team Reward, reward-destination, and anonymous staff planning/reward events                                                      | Ingestion-to-aggregate E2E           |
 
 ## Linked designs
 

@@ -36,6 +36,7 @@ export function proxyEvents(
   const successful = status >= 200 && status < 300;
   const payload = parseBody(rawBody);
   let outcome: ProjectedServerEvent | null = null;
+  let featureOutcome: ProjectedServerEvent | null = null;
   let operation: "training_entry" | "reaction" | "avatar" | null = null;
   if (method === "POST" && path === "v1/me/training-entries") {
     operation = "training_entry";
@@ -60,6 +61,51 @@ export function proxyEvents(
         };
       }
     }
+    featureOutcome = {
+      name: "today_requirement_recorded",
+      properties: {
+        source:
+          payload.plan && typeof payload.plan === "object"
+            ? "coach_plan"
+            : typeof payload.assignmentId === "string" && payload.assignmentId
+              ? "team_default"
+              : "unplanned",
+        kind: "training",
+        outcome: featureStatus(status),
+      },
+    };
+  } else if (
+    method === "POST" &&
+    /^v1\/teams\/[^/]+\/canvas\/rest$/.test(path)
+  ) {
+    featureOutcome = {
+      name: "today_requirement_recorded",
+      properties: {
+        source: "coach_plan",
+        kind: "recovery",
+        outcome: featureStatus(status),
+      },
+    };
+  } else if (
+    method === "POST" &&
+    (path === "v1/me/prize-boxes/claim-daily" ||
+      /^v1\/me\/prize-boxes\/[^/]+\/open$/.test(path))
+  ) {
+    featureOutcome = {
+      name: "prize_box_operation",
+      properties: {
+        action: path.endsWith("/claim-daily") ? "claim" : "open",
+        outcome: featureStatus(status),
+      },
+    };
+  } else if (
+    method === "POST" &&
+    /^v1\/teams\/[^/]+\/rewards\/[^/]+\/reports$/.test(path)
+  ) {
+    featureOutcome = {
+      name: "team_reward_reported",
+      properties: { outcome: reportStatus(status) },
+    };
   } else if (
     method === "DELETE" &&
     /^v1\/training-entries\/[^/]+$/.test(path) &&
@@ -96,7 +142,10 @@ export function proxyEvents(
     operation = "avatar";
     if (successful) outcome = { name: "avatar_saved", properties: {} };
   }
-  if (!operation) return outcome ? [outcome] : [];
+  const events: ProjectedServerEvent[] = [];
+  if (outcome) events.push(outcome);
+  if (featureOutcome) events.push(featureOutcome);
+  if (!operation) return events;
   const completion: ProjectedServerEvent = {
     name: "product_operation_completed",
     properties: {
@@ -105,7 +154,7 @@ export function proxyEvents(
       latency: latencyBucket(elapsedMs),
     },
   };
-  return outcome ? [outcome, completion] : [completion];
+  return [...events, completion];
 }
 
 function parseBody(rawBody: string | undefined): Record<string, unknown> {
@@ -153,4 +202,18 @@ function latencyBucket(
   if (elapsedMs < 1_000) return "under_1s";
   if (elapsedMs < 3_000) return "under_3s";
   return "over_3s";
+}
+
+function featureStatus(status: number) {
+  if (status >= 200 && status < 300) return "success" as const;
+  if (status === 409) return "conflict" as const;
+  if (status >= 500) return "unavailable" as const;
+  return "rejected" as const;
+}
+
+function reportStatus(status: number) {
+  if (status >= 200 && status < 300) return "created" as const;
+  if (status === 409) return "duplicate" as const;
+  if (status >= 500) return "unavailable" as const;
+  return "rejected" as const;
 }

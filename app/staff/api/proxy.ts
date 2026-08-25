@@ -10,6 +10,8 @@ import { readStaffCookie } from "./staff-cookie";
 import { backendOrResponse, unavailable } from "./upstream";
 import { allows, type ConsoleRoute } from "./console-routes";
 import { isOperator, staffSessionFrom } from "../session";
+import { staffProxyEvents } from "../../../lib/analytics/staff-proxy-events";
+import { recordAnonymousServerEvent } from "../../../lib/analytics/server";
 
 /**
  * The body both console gateways share. They differ only in which paths they
@@ -80,6 +82,9 @@ export async function proxyToBackend(
     });
   } catch {
     return unavailable();
+  }
+  for (const event of staffProxyEvents(request.method, path, response.status)) {
+    await recordAnonymousServerEvent(event.name, event.properties as never);
   }
   return new Response(response.body, {
     status: response.status,

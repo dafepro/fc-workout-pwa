@@ -155,13 +155,15 @@ the event stream.
 
 ### Explicit and server-authoritative events
 
-| Area           | Events                                                                                                                                                 |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Authentication | `player_sign_in_succeeded`, aggregate-only `player_sign_in_failed`, `player_signed_out`                                                                |
-| Training       | `training_entry_started`, `training_activity_selected`, server-owned `training_entry_created`, `training_entry_rejected`, and `training_entry_deleted` |
-| Team/social    | `reaction_picker_opened`, server-owned `reaction_created`, `leaderboard_filter_selected`, `challenge_action_selected`                                  |
-| Profile        | `avatar_builder_opened`, server-owned `avatar_saved`, `session_history_opened`, `cheer_inbox_opened`                                                   |
-| Reliability    | server-owned `product_operation_completed` with operation, outcome, and latency bucket                                                                 |
+| Area           | Events                                                                                                                           |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Authentication | `player_sign_in_succeeded`, aggregate-only `player_sign_in_failed`, `player_signed_out`                                          |
+| Today/training | client intent events; server-owned training entry outcomes and bounded `today_requirement_recorded` source/kind/outcome          |
+| Prize Boxes    | server-owned `prize_box_operation`; `reward_destination_opened` with destination and item kind only                              |
+| Team/social    | reaction events, leaderboard/challenge intent, and aggregate-only `team_reward_reported` outcome                                 |
+| Staff planning | anonymous aggregate `staff_plan_operation` and `staff_reward_operation`; never a staff, team, plan, reward, or report identifier |
+| Profile        | `avatar_builder_opened`, server-owned `avatar_saved`, `session_history_opened`, `cheer_inbox_opened`                             |
+| Reliability    | server-owned `product_operation_completed` with operation, outcome, and latency bucket                                           |
 
 Business outcomes are recorded only after the same-origin proxy receives the
 authoritative backend response. Client clicks describe intent; they never claim
