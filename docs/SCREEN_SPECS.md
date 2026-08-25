@@ -135,11 +135,13 @@ Do not add editable free-form profile fields.
 The landing screen remains a short secondary loop, not another home dashboard:
 
 1. Back to Today, Rewards heading, concise explanation, and one restrained Zoomi illustration.
-2. Three values only: claim available, unopened ready, and earned total.
-3. Daily freebie card. Claiming deposits a sealed box and changes the card to a quiet claimed state.
-4. Grouped unopened boxes. Selecting one begins the opening flow.
-5. Three recently earned items with actual art, rarity text, destination, and time.
-6. `View all prizes` opens Collection/History with All, Team Lounge, and Avatar filters.
+2. Daily freebie card. Claiming deposits a sealed box and changes the card to a quiet claimed state.
+3. Grouped unopened boxes. Selecting one begins the opening flow.
+4. Three recently earned items with actual art, rarity text, destination, and time.
+5. `View all prizes` opens Collection/History with All, Team Lounge, and Avatar filters.
+
+Do not add a quick-overview or status-summary strip above the daily freebie.
+The daily card and unopened pool already communicate the actionable state.
 
 The reveal names the item and its destination and provides a real destination
 link. Normal mystery boxes never disclose item rarity before opening. All
