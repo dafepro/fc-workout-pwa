@@ -183,8 +183,13 @@ func (store *Store) RecordTeamCanvasRest(ctx context.Context, actor domain.Actor
 		return err
 	}
 	dayKey := now.In(location).Format("2006-01-02")
+	tx, err := store.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
 	var planDayCount, plannedRestCount int
-	err = store.db.QueryRowContext(ctx, `SELECT COUNT(*)
+	err = tx.QueryRowContext(ctx, `SELECT COUNT(*)
 		FROM training_plans p
 		JOIN training_plan_days d ON d.plan_id = p.id
 		WHERE p.team_id = ? AND p.status = 'published' AND d.occurs_on = ?`,
@@ -193,7 +198,7 @@ func (store *Store) RecordTeamCanvasRest(ctx context.Context, actor domain.Actor
 		return err
 	}
 	if request.PlanID != "" {
-		err = store.db.QueryRowContext(ctx, `SELECT COUNT(*)
+		err = tx.QueryRowContext(ctx, `SELECT COUNT(*)
 		FROM training_plans p
 		JOIN training_plan_days d ON d.plan_id = p.id
 		WHERE p.id = ? AND p.team_id = ? AND p.status = 'published'
@@ -206,7 +211,7 @@ func (store *Store) RecordTeamCanvasRest(ctx context.Context, actor domain.Actor
 	if (request.PlanID == "" && planDayCount != 0) || (request.PlanID != "" && plannedRestCount != 1) {
 		return ErrTeamCanvasRestUnavailable
 	}
-	_, err = store.db.ExecContext(ctx, `INSERT INTO team_canvas_rest_days
+	_, err = tx.ExecContext(ctx, `INSERT INTO team_canvas_rest_days
 		(team_id, player_id, day_key, created_at, training_plan_id, training_plan_day_index)
 		VALUES (?, ?, ?, ?, ?, ?)
 		ON CONFLICT(team_id, player_id, day_key) DO UPDATE SET
@@ -218,11 +223,11 @@ func (store *Store) RecordTeamCanvasRest(ctx context.Context, actor domain.Actor
 		return err
 	}
 	if request.PlanID == "" {
-		return nil
+		return tx.Commit()
 	}
 	var storedPlanID sql.NullString
 	var storedDayIndex sql.NullInt64
-	if err = store.db.QueryRowContext(ctx, `SELECT training_plan_id, training_plan_day_index
+	if err = tx.QueryRowContext(ctx, `SELECT training_plan_id, training_plan_day_index
 		FROM team_canvas_rest_days WHERE team_id = ? AND player_id = ? AND day_key = ?`,
 		teamID, actor.PlayerID, dayKey).Scan(&storedPlanID, &storedDayIndex); err != nil {
 		return err
@@ -230,7 +235,10 @@ func (store *Store) RecordTeamCanvasRest(ctx context.Context, actor domain.Actor
 	if !storedPlanID.Valid || !storedDayIndex.Valid || storedPlanID.String != request.PlanID || int(storedDayIndex.Int64) != request.DayIndex {
 		return ErrTeamCanvasRestUnavailable
 	}
-	return nil
+	if _, err = syncPlanPrizeBoxGrants(ctx, tx, actor.PlayerID, request.PlanID, now); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func nullablePlanID(planID string) any {

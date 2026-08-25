@@ -895,9 +895,11 @@ Momentum Alpha needs independent PWA install/offline behavior.
 - Decided: completing three distinct days in a seven-day plan earns one Daily
   Drop-compatible loot grant; completing all seven earns one additional grant.
   Planned-rest check-ins count, while extra activity volume does not.
-- Required before plan loot ships: training and rest records must carry
-  backend-validated plan/day/block provenance. Matching only activity type and
-  date is insufficient for a durable reward.
+- Implemented: training and rest records carry backend-validated
+  plan/day/block provenance. The server latches `plan_participation_3` and
+  `plan_completion_7` grants in a separate ledger, opens them ahead of the
+  independent daily check-in box, and preserves both claims across retries,
+  deletion after earning, plan end, and cancellation.
 - Full design: `PLAYER_PLAN_RECOMMENDATIONS_DESIGN.md`.
 
 ## Daily Drop delivery boundary (2026-08-24)

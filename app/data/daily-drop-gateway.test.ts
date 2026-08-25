@@ -8,16 +8,23 @@ describe("Daily Drop gateway", () => {
   it("loads today's authenticated status without caching it", async () => {
     vi.stubGlobal(
       "fetch",
-      vi
-        .fn()
-        .mockResolvedValue(
-          Response.json({ state: "available", day: "2026-08-24" }),
-        ),
+      vi.fn().mockResolvedValue(
+        Response.json({
+          state: "available",
+          day: "2026-08-24",
+          availableCount: 3,
+          pendingPlanBoxes: 2,
+          nextSource: "plan_participation_3",
+        }),
+      ),
     );
 
     await expect(loadDailyDropStatus()).resolves.toEqual({
       state: "available",
       day: "2026-08-24",
+      availableCount: 3,
+      pendingPlanBoxes: 2,
+      nextSource: "plan_participation_3",
     });
     expect(fetch).toHaveBeenCalledWith("/api/zoomigo/v1/me/daily-drop", {
       cache: "no-store",
@@ -28,6 +35,7 @@ describe("Daily Drop gateway", () => {
     const claim = {
       id: "daily-drop-one",
       state: "claimed",
+      source: "daily_check_in",
       day: "2026-08-24",
       timeZone: "America/Chicago",
       claimedAt: "2026-08-24T12:00:00Z",

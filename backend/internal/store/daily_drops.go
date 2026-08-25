@@ -29,6 +29,7 @@ const (
 type DailyDropClaim struct {
 	ID        string             `json:"id"`
 	State     DailyDropState     `json:"state"`
+	Source    PrizeBoxSource     `json:"source"`
 	Day       string             `json:"day"`
 	TimeZone  string             `json:"timeZone"`
 	Item      *domain.UnlockItem `json:"item,omitempty"`
@@ -36,9 +37,12 @@ type DailyDropClaim struct {
 }
 
 type DailyDropStatus struct {
-	State DailyDropState  `json:"state"`
-	Day   string          `json:"day"`
-	Claim *DailyDropClaim `json:"claim,omitempty"`
+	State            DailyDropState  `json:"state"`
+	Day              string          `json:"day"`
+	AvailableCount   int             `json:"availableCount"`
+	PendingPlanBoxes int             `json:"pendingPlanBoxes"`
+	NextSource       PrizeBoxSource  `json:"nextSource,omitempty"`
+	Claim            *DailyDropClaim `json:"claim,omitempty"`
 }
 
 type ClaimDailyDropInput struct {
@@ -61,22 +65,47 @@ type PlayerUnlock struct {
 
 func (store *Store) DailyDropStatus(ctx context.Context, playerID string, now time.Time) (DailyDropStatus, error) {
 	day, _ := store.dailyDropDay(now)
-	claim, found, err := loadDailyDropClaim(ctx, store.db, playerID, day)
+	if _, err := syncPlanPrizeBoxGrants(ctx, store.db, playerID, "", now); err != nil {
+		return DailyDropStatus{}, err
+	}
+	pendingPlanBoxes, err := countPendingPlanPrizeBoxes(ctx, store.db, playerID)
 	if err != nil {
 		return DailyDropStatus{}, err
 	}
-	if found {
-		return DailyDropStatus{State: claim.State, Day: day, Claim: &claim}, nil
+	_, nextPlanSource, hasPendingPlanBox, err := loadPendingPlanPrizeBox(ctx, store.db, playerID)
+	if err != nil {
+		return DailyDropStatus{}, err
+	}
+	claim, found, err := loadDailyDropClaim(ctx, store.db, playerID, day)
+	if err != nil {
+		return DailyDropStatus{}, err
 	}
 	owned, err := loadOwnedUnlockIDs(ctx, store.db, playerID)
 	if err != nil {
 		return DailyDropStatus{}, err
 	}
-	state := DailyDropAvailable
-	if _, available := domain.SelectDailyDropItem(owned, 0); !available {
-		state = DailyDropCollectionComplete
+	_, catalogAvailable := domain.SelectDailyDropItem(owned, 0)
+	dailyAvailable := !found && catalogAvailable
+	status := DailyDropStatus{
+		State: DailyDropCollectionComplete, Day: day,
+		PendingPlanBoxes: pendingPlanBoxes, AvailableCount: pendingPlanBoxes,
 	}
-	return DailyDropStatus{State: state, Day: day}, nil
+	if dailyAvailable {
+		status.AvailableCount++
+	}
+	if status.AvailableCount > 0 {
+		status.State = DailyDropAvailable
+		status.NextSource = PrizeBoxDailyCheckIn
+		if hasPendingPlanBox {
+			status.NextSource = nextPlanSource
+		}
+		return status, nil
+	}
+	if found {
+		status.State = claim.State
+		status.Claim = &claim
+	}
+	return status, nil
 }
 
 func (store *Store) ClaimDailyDrop(ctx context.Context, input ClaimDailyDropInput) (result ClaimDailyDropResult, err error) {
@@ -90,6 +119,53 @@ func (store *Store) ClaimDailyDrop(ctx context.Context, input ClaimDailyDropInpu
 		return ClaimDailyDropResult{}, fmt.Errorf("begin daily drop claim: %w", err)
 	}
 	defer tx.Rollback()
+	if _, err := syncPlanPrizeBoxGrants(ctx, tx, input.PlayerID, "", input.Now); err != nil {
+		return ClaimDailyDropResult{}, err
+	}
+
+	if existing, found, loadErr := loadPlanPrizeBoxClaimByHash(ctx, tx, input.PlayerID, keyHash[:]); loadErr != nil {
+		return ClaimDailyDropResult{}, loadErr
+	} else if found {
+		if err := tx.Commit(); err != nil {
+			return ClaimDailyDropResult{}, fmt.Errorf("commit plan prize-box replay: %w", err)
+		}
+		return ClaimDailyDropResult{Claim: existing, Replayed: true}, nil
+	}
+	var dailyKeyDay string
+	err = tx.QueryRowContext(ctx, `SELECT claim_day FROM daily_drop_claims
+		WHERE player_id = ? AND idempotency_key_hash = ?`, input.PlayerID, keyHash[:]).Scan(&dailyKeyDay)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return ClaimDailyDropResult{}, fmt.Errorf("check daily prize-box idempotency: %w", err)
+	}
+	if err == nil {
+		if dailyKeyDay != day {
+			return ClaimDailyDropResult{}, ErrDailyDropIdempotencyConflict
+		}
+		existing, found, loadErr := loadDailyDropClaim(ctx, tx, input.PlayerID, day)
+		if loadErr != nil {
+			return ClaimDailyDropResult{}, loadErr
+		}
+		if !found {
+			return ClaimDailyDropResult{}, ErrDailyDropIdempotencyConflict
+		}
+		if err := tx.Commit(); err != nil {
+			return ClaimDailyDropResult{}, fmt.Errorf("commit daily drop replay: %w", err)
+		}
+		return ClaimDailyDropResult{Claim: existing, Replayed: true}, nil
+	}
+
+	if grantID, source, found, loadErr := loadPendingPlanPrizeBox(ctx, tx, input.PlayerID); loadErr != nil {
+		return ClaimDailyDropResult{}, loadErr
+	} else if found {
+		claim, claimErr := claimPlanPrizeBox(ctx, tx, input.PlayerID, grantID, source, day, timeZone, keyHash[:], input.Now)
+		if claimErr != nil {
+			return ClaimDailyDropResult{}, claimErr
+		}
+		if err := tx.Commit(); err != nil {
+			return ClaimDailyDropResult{}, fmt.Errorf("commit plan prize-box claim: %w", err)
+		}
+		return ClaimDailyDropResult{Claim: claim}, nil
+	}
 
 	if existing, found, loadErr := loadDailyDropClaim(ctx, tx, input.PlayerID, day); loadErr != nil {
 		return ClaimDailyDropResult{}, loadErr
@@ -98,15 +174,6 @@ func (store *Store) ClaimDailyDrop(ctx context.Context, input ClaimDailyDropInpu
 			return ClaimDailyDropResult{}, fmt.Errorf("commit daily drop replay: %w", err)
 		}
 		return ClaimDailyDropResult{Claim: existing, Replayed: true}, nil
-	}
-
-	var reused int
-	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM daily_drop_claims
-		WHERE player_id = ? AND idempotency_key_hash = ?`, input.PlayerID, keyHash[:]).Scan(&reused); err != nil {
-		return ClaimDailyDropResult{}, fmt.Errorf("check daily drop idempotency: %w", err)
-	}
-	if reused > 0 {
-		return ClaimDailyDropResult{}, ErrDailyDropIdempotencyConflict
 	}
 
 	owned, err := loadOwnedUnlockIDs(ctx, tx, input.PlayerID)
@@ -120,7 +187,8 @@ func (store *Store) ClaimDailyDrop(ctx context.Context, input ClaimDailyDropInpu
 	item, available := domain.SelectDailyDropItem(owned, draw)
 	nowStamp := input.Now.UTC().Format(time.RFC3339Nano)
 	claim := DailyDropClaim{
-		ID: newID("daily_drop"), Day: day, TimeZone: timeZone, ClaimedAt: nowStamp,
+		ID: newID("daily_drop"), Source: PrizeBoxDailyCheckIn,
+		Day: day, TimeZone: timeZone, ClaimedAt: nowStamp,
 		State: DailyDropCollectionComplete,
 	}
 	var itemKind, itemID any
@@ -231,11 +299,81 @@ func loadDailyDropClaim(ctx context.Context, query dailyDropQuery, playerID, day
 	if err != nil {
 		return DailyDropClaim{}, false, fmt.Errorf("load daily drop claim: %w", err)
 	}
+	claim.Source = PrizeBoxDailyCheckIn
 	claim.State = DailyDropCollectionComplete
 	if itemID.Valid {
 		item, found := domain.DailyDropCatalogItem(itemID.String)
 		if !found || string(item.Kind) != itemKind.String {
 			return DailyDropClaim{}, false, fmt.Errorf("load daily drop claim: catalog item %q is unavailable", itemID.String)
+		}
+		claim.State = DailyDropClaimed
+		claim.Item = &item
+	}
+	return claim, true, nil
+}
+
+func claimPlanPrizeBox(ctx context.Context, tx *sql.Tx, playerID, grantID string, source PrizeBoxSource, day, timeZone string, keyHash []byte, now time.Time) (DailyDropClaim, error) {
+	owned, err := loadOwnedUnlockIDs(ctx, tx, playerID)
+	if err != nil {
+		return DailyDropClaim{}, err
+	}
+	draw, err := secureDailyDropDraw()
+	if err != nil {
+		return DailyDropClaim{}, err
+	}
+	item, available := domain.SelectDailyDropItem(owned, draw)
+	nowStamp := now.UTC().Format(time.RFC3339Nano)
+	claim := DailyDropClaim{
+		ID: grantID, State: DailyDropCollectionComplete, Source: source,
+		Day: day, TimeZone: timeZone, ClaimedAt: nowStamp,
+	}
+	var itemKind, itemID any
+	if available {
+		claim.State = DailyDropClaimed
+		claim.Item = &item
+		itemKind, itemID = string(item.Kind), item.ID
+		if _, err = tx.ExecContext(ctx, `INSERT INTO player_unlocks
+			(player_id, item_kind, item_id, source, unlocked_at)
+			VALUES (?, ?, ?, ?, ?)`, playerID, item.Kind, item.ID, source, nowStamp); err != nil {
+			return DailyDropClaim{}, fmt.Errorf("store plan prize-box unlock: %w", err)
+		}
+	}
+	result, err := tx.ExecContext(ctx, `UPDATE plan_prize_box_grants SET
+		claim_day = ?, time_zone = ?, item_kind = ?, item_id = ?, catalog_version = 1,
+		claimed_at = ?, idempotency_key_hash = ?
+		WHERE id = ? AND player_id = ? AND claimed_at IS NULL`,
+		day, timeZone, itemKind, itemID, nowStamp, keyHash, grantID, playerID)
+	if err != nil {
+		return DailyDropClaim{}, fmt.Errorf("claim plan prize box: %w", err)
+	}
+	updated, err := result.RowsAffected()
+	if err != nil {
+		return DailyDropClaim{}, fmt.Errorf("read plan prize-box claim result: %w", err)
+	}
+	if updated != 1 {
+		return DailyDropClaim{}, ErrDailyDropIdempotencyConflict
+	}
+	return claim, nil
+}
+
+func loadPlanPrizeBoxClaimByHash(ctx context.Context, query dailyDropQuery, playerID string, keyHash []byte) (DailyDropClaim, bool, error) {
+	var claim DailyDropClaim
+	var itemKind, itemID sql.NullString
+	err := query.QueryRowContext(ctx, `SELECT id, source, claim_day, time_zone, item_kind, item_id, claimed_at
+		FROM plan_prize_box_grants
+		WHERE player_id = ? AND idempotency_key_hash = ? AND claimed_at IS NOT NULL`, playerID, keyHash).
+		Scan(&claim.ID, &claim.Source, &claim.Day, &claim.TimeZone, &itemKind, &itemID, &claim.ClaimedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return DailyDropClaim{}, false, nil
+	}
+	if err != nil {
+		return DailyDropClaim{}, false, fmt.Errorf("load plan prize-box claim: %w", err)
+	}
+	claim.State = DailyDropCollectionComplete
+	if itemID.Valid {
+		item, found := domain.DailyDropCatalogItem(itemID.String)
+		if !found || string(item.Kind) != itemKind.String {
+			return DailyDropClaim{}, false, fmt.Errorf("load plan prize-box claim: catalog item %q is unavailable", itemID.String)
 		}
 		claim.State = DailyDropClaimed
 		claim.Item = &item

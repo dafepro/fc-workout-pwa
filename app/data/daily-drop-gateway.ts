@@ -12,18 +12,31 @@ export interface DailyDropItem {
 export interface DailyDropClaim {
   id: string;
   state: "claimed" | "collection_complete";
+  source: "daily_check_in" | "plan_participation_3" | "plan_completion_7";
   day: string;
   timeZone: string;
   item?: DailyDropItem;
   claimedAt: string;
 }
 
+interface DailyDropStatusBase {
+  day: string;
+  availableCount: number;
+  pendingPlanBoxes: number;
+  nextSource?: DailyDropClaim["source"];
+}
+
 export type DailyDropStatus =
-  | { state: "available"; day: string }
-  | { state: "claimed"; day: string; claim: DailyDropClaim }
+  | (DailyDropStatusBase & {
+      state: "available";
+      nextSource: DailyDropClaim["source"];
+    })
+  | (DailyDropStatusBase & { state: "claimed"; claim: DailyDropClaim })
   | {
       state: "collection_complete";
       day: string;
+      availableCount: number;
+      pendingPlanBoxes: number;
       claim?: DailyDropClaim;
     };
 
@@ -71,8 +84,22 @@ export const connectedDailyDropGateway: DailyDropGateway = {
 function isDailyDropStatus(value: unknown): value is DailyDropStatus {
   if (!value || typeof value !== "object") return false;
   const status = value as Record<string, unknown>;
-  if (typeof status.day !== "string" || !DAY.test(status.day)) return false;
-  if (status.state === "available") return status.claim === undefined;
+  if (
+    typeof status.day !== "string" ||
+    !DAY.test(status.day) ||
+    !Number.isSafeInteger(status.availableCount) ||
+    Number(status.availableCount) < 0 ||
+    !Number.isSafeInteger(status.pendingPlanBoxes) ||
+    Number(status.pendingPlanBoxes) < 0
+  )
+    return false;
+  if (status.state === "available") {
+    return (
+      Number(status.availableCount) > 0 &&
+      isPrizeBoxSource(status.nextSource) &&
+      status.claim === undefined
+    );
+  }
   if (status.state === "claimed") {
     return isDailyDropClaim(status.claim) && status.claim.item !== undefined;
   }
@@ -89,6 +116,7 @@ function isDailyDropClaim(value: unknown): value is DailyDropClaim {
     typeof claim.id !== "string" ||
     !OPAQUE_ID.test(claim.id) ||
     (claim.state !== "claimed" && claim.state !== "collection_complete") ||
+    !isPrizeBoxSource(claim.source) ||
     typeof claim.day !== "string" ||
     !DAY.test(claim.day) ||
     typeof claim.timeZone !== "string" ||
@@ -100,6 +128,14 @@ function isDailyDropClaim(value: unknown): value is DailyDropClaim {
   }
   if (claim.state === "collection_complete") return claim.item === undefined;
   return isDailyDropItem(claim.item);
+}
+
+function isPrizeBoxSource(value: unknown): value is DailyDropClaim["source"] {
+  return (
+    value === "daily_check_in" ||
+    value === "plan_participation_3" ||
+    value === "plan_completion_7"
+  );
 }
 
 function isDailyDropItem(value: unknown): value is DailyDropItem {

@@ -18,14 +18,23 @@ export function TodaySecondaryActions({
   prizeBoxGateway?: DailyDropGateway;
 }) {
   const copy = playerExperienceCopy.focusedToday;
-  const [prizeBoxAvailable, setPrizeBoxAvailable] = useState(false);
+  const [unopenedPrizeBoxes, setUnopenedPrizeBoxes] = useState(0);
+  const [pendingPlanBoxes, setPendingPlanBoxes] = useState(0);
 
   useEffect(() => {
     if (!prizeBoxesConnected) return;
     let active = true;
     void prizeBoxGateway.status().then(
-      (status) => active && setPrizeBoxAvailable(status.state === "available"),
-      () => active && setPrizeBoxAvailable(false),
+      (status) => {
+        if (!active) return;
+        setUnopenedPrizeBoxes(status.availableCount);
+        setPendingPlanBoxes(status.pendingPlanBoxes);
+      },
+      () => {
+        if (!active) return;
+        setUnopenedPrizeBoxes(0);
+        setPendingPlanBoxes(0);
+      },
     );
     return () => {
       active = false;
@@ -38,34 +47,39 @@ export function TodaySecondaryActions({
       icon: "●●",
       title: copy.teamLounge,
       detail: teamLocked ? copy.teamLoungeLocked : copy.teamLoungeDetail,
-      badge: false,
+      badge: 0,
     },
     {
       href: "/log/additional",
       icon: "+",
       title: copy.logAnother,
       detail: copy.logAnotherDetail,
-      badge: false,
+      badge: 0,
     },
     {
       href: "/prizes",
       icon: "□",
       title: copy.prizeBoxes,
       detail: copy.prizeBoxesDetail,
-      badge: prizeBoxesConnected && prizeBoxAvailable,
+      badge: prizeBoxesConnected ? unopenedPrizeBoxes : 0,
     },
     {
       href: "/progress",
       icon: "↗",
       title: copy.yourMomentum,
       detail: copy.yourMomentumDetail,
-      badge: false,
+      badge: 0,
     },
   ];
 
   return (
     <section className="today-secondary-actions">
       <h2>{copy.otherTitle}</h2>
+      {pendingPlanBoxes > 0 ? (
+        <p className="today-secondary-actions__earned" role="status">
+          {copy.prizeBoxEarned}
+        </p>
+      ) : null}
       <ul aria-label={copy.otherTitle}>
         {actions.map((action) => (
           <li key={action.href}>
@@ -81,9 +95,9 @@ export function TodaySecondaryActions({
                 <small>{action.detail}</small>
               </span>
               <span className="today-secondary-actions__trailing">
-                {action.badge ? (
+                {action.badge > 0 ? (
                   <span className="today-secondary-actions__badge">
-                    {copy.prizeBoxesUnopened(1)}
+                    {copy.prizeBoxesUnopened(action.badge)}
                   </span>
                 ) : null}
                 <span aria-hidden="true">›</span>

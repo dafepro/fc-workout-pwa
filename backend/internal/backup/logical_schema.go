@@ -115,6 +115,24 @@ var logicalTables = []logicalTable{
 		},
 	},
 	{
+		Name:    "plan_prize_box_grants",
+		OrderBy: []string{"id"},
+		Fields: []logicalField{
+			textField("id"),
+			textField("player_id"),
+			textField("training_plan_id"),
+			textField("source"),
+			textField("earned_at"),
+			nullable(textField("claim_day")),
+			nullable(textField("time_zone")),
+			nullable(textField("item_kind")),
+			nullable(textField("item_id")),
+			nullable(integerField("catalog_version")),
+			nullable(textField("claimed_at")),
+			nullable(blobField("idempotency_key_hash")),
+		},
+	},
+	{
 		Name:    "accounts",
 		OrderBy: []string{"id"},
 		Fields: []logicalField{

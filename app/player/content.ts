@@ -92,6 +92,7 @@ export const playerExperienceCopy = {
     prizeBoxesDetail: "See available, earned, or unopened rewards.",
     prizeBoxesUnopened: (count: number) =>
       `${count.toLocaleString("en-US")} unopened`,
+    prizeBoxEarned: "Prize box earned! Saved to Prize boxes.",
     yourMomentum: "Your momentum",
     yourMomentumDetail: "View your check-in streak and progress.",
     momentumSummary: (score: number, streak: number) =>
@@ -145,8 +146,13 @@ export const playerExperienceCopy = {
     eyebrow: "Prize boxes",
     title: "A little something for showing up",
     body: "Open an available prize box. Opening one does not change Momentum.",
+    earnedThreeDays: "Earned for completing 3 days in your coach plan.",
+    earnedSevenDays: "Earned for completing all 7 days in your coach plan.",
+    availableCount: (count: number) =>
+      `${count.toLocaleString("en-US")} ${count === 1 ? "box" : "boxes"} ready to open`,
     loading: "Checking your prize boxes…",
     open: "Open prize box",
+    openAnother: "Open another prize box",
     opening: "Opening…",
     tryOpeningAgain: "Try opening again",
     claimFailed: "Your drop is still sealed. Try again when you’re ready.",

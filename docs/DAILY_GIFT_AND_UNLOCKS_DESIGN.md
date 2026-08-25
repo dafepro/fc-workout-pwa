@@ -83,7 +83,12 @@ type UnlockItem = {
 type PlayerUnlock = {
   playerId: string;
   itemId: string;
-  source: "included" | "daily_drop" | "staff_grant";
+  source:
+    | "included"
+    | "daily_drop"
+    | "staff_grant"
+    | "plan_participation_3"
+    | "plan_completion_7";
   unlockedAt: string;
   viewedAt?: string;
 };
@@ -128,6 +133,10 @@ The future Canvas library owns board state, multiplayer synchronization, and phy
 - primary key `(player_id, item_kind, item_id)`
 
 The claim and unlock insert occur in one transaction. The unique day constraint is the final concurrency guard. A conflict reloads and returns the existing claim.
+
+Plan participation boxes use a separate grant ledger keyed by player, plan, and
+tier. They share this claim and unlock authority but never consume or replace
+the once-per-day check-in claim.
 
 ## API
 

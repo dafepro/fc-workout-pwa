@@ -10,6 +10,7 @@ import { DailyDropCard } from "./DailyDropCard";
 const avatarClaim: DailyDropClaim = {
   id: "daily-drop-one",
   state: "claimed",
+  source: "daily_check_in",
   day: "2026-08-24",
   timeZone: "America/Chicago",
   claimedAt: "2026-08-24T12:00:00Z",
@@ -40,6 +41,9 @@ describe("DailyDropCard", () => {
           vi.fn().mockResolvedValue({
             state: "available",
             day: "2026-08-24",
+            availableCount: 1,
+            pendingPlanBoxes: 0,
+            nextSource: "daily_check_in",
           }),
           claim,
         )}
@@ -71,6 +75,9 @@ describe("DailyDropCard", () => {
           vi.fn().mockResolvedValue({
             state: "available",
             day: "2026-08-24",
+            availableCount: 1,
+            pendingPlanBoxes: 0,
+            nextSource: "daily_check_in",
           }),
           claim,
         )}
@@ -95,6 +102,8 @@ describe("DailyDropCard", () => {
           vi.fn().mockResolvedValue({
             state: "claimed",
             day: "2026-08-24",
+            availableCount: 0,
+            pendingPlanBoxes: 0,
             claim: avatarClaim,
           }),
         )}
@@ -116,6 +125,8 @@ describe("DailyDropCard", () => {
           vi.fn().mockResolvedValue({
             state: "collection_complete",
             day: "2026-08-24",
+            availableCount: 0,
+            pendingPlanBoxes: 0,
           }),
         )}
       />,
@@ -123,6 +134,49 @@ describe("DailyDropCard", () => {
 
     expect(await screen.findByText("Collection complete")).toBeVisible();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("opens an earned plan box without consuming the next available box", async () => {
+    const planClaim: DailyDropClaim = {
+      ...avatarClaim,
+      id: "plan-prize-one",
+      source: "plan_participation_3",
+    };
+    const status = vi
+      .fn()
+      .mockResolvedValueOnce({
+        state: "available",
+        day: "2026-08-24",
+        availableCount: 2,
+        pendingPlanBoxes: 1,
+        nextSource: "plan_participation_3",
+      })
+      .mockResolvedValueOnce({
+        state: "available",
+        day: "2026-08-24",
+        availableCount: 1,
+        pendingPlanBoxes: 0,
+        nextSource: "daily_check_in",
+      });
+    render(
+      <DailyDropCard
+        connected
+        gateway={gateway(status, vi.fn().mockResolvedValue(planClaim))}
+      />,
+    );
+
+    expect(
+      await screen.findByText(
+        "Earned for completing 3 days in your coach plan.",
+      ),
+    ).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Open prize box" }));
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Open another prize box" }),
+    );
+    expect(await screen.findByText("1 box ready to open")).toBeVisible();
+    expect(status).toHaveBeenCalledTimes(2);
   });
 
   it("stays absent when no authenticated backend is connected", async () => {

@@ -183,6 +183,9 @@ describe("focused Today components", () => {
       status: vi.fn().mockResolvedValue({
         state: "available",
         day: "2026-08-24",
+        availableCount: 3,
+        pendingPlanBoxes: 2,
+        nextSource: "plan_participation_3",
       }),
       claim: vi.fn(),
     };
@@ -194,12 +197,17 @@ describe("focused Today components", () => {
       />,
     );
 
-    expect(await screen.findByText("1 unopened")).toBeVisible();
+    expect(await screen.findByText("3 unopened")).toBeVisible();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Prize box earned! Saved to Prize boxes.",
+    );
 
     const claimedGateway: DailyDropGateway = {
       status: vi.fn().mockResolvedValue({
         state: "collection_complete",
         day: "2026-08-24",
+        availableCount: 0,
+        pendingPlanBoxes: 0,
       }),
       claim: vi.fn(),
     };
@@ -212,8 +220,9 @@ describe("focused Today components", () => {
     );
 
     await waitFor(() =>
-      expect(screen.queryByText("1 unopened")).not.toBeInTheDocument(),
+      expect(screen.queryByText("3 unopened")).not.toBeInTheDocument(),
     );
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("makes a failed connected dashboard visible and retryable", () => {

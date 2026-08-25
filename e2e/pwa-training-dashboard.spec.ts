@@ -52,6 +52,36 @@ test("the consolidated default opens one durable prize box", async ({
   await expectNoHorizontalOverflow(page);
 });
 
+test("three proven plan days add an independent claimable prize box", async ({
+  page,
+}) => {
+  await seedThreeCompletedPlanDays();
+  await page.setViewportSize({ width: 320, height: 700 });
+  await openReadyPage(page, "/");
+
+  await expect(page.getByRole("status")).toContainText("Prize box earned!");
+  await expect(page.getByText("2 unopened")).toBeVisible();
+  await page.getByRole("link", { name: /View prize boxes/ }).click();
+  await expect(
+    page.getByText("Earned for completing 3 days in your coach plan."),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Open prize box" }).click();
+  await page.getByRole("button", { name: "Open another prize box" }).click();
+  await expect(page.getByText("1 box ready to open")).toBeVisible();
+  await page.getByRole("button", { name: "Open prize box" }).click();
+  await expect(
+    page.getByRole("button", { name: /Open .*prize box/ }),
+  ).toHaveCount(0);
+
+  await page.goto("/");
+  await expect(page.getByText(/unopened/)).toHaveCount(0);
+  await expect(
+    page.getByText("Prize box earned! Saved to Prize boxes."),
+  ).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
+});
+
 test("the consolidated default completes today's plan and opens Team Canvas", async ({
   page,
 }) => {
@@ -213,6 +243,54 @@ async function publishPlan(templateId: string, startsOn: string) {
     },
   );
   expect(response.status()).toBe(201);
+  const plan = (await response.json()) as { id: string };
+  await api.dispose();
+  return plan;
+}
+
+async function seedThreeCompletedPlanDays() {
+  const startsOn = teamDate(-2);
+  const plan = await publishPlan("in-season-balance-v1", startsOn);
+  const api = await request.newContext({ baseURL: apiBaseURL });
+  const days = [
+    {
+      dayIndex: 0,
+      activityDefinitionId: "hill-sprints",
+      result: { kind: "repetitions", value: 8, unit: "reps" },
+    },
+    {
+      dayIndex: 1,
+      activityDefinitionId: "recovery-walk-jog",
+      result: { kind: "duration", value: 15, unit: "minutes" },
+    },
+    {
+      dayIndex: 2,
+      activityDefinitionId: "timed-run-walk",
+      result: { kind: "duration", value: 20, unit: "minutes" },
+    },
+  ];
+  for (const day of days) {
+    const response = await api.post("/v1/me/training-entries", {
+      headers: {
+        Authorization: "Bearer e2e-player-mason",
+        "Idempotency-Key": `plan-prize-day-${day.dayIndex}`,
+      },
+      data: {
+        teamId: "team-hill-striders",
+        activityDefinitionId: day.activityDefinitionId,
+        occurredAt: `${teamDate(day.dayIndex - 2)}T18:00:00Z`,
+        result: day.result,
+        effortLevel: 4,
+        exhaustionLevel: 3,
+        plan: {
+          planId: plan.id,
+          dayIndex: day.dayIndex,
+          blockIndex: 0,
+        },
+      },
+    });
+    expect(response.status()).toBe(201);
+  }
   await api.dispose();
 }
 

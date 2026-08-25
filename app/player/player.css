@@ -2174,7 +2174,7 @@
     animation-iteration-count: 1 !important;
   }
 }
-/* Daily Drop stays secondary to What's next while still feeling collectible. */
+/* Prize boxes are collectible without competing with the Today hero. */
 .daily-drop {
   position: relative;
   display: grid;
@@ -2277,6 +2277,16 @@
 }
 
 .daily-drop__destination {
+  font-weight: 800;
+}
+
+.daily-drop p.daily-drop__source {
+  width: fit-content;
+  padding: 0.35rem 0.55rem;
+  border-radius: 0.65rem;
+  background: rgba(105, 84, 238, 0.1);
+  color: #3e337d;
+  font-size: 0.82rem;
   font-weight: 800;
 }
 
@@ -2780,6 +2790,17 @@
   font-size: 0.76rem;
   letter-spacing: 0.11em;
   text-transform: uppercase;
+}
+
+.today-secondary-actions__earned {
+  margin: 0 0 0.65rem;
+  padding: 0.55rem 0.7rem;
+  border-left: 0.25rem solid var(--lime);
+  border-radius: 0.6rem;
+  background: #f5fbdc;
+  color: #355028;
+  font-size: 0.76rem;
+  font-weight: 850;
 }
 
 .today-secondary-actions ul {

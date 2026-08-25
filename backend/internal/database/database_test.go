@@ -87,8 +87,46 @@ func TestMigrateUpgradesAnExistingFoundationDatabase(t *testing.T) {
 	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM schema_migrations`).Scan(&migrationCount); err != nil {
 		t.Fatal(err)
 	}
-	if migrationCount != 22 {
-		t.Fatalf("migration count = %d, want 22", migrationCount)
+	if migrationCount != 23 {
+		t.Fatalf("migration count = %d, want 23", migrationCount)
+	}
+}
+
+func TestPlanPrizeBoxMigrationPreservesPopulatedUnlocks(t *testing.T) {
+	ctx := context.Background()
+	databaseURL := "file:" + filepath.ToSlash(filepath.Join(t.TempDir(), "populated-plan-prizes.db"))
+	db, err := Open(ctx, databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if _, err = db.ExecContext(ctx, `CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL);
+		INSERT INTO schema_migrations (version, applied_at) VALUES (23, '2026-08-24T00:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+	if err = Migrate(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = db.ExecContext(ctx, `INSERT INTO clubs (id, name, created_at) VALUES ('club-prize-migration', 'Migration Club', '2026-08-24T00:00:00Z');
+		INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-prize-migration', 'club-prize-migration', 'Pat', 'M', '{}', '2026-08-24T00:00:00Z');
+		INSERT INTO player_unlocks (player_id, item_kind, item_id, source, unlocked_at) VALUES ('player-prize-migration', 'avatar_part', 'avatar-head-dog', 'daily_drop', '2026-08-24T12:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = db.ExecContext(ctx, `DELETE FROM schema_migrations WHERE version = 23`); err != nil {
+		t.Fatal(err)
+	}
+	if err = Migrate(ctx, db); err != nil {
+		t.Fatalf("upgrade populated unlock ledger: %v", err)
+	}
+	var unlocks, grantTable int
+	if err = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM player_unlocks WHERE player_id = 'player-prize-migration' AND source = 'daily_drop'`).Scan(&unlocks); err != nil {
+		t.Fatal(err)
+	}
+	if err = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'plan_prize_box_grants'`).Scan(&grantTable); err != nil {
+		t.Fatal(err)
+	}
+	if unlocks != 1 || grantTable != 1 {
+		t.Fatalf("migration result unlocks=%d grantTable=%d", unlocks, grantTable)
 	}
 }
 

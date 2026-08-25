@@ -79,6 +79,42 @@ Initial prototype supports whole-team, one-time challenges.
 - createdAt
 - deleteEligibleUntil
 - deletedAt optional
+- trainingPlanId optional
+- trainingPlanDayIndex optional
+- trainingPlanBlockIndex optional
+
+## TrainingPlan
+
+- id
+- teamId
+- immutable template id and version
+- startsOn
+- endsOn
+- status: published | cancelled
+- seven structured day snapshots with zero or more approved blocks
+
+## PlayerUnlock
+
+- playerId
+- itemKind: avatar_part | canvas_stamp
+- itemId
+- source: included | daily_drop | staff_grant | plan_participation_3 |
+  plan_completion_7
+- unlockedAt
+- viewedAt optional
+
+## PlanPrizeBoxGrant
+
+- id
+- playerId
+- trainingPlanId
+- source: plan_participation_3 | plan_completion_7
+- earnedAt
+- claim metadata optional until opened
+
+The unique player, plan, and source tuple latches each tier once. Completion is
+derived from distinct proven plan days; planned rest counts, while repeated
+blocks and unrelated activities do not.
 
 ## Reaction
 

@@ -31,6 +31,7 @@ var exportedTables = []string{
 	"players",
 	"player_unlocks",
 	"daily_drop_claims",
+	"plan_prize_box_grants",
 	"accounts",
 	"team_memberships",
 	"coach_team_assignments",
@@ -491,6 +492,9 @@ func fullyPopulatedDatabase(t *testing.T, ctx context.Context) string {
 		`INSERT INTO training_plan_blocks (
 			plan_id, day_index, block_index, activity_definition_id, label, duration_minutes
 		) VALUES ('plan-one', 0, 0, 'hill-sprints', 'Hill sprints', 12)`,
+		`INSERT INTO plan_prize_box_grants (
+			id, player_id, training_plan_id, source, earned_at
+		) VALUES ('plan-prize-one', 'player-mason', 'plan-one', 'plan_participation_3', '2026-08-03T12:00:00Z')`,
 		`UPDATE training_entries SET idempotency_key = 'entry-key-1', assignment_id = 'assignment-hill-sprints'
 		 WHERE id = 'entry-mason-recent'`,
 		`UPDATE training_entries SET deleted_at = '2026-08-01T00:00:00Z' WHERE id = 'entry-mason-expired'`,

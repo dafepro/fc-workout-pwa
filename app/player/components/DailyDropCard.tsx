@@ -24,6 +24,7 @@ export function DailyDropCard({
   const [loadFailed, setLoadFailed] = useState(false);
   const [reload, setReload] = useState(0);
   const [phase, setPhase] = useState<ClaimPhase>("idle");
+  const [nextStatus, setNextStatus] = useState<DailyDropStatus | null>(null);
   const claimKey = useRef<string | null>(null);
 
   useEffect(() => {
@@ -55,11 +56,24 @@ export function DailyDropCard({
     try {
       const claim = await gateway.claim(claimKey.current);
       setStatus(statusFromClaim(claim));
+      try {
+        setNextStatus(await gateway.status());
+      } catch {
+        setNextStatus(null);
+      }
       setPhase(claim.item ? "revealed" : "idle");
     } catch {
       setPhase("error");
     }
   }, [gateway, phase, status]);
+
+  function openAnother() {
+    if (!nextStatus || nextStatus.availableCount < 1) return;
+    claimKey.current = null;
+    setStatus(nextStatus);
+    setNextStatus(null);
+    setPhase("idle");
+  }
 
   if (!connected) return null;
   if (loadFailed) {
@@ -119,6 +133,15 @@ export function DailyDropCard({
               ? copy.avatarDestination
               : copy.canvasDestination}
           </p>
+          {revealed && nextStatus && nextStatus.availableCount > 0 ? (
+            <button
+              type="button"
+              className="button button--lime"
+              onClick={openAnother}
+            >
+              {copy.openAnother}
+            </button>
+          ) : null}
         </div>
       </section>
     );
@@ -131,6 +154,13 @@ export function DailyDropCard({
         <p className="eyebrow">{copy.eyebrow}</p>
         <h2>{copy.title}</h2>
         <p>{copy.body}</p>
+        <p className="daily-drop__source">
+          {status.nextSource === "plan_participation_3"
+            ? copy.earnedThreeDays
+            : status.nextSource === "plan_completion_7"
+              ? copy.earnedSevenDays
+              : copy.availableCount(status.availableCount)}
+        </p>
         {phase === "error" ? (
           <p className="daily-drop__error" role="alert">
             {copy.claimFailed}
@@ -166,6 +196,18 @@ function DropParcel({ open = false }: { open?: boolean }) {
 
 function statusFromClaim(claim: DailyDropClaim): DailyDropStatus {
   return claim.item
-    ? { state: "claimed", day: claim.day, claim }
-    : { state: "collection_complete", day: claim.day, claim };
+    ? {
+        state: "claimed",
+        day: claim.day,
+        availableCount: 0,
+        pendingPlanBoxes: 0,
+        claim,
+      }
+    : {
+        state: "collection_complete",
+        day: claim.day,
+        availableCount: 0,
+        pendingPlanBoxes: 0,
+        claim,
+      };
 }

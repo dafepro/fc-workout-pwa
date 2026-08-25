@@ -131,10 +131,10 @@ sources such as `plan_participation_3` and `plan_completion_7`; Team Canvas and
 avatar clients continue to consume unlocked catalog IDs without owning reward
 eligibility.
 
-When an unclaimed plan drop exists, What's next shows a compact claim module
-above the current recommendation. It never hides today's coach plan. On the
-final completed day it may become the primary completed-state recommendation;
-on later visits it remains available until opened.
+When an unclaimed plan box exists, Today adds only a compact earned notice and
+the unopened count on **View prize boxes**. The coach-plan hero remains first.
+The Prize boxes page explains the source and keeps the grant available until it
+is opened.
 
 Fourteen-day plans are treated as two explicit seven-day segments only after
 that rule is represented in the published template. The first implementation

@@ -35,7 +35,8 @@ are superseded and must not return through an unfinished older slice.
   missed day does not subtract points.
 - Prize boxes have a durable once-per-day claim, stable retry behavior, a shared
   unlock inventory, Avatar Studio ownership enforcement, and a Team Canvas
-  stamp adapter.
+  stamp adapter. Three-day and seven-day plan participation tiers now add
+  independent durable boxes without consuming that daily claim.
 - Plan-aware training and rest records carry backend-validated plan, day, and
   block provenance. Completion is recalculated after eligible deletion.
 - Coaches can select a curated whole-team plan, preview it, publish an immutable
@@ -64,7 +65,6 @@ are superseded and must not return through an unfinished older slice.
 - The server does not yet resolve a no-plan recommendation. The browser chooses
   the current fallback and cannot truthfully distinguish a team default from a
   suggestion engine.
-- Three-day and seven-day plan participation grants are designed but absent.
 - Training-plan editing, cancellation, rescheduling, and one-day quick plans are
   absent.
 - Team Reward email, reporting/moderation, and bounded correction operations are
@@ -78,7 +78,7 @@ are superseded and must not return through an unfinished older slice.
 | -------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ---------------- | ------------------------------------------ |
 | P0       | J · Focused Today correctness                  | Current plan identity, failures, navigation, and 320-pixel browser flow are trustworthy                | Delivered        | Focused Today baseline                     |
 | P0       | K · Team Pulse on Team                         | Players see three recent safe activities and may deliberately reveal two more or cheer                 | Delivered        | Existing Team Pulse API/component          |
-| P1       | L · Plan participation prize boxes             | Three and seven distinct plan days grant durable claimable boxes exactly once                          | Not started      | Prize boxes and plan provenance, delivered |
+| P1       | L · Plan participation prize boxes             | Three and seven distinct plan days grant durable claimable boxes exactly once                          | Delivered        | Prize boxes and plan provenance, delivered |
 | P1       | M · Coach planner and recommendation authority | Coaches have one complete scheduling workflow and unplanned players get an explained server suggestion | Partial          | Plan publication/provenance, delivered     |
 | P1       | N · Team Reward operations                     | A real coach promise has correction, moderation, and deduplicated staff notification paths             | Partial          | Durable Team Rewards/media, delivered      |
 | P2       | O · Team Canvas production boundary            | One supported renderer/transport owns cosmetic play behind a frozen app contract                       | Partial          | Shared stamp adapter, delivered            |
@@ -145,18 +145,24 @@ the result.
 
 Completion gates:
 
-- [ ] Add idempotent grant sources `plan_participation_3` and
+- [x] Add idempotent grant sources `plan_participation_3` and
       `plan_completion_7` to the existing unlock/claim authority.
-- [ ] Count a completed plan day once, including planned-rest check-ins; ignore
+- [x] Count a completed plan day once, including planned-rest check-ins; ignore
       extra activities, repeated blocks, and historical entries without proven
       plan provenance.
-- [ ] Define and test the relationship between an earned plan grant and the
+- [x] Define and test the relationship between an earned plan grant and the
       existing daily claim so neither source overwrites or rerolls another.
-- [ ] Latch earned grants through plan end and later unrelated record changes.
-- [ ] Expose pending boxes through Prize boxes and a compact temporary earned
+- [x] Latch earned grants through plan end and later unrelated record changes.
+- [x] Expose pending boxes through Prize boxes and a compact temporary earned
       event without displacing today's hero.
-- [ ] Cover deletion boundaries, retries, concurrency, plan cancellation, and
+- [x] Cover deletion boundaries, retries, concurrency, plan cancellation, and
       revisits after the plan ends with populated-database tests.
+
+Delivered in the plan-prize ledger migration and the shared Prize boxes claim
+path. The server reconciles historical proven completions on status reads and
+also awards inside new workout/rest writes. Once inserted, a tier grant is never
+revoked by a later eligible entry deletion or by plan cancellation. Deleting a
+record before a threshold still prevents that threshold from being earned.
 
 ## Slice M — coach planner and recommendation authority
 
