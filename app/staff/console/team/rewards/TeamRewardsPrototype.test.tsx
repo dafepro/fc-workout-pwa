@@ -1,5 +1,11 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TeamRewardsPrototype } from "./TeamRewardsPrototype";
 import { prepareRewardImage } from "./reward-image-preparation";
@@ -21,6 +27,11 @@ describe("staff team rewards prototype", () => {
     vi.mocked(prepareRewardImage).mockResolvedValue(
       "data:image/jpeg;base64,c2FmZQ==",
     );
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
   });
 
   it("guides a coach from an empty state to one active reward", () => {
@@ -196,11 +207,13 @@ describe("staff team rewards prototype", () => {
 
     render(<TeamRewardsPrototype teamId="team-connected" connected />);
 
-    expect(
-      await screen.findByText("Close: failed for 2 staff", undefined, {
-        timeout: 3000,
-      }),
-    ).toBeInTheDocument();
+    await waitFor(
+      () =>
+        expect(
+          screen.getByText("Close: failed for 2 staff"),
+        ).toBeInTheDocument(),
+      { timeout: 3000 },
+    );
     expect(screen.queryByText(/@|Mason/i)).not.toBeInTheDocument();
   });
 
