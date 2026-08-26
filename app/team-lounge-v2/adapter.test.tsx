@@ -17,6 +17,7 @@ vi.mock("./SharedLoungeCanvas", async () => {
       onPlacementError,
       onPlacementPendingChange,
       onPlaceableStampsChange,
+      onStampDragStateChange,
     }: {
       onSignalPortChange(sender: ((kind: string) => void) | null): void;
       selectedStamp?: { label?: string; alt?: string } | null;
@@ -28,6 +29,12 @@ vi.mock("./SharedLoungeCanvas", async () => {
       }): void;
       onPlacementPendingChange?(pending: boolean): void;
       onPlacementError?(reason: string): void;
+      onStampDragStateChange?(
+        state: {
+          entityID: string;
+          overTrash: boolean;
+        } | null,
+      ): void;
       onPlaceableStampsChange?(
         stamps: Array<{
           assetId: string;
@@ -77,6 +84,20 @@ vi.mock("./SharedLoungeCanvas", async () => {
             onClick={() => onPlacementError?.("stamp_unavailable")}
           >
             Simulate unavailable
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              onStampDragStateChange?.({
+                entityID: "stamp-one",
+                overTrash: false,
+              })
+            }
+          >
+            Simulate stamp drag
+          </button>
+          <button type="button" onClick={() => onStampDragStateChange?.(null)}>
+            Simulate stamp drop
           </button>
         </div>
       );
@@ -134,6 +155,26 @@ describe("TeamLoungeV2 emote controls", () => {
     expect(
       screen.getByRole("button", { name: "Send Wave emote" }),
     ).toBeEnabled();
+  });
+
+  it("replaces the action tray with trash during a stamp drag without opening stamps", () => {
+    render(<TeamLoungeV2 host={host} />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Simulate stamp drag" }),
+    );
+    expect(
+      screen.getByRole("status", { name: "Drop to remove stamp" }),
+    ).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Stamps" })).toBeNull();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Simulate stamp drop" }),
+    );
+    expect(screen.getByRole("button", { name: "Stamps" })).toBeVisible();
+    expect(
+      screen.queryByRole("dialog", { name: /choose a stamp/i }),
+    ).toBeNull();
   });
 
   it("opens emotes as an anchored popover and stamps over only the canvas", () => {

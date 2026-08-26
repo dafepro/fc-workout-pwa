@@ -138,6 +138,13 @@ theme metadata.
     it and return directly to placement. Open **Emotes** and confirm only a
     compact tray appears above the tapped control; the lounge dimensions must
     remain stable.
+30. Select one of your stamps placed today, then drag it toward the bottom
+    action tray. The four lounge actions should animate into **Drop here to
+    remove** without opening the stamp selector. Moving over it should change
+    the prompt to **Release to remove**. Release elsewhere and confirm the stamp
+    only moves. Repeat and release over the trash: the stamp should disappear
+    for both viewers and its weekly placement should become available again.
+    A teammate's or prior-day stamp must never expose this deletion gesture.
 
 ## Mobile and lifecycle checks
 
@@ -156,9 +163,9 @@ theme metadata.
 ## Expected limitations in this slice
 
 - One stamp or future item may use each earned placement credit. This slice
-  spends credits only on stamps. Current-day stamps can move, resize, and use
-  15-degree rotation steps in either direction; older stamps cannot. Mirror,
-  replace, delete, Props, and Map remain disabled.
+  spends credits only on stamps. Current-day stamps can move, resize, rotate in
+  15-degree steps, or be deleted to restore that weekly placement; older and
+  teammate stamps cannot. Mirror, replace, Props, and Map remain disabled.
 - Visit traces are ambient weekly presence only; they are not a feed or history.
 
 Record feedback on movement feel, any correction spikes, collision alignment,

@@ -1188,6 +1188,12 @@ Momentum Alpha needs independent PWA install/offline behavior.
   resized, or rotated in 15-degree steps. At local midnight it locks in place.
   Prior-day stamps and teammate stamps stay visible but cannot be edited. The
   server injects `placementDay`; the browser cannot choose it.
+- Refined 2026-08-26: standalone deletion is now available only by dragging the
+  owner's current-day stamp into the temporary lounge trash target. Deletion
+  removes the canonical room entity and therefore restores that week's derived
+  placement availability; it does not remove the permanent stamp unlock.
+  Prior-day, teammate, and system-owned entities remain undeletable. Future
+  consumable props require their own refund decision before using this path.
 - Decided: move, scale, and rotate previews travel through Canvas's shared room
   stream, so every connected viewer sees an in-progress transform. The final
   durable command remains authoritative. Zoomigo validates the complete preview

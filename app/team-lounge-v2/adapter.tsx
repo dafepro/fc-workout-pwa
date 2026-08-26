@@ -69,6 +69,11 @@ export function TeamLoungeV2({
     useState<LoungePlacementSummary | null>(null);
   const [placementError, setPlacementError] = useState<string | null>(null);
   const [placementPending, setPlacementPending] = useState(false);
+  const [stampDragState, setStampDragState] = useState<{
+    entityID: string;
+    overTrash: boolean;
+  } | null>(null);
+  const [stampDeleteError, setStampDeleteError] = useState<string | null>(null);
   const [placeableStamps, setPlaceableStamps] = useState<
     LoungePlaceableStamp[] | null
   >(null);
@@ -77,6 +82,7 @@ export function TeamLoungeV2({
   const signalPortRef = useRef<((kind: string) => void) | null>(null);
   const cooldownTimerRef = useRef<number | null>(null);
   const localEmoteTimerRef = useRef<number | null>(null);
+  const stampTrashTargetRef = useRef<HTMLDivElement>(null);
   const updateRuntimeState = useCallback((next: LocalLoungeCanvasState) => {
     setRuntimeState(next);
     if (next === "loading") setDiagnostics(null);
@@ -233,6 +239,16 @@ export function TeamLoungeV2({
             onPlacementPendingChange={setPlacementPending}
             onPlaceableStampsChange={updatePlaceableStamps}
             onThemeChange={setTheme}
+            stampTrashTargetRef={stampTrashTargetRef}
+            onStampDragStateChange={(state) => {
+              if (state) setStampDeleteError(null);
+              setStampDragState(state);
+            }}
+            onStampDeleteError={(reason) => {
+              setStampDeleteError(
+                copy.placementErrors[reason] ?? copy.deleteStampError,
+              );
+            }}
           />
         ) : (
           <LocalLoungeCanvas
@@ -298,91 +314,116 @@ export function TeamLoungeV2({
         ) : null}
       </div>
 
-      <nav className="team-lounge-v2__actions" aria-label="Lounge actions">
-        {tray === "emotes" ? (
-          <div
-            className="team-lounge-v2__emote-popover"
-            aria-label="Choose an emote"
-          >
-            {loungeEmotes.map((emote) => (
-              <button
-                key={emote.kind}
-                type="button"
-                aria-label={`Send ${emote.label} emote`}
-                disabled={(sharedRoom && !signalReady) || emoteCoolingDown}
-                onClick={() => {
-                  const send = signalPortRef.current;
-                  if (emoteCoolingDown || (sharedRoom && !send)) return;
-                  if (sharedRoom) {
-                    send?.(emote.kind);
-                  } else {
-                    setLocalEmote(emote);
-                    if (localEmoteTimerRef.current !== null) {
-                      window.clearTimeout(localEmoteTimerRef.current);
+      {stampDragState ? (
+        <div
+          ref={stampTrashTargetRef}
+          className="team-lounge-v2__trash-target"
+          data-active={stampDragState.overTrash || undefined}
+          data-canvas-pointer-ignore="true"
+          role="status"
+          aria-label={copy.deleteStampAria}
+        >
+          <span aria-hidden="true">⌫</span>
+          <strong>
+            {stampDragState.overTrash
+              ? copy.deleteStampRelease
+              : copy.deleteStampDrop}
+          </strong>
+          <small>{copy.deleteStampHint}</small>
+        </div>
+      ) : (
+        <nav className="team-lounge-v2__actions" aria-label="Lounge actions">
+          {tray === "emotes" ? (
+            <div
+              className="team-lounge-v2__emote-popover"
+              aria-label="Choose an emote"
+            >
+              {loungeEmotes.map((emote) => (
+                <button
+                  key={emote.kind}
+                  type="button"
+                  aria-label={`Send ${emote.label} emote`}
+                  disabled={(sharedRoom && !signalReady) || emoteCoolingDown}
+                  onClick={() => {
+                    const send = signalPortRef.current;
+                    if (emoteCoolingDown || (sharedRoom && !send)) return;
+                    if (sharedRoom) {
+                      send?.(emote.kind);
+                    } else {
+                      setLocalEmote(emote);
+                      if (localEmoteTimerRef.current !== null) {
+                        window.clearTimeout(localEmoteTimerRef.current);
+                      }
+                      localEmoteTimerRef.current = window.setTimeout(() => {
+                        localEmoteTimerRef.current = null;
+                        setLocalEmote(null);
+                      }, LOUNGE_EMOTE_DURATION_MS);
                     }
-                    localEmoteTimerRef.current = window.setTimeout(() => {
-                      localEmoteTimerRef.current = null;
-                      setLocalEmote(null);
-                    }, LOUNGE_EMOTE_DURATION_MS);
-                  }
-                  setEmoteCoolingDown(true);
-                  if (cooldownTimerRef.current !== null) {
-                    window.clearTimeout(cooldownTimerRef.current);
-                  }
-                  cooldownTimerRef.current = window.setTimeout(() => {
-                    cooldownTimerRef.current = null;
-                    setEmoteCoolingDown(false);
-                  }, LOUNGE_EMOTE_COOLDOWN_MS);
-                  setTray(null);
-                }}
-              >
-                {emote.symbol}
-              </button>
-            ))}
-          </div>
-        ) : null}
-        <button
-          type="button"
-          aria-pressed={tray === "emotes"}
-          onClick={() =>
-            setTray((current) => (current === "emotes" ? null : "emotes"))
-          }
-        >
-          <span aria-hidden="true">☺</span>
-          {copy.emotes}
-        </button>
-        <button
-          type="button"
-          aria-pressed={tray === "stamps"}
-          onClick={() => {
-            if (tray === "stamps") {
-              setTray(null);
-              return;
+                    setEmoteCoolingDown(true);
+                    if (cooldownTimerRef.current !== null) {
+                      window.clearTimeout(cooldownTimerRef.current);
+                    }
+                    cooldownTimerRef.current = window.setTimeout(() => {
+                      cooldownTimerRef.current = null;
+                      setEmoteCoolingDown(false);
+                    }, LOUNGE_EMOTE_COOLDOWN_MS);
+                    setTray(null);
+                  }}
+                >
+                  {emote.symbol}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          <button
+            type="button"
+            aria-pressed={tray === "emotes"}
+            onClick={() =>
+              setTray((current) => (current === "emotes" ? null : "emotes"))
             }
-            if (placeableStamps?.some(({ isNew }) => isNew)) {
-              setPlaceableStamps(
-                (current) =>
-                  current?.map((stamp) => ({ ...stamp, isNew: false })) ?? null,
-              );
-              void Promise.resolve(stampUnlocks?.viewNew?.()).catch(
-                () => undefined,
-              );
-            }
-            setTray("stamps");
-          }}
-        >
-          <span aria-hidden="true">✦</span>
-          {copy.stamps}
-        </button>
-        <button type="button" disabled aria-describedby="v2-items-hint">
-          <span aria-hidden="true">▣</span>
-          {copy.items}
-        </button>
-        <button type="button" disabled aria-describedby="v2-map-hint">
-          <span aria-hidden="true">⌖</span>
-          {copy.map}
-        </button>
-      </nav>
+          >
+            <span aria-hidden="true">☺</span>
+            {copy.emotes}
+          </button>
+          <button
+            type="button"
+            aria-pressed={tray === "stamps"}
+            onClick={() => {
+              if (tray === "stamps") {
+                setTray(null);
+                return;
+              }
+              if (placeableStamps?.some(({ isNew }) => isNew)) {
+                setPlaceableStamps(
+                  (current) =>
+                    current?.map((stamp) => ({ ...stamp, isNew: false })) ??
+                    null,
+                );
+                void Promise.resolve(stampUnlocks?.viewNew?.()).catch(
+                  () => undefined,
+                );
+              }
+              setTray("stamps");
+            }}
+          >
+            <span aria-hidden="true">✦</span>
+            {copy.stamps}
+          </button>
+          <button type="button" disabled aria-describedby="v2-items-hint">
+            <span aria-hidden="true">▣</span>
+            {copy.items}
+          </button>
+          <button type="button" disabled aria-describedby="v2-map-hint">
+            <span aria-hidden="true">⌖</span>
+            {copy.map}
+          </button>
+        </nav>
+      )}
+      {stampDeleteError ? (
+        <p className="team-lounge-v2__action-error" role="alert">
+          {stampDeleteError}
+        </p>
+      ) : null}
       {showDeveloperTools && sharedRoom ? (
         <LoungeDevPanel
           diagnostics={diagnostics}

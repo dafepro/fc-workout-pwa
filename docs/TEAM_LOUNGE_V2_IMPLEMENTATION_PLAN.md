@@ -388,6 +388,33 @@ backend/
     team_lounge_http_test.go                # authenticated black-box contract
 ```
 
+### Segment 4P vertical slice — drag-to-remove current-day placements
+
+While the owner moves a current-day stamp, the normal four-action tray is
+replaced in place by one animated trash target. Pointer release is resolved by
+screen coordinates before the normal controls return, so dropping there cannot
+fall through and open the stamp catalog. Releasing elsewhere remains a move.
+
+Zoomigo authorizes the durable delete by authenticated owner and canonical
+placement day. The entity disappears for every viewer; permanent collection
+ownership remains intact. Because used weekly budget is derived from canonical
+room entities, the deleted placement becomes available again without a separate
+refund counter. Prior-day and teammate stamps never enter this drag state.
+
+Proposed file tree for this slice:
+
+```text
+app/team-lounge-v2/
+  SharedLoungeCanvas.tsx                   # drag tracking and durable deletion
+  adapter.tsx                              # action-tray replacement target
+  content.ts                               # removal and recovery copy
+  team-lounge-v2.css                       # restrained drop-target states
+backend/internal/teamlounge/
+  placements.go                            # owner/day delete authorization
+docs/
+  TEAM_LOUNGE_V2_MANUAL_TEST.md            # live two-viewer deletion proof
+```
+
 ### Candidate Segment 3B — predefined quick team phrases
 
 The requested short-message affordance is tracked separately from inventory.

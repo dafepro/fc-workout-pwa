@@ -183,9 +183,10 @@ not include scoring in the first release.
   must still cover a deliberately full room before production cutover.
 - Reconnect recovery derives used budget from canonical room items, so a lost
   client acknowledgement cannot spend or restore a credit twice.
-- Removing an owned consumable placement returns or updates inventory according
-  to a future explicit policy. Until that policy is implemented, removal is not
-  offered for consumable inventory.
+- Dropping an owned current-day placement into the lounge trash permanently
+  removes that room entity. Because weekly usage is derived from canonical room
+  items, its placement credit becomes available again. The permanent collection
+  unlock is unaffected. Prior-day and teammate placements remain immutable.
 - System items are immutable to player edit/delete operations.
 
 ## Failure behavior
@@ -215,7 +216,8 @@ high-frequency movement is metrics-only.
 
 ## Deferred decisions
 
-- Exact removal/refund semantics for duplicate consumable placements.
+- Whether later consumable placeables need a different removal/refund rule than
+  permanent stamp unlocks.
 - Whether a later shared goal counter is Canvas behavior state or a Zoomigo
   projection. It cannot affect training or prizes without a server-owned rule.
 - Multi-replica room ownership. V2 inherits the existing single-replica limit

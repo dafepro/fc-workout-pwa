@@ -146,6 +146,11 @@ func TestStampPlacementAuthorizerLetsOwnersEditOnlyTodaysPlacements(t *testing.T
 			t.Fatalf("owner rotation step %d denied: %+v", step, result)
 		}
 	}
+	remove := base
+	remove.Operation = roomsdk.DurableDelete
+	if result := authorizer.AuthorizeDurable(t.Context(), remove); !result.Allowed {
+		t.Fatalf("owner delete denied: %+v", result)
+	}
 	for _, rotation := range []float64{math.Pi, 2 * math.Pi, math.Pi / 13} {
 		request := base
 		request.Operation, request.Rotation = roomsdk.DurableRotate, rotation
@@ -169,14 +174,14 @@ func TestStampPlacementAuthorizerLetsOwnersEditOnlyTodaysPlacements(t *testing.T
 		t.Fatalf("preview rotation bypass result = %+v", result)
 	}
 	locked := base
-	locked.EntityID, locked.Operation = yesterday.EntityID, roomsdk.DurableMove
+	locked.EntityID, locked.Operation = yesterday.EntityID, roomsdk.DurableDelete
 	locked.Position = roomsdk.DurablePosition{X: 45, Y: 60}
 	locked.Scale = 1
 	if result := authorizer.AuthorizeDurable(t.Context(), locked); result.Allowed || result.Reason != StampLockedReason {
 		t.Fatalf("prior-day edit result = %+v", result)
 	}
 	notOwner := base
-	notOwner.UserID, notOwner.Operation = "player-two", roomsdk.DurableMove
+	notOwner.UserID, notOwner.Operation = "player-two", roomsdk.DurableDelete
 	notOwner.Position = roomsdk.DurablePosition{X: 45, Y: 60}
 	notOwner.Scale = 1
 	if result := authorizer.AuthorizeDurable(t.Context(), notOwner); result.Allowed || result.Reason != StampEditingUnavailableReason {

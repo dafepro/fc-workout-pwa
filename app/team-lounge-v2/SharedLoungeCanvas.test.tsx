@@ -33,7 +33,10 @@ const runtime = vi.hoisted(() => ({
         mount: HTMLElement;
         pointerElement?: HTMLElement;
         scene?: { touchAction?: string };
-        onEditSelectionChange?: (state: { selectedEntityId?: string }) => void;
+        onEditSelectionChange?: (state: {
+          selectedEntityId?: string;
+          ghost?: { entityId: string };
+        }) => void;
       }
     | undefined,
   editModes: [] as boolean[],
@@ -42,6 +45,7 @@ const runtime = vi.hoisted(() => ({
   clearedSelections: 0,
   scaled: [] as Array<{ entityID: string; scale: number }>,
   rotated: [] as Array<{ entityID: string; rotation: number }>,
+  deleted: [] as string[],
   transformed: [] as Array<{
     entityID: string;
     transform: {
@@ -66,7 +70,10 @@ vi.mock("@canvas-physics/client", () => ({
       pointerElement?: HTMLElement;
       scene?: { touchAction?: string };
       onError?: (error: { code: string; message: string }) => void;
-      onEditSelectionChange?: (state: { selectedEntityId?: string }) => void;
+      onEditSelectionChange?: (state: {
+        selectedEntityId?: string;
+        ghost?: { entityId: string };
+      }) => void;
     }) {
       runtime.constructed += 1;
       runtime.onError = options.onError;
@@ -157,6 +164,10 @@ vi.mock("@canvas-physics/client", () => ({
       runtime.rotated.push({ entityID, rotation });
     }
 
+    deleteItem(entityID: string) {
+      runtime.deleted.push(entityID);
+    }
+
     transformItem(
       entityID: string,
       transform: {
@@ -239,6 +250,7 @@ describe("SharedLoungeCanvas", () => {
     runtime.clearedSelections = 0;
     runtime.scaled = [];
     runtime.rotated = [];
+    runtime.deleted = [];
     runtime.transformed = [];
     gateway.refresh.mockReset();
     gateway.refresh.mockResolvedValue({
@@ -649,6 +661,72 @@ describe("SharedLoungeCanvas", () => {
       />,
     );
     await waitFor(() => expect(runtime.editModes.at(-1)).toBe(false));
+  });
+
+  it("deletes a dragged editable stamp released over the consumer trash target", async () => {
+    const onStampDragStateChange = vi.fn();
+    const trashTarget = document.createElement("div");
+    vi.spyOn(trashTarget, "getBoundingClientRect").mockReturnValue({
+      x: 20,
+      y: 600,
+      top: 600,
+      right: 320,
+      bottom: 680,
+      left: 20,
+      width: 300,
+      height: 80,
+      toJSON: () => undefined,
+    });
+    render(
+      <SharedLoungeCanvas
+        teamID="team-one"
+        playerID="player-one"
+        roster={[]}
+        stampEditingEnabled
+        stampTrashTargetRef={{ current: trashTarget }}
+        onStampDragStateChange={onStampDragStateChange}
+        onStateChange={vi.fn()}
+        onPresenceChange={vi.fn()}
+        onSignalPortChange={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => expect(runtime.started).toBe(1));
+    act(() =>
+      runtime.overlayObserver?.({
+        entities: [
+          {
+            entityId: "mine",
+            kind: "item",
+            definitionId: "zoomigo-stamp-target",
+            ownerUserId: "player-one",
+            screen: { x: 140, y: 210 },
+            world: { x: 45, y: 60, z: 0 },
+            rotation: 0,
+            scale: 1,
+            resolvedConfig: { placementDay: "2026-08-26" },
+            visible: true,
+            inViewport: true,
+          },
+        ],
+      }),
+    );
+    act(() =>
+      runtime.options?.onEditSelectionChange?.({
+        selectedEntityId: "mine",
+        ghost: { entityId: "mine" },
+      }),
+    );
+    fireEvent.pointerMove(document, { clientX: 120, clientY: 640 });
+    expect(onStampDragStateChange).toHaveBeenLastCalledWith({
+      entityID: "mine",
+      overTrash: true,
+    });
+
+    fireEvent.pointerUp(document, { clientX: 120, clientY: 640 });
+    expect(runtime.clearedSelections).toBeGreaterThan(0);
+    expect(runtime.deleted).toEqual(["mine"]);
+    expect(onStampDragStateChange).toHaveBeenLastCalledWith(null);
   });
 
   it("clears a stranded placement when reconnecting so the player can retry", async () => {

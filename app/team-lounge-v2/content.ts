@@ -24,6 +24,11 @@ export const teamLoungeV2Copy = {
   map: "Map",
   mapHint: "This room fits on one screen.",
   itemsHint: "Props arrive in a later V2 slice.",
+  deleteStampAria: "Drop to remove stamp",
+  deleteStampDrop: "Drop here to remove",
+  deleteStampRelease: "Release to remove",
+  deleteStampHint: "Your weekly placement becomes available again.",
+  deleteStampError: "That stamp could not be removed. Try again.",
   localHint: "Local physics preview · teammates and persistence come next",
   sharedHint: "Live team room · the boardwalk ball persists between visits",
   placementTray: {

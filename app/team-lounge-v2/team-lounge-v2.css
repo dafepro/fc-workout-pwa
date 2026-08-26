@@ -772,6 +772,58 @@
   opacity: 0.45;
 }
 
+.team-lounge-v2__trash-target {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 0.65rem;
+  min-height: 3.25rem;
+  margin: 0.7rem;
+  padding: 0.55rem 0.85rem;
+  border: 1px dashed rgba(255, 255, 255, 0.34);
+  border-radius: 0.9rem;
+  background: rgba(255, 255, 255, 0.075);
+  color: white;
+  transform: translateY(0);
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    transform 140ms ease;
+}
+
+.team-lounge-v2__trash-target > span {
+  grid-row: 1 / 3;
+  font-size: 1.45rem;
+}
+
+.team-lounge-v2__trash-target strong {
+  font-size: 0.78rem;
+}
+
+.team-lounge-v2__trash-target small {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.62rem;
+}
+
+.team-lounge-v2__trash-target[data-active="true"] {
+  border-color: #ff8691;
+  background: rgba(178, 32, 52, 0.62);
+  transform: translateY(-0.12rem) scale(1.015);
+}
+
+.team-lounge-v2__action-error {
+  margin: 0 0.7rem 0.5rem;
+  color: #ffc4c9;
+  font-size: 0.68rem;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .team-lounge-v2__trash-target {
+    transition: none;
+  }
+}
+
 .team-lounge-v2__tray-note,
 .team-lounge-v2__stamp-tray {
   border: 1px solid rgba(255, 255, 255, 0.12);

@@ -50,7 +50,7 @@ func (authorizer StampPlacementAuthorizer) AuthorizeDurable(
 	if authorizer.store == nil || authorizer.now == nil {
 		return denied(roomsdk.DurableRejectedByApplication)
 	}
-	if request.Operation == roomsdk.DurableMove || request.Operation == roomsdk.DurableScale || request.Operation == roomsdk.DurableRotate {
+	if request.Operation == roomsdk.DurableMove || request.Operation == roomsdk.DurableScale || request.Operation == roomsdk.DurableRotate || request.Operation == roomsdk.DurableDelete {
 		dayKey, err := authorizer.store.PlacementDay(ctx, request.RoomID, authorizer.now().UTC())
 		if err != nil {
 			return denied(roomsdk.DurableRejectedByApplication)
@@ -173,6 +173,12 @@ func authorizeStampEdit(request roomsdk.DurableAuthorizationRequest, dayKey stri
 	}
 	if json.Unmarshal(owned.ResolvedConfig, &metadata) != nil || metadata.PlacementDay != dayKey {
 		return denied(StampLockedReason)
+	}
+	if request.Operation == roomsdk.DurableDelete {
+		if request.Preview {
+			return denied(StampEditingUnavailableReason)
+		}
+		return roomsdk.DurableAuthorizationResult{Allowed: true}
 	}
 	if request.Operation == roomsdk.DurableMove {
 		if !inStampDecoratingArea(request.Position) {

@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 import type {
   CanvasConsumerError,
   CanvasRuntime,
@@ -79,6 +85,9 @@ export function SharedLoungeCanvas({
   onPlacementPendingChange,
   onPlaceableStampsChange,
   onThemeChange,
+  stampTrashTargetRef,
+  onStampDragStateChange,
+  onStampDeleteError,
 }: {
   teamID: string;
   playerID: string;
@@ -95,6 +104,14 @@ export function SharedLoungeCanvas({
   onPlacementPendingChange?(pending: boolean): void;
   onPlaceableStampsChange?(stamps: LoungePlaceableStamp[]): void;
   onThemeChange?(theme: LoungeTheme): void;
+  stampTrashTargetRef?: RefObject<HTMLElement | null>;
+  onStampDragStateChange?(
+    state: {
+      entityID: string;
+      overTrash: boolean;
+    } | null,
+  ): void;
+  onStampDeleteError?(reason: string): void;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const runtimeRef = useRef<CanvasRuntime | null>(null);
@@ -104,6 +121,8 @@ export function SharedLoungeCanvas({
   const onPlacementPendingChangeRef = useRef(onPlacementPendingChange);
   const onPlaceableStampsChangeRef = useRef(onPlaceableStampsChange);
   const onThemeChangeRef = useRef(onThemeChange);
+  const onStampDragStateChangeRef = useRef(onStampDragStateChange);
+  const onStampDeleteErrorRef = useRef(onStampDeleteError);
   const placementCreditsRef = useRef(0);
   const placementDayRef = useRef("");
   const projectionFrameRef = useRef<
@@ -111,6 +130,7 @@ export function SharedLoungeCanvas({
   >(undefined);
   const ownStampCountRef = useRef(0);
   const placementPendingRef = useRef(false);
+  const deletionPendingRef = useRef(false);
   const stampEditingEnabledRef = useRef(stampEditingEnabled);
   const [overlays, setOverlays] = useState<LoungeParticipantOverlay[]>([]);
   const [stampOverlays, setStampOverlays] = useState<LoungeStampOverlay[]>([]);
@@ -153,6 +173,14 @@ export function SharedLoungeCanvas({
   }, [onThemeChange]);
 
   useEffect(() => {
+    onStampDragStateChangeRef.current = onStampDragStateChange;
+  }, [onStampDragStateChange]);
+
+  useEffect(() => {
+    onStampDeleteErrorRef.current = onStampDeleteError;
+  }, [onStampDeleteError]);
+
+  useEffect(() => {
     stampEditingEnabledRef.current = stampEditingEnabled;
     runtimeRef.current?.setEditMode(stampEditingEnabled);
   }, [stampEditingEnabled]);
@@ -180,6 +208,53 @@ export function SharedLoungeCanvas({
     let presented = false;
     let lastPlacementSummary = "";
     let avatarPointerRestoreTimer: number | undefined;
+    let draggedStampID: string | null = null;
+    let deletingStampID: string | null = null;
+    let dragOverTrash = false;
+    const isOverTrash = (event: PointerEvent) => {
+      const target = stampTrashTargetRef?.current;
+      if (!target) return false;
+      const bounds = target.getBoundingClientRect();
+      return (
+        event.clientX >= bounds.left &&
+        event.clientX <= bounds.right &&
+        event.clientY >= bounds.top &&
+        event.clientY <= bounds.bottom
+      );
+    };
+    const publishStampDrag = (overTrash: boolean) => {
+      if (!draggedStampID || dragOverTrash === overTrash) return;
+      dragOverTrash = overTrash;
+      onStampDragStateChangeRef.current?.({
+        entityID: draggedStampID,
+        overTrash,
+      });
+    };
+    const clearStampDrag = () => {
+      if (!draggedStampID) return;
+      draggedStampID = null;
+      dragOverTrash = false;
+      onStampDragStateChangeRef.current?.(null);
+    };
+    const trackStampDrag = (event: PointerEvent) => {
+      if (draggedStampID) publishStampDrag(isOverTrash(event));
+    };
+    const finishStampDrag = (event: PointerEvent) => {
+      const entityID = draggedStampID;
+      if (!entityID) return;
+      const shouldDelete = isOverTrash(event);
+      clearStampDrag();
+      if (!shouldDelete || !runtime) return;
+      deletionPendingRef.current = true;
+      deletingStampID = entityID;
+      runtime.clearItemEditSelection();
+      runtime.deleteItem(entityID);
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    document.addEventListener("pointermove", trackStampDrag, true);
+    document.addEventListener("pointerup", finishStampDrag, true);
+    document.addEventListener("pointercancel", clearStampDrag, true);
     const prioritizeCurrentAvatarPointer = (event: PointerEvent) => {
       if (
         !(event.target instanceof Element) ||
@@ -317,12 +392,30 @@ export function SharedLoungeCanvas({
         pointer: sharedLoungePointerOptions(),
         hideDisabledAvatars: true,
         onDiagnostics,
-        onEditSelectionChange: ({ selectedEntityId }) => {
-          if (!disposed) setEditSelectionID(selectedEntityId ?? null);
+        onEditSelectionChange: ({ selectedEntityId, ghost }) => {
+          if (disposed) return;
+          setEditSelectionID(selectedEntityId ?? null);
+          const nextDraggedStampID = ghost?.entityId ?? null;
+          if (nextDraggedStampID && nextDraggedStampID !== draggedStampID) {
+            draggedStampID = nextDraggedStampID;
+            dragOverTrash = false;
+            onStampDragStateChangeRef.current?.({
+              entityID: nextDraggedStampID,
+              overTrash: false,
+            });
+          } else if (!nextDraggedStampID) {
+            clearStampDrag();
+          }
         },
         onError: (error: CanvasConsumerError) => {
           if (disposed) return;
           if (error.code === "durable_command_rejected") {
+            if (deletionPendingRef.current) {
+              deletionPendingRef.current = false;
+              deletingStampID = null;
+              onStampDeleteErrorRef.current?.(error.message);
+              return;
+            }
             updatePlacementPending(false);
             onPlacementErrorRef.current?.(error.message);
             if (error.message === "stamp_unavailable") {
@@ -385,6 +478,14 @@ export function SharedLoungeCanvas({
             viewport: snapshot.viewport,
           };
           projections = snapshot.entities;
+          if (
+            deletionPendingRef.current &&
+            deletingStampID !== null &&
+            !projections.some(({ entityId }) => entityId === deletingStampID)
+          ) {
+            deletionPendingRef.current = false;
+            deletingStampID = null;
+          }
           publishOverlays();
         },
         { kinds: ["avatar", "item"], maxEntities: 200, maxHz: 60 },
@@ -441,6 +542,10 @@ export function SharedLoungeCanvas({
         prioritizeCurrentAvatarPointer,
         true,
       );
+      document.removeEventListener("pointermove", trackStampDrag, true);
+      document.removeEventListener("pointerup", finishStampDrag, true);
+      document.removeEventListener("pointercancel", clearStampDrag, true);
+      clearStampDrag();
       if (avatarPointerRestoreTimer !== undefined) {
         window.clearTimeout(avatarPointerRestoreTimer);
       }
@@ -466,6 +571,7 @@ export function SharedLoungeCanvas({
     onSignalPortChange,
     onStateChange,
     playerID,
+    stampTrashTargetRef,
     teamID,
     updatePlacementPending,
   ]);
