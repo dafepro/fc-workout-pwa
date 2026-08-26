@@ -11,6 +11,8 @@ import (
 	"github.com/dafepro/fc-workout-pwa/backend/internal/teamlounge"
 )
 
+const devTeamLoungePlacementCredits = 99
+
 type teamLoungeVisitStore interface {
 	RecordVisit(context.Context, string, string, time.Time) error
 }
@@ -145,9 +147,16 @@ func (service *service) resolveTeamLoungeAccess(
 		activeMembers[member.PlayerID] = struct{}{}
 	}
 	return teamLoungeAccessResponse{
-		RoomID: roomID, PlacementCredits: placementBudget.Earned,
+		RoomID: roomID, PlacementCredits: service.teamLoungePlacementCredits(placementBudget.Earned),
 		PlacementDay: placementBudget.DayKey, PlaceableStamps: placeableStamps,
 	}, activeMembers, true
+}
+
+func (service *service) teamLoungePlacementCredits(earned int) int {
+	if service.cfg.EnableDevAccess {
+		return max(earned, devTeamLoungePlacementCredits)
+	}
+	return earned
 }
 
 func (service *service) connectTeamLoungeRoom(w http.ResponseWriter, r *http.Request) {

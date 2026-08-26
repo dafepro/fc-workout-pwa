@@ -1238,3 +1238,8 @@ Momentum Alpha needs independent PWA install/offline behavior.
   product-safety decision because they would reverse the no-chat/no-free-text
   rule and require moderation, reporting, retention, staff visibility, and
   abuse-response policy before implementation.
+- Refined 2026-08-26: a current-day owned stamp is directly selectable from the
+  lounge whether or not the placement tray is open. The tray chooses new
+  placements only; selecting an existing stamp cancels a pending new placement.
+  Development access projects and authorizes 99 weekly placement credits for
+  stress testing. Production continues to derive credits only from check-ins.

@@ -195,7 +195,8 @@ export function TeamLoungeV2({
             onSignalPortChange={updateSignalPort}
             onDiagnostics={showDeveloperTools ? setDiagnostics : undefined}
             selectedStamp={selectedStamp}
-            stampEditingEnabled={tray === "stamps"}
+            stampEditingEnabled
+            onStampEditStart={() => setSelectedStamp(null)}
             onPlacementSummaryChange={(summary) => {
               if (summary.used > placedStampCountRef.current) {
                 setSelectedStamp(null);

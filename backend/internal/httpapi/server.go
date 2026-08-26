@@ -152,12 +152,16 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	service.canvasPhysics = newTeamCanvasPhysicsManager()
 	if service.teamLoungeStore != nil {
 		roomServer, err := roomsdk.New(roomsdk.Config{
-			Store:             service.teamLoungeStore,
-			RoomTemplates:     service.teamLoungeStore,
-			Auth:              newTeamLoungeAuthenticator(service.canvasTickets, service.teamLoungeStore, service.now),
-			AllowedOrigins:    teamLoungeAllowedOrigins(cfg.AllowedOrigin),
-			Metrics:           newTeamLoungeRoomMetrics(service.operations),
-			DurableAuthorizer: teamlounge.NewStampPlacementAuthorizer(service.teamLoungeStore, service.now),
+			Store:          service.teamLoungeStore,
+			RoomTemplates:  service.teamLoungeStore,
+			Auth:           newTeamLoungeAuthenticator(service.canvasTickets, service.teamLoungeStore, service.now),
+			AllowedOrigins: teamLoungeAllowedOrigins(cfg.AllowedOrigin),
+			Metrics:        newTeamLoungeRoomMetrics(service.operations),
+			DurableAuthorizer: teamlounge.NewStampPlacementAuthorizer(
+				service.teamLoungeStore,
+				service.now,
+				service.teamLoungePlacementCredits(0),
+			),
 			ParticipantSignals: roomsdk.ParticipantSignalPolicy{
 				AllowedKinds: map[string]struct{}{
 					"zoomigo.emote.wave":  {},

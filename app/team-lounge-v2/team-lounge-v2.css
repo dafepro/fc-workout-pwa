@@ -275,6 +275,7 @@
 }
 
 .team-lounge-v2__placed-stamp--editable {
+  z-index: 3;
   pointer-events: auto;
   touch-action: none;
   cursor: grab;
@@ -285,6 +286,7 @@
 }
 
 .team-lounge-v2__placed-stamp--selected {
+  z-index: 4;
   border-radius: 50%;
   outline: 0.18rem solid var(--lounge-lime);
   outline-offset: 0.2rem;
@@ -335,7 +337,7 @@
 
 .team-lounge-v2__stamp-edit-controls {
   position: absolute;
-  z-index: 3;
+  z-index: 5;
   right: 0.65rem;
   bottom: 2.8rem;
   left: 0.65rem;

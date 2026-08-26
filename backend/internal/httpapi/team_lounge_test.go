@@ -9,8 +9,21 @@ import (
 
 	"github.com/dafepro/canvas/server/pkg/roomsdk"
 	"github.com/dafepro/canvas/server/pkg/roomsdktest"
+	"github.com/dafepro/fc-workout-pwa/backend/internal/config"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 )
+
+func TestTeamLoungeDevelopmentBudgetCannotLeakWithoutDevAccess(t *testing.T) {
+	production := &service{cfg: config.Config{Environment: "production"}}
+	development := &service{cfg: config.Config{Environment: "dev", EnableDevAccess: true}}
+
+	if got := production.teamLoungePlacementCredits(3); got != 3 {
+		t.Fatalf("production credits = %d, want 3", got)
+	}
+	if got := development.teamLoungePlacementCredits(3); got != 99 {
+		t.Fatalf("development credits = %d, want 99", got)
+	}
+}
 
 type loungeVisitRecorder struct {
 	roomID   string

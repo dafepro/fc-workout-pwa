@@ -3,6 +3,7 @@ package teamlounge
 import (
 	"encoding/json"
 	"math"
+	"strconv"
 	"testing"
 	"time"
 
@@ -75,6 +76,33 @@ func TestStampPlacementAuthorizerUsesOwnedInventoryOpenBoundsAndWeeklyCredits(t 
 	})
 	if result = authorizer.AuthorizeDurable(t.Context(), twoUsed); result.Allowed || result.Reason != StampPlacementBudgetExhaustedReason {
 		t.Fatalf("exhausted budget result = %+v", result)
+	}
+}
+
+func TestStampPlacementAuthorizerCanRaiseOnlyTheDevelopmentTestBudget(t *testing.T) {
+	store, now := placementFixture(t)
+	authorizer := NewStampPlacementAuthorizer(store, func() time.Time { return now }, 99)
+	request := roomsdk.DurableAuthorizationRequest{
+		RoomID: "team:team-one:lounge:2026-08-24:v3", UserID: "player-one",
+		Operation: roomsdk.DurableSpawn, DefinitionID: StampDefinitionID("bolt"),
+		Position: roomsdk.DurablePosition{X: 10, Y: 10},
+	}
+	for index := 0; index < 98; index++ {
+		request.ExistingItems = append(request.ExistingItems, roomsdk.DurableAuthorizationItem{
+			EntityID: "existing-" + strconv.Itoa(index+1), DefinitionID: StampDefinitionID("star"),
+			OwnerUserID: "player-one", ResolvedConfig: json.RawMessage(`{"placementDay":"2026-08-26"}`),
+		})
+	}
+
+	if result := authorizer.AuthorizeDurable(t.Context(), request); !result.Allowed {
+		t.Fatalf("development placement 99 denied: %+v", result)
+	}
+	request.ExistingItems = append(request.ExistingItems, roomsdk.DurableAuthorizationItem{
+		EntityID: "existing-99", DefinitionID: StampDefinitionID("star"), OwnerUserID: "player-one",
+		ResolvedConfig: json.RawMessage(`{"placementDay":"2026-08-26"}`),
+	})
+	if result := authorizer.AuthorizeDurable(t.Context(), request); result.Allowed || result.Reason != StampPlacementBudgetExhaustedReason {
+		t.Fatalf("development placement 100 result = %+v", result)
 	}
 }
 

@@ -162,7 +162,7 @@ function loungeAccess(
     !roomID.startsWith(`team:${teamID}:lounge:`) ||
     !Number.isInteger(placementCredits) ||
     (placementCredits as number) < 0 ||
-    (placementCredits as number) > 7 ||
+    (placementCredits as number) > 99 ||
     !/^\d{4}-\d{2}-\d{2}$/u.test(placementDay) ||
     placeableStamps.length === 0 ||
     placeableStamps.length > LOUNGE_STAMP_ASSET_IDS.length ||

@@ -144,6 +144,27 @@ describe("Team Lounge V2 gateway", () => {
     );
   });
 
+  it("accepts the bounded development placement budget", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            roomId: "team:team-one:lounge:2026-08-24:v3",
+            placementCredits: 99,
+            placementDay: "2026-08-26",
+            placeableStamps: [placeableStamps[0]],
+          }),
+          { status: 200 },
+        ),
+      ),
+    );
+
+    await expect(requestTeamLoungeAccess("team-one")).resolves.toMatchObject({
+      placementCredits: 99,
+    });
+  });
+
   it("fails closed when the server projects a duplicate or malformed placeable stamp", async () => {
     vi.stubGlobal(
       "fetch",

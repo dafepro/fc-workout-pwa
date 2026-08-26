@@ -26,12 +26,17 @@ const (
 )
 
 type StampPlacementAuthorizer struct {
-	store *SQLiteStore
-	now   func() time.Time
+	store          *SQLiteStore
+	now            func() time.Time
+	minimumCredits int
 }
 
-func NewStampPlacementAuthorizer(store *SQLiteStore, now func() time.Time) StampPlacementAuthorizer {
-	return StampPlacementAuthorizer{store: store, now: now}
+func NewStampPlacementAuthorizer(store *SQLiteStore, now func() time.Time, minimumCredits ...int) StampPlacementAuthorizer {
+	minimum := 0
+	if len(minimumCredits) == 1 && minimumCredits[0] > 0 {
+		minimum = minimumCredits[0]
+	}
+	return StampPlacementAuthorizer{store: store, now: now, minimumCredits: minimum}
 }
 
 func StampDefinitionID(assetID string) string {
@@ -66,13 +71,14 @@ func (authorizer StampPlacementAuthorizer) AuthorizeDurable(
 	if err != nil {
 		return denied(roomsdk.DurableRejectedByApplication)
 	}
+	earned := max(budget.Earned, authorizer.minimumCredits)
 	used := 0
 	for _, item := range request.ExistingItems {
 		if item.OwnerUserID == request.UserID && strings.HasPrefix(item.DefinitionID, stampDefinitionPrefix) {
 			used++
 		}
 	}
-	if used >= budget.Earned {
+	if used >= earned {
 		return denied(StampPlacementBudgetExhaustedReason)
 	}
 	owned, err := authorizer.store.PlayerOwnsCanvasStamp(ctx, request.UserID, assetID)

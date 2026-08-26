@@ -72,7 +72,8 @@ export function SharedLoungeCanvas({
   onSignalPortChange,
   onDiagnostics,
   selectedStamp = null,
-  stampEditingEnabled = false,
+  stampEditingEnabled = true,
+  onStampEditStart,
   onPlacementSummaryChange,
   onPlacementError,
   onPlacementPendingChange,
@@ -88,6 +89,7 @@ export function SharedLoungeCanvas({
   onDiagnostics?(diagnostics: RuntimeDiagnostics): void;
   selectedStamp?: StampAsset | null;
   stampEditingEnabled?: boolean;
+  onStampEditStart?(): void;
   onPlacementSummaryChange?(summary: LoungePlacementSummary): void;
   onPlacementError?(reason: string): void;
   onPlacementPendingChange?(pending: boolean): void;
@@ -462,7 +464,21 @@ export function SharedLoungeCanvas({
         currentPlayerID={playerID}
         editableEntityIDs={editableStampIDs}
         selectedEntityID={stampEditingEnabled ? editSelectionID : null}
-        onSelect={(entityID) => runtimeRef.current?.selectItemForEdit(entityID)}
+        onSelect={(entityID) => {
+          const runtime = runtimeRef.current;
+          if (!runtime) return;
+          onStampEditStart?.();
+          setEditSelectionID(entityID);
+          runtime.setEditMode(true);
+          if (runtime.selectItemForEdit(entityID)) return;
+          window.requestAnimationFrame(() => {
+            if (!runtime.selectItemForEdit(entityID)) {
+              setEditSelectionID((selected) =>
+                selected === entityID ? null : selected,
+              );
+            }
+          });
+        }}
         onScale={(entityID, scale, preview) => {
           const stamp = stampOverlays.find(
             (candidate) => candidate.entityID === entityID,
