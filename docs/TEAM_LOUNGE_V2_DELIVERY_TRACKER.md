@@ -14,26 +14,26 @@ the intended boundary; this file records delivered evidence and remaining risk.
 | 1       | Dev Me selector plus local Beach Boardwalk room                    | Delivered   | Direct-drag tests and browser proof   | Shared-room regression coverage  |
 | 2       | Authenticated team multiplayer room                                | Dev review  | SDK conformance and protocol JOIN     | Two-player browser proof         |
 | 3       | Presence, visit traces, emotes, durable physical state             | Dev review  | Relayed emotes, traces, shared ball   | Two-player lifecycle proof       |
-| 4       | Earned stamps/items with app-owned authorization                   | In progress | Reconnect-safe weekly stamp slice     | Segment 4C manipulation proof    |
+| 4       | Earned stamps/items with app-owned authorization                   | In progress | Scroll-safe owner manipulation        | Two-player manipulation proof    |
 | 5       | Weekly reset and theme framework                                   | Not started | —                                     | Timezone/template rollover tests |
 | 6       | Device budgets, observability, release and cutover                 | Not started | —                                     | All parity/safety gates green    |
 
 ## Product parity ledger
 
-| Capability                     | V1 today                 | V2 target                                | Current V2      |
-| ------------------------------ | ------------------------ | ---------------------------------------- | --------------- |
-| Dev-only switch and reset      | No                       | Yes                                      | Delivered       |
-| Mobile avatar movement         | Built-in drag/coast      | Canvas direct avatar drag                | 60 Hz, no coast |
-| Safe avatar and name           | Yes                      | Canvas token + safe DOM overlay          | Delivered       |
-| Live teammates                 | Yes                      | Authenticated Canvas presence            | Avatars + count |
-| Safe social signals            | Local predefined emotes  | Five bounded, server-relayed emotes      | Dev review      |
-| Prior-visitor traces           | No                       | Three privacy-safe weekly traces         | Dev review      |
-| Persistent stamps              | Yes                      | Zoomigo-authorized durable item          | One/player/week |
-| Physical objects               | Built-in cosmetic pieces | One system-owned beach ball              | Shared ball     |
-| Reconnect/background lifecycle | Yes                      | Canvas lifecycle with visible recovery   | Connected       |
-| Weekly reset                   | Existing week state      | Immutable team/week/version room binding | Bound           |
-| Developer telemetry            | V1 metrics               | V2 typed, name-free metrics              | Dev panel       |
-| Production default             | V1                       | Explicitly reviewed V2 cutover           | Not eligible    |
+| Capability                     | V1 today                 | V2 target                                | Current V2       |
+| ------------------------------ | ------------------------ | ---------------------------------------- | ---------------- |
+| Dev-only switch and reset      | No                       | Yes                                      | Delivered        |
+| Mobile avatar movement         | Built-in drag/coast      | Canvas direct avatar drag                | 60 Hz, no coast  |
+| Safe avatar and name           | Yes                      | Canvas token + safe DOM overlay          | Delivered        |
+| Live teammates                 | Yes                      | Authenticated Canvas presence            | Avatars + count  |
+| Safe social signals            | Local predefined emotes  | Five bounded, server-relayed emotes      | Dev review       |
+| Prior-visitor traces           | No                       | Three privacy-safe weekly traces         | Dev review       |
+| Persistent stamps              | Yes                      | Zoomigo-authorized durable item          | Owner move/scale |
+| Physical objects               | Built-in cosmetic pieces | One system-owned beach ball              | Shared ball      |
+| Reconnect/background lifecycle | Yes                      | Canvas lifecycle with visible recovery   | Connected        |
+| Weekly reset                   | Existing week state      | Immutable team/week/version room binding | Bound            |
+| Developer telemetry            | V1 metrics               | V2 typed, name-free metrics              | Dev panel        |
+| Production default             | V1                       | Explicitly reviewed V2 cutover           | Not eligible     |
 
 ## Risk register
 
@@ -50,28 +50,28 @@ the intended boundary; this file records delivered evidence and remaining risk.
 
 ## Slice log
 
-| Date       | Segment | Revision                         | Delivered                                                                                                                            | Verification                                                                                                            | Review focus                                             |
-| ---------- | ------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| 2026-08-25 | 0       | `c4410d4` + dependency commit    | Architecture, plan, decisions, and pinned Canvas packages                                                                            | Canvas artifact/release/boundary gates: 4 passed                                                                        | Boundary, scope, sequencing                              |
-| 2026-08-25 | 1       | `30c2105`                        | Dev selector, lazy V2 adapter, local Boardwalk, movement, ball, emotes, mobile shell                                                 | 18 targeted tests; typecheck, lint, build; 320px/Android QA; deployed Canvas ready with no browser errors               | Movement feel, room scale, first-scene direction         |
-| 2026-08-25 | 1       | `ce1408e`                        | Replaced drag-anywhere thumbstick with avatar-origin direct drag                                                                     | Target-forwarding test; empty-room/avatar-origin browser gesture proof; no browser errors                               | Grab radius and release-coast feel                       |
-| 2026-08-25 | 2       | `932d2b7`                        | Exact Go SDK pin, immutable weekly bindings, SQLite checkpoints, one-time room tickets, shared Canvas runtime                        | Canvas store/auth conformance; HTTP ticket + protocol-v8 WebSocket JOIN; reconnect credential tests                     | Two-player presence, reconnect, ball persistence         |
-| 2026-08-25 | 2–3     | `c4f921b`                        | 60 Hz direct drag without coast, visually aligned collision map v2, dev diagnostics, safe live roster/avatar overlays                | Runtime/scene/presence and API room/auth tests; immutable v2 room migration; deployed to dev                            | Movement feel, collision expectations, teammate overlays |
-| 2026-08-25 | 3       | `126e08a`                        | Kept one shared runtime alive while safe roster/avatar presentation refreshes                                                        | Lifecycle regression; 486 frontend tests; CI/dev deploy; shared Host reports 60 fps/60 Hz and 0 correction              | Confirm drag feel and correction under two-player load   |
-| 2026-08-26 | 3       | Current social persistence slice | Added five payload-free server-relayed emotes plus three roster-safe weekly prior-visitor traces                                     | Canvas signal policy tests; real migrated SQLite/WebSocket visit test; frontend expiry and projection tests             | Two-player emote delivery, cooldown, trace suppression   |
-| 2026-08-26 | 4A      | `e75955c` + Canvas `a70f50e`     | Added owned-stamp tray, six authored spots, app-authorized durable spawn, persistence, calm rejection UI, and metrics                | Canvas full suite; Zoomigo component/domain tests; authenticated WebSocket placement and duplicate rejection            | Placement clarity, week persistence, two-player display  |
-| 2026-08-26 | 4B      | `99af61f` + Canvas `b784286`     | Blocks repeat placement taps, recovers stranded pending UI on reconnect, retries transient snapshot saves without replaying commands | Fault-injected Canvas store test; reconnected authenticated WebSocket duplicate rejection; frontend pending/retry tests | Reconnect clarity and two-device persistence             |
+| Date       | Segment | Revision                         | Delivered                                                                                                                                       | Verification                                                                                                                                   | Review focus                                                        |
+| ---------- | ------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| 2026-08-25 | 0       | `c4410d4` + dependency commit    | Architecture, plan, decisions, and pinned Canvas packages                                                                                       | Canvas artifact/release/boundary gates: 4 passed                                                                                               | Boundary, scope, sequencing                                         |
+| 2026-08-25 | 1       | `30c2105`                        | Dev selector, lazy V2 adapter, local Boardwalk, movement, ball, emotes, mobile shell                                                            | 18 targeted tests; typecheck, lint, build; 320px/Android QA; deployed Canvas ready with no browser errors                                      | Movement feel, room scale, first-scene direction                    |
+| 2026-08-25 | 1       | `ce1408e`                        | Replaced drag-anywhere thumbstick with avatar-origin direct drag                                                                                | Target-forwarding test; empty-room/avatar-origin browser gesture proof; no browser errors                                                      | Grab radius and release-coast feel                                  |
+| 2026-08-25 | 2       | `932d2b7`                        | Exact Go SDK pin, immutable weekly bindings, SQLite checkpoints, one-time room tickets, shared Canvas runtime                                   | Canvas store/auth conformance; HTTP ticket + protocol-v8 WebSocket JOIN; reconnect credential tests                                            | Two-player presence, reconnect, ball persistence                    |
+| 2026-08-25 | 2–3     | `c4f921b`                        | 60 Hz direct drag without coast, visually aligned collision map v2, dev diagnostics, safe live roster/avatar overlays                           | Runtime/scene/presence and API room/auth tests; immutable v2 room migration; deployed to dev                                                   | Movement feel, collision expectations, teammate overlays            |
+| 2026-08-25 | 3       | `126e08a`                        | Kept one shared runtime alive while safe roster/avatar presentation refreshes                                                                   | Lifecycle regression; 486 frontend tests; CI/dev deploy; shared Host reports 60 fps/60 Hz and 0 correction                                     | Confirm drag feel and correction under two-player load              |
+| 2026-08-26 | 3       | Current social persistence slice | Added five payload-free server-relayed emotes plus three roster-safe weekly prior-visitor traces                                                | Canvas signal policy tests; real migrated SQLite/WebSocket visit test; frontend expiry and projection tests                                    | Two-player emote delivery, cooldown, trace suppression              |
+| 2026-08-26 | 4A      | `e75955c` + Canvas `a70f50e`     | Added owned-stamp tray, six authored spots, app-authorized durable spawn, persistence, calm rejection UI, and metrics                           | Canvas full suite; Zoomigo component/domain tests; authenticated WebSocket placement and duplicate rejection                                   | Placement clarity, week persistence, two-player display             |
+| 2026-08-26 | 4B      | `99af61f` + Canvas `b784286`     | Blocks repeat placement taps, recovers stranded pending UI on reconnect, retries transient snapshot saves without replaying commands            | Fault-injected Canvas store test; reconnected authenticated WebSocket duplicate rejection; frontend pending/retry tests                        | Reconnect clarity and two-device persistence                        |
+| 2026-08-26 | 4C      | `90d10a6` + Canvas `f61f0cb`     | Restores vertical page scrolling from empty room space, removes the duplicate Canvas stamp artwork, and adds owner-only drag plus bounded scale | Canvas 360-test suite; Zoomigo 498-test suite; authenticated spawn/move/scale WebSocket; lint, typecheck, build, Go vet/test; dev public smoke | Empty-space scrolling, single-layer overlap, move/scale persistence |
 
 ## Latest dev delivery
 
-- Deployed application revision: `99af61fcf7ed63b79030d9db987cfdf94e0d2e98`.
-- Included Canvas revision: `b784286cefc2d91663a8f911386ba54101c75f64`.
-- GitHub Actions dev operation `32964489350` completed successfully on
+- Deployed application revision: `90d10a6252c56640b91ba79e4afa378ae9c85f55`.
+- Included Canvas revision: `f61f0cb363e0871c9f6b74a3b4422072bcb1d2de`.
+- GitHub Actions dev operation `32967685583` completed successfully on
   2026-08-26.
 - Authenticated public smoke: `/` and `/team` `200`; all 14 directly referenced
-  JavaScript and CSS assets `200`; the lazy Team Lounge adapter `200` with the
-  new pending-placement copy present; dev service worker `200` with cache
-  clearing, unregister, and dev-host bypass present.
+  JavaScript and CSS assets `200`; the transparent stamp texture `200`; deployed
+  CSS includes the `pan-y` room policy and stamp-edit controls.
 - The service worker is self-disabling on dev as a defense against stale app
   shells. Worker-first gating for static assets is also implemented in this
   branch, but becomes the trusted deployment control only after mainline
