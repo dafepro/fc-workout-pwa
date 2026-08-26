@@ -330,6 +330,68 @@ describe("SharedLoungeCanvas", () => {
     expect(stamp).toHaveAttribute("aria-pressed", "true");
   });
 
+  it("gives the visible avatar first claim over an overlapping editable stamp", async () => {
+    render(
+      <SharedLoungeCanvas
+        teamID="team-one"
+        playerID="player-one"
+        roster={[
+          {
+            playerID: "player-one",
+            displayName: "Mason C.",
+            avatarConfiguration: defaultAvatar(),
+          },
+        ]}
+        onStateChange={vi.fn()}
+        onPresenceChange={vi.fn()}
+        onSignalPortChange={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => expect(runtime.started).toBe(1));
+    act(() =>
+      runtime.overlayObserver?.({
+        entities: [
+          {
+            entityId: "avatar:player-one",
+            kind: "avatar",
+            userId: "player-one",
+            screen: { x: 140, y: 210 },
+            world: { x: 45, y: 60, z: 0 },
+            rotation: 0,
+            scale: 1,
+            visible: true,
+            inViewport: true,
+          },
+          {
+            entityId: "mine",
+            kind: "item",
+            definitionId: "zoomigo-stamp-target",
+            ownerUserId: "player-one",
+            screen: { x: 140, y: 210 },
+            world: { x: 45, y: 60, z: 0 },
+            rotation: 0,
+            scale: 1.4,
+            resolvedConfig: { placementDay: "2026-08-26" },
+            visible: true,
+            inViewport: true,
+          },
+        ],
+      }),
+    );
+
+    fireEvent.pointerDown(screen.getByLabelText("Mason C., you"), {
+      buttons: 1,
+      pointerId: 1,
+      pointerType: "touch",
+    });
+
+    await waitFor(() =>
+      expect(runtime.editModes.slice(-2)).toEqual([false, true]),
+    );
+    expect(runtime.selectedForEdit).toEqual([]);
+  });
+
   it("places an owned stamp at a tapped free position and recognizes the canonical item", async () => {
     const onPlacementSummaryChange = vi.fn();
     const onPlacementError = vi.fn();

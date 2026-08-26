@@ -1243,3 +1243,7 @@ Momentum Alpha needs independent PWA install/offline behavior.
   placements only; selecting an existing stamp cancels a pending new placement.
   Development access projects and authorizes 99 weekly placement credits for
   stress testing. Production continues to derive credits only from check-ins.
+- Refined 2026-08-26: visible stacking defines pointer priority. When the
+  current avatar overlaps an editable stamp, an avatar press starts avatar
+  movement; the exposed portion of the stamp remains selectable. The routing
+  exception lasts only for that pointer-down and does not change persistence.

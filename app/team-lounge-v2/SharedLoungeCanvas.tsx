@@ -163,6 +163,17 @@ export function SharedLoungeCanvas({
     onPlacementPendingChangeRef.current?.(pending);
   }, []);
 
+  const prioritizeCurrentAvatarPointer = useCallback(() => {
+    const runtime = runtimeRef.current;
+    if (!runtime) return;
+    runtime.setEditMode(false);
+    queueMicrotask(() => {
+      if (runtimeRef.current === runtime && stampEditingEnabledRef.current) {
+        runtime.setEditMode(true);
+      }
+    });
+  }, []);
+
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
@@ -456,7 +467,11 @@ export function SharedLoungeCanvas({
         tabIndex={0}
       />
       <VisitTraces traces={visitTraces} />
-      <AvatarOverlays participants={overlays} emotes={participantEmotes} />
+      <AvatarOverlays
+        participants={overlays}
+        emotes={participantEmotes}
+        onCurrentAvatarPointerDown={prioritizeCurrentAvatarPointer}
+      />
       <StampOverlays
         stamps={stampOverlays}
         selectedStamp={remainingPlacements > 0 ? selectedStamp : null}

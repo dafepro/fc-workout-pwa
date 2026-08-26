@@ -15,9 +15,11 @@ const LoungeAvatarArt = memo(function LoungeAvatarArt({
 export function AvatarOverlays({
   participants,
   emotes = {},
+  onCurrentAvatarPointerDown,
 }: {
   participants: readonly LoungeParticipantOverlay[];
   emotes?: Readonly<Record<string, LoungeEmote>>;
+  onCurrentAvatarPointerDown?(): void;
 }) {
   return (
     <div className="team-lounge-v2__avatar-overlays" aria-live="off">
@@ -26,6 +28,9 @@ export function AvatarOverlays({
           key={participant.playerID}
           className={`team-lounge-v2__participant${participant.current ? " team-lounge-v2__participant--current" : ""}`}
           aria-label={participant.accessibleName}
+          onPointerDownCapture={
+            participant.current ? onCurrentAvatarPointerDown : undefined
+          }
           style={{
             transform: `translate3d(${participant.screen.x}px, ${participant.screen.y}px, 0) translate(-50%, -50%)`,
           }}

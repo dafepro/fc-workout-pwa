@@ -80,7 +80,9 @@ theme metadata.
     cleanly, and drag/size/rotation all retain their final transform after
     leaving and returning. Tapping empty room space may close the editor, but a
     control press must not. At 320 px, no control may clip or force horizontal
-    page scrolling.
+    page scrolling. Enlarge a stamp and place it behind the current avatar.
+    Pressing and dragging the visible avatar must still move the avatar;
+    pressing the exposed part of the stamp must still select the stamp.
 17. Keep the same stamp selected while a second same-team player watches in
     another browser. Hold a size or turn control, then drag the stamp. The other
     viewer should see every in-progress transform before release, then retain
