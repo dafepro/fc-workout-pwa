@@ -1143,8 +1143,15 @@ Momentum Alpha needs independent PWA install/offline behavior.
 - Decided: Canvas canonical checkpoints use a separate V2 SQLite store and
   newest-revision-wins writes. Zoomigo remains the authority for room access,
   inventory, rewards, and future stamp placement.
-- Deferred: stamp persistence stays disabled until inventory reservation,
-  idempotency, removal, and refund behavior are implemented together.
+- Refined 2026-08-26: the first persistent-stamp slice uses permanent unlocks,
+  so placement does not spend inventory or require a refund. The serialized
+  weekly room permits one create-only stamp per authenticated player, at one of
+  six authored points. Zoomigo validates ownership and placement through a
+  generic Canvas host hook before state changes. A failed write loses no item
+  and may be retried.
+- Deferred: the one-per-week cap is reversible policy. Move, rotate, scale,
+  replace, delete, consumable quantities, props, and free placement stay off
+  until their UX, concurrency, and refund behavior are designed together.
 - Decided: transient player emotes use a generic Canvas participant-signal
   channel, not Zoomigo chat or a second websocket. The room server allowlists
   five payload-free kinds and permits one accepted signal per player every two

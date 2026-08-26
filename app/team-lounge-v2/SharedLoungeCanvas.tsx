@@ -2,14 +2,21 @@
 
 import { useEffect, useRef, useState } from "react";
 import type {
+  CanvasConsumerError,
   CanvasRuntime,
   OverlayEntityProjection,
   ParticipantPresence,
   RuntimeDiagnostics,
 } from "@canvas-physics/client";
+import type { StampAsset } from "../team-canvas/model";
 import { prepareTeamLoungeJoin } from "./data/lounge-gateway";
 import type { LocalLoungeCanvasState } from "./LocalLoungeCanvas";
 import { AvatarOverlays } from "./overlays/AvatarOverlays";
+import {
+  StampOverlays,
+  type LoungeStampOverlay,
+  type LoungeStampSpotOverlay,
+} from "./overlays/StampOverlays";
 import { VisitTraces } from "./overlays/VisitTraces";
 import {
   mergeLoungePresence,
@@ -22,6 +29,12 @@ import {
 } from "./runtime-config";
 import { beachBoardwalkAssets } from "./scene/assets";
 import { beachBoardwalkDefinitions } from "./scene/beach-boardwalk";
+import {
+  loungeStampAsset,
+  stampAssetIDFromDefinition,
+  stampDefinitionID,
+} from "./placement/catalog";
+import { loungeStampZones, type LoungeStampZone } from "./placement/zones";
 import {
   LOUNGE_EMOTE_DURATION_MS,
   loungeEmoteForSignal,
@@ -46,6 +59,9 @@ export function SharedLoungeCanvas({
   onPresenceChange,
   onSignalPortChange,
   onDiagnostics,
+  selectedStamp = null,
+  onPlacementChange,
+  onPlacementError,
 }: {
   teamID: string;
   playerID: string;
@@ -54,10 +70,20 @@ export function SharedLoungeCanvas({
   onPresenceChange(count: number): void;
   onSignalPortChange(sender: ((kind: string) => void) | null): void;
   onDiagnostics?(diagnostics: RuntimeDiagnostics): void;
+  selectedStamp?: StampAsset | null;
+  onPlacementChange?(assetID: string | null): void;
+  onPlacementError?(reason: string): void;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
+  const runtimeRef = useRef<CanvasRuntime | null>(null);
   const rosterRef = useRef(roster);
+  const onPlacementChangeRef = useRef(onPlacementChange);
+  const onPlacementErrorRef = useRef(onPlacementError);
+  const placedAssetIDRef = useRef<string | null>(null);
   const [overlays, setOverlays] = useState<LoungeParticipantOverlay[]>([]);
+  const [stampOverlays, setStampOverlays] = useState<LoungeStampOverlay[]>([]);
+  const [stampSpots, setStampSpots] = useState<LoungeStampSpotOverlay[]>([]);
+  const [ownStampID, setOwnStampID] = useState<string | null>(null);
   const [visitTraces, setVisitTraces] = useState<LoungeVisitTraceOverlay[]>([]);
   const [participantEmotes, setParticipantEmotes] = useState<
     Record<string, LoungeEmote>
@@ -68,6 +94,14 @@ export function SharedLoungeCanvas({
   useEffect(() => {
     rosterRef.current = roster;
   }, [roster]);
+
+  useEffect(() => {
+    onPlacementChangeRef.current = onPlacementChange;
+  }, [onPlacementChange]);
+
+  useEffect(() => {
+    onPlacementErrorRef.current = onPlacementError;
+  }, [onPlacementError]);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -93,6 +127,34 @@ export function SharedLoungeCanvas({
           projections,
         }),
       );
+      const nextStampOverlays = projections.flatMap((projection) => {
+        if (projection.kind !== "item" || !projection.inViewport) return [];
+        const assetID = stampAssetIDFromDefinition(projection.definitionId);
+        const asset = assetID ? loungeStampAsset(assetID) : undefined;
+        if (!asset) return [];
+        return [
+          {
+            entityID: projection.entityId,
+            asset,
+            ownerUserID:
+              (
+                projection as OverlayEntityProjection & {
+                  ownerUserId?: string;
+                }
+              ).ownerUserId ?? null,
+            screen: projection.screen,
+          },
+        ];
+      });
+      setStampOverlays(nextStampOverlays);
+      const ownAssetID =
+        nextStampOverlays.find(({ ownerUserID }) => ownerUserID === playerID)
+          ?.asset.id ?? null;
+      if (ownAssetID !== placedAssetIDRef.current) {
+        placedAssetIDRef.current = ownAssetID;
+        setOwnStampID(ownAssetID);
+        onPlacementChangeRef.current?.(ownAssetID);
+      }
       const activePlayerIDs = participants
         .filter(({ status }) => status === "active")
         .map(({ participantId }) => participantId);
@@ -110,6 +172,16 @@ export function SharedLoungeCanvas({
           roster: rosterRef.current,
           anchors,
         }),
+      );
+      setStampSpots(
+        presented
+          ? loungeStampZones.flatMap((zone) => {
+              const projection = runtime?.projectWorldPoint(zone.position);
+              return projection?.inViewport
+                ? [{ zone, screen: projection.screen }]
+                : [];
+            })
+          : [],
       );
     };
     onStateChange("loading");
@@ -134,10 +206,16 @@ export function SharedLoungeCanvas({
         pointer: sharedLoungePointerOptions(),
         hideDisabledAvatars: true,
         onDiagnostics,
-        onError: () => {
-          if (!disposed) onStateChange("error");
+        onError: (error: CanvasConsumerError) => {
+          if (disposed) return;
+          if (error.code === "durable_command_rejected") {
+            onPlacementErrorRef.current?.(error.message);
+            return;
+          }
+          onStateChange("error");
         },
       });
+      runtimeRef.current = runtime;
       unsubscribeLifecycle = runtime.subscribeLifecycle(({ state }) => {
         if (disposed) return;
         if (state === "reconnecting") onStateChange("reconnecting");
@@ -159,7 +237,7 @@ export function SharedLoungeCanvas({
           projections = snapshot.entities;
           publishOverlays();
         },
-        { kinds: ["avatar"], maxEntities: 24, maxHz: 60 },
+        { kinds: ["avatar", "item"], maxEntities: 72, maxHz: 60 },
       );
       unsubscribeSignals = runtime.subscribeParticipantSignals((signal) => {
         const emote = loungeEmoteForSignal(signal.kind);
@@ -214,6 +292,7 @@ export function SharedLoungeCanvas({
       emoteTimers.clear();
       const activeRuntime = runtime;
       runtime = undefined;
+      runtimeRef.current = null;
       if (activeRuntime) {
         void activeRuntime
           .stopGracefully(500)
@@ -239,6 +318,18 @@ export function SharedLoungeCanvas({
       />
       <VisitTraces traces={visitTraces} />
       <AvatarOverlays participants={overlays} emotes={participantEmotes} />
+      <StampOverlays
+        stamps={stampOverlays}
+        spots={ownStampID ? [] : stampSpots}
+        selectedStamp={ownStampID ? null : selectedStamp}
+        onPlace={(zone: LoungeStampZone) => {
+          if (!selectedStamp || placedAssetIDRef.current) return;
+          runtimeRef.current?.spawnItem(
+            stampDefinitionID(selectedStamp.id),
+            zone.position,
+          );
+        }}
+      />
       <p className="sr-only" role="status" aria-live="polite">
         {announcement}
       </p>

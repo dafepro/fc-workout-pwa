@@ -109,7 +109,7 @@ function requireDevBuildConfig(generated) {
     compatibility_flags: generated.compatibility_flags ?? [],
     rules: generated.rules ?? [],
     no_bundle: true,
-    assets: { directory: "../client" },
+    assets: { directory: "../client", run_worker_first: true },
     observability: { enabled: true },
   };
 }

@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	filippo.io/age v1.3.1
 	github.com/coder/websocket v1.8.15
-	github.com/dafepro/canvas/server v0.0.0-20260826074053-d04ed59af52c
+	github.com/dafepro/canvas/server v0.0.0-20260826110529-a70f50ed04e9
 	github.com/prometheus/client_golang v1.24.1
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	golang.org/x/crypto v0.54.0

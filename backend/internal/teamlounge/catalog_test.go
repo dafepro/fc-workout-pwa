@@ -26,7 +26,7 @@ func TestWeeklyRoomIdentityRoundTrips(t *testing.T) {
 
 func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 	catalog := BeachBoardwalkCatalog()
-	if len(catalog.Canvases) != 1 || len(catalog.Items) != 2 {
+	if len(catalog.Canvases) != 1 || len(catalog.Items) != 14 {
 		t.Fatalf("catalog sizes = %d canvases, %d items", len(catalog.Canvases), len(catalog.Items))
 	}
 	canvas := catalog.Canvases[0]

@@ -11,14 +11,18 @@ vi.mock("./SharedLoungeCanvas", async () => {
   return {
     SharedLoungeCanvas({
       onSignalPortChange,
+      selectedStamp,
     }: {
       onSignalPortChange(sender: ((kind: string) => void) | null): void;
+      selectedStamp?: { label?: string; alt?: string } | null;
     }) {
       useEffect(() => {
         onSignalPortChange(relay.send);
         return () => onSignalPortChange(null);
       }, [onSignalPortChange]);
-      return <div>Shared lounge</div>;
+      return (
+        <div>Shared lounge {selectedStamp?.label ?? selectedStamp?.alt}</div>
+      );
     },
   };
 });
@@ -65,5 +69,35 @@ describe("TeamLoungeV2 emote controls", () => {
     expect(
       screen.getByRole("button", { name: "Send Wave emote" }),
     ).toBeEnabled();
+  });
+
+  it("lets a player choose one owned stamp before selecting an authored room spot", () => {
+    const viewNew = vi.fn();
+    render(
+      <TeamLoungeV2
+        host={host}
+        stampUnlocks={{
+          availableCount: 1,
+          status: "ready",
+          choices: [
+            { id: "target", kind: "emoji", glyph: "🎯", label: "Target" },
+          ],
+          newAssetIDs: ["target"],
+          unlock: vi.fn(),
+          viewNew,
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Stamps" }));
+    expect(screen.getByText("Leave one stamp this week")).toBeVisible();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Choose Target stamp" }),
+    );
+    expect(screen.getByText("Shared lounge Target")).toBeVisible();
+    expect(
+      screen.getByText("Choose a glowing spot in the lounge."),
+    ).toBeVisible();
+    expect(viewNew).toHaveBeenCalledOnce();
   });
 });

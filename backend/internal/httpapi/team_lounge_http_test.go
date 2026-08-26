@@ -175,4 +175,75 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 	if err != nil || !foundSocketVisit {
 		t.Fatalf("accepted socket visit = %#v, %v", traces, err)
 	}
+
+	placement := &pb.DurableCommand{
+		CommandId:         "place-weekly-stamp",
+		Kind:              pb.DurableCommandKind_DURABLE_SPAWN_ITEM,
+		DefinitionId:      teamlounge.StampDefinitionID("star"),
+		DefinitionVersion: 1,
+		Position:          &pb.Vec2{X: 45, Y: 60},
+		Scale:             1,
+		ConfigJson:        []byte("{}"),
+	}
+	sendLoungeDurableCommand(t, ctx, socket, response.RoomID, placement)
+	placed := awaitLoungeDurableResult(t, ctx, socket, placement.CommandId)
+	if !placed.Accepted {
+		t.Fatalf("included stamp placement rejected: %s", placed.RejectReason)
+	}
+
+	duplicate := proto.Clone(placement).(*pb.DurableCommand)
+	duplicate.CommandId = "place-second-weekly-stamp"
+	duplicate.Position = &pb.Vec2{X: 37, Y: 41}
+	sendLoungeDurableCommand(t, ctx, socket, response.RoomID, duplicate)
+	second := awaitLoungeDurableResult(t, ctx, socket, duplicate.CommandId)
+	if second.Accepted || second.RejectReason != teamlounge.StampAlreadyPlacedReason {
+		t.Fatalf("second placement = accepted %v reason %q", second.Accepted, second.RejectReason)
+	}
+}
+
+func sendLoungeDurableCommand(
+	t *testing.T,
+	ctx context.Context,
+	socket *websocket.Conn,
+	roomID string,
+	command *pb.DurableCommand,
+) {
+	t.Helper()
+	raw, err := proto.Marshal(&pb.RoomEnvelope{
+		RoomId:  roomID,
+		Payload: &pb.RoomEnvelope_DurableCommand{DurableCommand: command},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := socket.Write(ctx, websocket.MessageBinary, raw); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func awaitLoungeDurableResult(
+	t *testing.T,
+	ctx context.Context,
+	socket *websocket.Conn,
+	commandID string,
+) *pb.DurableCommandResult {
+	t.Helper()
+	deadline, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	for {
+		messageType, raw, err := socket.Read(deadline)
+		if err != nil {
+			t.Fatalf("await durable result %q: %v", commandID, err)
+		}
+		if messageType != websocket.MessageBinary {
+			continue
+		}
+		envelope := &pb.RoomEnvelope{}
+		if err := proto.Unmarshal(raw, envelope); err != nil {
+			t.Fatal(err)
+		}
+		if result := envelope.GetDurableResult(); result != nil && result.CommandId == commandID {
+			return result
+		}
+	}
 }

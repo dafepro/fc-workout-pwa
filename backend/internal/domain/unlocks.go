@@ -45,6 +45,10 @@ var includedCanvasStampAssets = map[string]bool{
 	"spark-cleat": true, "zoomigo-mark": true,
 }
 
+var includedCanvasStampAssetOrder = []string{
+	"bolt", "fire", "star", "soccer", "spark-cleat", "zoomigo-mark",
+}
+
 func DailyDropCatalogItems() []UnlockItem {
 	return append([]UnlockItem(nil), dailyDropCatalog...)
 }
@@ -114,4 +118,8 @@ func DailyDropCanvasItem(assetID string) (UnlockItem, bool) {
 
 func CanvasStampIncluded(assetID string) bool {
 	return includedCanvasStampAssets[assetID]
+}
+
+func IncludedCanvasStampAssets() []string {
+	return append([]string(nil), includedCanvasStampAssetOrder...)
 }

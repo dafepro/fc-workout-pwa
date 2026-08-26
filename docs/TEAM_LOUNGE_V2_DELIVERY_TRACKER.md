@@ -14,7 +14,7 @@ the intended boundary; this file records delivered evidence and remaining risk.
 | 1       | Dev Me selector plus local Beach Boardwalk room                    | Delivered   | Direct-drag tests and browser proof   | Shared-room regression coverage  |
 | 2       | Authenticated team multiplayer room                                | Dev review  | SDK conformance and protocol JOIN     | Two-player browser proof         |
 | 3       | Presence, visit traces, emotes, durable physical state             | Dev review  | Relayed emotes, traces, shared ball   | Two-player lifecycle proof       |
-| 4       | Earned stamps/items with app-owned authorization                   | Not started | —                                     | Inventory transaction decision   |
+| 4       | Earned stamps/items with app-owned authorization                   | Dev review  | Create-only weekly stamp slice        | Reconnect/fault placement proof  |
 | 5       | Weekly reset and theme framework                                   | Not started | —                                     | Timezone/template rollover tests |
 | 6       | Device budgets, observability, release and cutover                 | Not started | —                                     | All parity/safety gates green    |
 
@@ -28,7 +28,7 @@ the intended boundary; this file records delivered evidence and remaining risk.
 | Live teammates                 | Yes                      | Authenticated Canvas presence            | Avatars + count |
 | Safe social signals            | Local predefined emotes  | Five bounded, server-relayed emotes      | Dev review      |
 | Prior-visitor traces           | No                       | Three privacy-safe weekly traces         | Dev review      |
-| Persistent stamps              | Yes                      | Zoomigo-authorized durable item          | Not started     |
+| Persistent stamps              | Yes                      | Zoomigo-authorized durable item          | One/player/week |
 | Physical objects               | Built-in cosmetic pieces | One system-owned beach ball              | Shared ball     |
 | Reconnect/background lifecycle | Yes                      | Canvas lifecycle with visible recovery   | Connected       |
 | Weekly reset                   | Existing week state      | Immutable team/week/version room binding | Bound           |
@@ -37,25 +37,26 @@ the intended boundary; this file records delivered evidence and remaining risk.
 
 ## Risk register
 
-| Risk                                                | Mitigation                                                             | Exit evidence                                  |
-| --------------------------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------- |
-| Canvas has no registry release/tag                  | Pin coordinated packed artifacts and Go SDK to one commit with digests | Provenance manifest plus package/release gates |
-| Two engines connect simultaneously                  | One lazy adapter resolver and lifecycle tests                          | Inactive adapter never mounts/connects         |
-| Library gains product authority                     | Narrow host ports and server-side inventory/access checks              | Tampered-client E2E and contract tests         |
-| Private player data enters the room                 | Allowlisted identity projection and name-free telemetry                | Packet/log assertions and safety review        |
-| Mobile GPU/CPU/bandwidth regression                 | Lazy loading, bounded overlays, measured device tiers                  | Recorded physical-device budget results        |
-| Weekly state becomes cluttered or migrates silently | New room per team/week and exact immutable template binding            | Rollover and template-conflict tests           |
-| Item retry duplicates or loses inventory            | Idempotent reservation/mutation transaction                            | Fault-injected placement tests                 |
-| V2 failure removes usable Team Lounge               | Dev rollback selector, then exact deployment rollback                  | Manual rollback drill                          |
+| Risk                                                | Mitigation                                                              | Exit evidence                                  |
+| --------------------------------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------- |
+| Canvas has no registry release/tag                  | Pin coordinated packed artifacts and Go SDK to one commit with digests  | Provenance manifest plus package/release gates |
+| Two engines connect simultaneously                  | One lazy adapter resolver and lifecycle tests                           | Inactive adapter never mounts/connects         |
+| Library gains product authority                     | Narrow host ports and server-side inventory/access checks               | Tampered-client E2E and contract tests         |
+| Private player data enters the room                 | Allowlisted identity projection and name-free telemetry                 | Packet/log assertions and safety review        |
+| Mobile GPU/CPU/bandwidth regression                 | Lazy loading, bounded overlays, measured device tiers                   | Recorded physical-device budget results        |
+| Weekly state becomes cluttered or migrates silently | New room per team/week and exact immutable template binding             | Rollover and template-conflict tests           |
+| Item retry duplicates or loses inventory            | Permanent unlocks are not consumed; serialized room enforces one create | Reconnect and fault-injected placement tests   |
+| V2 failure removes usable Team Lounge               | Dev rollback selector, then exact deployment rollback                   | Manual rollback drill                          |
 
 ## Slice log
 
-| Date       | Segment | Revision                         | Delivered                                                                                                             | Verification                                                                                                | Review focus                                             |
-| ---------- | ------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| 2026-08-25 | 0       | `c4410d4` + dependency commit    | Architecture, plan, decisions, and pinned Canvas packages                                                             | Canvas artifact/release/boundary gates: 4 passed                                                            | Boundary, scope, sequencing                              |
-| 2026-08-25 | 1       | `30c2105`                        | Dev selector, lazy V2 adapter, local Boardwalk, movement, ball, emotes, mobile shell                                  | 18 targeted tests; typecheck, lint, build; 320px/Android QA; deployed Canvas ready with no browser errors   | Movement feel, room scale, first-scene direction         |
-| 2026-08-25 | 1       | `ce1408e`                        | Replaced drag-anywhere thumbstick with avatar-origin direct drag                                                      | Target-forwarding test; empty-room/avatar-origin browser gesture proof; no browser errors                   | Grab radius and release-coast feel                       |
-| 2026-08-25 | 2       | `932d2b7`                        | Exact Go SDK pin, immutable weekly bindings, SQLite checkpoints, one-time room tickets, shared Canvas runtime         | Canvas store/auth conformance; HTTP ticket + protocol-v8 WebSocket JOIN; reconnect credential tests         | Two-player presence, reconnect, ball persistence         |
-| 2026-08-25 | 2–3     | `c4f921b`                        | 60 Hz direct drag without coast, visually aligned collision map v2, dev diagnostics, safe live roster/avatar overlays | Runtime/scene/presence and API room/auth tests; immutable v2 room migration; deployed to dev                | Movement feel, collision expectations, teammate overlays |
-| 2026-08-25 | 3       | `126e08a`                        | Kept one shared runtime alive while safe roster/avatar presentation refreshes                                         | Lifecycle regression; 486 frontend tests; CI/dev deploy; shared Host reports 60 fps/60 Hz and 0 correction  | Confirm drag feel and correction under two-player load   |
-| 2026-08-26 | 3       | Current social persistence slice | Added five payload-free server-relayed emotes plus three roster-safe weekly prior-visitor traces                      | Canvas signal policy tests; real migrated SQLite/WebSocket visit test; frontend expiry and projection tests | Two-player emote delivery, cooldown, trace suppression   |
+| Date       | Segment | Revision                         | Delivered                                                                                                             | Verification                                                                                                 | Review focus                                             |
+| ---------- | ------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------- |
+| 2026-08-25 | 0       | `c4410d4` + dependency commit    | Architecture, plan, decisions, and pinned Canvas packages                                                             | Canvas artifact/release/boundary gates: 4 passed                                                             | Boundary, scope, sequencing                              |
+| 2026-08-25 | 1       | `30c2105`                        | Dev selector, lazy V2 adapter, local Boardwalk, movement, ball, emotes, mobile shell                                  | 18 targeted tests; typecheck, lint, build; 320px/Android QA; deployed Canvas ready with no browser errors    | Movement feel, room scale, first-scene direction         |
+| 2026-08-25 | 1       | `ce1408e`                        | Replaced drag-anywhere thumbstick with avatar-origin direct drag                                                      | Target-forwarding test; empty-room/avatar-origin browser gesture proof; no browser errors                    | Grab radius and release-coast feel                       |
+| 2026-08-25 | 2       | `932d2b7`                        | Exact Go SDK pin, immutable weekly bindings, SQLite checkpoints, one-time room tickets, shared Canvas runtime         | Canvas store/auth conformance; HTTP ticket + protocol-v8 WebSocket JOIN; reconnect credential tests          | Two-player presence, reconnect, ball persistence         |
+| 2026-08-25 | 2–3     | `c4f921b`                        | 60 Hz direct drag without coast, visually aligned collision map v2, dev diagnostics, safe live roster/avatar overlays | Runtime/scene/presence and API room/auth tests; immutable v2 room migration; deployed to dev                 | Movement feel, collision expectations, teammate overlays |
+| 2026-08-25 | 3       | `126e08a`                        | Kept one shared runtime alive while safe roster/avatar presentation refreshes                                         | Lifecycle regression; 486 frontend tests; CI/dev deploy; shared Host reports 60 fps/60 Hz and 0 correction   | Confirm drag feel and correction under two-player load   |
+| 2026-08-26 | 3       | Current social persistence slice | Added five payload-free server-relayed emotes plus three roster-safe weekly prior-visitor traces                      | Canvas signal policy tests; real migrated SQLite/WebSocket visit test; frontend expiry and projection tests  | Two-player emote delivery, cooldown, trace suppression   |
+| 2026-08-26 | 4A      | Current weekly stamp slice       | Added owned-stamp tray, six authored spots, app-authorized durable spawn, persistence, calm rejection UI, and metrics | Canvas full suite; Zoomigo component/domain tests; authenticated WebSocket placement and duplicate rejection | Placement clarity, week persistence, two-player display  |

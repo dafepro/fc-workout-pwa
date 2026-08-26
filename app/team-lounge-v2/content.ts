@@ -17,4 +17,12 @@ export const teamLoungeV2Copy = {
   itemsHint: "Props arrive in a later V2 slice.",
   localHint: "Local physics preview · teammates and persistence come next",
   sharedHint: "Live team room · the boardwalk ball persists between visits",
+  placementError: "That stamp could not be placed. Pick a spot and try again.",
+  placementErrors: {
+    stamp_unavailable: "That stamp is not in your collection.",
+    stamp_invalid_placement: "Choose one of the glowing lounge spots.",
+    stamp_already_placed: "You already left a stamp here this week.",
+    stamp_editing_unavailable: "Weekly stamps stay where they are placed.",
+    application_denied: "That stamp could not be placed right now.",
+  } as Record<string, string>,
 } as const;

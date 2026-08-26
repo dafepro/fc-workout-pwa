@@ -57,7 +57,7 @@ func validWeekKey(value string) bool {
 }
 
 func BeachBoardwalkCatalog() Catalog {
-	return Catalog{
+	catalog := Catalog{
 		Canvases: []roomsdk.CanvasRecord{{
 			CanvasID: BeachBoardwalkCanvasID, Version: BeachBoardwalkCanvasVersion,
 			DefinitionRaw: json.RawMessage(beachBoardwalkCanvasJSON),
@@ -75,6 +75,8 @@ func BeachBoardwalkCatalog() Catalog {
 			},
 		},
 	}
+	catalog.Items = append(catalog.Items, stampDefinitionRecords()...)
+	return catalog
 }
 
 const beachBoardwalkCanvasJSON = `{

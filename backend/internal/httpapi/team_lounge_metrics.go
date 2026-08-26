@@ -1,5 +1,7 @@
 package httpapi
 
+import "strings"
+
 type teamLoungeRoomMetrics struct {
 	observer OperationalObserver
 }
@@ -42,7 +44,19 @@ func (metrics teamLoungeRoomMetrics) CheckpointStored(string, int) {
 	metrics.message("physics", "success")
 }
 
-func (metrics teamLoungeRoomMetrics) DurableRejected(string, string) {
+func (metrics teamLoungeRoomMetrics) DurableAccepted(_ string, operation string) {
+	if operation == "spawn" {
+		metrics.feature("stamp_placement", "success")
+		return
+	}
+	metrics.message("physics", "success")
+}
+
+func (metrics teamLoungeRoomMetrics) DurableRejected(_ string, reason string) {
+	if strings.HasPrefix(reason, "stamp_") {
+		metrics.feature("stamp_placement", "rejected")
+		return
+	}
 	metrics.message("physics", "rejected")
 }
 

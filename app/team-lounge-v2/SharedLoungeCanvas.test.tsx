@@ -1,4 +1,10 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { defaultAvatar } from "../avatar/config";
 import { SharedLoungeCanvas } from "./SharedLoungeCanvas";
@@ -12,12 +18,22 @@ const runtime = vi.hoisted(() => ({
   signalObserver: undefined as
     | ((signal: { participantId: string; kind: string }) => void)
     | undefined,
+  overlayObserver: undefined as
+    | ((snapshot: { entities: unknown[] }) => void)
+    | undefined,
+  spawned: [] as Array<{ definitionId: string; at: { x: number; y: number } }>,
+  onError: undefined as
+    | ((error: { code: string; message: string }) => void)
+    | undefined,
 }));
 
 vi.mock("@canvas-physics/client", () => ({
   CanvasRuntime: class FakeCanvasRuntime {
-    constructor() {
+    constructor(options: {
+      onError?: (error: { code: string; message: string }) => void;
+    }) {
       runtime.constructed += 1;
+      runtime.onError = options.onError;
     }
 
     subscribeLifecycle() {
@@ -38,6 +54,7 @@ vi.mock("@canvas-physics/client", () => ({
     }
 
     subscribeOverlayProjection(observer: (snapshot: unknown) => void) {
+      runtime.overlayObserver = observer as typeof runtime.overlayObserver;
       observer({
         entities: [
           {
@@ -62,6 +79,10 @@ vi.mock("@canvas-physics/client", () => ({
 
     sendParticipantSignal(kind: string) {
       runtime.sentSignals.push(kind);
+    }
+
+    spawnItem(definitionId: string, at: { x: number; y: number }) {
+      runtime.spawned.push({ definitionId, at });
     }
 
     projectWorldPoint(point: { x: number; y: number }) {
@@ -104,6 +125,76 @@ describe("SharedLoungeCanvas", () => {
     runtime.presented = false;
     runtime.sentSignals = [];
     runtime.signalObserver = undefined;
+    runtime.overlayObserver = undefined;
+    runtime.spawned = [];
+    runtime.onError = undefined;
+  });
+
+  it("places an owned stamp through an authored spot and recognizes the canonical item", async () => {
+    const onPlacementChange = vi.fn();
+    const onPlacementError = vi.fn();
+    render(
+      <SharedLoungeCanvas
+        teamID="team-one"
+        playerID="player-one"
+        roster={[
+          {
+            playerID: "player-one",
+            displayName: "Mason C.",
+            avatarConfiguration: defaultAvatar(),
+          },
+        ]}
+        selectedStamp={{
+          id: "target",
+          kind: "emoji",
+          glyph: "🎯",
+          label: "Target",
+        }}
+        onPlacementChange={onPlacementChange}
+        onPlacementError={onPlacementError}
+        onStateChange={vi.fn()}
+        onPresenceChange={vi.fn()}
+        onSignalPortChange={vi.fn()}
+      />,
+    );
+
+    const spot = await screen.findByRole("button", {
+      name: "Place Target at Sand center",
+    });
+    fireEvent.click(spot);
+    expect(runtime.spawned).toContainEqual({
+      definitionId: "zoomigo-stamp-target",
+      at: { x: 45, y: 60 },
+    });
+
+    act(() =>
+      runtime.overlayObserver?.({
+        entities: [
+          {
+            entityId: "i1",
+            kind: "item",
+            definitionId: "zoomigo-stamp-target",
+            ownerUserId: "player-one",
+            screen: { x: 140, y: 210 },
+            rotation: 0,
+            visible: true,
+            inViewport: true,
+          },
+        ],
+      }),
+    );
+    expect(onPlacementChange).toHaveBeenLastCalledWith("target");
+    expect(
+      screen.getByLabelText("Target stamp placed by a teammate"),
+    ).toBeVisible();
+
+    act(() =>
+      runtime.onError?.({
+        code: "durable_command_rejected",
+        message: "stamp_unavailable",
+      }),
+    );
+    expect(onPlacementError).toHaveBeenCalledWith("stamp_unavailable");
   });
 
   it("keeps the room runtime alive when safe roster presentation refreshes", async () => {

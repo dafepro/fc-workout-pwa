@@ -7,6 +7,7 @@ import type {
   TeamCanvasStampUnlockPort,
   TeamCanvasWidgetContract,
 } from "../player/team-canvas/widget-contract";
+import type { StampAsset } from "../team-canvas/model";
 import { teamLoungeV2Copy as copy } from "./content";
 import {
   LocalLoungeCanvas,
@@ -15,6 +16,11 @@ import {
 import { SharedLoungeCanvas } from "./SharedLoungeCanvas";
 import { CollisionDebugOverlay } from "./dev/CollisionDebugOverlay";
 import { LoungeDevPanel } from "./dev/LoungeDevPanel";
+import {
+  StampPlacementTray,
+  type StampPlacementStatus,
+} from "./controls/StampPlacementTray";
+import { loungeStampChoices, loungeStampAsset } from "./placement/catalog";
 import type { LoungeRosterMember } from "./presence";
 import {
   LOUNGE_EMOTE_COOLDOWN_MS,
@@ -46,6 +52,9 @@ export function TeamLoungeV2({
   const [localEmote, setLocalEmote] = useState<
     (typeof loungeEmotes)[number] | null
   >(null);
+  const [selectedStamp, setSelectedStamp] = useState<StampAsset | null>(null);
+  const [placedStampID, setPlacedStampID] = useState<string | null>(null);
+  const [placementError, setPlacementError] = useState<string | null>(null);
   const signalPortRef = useRef<((kind: string) => void) | null>(null);
   const cooldownTimerRef = useRef<number | null>(null);
   const localEmoteTimerRef = useRef<number | null>(null);
@@ -68,8 +77,22 @@ export function TeamLoungeV2({
     host.access.state === "ready" &&
     host.identity.teamID.length > 0 &&
     host.identity.playerID !== "player";
-  const stampCount =
-    stampUnlocks?.choices.length ?? host.inventory.choices.length;
+  const stampChoices = useMemo(
+    () => loungeStampChoices(stampUnlocks?.choices ?? host.inventory.choices),
+    [host.inventory.choices, stampUnlocks?.choices],
+  );
+  const placedStamp = placedStampID
+    ? (loungeStampAsset(placedStampID) ?? null)
+    : null;
+  const placementStatus: StampPlacementStatus = placedStamp
+    ? "placed"
+    : !sharedRoom
+      ? "local"
+      : stampUnlocks?.status === "loading"
+        ? "loading"
+        : stampUnlocks?.status === "error"
+          ? "error"
+          : "ready";
   const roster = useMemo<LoungeRosterMember[]>(() => {
     const members = (host.room.projection?.members ?? []).map((member) => ({
       playerID: member.player.id,
@@ -146,6 +169,17 @@ export function TeamLoungeV2({
             onPresenceChange={updatePresence}
             onSignalPortChange={updateSignalPort}
             onDiagnostics={showDeveloperTools ? setDiagnostics : undefined}
+            selectedStamp={selectedStamp}
+            onPlacementChange={(assetID) => {
+              setPlacedStampID(assetID);
+              if (assetID) setSelectedStamp(null);
+              setPlacementError(null);
+            }}
+            onPlacementError={(reason) => {
+              setPlacementError(
+                copy.placementErrors[reason] ?? copy.placementError,
+              );
+            }}
           />
         ) : (
           <LocalLoungeCanvas
@@ -229,11 +263,17 @@ export function TeamLoungeV2({
           ))}
         </div>
       ) : tray === "stamps" ? (
-        <p className="team-lounge-v2__tray-note" role="status">
-          {stampCount > 0
-            ? `${stampCount} earned ${stampCount === 1 ? "stamp" : "stamps"} will connect in the placement slice.`
-            : "No stamps are waiting to place."}
-        </p>
+        <StampPlacementTray
+          choices={stampChoices}
+          selected={selectedStamp}
+          placed={placedStamp}
+          status={placementStatus}
+          error={placementError}
+          onSelect={(asset) => {
+            setPlacementError(null);
+            setSelectedStamp(asset);
+          }}
+        />
       ) : null}
 
       <nav className="team-lounge-v2__actions" aria-label="Lounge actions">
@@ -250,9 +290,15 @@ export function TeamLoungeV2({
         <button
           type="button"
           aria-pressed={tray === "stamps"}
-          onClick={() =>
-            setTray((current) => (current === "stamps" ? null : "stamps"))
-          }
+          onClick={() => {
+            setTray((current) => {
+              if (current === "stamps") return null;
+              void Promise.resolve(stampUnlocks?.viewNew?.()).catch(
+                () => undefined,
+              );
+              return "stamps";
+            });
+          }}
         >
           <span aria-hidden="true">✦</span>
           {copy.stamps}

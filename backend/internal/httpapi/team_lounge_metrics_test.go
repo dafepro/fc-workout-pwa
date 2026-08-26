@@ -1,10 +1,14 @@
 package httpapi
 
-import "testing"
+import (
+	"slices"
+	"testing"
+)
 
 type loungeMetricsObserver struct {
 	connections float64
 	messages    [][2]string
+	features    [][3]string
 }
 
 func (observer *loungeMetricsObserver) AddCanvasConnection(delta float64) {
@@ -15,7 +19,9 @@ func (observer *loungeMetricsObserver) ObserveCanvasMessage(kind, outcome string
 	observer.messages = append(observer.messages, [2]string{kind, outcome})
 }
 
-func (*loungeMetricsObserver) ObserveFeature(string, string, string) {}
+func (observer *loungeMetricsObserver) ObserveFeature(feature, operation, outcome string) {
+	observer.features = append(observer.features, [3]string{feature, operation, outcome})
+}
 
 func (observer *loungeMetricsObserver) sawMessage(kind, outcome string) bool {
 	for _, message := range observer.messages {
@@ -33,10 +39,14 @@ func TestTeamLoungeMetricsMapSDKEventsToBoundedOperations(t *testing.T) {
 	metrics.ParticipantSignal("private-room-id", "accepted")
 	metrics.ParticipantSignal("private-room-id", "kind_rejected")
 	metrics.ClientLeft("private-room-id", "closed")
+	metrics.DurableAccepted("private-room-id", "spawn")
+	metrics.DurableRejected("private-room-id", "stamp_unavailable")
 
 	if observer.connections != 0 ||
 		!observer.sawMessage("reaction", "success") ||
-		!observer.sawMessage("reaction", "rejected") {
+		!observer.sawMessage("reaction", "rejected") ||
+		!slices.Contains(observer.features, [3]string{"canvas", "stamp_placement", "success"}) ||
+		!slices.Contains(observer.features, [3]string{"canvas", "stamp_placement", "rejected"}) {
 		t.Fatalf("lounge metrics = %+v", observer)
 	}
 }

@@ -33,9 +33,13 @@ app/
       assets.ts                               # allowlisted room assets
     overlays/
       AvatarOverlays.tsx                      # safe names/status/emotes
+      StampOverlays.tsx                       # durable stamp art and authored spots
     controls/
       LoungeActionBar.tsx
-      PlacementTray.tsx
+      StampPlacementTray.tsx                  # owned-stamp chooser and result state
+    placement/
+      catalog.ts                              # product inventory -> Canvas definitions
+      zones.ts                                # exact client placement affordances
     data/
       lounge-gateway.ts                       # tickets and app-authorized mutations
     telemetry.ts
@@ -183,14 +187,33 @@ Hill Striders PWA/
 Outcome: earned Zoomigo inventory can be placed once and remains in the weekly
 room without letting the Canvas runtime mint inventory.
 
-- [ ] Add Stamps/Props tray using the existing unlock inventory.
-- [ ] Author placement zones and accessible invalid-placement feedback.
-- [ ] Implement reservation/idempotency transaction across Zoomigo inventory
-      and Canvas durable spawn.
+- [x] Add the Stamps tray using the existing permanent unlock inventory.
+- [x] Author six placement zones and accessible rejection feedback.
+- [x] Add a generic Canvas host-authorization seam; keep ownership, allowed
+      assets, room policy, and rejection copy in Zoomigo.
+- [x] Enforce a create-only one-stamp-per-player weekly policy in the serialized
+      room loop, with an authenticated WebSocket integration test.
+- [x] Persist accepted stamps in the existing weekly Canvas checkpoint and
+      project their authenticated owner back to the app.
+- [ ] Add props only after their ownership and interaction semantics are
+      separately defined.
 - [ ] Add owner-authorized move/rotate/scale after selection.
 - [ ] Define and implement removal/refund semantics before enabling delete.
-- [ ] Cover tampered asset IDs, exhausted copies, retry, reconnect, and
-      simultaneous placement.
+- [ ] Cover concurrent reconnect placement and fault-injected checkpoint retry.
+
+### Segment 4A vertical slice — one durable weekly stamp
+
+The first placement slice treats every unlocked stamp as a permanent collectible,
+not a consumable copy. It therefore needs no inventory reservation or refund:
+the authoritative Canvas room loop permits exactly one create-only stamp per
+authenticated player in that immutable weekly room. Tampered asset IDs, unowned
+earned assets, off-zone coordinates, a second placement, and all edit/delete
+commands are rejected before room state changes. A failed checkpoint cannot
+lose inventory; the player can retry because nothing was consumed.
+
+This cap is intentionally reversible product policy, not a database invariant.
+Move, rotate, scale, delete, props, duplicate quantities, and free-form placement
+remain disabled until their UX and failure semantics are designed together.
 
 ## Segment 5 — weekly cadence and theme framework
 

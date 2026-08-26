@@ -28,9 +28,11 @@ not identity: a VPN can appear to be in the United States, a mobile connection
 can be located incorrectly, and anyone can forward the shared password. The
 password remains the actual access credential.
 
-The dev Worker replaces the PWA service worker with an unregister-and-clear
-script. This prevents an offline app-shell cache from rendering a previously
-visited player or sign-in screen after the outer session expires.
+The dev Worker runs before every static asset request and replaces the PWA
+service worker with an unregister-and-clear script. This both keeps the outer
+password boundary around generated assets and prevents an offline app-shell
+cache from rendering a stale build or a previously visited player/sign-in
+screen after the outer session expires.
 
 The API has a separate boundary. Other than `/healthz`, `/readyz`, and the
 ticket-authenticated Team Canvas WebSocket upgrade, every route returns `404`
@@ -150,3 +152,8 @@ continues to use its reviewed, repository-pinned host key.
 
 There is no automatic time-to-live. Destroy the environment when a review ends;
 DigitalOcean continues hourly billing while the Droplet exists.
+
+After an update, authenticate in a disposable HTTP session and verify `/sw.js`
+contains unregister/cache-clear behavior rather than the production app-shell
+cache name. Also fetch every script and stylesheet referenced by `/dev-access`;
+all must return `200` through that same gated session.

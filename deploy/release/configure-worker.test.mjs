@@ -137,7 +137,10 @@ test("configures the disposable Worker with its US-wide gate", () => {
   assert.equal(configured.services, undefined);
   assert.equal(configured.triggers, undefined);
   assert.equal(configured.main, "index.js");
-  assert.deepEqual(configured.assets, { directory: "../client" });
+  assert.deepEqual(configured.assets, {
+    directory: "../client",
+    run_worker_first: true,
+  });
   assert.deepEqual(configured.routes, [
     { pattern: "dev.zoomigo.quicktrack.cc", custom_domain: true },
   ]);

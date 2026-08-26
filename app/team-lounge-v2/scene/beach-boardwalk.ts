@@ -4,6 +4,7 @@ import {
   type CanvasDefinition,
   type ItemDefinition,
 } from "@canvas-physics/core";
+import { loungeStampDefinitions } from "../placement/catalog";
 
 export const beachBallDefinition: ItemDefinition = {
   definitionId: "beach-ball",
@@ -76,6 +77,7 @@ export const loungeAvatarDefinition: ItemDefinition = {
 export const beachBoardwalkDefinitions: ItemDefinition[] = [
   beachBallDefinition,
   loungeAvatarDefinition,
+  ...loungeStampDefinitions,
 ];
 
 export const beachBoardwalkCanvas: CanvasDefinition = {
