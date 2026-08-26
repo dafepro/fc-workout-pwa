@@ -66,14 +66,14 @@ the intended boundary; this file records delivered evidence and remaining risk.
 | 2026-08-26 | 4E      | `f885702` + Canvas `af4e1a7`     | Replaces authored spots/one-stamp policy with one latched credit per check-in day, free placement, multi-stamp editing today, and immutable prior-day stamps   | Canvas SDK/client targets; Zoomigo 504 tests; all Go tests; format, lint, typecheck, vet, build; 320 px local shell                            | Credit copy, authenticated free tap/scroll feel, two-tab last-credit race, next-day lock |
 | 2026-08-26 | 4F      | `3cd1741` + Canvas `d5f96bc`     | Adds unlimited bidirectional 15-degree rotation, hold-to-repeat controls, normalized persistence, and shared move/scale/rotate previews                        | Canvas real three-client relay and preview ownership tests; Zoomigo transform policy, component, and authenticated WebSocket persistence tests | Two-player live manipulation, full-circle controls, reconnect persistence                |
 | 2026-08-26 | 4G      | `40c5a71` + Canvas `923bfce`     | Isolates projected edit controls from room gestures and makes the authoritative Canvas avatar body visually transparent beneath the projected saved avatar     | Canvas pointer-routing regression; Zoomigo editor-lifecycle and transparent-avatar contract tests; dev public smoke                            | Repeated mobile edit controls; rapid avatar drag with no visible split                   |
-| 2026-08-26 | 4H      | Current + Canvas `9efe474`       | Holds owner-visible scale and rotation through stale projections until canonical state confirms the transform                                                  | Canvas consumer-transform presentation regression; full Canvas network and artifact suite                                                      | Rapid repeated scale/rotation with no shake; two-viewer preview behavior                 |
+| 2026-08-26 | 4H      | `89c0b29` + Canvas `9efe474`     | Holds owner-visible scale and rotation through stale projections until canonical state confirms the transform                                                  | Canvas consumer-transform presentation regression; full Canvas network and artifact suite; dev public smoke                                    | Rapid repeated scale/rotation with no shake; two-viewer preview behavior                 |
 | 2026-08-26 | 5A      | `3cd1741`                        | Adds a server-owned Beach Boardwalk theme manifest, exact template binding, ticket projection, and fail-closed client metadata validation                      | Go manifest/ticket tests; gateway validation and reconnect-generation tests                                                                    | Canonical theme heading and unchanged weekly room behavior                               |
 
 ## Latest dev delivery
 
-- Deployed application revision: `40c5a7145df268981f89ff37415a86e2644d8522`.
-- Included Canvas revision: `923bfce1360b743b0c5c3875e521f5c23ec7cdb3`.
-- GitHub Actions dev operation `32988758780` completed successfully on
+- Deployed application revision: `89c0b29988883ad1d62d8664036a944065878041`.
+- Included Canvas revision: `9efe474e4cad3f307e56b58acb0ad278b2eaf118`.
+- GitHub Actions dev operation `32990561019` completed successfully on
   2026-08-26.
 - Independent public smoke: API `/healthz` returned `200 {"status":"ok"}` and
   the PWA returned the expected `303` to its password gate.
