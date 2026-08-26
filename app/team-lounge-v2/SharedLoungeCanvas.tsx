@@ -82,6 +82,7 @@ export function SharedLoungeCanvas({
     let participants: readonly ParticipantPresence[] = [];
     let projections: readonly OverlayEntityProjection[] = [];
     let visitorIDs: readonly string[] = [];
+    let presented = false;
     const publishOverlays = () => {
       if (disposed) return;
       setOverlays(
@@ -95,10 +96,12 @@ export function SharedLoungeCanvas({
       const activePlayerIDs = participants
         .filter(({ status }) => status === "active")
         .map(({ participantId }) => participantId);
-      const anchors = visitTraceWorldAnchors.flatMap((anchor) => {
-        const projection = runtime?.projectWorldPoint(anchor);
-        return projection?.inViewport ? [projection.screen] : [];
-      });
+      const anchors = presented
+        ? visitTraceWorldAnchors.flatMap((anchor) => {
+            const projection = runtime?.projectWorldPoint(anchor);
+            return projection?.inViewport ? [projection.screen] : [];
+          })
+        : [];
       setVisitTraces(
         mergeLoungeVisitTraces({
           currentPlayerID: playerID,
@@ -189,6 +192,8 @@ export function SharedLoungeCanvas({
       await runtime.start();
       await runtime.whenPresented();
       if (!disposed) {
+        presented = true;
+        publishOverlays();
         onSignalPortChange((kind) => runtime?.sendParticipantSignal(kind));
         onStateChange("ready");
       }

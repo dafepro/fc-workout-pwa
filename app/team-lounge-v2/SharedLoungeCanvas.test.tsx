@@ -7,6 +7,7 @@ const runtime = vi.hoisted(() => ({
   constructed: 0,
   started: 0,
   stopped: 0,
+  presented: false,
   sentSignals: [] as string[],
   signalObserver: undefined as
     | ((signal: { participantId: string; kind: string }) => void)
@@ -64,6 +65,7 @@ vi.mock("@canvas-physics/client", () => ({
     }
 
     projectWorldPoint(point: { x: number; y: number }) {
+      if (!runtime.presented) throw new Error("viewport is not ready");
       return { screen: point, inCanvas: true, inViewport: true };
     }
 
@@ -71,7 +73,9 @@ vi.mock("@canvas-physics/client", () => ({
       runtime.started += 1;
     }
 
-    async whenPresented() {}
+    async whenPresented() {
+      runtime.presented = true;
+    }
 
     async stopGracefully() {
       runtime.stopped += 1;
@@ -97,6 +101,7 @@ describe("SharedLoungeCanvas", () => {
     runtime.constructed = 0;
     runtime.started = 0;
     runtime.stopped = 0;
+    runtime.presented = false;
     runtime.sentSignals = [];
     runtime.signalObserver = undefined;
   });
