@@ -64,18 +64,17 @@ the intended boundary; this file records delivered evidence and remaining risk.
 | 2026-08-26 | 4C      | `90d10a6` + Canvas `f61f0cb`     | Restores vertical page scrolling from empty room space, removes the duplicate Canvas stamp artwork, and adds owner-only drag plus bounded scale                | Canvas 360-test suite; Zoomigo 498-test suite; authenticated spawn/move/scale WebSocket; lint, typecheck, build, Go vet/test; dev public smoke | Empty-space scrolling, single-layer overlap, move/scale persistence                      |
 | 2026-08-26 | 4D      | `513e048` + Canvas `f94bc54`     | Adds owner-only `−15° / 0° / +15°` rotation, persisted rendering, bounded authorization, and responsive edit controls; records the atomic replacement boundary | Canvas 360-test suite; Zoomigo 499-test suite; authenticated rotation WebSocket; lint, typecheck, build, Go vet/test; 320px shell proof        | Rotation controls and persistence at 320px; replacement contract                         |
 | 2026-08-26 | 4E      | `f885702` + Canvas `af4e1a7`     | Replaces authored spots/one-stamp policy with one latched credit per check-in day, free placement, multi-stamp editing today, and immutable prior-day stamps   | Canvas SDK/client targets; Zoomigo 504 tests; all Go tests; format, lint, typecheck, vet, build; 320 px local shell                            | Credit copy, authenticated free tap/scroll feel, two-tab last-credit race, next-day lock |
-| 2026-08-26 | 4F      | Current + Canvas `d5f96bc`       | Adds unlimited bidirectional 15-degree rotation, hold-to-repeat controls, normalized persistence, and shared move/scale/rotate previews                        | Canvas real three-client relay and preview ownership tests; Zoomigo transform policy, component, and authenticated WebSocket persistence tests | Two-player live manipulation, full-circle controls, reconnect persistence                |
-| 2026-08-26 | 5A      | Current                          | Adds a server-owned Beach Boardwalk theme manifest, exact template binding, ticket projection, and fail-closed client metadata validation                      | Go manifest/ticket tests; gateway validation and reconnect-generation tests                                                                    | Canonical theme heading and unchanged weekly room behavior                               |
+| 2026-08-26 | 4F      | `3cd1741` + Canvas `d5f96bc`     | Adds unlimited bidirectional 15-degree rotation, hold-to-repeat controls, normalized persistence, and shared move/scale/rotate previews                        | Canvas real three-client relay and preview ownership tests; Zoomigo transform policy, component, and authenticated WebSocket persistence tests | Two-player live manipulation, full-circle controls, reconnect persistence                |
+| 2026-08-26 | 5A      | `3cd1741`                        | Adds a server-owned Beach Boardwalk theme manifest, exact template binding, ticket projection, and fail-closed client metadata validation                      | Go manifest/ticket tests; gateway validation and reconnect-generation tests                                                                    | Canonical theme heading and unchanged weekly room behavior                               |
 
 ## Latest dev delivery
 
-- Deployed application revision: `429427cca23c01de9b7a3f05415e4a209e0afda5`.
-- Included Canvas revision: `f94bc54300cb50e15a3fd9e9fc58bd99a9da38b3`.
-- GitHub Actions dev operation `32970498791` completed successfully on
+- Deployed application revision: `3cd17417046d227b3191ad5daf00636042d9403a`.
+- Included Canvas revision: `d5f96bc70cae264c9755e266ac6f6bb6ce3445e8`.
+- GitHub Actions dev operation `32986690876` completed successfully on
   2026-08-26.
-- Authenticated public smoke: `/` and `/team` `200`; all 14 directly referenced
-  JavaScript and CSS assets `200`; deployed CSS includes the `pan-y` room policy
-  and the responsive stamp orientation controls.
+- Independent public smoke: API `/healthz` returned `200 {"status":"ok"}` and
+  the PWA returned the expected `303` to its password gate.
 - The service worker is self-disabling on dev as a defense against stale app
   shells. Worker-first gating for static assets is also implemented in this
   branch, but becomes the trusted deployment control only after mainline
