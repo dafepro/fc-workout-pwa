@@ -59,4 +59,20 @@ the intended boundary; this file records delivered evidence and remaining risk.
 | 2026-08-25 | 2–3     | `c4f921b`                        | 60 Hz direct drag without coast, visually aligned collision map v2, dev diagnostics, safe live roster/avatar overlays | Runtime/scene/presence and API room/auth tests; immutable v2 room migration; deployed to dev                 | Movement feel, collision expectations, teammate overlays |
 | 2026-08-25 | 3       | `126e08a`                        | Kept one shared runtime alive while safe roster/avatar presentation refreshes                                         | Lifecycle regression; 486 frontend tests; CI/dev deploy; shared Host reports 60 fps/60 Hz and 0 correction   | Confirm drag feel and correction under two-player load   |
 | 2026-08-26 | 3       | Current social persistence slice | Added five payload-free server-relayed emotes plus three roster-safe weekly prior-visitor traces                      | Canvas signal policy tests; real migrated SQLite/WebSocket visit test; frontend expiry and projection tests  | Two-player emote delivery, cooldown, trace suppression   |
-| 2026-08-26 | 4A      | Current weekly stamp slice       | Added owned-stamp tray, six authored spots, app-authorized durable spawn, persistence, calm rejection UI, and metrics | Canvas full suite; Zoomigo component/domain tests; authenticated WebSocket placement and duplicate rejection | Placement clarity, week persistence, two-player display  |
+| 2026-08-26 | 4A      | `e75955c` + Canvas `a70f50e`     | Added owned-stamp tray, six authored spots, app-authorized durable spawn, persistence, calm rejection UI, and metrics | Canvas full suite; Zoomigo component/domain tests; authenticated WebSocket placement and duplicate rejection | Placement clarity, week persistence, two-player display  |
+
+## Latest dev delivery
+
+- Deployed application revision: `35e42344771fbb782b25795351e8d4dcee5b84e7`.
+- Included feature revision: `e75955cc740a8825da4f3cbaaeeadd1adbf5eff8`.
+- Included Canvas revision: `a70f50ed04e95eecf6a8c42b0b07351224dc30d5`.
+- GitHub Actions dev operation `32963109119` completed successfully on
+  2026-08-26.
+- Authenticated public smoke: app shell `200`; all 14 discovered JavaScript and
+  CSS assets `200`; dev service worker `200` with cache clearing, unregister,
+  and dev-host bypass present.
+- The service worker is self-disabling on dev as a defense against stale app
+  shells. Worker-first gating for static assets is also implemented in this
+  branch, but becomes the trusted deployment control only after mainline
+  integration because dev operations intentionally execute workflow controls
+  from `main`.
