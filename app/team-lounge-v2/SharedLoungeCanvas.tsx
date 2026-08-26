@@ -166,6 +166,7 @@ export function SharedLoungeCanvas({
                   ownerUserId?: string;
                 }
               ).ownerUserId ?? null,
+            rotation: projection.rotation,
             scale: projection.scale,
             screen: projection.screen,
           },
@@ -379,6 +380,14 @@ export function SharedLoungeCanvas({
           setStampOverlays((current) =>
             current.map((stamp) =>
               stamp.entityID === entityID ? { ...stamp, scale } : stamp,
+            ),
+          );
+        }}
+        onRotate={(entityID, rotation) => {
+          runtimeRef.current?.rotateItem(entityID, rotation);
+          setStampOverlays((current) =>
+            current.map((stamp) =>
+              stamp.entityID === entityID ? { ...stamp, rotation } : stamp,
             ),
           );
         }}

@@ -46,9 +46,10 @@ func (metrics teamLoungeRoomMetrics) CheckpointStored(string, int) {
 
 func (metrics teamLoungeRoomMetrics) DurableAccepted(_ string, operation string) {
 	stampOperation := map[string]string{
-		"spawn": "stamp_placement",
-		"move":  "stamp_move",
-		"scale": "stamp_scale",
+		"spawn":  "stamp_placement",
+		"move":   "stamp_move",
+		"scale":  "stamp_scale",
+		"rotate": "stamp_rotate",
 	}[operation]
 	if stampOperation != "" {
 		metrics.feature(stampOperation, "success")
@@ -58,6 +59,10 @@ func (metrics teamLoungeRoomMetrics) DurableAccepted(_ string, operation string)
 }
 
 func (metrics teamLoungeRoomMetrics) DurableRejected(_ string, reason string) {
+	if reason == "stamp_invalid_rotation" {
+		metrics.feature("stamp_rotate", "rejected")
+		return
+	}
 	if strings.HasPrefix(reason, "stamp_") {
 		metrics.feature("stamp_placement", "rejected")
 		return

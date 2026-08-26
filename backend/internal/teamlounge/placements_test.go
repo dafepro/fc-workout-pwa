@@ -1,6 +1,7 @@
 package teamlounge
 
 import (
+	"math"
 	"testing"
 
 	"github.com/dafepro/canvas/server/pkg/roomsdk"
@@ -60,7 +61,7 @@ func TestStampPlacementAuthorizerOwnsEligibilityZonesAndWeeklyLimit(t *testing.T
 	}
 }
 
-func TestStampPlacementAuthorizerAllowsOwnerMoveAndBoundedScale(t *testing.T) {
+func TestStampPlacementAuthorizerAllowsOwnerMoveScaleAndSnappedRotation(t *testing.T) {
 	db := openMigratedDatabase(t)
 	seedTeam(t, db)
 	authorizer := NewStampPlacementAuthorizer(NewSQLiteStore(db, BeachBoardwalkCatalog()))
@@ -103,6 +104,22 @@ func TestStampPlacementAuthorizerAllowsOwnerMoveAndBoundedScale(t *testing.T) {
 		request.Scale = scale
 		if result := authorizer.AuthorizeDurable(t.Context(), request); result.Allowed || result.Reason != StampInvalidScaleReason {
 			t.Fatalf("invalid scale %v result = %+v", scale, result)
+		}
+	}
+	for _, rotation := range []float64{-math.Pi / 12, 0, math.Pi / 12} {
+		request := base
+		request.Operation = roomsdk.DurableRotate
+		request.Rotation = rotation
+		if result := authorizer.AuthorizeDurable(t.Context(), request); !result.Allowed {
+			t.Fatalf("owner rotation %v denied: %+v", rotation, result)
+		}
+	}
+	for _, rotation := range []float64{-math.Pi / 6, math.Pi / 24, math.NaN()} {
+		request := base
+		request.Operation = roomsdk.DurableRotate
+		request.Rotation = rotation
+		if result := authorizer.AuthorizeDurable(t.Context(), request); result.Allowed || result.Reason != StampInvalidRotationReason {
+			t.Fatalf("invalid rotation %v result = %+v", rotation, result)
 		}
 	}
 

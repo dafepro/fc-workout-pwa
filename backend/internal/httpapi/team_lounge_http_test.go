@@ -3,6 +3,7 @@ package httpapi_test
 import (
 	"context"
 	"encoding/json"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -211,6 +212,14 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 	sendLoungeDurableCommand(t, ctx, socket, response.RoomID, scale)
 	if scaled := awaitLoungeDurableResult(t, ctx, socket, scale.CommandId); !scaled.Accepted {
 		t.Fatalf("owner stamp scale rejected: %s", scaled.RejectReason)
+	}
+	rotate := &pb.DurableCommand{
+		CommandId: "rotate-weekly-stamp", Kind: pb.DurableCommandKind_DURABLE_ROTATE_ITEM,
+		EntityId: placedItem.EntityID, Rotation: float32(math.Pi / 12),
+	}
+	sendLoungeDurableCommand(t, ctx, socket, response.RoomID, rotate)
+	if rotated := awaitLoungeDurableResult(t, ctx, socket, rotate.CommandId); !rotated.Accepted {
+		t.Fatalf("owner stamp rotation rejected: %s", rotated.RejectReason)
 	}
 	if err := socket.Close(websocket.StatusNormalClosure, "reconnect test"); err != nil {
 		t.Fatal(err)

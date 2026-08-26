@@ -7,10 +7,10 @@ not need private GitHub or npm registry credentials.
 | Field                | Value                                          |
 | -------------------- | ---------------------------------------------- |
 | Source repository    | `https://github.com/dafepro/canvas.git`        |
-| Source commit        | `f61f0cb363e0871c9f6b74a3b4422072bcb1d2de`     |
-| Source commit date   | `2026-08-26T07:00:24-05:00`                    |
+| Source commit        | `f94bc54300cb50e15a3fd9e9fc58bd99a9da38b3`     |
+| Source commit date   | `2026-08-26T07:33:21-05:00`                    |
 | Package version      | `0.1.0`                                        |
-| Go rooms SDK         | `v0.0.0-20260826120024-f61f0cb363e0`           |
+| Go rooms SDK         | `v0.0.0-20260826123321-f94bc54300cb`           |
 | Protocol version     | Exact version in the coordinated source commit |
 | Pack tool            | pnpm `11.20.0`                                 |
 | Runtime used to pack | Node.js `24.19.0`                              |
@@ -32,8 +32,11 @@ pnpm install --frozen-lockfile
 pnpm vitest run test/package-artifacts.test.ts test/release-contract.test.ts test/library-boundaries.test.ts
 ```
 
-Result: three files and four tests passed, including installation and builds in
-clean external consumer projects.
+Result: the three release/artifact files and four contract tests passed,
+including installation and builds in clean external consumer projects. The full
+Canvas suite also passed: 55 files and 360 tests. This source change touches the
+Go host-authorization request only; rebuilding all three JavaScript archives
+produced the unchanged digests above.
 
 ## Rebuild
 

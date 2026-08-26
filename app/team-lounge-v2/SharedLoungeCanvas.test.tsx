@@ -40,6 +40,7 @@ const runtime = vi.hoisted(() => ({
   selectedForEdit: [] as string[],
   clearedSelections: 0,
   scaled: [] as Array<{ entityID: string; scale: number }>,
+  rotated: [] as Array<{ entityID: string; rotation: number }>,
 }));
 
 vi.mock("@canvas-physics/client", () => ({
@@ -127,6 +128,10 @@ vi.mock("@canvas-physics/client", () => ({
       runtime.scaled.push({ entityID, scale });
     }
 
+    rotateItem(entityID: string, rotation: number) {
+      runtime.rotated.push({ entityID, rotation });
+    }
+
     projectWorldPoint(point: { x: number; y: number }) {
       if (!runtime.presented) throw new Error("viewport is not ready");
       return { screen: point, inCanvas: true, inViewport: true };
@@ -176,6 +181,7 @@ describe("SharedLoungeCanvas", () => {
     runtime.selectedForEdit = [];
     runtime.clearedSelections = 0;
     runtime.scaled = [];
+    runtime.rotated = [];
   });
 
   it("keeps empty room gestures scrollable and reserves the current avatar gesture", async () => {
@@ -283,7 +289,7 @@ describe("SharedLoungeCanvas", () => {
     expect(onPlacementPendingChange).toHaveBeenLastCalledWith(false);
   });
 
-  it("lets only the owner select and scale their placed stamp", async () => {
+  it("lets only the owner select, scale, and snap-rotate their placed stamp", async () => {
     const view = render(
       <SharedLoungeCanvas
         teamID="team-one"
@@ -341,6 +347,11 @@ describe("SharedLoungeCanvas", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Make stamp larger" }));
     expect(runtime.scaled).toEqual([{ entityID: "mine", scale: 1.1 }]);
+    fireEvent.click(screen.getByRole("button", { name: "Tilt stamp right" }));
+    expect(runtime.rotated).toEqual([
+      { entityID: "mine", rotation: Math.PI / 12 },
+    ]);
+    expect(screen.queryByRole("button", { name: /mirror/i })).toBeNull();
 
     view.rerender(
       <SharedLoungeCanvas

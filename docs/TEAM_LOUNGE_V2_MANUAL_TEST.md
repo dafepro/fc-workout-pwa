@@ -52,9 +52,11 @@ authenticated shared room, and one owner-editable weekly stamp per player.
     must either show the accepted stamp or make the spot available to retry. It
     must not remain stuck on **Adding your stamp…** or create two stamps.
 13. Reopen **Stamps**, tap your placed stamp, and confirm it gains one clear
-    selection ring plus the compact **Drag to move** controls. Drag it to a new
-    location and use minus/plus to resize it. The stamp should stay within the
-    room margin and between the small/large limits after leaving and returning.
+    selection ring plus the compact edit controls. Drag it to a new location,
+    use minus/plus to resize it, and choose left, straight, then right tilt. The
+    stamp should stay within the room margin and retain its size and angle after
+    leaving and returning. At 320 px, no control may clip or force horizontal
+    page scrolling.
 14. Confirm a teammate's stamp is visible but cannot be selected, moved, or
     resized. Walk your avatar across both stamps: each stamp should be one
     coherent image behind the avatar, never two copies split across layers.
@@ -95,8 +97,9 @@ authenticated shared room, and one owner-editable weekly stamp per player.
 
 ## Expected limitations in this slice
 
-- One stamp may be placed per player each week. Its owner can move and resize
-  it, but cannot rotate, replace, or delete it. Props and Map remain disabled.
+- One stamp may be placed per player each week. Its owner can move, resize, and
+  use three tilt positions, but cannot mirror, replace, or delete it. Props and
+  Map remain disabled.
 - Visit traces are ambient weekly presence only; they are not a feed or history.
 
 Record feedback on movement feel, any correction spikes, collision alignment,

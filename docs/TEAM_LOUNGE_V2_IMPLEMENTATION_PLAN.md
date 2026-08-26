@@ -39,6 +39,7 @@ app/
       StampPlacementTray.tsx                  # owned-stamp chooser and result state
     placement/
       catalog.ts                              # product inventory -> Canvas definitions
+      orientation.ts                          # snap angles and mirror capability policy
       zones.ts                                # exact client placement affordances
     data/
       lounge-gateway.ts                       # tickets and app-authorized mutations
@@ -198,9 +199,10 @@ room without letting the Canvas runtime mint inventory.
 - [ ] Add props only after their ownership and interaction semantics are
       separately defined.
 - [x] Add owner-authorized move and bounded scale after selection.
-- [ ] Define rotation behavior before enabling it; avoid small free-rotation
-      controls unless they materially improve room decoration.
-- [ ] Define and implement removal/refund semantics before enabling delete.
+- [x] Add three restrained owner-only rotation snaps without free rotation.
+- [x] Define atomic replacement and explicitly keep standalone delete disabled.
+- [x] Keep mirroring off until individual art opts in and Canvas supports a
+      first-class reflection transform; negative scale is never a mirror API.
 - [x] Cover concurrent reconnect placement and fault-injected checkpoint retry.
 
 ### Segment 4A vertical slice — one durable weekly stamp
@@ -254,6 +256,31 @@ area and scale it with compact minus/plus controls. Scaling is limited to
 The server rechecks owner, definition, operation, bounds, and scale. Other
 players' stamps remain view-only. Rotation, delete, replacement, free inventory
 consumption, and arbitrary item editing remain out of scope.
+
+### Segment 4D vertical slice — restrained orientation
+
+An owner may set their selected stamp to `−15°`, `0°`, or `+15°`. These are
+explicit buttons rather than a free-rotation handle: they are easier to use on
+a phone, keep the room calm, and give the server a small canonical allowlist.
+Canvas passes the requested radians to Zoomigo's durable authorizer; Zoomigo
+rechecks the owner and exact snap before the room changes. The persisted
+projection controls the rendered angle after reconnect.
+
+Mirroring is deliberately different from rotation. No current stamp opts into
+reflection, and a negative scale is rejected rather than treated as a shortcut.
+Later mirroring requires per-asset `canMirror` metadata, art review for logos,
+text-like and directional assets, and a first-class Canvas transform that keeps
+rendering, hit testing, persistence, and authorization aligned.
+
+Replacement is also a separate durable operation, not `delete` followed by
+`spawn`. The future player action is **Change stamp**: choose another owned
+asset, preview it at the existing transform, and confirm one atomic mutation
+that preserves the entity ID, owner, position, scale, and rotation. Until that
+mutation succeeds, the old stamp remains authoritative; cancel or disconnect
+changes nothing. This preserves exactly one active weekly stamp through every
+failure. A standalone delete is not offered because “remove and reopen the
+weekly slot” is a different product rule and creates an avoidable empty/failure
+state. Consumable inventory remains a later, separately transactional design.
 
 ## Segment 5 — weekly cadence and theme framework
 

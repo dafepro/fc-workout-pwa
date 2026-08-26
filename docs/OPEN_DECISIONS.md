@@ -1155,9 +1155,18 @@ Momentum Alpha needs independent PWA install/offline behavior.
 - Refined 2026-08-26: owner-only movement and bounded scaling are now defined
   without changing inventory semantics. A player's existing weekly stamp may
   move within the room's decorating margin and scale from `0.75` through
-  `1.40`. The server rechecks the authenticated owner and bounds. Rotation,
-  replacement, deletion, consumable quantities, and editing another player's
-  stamp remain deferred.
+  `1.40`. The server rechecks the authenticated owner and bounds. Replacement,
+  deletion, consumable quantities, and editing another player's stamp remain
+  deferred.
+- Refined 2026-08-26: owner rotation is limited to `−15°`, `0°`, and `+15°`
+  and authorized server-side. Mirroring remains disabled for every current
+  asset; a later asset must explicitly opt in after art review and Canvas must
+  expose reflection directly rather than abusing negative scale.
+- Decided: replacement will be one atomic **Change stamp** mutation that keeps
+  the existing entity ID, owner, and transform while swapping to another owned
+  asset. The old stamp remains until acceptance, so retries and disconnects
+  never produce an empty slot or two weekly stamps. Standalone delete is not a
+  current player action; consumable reservation/refund semantics remain later.
 - Decided: transient player emotes use a generic Canvas participant-signal
   channel, not Zoomigo chat or a second websocket. The room server allowlists
   five payload-free kinds and permits one accepted signal per player every two

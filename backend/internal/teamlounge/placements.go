@@ -17,6 +17,7 @@ const (
 	StampUnavailableReason        = "stamp_unavailable"
 	StampInvalidPlacementReason   = "stamp_invalid_placement"
 	StampInvalidScaleReason       = "stamp_invalid_scale"
+	StampInvalidRotationReason    = "stamp_invalid_rotation"
 	StampAlreadyPlacedReason      = "stamp_already_placed"
 	StampEditingUnavailableReason = "stamp_editing_unavailable"
 )
@@ -60,7 +61,7 @@ func (authorizer StampPlacementAuthorizer) AuthorizeDurable(
 	if _, _, err := ParseWeeklyRoomID(request.RoomID); err != nil {
 		return denied(roomsdk.DurableRejectedByApplication)
 	}
-	if request.Operation == roomsdk.DurableMove || request.Operation == roomsdk.DurableScale {
+	if request.Operation == roomsdk.DurableMove || request.Operation == roomsdk.DurableScale || request.Operation == roomsdk.DurableRotate {
 		return authorizeStampEdit(request)
 	}
 	if request.Operation != roomsdk.DurableSpawn || request.Preview {
@@ -165,10 +166,28 @@ func authorizeStampEdit(request roomsdk.DurableAuthorizationRequest) roomsdk.Dur
 		}
 		return roomsdk.DurableAuthorizationResult{Allowed: true}
 	}
+	if request.Operation == roomsdk.DurableRotate {
+		if request.Preview || !validStampRotation(request.Rotation) {
+			return denied(StampInvalidRotationReason)
+		}
+		return roomsdk.DurableAuthorizationResult{Allowed: true}
+	}
 	if request.Preview || !finite(request.Scale) || request.Scale < 0.75 || request.Scale > 1.4 {
 		return denied(StampInvalidScaleReason)
 	}
 	return roomsdk.DurableAuthorizationResult{Allowed: true}
+}
+
+func validStampRotation(rotation float64) bool {
+	if !finite(rotation) {
+		return false
+	}
+	for _, allowed := range []float64{-math.Pi / 12, 0, math.Pi / 12} {
+		if math.Abs(rotation-allowed) <= 0.000001 {
+			return true
+		}
+	}
+	return false
 }
 
 func stampAssetIDs() []string {
