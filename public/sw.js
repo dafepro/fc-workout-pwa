@@ -1,4 +1,5 @@
 const CACHE_NAME = "zoomigo-shell-v5";
+const IS_DEV_PREVIEW = self.location.hostname.startsWith("dev.");
 const APP_SHELL = [
   "/",
   "/log",
@@ -9,6 +10,11 @@ const APP_SHELL = [
 ];
 
 self.addEventListener("install", (event) => {
+  if (IS_DEV_PREVIEW) {
+    event.waitUntil(clearAllCaches());
+    self.skipWaiting();
+    return;
+  }
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)),
   );
@@ -16,6 +22,14 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("activate", (event) => {
+  if (IS_DEV_PREVIEW) {
+    event.waitUntil(
+      Promise.all([clearAllCaches(), self.registration.unregister()]).then(() =>
+        self.clients.claim(),
+      ),
+    );
+    return;
+  }
   event.waitUntil(
     caches
       .keys()
@@ -31,6 +45,7 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
+  if (IS_DEV_PREVIEW) return;
   if (event.request.method !== "GET") return;
   const requestURL = new URL(event.request.url);
   if (
@@ -62,3 +77,9 @@ self.addEventListener("fetch", (event) => {
       ),
   );
 });
+
+function clearAllCaches() {
+  return caches
+    .keys()
+    .then((keys) => Promise.all(keys.map((key) => caches.delete(key))));
+}

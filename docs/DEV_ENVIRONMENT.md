@@ -34,6 +34,11 @@ password boundary around generated assets and prevents an offline app-shell
 cache from rendering a stale build or a previously visited player/sign-in
 screen after the outer session expires.
 
+The static service worker also clears and unregisters itself on any `dev.*`
+host. This defense-in-depth path prevents a stale shell even when trusted edge
+configuration is deployed from an older control revision; production hosts
+retain normal offline-shell behavior.
+
 The API has a separate boundary. Other than `/healthz`, `/readyz`, and the
 ticket-authenticated Team Canvas WebSocket upgrade, every route returns `404`
 unless it receives `X-Zoomigo-Dev-Gateway` with the secret known only to the API
