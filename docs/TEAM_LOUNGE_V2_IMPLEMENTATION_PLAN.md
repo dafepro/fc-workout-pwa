@@ -334,6 +334,74 @@ sends the operation-specific durable command; Zoomigo revalidates all transform
 fields, ownership, and the current edit day before canonical state changes.
 Reconnect restores only the last accepted durable transform.
 
+### Segment 4I vertical slice — authoritative collection and access recovery
+
+The next reviewable slice removes the remaining split between what the stamp
+tray offers and what the room server will authorize. Today the connected tray
+can merge development Canvas settings into the player's placeable choices,
+while the durable authorizer intentionally accepts only included stamps and
+the player's persisted unlocks. That mismatch leaks the low-level
+`stamp_unavailable` result into a normal player flow.
+
+The socket-ticket response will project one server-owned placement catalog for
+the authenticated player, team, and current room week. Each entry contains
+only stable presentation metadata needed by the tray: asset ID, predefined
+label/art key, source (`included` or `earned`), and whether it is new. The same
+response carries the earned placement-credit count and current placement day.
+The browser may filter or order this projection, but it may not add a placeable
+asset. V1 developer stamp choices remain V1 scene controls and never imply V2
+ownership.
+
+If a durable spawn is nevertheless rejected as unavailable because the
+collection changed between join and placement, the V2 adapter clears the
+selection, refreshes the authoritative projection, and explains that the item
+is no longer available. The failed attempt spends no placement credit. The
+tray distinguishes ownership from placement budget: stamps answer _what can I
+place?_; credits answer _how many can I place this week?_
+
+Tests cover included and earned catalog entries, an unowned/development-only
+asset never appearing, daily-box unlock to accepted placement, stale
+collection recovery without credit loss, team isolation, and fail-closed
+malformed metadata. Metrics record bounded rejection reasons and catalog
+refresh outcomes without player, team, room, or asset identifiers.
+
+Proposed file tree for this slice:
+
+```text
+app/
+  player/team-canvas/
+    TeamCanvasWidget.tsx                    # stop treating V1 dev choices as V2 ownership
+  team-canvas/
+    unlock-adapter.ts                       # consume authoritative placeable entries
+  team-lounge-v2/
+    adapter.tsx                             # refresh and recover from stale selection
+    content.ts                              # actionable collection/access copy
+    controls/StampPlacementTray.tsx         # source/new state and budget separation
+    data/lounge-gateway.ts                  # validated placement catalog projection
+backend/
+  internal/teamlounge/
+    inventory.go                            # one ownership/catalog projection
+  internal/httpapi/
+    team_lounge.go                          # include catalog with ticket response
+    team_lounge_http_test.go                # authenticated black-box contract
+```
+
+### Candidate Segment 3B — predefined quick team phrases
+
+The requested short-message affordance is tracked separately from inventory.
+The current youth-safety boundary prohibits player-authored free text, chat,
+comments, and direct messages. The smallest compatible feature is therefore a
+predefined **Quick phrases** palette such as `Nice!`, `Over here!`, `Your
+turn!`, `Good work!`, and `See you tomorrow!`.
+
+Phrases reuse Canvas participant signals as payload-free enum kinds. The server
+allowlists them, rate-limits them, and relays them only inside the current team
+room. A phrase appears briefly by the sender's avatar and is neither stored,
+replayed, searchable, nor addressed privately. Implementing actual typed text
+requires an explicit product-safety decision plus moderation, reporting,
+retention, staff visibility, and abuse-response design; it is not part of this
+candidate slice.
+
 ## Segment 5 — weekly cadence and theme framework
 
 Outcome: the room resets safely each week and can add one attraction without

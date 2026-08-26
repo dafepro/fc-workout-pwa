@@ -48,6 +48,21 @@ the intended boundary; this file records delivered evidence and remaining risk.
 | Item retry duplicates or loses inventory            | Permanent unlocks are not consumed; canonical room count spends latched credits | Reconnect and fault-injected placement tests   |
 | V2 failure removes usable Team Lounge               | Dev rollback selector, then exact deployment rollback                           | Manual rollback drill                          |
 
+## Next planned slice
+
+**4I — authoritative collection and access recovery** is next. The player tray
+currently merges V1 development stamp choices with real unlock inventory, but
+the V2 server correctly authorizes only included or persisted player-owned
+stamps. The slice will make the socket-ticket projection the sole source of
+placeable choices, keep placement credits conceptually separate from ownership,
+and refresh the projection after a stale `stamp_unavailable` rejection without
+spending a credit.
+
+After 4I, **predefined Quick phrases** is the proposed social slice. It can
+reuse the transient participant-signal channel and preserve the no-chat safety
+boundary. Arbitrary typed player messages remain blocked pending a separate
+moderation, reporting, retention, and child-safety design decision.
+
 ## Slice log
 
 | Date       | Segment | Revision                         | Delivered                                                                                                                                                      | Verification                                                                                                                                   | Review focus                                                                             |

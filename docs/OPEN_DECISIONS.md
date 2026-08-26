@@ -1226,3 +1226,15 @@ Momentum Alpha needs independent PWA install/offline behavior.
 - Decided: the room shows at most three prior-visitor traces at predefined scene
   anchors. The current player and anyone actively present are excluded. This is
   an ambient room change, not a chronological activity feed.
+- Planned 2026-08-26: V2 placeable inventory will come from one authenticated,
+  server-owned lounge projection. V1 development stamp choices may configure a
+  V1 scene but do not grant V2 ownership. Ownership answers which items can be
+  placed; the weekly check-in ledger independently answers how many placements
+  remain.
+- Requested 2026-08-26: add lightweight short communication in the lounge.
+  The current safe candidate is a predefined Quick phrases palette relayed as
+  transient, payload-free participant signals with no storage, replay, direct
+  recipient, or player-authored text. Actual typed messages remain an open
+  product-safety decision because they would reverse the no-chat/no-free-text
+  rule and require moderation, reporting, retention, staff visibility, and
+  abuse-response policy before implementation.
