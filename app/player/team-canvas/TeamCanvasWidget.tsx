@@ -129,9 +129,10 @@ export function TeamCanvasWidget({
             ? inventory
             : { state: "loading", items: [] },
         availableCount: connected.availableRewards,
-        developerAssetIDs: connected.developerControlsEnabled
-          ? connected.settings.stampChoices
-          : [],
+        developerAssetIDs:
+          selectedVersion !== "v2" && connected.developerControlsEnabled
+            ? connected.settings.stampChoices
+            : [],
         place: canvas.chooseStamp,
         view: viewNew,
       })

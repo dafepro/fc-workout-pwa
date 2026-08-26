@@ -40,7 +40,10 @@ export const teamLoungeV2Copy = {
   },
   placementError: "That stamp could not be placed. Pick a spot and try again.",
   placementErrors: {
-    stamp_unavailable: "That stamp is not in your collection.",
+    stamp_unavailable:
+      "That stamp is no longer in your collection. Choose another.",
+    stamp_inventory_unavailable:
+      "Your stamp collection could not refresh. Close Stamps and try again.",
     stamp_invalid_placement: "Tap inside the lounge, away from the very edge.",
     stamp_invalid_scale: "Keep your stamp between the small and large limits.",
     stamp_invalid_rotation: "Rotate your stamp in 15 degree steps.",

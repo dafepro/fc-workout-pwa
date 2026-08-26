@@ -14,6 +14,12 @@ export type StampPlacementStatus =
   | "exhausted"
   | "error";
 
+export interface StampPlacementChoice {
+  asset: StampAsset;
+  source: "included" | "earned";
+  isNew: boolean;
+}
+
 export function StampPlacementTray({
   choices,
   selected,
@@ -22,7 +28,7 @@ export function StampPlacementTray({
   error,
   onSelect,
 }: {
-  choices: readonly StampAsset[];
+  choices: readonly StampPlacementChoice[];
   selected: StampAsset | null;
   summary: LoungePlacementSummary | null;
   status: StampPlacementStatus;
@@ -84,7 +90,7 @@ export function StampPlacementTray({
         <p className="team-lounge-v2__tray-note">{copy.placementTray.empty}</p>
       ) : (
         <div className="team-lounge-v2__stamp-choices">
-          {choices.map((asset) => {
+          {choices.map(({ asset, source, isNew }) => {
             const label = stampAssetLabel(asset);
             return (
               <button
@@ -96,7 +102,10 @@ export function StampPlacementTray({
                 onClick={() => onSelect(asset)}
               >
                 <StampAssetView asset={asset} />
-                <span>{label}</span>
+                <span className="team-lounge-v2__stamp-label">{label}</span>
+                <small>
+                  {isNew ? "New" : source === "earned" ? "Earned" : "Included"}
+                </small>
               </button>
             );
           })}

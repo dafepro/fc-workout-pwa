@@ -50,6 +50,9 @@ describe("player API route allowlist", () => {
     expect(
       allowsPlayerRoute("POST", "v1/teams/team-one/lounge-v2/socket-ticket"),
     ).toBe(true);
+    expect(allowsPlayerRoute("GET", "v1/teams/team-one/lounge-v2/access")).toBe(
+      true,
+    );
     expect(
       allowsPlayerRoute(
         "GET",

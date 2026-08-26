@@ -10,7 +10,12 @@ import type {
   RuntimeDiagnostics,
 } from "@canvas-physics/client";
 import type { StampAsset } from "../team-canvas/model";
-import { prepareTeamLoungeJoin, type LoungeTheme } from "./data/lounge-gateway";
+import {
+  prepareTeamLoungeJoin,
+  requestTeamLoungeAccess,
+  type LoungePlaceableStamp,
+  type LoungeTheme,
+} from "./data/lounge-gateway";
 import type { LocalLoungeCanvasState } from "./LocalLoungeCanvas";
 import { AvatarOverlays } from "./overlays/AvatarOverlays";
 import {
@@ -71,6 +76,7 @@ export function SharedLoungeCanvas({
   onPlacementSummaryChange,
   onPlacementError,
   onPlacementPendingChange,
+  onPlaceableStampsChange,
   onThemeChange,
 }: {
   teamID: string;
@@ -85,6 +91,7 @@ export function SharedLoungeCanvas({
   onPlacementSummaryChange?(summary: LoungePlacementSummary): void;
   onPlacementError?(reason: string): void;
   onPlacementPendingChange?(pending: boolean): void;
+  onPlaceableStampsChange?(stamps: LoungePlaceableStamp[]): void;
   onThemeChange?(theme: LoungeTheme): void;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -93,6 +100,7 @@ export function SharedLoungeCanvas({
   const onPlacementSummaryChangeRef = useRef(onPlacementSummaryChange);
   const onPlacementErrorRef = useRef(onPlacementError);
   const onPlacementPendingChangeRef = useRef(onPlacementPendingChange);
+  const onPlaceableStampsChangeRef = useRef(onPlaceableStampsChange);
   const onThemeChangeRef = useRef(onThemeChange);
   const placementCreditsRef = useRef(0);
   const placementDayRef = useRef("");
@@ -135,6 +143,10 @@ export function SharedLoungeCanvas({
   }, [onPlacementPendingChange]);
 
   useEffect(() => {
+    onPlaceableStampsChangeRef.current = onPlaceableStampsChange;
+  }, [onPlaceableStampsChange]);
+
+  useEffect(() => {
     onThemeChangeRef.current = onThemeChange;
   }, [onThemeChange]);
 
@@ -162,6 +174,7 @@ export function SharedLoungeCanvas({
     let participants: readonly ParticipantPresence[] = [];
     let projections: readonly OverlayEntityProjection[] = [];
     let visitorIDs: readonly string[] = [];
+    let activeRoomID = "";
     let presented = false;
     let lastPlacementSummary = "";
     const publishOverlays = () => {
@@ -244,7 +257,9 @@ export function SharedLoungeCanvas({
     void (async () => {
       const join = await prepareTeamLoungeJoin(teamID);
       if (disposed) return;
+      activeRoomID = join.roomID;
       visitorIDs = join.visitorIDs;
+      onPlaceableStampsChangeRef.current?.(join.placeableStamps);
       onThemeChangeRef.current?.(join.theme);
       placementCreditsRef.current = join.placementCredits;
       placementDayRef.current = join.placementDay;
@@ -280,6 +295,31 @@ export function SharedLoungeCanvas({
           if (error.code === "durable_command_rejected") {
             updatePlacementPending(false);
             onPlacementErrorRef.current?.(error.message);
+            if (error.message === "stamp_unavailable") {
+              void requestTeamLoungeAccess(teamID)
+                .then((access) => {
+                  if (disposed) return;
+                  if (access.roomID !== activeRoomID) {
+                    onStateChange("error");
+                    return;
+                  }
+                  placementCreditsRef.current = access.placementCredits;
+                  placementDayRef.current = access.placementDay;
+                  setPlacementPolicy({
+                    credits: access.placementCredits,
+                    day: access.placementDay,
+                  });
+                  onPlaceableStampsChangeRef.current?.(access.placeableStamps);
+                  publishOverlays();
+                })
+                .catch(() => {
+                  if (!disposed) {
+                    onPlacementErrorRef.current?.(
+                      "stamp_inventory_unavailable",
+                    );
+                  }
+                });
+            }
             return;
           }
           onStateChange("error");

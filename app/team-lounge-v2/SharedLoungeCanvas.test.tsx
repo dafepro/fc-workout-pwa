@@ -54,6 +54,10 @@ const runtime = vi.hoisted(() => ({
   }>,
 }));
 
+const gateway = vi.hoisted(() => ({
+  refresh: vi.fn(),
+}));
+
 vi.mock("@canvas-physics/client", () => ({
   CanvasRuntime: class FakeCanvasRuntime {
     constructor(options: {
@@ -196,12 +200,22 @@ vi.mock("./data/lounge-gateway", () => ({
     visitorIDs: ["player-two"],
     placementCredits: 2,
     placementDay: "2026-08-26",
+    placeableStamps: [
+      {
+        assetId: "target",
+        label: "Target stamp",
+        source: "earned",
+        unlockId: "canvas-stamp-target",
+        isNew: true,
+      },
+    ],
     theme: {
       id: "beach-boardwalk",
       version: 1,
       name: "Beach Boardwalk",
     },
   }),
+  requestTeamLoungeAccess: gateway.refresh,
 }));
 
 describe("SharedLoungeCanvas", () => {
@@ -223,6 +237,20 @@ describe("SharedLoungeCanvas", () => {
     runtime.scaled = [];
     runtime.rotated = [];
     runtime.transformed = [];
+    gateway.refresh.mockReset();
+    gateway.refresh.mockResolvedValue({
+      roomID: "team:team-one:lounge:2026-08-24:v3",
+      placementCredits: 2,
+      placementDay: "2026-08-26",
+      placeableStamps: [
+        {
+          assetId: "bolt",
+          label: "Bolt",
+          source: "included",
+          isNew: false,
+        },
+      ],
+    });
   });
 
   it("keeps empty room gestures scrollable and reserves the current avatar gesture", async () => {
@@ -259,6 +287,7 @@ describe("SharedLoungeCanvas", () => {
     const onPlacementSummaryChange = vi.fn();
     const onPlacementError = vi.fn();
     const onPlacementPendingChange = vi.fn();
+    const onPlaceableStampsChange = vi.fn();
     render(
       <SharedLoungeCanvas
         teamID="team-one"
@@ -279,6 +308,7 @@ describe("SharedLoungeCanvas", () => {
         onPlacementSummaryChange={onPlacementSummaryChange}
         onPlacementError={onPlacementError}
         onPlacementPendingChange={onPlacementPendingChange}
+        onPlaceableStampsChange={onPlaceableStampsChange}
         onStateChange={vi.fn()}
         onPresenceChange={vi.fn()}
         onSignalPortChange={vi.fn()}
@@ -288,6 +318,9 @@ describe("SharedLoungeCanvas", () => {
     const placementSurface = await screen.findByRole("button", {
       name: "Place Target in the lounge",
     });
+    expect(onPlaceableStampsChange).toHaveBeenCalledWith([
+      expect.objectContaining({ assetId: "target", source: "earned" }),
+    ]);
     fireEvent.click(placementSurface, { clientX: 450, clientY: 600 });
     fireEvent.click(placementSurface, { clientX: 450, clientY: 600 });
     expect(runtime.spawned).toEqual([
@@ -371,6 +404,12 @@ describe("SharedLoungeCanvas", () => {
     );
     expect(onPlacementError).toHaveBeenCalledWith("stamp_unavailable");
     expect(onPlacementPendingChange).toHaveBeenLastCalledWith(false);
+    await waitFor(() =>
+      expect(gateway.refresh).toHaveBeenCalledWith("team-one"),
+    );
+    expect(onPlaceableStampsChange).toHaveBeenLastCalledWith([
+      expect.objectContaining({ assetId: "bolt", source: "included" }),
+    ]);
   });
 
   it("lets only the owner select, scale, and snap-rotate their placed stamp", async () => {

@@ -211,6 +211,8 @@ placement credits.
 - [x] Supersede authored spots and the one-per-week cap with one latched credit
       per qualifying team-local check-in day, free in-room placement, and
       team-local end-of-day editing locks.
+- [x] Make one authenticated server projection the V2 placeable catalog and
+      refresh it after stale ownership rejection without spending a credit.
 
 ### Segment 4A vertical slice — one durable weekly stamp
 
@@ -336,14 +338,14 @@ Reconnect restores only the last accepted durable transform.
 
 ### Segment 4I vertical slice — authoritative collection and access recovery
 
-The next reviewable slice removes the remaining split between what the stamp
+This slice removes the remaining split between what the stamp
 tray offers and what the room server will authorize. Today the connected tray
 can merge development Canvas settings into the player's placeable choices,
 while the durable authorizer intentionally accepts only included stamps and
 the player's persisted unlocks. That mismatch leaks the low-level
 `stamp_unavailable` result into a normal player flow.
 
-The socket-ticket response will project one server-owned placement catalog for
+The socket-ticket response projects one server-owned placement catalog for
 the authenticated player, team, and current room week. Each entry contains
 only stable presentation metadata needed by the tray: asset ID, predefined
 label/art key, source (`included` or `earned`), and whether it is new. The same

@@ -5,7 +5,8 @@ Updated: 2026-08-26.
 This plan covers scroll-safe direct avatar dragging, collision-map revision 2,
 safe live teammate overlays, server-relayed emotes, prior-visitor traces, the
 authenticated shared room, a check-in-funded weekly placement budget, shared
-stamp transforms, and canonical weekly theme metadata.
+stamp transforms, authoritative placeable inventory, and canonical weekly
+theme metadata.
 
 ## Setup
 
@@ -43,26 +44,31 @@ stamp transforms, and canonical weekly theme metadata.
    only included or earned stamps from this player's collection. Record a
    second activity on the same team-local day and confirm it does not add a
    second credit.
-10. Choose a stamp. The tray should say **Tap anywhere in the lounge to place
+10. Confirm built-in stamps say **Included**. An unopened earned stamp says
+    **New**, then becomes **Earned** after the Stamps tray has been reviewed.
+    A stamp selected only in the V1 developer settings, such as Balloon, must
+    not appear in V2 and must never produce a delayed “stamp unavailable”
+    error.
+11. Choose a stamp. The tray should say **Tap anywhere in the lounge to place
     it.** Tap an open point away from the outer edge. The tray should briefly
     say **Adding your stamp…**, prevent repeat taps, and then reduce the ready
     count by one. No unlock count should decrease.
-11. Earn a credit on another date in the same week, then place a second stamp
+12. Earn a credit on another date in the same week, then place a second stamp
     at a freely chosen point, including overlapping another decoration if
     useful. Confirm there are no glowing authored spots and that the two stamps
     can use different assets.
-12. Starting on the free placement surface, drag vertically instead of tapping.
+13. Starting on the free placement surface, drag vertically instead of tapping.
     The page should scroll and no stamp should be added. Tapping within the
     five-unit outer margin should show calm retry copy and leave the budget
     unchanged.
-13. Leave and re-enter Team. Confirm every accepted stamp returns in the same
+14. Leave and re-enter Team. Confirm every accepted stamp returns in the same
     place and a same-team player can see each one. If two tabs race for the last
     remaining credit, at most one placement should be accepted.
-14. As a separate reconnect check, throttle or briefly disconnect the network
+15. As a separate reconnect check, throttle or briefly disconnect the network
     immediately after tapping. When the lounge reconnects, it must either show
     the accepted stamp with the reduced budget or restore the credit for retry.
     It must not remain stuck on **Adding your stamp…** or create two stamps.
-15. Reopen **Stamps**, tap any stamp you placed today, and confirm it gains one
+16. Reopen **Stamps**, tap any stamp you placed today, and confirm it gains one
     clear selection ring plus compact edit controls. Press each smaller/larger
     and rotation button once and confirm the editor remains open and the stamp
     visibly changes. Then tap and hold both 15-degree turn buttons. Confirm the
@@ -71,35 +77,35 @@ stamp transforms, and canonical weekly theme metadata.
     leaving and returning. Tapping empty room space may close the editor, but a
     control press must not. At 320 px, no control may clip or force horizontal
     page scrolling.
-16. Keep the same stamp selected while a second same-team player watches in
+17. Keep the same stamp selected while a second same-team player watches in
     another browser. Hold a size or turn control, then drag the stamp. The other
     viewer should see every in-progress transform before release, then retain
     the same final transform after both players reconnect. In the manipulating
     window, the stamp must not shake or flicker between its old and new scale or
     angle while waiting for the server round trip.
-17. On the next team-local day, confirm yesterday's stamps remain visible but
+18. On the next team-local day, confirm yesterday's stamps remain visible but
     cannot be selected or changed. A newly placed stamp should remain editable
     until that day's local midnight. A teammate's stamps are always view-only.
     Walk an avatar across them: each stamp should remain one coherent image
     behind the avatar, never two copies split across layers.
-18. Confirm **Items** is visibly disabled and **Map** is visibly disabled because
+19. Confirm **Items** is visibly disabled and **Map** is visibly disabled because
     the first room fits on one screen. Neither should look tappable.
-19. Sign in as a second player on the same team in another browser profile.
+20. Sign in as a second player on the same team in another browser profile.
     Confirm **2 here** appears and both windows render each player's saved avatar
     plus safe first-name/last-initial label.
-20. Close the second player's room, then leave and re-enter Team as the first
+21. Close the second player's room, then leave and re-enter Team as the first
     player. Confirm the absent teammate appears once as a subdued **visited**
     trace at a fixed room anchor. It must not show a time, workout, duration, or
     message.
-21. Reopen the room as the second player. Confirm their prior-visitor trace
+22. Reopen the room as the second player. Confirm their prior-visitor trace
     disappears while their live avatar is present. At most three absent-player
     traces may be visible.
-22. Switch back to V1 in Me. Confirm the current Team Canvas returns and the V2
+23. Switch back to V1 in Me. Confirm the current Team Canvas returns and the V2
     room is gone. Switch to V2 again and confirm only one room is present.
-23. Expand **Lounge diagnostics**. Confirm the role says **Host** in the first
+24. Expand **Lounge diagnostics**. Confirm the role says **Host** in the first
     window and **Peer** in the second. During a drag, correction should normally
     remain below `3.00`; record a screen capture if it repeatedly jumps above it.
-24. Enable **Show collision map**. The red shapes should sit over the visible
+25. Enable **Show collision map**. The red shapes should sit over the visible
     hut, umbrella table, bench, snack cart/planter, and lower pool edge. The open
     center boardwalk should have no red blocker.
 

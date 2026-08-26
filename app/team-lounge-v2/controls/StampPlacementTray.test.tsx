@@ -8,12 +8,32 @@ const target = {
   glyph: "🎯",
   label: "Target",
 };
+const targetChoice = { asset: target, source: "earned" as const, isNew: true };
 
 describe("StampPlacementTray", () => {
+  it("labels collection access separately from the placement budget", () => {
+    render(
+      <StampPlacementTray
+        choices={[targetChoice]}
+        selected={null}
+        summary={{ earned: 2, used: 1, remaining: 1 }}
+        status="ready"
+        error={null}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("1 placement ready")).toBeVisible();
+    expect(screen.getByText("New")).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Choose Target stamp" }),
+    ).toBeEnabled();
+  });
+
   it("keeps stamp choices unavailable until a check-in earns a credit", () => {
     render(
       <StampPlacementTray
-        choices={[target]}
+        choices={[targetChoice]}
         selected={null}
         summary={{ earned: 0, used: 0, remaining: 0 }}
         status="exhausted"
@@ -31,7 +51,7 @@ describe("StampPlacementTray", () => {
   it("explains the day lock after all earned placements are used", () => {
     render(
       <StampPlacementTray
-        choices={[target]}
+        choices={[targetChoice]}
         selected={null}
         summary={{ earned: 2, used: 2, remaining: 0 }}
         status="exhausted"

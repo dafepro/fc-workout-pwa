@@ -234,6 +234,7 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	mux.HandleFunc("POST /v1/teams/{teamId}/canvas/socket-ticket", service.createTeamCanvasSocketTicket)
 	mux.HandleFunc("GET /v1/teams/{teamId}/canvas/socket", service.connectTeamCanvasSocket)
 	mux.HandleFunc("POST /v1/teams/{teamId}/lounge-v2/socket-ticket", service.createTeamLoungeSocketTicket)
+	mux.HandleFunc("GET /v1/teams/{teamId}/lounge-v2/access", service.getTeamLoungeAccess)
 	mux.HandleFunc("GET /v1/realtime/rooms/{id}", service.connectTeamLoungeRoom)
 	if _, ok := service.store.(fixtureResetter); cfg.EnableE2EFixtures && ok {
 		mux.HandleFunc("POST /__e2e/reset", service.resetE2EFixtures)

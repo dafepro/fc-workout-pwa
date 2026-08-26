@@ -21,9 +21,11 @@ import { CollisionDebugOverlay } from "./dev/CollisionDebugOverlay";
 import { LoungeDevPanel } from "./dev/LoungeDevPanel";
 import {
   StampPlacementTray,
+  type StampPlacementChoice,
   type StampPlacementStatus,
 } from "./controls/StampPlacementTray";
-import { loungeStampChoices } from "./placement/catalog";
+import { loungeStampAsset, loungeStampChoices } from "./placement/catalog";
+import type { LoungePlaceableStamp } from "./data/lounge-gateway";
 import type { LoungeRosterMember } from "./presence";
 import {
   LOUNGE_EMOTE_COOLDOWN_MS,
@@ -60,6 +62,9 @@ export function TeamLoungeV2({
     useState<LoungePlacementSummary | null>(null);
   const [placementError, setPlacementError] = useState<string | null>(null);
   const [placementPending, setPlacementPending] = useState(false);
+  const [placeableStamps, setPlaceableStamps] = useState<
+    LoungePlaceableStamp[] | null
+  >(null);
   const [theme, setTheme] = useState(defaultLoungeTheme);
   const placedStampCountRef = useRef(0);
   const signalPortRef = useRef<((kind: string) => void) | null>(null);
@@ -84,21 +89,35 @@ export function TeamLoungeV2({
     host.access.state === "ready" &&
     host.identity.teamID.length > 0 &&
     host.identity.playerID !== "player";
-  const stampChoices = useMemo(
-    () => loungeStampChoices(stampUnlocks?.choices ?? host.inventory.choices),
-    [host.inventory.choices, stampUnlocks?.choices],
+  const stampChoices = useMemo<StampPlacementChoice[]>(() => {
+    if (!sharedRoom) {
+      return loungeStampChoices(
+        stampUnlocks?.choices ?? host.inventory.choices,
+      ).map((asset) => ({ asset, source: "included", isNew: false }));
+    }
+    return (placeableStamps ?? []).flatMap((stamp) => {
+      const asset = loungeStampAsset(stamp.assetId);
+      return asset ? [{ asset, source: stamp.source, isNew: stamp.isNew }] : [];
+    });
+  }, [
+    host.inventory.choices,
+    placeableStamps,
+    sharedRoom,
+    stampUnlocks?.choices,
+  ]);
+  const updatePlaceableStamps = useCallback(
+    (stamps: LoungePlaceableStamp[]) => setPlaceableStamps(stamps),
+    [],
   );
   const placementStatus: StampPlacementStatus = placementPending
     ? "placing"
     : !sharedRoom
       ? "local"
-      : stampUnlocks?.status === "error"
-        ? "error"
-        : stampUnlocks?.status === "loading" || placementSummary === null
-          ? "loading"
-          : placementSummary.remaining === 0
-            ? "exhausted"
-            : "ready";
+      : placeableStamps === null || placementSummary === null
+        ? "loading"
+        : placementSummary.remaining === 0
+          ? "exhausted"
+          : "ready";
   const roster = useMemo<LoungeRosterMember[]>(() => {
     const members = (host.room.projection?.members ?? []).map((member) => ({
       playerID: member.player.id,
@@ -186,11 +205,13 @@ export function TeamLoungeV2({
               setPlacementError(null);
             }}
             onPlacementError={(reason) => {
+              if (reason === "stamp_unavailable") setSelectedStamp(null);
               setPlacementError(
                 copy.placementErrors[reason] ?? copy.placementError,
               );
             }}
             onPlacementPendingChange={setPlacementPending}
+            onPlaceableStampsChange={updatePlaceableStamps}
             onThemeChange={setTheme}
           />
         ) : (
@@ -305,9 +326,15 @@ export function TeamLoungeV2({
           onClick={() => {
             setTray((current) => {
               if (current === "stamps") return null;
-              void Promise.resolve(stampUnlocks?.viewNew?.()).catch(
-                () => undefined,
-              );
+              void Promise.resolve(stampUnlocks?.viewNew?.())
+                .then(() =>
+                  setPlaceableStamps(
+                    (current) =>
+                      current?.map((stamp) => ({ ...stamp, isNew: false })) ??
+                      null,
+                  ),
+                )
+                .catch(() => undefined);
               return "stamps";
             });
           }}

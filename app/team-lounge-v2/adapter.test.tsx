@@ -14,7 +14,9 @@ vi.mock("./SharedLoungeCanvas", async () => {
       selectedStamp,
       stampEditingEnabled = false,
       onPlacementSummaryChange,
+      onPlacementError,
       onPlacementPendingChange,
+      onPlaceableStampsChange,
     }: {
       onSignalPortChange(sender: ((kind: string) => void) | null): void;
       selectedStamp?: { label?: string; alt?: string } | null;
@@ -25,11 +27,30 @@ vi.mock("./SharedLoungeCanvas", async () => {
         remaining: number;
       }): void;
       onPlacementPendingChange?(pending: boolean): void;
+      onPlacementError?(reason: string): void;
+      onPlaceableStampsChange?(
+        stamps: Array<{
+          assetId: string;
+          label: string;
+          source: "included" | "earned";
+          unlockId?: string;
+          isNew: boolean;
+        }>,
+      ): void;
     }) {
       useEffect(() => {
         onSignalPortChange(relay.send);
+        onPlaceableStampsChange?.([
+          {
+            assetId: "target",
+            label: "Target stamp",
+            source: "earned",
+            unlockId: "canvas-stamp-target",
+            isNew: true,
+          },
+        ]);
         return () => onSignalPortChange(null);
-      }, [onSignalPortChange]);
+      }, [onPlaceableStampsChange, onSignalPortChange]);
       relay.editing.push(stampEditingEnabled);
       return (
         <div>
@@ -50,6 +71,12 @@ vi.mock("./SharedLoungeCanvas", async () => {
             }
           >
             Simulate placement budget
+          </button>
+          <button
+            type="button"
+            onClick={() => onPlacementError?.("stamp_unavailable")}
+          >
+            Simulate unavailable
           </button>
         </div>
       );
@@ -118,7 +145,7 @@ describe("TeamLoungeV2 emote controls", () => {
           availableCount: 1,
           status: "ready",
           choices: [
-            { id: "target", kind: "emoji", glyph: "🎯", label: "Target" },
+            { id: "rocket", kind: "emoji", glyph: "🚀", label: "Rocket" },
           ],
           newAssetIDs: ["target"],
           unlock: vi.fn(),
@@ -132,6 +159,9 @@ describe("TeamLoungeV2 emote controls", () => {
       screen.getByRole("button", { name: "Simulate placement budget" }),
     );
     expect(screen.getByText("1 placement ready")).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: "Choose Rocket stamp" }),
+    ).toBeNull();
     fireEvent.click(
       screen.getByRole("button", { name: "Choose Target stamp" }),
     );
@@ -147,5 +177,27 @@ describe("TeamLoungeV2 emote controls", () => {
       screen.getByRole("button", { name: "Choose Target stamp" }),
     ).toBeDisabled();
     expect(viewNew).toHaveBeenCalledOnce();
+  });
+
+  it("clears a stale selection when the server rejects its ownership", () => {
+    render(<TeamLoungeV2 host={host} />);
+    fireEvent.click(screen.getByRole("button", { name: "Stamps" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Simulate placement budget" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Choose Target stamp" }),
+    );
+    expect(screen.getByText(/Shared lounge\s+Target/)).toBeVisible();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Simulate unavailable" }),
+    );
+
+    expect(screen.getByText(/Shared lounge\s+editing on/)).toBeVisible();
+    expect(screen.queryByText(/Shared lounge\s+Target/)).toBeNull();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "That stamp is no longer in your collection. Choose another.",
+    );
   });
 });

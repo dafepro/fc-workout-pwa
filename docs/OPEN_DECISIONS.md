@@ -1226,7 +1226,7 @@ Momentum Alpha needs independent PWA install/offline behavior.
 - Decided: the room shows at most three prior-visitor traces at predefined scene
   anchors. The current player and anyone actively present are excluded. This is
   an ambient room change, not a chronological activity feed.
-- Planned 2026-08-26: V2 placeable inventory will come from one authenticated,
+- Implemented 2026-08-26: V2 placeable inventory comes from one authenticated,
   server-owned lounge projection. V1 development stamp choices may configure a
   V1 scene but do not grant V2 ownership. Ownership answers which items can be
   placed; the weekly check-in ledger independently answers how many placements

@@ -787,13 +787,26 @@
   font-size: 1.55rem;
 }
 
-.team-lounge-v2__stamp-choices button > span:last-child {
+.team-lounge-v2__stamp-label {
   width: 100%;
   overflow: hidden;
   font-size: 0.58rem;
   font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.team-lounge-v2__stamp-choices button > small {
+  color: rgba(247, 250, 242, 0.58);
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.team-lounge-v2__stamp-choices button[aria-pressed="true"] > small {
+  color: var(--lounge-lime);
 }
 
 .team-lounge-v2__placement-error {

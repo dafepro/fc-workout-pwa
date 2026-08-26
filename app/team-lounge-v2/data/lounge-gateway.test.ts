@@ -1,8 +1,25 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   prepareTeamLoungeJoin,
+  requestTeamLoungeAccess,
   requestTeamLoungeCredential,
 } from "./lounge-gateway";
+
+const placeableStamps = [
+  {
+    assetId: "bolt",
+    label: "Bolt",
+    source: "included",
+    isNew: false,
+  },
+  {
+    assetId: "target",
+    label: "Target stamp",
+    source: "earned",
+    unlockId: "canvas-stamp-target",
+    isNew: true,
+  },
+];
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -18,6 +35,7 @@ describe("Team Lounge V2 gateway", () => {
           visitorIds: ["player-two"],
           placementCredits: 2,
           placementDay: "2026-08-26",
+          placeableStamps,
           theme: {
             id: "beach-boardwalk",
             version: 1,
@@ -36,6 +54,7 @@ describe("Team Lounge V2 gateway", () => {
       visitorIDs: ["player-two"],
       placementCredits: 2,
       placementDay: "2026-08-26",
+      placeableStamps,
       theme: {
         id: "beach-boardwalk",
         version: 1,
@@ -73,6 +92,7 @@ describe("Team Lounge V2 gateway", () => {
             visitorIds: ["player-two"],
             placementCredits: 2,
             placementDay: "2026-08-26",
+            placeableStamps,
             theme: {
               id: "beach-boardwalk",
               version: 1,
@@ -95,6 +115,61 @@ describe("Team Lounge V2 gateway", () => {
     );
     await expect(join.credentialProvider()).resolves.toBe(
       `ticket.${"b".repeat(43)}`,
+    );
+  });
+
+  it("refreshes the authoritative placeable collection without minting a socket ticket", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          roomId: "team:team-one:lounge:2026-08-24:v3",
+          placementCredits: 2,
+          placementDay: "2026-08-26",
+          placeableStamps: [placeableStamps[0]],
+        }),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(requestTeamLoungeAccess("team-one")).resolves.toEqual({
+      roomID: "team:team-one:lounge:2026-08-24:v3",
+      placementCredits: 2,
+      placementDay: "2026-08-26",
+      placeableStamps: [placeableStamps[0]],
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/zoomigo/v1/teams/team-one/lounge-v2/access",
+      { cache: "no-store" },
+    );
+  });
+
+  it("fails closed when the server projects a duplicate or malformed placeable stamp", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            ticket: "a".repeat(43),
+            roomId: "team:team-one:lounge:2026-08-24:v3",
+            serverUrl: "https://api.example.test",
+            visitorIds: [],
+            placementCredits: 1,
+            placementDay: "2026-08-26",
+            placeableStamps: [placeableStamps[0], placeableStamps[0]],
+            theme: {
+              id: "beach-boardwalk",
+              version: 1,
+              name: "Beach Boardwalk",
+            },
+          }),
+          { status: 201 },
+        ),
+      ),
+    );
+
+    await expect(requestTeamLoungeCredential("team-one")).rejects.toThrow(
+      /unavailable/i,
     );
   });
 });

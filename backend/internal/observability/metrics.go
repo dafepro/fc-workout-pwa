@@ -199,6 +199,8 @@ func featureOperation(method, route string) (string, string) {
 		return "team_rewards", "cancel"
 	case "POST /v1/teams/{teamId}/rewards/{rewardId}/reports":
 		return "team_rewards", "report"
+	case "GET /v1/teams/{teamId}/lounge-v2/access":
+		return "canvas", "stamp_inventory"
 	case "POST /v1/staff/reward-reports/{reportId}/resolve":
 		return "team_rewards", "resolve"
 	default:
@@ -252,6 +254,7 @@ var features = map[string]struct{}{"prize_boxes": {}, "training_plans": {}, "tea
 var featureOperations = map[string]struct{}{
 	"claim": {}, "open": {}, "create": {}, "publish": {}, "cancel": {}, "reschedule": {},
 	"report": {}, "resolve": {}, "transition": {}, "drain": {}, "delivery": {}, "connection": {}, "message": {},
+	"stamp_placement": {}, "stamp_move": {}, "stamp_scale": {}, "stamp_rotate": {}, "stamp_edit": {}, "stamp_inventory": {},
 }
 var outcomes = map[string]struct{}{
 	"success": {}, "invalid": {}, "locked": {}, "throttled": {}, "busy": {}, "not_ready": {}, "conflict": {},

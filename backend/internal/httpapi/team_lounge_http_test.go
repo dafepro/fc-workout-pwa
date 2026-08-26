@@ -45,6 +45,8 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('former-five', 'club-one', 'Former', 'C', '{}', '2026-01-01T00:00:00Z')`,
 		`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-one', 'player-one', '2026-01-01')`,
 		`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-one', 'player-two', '2026-01-01')`,
+		`INSERT INTO player_unlocks (player_id, item_kind, item_id, source, unlocked_at)
+		 VALUES ('player-one', 'canvas_stamp', 'canvas-stamp-target', 'daily_drop', '2026-08-26T12:00:00Z')`,
 	} {
 		if _, err := db.ExecContext(ctx, statement); err != nil {
 			t.Fatal(err)
@@ -115,7 +117,14 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 		VisitorIDs       []string `json:"visitorIds"`
 		PlacementCredits int      `json:"placementCredits"`
 		PlacementDay     string   `json:"placementDay"`
-		Theme            struct {
+		PlaceableStamps  []struct {
+			AssetID  string `json:"assetId"`
+			Label    string `json:"label"`
+			Source   string `json:"source"`
+			UnlockID string `json:"unlockId"`
+			IsNew    bool   `json:"isNew"`
+		} `json:"placeableStamps"`
+		Theme struct {
 			ID      string `json:"id"`
 			Version uint32 `json:"version"`
 			Name    string `json:"name"`
@@ -134,8 +143,53 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 	if response.PlacementCredits != 1 || response.PlacementDay == "" {
 		t.Fatalf("placement budget projection = %#v", response)
 	}
+	if len(response.PlaceableStamps) != len(domain.IncludedCanvasStampAssets())+1 {
+		t.Fatalf("placeable stamp projection = %#v", response.PlaceableStamps)
+	}
+	if first := response.PlaceableStamps[0]; first.AssetID != "bolt" || first.Label != "Bolt" ||
+		first.Source != "included" || first.UnlockID != "" || first.IsNew {
+		t.Fatalf("included stamp projection = %#v", first)
+	}
+	last := response.PlaceableStamps[len(response.PlaceableStamps)-1]
+	if last.AssetID != "target" || last.Label != "Target stamp" || last.Source != "earned" ||
+		last.UnlockID != "canvas-stamp-target" || !last.IsNew {
+		t.Fatalf("earned stamp projection = %#v", last)
+	}
+	for _, stamp := range response.PlaceableStamps {
+		if stamp.AssetID == "rocket" {
+			t.Fatalf("unowned stamp leaked into projection = %#v", response.PlaceableStamps)
+		}
+	}
 	if response.Theme.ID != "beach-boardwalk" || response.Theme.Version != 1 || response.Theme.Name != "Beach Boardwalk" {
 		t.Fatalf("theme projection = %#v", response.Theme)
+	}
+	if _, err := db.ExecContext(ctx, `DELETE FROM player_unlocks
+		WHERE player_id = 'player-one' AND item_id = 'canvas-stamp-target'`); err != nil {
+		t.Fatal(err)
+	}
+	accessRequest := httptest.NewRequest(http.MethodGet, "/v1/teams/team-one/lounge-v2/access", nil)
+	accessRequest.Header.Set("Authorization", "Bearer test-session")
+	accessRecorder := httptest.NewRecorder()
+	handler.ServeHTTP(accessRecorder, accessRequest)
+	if accessRecorder.Code != http.StatusOK {
+		t.Fatalf("access refresh status = %d: %s", accessRecorder.Code, accessRecorder.Body.String())
+	}
+	var accessResponse struct {
+		RoomID          string `json:"roomId"`
+		PlaceableStamps []struct {
+			AssetID string `json:"assetId"`
+		} `json:"placeableStamps"`
+	}
+	if err := json.NewDecoder(accessRecorder.Body).Decode(&accessResponse); err != nil {
+		t.Fatal(err)
+	}
+	if accessResponse.RoomID != response.RoomID || len(accessResponse.PlaceableStamps) != len(domain.IncludedCanvasStampAssets()) {
+		t.Fatalf("refreshed lounge access = %#v", accessResponse)
+	}
+	for _, stamp := range accessResponse.PlaceableStamps {
+		if stamp.AssetID == "target" {
+			t.Fatalf("removed stamp remained placeable = %#v", accessResponse.PlaceableStamps)
+		}
 	}
 	template, err := loungeStore.ResolveRoomTemplate(ctx, response.RoomID)
 	if err != nil || template.CanvasID != teamlounge.BeachBoardwalkCanvasID || template.CanvasVersion != teamlounge.BeachBoardwalkCanvasVersion {

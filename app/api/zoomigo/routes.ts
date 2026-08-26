@@ -37,6 +37,10 @@ const PLAYER_ROUTES = [
     method: "POST",
     pattern: /^v1\/teams\/[^/]+\/lounge-v2\/socket-ticket$/,
   },
+  {
+    method: "GET",
+    pattern: /^v1\/teams\/[^/]+\/lounge-v2\/access$/,
+  },
 ];
 
 export function allowsPlayerRoute(method: string, path: string): boolean {

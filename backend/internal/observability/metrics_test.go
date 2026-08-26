@@ -81,16 +81,21 @@ func TestHTTPMetricsClassifyMajorFeatureOutcomes(t *testing.T) {
 			r.Pattern = "POST /v1/teams/{teamId}/rewards/{rewardId}/reports"
 			SetErrorCode(w, "team_reward_report_exists")
 			w.WriteHeader(http.StatusConflict)
+		case "/lounge-access":
+			r.Pattern = "GET /v1/teams/{teamId}/lounge-v2/access"
+			w.WriteHeader(http.StatusOK)
 		}
 	}))
 
 	for _, path := range []string{"/plan", "/box", "/reward"} {
 		handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodPost, path, nil))
 	}
+	handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/lounge-access", nil))
 	for _, want := range [][3]string{
 		{"training_plans", "publish", "success"},
 		{"prize_boxes", "open", "unavailable"},
 		{"team_rewards", "report", "conflict"},
+		{"canvas", "stamp_inventory", "success"},
 	} {
 		if got := testutil.ToFloat64(metrics.FeatureOperations.WithLabelValues(want[0], want[1], want[2])); got != 1 {
 			t.Fatalf("feature operation %v = %v, want 1", want, got)
