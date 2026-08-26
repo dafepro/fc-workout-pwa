@@ -50,7 +50,9 @@ theme metadata.
     not appear in V2 and must never produce a delayed “stamp unavailable”
     error.
 11. Choose a stamp. The tray should say **Tap anywhere in the lounge to place
-    it.** Tap an open point away from the outer edge. The tray should briefly
+    it.** The chosen stamp should appear as a translucent ghost in the room,
+    follow the mouse or held finger, and match the eventual landing point. Tap
+    an open point away from the outer edge. The tray should briefly
     say **Adding your stamp…**, prevent repeat taps, and then reduce the ready
     count by one. No unlock count should decrease.
 12. Earn a credit on another date in the same week, then place a second stamp
@@ -72,8 +74,12 @@ theme metadata.
     first tap always selects the exact visible stamp—even when it overlaps
     another item or your avatar. Repeat after choosing a new stamp from the tray:
     the existing stamp must remain tappable, and selecting it must cancel the
-    pending new-stamp choice. It should gain one clear selection ring plus compact edit
-    controls. Drag it on the next gesture, then press each smaller/larger and
+    pending new-stamp choice. Before selection, every stamp you own and may
+    still change today should have a restrained lime dashed ring and **EDIT**
+    badge. Earlier locked stamps and teammate stamps must not. The badge should
+    stay upright as the stamp rotates. After selection, it should gain one clear
+    selection ring plus compact edit controls. Drag it on the next gesture, then
+    press each smaller/larger and
     rotation button once; the editor should remain open and the stamp should
     visibly change. Tap and hold both 15-degree turn buttons. Confirm the stamp
     can pass a full revolution in either direction, the displayed angle wraps
@@ -126,10 +132,12 @@ theme metadata.
     top; in Ava's browser, Ava must render on top. This ordering is intentionally
     local to each viewer and must not change either player's shared position.
 29. Note the lounge height, then open **Stamps**. The selector should overlay
-    the viewport with its own close control and scrolling instead of shrinking
-    or moving the lounge. Choosing a stamp should close it and return directly
-    to placement. Open **Emotes** and confirm only a compact tray appears above
-    the tapped control; the lounge dimensions must remain stable.
+    only the lounge canvas with its own close control and scrolling instead of
+    shrinking or moving the lounge. The page header, action bar, and bottom
+    navigation should remain outside the overlay. Choosing a stamp should close
+    it and return directly to placement. Open **Emotes** and confirm only a
+    compact tray appears above the tapped control; the lounge dimensions must
+    remain stable.
 
 ## Mobile and lifecycle checks
 

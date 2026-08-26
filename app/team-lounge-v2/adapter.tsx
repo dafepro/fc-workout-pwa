@@ -8,7 +8,6 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { createPortal } from "react-dom";
 import type { RuntimeDiagnostics } from "@canvas-physics/client";
 import { defaultAvatar } from "../avatar/config";
 import type {
@@ -163,14 +162,11 @@ export function TeamLoungeV2({
 
   useEffect(() => {
     if (tray !== "stamps") return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") setTray(null);
     };
     document.addEventListener("keydown", closeOnEscape);
     return () => {
-      document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", closeOnEscape);
     };
   }, [tray]);
@@ -279,29 +275,28 @@ export function TeamLoungeV2({
         <span className="team-lounge-v2__preview">
           {sharedRoom ? copy.shared : copy.preview}
         </span>
+        {tray === "stamps" ? (
+          <LoungeMenuOverlay
+            title={copy.stamps}
+            dialogLabel="Choose a stamp to place"
+            closeLabel={copy.closeStamps}
+            onClose={() => setTray(null)}
+          >
+            <StampPlacementTray
+              choices={stampChoices}
+              selected={selectedStamp}
+              summary={placementSummary}
+              status={placementStatus}
+              error={placementError}
+              onSelect={(asset) => {
+                setPlacementError(null);
+                setSelectedStamp(asset);
+                setTray(null);
+              }}
+            />
+          </LoungeMenuOverlay>
+        ) : null}
       </div>
-
-      {tray === "stamps" ? (
-        <LoungeMenuOverlay
-          title={copy.stamps}
-          dialogLabel="Choose a stamp to place"
-          closeLabel={copy.closeStamps}
-          onClose={() => setTray(null)}
-        >
-          <StampPlacementTray
-            choices={stampChoices}
-            selected={selectedStamp}
-            summary={placementSummary}
-            status={placementStatus}
-            error={placementError}
-            onSelect={(asset) => {
-              setPlacementError(null);
-              setSelectedStamp(asset);
-              setTray(null);
-            }}
-          />
-        </LoungeMenuOverlay>
-      ) : null}
 
       <nav className="team-lounge-v2__actions" aria-label="Lounge actions">
         {tray === "emotes" ? (
@@ -419,7 +414,7 @@ function LoungeMenuOverlay({
   onClose(): void;
   children: ReactNode;
 }) {
-  return createPortal(
+  return (
     <div className="team-lounge-v2__menu-overlay">
       <button
         className="team-lounge-v2__menu-backdrop"
@@ -431,7 +426,6 @@ function LoungeMenuOverlay({
       <section
         className="team-lounge-v2__menu-sheet"
         role="dialog"
-        aria-modal="true"
         aria-label={dialogLabel}
       >
         <header>
@@ -442,7 +436,6 @@ function LoungeMenuOverlay({
         </header>
         {children}
       </section>
-    </div>,
-    document.body,
+    </div>
   );
 }

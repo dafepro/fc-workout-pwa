@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef } from "react";
-import type { ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import {
   StampAssetView,
   stampAssetLabel,
 } from "../../team-canvas/components/StampAsset";
 import type { StampAsset } from "../../team-canvas/model";
+import { teamLoungeV2Copy as copy } from "../content";
 import { nextLoungeStampRotation } from "../placement/orientation";
 
 export interface LoungeStampOverlay {
@@ -45,6 +46,27 @@ export function StampOverlays({
 }) {
   const selected = stamps.find(({ entityID }) => entityID === selectedEntityID);
   const editable = new Set(editableEntityIDs);
+  const [ghostPoint, setGhostPoint] = useState<{
+    assetID: string;
+    x: number;
+    y: number;
+  } | null>(null);
+  const activeGhostPoint =
+    ghostPoint?.assetID === selectedStamp?.id ? ghostPoint : null;
+
+  const updateGhostPoint = (
+    surface: HTMLElement,
+    clientX: number,
+    clientY: number,
+  ) => {
+    const bounds = surface.getBoundingClientRect();
+    const point = {
+      x: clientX - bounds.left,
+      y: clientY - bounds.top,
+    };
+    setGhostPoint({ assetID: selectedStamp?.id ?? "", ...point });
+    return point;
+  };
   return (
     <div className="team-lounge-v2__stamp-overlays" aria-live="polite">
       {stamps.map(
@@ -54,7 +76,8 @@ export function StampOverlays({
           const className = `team-lounge-v2__placed-stamp${canEdit ? " team-lounge-v2__placed-stamp--editable" : ""}${selected ? " team-lounge-v2__placed-stamp--selected" : ""}`;
           const style = {
             transform: `translate3d(${screen.x}px, ${screen.y}px, 0) translate(-50%, -50%) rotate(${rotation}rad) scale(${scale})`,
-          };
+            "--stamp-counter-rotation": `${-rotation}rad`,
+          } as CSSProperties;
           const label = canEdit
             ? `${stampAssetLabel(asset)} stamp, yours; tap then drag to move`
             : ownerUserID === currentPlayerID
@@ -79,6 +102,12 @@ export function StampOverlays({
               }}
             >
               <StampAssetView asset={asset} />
+              <span
+                className="team-lounge-v2__stamp-edit-badge"
+                aria-hidden="true"
+              >
+                {copy.editableStampBadge}
+              </span>
             </button>
           ) : (
             <span
@@ -98,15 +127,37 @@ export function StampOverlays({
           type="button"
           disabled={placementPending}
           aria-label={`Place ${stampAssetLabel(selectedStamp)} in the lounge`}
+          onPointerDown={(event) =>
+            updateGhostPoint(event.currentTarget, event.clientX, event.clientY)
+          }
+          onPointerMove={(event) =>
+            updateGhostPoint(event.currentTarget, event.clientX, event.clientY)
+          }
           onClick={(event) => {
-            const bounds = event.currentTarget.getBoundingClientRect();
-            onPlace({
-              x: event.clientX - bounds.left,
-              y: event.clientY - bounds.top,
-            });
+            onPlace(
+              updateGhostPoint(
+                event.currentTarget,
+                event.clientX,
+                event.clientY,
+              ),
+            );
           }}
         >
           <span>Tap where you want it</span>
+          <span
+            className="team-lounge-v2__placement-ghost"
+            aria-hidden="true"
+            style={
+              activeGhostPoint
+                ? {
+                    left: `${activeGhostPoint.x}px`,
+                    top: `${activeGhostPoint.y}px`,
+                  }
+                : { left: "50%", top: "55%" }
+            }
+          >
+            <StampAssetView asset={selectedStamp} />
+          </span>
         </button>
       ) : null}
       {selected ? (

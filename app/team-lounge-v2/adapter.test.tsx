@@ -136,7 +136,7 @@ describe("TeamLoungeV2 emote controls", () => {
     ).toBeEnabled();
   });
 
-  it("opens emotes as an anchored popover and stamps as a viewport overlay", () => {
+  it("opens emotes as an anchored popover and stamps over only the canvas", () => {
     render(<TeamLoungeV2 host={host} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Emotes" }));
@@ -149,9 +149,11 @@ describe("TeamLoungeV2 emote controls", () => {
       name: "Choose a stamp to place",
     });
     expect(dialog).toHaveClass("team-lounge-v2__menu-sheet");
-    expect(dialog).not.toBe(
-      document.querySelector(".team-lounge-v2__world")?.nextElementSibling,
+    expect(dialog.closest(".team-lounge-v2__world")).toBe(
+      document.querySelector(".team-lounge-v2__world"),
     );
+    expect(dialog.closest(".team-lounge-v2__actions")).toBeNull();
+    expect(document.body.style.overflow).not.toBe("hidden");
     fireEvent.click(screen.getByRole("button", { name: "Close stamps" }));
     expect(screen.queryByRole("dialog")).toBeNull();
   });

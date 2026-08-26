@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { useEffect, useRef, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { ignoreLoungePointerTarget } from "../runtime-config";
@@ -16,6 +16,77 @@ const stamp: LoungeStampOverlay = {
 };
 
 describe("StampOverlays", () => {
+  it("previews the selected stamp at the intended landing point", () => {
+    const onPlace = vi.fn();
+    const { container } = render(
+      <StampOverlays
+        stamps={[]}
+        selectedStamp={stamp.asset}
+        currentPlayerID="player-one"
+        onPlace={onPlace}
+      />,
+    );
+    const surface = screen.getByRole("button", {
+      name: "Place Target in the lounge",
+    });
+    vi.spyOn(surface, "getBoundingClientRect").mockReturnValue({
+      x: 20,
+      y: 30,
+      top: 30,
+      right: 320,
+      bottom: 480,
+      left: 20,
+      width: 300,
+      height: 450,
+      toJSON: () => undefined,
+    });
+    const ghost = container.querySelector(".team-lounge-v2__placement-ghost");
+    expect(ghost).toBeVisible();
+    expect(ghost).toHaveStyle({ left: "50%", top: "55%" });
+
+    fireEvent.pointerMove(surface, { clientX: 170, clientY: 255 });
+    expect(ghost).toHaveStyle({ left: "150px", top: "225px" });
+    fireEvent.click(surface, { clientX: 170, clientY: 255 });
+    expect(onPlace).toHaveBeenCalledWith({ x: 150, y: 225 });
+  });
+
+  it("marks only today's owned stamps as editable", () => {
+    render(
+      <StampOverlays
+        stamps={[
+          stamp,
+          {
+            ...stamp,
+            entityID: "old-mine",
+            placementDay: "2026-08-25",
+            screen: { x: 120, y: 130 },
+          },
+          {
+            ...stamp,
+            entityID: "theirs",
+            ownerUserID: "player-two",
+            screen: { x: 160, y: 170 },
+          },
+        ]}
+        selectedStamp={null}
+        currentPlayerID="player-one"
+        editableEntityIDs={[stamp.entityID]}
+        onPlace={vi.fn()}
+      />,
+    );
+
+    const editable = screen.getByRole("button", {
+      name: "Target stamp, yours; tap then drag to move",
+    });
+    expect(within(editable).getByText("Edit")).toBeVisible();
+    expect(
+      screen.getByLabelText(/locked from an earlier day/),
+    ).not.toHaveTextContent("Edit");
+    expect(screen.getByLabelText(/placed by a teammate/)).not.toHaveTextContent(
+      "Edit",
+    );
+  });
+
   it("selects the visible stamp before the Canvas surface can claim its first pointer", () => {
     const canvasPointerDown = vi.fn();
 

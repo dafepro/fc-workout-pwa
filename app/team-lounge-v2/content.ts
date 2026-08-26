@@ -19,6 +19,7 @@ export const teamLoungeV2Copy = {
   emotes: "Emotes",
   stamps: "Stamps",
   closeStamps: "Close stamps",
+  editableStampBadge: "Edit",
   items: "Items",
   map: "Map",
   mapHint: "This room fits on one screen.",
