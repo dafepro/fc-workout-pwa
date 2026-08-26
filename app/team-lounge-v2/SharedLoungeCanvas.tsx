@@ -60,6 +60,7 @@ export function SharedLoungeCanvas({
   onSignalPortChange,
   onDiagnostics,
   selectedStamp = null,
+  stampEditingEnabled = false,
   onPlacementChange,
   onPlacementError,
   onPlacementPendingChange,
@@ -72,6 +73,7 @@ export function SharedLoungeCanvas({
   onSignalPortChange(sender: ((kind: string) => void) | null): void;
   onDiagnostics?(diagnostics: RuntimeDiagnostics): void;
   selectedStamp?: StampAsset | null;
+  stampEditingEnabled?: boolean;
   onPlacementChange?(assetID: string | null): void;
   onPlacementError?(reason: string): void;
   onPlacementPendingChange?(pending: boolean): void;
@@ -84,10 +86,12 @@ export function SharedLoungeCanvas({
   const onPlacementPendingChangeRef = useRef(onPlacementPendingChange);
   const placedAssetIDRef = useRef<string | null>(null);
   const placementPendingRef = useRef(false);
+  const stampEditingEnabledRef = useRef(stampEditingEnabled);
   const [overlays, setOverlays] = useState<LoungeParticipantOverlay[]>([]);
   const [stampOverlays, setStampOverlays] = useState<LoungeStampOverlay[]>([]);
   const [stampSpots, setStampSpots] = useState<LoungeStampSpotOverlay[]>([]);
   const [ownStampID, setOwnStampID] = useState<string | null>(null);
+  const [editSelectionID, setEditSelectionID] = useState<string | null>(null);
   const [placementPending, setPlacementPending] = useState(false);
   const [visitTraces, setVisitTraces] = useState<LoungeVisitTraceOverlay[]>([]);
   const [participantEmotes, setParticipantEmotes] = useState<
@@ -111,6 +115,11 @@ export function SharedLoungeCanvas({
   useEffect(() => {
     onPlacementPendingChangeRef.current = onPlacementPendingChange;
   }, [onPlacementPendingChange]);
+
+  useEffect(() => {
+    stampEditingEnabledRef.current = stampEditingEnabled;
+    runtimeRef.current?.setEditMode(stampEditingEnabled);
+  }, [stampEditingEnabled]);
 
   const updatePlacementPending = useCallback((pending: boolean) => {
     placementPendingRef.current = pending;
@@ -157,6 +166,7 @@ export function SharedLoungeCanvas({
                   ownerUserId?: string;
                 }
               ).ownerUserId ?? null,
+            scale: projection.scale,
             screen: projection.screen,
           },
         ];
@@ -214,16 +224,21 @@ export function SharedLoungeCanvas({
         serverUrl: join.serverURL,
         credentialProvider: join.credentialProvider,
         mount,
+        pointerElement: mount.parentElement ?? mount,
         definitions: beachBoardwalkDefinitions,
         assets: beachBoardwalkAssets,
         scene: {
           background: 0x63c9dc,
           resolution: Math.min(devicePixelRatio, 2),
+          touchAction: "pan-y",
         },
         rates: sharedLoungeRates,
         pointer: sharedLoungePointerOptions(),
         hideDisabledAvatars: true,
         onDiagnostics,
+        onEditSelectionChange: ({ selectedEntityId }) => {
+          if (!disposed) setEditSelectionID(selectedEntityId ?? null);
+        },
         onError: (error: CanvasConsumerError) => {
           if (disposed) return;
           if (error.code === "durable_command_rejected") {
@@ -296,6 +311,7 @@ export function SharedLoungeCanvas({
       await runtime.whenPresented();
       if (!disposed) {
         presented = true;
+        runtime.setEditMode(stampEditingEnabledRef.current);
         publishOverlays();
         onSignalPortChange((kind) => runtime?.sendParticipantSignal(kind));
         onStateChange("ready");
@@ -336,6 +352,10 @@ export function SharedLoungeCanvas({
     updatePlacementPending,
   ]);
 
+  const editableStamp = stampEditingEnabled
+    ? stampOverlays.find(({ ownerUserID }) => ownerUserID === playerID)
+    : undefined;
+
   return (
     <>
       <div
@@ -351,6 +371,18 @@ export function SharedLoungeCanvas({
         spots={ownStampID ? [] : stampSpots}
         selectedStamp={ownStampID ? null : selectedStamp}
         placementPending={placementPending}
+        editableEntityID={editableStamp?.entityID}
+        selectedEntityID={stampEditingEnabled ? editSelectionID : null}
+        onSelect={(entityID) => runtimeRef.current?.selectItemForEdit(entityID)}
+        onScale={(entityID, scale) => {
+          runtimeRef.current?.scaleItem(entityID, scale);
+          setStampOverlays((current) =>
+            current.map((stamp) =>
+              stamp.entityID === entityID ? { ...stamp, scale } : stamp,
+            ),
+          );
+        }}
+        onDone={() => runtimeRef.current?.clearItemEditSelection()}
         onPlace={(zone: LoungeStampZone) => {
           if (
             !selectedStamp ||

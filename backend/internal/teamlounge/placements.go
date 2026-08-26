@@ -16,6 +16,7 @@ const (
 	stampDefinitionPrefix         = "zoomigo-stamp-"
 	StampUnavailableReason        = "stamp_unavailable"
 	StampInvalidPlacementReason   = "stamp_invalid_placement"
+	StampInvalidScaleReason       = "stamp_invalid_scale"
 	StampAlreadyPlacedReason      = "stamp_already_placed"
 	StampEditingUnavailableReason = "stamp_editing_unavailable"
 )
@@ -56,11 +57,14 @@ func (authorizer StampPlacementAuthorizer) AuthorizeDurable(
 	ctx context.Context,
 	request roomsdk.DurableAuthorizationRequest,
 ) roomsdk.DurableAuthorizationResult {
-	if request.Operation != roomsdk.DurableSpawn || request.Preview {
-		return denied(StampEditingUnavailableReason)
-	}
 	if _, _, err := ParseWeeklyRoomID(request.RoomID); err != nil {
 		return denied(roomsdk.DurableRejectedByApplication)
+	}
+	if request.Operation == roomsdk.DurableMove || request.Operation == roomsdk.DurableScale {
+		return authorizeStampEdit(request)
+	}
+	if request.Operation != roomsdk.DurableSpawn || request.Preview {
+		return denied(StampEditingUnavailableReason)
 	}
 	assetID, ok := strings.CutPrefix(request.DefinitionID, stampDefinitionPrefix)
 	if !ok || !knownStampAsset(assetID) {
@@ -126,6 +130,7 @@ func stampDefinitionJSON(assetID string) json.RawMessage {
 		"displayName": assetID + " stamp",
 		"visual": map[string]any{
 			"size":        map[string]float64{"width": 10, "height": 10},
+			"spriteId":    "lounge.stamp.transparent",
 			"placeholder": map[string]any{"shape": "circle", "color": 13234973},
 			"zIndex":      9,
 		},
@@ -138,6 +143,32 @@ func stampDefinitionJSON(assetID string) json.RawMessage {
 		panic(err)
 	}
 	return raw
+}
+
+func authorizeStampEdit(request roomsdk.DurableAuthorizationRequest) roomsdk.DurableAuthorizationResult {
+	var owned *roomsdk.DurableAuthorizationItem
+	for index := range request.ExistingItems {
+		item := &request.ExistingItems[index]
+		if item.EntityID == request.EntityID &&
+			item.OwnerUserID == request.UserID &&
+			strings.HasPrefix(item.DefinitionID, stampDefinitionPrefix) {
+			owned = item
+			break
+		}
+	}
+	if owned == nil {
+		return denied(StampEditingUnavailableReason)
+	}
+	if request.Operation == roomsdk.DurableMove {
+		if !inStampDecoratingArea(request.Position) {
+			return denied(StampInvalidPlacementReason)
+		}
+		return roomsdk.DurableAuthorizationResult{Allowed: true}
+	}
+	if request.Preview || !finite(request.Scale) || request.Scale < 0.75 || request.Scale > 1.4 {
+		return denied(StampInvalidScaleReason)
+	}
+	return roomsdk.DurableAuthorizationResult{Allowed: true}
 }
 
 func stampAssetIDs() []string {
@@ -160,7 +191,7 @@ func knownStampAsset(assetID string) bool {
 }
 
 func inStampPlacementZone(position roomsdk.DurablePosition) bool {
-	if math.IsNaN(position.X) || math.IsNaN(position.Y) || math.IsInf(position.X, 0) || math.IsInf(position.Y, 0) {
+	if !finite(position.X) || !finite(position.Y) {
 		return false
 	}
 	for _, zone := range beachBoardwalkStampZones {
@@ -170,6 +201,14 @@ func inStampPlacementZone(position roomsdk.DurablePosition) bool {
 		}
 	}
 	return false
+}
+
+func inStampDecoratingArea(position roomsdk.DurablePosition) bool {
+	return finite(position.X) && finite(position.Y) && position.X >= 5 && position.X <= 95 && position.Y >= 5 && position.Y <= 145
+}
+
+func finite(value float64) bool {
+	return !math.IsNaN(value) && !math.IsInf(value, 0)
 }
 
 func denied(reason string) roomsdk.DurableAuthorizationResult {

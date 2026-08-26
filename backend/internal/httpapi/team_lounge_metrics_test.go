@@ -40,12 +40,16 @@ func TestTeamLoungeMetricsMapSDKEventsToBoundedOperations(t *testing.T) {
 	metrics.ParticipantSignal("private-room-id", "kind_rejected")
 	metrics.ClientLeft("private-room-id", "closed")
 	metrics.DurableAccepted("private-room-id", "spawn")
+	metrics.DurableAccepted("private-room-id", "move")
+	metrics.DurableAccepted("private-room-id", "scale")
 	metrics.DurableRejected("private-room-id", "stamp_unavailable")
 
 	if observer.connections != 0 ||
 		!observer.sawMessage("reaction", "success") ||
 		!observer.sawMessage("reaction", "rejected") ||
 		!slices.Contains(observer.features, [3]string{"canvas", "stamp_placement", "success"}) ||
+		!slices.Contains(observer.features, [3]string{"canvas", "stamp_move", "success"}) ||
+		!slices.Contains(observer.features, [3]string{"canvas", "stamp_scale", "success"}) ||
 		!slices.Contains(observer.features, [3]string{"canvas", "stamp_placement", "rejected"}) {
 		t.Fatalf("lounge metrics = %+v", observer)
 	}

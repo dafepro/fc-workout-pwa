@@ -173,6 +173,7 @@ export function TeamLoungeV2({
             onSignalPortChange={updateSignalPort}
             onDiagnostics={showDeveloperTools ? setDiagnostics : undefined}
             selectedStamp={selectedStamp}
+            stampEditingEnabled={tray === "stamps" && placedStamp !== null}
             onPlacementChange={(assetID) => {
               setPlacedStampID(assetID);
               if (assetID) setSelectedStamp(null);

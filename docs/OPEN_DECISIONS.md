@@ -1152,6 +1152,12 @@ Momentum Alpha needs independent PWA install/offline behavior.
 - Deferred: the one-per-week cap is reversible policy. Move, rotate, scale,
   replace, delete, consumable quantities, props, and free placement stay off
   until their UX, concurrency, and refund behavior are designed together.
+- Refined 2026-08-26: owner-only movement and bounded scaling are now defined
+  without changing inventory semantics. A player's existing weekly stamp may
+  move within the room's decorating margin and scale from `0.75` through
+  `1.40`. The server rechecks the authenticated owner and bounds. Rotation,
+  replacement, deletion, consumable quantities, and editing another player's
+  stamp remain deferred.
 - Decided: transient player emotes use a generic Canvas participant-signal
   channel, not Zoomigo chat or a second websocket. The room server allowlists
   five payload-free kinds and permits one accepted signal per player every two

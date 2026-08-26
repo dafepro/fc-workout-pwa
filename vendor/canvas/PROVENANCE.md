@@ -7,10 +7,10 @@ not need private GitHub or npm registry credentials.
 | Field                | Value                                          |
 | -------------------- | ---------------------------------------------- |
 | Source repository    | `https://github.com/dafepro/canvas.git`        |
-| Source commit        | `b784286cefc2d91663a8f911386ba54101c75f64`     |
-| Source commit date   | `2026-08-26T06:35:28-05:00`                    |
+| Source commit        | `f61f0cb363e0871c9f6b74a3b4422072bcb1d2de`     |
+| Source commit date   | `2026-08-26T07:00:24-05:00`                    |
 | Package version      | `0.1.0`                                        |
-| Go rooms SDK         | `v0.0.0-20260826113528-b784286cefc2`           |
+| Go rooms SDK         | `v0.0.0-20260826120024-f61f0cb363e0`           |
 | Protocol version     | Exact version in the coordinated source commit |
 | Pack tool            | pnpm `11.20.0`                                 |
 | Runtime used to pack | Node.js `24.19.0`                              |
@@ -19,7 +19,7 @@ not need private GitHub or npm registry credentials.
 
 | Archive                             | Digest                                                             |
 | ----------------------------------- | ------------------------------------------------------------------ |
-| `canvas-physics-client-0.1.0.tgz`   | `DB4E0FA610DC519C2BA1568982F8F6B2BF6BF06EF29EB000BF3B64B4B73A9342` |
+| `canvas-physics-client-0.1.0.tgz`   | `BAC2ADFBB67A7BCFFD3FC4B6E096A9CD7E07BDDABD64DB07013CCC410B139293` |
 | `canvas-physics-core-0.1.0.tgz`     | `A914EAEBEC44B74E972456DF905EB9661C3644328C046774E9C47956C85EC3E7` |
 | `canvas-physics-protocol-0.1.0.tgz` | `C6529015464A2541EA2BBF247170ECDA6C255DBC1672A344B07CE545B95E584A` |
 

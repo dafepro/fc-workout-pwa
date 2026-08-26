@@ -197,7 +197,9 @@ room without letting the Canvas runtime mint inventory.
       project their authenticated owner back to the app.
 - [ ] Add props only after their ownership and interaction semantics are
       separately defined.
-- [ ] Add owner-authorized move/rotate/scale after selection.
+- [x] Add owner-authorized move and bounded scale after selection.
+- [ ] Define rotation behavior before enabling it; avoid small free-rotation
+      controls unless they materially improve room decoration.
 - [ ] Define and implement removal/refund semantics before enabling delete.
 - [x] Cover concurrent reconnect placement and fault-injected checkpoint retry.
 
@@ -231,6 +233,27 @@ eventual save after a fault, one accepted result across reconnecting clients,
 and a clear player-facing retry path. Command-result caching and a permanent
 idempotency protocol are deliberately out of scope because they would create a
 broader cross-product contract than this slice needs.
+
+### Segment 4C vertical slice — scroll-safe owner manipulation
+
+Interaction quality is completed before weekly themes. The room listens for
+gestures on one consumer-owned surface, but only the current player's avatar,
+their selected stamp, or a visible control may suppress browser scrolling.
+Dragging empty room space must keep the normal vertical page scroll. This uses
+DOM hit targets over the projected entities rather than making the entire
+Canvas a no-scroll region.
+
+The visible DOM stamp is the only stamp artwork. Canvas keeps an invisible
+world-sized hit target for selection and authorization, eliminating the
+placeholder/stamp double layer. Stamps render behind player avatars so a player
+never appears between two visual copies of one decoration.
+
+An owner may tap their stamp, then drag it within the bounded room decorating
+area and scale it with compact minus/plus controls. Scaling is limited to
+`0.75–1.40`; move previews and committed movement remain inside the room margin.
+The server rechecks owner, definition, operation, bounds, and scale. Other
+players' stamps remain view-only. Rotation, delete, replacement, free inventory
+consumption, and arbitrary item editing remain out of scope.
 
 ## Segment 5 — weekly cadence and theme framework
 

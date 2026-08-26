@@ -23,6 +23,7 @@ export interface LoungeParticipantOverlay {
   playerID: string;
   displayName: string;
   accessibleName: string;
+  current: boolean;
   avatarConfiguration: AvatarConfiguration;
   screen: Readonly<{ x: number; y: number }>;
 }
@@ -64,6 +65,7 @@ export function mergeLoungePresence({
         accessibleName: current
           ? `${member.displayName}, you`
           : member.displayName,
+        current,
         avatarConfiguration: member.avatarConfiguration,
         screen: projection.screen,
       },

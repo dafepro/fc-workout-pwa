@@ -14,7 +14,7 @@ the intended boundary; this file records delivered evidence and remaining risk.
 | 1       | Dev Me selector plus local Beach Boardwalk room                    | Delivered   | Direct-drag tests and browser proof   | Shared-room regression coverage  |
 | 2       | Authenticated team multiplayer room                                | Dev review  | SDK conformance and protocol JOIN     | Two-player browser proof         |
 | 3       | Presence, visit traces, emotes, durable physical state             | Dev review  | Relayed emotes, traces, shared ball   | Two-player lifecycle proof       |
-| 4       | Earned stamps/items with app-owned authorization                   | Dev review  | Reconnect-safe weekly stamp slice     | Two-device manual proof          |
+| 4       | Earned stamps/items with app-owned authorization                   | In progress | Reconnect-safe weekly stamp slice     | Segment 4C manipulation proof    |
 | 5       | Weekly reset and theme framework                                   | Not started | —                                     | Timezone/template rollover tests |
 | 6       | Device budgets, observability, release and cutover                 | Not started | —                                     | All parity/safety gates green    |
 

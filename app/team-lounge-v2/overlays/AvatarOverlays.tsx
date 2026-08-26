@@ -24,7 +24,7 @@ export function AvatarOverlays({
       {participants.map((participant) => (
         <div
           key={participant.playerID}
-          className="team-lounge-v2__participant"
+          className={`team-lounge-v2__participant${participant.current ? " team-lounge-v2__participant--current" : ""}`}
           aria-label={participant.accessibleName}
           style={{
             transform: `translate3d(${participant.screen.x}px, ${participant.screen.y}px, 0) translate(-50%, -50%)`,

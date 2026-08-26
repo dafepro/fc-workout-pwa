@@ -21,8 +21,9 @@ export const teamLoungeV2Copy = {
   placementErrors: {
     stamp_unavailable: "That stamp is not in your collection.",
     stamp_invalid_placement: "Choose one of the glowing lounge spots.",
+    stamp_invalid_scale: "Keep your stamp between the small and large limits.",
     stamp_already_placed: "You already left a stamp here this week.",
-    stamp_editing_unavailable: "Weekly stamps stay where they are placed.",
+    stamp_editing_unavailable: "Only your own weekly stamp can be changed.",
     application_denied: "That stamp could not be placed right now.",
   } as Record<string, string>,
 } as const;

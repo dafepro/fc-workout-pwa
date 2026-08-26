@@ -190,6 +190,28 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 	if !placed.Accepted {
 		t.Fatalf("included stamp placement rejected: %s", placed.RejectReason)
 	}
+	var placedItem struct {
+		EntityID string `json:"entityId"`
+	}
+	if err := json.Unmarshal(placed.ItemInstanceJson, &placedItem); err != nil || placedItem.EntityID == "" {
+		t.Fatalf("placed item = %#v, %v", placedItem, err)
+	}
+	move := &pb.DurableCommand{
+		CommandId: "move-weekly-stamp", Kind: pb.DurableCommandKind_DURABLE_MOVE_ITEM,
+		EntityId: placedItem.EntityID, Position: &pb.Vec2{X: 52, Y: 84}, Scale: 1,
+	}
+	sendLoungeDurableCommand(t, ctx, socket, response.RoomID, move)
+	if moved := awaitLoungeDurableResult(t, ctx, socket, move.CommandId); !moved.Accepted {
+		t.Fatalf("owner stamp move rejected: %s", moved.RejectReason)
+	}
+	scale := &pb.DurableCommand{
+		CommandId: "scale-weekly-stamp", Kind: pb.DurableCommandKind_DURABLE_SCALE_ITEM,
+		EntityId: placedItem.EntityID, Scale: 1.2,
+	}
+	sendLoungeDurableCommand(t, ctx, socket, response.RoomID, scale)
+	if scaled := awaitLoungeDurableResult(t, ctx, socket, scale.CommandId); !scaled.Accepted {
+		t.Fatalf("owner stamp scale rejected: %s", scaled.RejectReason)
+	}
 	if err := socket.Close(websocket.StatusNormalClosure, "reconnect test"); err != nil {
 		t.Fatal(err)
 	}

@@ -49,4 +49,15 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 	if shape.ID != canvas.CanvasID || shape.Version != canvas.Version || len(shape.SystemItems) != 1 || shape.SystemItems[0].DefinitionID != "beach-ball" {
 		t.Fatalf("canvas shape = %#v", shape)
 	}
+	var stamp struct {
+		Visual struct {
+			SpriteID string `json:"spriteId"`
+		} `json:"visual"`
+	}
+	if err := json.Unmarshal(catalog.Items[2].DefinitionRaw, &stamp); err != nil {
+		t.Fatal(err)
+	}
+	if stamp.Visual.SpriteID != "lounge.stamp.transparent" {
+		t.Fatalf("stamp sprite = %q", stamp.Visual.SpriteID)
+	}
 }

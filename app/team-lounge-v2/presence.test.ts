@@ -36,6 +36,7 @@ describe("Team Lounge V2 presence projection", () => {
         playerID: "player-mason",
         displayName: "You",
         accessibleName: "Mason C., you",
+        current: true,
         avatarConfiguration: mason,
         screen: { x: 120, y: 240 },
       },

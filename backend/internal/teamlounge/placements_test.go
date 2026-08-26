@@ -58,10 +58,60 @@ func TestStampPlacementAuthorizerOwnsEligibilityZonesAndWeeklyLimit(t *testing.T
 	if result := authorizer.AuthorizeDurable(t.Context(), teammateOnly); !result.Allowed {
 		t.Fatalf("teammate stamp blocked placement: %+v", result)
 	}
-	move := request
-	move.Operation = roomsdk.DurableMove
-	if result := authorizer.AuthorizeDurable(t.Context(), move); result.Allowed || result.Reason != StampEditingUnavailableReason {
-		t.Fatalf("move result = %+v", result)
+}
+
+func TestStampPlacementAuthorizerAllowsOwnerMoveAndBoundedScale(t *testing.T) {
+	db := openMigratedDatabase(t)
+	seedTeam(t, db)
+	authorizer := NewStampPlacementAuthorizer(NewSQLiteStore(db, BeachBoardwalkCatalog()))
+	existing := []roomsdk.DurableAuthorizationItem{{
+		EntityID: "stamp-one", DefinitionID: StampDefinitionID("bolt"), OwnerUserID: "player-one",
+	}}
+	base := roomsdk.DurableAuthorizationRequest{
+		RoomID: "team:team-one:lounge:2026-08-24:v2", UserID: "player-one",
+		EntityID: "stamp-one", ExistingItems: existing,
+	}
+
+	for _, preview := range []bool{false, true} {
+		move := base
+		move.Operation = roomsdk.DurableMove
+		move.Position = roomsdk.DurablePosition{X: 5, Y: 145}
+		move.Preview = preview
+		if result := authorizer.AuthorizeDurable(t.Context(), move); !result.Allowed {
+			t.Fatalf("owner move preview=%v denied: %+v", preview, result)
+		}
+	}
+
+	outside := base
+	outside.Operation = roomsdk.DurableMove
+	outside.Position = roomsdk.DurablePosition{X: 4.9, Y: 60}
+	if result := authorizer.AuthorizeDurable(t.Context(), outside); result.Allowed || result.Reason != StampInvalidPlacementReason {
+		t.Fatalf("outside move result = %+v", result)
+	}
+
+	for _, scale := range []float64{0.75, 1, 1.4} {
+		request := base
+		request.Operation = roomsdk.DurableScale
+		request.Scale = scale
+		if result := authorizer.AuthorizeDurable(t.Context(), request); !result.Allowed {
+			t.Fatalf("owner scale %v denied: %+v", scale, result)
+		}
+	}
+	for _, scale := range []float64{0.74, 1.41} {
+		request := base
+		request.Operation = roomsdk.DurableScale
+		request.Scale = scale
+		if result := authorizer.AuthorizeDurable(t.Context(), request); result.Allowed || result.Reason != StampInvalidScaleReason {
+			t.Fatalf("invalid scale %v result = %+v", scale, result)
+		}
+	}
+
+	notOwner := base
+	notOwner.UserID = "player-two"
+	notOwner.Operation = roomsdk.DurableMove
+	notOwner.Position = roomsdk.DurablePosition{X: 45, Y: 60}
+	if result := authorizer.AuthorizeDurable(t.Context(), notOwner); result.Allowed || result.Reason != StampEditingUnavailableReason {
+		t.Fatalf("non-owner move result = %+v", result)
 	}
 }
 

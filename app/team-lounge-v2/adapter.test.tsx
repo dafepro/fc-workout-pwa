@@ -4,7 +4,7 @@ import { defaultAvatar } from "../avatar/config";
 import type { TeamCanvasWidgetContract } from "../player/team-canvas/widget-contract";
 import { TeamLoungeV2 } from "./adapter";
 
-const relay = vi.hoisted(() => ({ send: vi.fn() }));
+const relay = vi.hoisted(() => ({ send: vi.fn(), editing: [] as boolean[] }));
 
 vi.mock("./SharedLoungeCanvas", async () => {
   const { useEffect } = await vi.importActual<typeof import("react")>("react");
@@ -12,19 +12,25 @@ vi.mock("./SharedLoungeCanvas", async () => {
     SharedLoungeCanvas({
       onSignalPortChange,
       selectedStamp,
+      stampEditingEnabled = false,
+      onPlacementChange,
       onPlacementPendingChange,
     }: {
       onSignalPortChange(sender: ((kind: string) => void) | null): void;
       selectedStamp?: { label?: string; alt?: string } | null;
+      stampEditingEnabled?: boolean;
+      onPlacementChange?(assetID: string | null): void;
       onPlacementPendingChange?(pending: boolean): void;
     }) {
       useEffect(() => {
         onSignalPortChange(relay.send);
         return () => onSignalPortChange(null);
       }, [onSignalPortChange]);
+      relay.editing.push(stampEditingEnabled);
       return (
         <div>
           Shared lounge {selectedStamp?.label ?? selectedStamp?.alt}
+          {` editing ${stampEditingEnabled ? "on" : "off"}`}
           {selectedStamp ? (
             <button
               type="button"
@@ -33,6 +39,9 @@ vi.mock("./SharedLoungeCanvas", async () => {
               Simulate spot
             </button>
           ) : null}
+          <button type="button" onClick={() => onPlacementChange?.("target")}>
+            Simulate canonical stamp
+          </button>
         </div>
       );
     },
@@ -62,7 +71,22 @@ const host = {
 describe("TeamLoungeV2 emote controls", () => {
   beforeEach(() => {
     relay.send.mockReset();
+    relay.editing = [];
     vi.useFakeTimers();
+  });
+
+  it("opens owner editing after the canonical weekly stamp appears", () => {
+    render(<TeamLoungeV2 host={host} />);
+    fireEvent.click(screen.getByRole("button", { name: "Stamps" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Simulate canonical stamp" }),
+    );
+
+    expect(
+      screen.getByText("Tap it in the lounge to move or resize it."),
+    ).toBeVisible();
+    expect(screen.getByText(/Shared lounge\s+editing on/)).toBeVisible();
+    expect(relay.editing).toContain(true);
   });
 
   it("sends an allowlisted signal once and holds the controls through cooldown", () => {
@@ -106,7 +130,9 @@ describe("TeamLoungeV2 emote controls", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Choose Target stamp" }),
     );
-    expect(screen.getByText("Shared lounge Target")).toBeVisible();
+    expect(
+      screen.getByText(/Shared lounge\s+Target\s+editing off/),
+    ).toBeVisible();
     expect(
       screen.getByText("Choose a glowing spot in the lounge."),
     ).toBeVisible();

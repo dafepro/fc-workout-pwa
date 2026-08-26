@@ -28,15 +28,32 @@ const runtime = vi.hoisted(() => ({
   lifecycleObserver: undefined as
     | ((event: { state: string }) => void)
     | undefined,
+  options: undefined as
+    | {
+        mount: HTMLElement;
+        pointerElement?: HTMLElement;
+        scene?: { touchAction?: string };
+        onEditSelectionChange?: (state: { selectedEntityId?: string }) => void;
+      }
+    | undefined,
+  editModes: [] as boolean[],
+  selectedForEdit: [] as string[],
+  clearedSelections: 0,
+  scaled: [] as Array<{ entityID: string; scale: number }>,
 }));
 
 vi.mock("@canvas-physics/client", () => ({
   CanvasRuntime: class FakeCanvasRuntime {
     constructor(options: {
+      mount: HTMLElement;
+      pointerElement?: HTMLElement;
+      scene?: { touchAction?: string };
       onError?: (error: { code: string; message: string }) => void;
+      onEditSelectionChange?: (state: { selectedEntityId?: string }) => void;
     }) {
       runtime.constructed += 1;
       runtime.onError = options.onError;
+      runtime.options = options;
     }
 
     subscribeLifecycle(observer: (event: { state: string }) => void) {
@@ -91,6 +108,25 @@ vi.mock("@canvas-physics/client", () => ({
       runtime.spawned.push({ definitionId, at });
     }
 
+    setEditMode(enabled: boolean) {
+      runtime.editModes.push(enabled);
+    }
+
+    selectItemForEdit(entityID: string) {
+      runtime.selectedForEdit.push(entityID);
+      runtime.options?.onEditSelectionChange?.({ selectedEntityId: entityID });
+      return true;
+    }
+
+    clearItemEditSelection() {
+      runtime.clearedSelections += 1;
+      runtime.options?.onEditSelectionChange?.({});
+    }
+
+    scaleItem(entityID: string, scale: number) {
+      runtime.scaled.push({ entityID, scale });
+    }
+
     projectWorldPoint(point: { x: number; y: number }) {
       if (!runtime.presented) throw new Error("viewport is not ready");
       return { screen: point, inCanvas: true, inViewport: true };
@@ -135,6 +171,41 @@ describe("SharedLoungeCanvas", () => {
     runtime.spawned = [];
     runtime.onError = undefined;
     runtime.lifecycleObserver = undefined;
+    runtime.options = undefined;
+    runtime.editModes = [];
+    runtime.selectedForEdit = [];
+    runtime.clearedSelections = 0;
+    runtime.scaled = [];
+  });
+
+  it("keeps empty room gestures scrollable and reserves the current avatar gesture", async () => {
+    render(
+      <div className="team-lounge-v2__world">
+        <SharedLoungeCanvas
+          teamID="team-one"
+          playerID="player-one"
+          roster={[
+            {
+              playerID: "player-one",
+              displayName: "Mason C.",
+              avatarConfiguration: defaultAvatar(),
+            },
+          ]}
+          onStateChange={vi.fn()}
+          onPresenceChange={vi.fn()}
+          onSignalPortChange={vi.fn()}
+        />
+      </div>,
+    );
+
+    await waitFor(() => expect(runtime.started).toBe(1));
+    expect(runtime.options?.pointerElement).toHaveClass(
+      "team-lounge-v2__world",
+    );
+    expect(runtime.options?.scene?.touchAction).toBe("pan-y");
+    expect(screen.getByLabelText("Mason C., you")).toHaveClass(
+      "team-lounge-v2__participant--current",
+    );
   });
 
   it("places an owned stamp through an authored spot and recognizes the canonical item", async () => {
@@ -189,6 +260,7 @@ describe("SharedLoungeCanvas", () => {
             definitionId: "zoomigo-stamp-target",
             ownerUserId: "player-one",
             screen: { x: 140, y: 210 },
+            scale: 1,
             rotation: 0,
             visible: true,
             inViewport: true,
@@ -209,6 +281,79 @@ describe("SharedLoungeCanvas", () => {
     );
     expect(onPlacementError).toHaveBeenCalledWith("stamp_unavailable");
     expect(onPlacementPendingChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it("lets only the owner select and scale their placed stamp", async () => {
+    const view = render(
+      <SharedLoungeCanvas
+        teamID="team-one"
+        playerID="player-one"
+        roster={[]}
+        stampEditingEnabled
+        onStateChange={vi.fn()}
+        onPresenceChange={vi.fn()}
+        onSignalPortChange={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => expect(runtime.started).toBe(1));
+    act(() =>
+      runtime.overlayObserver?.({
+        entities: [
+          {
+            entityId: "mine",
+            kind: "item",
+            definitionId: "zoomigo-stamp-target",
+            ownerUserId: "player-one",
+            screen: { x: 140, y: 210 },
+            world: { x: 45, y: 60, z: 0 },
+            rotation: 0,
+            scale: 1,
+            visible: true,
+            inViewport: true,
+          },
+          {
+            entityId: "theirs",
+            kind: "item",
+            definitionId: "zoomigo-stamp-star",
+            ownerUserId: "player-two",
+            screen: { x: 80, y: 90 },
+            world: { x: 20, y: 30, z: 0 },
+            rotation: 0,
+            scale: 1,
+            visible: true,
+            inViewport: true,
+          },
+        ],
+      }),
+    );
+
+    expect(runtime.editModes).toContain(true);
+    expect(
+      screen.getByLabelText("Target stamp, yours; tap then drag to move"),
+    ).toHaveClass("team-lounge-v2__placed-stamp--editable");
+    expect(
+      screen.getByLabelText("Star stamp placed by a teammate"),
+    ).not.toHaveClass("team-lounge-v2__placed-stamp--editable");
+
+    act(() =>
+      runtime.options?.onEditSelectionChange?.({ selectedEntityId: "mine" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Make stamp larger" }));
+    expect(runtime.scaled).toEqual([{ entityID: "mine", scale: 1.1 }]);
+
+    view.rerender(
+      <SharedLoungeCanvas
+        teamID="team-one"
+        playerID="player-one"
+        roster={[]}
+        stampEditingEnabled={false}
+        onStateChange={vi.fn()}
+        onPresenceChange={vi.fn()}
+        onSignalPortChange={vi.fn()}
+      />,
+    );
+    await waitFor(() => expect(runtime.editModes.at(-1)).toBe(false));
   });
 
   it("clears a stranded placement when reconnecting so the player can retry", async () => {

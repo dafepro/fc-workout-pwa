@@ -47,7 +47,7 @@ export function StampPlacementTray({
         <StampAssetView asset={placed} />
         <span>
           <strong>Your stamp is here for the week.</strong>
-          {stampAssetLabel(placed)} was added to the lounge.
+          Tap it in the lounge to move or resize it.
         </span>
       </div>
     );

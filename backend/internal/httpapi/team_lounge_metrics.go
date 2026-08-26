@@ -45,8 +45,13 @@ func (metrics teamLoungeRoomMetrics) CheckpointStored(string, int) {
 }
 
 func (metrics teamLoungeRoomMetrics) DurableAccepted(_ string, operation string) {
-	if operation == "spawn" {
-		metrics.feature("stamp_placement", "success")
+	stampOperation := map[string]string{
+		"spawn": "stamp_placement",
+		"move":  "stamp_move",
+		"scale": "stamp_scale",
+	}[operation]
+	if stampOperation != "" {
+		metrics.feature(stampOperation, "success")
 		return
 	}
 	metrics.message("physics", "success")

@@ -2,9 +2,9 @@
 
 Updated: 2026-08-26.
 
-This plan covers tuned direct avatar dragging, collision-map revision 2, safe
-live teammate overlays, server-relayed emotes, prior-visitor traces, the
-authenticated shared room, and one persistent weekly stamp per player.
+This plan covers scroll-safe direct avatar dragging, collision-map revision 2,
+safe live teammate overlays, server-relayed emotes, prior-visitor traces, the
+authenticated shared room, and one owner-editable weekly stamp per player.
 
 ## Setup
 
@@ -20,8 +20,9 @@ authenticated shared room, and one persistent weekly stamp per player.
 2. Press directly on your avatar, then drag slowly and quickly for one to two
    seconds. The avatar and **You** label should follow smoothly without visible
    30 Hz stepping.
-3. Drag empty boardwalk space. The player should remain still; empty space is
-   reserved for room and item interactions.
+3. Starting on empty boardwalk space, drag vertically. The page should scroll
+   normally and the player should remain still. Starting directly on your
+   avatar should move the avatar instead of scrolling.
 4. Release after a deliberate drag. The avatar should stop; direct drag has no
    hidden flick or coast.
 5. Walk into the yellow beach ball. It should move from the collision, bounce
@@ -50,24 +51,31 @@ authenticated shared room, and one persistent weekly stamp per player.
     immediately after tapping a placement spot. When the lounge reconnects, it
     must either show the accepted stamp or make the spot available to retry. It
     must not remain stuck on **Adding your stamp…** or create two stamps.
-13. Confirm **Items** is visibly disabled and **Map** is visibly disabled because
+13. Reopen **Stamps**, tap your placed stamp, and confirm it gains one clear
+    selection ring plus the compact **Drag to move** controls. Drag it to a new
+    location and use minus/plus to resize it. The stamp should stay within the
+    room margin and between the small/large limits after leaving and returning.
+14. Confirm a teammate's stamp is visible but cannot be selected, moved, or
+    resized. Walk your avatar across both stamps: each stamp should be one
+    coherent image behind the avatar, never two copies split across layers.
+15. Confirm **Items** is visibly disabled and **Map** is visibly disabled because
     the first room fits on one screen. Neither should look tappable.
-14. Sign in as a second player on the same team in another browser profile.
+16. Sign in as a second player on the same team in another browser profile.
     Confirm **2 here** appears and both windows render each player's saved avatar
     plus safe first-name/last-initial label.
-15. Close the second player's room, then leave and re-enter Team as the first
+17. Close the second player's room, then leave and re-enter Team as the first
     player. Confirm the absent teammate appears once as a subdued **visited**
     trace at a fixed room anchor. It must not show a time, workout, duration, or
     message.
-16. Reopen the room as the second player. Confirm their prior-visitor trace
+18. Reopen the room as the second player. Confirm their prior-visitor trace
     disappears while their live avatar is present. At most three absent-player
     traces may be visible.
-17. Switch back to V1 in Me. Confirm the current Team Canvas returns and the V2
+19. Switch back to V1 in Me. Confirm the current Team Canvas returns and the V2
     room is gone. Switch to V2 again and confirm only one room is present.
-18. Expand **Lounge diagnostics**. Confirm the role says **Host** in the first
+20. Expand **Lounge diagnostics**. Confirm the role says **Host** in the first
     window and **Peer** in the second. During a drag, correction should normally
     remain below `3.00`; record a screen capture if it repeatedly jumps above it.
-19. Enable **Show collision map**. The red shapes should sit over the visible
+21. Enable **Show collision map**. The red shapes should sit over the visible
     hut, umbrella table, bench, snack cart/planter, and lower pool edge. The open
     center boardwalk should have no red blocker.
 
@@ -87,8 +95,8 @@ authenticated shared room, and one persistent weekly stamp per player.
 
 ## Expected limitations in this slice
 
-- One create-only stamp may be placed per player each week. It cannot yet be
-  moved, rotated, resized, replaced, or deleted. Props and Map remain disabled.
+- One stamp may be placed per player each week. Its owner can move and resize
+  it, but cannot rotate, replace, or delete it. Props and Map remain disabled.
 - Visit traces are ambient weekly presence only; they are not a feed or history.
 
 Record feedback on movement feel, any correction spikes, collision alignment,

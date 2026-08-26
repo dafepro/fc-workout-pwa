@@ -59,6 +59,7 @@ export const loungeStampDefinitions: ItemDefinition[] =
     displayName: `${asset.kind === "emoji" ? asset.label : asset.alt} stamp`,
     visual: {
       size: { width: 10, height: 10 },
+      spriteId: "lounge.stamp.transparent",
       placeholder: { shape: "circle", color: 0xc9f31d },
       zIndex: 9,
     },
