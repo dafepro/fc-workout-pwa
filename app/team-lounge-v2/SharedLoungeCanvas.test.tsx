@@ -37,6 +37,7 @@ const runtime = vi.hoisted(() => ({
       }
     | undefined,
   editModes: [] as boolean[],
+  editMode: false,
   selectedForEdit: [] as string[],
   clearedSelections: 0,
   scaled: [] as Array<{ entityID: string; scale: number }>,
@@ -133,6 +134,7 @@ vi.mock("@canvas-physics/client", () => ({
     }
 
     setEditMode(enabled: boolean) {
+      runtime.editMode = enabled;
       runtime.editModes.push(enabled);
     }
 
@@ -232,6 +234,7 @@ describe("SharedLoungeCanvas", () => {
     runtime.lifecycleObserver = undefined;
     runtime.options = undefined;
     runtime.editModes = [];
+    runtime.editMode = false;
     runtime.selectedForEdit = [];
     runtime.clearedSelections = 0;
     runtime.scaled = [];
@@ -380,12 +383,26 @@ describe("SharedLoungeCanvas", () => {
       }),
     );
 
-    fireEvent.pointerDown(screen.getByLabelText("Mason C., you"), {
-      buttons: 1,
-      pointerId: 1,
-      pointerType: "touch",
-    });
+    let editModeSeenAtNativeCapture: boolean | undefined;
+    const observeNativePointer = () => {
+      editModeSeenAtNativeCapture = runtime.editMode;
+    };
+    document.addEventListener("pointerdown", observeNativePointer, true);
+    try {
+      const avatar = screen
+        .getByLabelText("Mason C., you")
+        .querySelector(".team-lounge-v2__participant-avatar");
+      expect(avatar).not.toBeNull();
+      fireEvent.pointerDown(avatar as Element, {
+        buttons: 1,
+        pointerId: 1,
+        pointerType: "touch",
+      });
+    } finally {
+      document.removeEventListener("pointerdown", observeNativePointer, true);
+    }
 
+    expect(editModeSeenAtNativeCapture).toBe(false);
     await waitFor(() =>
       expect(runtime.editModes.slice(-2)).toEqual([false, true]),
     );

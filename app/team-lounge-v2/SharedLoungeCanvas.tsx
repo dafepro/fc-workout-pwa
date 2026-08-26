@@ -163,17 +163,6 @@ export function SharedLoungeCanvas({
     onPlacementPendingChangeRef.current?.(pending);
   }, []);
 
-  const prioritizeCurrentAvatarPointer = useCallback(() => {
-    const runtime = runtimeRef.current;
-    if (!runtime) return;
-    runtime.setEditMode(false);
-    queueMicrotask(() => {
-      if (runtimeRef.current === runtime && stampEditingEnabledRef.current) {
-        runtime.setEditMode(true);
-      }
-    });
-  }, []);
-
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
@@ -190,6 +179,34 @@ export function SharedLoungeCanvas({
     let activeRoomID = "";
     let presented = false;
     let lastPlacementSummary = "";
+    let avatarPointerRestoreTimer: number | undefined;
+    const prioritizeCurrentAvatarPointer = (event: PointerEvent) => {
+      if (
+        !(event.target instanceof Element) ||
+        !event.target.closest(
+          ".team-lounge-v2__participant--current .team-lounge-v2__participant-avatar",
+        )
+      ) {
+        return;
+      }
+      const activeRuntime = runtime;
+      if (!activeRuntime) return;
+      activeRuntime.setEditMode(false);
+      if (avatarPointerRestoreTimer !== undefined) {
+        window.clearTimeout(avatarPointerRestoreTimer);
+      }
+      avatarPointerRestoreTimer = window.setTimeout(() => {
+        avatarPointerRestoreTimer = undefined;
+        if (runtime === activeRuntime && stampEditingEnabledRef.current) {
+          activeRuntime.setEditMode(true);
+        }
+      }, 0);
+    };
+    document.addEventListener(
+      "pointerdown",
+      prioritizeCurrentAvatarPointer,
+      true,
+    );
     const publishOverlays = () => {
       if (disposed) return;
       setOverlays(
@@ -419,6 +436,14 @@ export function SharedLoungeCanvas({
       unsubscribePresence();
       unsubscribeProjection();
       unsubscribeSignals();
+      document.removeEventListener(
+        "pointerdown",
+        prioritizeCurrentAvatarPointer,
+        true,
+      );
+      if (avatarPointerRestoreTimer !== undefined) {
+        window.clearTimeout(avatarPointerRestoreTimer);
+      }
       onSignalPortChange(null);
       placementPendingRef.current = false;
       onPlacementPendingChangeRef.current?.(false);
@@ -467,11 +492,7 @@ export function SharedLoungeCanvas({
         tabIndex={0}
       />
       <VisitTraces traces={visitTraces} />
-      <AvatarOverlays
-        participants={overlays}
-        emotes={participantEmotes}
-        onCurrentAvatarPointerDown={prioritizeCurrentAvatarPointer}
-      />
+      <AvatarOverlays participants={overlays} emotes={participantEmotes} />
       <StampOverlays
         stamps={stampOverlays}
         selectedStamp={remainingPlacements > 0 ? selectedStamp : null}

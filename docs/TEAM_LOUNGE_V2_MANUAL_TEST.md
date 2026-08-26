@@ -99,19 +99,23 @@ theme metadata.
 20. Sign in as a second player on the same team in another browser profile.
     Confirm **2 here** appears and both windows render each player's saved avatar
     plus safe first-name/last-initial label.
-21. Close the second player's room, then leave and re-enter Team as the first
+21. In one dev browser, use **Choose a preview account** to sign in as Mason.
+    Return to the preview account directory, choose Ava, and enter the shared
+    player PIN. Confirm the Today and Lounge identity changes to Ava without
+    signing Mason out first or reusing Mason's cached player data.
+22. Close the second player's room, then leave and re-enter Team as the first
     player. Confirm the absent teammate appears once as a subdued **visited**
     trace at a fixed room anchor. It must not show a time, workout, duration, or
     message.
-22. Reopen the room as the second player. Confirm their prior-visitor trace
+23. Reopen the room as the second player. Confirm their prior-visitor trace
     disappears while their live avatar is present. At most three absent-player
     traces may be visible.
-23. Switch back to V1 in Me. Confirm the current Team Canvas returns and the V2
+24. Switch back to V1 in Me. Confirm the current Team Canvas returns and the V2
     room is gone. Switch to V2 again and confirm only one room is present.
-24. Expand **Lounge diagnostics**. Confirm the role says **Host** in the first
+25. Expand **Lounge diagnostics**. Confirm the role says **Host** in the first
     window and **Peer** in the second. During a drag, correction should normally
     remain below `3.00`; record a screen capture if it repeatedly jumps above it.
-25. Enable **Show collision map**. The red shapes should sit over the visible
+26. Enable **Show collision map**. The red shapes should sit over the visible
     hut, umbrella table, bench, snack cart/planter, and lower pool edge. The open
     center boardwalk should have no red blocker.
 
