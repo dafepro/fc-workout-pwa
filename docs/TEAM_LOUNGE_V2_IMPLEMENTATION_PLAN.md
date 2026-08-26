@@ -397,6 +397,10 @@ fall through and open the stamp catalog. Releasing elsewhere remains a move.
 Movement is a focused interaction mode: the selected stamp's scale/rotation
 tray, selection treatment, editable badges, and any previously open action menu
 are removed until release. Dismissed menus do not reopen after the gesture.
+This mode is latched to the pointer lifecycle rather than transient Canvas ghost
+frames. Crossing between the canvas and trash target therefore cannot flicker
+the edit UI, and an expected out-of-room move preview rejection never opens the
+placement catalog.
 
 Zoomigo authorizes the durable delete by authenticated owner and canonical
 placement day. The entity disappears for every viewer; permanent collection

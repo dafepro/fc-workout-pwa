@@ -144,7 +144,9 @@ theme metadata.
     the scale/rotation tray, **EDIT** badges, selection rings, and any open
     stamp/emote menu should disappear so only the moving stamp, room, and trash
     target remain. Moving over it should change the prompt to **Release to
-    remove**. Release elsewhere and confirm the stamp only moves and normal
+    remove**. Move repeatedly across the room/trash boundary and confirm no
+    picker, edit tray, badge, or selection ring flickers back into view. Release
+    elsewhere and confirm the stamp only moves and normal
     editing controls return without reopening a dismissed menu. Repeat and
     release over the trash: the stamp should disappear for both viewers and its
     weekly placement should become available again. A teammate's or prior-day

@@ -721,6 +721,16 @@ describe("SharedLoungeCanvas", () => {
       screen.queryByRole("group", { name: "Edit selected stamp" }),
     ).toBeNull();
     expect(screen.queryByText("Edit")).toBeNull();
+    act(() =>
+      runtime.options?.onEditSelectionChange?.({ selectedEntityId: "mine" }),
+    );
+    expect(onStampDragStateChange).toHaveBeenLastCalledWith({
+      entityID: "mine",
+      overTrash: false,
+    });
+    expect(
+      screen.queryByRole("group", { name: "Edit selected stamp" }),
+    ).toBeNull();
     fireEvent.pointerMove(document, { clientX: 120, clientY: 640 });
     expect(onStampDragStateChange).toHaveBeenLastCalledWith({
       entityID: "mine",

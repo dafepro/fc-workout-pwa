@@ -259,6 +259,7 @@ export function SharedLoungeCanvas({
     document.addEventListener("pointermove", trackStampDrag, true);
     document.addEventListener("pointerup", finishStampDrag, true);
     document.addEventListener("pointercancel", clearStampDrag, true);
+    window.addEventListener("blur", clearStampDrag);
     const prioritizeCurrentAvatarPointer = (event: PointerEvent) => {
       if (
         !(event.target instanceof Element) ||
@@ -408,8 +409,6 @@ export function SharedLoungeCanvas({
               entityID: nextDraggedStampID,
               overTrash: false,
             });
-          } else if (!nextDraggedStampID) {
-            clearStampDrag();
           }
         },
         onError: (error: CanvasConsumerError) => {
@@ -457,10 +456,12 @@ export function SharedLoungeCanvas({
       unsubscribeLifecycle = runtime.subscribeLifecycle(({ state }) => {
         if (disposed) return;
         if (state === "reconnecting") {
+          clearStampDrag();
           updatePlacementPending(false);
           onStateChange("reconnecting");
         }
         if (state === "failed") {
+          clearStampDrag();
           updatePlacementPending(false);
           onStateChange("error");
         }
@@ -550,6 +551,7 @@ export function SharedLoungeCanvas({
       document.removeEventListener("pointermove", trackStampDrag, true);
       document.removeEventListener("pointerup", finishStampDrag, true);
       document.removeEventListener("pointercancel", clearStampDrag, true);
+      window.removeEventListener("blur", clearStampDrag);
       clearStampDrag();
       if (avatarPointerRestoreTimer !== undefined) {
         window.clearTimeout(avatarPointerRestoreTimer);

@@ -230,6 +230,14 @@ export function TeamLoungeV2({
               setPlacementError(null);
             }}
             onPlacementError={(reason) => {
+              if (stampDragState) {
+                if (reason !== "stamp_invalid_placement") {
+                  setStampDeleteError(
+                    copy.placementErrors[reason] ?? copy.deleteStampError,
+                  );
+                }
+                return;
+              }
               if (reason === "stamp_unavailable") setSelectedStamp(null);
               setPlacementError(
                 copy.placementErrors[reason] ?? copy.placementError,

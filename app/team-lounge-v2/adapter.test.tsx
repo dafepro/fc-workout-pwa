@@ -175,6 +175,12 @@ describe("TeamLoungeV2 emote controls", () => {
     expect(
       screen.queryByRole("dialog", { name: "Choose a stamp to place" }),
     ).toBeNull();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Simulate unavailable" }),
+    );
+    expect(
+      screen.queryByRole("dialog", { name: "Choose a stamp to place" }),
+    ).toBeNull();
 
     fireEvent.click(
       screen.getByRole("button", { name: "Simulate stamp drop" }),
