@@ -238,6 +238,12 @@ export function TeamLoungeV2({
                 }
                 return;
               }
+              if (selectedStamp === null && !placementPending) {
+                setStampDeleteError(
+                  copy.placementErrors[reason] ?? copy.deleteStampError,
+                );
+                return;
+              }
               if (reason === "stamp_unavailable") setSelectedStamp(null);
               setPlacementError(
                 copy.placementErrors[reason] ?? copy.placementError,

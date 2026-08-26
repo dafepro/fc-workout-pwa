@@ -87,6 +87,12 @@ vi.mock("./SharedLoungeCanvas", async () => {
           </button>
           <button
             type="button"
+            onClick={() => onPlacementError?.("stamp_invalid_placement")}
+          >
+            Simulate invalid move
+          </button>
+          <button
+            type="button"
             onClick={() =>
               onStampDragStateChange?.({
                 entityID: "stamp-one",
@@ -184,6 +190,9 @@ describe("TeamLoungeV2 emote controls", () => {
 
     fireEvent.click(
       screen.getByRole("button", { name: "Simulate stamp drop" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Simulate invalid move" }),
     );
     expect(screen.getByRole("button", { name: "Stamps" })).toBeVisible();
     expect(

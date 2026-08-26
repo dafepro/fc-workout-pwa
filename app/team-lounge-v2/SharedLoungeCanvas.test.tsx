@@ -665,6 +665,8 @@ describe("SharedLoungeCanvas", () => {
 
   it("deletes a dragged editable stamp released over the consumer trash target", async () => {
     const onStampDragStateChange = vi.fn();
+    const onPlacementError = vi.fn();
+    const onStampDeleteError = vi.fn();
     const trashTarget = document.createElement("div");
     vi.spyOn(trashTarget, "getBoundingClientRect").mockReturnValue({
       x: 20,
@@ -685,6 +687,8 @@ describe("SharedLoungeCanvas", () => {
         stampEditingEnabled
         stampTrashTargetRef={{ current: trashTarget }}
         onStampDragStateChange={onStampDragStateChange}
+        onPlacementError={onPlacementError}
+        onStampDeleteError={onStampDeleteError}
         onStateChange={vi.fn()}
         onPresenceChange={vi.fn()}
         onSignalPortChange={vi.fn()}
@@ -741,6 +745,15 @@ describe("SharedLoungeCanvas", () => {
     expect(runtime.clearedSelections).toBeGreaterThan(0);
     expect(runtime.deleted).toEqual(["mine"]);
     expect(onStampDragStateChange).toHaveBeenLastCalledWith(null);
+    act(() => runtime.overlayObserver?.({ entities: [] }));
+    act(() =>
+      runtime.onError?.({
+        code: "durable_command_rejected",
+        message: "stamp_invalid_placement",
+      }),
+    );
+    expect(onPlacementError).not.toHaveBeenCalled();
+    expect(onStampDeleteError).not.toHaveBeenCalled();
   });
 
   it("clears a stranded placement when reconnecting so the player can retry", async () => {

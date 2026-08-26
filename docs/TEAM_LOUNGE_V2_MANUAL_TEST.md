@@ -146,6 +146,8 @@ theme metadata.
     target remain. Moving over it should change the prompt to **Release to
     remove**. Move repeatedly across the room/trash boundary and confirm no
     picker, edit tray, badge, or selection ring flickers back into view. Release
+    in the trash and confirm the stamp disappears without a contradictory
+    **could not be removed** error and without opening inventory. Release
     elsewhere and confirm the stamp only moves and normal
     editing controls return without reopening a dismissed menu. Repeat and
     release over the trash: the stamp should disappear for both viewers and its

@@ -402,6 +402,12 @@ frames. Crossing between the canvas and trash target therefore cannot flicker
 the edit UI, and an expected out-of-room move preview rejection never opens the
 placement catalog.
 
+Canvas reports durable rejection reasons without the originating command kind,
+so a bounded post-drag window ignores only `stamp_invalid_placement`. This keeps
+a late rejected move preview from being mistaken for a failed delete after the
+canonical stamp has already disappeared. Other delete failures still surface,
+and all non-placement edit errors render inline rather than opening inventory.
+
 Zoomigo authorizes the durable delete by authenticated owner and canonical
 placement day. The entity disappears for every viewer; permanent collection
 ownership remains intact. Because used weekly budget is derived from canonical

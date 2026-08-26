@@ -62,6 +62,7 @@ const visitTraceWorldAnchors = [
   { x: 74, y: 81 },
   { x: 48, y: 125 },
 ] as const;
+const postDragRejectionGraceMs = 2_000;
 
 export interface LoungePlacementSummary {
   earned: number;
@@ -214,6 +215,10 @@ export function SharedLoungeCanvas({
     let draggedStampID: string | null = null;
     let deletingStampID: string | null = null;
     let dragOverTrash = false;
+    let ignoreInvalidPlacementUntil = 0;
+    const extendDragRejectionGrace = () => {
+      ignoreInvalidPlacementUntil = Date.now() + postDragRejectionGraceMs;
+    };
     const isOverTrash = (event: PointerEvent) => {
       const target = stampTrashTargetRef?.current;
       if (!target) return false;
@@ -241,11 +246,14 @@ export function SharedLoungeCanvas({
       onStampDragStateChangeRef.current?.(null);
     };
     const trackStampDrag = (event: PointerEvent) => {
-      if (draggedStampID) publishStampDrag(isOverTrash(event));
+      if (!draggedStampID) return;
+      extendDragRejectionGrace();
+      publishStampDrag(isOverTrash(event));
     };
     const finishStampDrag = (event: PointerEvent) => {
       const entityID = draggedStampID;
       if (!entityID) return;
+      extendDragRejectionGrace();
       const shouldDelete = isOverTrash(event);
       clearStampDrag();
       if (!shouldDelete || !runtime) return;
@@ -402,6 +410,7 @@ export function SharedLoungeCanvas({
           setEditSelectionID(selectedEntityId ?? null);
           const nextDraggedStampID = ghost?.entityId ?? null;
           if (nextDraggedStampID && nextDraggedStampID !== draggedStampID) {
+            extendDragRejectionGrace();
             draggedStampID = nextDraggedStampID;
             dragOverTrash = false;
             setDraggedEditEntityID(nextDraggedStampID);
@@ -414,6 +423,12 @@ export function SharedLoungeCanvas({
         onError: (error: CanvasConsumerError) => {
           if (disposed) return;
           if (error.code === "durable_command_rejected") {
+            if (
+              error.message === "stamp_invalid_placement" &&
+              Date.now() <= ignoreInvalidPlacementUntil
+            ) {
+              return;
+            }
             if (deletionPendingRef.current) {
               deletionPendingRef.current = false;
               deletingStampID = null;
