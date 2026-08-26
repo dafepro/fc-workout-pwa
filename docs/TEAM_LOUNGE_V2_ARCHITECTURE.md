@@ -169,6 +169,11 @@ not include scoring in the first release.
   manipulation in progress, while only the operation-specific final command is
   persisted. Preview authorization rechecks position, scale, rotation, owner,
   and edit day so a forged move preview cannot bypass another transform rule.
+- The manipulating owner's Canvas presentation keeps the newest local
+  transform until canonical state confirms it or a bounded timeout expires.
+  Delayed older projections cannot momentarily replace the local scale or
+  rotation, while other viewers continue to receive the server-authorized
+  preview stream.
 - The server stamps each accepted placement with canonical `placementDay`
   metadata. All of the owner's current-day placements remain editable; prior-
   day placements are immutable. Canvas cannot author or increase either value.

@@ -74,7 +74,9 @@ stamp transforms, and canonical weekly theme metadata.
 16. Keep the same stamp selected while a second same-team player watches in
     another browser. Hold a size or turn control, then drag the stamp. The other
     viewer should see every in-progress transform before release, then retain
-    the same final transform after both players reconnect.
+    the same final transform after both players reconnect. In the manipulating
+    window, the stamp must not shake or flicker between its old and new scale or
+    angle while waiting for the server round trip.
 17. On the next team-local day, confirm yesterday's stamps remain visible but
     cannot be selected or changed. A newly placed stamp should remain editable
     until that day's local midnight. A teammate's stamps are always view-only.

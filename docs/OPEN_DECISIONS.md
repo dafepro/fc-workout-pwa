@@ -1214,6 +1214,11 @@ Momentum Alpha needs independent PWA install/offline behavior.
   but its placeholder sprite is transparent. The safe DOM avatar projected
   from that same entity position is the only visible player art, preventing two
   representations from separating during rapid movement.
+- Refined 2026-08-26: product-owned scale and rotation controls use Canvas's
+  local transform presentation hold. A new owner pose remains visible until an
+  accepted canonical transform matches it or a bounded rejection timeout
+  expires; an older server projection may not briefly overwrite it. Network
+  preview frequency and server authorization remain unchanged.
 - Decided: a lounge visit is recorded only after the authenticated Canvas
   socket is accepted. Reconnects update the same player/week record. Player
   presentation exposes only “visited this week,” never an exact timestamp,
