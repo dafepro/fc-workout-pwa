@@ -720,6 +720,37 @@ Momentum Alpha needs independent PWA install/offline behavior.
   hidden so a visible sibling can connect. Room host epochs increment on every
   server-side handoff, and tampered positions/snapshots remain rejected.
 
+## Team Lounge V2 library integration (2026-08-25)
+
+- Decided: V2 is a development-gated replacement adapter built on
+  `dafepro/canvas`, not another permanent renderer. The Me development console
+  can select V1 or V2 per device; production remains on V1 until explicit
+  parity, safety, physical-device budget, and rollback gates pass.
+- Decided: exactly one adapter is imported, mounted, and connected at a time.
+  V2 is lazy loaded so Canvas, PixiJS, Rapier, and its worker do not enter
+  unrelated eager route bundles.
+- Decided: Zoomigo retains authentication, team access, safe identity,
+  inventory, reward authorization, weekly theme policy, moderation, and
+  analytics policy. Canvas owns generic rendering, input, deterministic
+  simulation, replication, and cosmetic persistence. Canvas state cannot grant
+  training, Momentum, rewards, inventory, or access.
+- Decided: the initial V2 room is Beach Boardwalk with avatar movement, safe
+  presence, persistent stamps, and one system-owned kickable beach ball. One
+  attraction is the ceiling; chat, rankings, workout data, quest lists,
+  currencies, and reward catalogs remain outside the room.
+- Decided: a weekly product room uses
+  `team:<team-id>:lounge:<week-key>` and resolves server-side to one exact
+  Canvas template ID/version. A new week creates a new room rather than
+  mutating or deleting the previous room snapshot.
+- Decided: prerelease Canvas JavaScript packages are consumed as reproducible
+  packed public artifacts pinned to one upstream commit with SHA-256
+  provenance. Authenticated multiplayer cannot start until its Go rooms SDK is
+  pinned to that same commit and protocol version. Floating-main and partial
+  Canvas releases are not allowed.
+- Deferred: removal/refund behavior for consumable placed items and the shared
+  multi-replica room coordinator. V2 remains single-replica until the latter is
+  selected and tested.
+
 ## Disposable dev real-data preview (2026-08-21)
 
 - Decided: authenticated Momentum routes project the current API training

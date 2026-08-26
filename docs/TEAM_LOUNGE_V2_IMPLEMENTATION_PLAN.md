@@ -1,0 +1,178 @@
+# Team Lounge V2 implementation plan
+
+Status: active.
+
+## Delivery strategy
+
+Each segment ends in a runnable, testable vertical slice and updates
+`TEAM_LOUNGE_V2_DELIVERY_TRACKER.md` in the same commit. V1 remains untouched
+except for the adapter selector until a segment deliberately replaces shared
+code.
+
+## Proposed file tree
+
+Only create entries when their segment begins.
+
+```text
+app/
+  player/
+    dev/PlayerDevSettings.tsx                 # development-only V1/V2 choice
+    components/PlayerDevConsole.tsx           # labeled selector and reset
+    team-canvas/
+      TeamCanvasWidget.tsx                    # one-adapter resolver
+      team-lounge-host.ts                     # shared Zoomigo-owned host port
+  team-lounge-v2/
+    TeamLoungeV2.tsx                          # route-level lounge UI
+    team-lounge-v2.css                        # mobile shell and overlays
+    content.ts                                # centralized copy
+    adapter.tsx                               # lazy adapter entry
+    canvas-runtime.ts                         # Canvas public runtime composition
+    canvas.worker.ts                          # Zoomigo behavior registration
+    scene/
+      beach-boardwalk.ts                      # template and item definitions
+      soccer-ball-behavior.ts                 # deterministic kick behavior
+    overlays/
+      AvatarOverlays.tsx                      # safe names/status/emotes
+    controls/
+      LoungeActionBar.tsx
+      PlacementTray.tsx
+    data/
+      lounge-gateway.ts                       # tickets and app-authorized mutations
+    telemetry.ts
+    __tests__/
+      adapter-selection.test.tsx
+      beach-boardwalk.test.ts
+      runtime-lifecycle.test.ts
+vendor/
+  canvas/
+    PROVENANCE.md                             # commit/version/digests/rebuild steps
+    *.tgz                                     # packed public JS packages, dev gate
+backend/
+  internal/teamlounge/
+    auth.go                                   # Canvas Authenticator adapter
+    store.go                                  # Canvas Store adapter
+    templates.go                              # room -> exact weekly template
+    metrics.go
+    *_test.go
+  internal/httpapi/
+    team_lounge.go                            # ticket/product mutation routes
+    team_lounge_test.go
+  migrations/
+    0000xx_team_lounge_v2.up.sql
+    0000xx_team_lounge_v2.down.sql
+docs/
+  TEAM_LOUNGE_V2_ARCHITECTURE.md
+  TEAM_LOUNGE_V2_IMPLEMENTATION_PLAN.md
+  TEAM_LOUNGE_V2_DELIVERY_TRACKER.md
+  TEAM_LOUNGE_V2_MANUAL_TEST.md
+```
+
+## Segment 0 — boundary and reproducibility
+
+Outcome: a reviewer can understand ownership, rollout, risks, dependency
+provenance, and completion gates before runtime code lands.
+
+- [x] Audit current V1 and Canvas public contracts.
+- [x] Record safety/privacy boundaries and weekly room identity.
+- [x] Segment the implementation and define rollback.
+- [ ] Pack the three coordinated Canvas JS packages from one verified commit.
+- [ ] Record versions, source commit, SHA-256 digests, and rebuild commands.
+- [ ] Verify the Canvas package-artifact/release gates before consuming them.
+
+## Segment 1 — dev selector and local room
+
+Outcome: a developer can choose V2 in Me, enter Team, move a Zoomigo avatar in
+Beach Boardwalk, kick one ball, and return to V1 without a reload race.
+
+- [ ] Add a `teamLoungeVersion` dev setting with safe parser/reset behavior.
+- [ ] Render the selector only when server-projected dev controls are enabled.
+- [ ] Resolve and lazy-load one adapter; prove the inactive adapter does not
+      mount or connect.
+- [ ] Compose Canvas runtime and application worker from public package exports.
+- [ ] Add a minimal versioned Beach Boardwalk scene and system-owned ball.
+- [ ] Add relative thumbstick movement, avatar art/label overlay, loading/error
+      states, and the four-control shell.
+- [ ] Keep unavailable controls explicit and noninteractive.
+- [ ] Cover selection, lazy failure, route cleanup, movement, and reduced motion.
+- [ ] Verify at 320 CSS pixels and with one Android-sized viewport.
+
+The local room is a development integration proof, not a multiplayer claim.
+Its UI must label the connection state in developer tooling.
+
+## Segment 2 — authenticated shared room
+
+Outcome: two authenticated members of one team see the same room, avatars, and
+ball while another team cannot join it.
+
+- [ ] Pin the Go rooms SDK to the same Canvas release commit/protocol.
+- [ ] Implement Canvas Authenticator, Store, and RoomTemplateResolver adapters.
+- [ ] Run Canvas conformance kits against the real Zoomigo database adapters.
+- [ ] Issue short-lived, audience-restricted, one-time credentials and validate
+      exact WebSocket origins.
+- [ ] Map one team/week to one exact Beach Boardwalk template version.
+- [ ] Add route/background/reconnect lifecycle and visible recovery states.
+- [ ] Add two-client, reconnect, stale-ticket, wrong-team, and protocol-mismatch
+      black-box coverage.
+
+## Segment 3 — presence and persistent changes
+
+Outcome: returning players can tell what changed without adding a feed.
+
+- [ ] Render active teammates from authenticated presence with safe names.
+- [ ] Merge presence with roster state without exposing workout data.
+- [ ] Persist the ball and system scene checkpoint across room sleep/restart.
+- [ ] Add capped predefined visit traces for earlier visitors.
+- [ ] Add five transient predefined emotes with expiry and rate limits.
+- [ ] Cover reconnect identity, stale avatars, expiry, and no-cross-team leaks.
+
+## Segment 4 — app-authorized stamps and items
+
+Outcome: earned Zoomigo inventory can be placed once and remains in the weekly
+room without letting the Canvas runtime mint inventory.
+
+- [ ] Add Stamps/Props tray using the existing unlock inventory.
+- [ ] Author placement zones and accessible invalid-placement feedback.
+- [ ] Implement reservation/idempotency transaction across Zoomigo inventory
+      and Canvas durable spawn.
+- [ ] Add owner-authorized move/rotate/scale after selection.
+- [ ] Define and implement removal/refund semantics before enabling delete.
+- [ ] Cover tampered asset IDs, exhausted copies, retry, reconnect, and
+      simultaneous placement.
+
+## Segment 5 — weekly cadence and theme framework
+
+Outcome: the room resets safely each week and can add one attraction without
+changing the core controls.
+
+- [ ] Bind the current team week to an immutable template ID/version.
+- [ ] Preserve player inventory while isolating prior weekly snapshots.
+- [ ] Add theme metadata and staged environmental changes as data.
+- [ ] Prove daylight-saving/timezone and asleep-room rollover behavior.
+- [ ] Add operator preview/rollback tooling before a second production theme.
+
+Future themes progress one interaction at a time: Campfire Night, Soccer Field
+Hangout, Stormy Sky Deck, then Treasure Island. Linked rooms remain out of the
+initial production scope.
+
+## Segment 6 — production hardening and cutover
+
+Outcome: V2 is eligible to replace V1 after evidence, not simply feature count.
+
+- [ ] Name-free metrics/logs/analytics and operational alerts cover every major
+      join, lifecycle, placement, persistence, and rendering failure.
+- [ ] Meet measured CPU, memory, GPU, bandwidth, long-frame, and bundle budgets
+      on representative low/mid/high mobile devices.
+- [ ] Pass Android Chrome/iOS Safari, 320px, landscape, keyboard, screen reader,
+      reduced-motion, background/foreground, and PWA update tests.
+- [ ] Run the intentional full Docker E2E and VM smoke/recovery gates.
+- [ ] Validate restore/rollback with persisted V2 rooms.
+- [ ] Obtain product/safety review and explicitly change the default.
+- [ ] Retire V1 only in a later cleanup slice after the rollback window closes.
+
+## Verification policy
+
+Use red-green-refactor. User-visible flows receive black-box coverage with real
+containers and migrations where the segment has backend behavior. Ordinary
+completion runs targeted tests, formatting, lint, typecheck, static checks, and
+the production build. Full Docker E2E/VM suites run at the release-candidate
+gate rather than on every segment.
