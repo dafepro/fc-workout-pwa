@@ -82,18 +82,17 @@ moderation, reporting, retention, and child-safety design decision.
 | 2026-08-26 | 4M      | `8746df2`                        | Moves avatar-over-stamp priority into native document capture before Canvas can claim the gesture; keeps a newly scanned QR credential eligible to replace an existing player session             | Native capture-order regression; existing-session QR entry regression                                                                          | Drag directly through a large stamp; switch Mason to Ava in one browser                  |
 | 2026-08-26 | 4N      | `dcee4f1` + Canvas `d12ffe9`     | Prevents restored-room item ID collisions across players, keeps the signed-in avatar above teammate avatars, and moves stamp/emote menus out of document flow                                     | Canvas persisted-ID regression; Zoomigo overlay stacking and portal/popover regressions; dev fixture reset coverage                            | Mason/Ava sequential placement; overlap stacking per viewer; stable canvas dimensions    |
 | 2026-08-26 | 4O      | `a7d2c6a`                        | Scopes the stamp catalog to the lounge canvas, previews the selected stamp at its landing point, and marks current-day owned stamps with a persistent editable treatment                          | Canvas-scoped dialog, pointer-following ghost, and editable-only badge component regressions                                                   | Touch ghost visibility; crowded-room edit discoverability; canvas-only overlay sizing    |
-| 2026-08-26 | 4P      | Current deletion slice           | Replaces lounge actions with a drag-activated trash target, durably deletes only the owner's current-day stamp, and restores the derived weekly placement                                         | Client pointer-routing and server owner/day authorization regressions                                                                          | Mobile drop targeting; two-viewer removal; placement-credit restoration                  |
+| 2026-08-26 | 4P      | `7144eb7`                        | Replaces lounge actions with a drag-activated trash target, durably deletes only the owner's current-day stamp, and restores the derived weekly placement                                         | Client pointer-routing and server owner/day authorization regressions; 522 frontend and all Go tests; dev health gates                         | Mobile drop targeting; two-viewer removal; placement-credit restoration                  |
 | 2026-08-26 | 5A      | `3cd1741`                        | Adds a server-owned Beach Boardwalk theme manifest, exact template binding, ticket projection, and fail-closed client metadata validation                                                         | Go manifest/ticket tests; gateway validation and reconnect-generation tests                                                                    | Canonical theme heading and unchanged weekly room behavior                               |
 
 ## Latest dev delivery
 
-- Deployed application revision: `a7d2c6a`.
+- Deployed application revision: `7144eb7`.
 - Included Canvas revision: `d12ffe9e056029e90c32d8e4e02d07f8f08195af`.
-- GitHub Actions dev update `33010549948` completed successfully on 2026-08-26.
-- Independent authenticated public smoke confirmed that the catalog replaces
-  only the lounge canvas, the selected stamp returns as a translucent landing
-  ghost, and only current-day owned stamps show the counter-rotating **EDIT**
-  badge and lime editable ring.
+- GitHub Actions dev update `33012584307` completed successfully on 2026-08-26.
+- CI resolved and published the exact application revision, then reported the
+  dev API and Caddy containers healthy. Drag-to-trash remains the focused
+  authenticated interaction review for this slice.
 - The service worker is self-disabling on dev as a defense against stale app
   shells. Worker-first gating for static assets is also implemented in this
   branch, but becomes the trusted deployment control only after mainline
