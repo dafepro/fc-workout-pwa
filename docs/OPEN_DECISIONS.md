@@ -1205,6 +1205,15 @@ Momentum Alpha needs independent PWA install/offline behavior.
   channel, not Zoomigo chat or a second websocket. The room server allowlists
   five payload-free kinds and permits one accepted signal per player every two
   seconds. Signals are neither stored nor replayed.
+- Refined 2026-08-26: projected DOM item controls explicitly opt out of Canvas's
+  initial pointer routing. Pressing size or rotation controls must remain an
+  edit action and may not be reinterpreted as an empty-room tap that clears the
+  selection. Empty room space retains its normal placement and deselection
+  behavior.
+- Refined 2026-08-26: Canvas retains the one authoritative avatar physics body,
+  but its placeholder sprite is transparent. The safe DOM avatar projected
+  from that same entity position is the only visible player art, preventing two
+  representations from separating during rapid movement.
 - Decided: a lounge visit is recorded only after the authenticated Canvas
   socket is accepted. Reconnects update the same player/week record. Player
   presentation exposes only “visited this week,” never an exact timestamp,

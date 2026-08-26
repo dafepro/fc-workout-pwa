@@ -24,6 +24,7 @@ import {
   type LoungeRosterMember,
 } from "./presence";
 import {
+  ignoreLoungePointerTarget,
   sharedLoungePointerOptions,
   sharedLoungeRates,
 } from "./runtime-config";
@@ -259,6 +260,7 @@ export function SharedLoungeCanvas({
         credentialProvider: join.credentialProvider,
         mount,
         pointerElement: mount.parentElement ?? mount,
+        ignorePointerTarget: ignoreLoungePointerTarget,
         definitions: beachBoardwalkDefinitions,
         assets: beachBoardwalkAssets,
         scene: {

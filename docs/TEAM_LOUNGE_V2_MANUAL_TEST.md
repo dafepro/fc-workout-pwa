@@ -20,7 +20,8 @@ stamp transforms, and canonical weekly theme metadata.
    **V2 · Shared Canvas room**.
 2. Press directly on your avatar, then drag slowly and quickly for one to two
    seconds. The avatar and **You** label should follow smoothly without visible
-   30 Hz stepping.
+   30 Hz stepping. No blue placeholder circle or second body should split away
+   from the saved avatar art, even during the fastest movement.
 3. Starting on empty boardwalk space, drag vertically. The page should scroll
    normally and the player should remain still. Starting directly on your
    avatar should move the avatar instead of scrolling.
@@ -62,11 +63,14 @@ stamp transforms, and canonical weekly theme metadata.
     the accepted stamp with the reduced budget or restore the credit for retry.
     It must not remain stuck on **Adding your stamp…** or create two stamps.
 15. Reopen **Stamps**, tap any stamp you placed today, and confirm it gains one
-    clear selection ring plus compact edit controls. Tap and hold both 15-degree
-    turn buttons. Confirm the stamp can pass a full revolution in either
-    direction, the displayed angle wraps cleanly, and drag/size/rotation all
-    retain their final transform after leaving and returning. At 320 px, no
-    control may clip or force horizontal page scrolling.
+    clear selection ring plus compact edit controls. Press each smaller/larger
+    and rotation button once and confirm the editor remains open and the stamp
+    visibly changes. Then tap and hold both 15-degree turn buttons. Confirm the
+    stamp can pass a full revolution in either direction, the displayed angle
+    wraps cleanly, and drag/size/rotation all retain their final transform after
+    leaving and returning. Tapping empty room space may close the editor, but a
+    control press must not. At 320 px, no control may clip or force horizontal
+    page scrolling.
 16. Keep the same stamp selected while a second same-team player watches in
     another browser. Hold a size or turn control, then drag the stamp. The other
     viewer should see every in-progress transform before release, then retain

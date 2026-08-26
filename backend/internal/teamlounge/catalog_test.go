@@ -72,6 +72,17 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 	if shape.Limits.MaxAvatars != 24 || shape.Limits.MaxItems != 1+24*7 {
 		t.Fatalf("weekly placement capacity = %#v", shape.Limits)
 	}
+	var avatar struct {
+		Visual struct {
+			SpriteID string `json:"spriteId"`
+		} `json:"visual"`
+	}
+	if err := json.Unmarshal(catalog.Items[1].DefinitionRaw, &avatar); err != nil {
+		t.Fatal(err)
+	}
+	if avatar.Visual.SpriteID != "lounge.stamp.transparent" {
+		t.Fatalf("avatar sprite = %q", avatar.Visual.SpriteID)
+	}
 	var stamp struct {
 		Visual struct {
 			SpriteID string `json:"spriteId"`

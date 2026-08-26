@@ -6,6 +6,7 @@ import {
 import {
   beachBoardwalkCanvas,
   beachBoardwalkDefinitions,
+  loungeAvatarDefinition,
 } from "./beach-boardwalk";
 
 describe("Beach Boardwalk Canvas scene", () => {
@@ -66,5 +67,11 @@ describe("Beach Boardwalk Canvas scene", () => {
         position: { x: 25, y: 141 },
       }),
     ]);
+  });
+
+  it("keeps the physics avatar visual transparent beneath the roster avatar", () => {
+    expect(loungeAvatarDefinition.visual.spriteId).toBe(
+      "lounge.stamp.transparent",
+    );
   });
 });

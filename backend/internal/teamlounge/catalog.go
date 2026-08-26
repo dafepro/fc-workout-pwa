@@ -133,7 +133,7 @@ const beachBallDefinitionJSON = `{
 
 const avatarDefinitionJSON = `{
   "definitionId":"avatar","version":1,"displayName":"Player avatar",
-  "visual":{"size":{"width":9,"height":9},"placeholder":{"shape":"circle","color":1923719},"zIndex":12},
+  "visual":{"size":{"width":9,"height":9},"spriteId":"lounge.stamp.transparent","placeholder":{"shape":"circle","color":1923719},"zIndex":12},
   "colliders":[],"defaultConfig":{},
   "persistence":{"transform":false,"behaviorState":false,"onRoomSleep":"pause"},"complexity":"simple"
 }`

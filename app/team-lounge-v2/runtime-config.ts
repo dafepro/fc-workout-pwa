@@ -21,3 +21,10 @@ export function sharedLoungePointerOptions(): Omit<
     flick: false,
   };
 }
+
+export function ignoreLoungePointerTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element &&
+    target.closest("[data-canvas-pointer-ignore]") !== null
+  );
+}

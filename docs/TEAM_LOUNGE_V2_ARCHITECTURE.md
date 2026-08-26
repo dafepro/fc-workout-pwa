@@ -121,6 +121,10 @@ not include scoring in the first release.
 - Stamp rotation uses two 15-degree step controls. Pressing once advances once;
   holding repeats in either direction through any number of revolutions. Stored
   angles are normalized into `[-180°, 180°)`.
+- Projected DOM controls mark themselves as outside Canvas pointer routing
+  before the room's native pointer handler runs. A size or rotation press keeps
+  the selected item and reaches its semantic button; tapping unmarked room
+  space may still deselect it.
 - Player names and controls are semantic DOM overlays. The canvas has an
   accessible name and a concise non-visual status summary.
 - Development controls can reveal the authored collision shapes plus the
@@ -139,6 +143,10 @@ not include scoring in the first release.
 - Roster and avatar presentation refreshes update the DOM overlay through a
   latest-value boundary. They do not recreate the Canvas room runtime; only a
   team or player identity change starts a new session.
+- The Canvas avatar entity remains the sole physics, collision, and pointer
+  authority. Its built-in placeholder sprite is transparent, and the safe DOM
+  avatar is the sole visible representation projected from that entity. This
+  avoids a second visible body lagging behind during fast movement.
 - A reconnect reuses one stable avatar entity.
 - Short emotes are predefined, transient effects and disappear after a bounded
   duration. They are not chat and are not replayed.

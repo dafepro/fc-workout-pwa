@@ -61,6 +61,7 @@ export const loungeAvatarDefinition: ItemDefinition = {
   displayName: "Player avatar",
   visual: {
     size: { width: 9, height: 9 },
+    spriteId: "lounge.stamp.transparent",
     placeholder: { shape: "circle", color: 0x1d5a87 },
     zIndex: 12,
   },

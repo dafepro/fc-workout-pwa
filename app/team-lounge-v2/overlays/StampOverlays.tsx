@@ -106,6 +106,7 @@ export function StampOverlays({
           className="team-lounge-v2__stamp-edit-controls"
           role="group"
           aria-label="Edit selected stamp"
+          data-canvas-pointer-ignore="true"
           onPointerDown={(event) => event.stopPropagation()}
         >
           <span>Drag the stamp to move it</span>
