@@ -66,13 +66,13 @@ the intended boundary; this file records delivered evidence and remaining risk.
 
 ## Latest dev delivery
 
-- Deployed application revision: `90d10a6252c56640b91ba79e4afa378ae9c85f55`.
-- Included Canvas revision: `f61f0cb363e0871c9f6b74a3b4422072bcb1d2de`.
-- GitHub Actions dev operation `32967685583` completed successfully on
+- Deployed application revision: `429427cca23c01de9b7a3f05415e4a209e0afda5`.
+- Included Canvas revision: `f94bc54300cb50e15a3fd9e9fc58bd99a9da38b3`.
+- GitHub Actions dev operation `32970498791` completed successfully on
   2026-08-26.
 - Authenticated public smoke: `/` and `/team` `200`; all 14 directly referenced
-  JavaScript and CSS assets `200`; the transparent stamp texture `200`; deployed
-  CSS includes the `pan-y` room policy and stamp-edit controls.
+  JavaScript and CSS assets `200`; deployed CSS includes the `pan-y` room policy
+  and the responsive stamp orientation controls.
 - The service worker is self-disabling on dev as a defense against stale app
   shells. Worker-first gating for static assets is also implemented in this
   branch, but becomes the trusted deployment control only after mainline
