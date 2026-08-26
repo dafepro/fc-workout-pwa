@@ -68,12 +68,14 @@ theme metadata.
     immediately after tapping. When the lounge reconnects, it must either show
     the accepted stamp with the reduced budget or restore the credit for retry.
     It must not remain stuck on **Adding your stamp…** or create two stamps.
-16. Reopen **Stamps**, tap any stamp you placed today, and confirm it gains one
-    clear selection ring plus compact edit controls. Press each smaller/larger
-    and rotation button once and confirm the editor remains open and the stamp
-    visibly changes. Then tap and hold both 15-degree turn buttons. Confirm the
-    stamp can pass a full revolution in either direction, the displayed angle
-    wraps cleanly, and drag/size/rotation all retain their final transform after
+16. Reopen **Stamps**, tap any stamp you placed today, and confirm the first tap
+    always selects the exact visible stamp—even when it overlaps another item
+    or your avatar. It should gain one clear selection ring plus compact edit
+    controls. Drag it on the next gesture, then press each smaller/larger and
+    rotation button once; the editor should remain open and the stamp should
+    visibly change. Tap and hold both 15-degree turn buttons. Confirm the stamp
+    can pass a full revolution in either direction, the displayed angle wraps
+    cleanly, and drag/size/rotation all retain their final transform after
     leaving and returning. Tapping empty room space may close the editor, but a
     control press must not. At 320 px, no control may clip or force horizontal
     page scrolling.

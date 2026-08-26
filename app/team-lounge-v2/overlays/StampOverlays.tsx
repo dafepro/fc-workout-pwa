@@ -68,7 +68,15 @@ export function StampOverlays({
               type="button"
               aria-label={label}
               aria-pressed={selected}
-              onClick={() => onSelect?.(entityID)}
+              onPointerDownCapture={(event) => {
+                if (selected) return;
+                event.preventDefault();
+                event.stopPropagation();
+                onSelect?.(entityID);
+              }}
+              onClick={(event) => {
+                if (event.detail === 0) onSelect?.(entityID);
+              }}
             >
               <StampAssetView asset={asset} />
             </button>

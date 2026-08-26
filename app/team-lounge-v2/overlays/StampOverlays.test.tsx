@@ -16,6 +16,59 @@ const stamp: LoungeStampOverlay = {
 };
 
 describe("StampOverlays", () => {
+  it("selects the visible stamp before the Canvas surface can claim its first pointer", () => {
+    const canvasPointerDown = vi.fn();
+
+    function PointerSurfaceHarness() {
+      const pointerSurface = useRef<HTMLDivElement>(null);
+      const [selectedEntityID, setSelectedEntityID] = useState<string | null>(
+        null,
+      );
+
+      useEffect(() => {
+        const surface = pointerSurface.current;
+        if (!surface) return;
+        surface.addEventListener("pointerdown", canvasPointerDown);
+        return () =>
+          surface.removeEventListener("pointerdown", canvasPointerDown);
+      }, []);
+
+      return (
+        <div ref={pointerSurface}>
+          <StampOverlays
+            stamps={[stamp]}
+            selectedStamp={null}
+            currentPlayerID="player-one"
+            editableEntityIDs={[stamp.entityID]}
+            selectedEntityID={selectedEntityID}
+            onPlace={vi.fn()}
+            onSelect={setSelectedEntityID}
+          />
+        </div>
+      );
+    }
+
+    render(<PointerSurfaceHarness />);
+    const visibleStamp = screen.getByRole("button", {
+      name: "Target stamp, yours; tap then drag to move",
+    });
+
+    fireEvent.pointerDown(visibleStamp, {
+      buttons: 1,
+      pointerId: 1,
+      pointerType: "touch",
+    });
+    expect(visibleStamp).toHaveAttribute("aria-pressed", "true");
+    expect(canvasPointerDown).not.toHaveBeenCalled();
+
+    fireEvent.pointerDown(visibleStamp, {
+      buttons: 1,
+      pointerId: 2,
+      pointerType: "touch",
+    });
+    expect(canvasPointerDown).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps edit controls selected when the Canvas pointer surface sees empty-space taps", () => {
     const onScale = vi.fn();
 
