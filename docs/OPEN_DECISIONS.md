@@ -1145,3 +1145,14 @@ Momentum Alpha needs independent PWA install/offline behavior.
   inventory, rewards, and future stamp placement.
 - Deferred: stamp persistence stays disabled until inventory reservation,
   idempotency, removal, and refund behavior are implemented together.
+- Decided: transient player emotes use a generic Canvas participant-signal
+  channel, not Zoomigo chat or a second websocket. The room server allowlists
+  five payload-free kinds and permits one accepted signal per player every two
+  seconds. Signals are neither stored nor replayed.
+- Decided: a lounge visit is recorded only after the authenticated Canvas
+  socket is accepted. Reconnects update the same player/week record. Player
+  presentation exposes only “visited this week,” never an exact timestamp,
+  workout, duration, or reason.
+- Decided: the room shows at most three prior-visitor traces at predefined scene
+  anchors. The current player and anyone actively present are excluded. This is
+  an ambient room change, not a chronological activity feed.

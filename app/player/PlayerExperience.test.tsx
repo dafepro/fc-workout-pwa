@@ -387,10 +387,10 @@ describe("consolidated default player experience", () => {
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Emotes" }));
-    fireEvent.click(screen.getByRole("button", { name: "Send 👋 emote" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send Wave emote" }));
 
     expect(
-      screen.getByRole("status", { name: "You sent 👋" }),
+      screen.getByRole("status", { name: "You previewed Wave" }),
     ).toBeInTheDocument();
   });
 

@@ -1,4 +1,4 @@
-import { render, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { defaultAvatar } from "../avatar/config";
 import { SharedLoungeCanvas } from "./SharedLoungeCanvas";
@@ -7,6 +7,10 @@ const runtime = vi.hoisted(() => ({
   constructed: 0,
   started: 0,
   stopped: 0,
+  sentSignals: [] as string[],
+  signalObserver: undefined as
+    | ((signal: { participantId: string; kind: string }) => void)
+    | undefined,
 }));
 
 vi.mock("@canvas-physics/client", () => ({
@@ -19,12 +23,48 @@ vi.mock("@canvas-physics/client", () => ({
       return () => undefined;
     }
 
-    subscribePresence() {
+    subscribePresence(observer: (snapshot: unknown) => void) {
+      observer({
+        participants: [
+          {
+            participantId: "player-one",
+            avatarEntityId: "avatar:player-one",
+            status: "active",
+          },
+        ],
+      });
       return () => undefined;
     }
 
-    subscribeOverlayProjection() {
+    subscribeOverlayProjection(observer: (snapshot: unknown) => void) {
+      observer({
+        entities: [
+          {
+            entityId: "avatar:player-one",
+            screen: { x: 120, y: 180 },
+            visible: true,
+            inViewport: true,
+          },
+        ],
+      });
       return () => undefined;
+    }
+
+    subscribeParticipantSignals(
+      observer: (signal: { participantId: string; kind: string }) => void,
+    ) {
+      runtime.signalObserver = observer;
+      return () => {
+        runtime.signalObserver = undefined;
+      };
+    }
+
+    sendParticipantSignal(kind: string) {
+      runtime.sentSignals.push(kind);
+    }
+
+    projectWorldPoint(point: { x: number; y: number }) {
+      return { screen: point, inCanvas: true, inViewport: true };
     }
 
     async start() {
@@ -48,6 +88,7 @@ vi.mock("./data/lounge-gateway", () => ({
     roomID: "team:team-one:lounge:2026-08-24:v2",
     serverURL: "wss://example.test/canvas",
     credentialProvider: vi.fn(),
+    visitorIDs: ["player-two"],
   }),
 }));
 
@@ -56,6 +97,8 @@ describe("SharedLoungeCanvas", () => {
     runtime.constructed = 0;
     runtime.started = 0;
     runtime.stopped = 0;
+    runtime.sentSignals = [];
+    runtime.signalObserver = undefined;
   });
 
   it("keeps the room runtime alive when safe roster presentation refreshes", async () => {
@@ -72,6 +115,7 @@ describe("SharedLoungeCanvas", () => {
       ],
       onStateChange: vi.fn(),
       onPresenceChange: vi.fn(),
+      onSignalPortChange: vi.fn(),
     };
     const view = render(<SharedLoungeCanvas {...props} />);
 
@@ -91,5 +135,50 @@ describe("SharedLoungeCanvas", () => {
 
     await waitFor(() => expect(runtime.constructed).toBe(1));
     expect(runtime.stopped).toBe(0);
+  });
+
+  it("relays predefined signals and renders their acknowledged sender", async () => {
+    const onSignalPortChange = vi.fn();
+    render(
+      <SharedLoungeCanvas
+        teamID="team-one"
+        playerID="player-one"
+        roster={[
+          {
+            playerID: "player-one",
+            displayName: "Mason C.",
+            avatarConfiguration: defaultAvatar(),
+          },
+          {
+            playerID: "player-two",
+            displayName: "Maya R.",
+            avatarConfiguration: defaultAvatar(),
+          },
+        ]}
+        onStateChange={vi.fn()}
+        onPresenceChange={vi.fn()}
+        onSignalPortChange={onSignalPortChange}
+      />,
+    );
+
+    await waitFor(() => expect(runtime.started).toBe(1));
+    const send = onSignalPortChange.mock.calls.find(
+      ([candidate]) => typeof candidate === "function",
+    )?.[0] as ((kind: string) => void) | undefined;
+    expect(send).toBeTypeOf("function");
+    act(() => send?.("zoomigo.emote.wave"));
+    expect(runtime.sentSignals).toEqual(["zoomigo.emote.wave"]);
+
+    act(() =>
+      runtime.signalObserver?.({
+        participantId: "player-one",
+        kind: "zoomigo.emote.wave",
+      }),
+    );
+    expect(screen.getByText("👋")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("You sent a Wave");
+    expect(
+      screen.getByLabelText("Maya R. stopped by this week"),
+    ).toBeInTheDocument();
   });
 });

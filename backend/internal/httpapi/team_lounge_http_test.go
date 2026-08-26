@@ -13,6 +13,7 @@ import (
 
 	"github.com/coder/websocket"
 	pb "github.com/dafepro/canvas/server/gen/canvasphysicsv1"
+	"github.com/dafepro/canvas/server/pkg/roomsdk"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/config"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
@@ -37,7 +38,12 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 		`INSERT INTO clubs (id, name, created_at) VALUES ('club-one', 'Zoomigo Club', '2026-01-01T00:00:00Z')`,
 		`INSERT INTO teams (id, club_id, name, season_id, weekly_default_goal, time_zone, created_at) VALUES ('team-one', 'club-one', 'Trailblazers', 'season-2026', 3, 'America/Chicago', '2026-01-01T00:00:00Z')`,
 		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-one', 'club-one', 'Mason', 'C', '{}', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-two', 'club-one', 'Maya', 'R', '{}', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('former-three', 'club-one', 'Former', 'A', '{}', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('former-four', 'club-one', 'Former', 'B', '{}', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('former-five', 'club-one', 'Former', 'C', '{}', '2026-01-01T00:00:00Z')`,
 		`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-one', 'player-one', '2026-01-01')`,
+		`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-one', 'player-two', '2026-01-01')`,
 	} {
 		if _, err := db.ExecContext(ctx, statement); err != nil {
 			t.Fatal(err)
@@ -62,6 +68,38 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 	if restRecorder.Code != http.StatusNoContent {
 		t.Fatalf("rest status = %d: %s", restRecorder.Code, restRecorder.Body.String())
 	}
+	visitorAt := time.Now().UTC().Add(-time.Hour)
+	if _, err := db.ExecContext(ctx, `INSERT INTO training_entries (
+		id, player_id, team_id, activity_definition_id, occurred_at, result_value,
+		result_unit, effort_level, exhaustion_level, created_at, delete_eligible_until
+	) VALUES ('entry-player-two', 'player-two', 'team-one', 'hill-sprints', ?, 8,
+		'reps', 2, 2, ?, ?)`, visitorAt.Format(time.RFC3339Nano),
+		visitorAt.Format(time.RFC3339Nano), visitorAt.Add(24*time.Hour).Format(time.RFC3339Nano)); err != nil {
+		t.Fatal(err)
+	}
+	projection, err := repository.TeamCanvas(ctx, domain.Actor{
+		Role: domain.RolePlayer, PlayerID: "player-one", ClubID: "club-one",
+	}, "team-one", time.Now().UTC())
+	if err != nil {
+		t.Fatal(err)
+	}
+	seedRoomID, err := teamlounge.WeeklyRoomID("team-one", projection.WeekKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := loungeStore.BindRoom(ctx, seedRoomID, "team-one", projection.WeekKey, roomsdk.RoomTemplate{
+		CanvasID: teamlounge.BeachBoardwalkCanvasID, CanvasVersion: teamlounge.BeachBoardwalkCanvasVersion,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := loungeStore.RecordVisit(ctx, seedRoomID, "player-two", visitorAt); err != nil {
+		t.Fatal(err)
+	}
+	for index, playerID := range []string{"former-three", "former-four", "former-five"} {
+		if err := loungeStore.RecordVisit(ctx, seedRoomID, playerID, visitorAt.Add(time.Duration(index+1)*time.Minute)); err != nil {
+			t.Fatal(err)
+		}
+	}
 
 	request := httptest.NewRequest(http.MethodPost, "/v1/teams/team-one/lounge-v2/socket-ticket", nil)
 	request.Header.Set("Authorization", "Bearer test-session")
@@ -71,8 +109,9 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 		t.Fatalf("ticket status = %d: %s", recorder.Code, recorder.Body.String())
 	}
 	var response struct {
-		Ticket string `json:"ticket"`
-		RoomID string `json:"roomId"`
+		Ticket     string   `json:"ticket"`
+		RoomID     string   `json:"roomId"`
+		VisitorIDs []string `json:"visitorIds"`
 	}
 	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
 		t.Fatal(err)
@@ -80,6 +119,9 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 	teamID, weekKey, parseErr := teamlounge.ParseWeeklyRoomID(response.RoomID)
 	if len(response.Ticket) != 43 || parseErr != nil || teamID != "team-one" || weekKey == "" {
 		t.Fatalf("ticket response = %#v", response)
+	}
+	if len(response.VisitorIDs) != 1 || response.VisitorIDs[0] != "player-two" {
+		t.Fatalf("safe visitor projection = %#v", response.VisitorIDs)
 	}
 	template, err := loungeStore.ResolveRoomTemplate(ctx, response.RoomID)
 	if err != nil || template.CanvasID != teamlounge.BeachBoardwalkCanvasID || template.CanvasVersion != teamlounge.BeachBoardwalkCanvasVersion {
@@ -124,5 +166,13 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 	if accepted == nil || accepted.GetUserId() != "player-one" ||
 		accepted.GetCanvasId() != teamlounge.BeachBoardwalkCanvasID || accepted.GetTickRate() != 60 {
 		t.Fatalf("join accepted = %#v", accepted)
+	}
+	traces, err := loungeStore.ListVisitTraces(ctx, response.RoomID, "player-two", 20)
+	foundSocketVisit := false
+	for _, trace := range traces {
+		foundSocketVisit = foundSocketVisit || trace.PlayerID == "player-one"
+	}
+	if err != nil || !foundSocketVisit {
+		t.Fatalf("accepted socket visit = %#v, %v", traces, err)
 	}
 }

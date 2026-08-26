@@ -22,6 +22,10 @@ type SQLiteStore struct {
 	definitions map[string]roomsdk.ItemDefinitionRecord
 }
 
+type VisitTrace struct {
+	PlayerID string
+}
+
 func NewSQLiteStore(db *sql.DB, catalog Catalog) *SQLiteStore {
 	canvases := make(map[string]roomsdk.CanvasRecord, len(catalog.Canvases))
 	for _, record := range catalog.Canvases {
@@ -152,4 +156,56 @@ func (store *SQLiteStore) ResolveRoomTemplate(ctx context.Context, roomID string
 		return roomsdk.RoomTemplate{}, fmt.Errorf("resolve lounge room: %w", err)
 	}
 	return template, nil
+}
+
+func (store *SQLiteStore) RecordVisit(
+	ctx context.Context,
+	roomID, playerID string,
+	visitedAt time.Time,
+) error {
+	if roomID == "" || playerID == "" || visitedAt.IsZero() {
+		return errors.New("record lounge visit: invalid visit")
+	}
+	_, err := store.db.ExecContext(ctx, `INSERT INTO team_lounge_v2_weekly_visits (
+		room_id, player_id, last_visited_at
+	) VALUES (?, ?, ?)
+	ON CONFLICT(room_id, player_id) DO UPDATE SET
+		last_visited_at = excluded.last_visited_at`,
+		roomID, playerID, visitedAt.UTC().Format(time.RFC3339Nano),
+	)
+	if err != nil {
+		return fmt.Errorf("record lounge visit: %w", err)
+	}
+	return nil
+}
+
+func (store *SQLiteStore) ListVisitTraces(
+	ctx context.Context,
+	roomID, excludePlayerID string,
+	limit int,
+) ([]VisitTrace, error) {
+	if roomID == "" || excludePlayerID == "" || limit < 1 || limit > 20 {
+		return nil, errors.New("list lounge visits: invalid request")
+	}
+	rows, err := store.db.QueryContext(ctx, `SELECT player_id
+		FROM team_lounge_v2_weekly_visits
+		WHERE room_id = ? AND player_id <> ?
+		ORDER BY last_visited_at DESC, player_id
+		LIMIT ?`, roomID, excludePlayerID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list lounge visits: %w", err)
+	}
+	defer rows.Close()
+	traces := make([]VisitTrace, 0, limit)
+	for rows.Next() {
+		var trace VisitTrace
+		if err := rows.Scan(&trace.PlayerID); err != nil {
+			return nil, fmt.Errorf("list lounge visits: %w", err)
+		}
+		traces = append(traces, trace)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("list lounge visits: %w", err)
+	}
+	return traces, nil
 }

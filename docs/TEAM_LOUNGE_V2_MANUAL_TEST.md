@@ -1,10 +1,10 @@
 # Team Lounge V2 manual test
 
-Updated: 2026-08-25.
+Updated: 2026-08-26.
 
 This plan covers tuned direct avatar dragging, collision-map revision 2, safe
-live teammate overlays, and the authenticated shared room. Earned-item
-placement remains a later segment.
+live teammate overlays, server-relayed emotes, prior-visitor traces, and the
+authenticated shared room. Earned-item placement remains a later segment.
 
 ## Setup
 
@@ -26,21 +26,32 @@ placement remains a later segment.
    hidden flick or coast.
 5. Walk into the yellow beach ball. It should move from the collision, bounce
    off room boundaries, and remain in the room.
-6. Open **Emotes**, choose each reaction, and confirm it appears briefly above
-   the player while the tray closes.
-7. Open **Stamps**. The message should report the current earned-stamp count
+6. With a second same-team player connected, open **Emotes** and choose each
+   reaction. Confirm the reaction appears briefly above the sender in both
+   windows only after the server accepts it.
+7. Immediately try another reaction. The emote choices should remain disabled
+   for about two seconds, then become available again. No duplicate reaction
+   should appear after the cooldown.
+8. Open **Stamps**. The message should report the current earned-stamp count
    without allowing placement yet.
-8. Confirm **Items** is visibly disabled and **Map** is visibly disabled because
+9. Confirm **Items** is visibly disabled and **Map** is visibly disabled because
    the first room fits on one screen. Neither should look tappable.
-9. Sign in as a second player on the same team in another browser profile.
-   Confirm **2 here** appears and both windows render each player's saved avatar
-   plus safe first-name/last-initial label.
-10. Switch back to V1 in Me. Confirm the current Team Canvas returns and the V2
+10. Sign in as a second player on the same team in another browser profile.
+    Confirm **2 here** appears and both windows render each player's saved avatar
+    plus safe first-name/last-initial label.
+11. Close the second player's room, then leave and re-enter Team as the first
+    player. Confirm the absent teammate appears once as a subdued **visited**
+    trace at a fixed room anchor. It must not show a time, workout, duration, or
+    message.
+12. Reopen the room as the second player. Confirm their prior-visitor trace
+    disappears while their live avatar is present. At most three absent-player
+    traces may be visible.
+13. Switch back to V1 in Me. Confirm the current Team Canvas returns and the V2
     room is gone. Switch to V2 again and confirm only one room is present.
-11. Expand **Lounge diagnostics**. Confirm the role says **Host** in the first
+14. Expand **Lounge diagnostics**. Confirm the role says **Host** in the first
     window and **Peer** in the second. During a drag, correction should normally
     remain below `3.00`; record a screen capture if it repeatedly jumps above it.
-12. Enable **Show collision map**. The red shapes should sit over the visible
+15. Enable **Show collision map**. The red shapes should sit over the visible
     hut, umbrella table, bench, snack cart/planter, and lower pool edge. The open
     center boardwalk should have no red blocker.
 
@@ -61,8 +72,7 @@ placement remains a later segment.
 ## Expected limitations in this slice
 
 - Stamps cannot be placed. Items and Map are disabled.
-- Emotes remain local presentation and are not yet relayed.
-- Returning-player visit traces are not yet projected.
+- Visit traces are ambient weekly presence only; they are not a feed or history.
 
 Record feedback on movement feel, any correction spikes, collision alignment,
 teammate overlays, reconnect clarity, ball persistence, and whether the control

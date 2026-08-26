@@ -154,8 +154,20 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 		roomServer, err := roomsdk.New(roomsdk.Config{
 			Store:          service.teamLoungeStore,
 			RoomTemplates:  service.teamLoungeStore,
-			Auth:           newTeamLoungeAuthenticator(service.canvasTickets),
+			Auth:           newTeamLoungeAuthenticator(service.canvasTickets, service.teamLoungeStore, service.now),
 			AllowedOrigins: teamLoungeAllowedOrigins(cfg.AllowedOrigin),
+			Metrics:        newTeamLoungeRoomMetrics(service.operations),
+			ParticipantSignals: roomsdk.ParticipantSignalPolicy{
+				AllowedKinds: map[string]struct{}{
+					"zoomigo.emote.wave":  {},
+					"zoomigo.emote.heart": {},
+					"zoomigo.emote.ball":  {},
+					"zoomigo.emote.star":  {},
+					"zoomigo.emote.laugh": {},
+				},
+				MaxPayloadBytes: 0,
+				MinInterval:     2 * time.Second,
+			},
 		})
 		if err == nil {
 			service.teamLoungeRooms = roomServer.Handler()

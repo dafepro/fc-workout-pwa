@@ -2,11 +2,13 @@ export interface TeamLoungeCredential {
   ticket: string;
   roomID: string;
   serverURL: string;
+  visitorIDs: string[];
 }
 
 export interface PreparedTeamLoungeJoin {
   roomID: string;
   serverURL: string;
+  visitorIDs: string[];
   credentialProvider(): Promise<string>;
 }
 
@@ -20,6 +22,7 @@ export async function prepareTeamLoungeJoin(
   return {
     roomID,
     serverURL,
+    visitorIDs: [...queued.visitorIDs],
     async credentialProvider() {
       const credential = queued ?? (await requestTeamLoungeCredential(teamID));
       queued = null;
@@ -53,6 +56,7 @@ export async function requestTeamLoungeCredential(
   const ticket = typeof body.ticket === "string" ? body.ticket : "";
   const roomID = typeof body.roomId === "string" ? body.roomId : "";
   const serverURL = typeof body.serverUrl === "string" ? body.serverUrl : "";
+  const visitorIDs = Array.isArray(body.visitorIds) ? body.visitorIds : [];
   let parsedServer: URL;
   try {
     parsedServer = new URL(serverURL);
@@ -62,7 +66,14 @@ export async function requestTeamLoungeCredential(
   if (
     !/^[a-zA-Z0-9_-]{43}$/u.test(ticket) ||
     !roomID.startsWith(`team:${teamID}:lounge:`) ||
-    !["https:", "http:"].includes(parsedServer.protocol)
+    !["https:", "http:"].includes(parsedServer.protocol) ||
+    visitorIDs.length > 3 ||
+    visitorIDs.some(
+      (playerID) =>
+        typeof playerID !== "string" ||
+        !/^[a-zA-Z0-9_-]{1,128}$/u.test(playerID),
+    ) ||
+    new Set(visitorIDs).size !== visitorIDs.length
   ) {
     throw new Error("The team lounge is unavailable.");
   }
@@ -70,5 +81,6 @@ export async function requestTeamLoungeCredential(
     ticket,
     roomID,
     serverURL: parsedServer.toString().replace(/\/$/u, ""),
+    visitorIDs: [...visitorIDs] as string[],
   };
 }

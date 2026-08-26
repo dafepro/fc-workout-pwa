@@ -6,11 +6,56 @@ import (
 	"encoding/json"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/dafepro/canvas/server/pkg/roomsdk"
 	"github.com/dafepro/canvas/server/pkg/roomsdktest"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
 )
+
+func TestWeeklyVisitTracesAreIdempotentCappedAndRoomScoped(t *testing.T) {
+	db := openMigratedDatabase(t)
+	seedTeam(t, db)
+	for _, statement := range []string{
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-one', 'club-one', 'One', 'P', '{}', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-two', 'club-one', 'Two', 'P', '{}', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-three', 'club-one', 'Three', 'P', '{}', '2026-01-01T00:00:00Z')`,
+	} {
+		if _, err := db.ExecContext(t.Context(), statement); err != nil {
+			t.Fatal(err)
+		}
+	}
+	store := NewSQLiteStore(db, Catalog{})
+	template := roomsdk.RoomTemplate{CanvasID: "beach-boardwalk", CanvasVersion: 2}
+	roomID := "team:team-one:lounge:2026-08-24:v2"
+	if err := store.BindRoom(t.Context(), roomID, "team-one", "2026-08-24", template); err != nil {
+		t.Fatal(err)
+	}
+	base := time.Date(2026, time.August, 26, 12, 0, 0, 0, time.UTC)
+	for index, playerID := range []string{"player-one", "player-two", "player-three"} {
+		if err := store.RecordVisit(t.Context(), roomID, playerID, base.Add(time.Duration(index)*time.Minute)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := store.RecordVisit(t.Context(), roomID, "player-one", base.Add(10*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+
+	traces, err := store.ListVisitTraces(t.Context(), roomID, "player-three", 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(traces) != 2 || traces[0].PlayerID != "player-one" || traces[1].PlayerID != "player-two" {
+		t.Fatalf("visit traces = %#v", traces)
+	}
+	var records int
+	if err := db.QueryRowContext(t.Context(), `SELECT COUNT(*) FROM team_lounge_v2_weekly_visits WHERE room_id = ?`, roomID).Scan(&records); err != nil {
+		t.Fatal(err)
+	}
+	if records != 3 {
+		t.Fatalf("visit records = %d, want 3", records)
+	}
+}
 
 var conformanceCanvas = roomsdk.CanvasRecord{
 	CanvasID: "test-canvas", Version: 1,

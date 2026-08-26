@@ -15,6 +15,7 @@ describe("Team Lounge V2 gateway", () => {
           roomId: "team:team-one:lounge:2026-08-24:v2",
           serverUrl: "https://api.example.test",
           expiresInSeconds: 30,
+          visitorIds: ["player-two"],
         }),
         { status: 201, headers: { "Content-Type": "application/json" } },
       ),
@@ -25,6 +26,7 @@ describe("Team Lounge V2 gateway", () => {
       ticket: "a".repeat(43),
       roomID: "team:team-one:lounge:2026-08-24:v2",
       serverURL: "https://api.example.test",
+      visitorIDs: ["player-two"],
     });
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/zoomigo/v1/teams/team-one/lounge-v2/socket-ticket",
@@ -54,6 +56,7 @@ describe("Team Lounge V2 gateway", () => {
             ticket: ticket.repeat(43),
             roomId: "team:team-one:lounge:2026-08-24:v2",
             serverUrl: "https://api.example.test",
+            visitorIds: ["player-two"],
           }),
           { status: 201 },
         ),
@@ -65,6 +68,7 @@ describe("Team Lounge V2 gateway", () => {
     );
 
     const join = await prepareTeamLoungeJoin("team-one");
+    expect(join.visitorIDs).toEqual(["player-two"]);
     await expect(join.credentialProvider()).resolves.toBe(
       `ticket.${"a".repeat(43)}`,
     );

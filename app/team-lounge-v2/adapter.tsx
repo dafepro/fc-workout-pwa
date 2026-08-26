@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RuntimeDiagnostics } from "@canvas-physics/client";
 import { defaultAvatar } from "../avatar/config";
 import type {
@@ -16,6 +16,11 @@ import { SharedLoungeCanvas } from "./SharedLoungeCanvas";
 import { CollisionDebugOverlay } from "./dev/CollisionDebugOverlay";
 import { LoungeDevPanel } from "./dev/LoungeDevPanel";
 import type { LoungeRosterMember } from "./presence";
+import {
+  LOUNGE_EMOTE_COOLDOWN_MS,
+  LOUNGE_EMOTE_DURATION_MS,
+  loungeEmotes,
+} from "./social/emotes";
 
 export function TeamLoungeV2({
   host,
@@ -36,13 +41,27 @@ export function TeamLoungeV2({
     null,
   );
   const [showCollisionMap, setShowCollisionMap] = useState(false);
-  const [activeEmote, setActiveEmote] = useState<string | null>(null);
+  const [signalReady, setSignalReady] = useState(false);
+  const [emoteCoolingDown, setEmoteCoolingDown] = useState(false);
+  const [localEmote, setLocalEmote] = useState<
+    (typeof loungeEmotes)[number] | null
+  >(null);
+  const signalPortRef = useRef<((kind: string) => void) | null>(null);
+  const cooldownTimerRef = useRef<number | null>(null);
+  const localEmoteTimerRef = useRef<number | null>(null);
   const updateRuntimeState = useCallback((next: LocalLoungeCanvasState) => {
     setRuntimeState(next);
     if (next === "loading") setDiagnostics(null);
   }, []);
   const updatePresence = useCallback(
     (next: number) => setPresenceCount(Math.max(0, next)),
+    [],
+  );
+  const updateSignalPort = useCallback(
+    (sender: ((kind: string) => void) | null) => {
+      signalPortRef.current = sender;
+      setSignalReady(sender !== null);
+    },
     [],
   );
   const sharedRoom =
@@ -74,14 +93,17 @@ export function TeamLoungeV2({
     host.room.projection?.members,
   ]);
 
-  useEffect(() => {
-    if (!activeEmote) {
-      return;
-    }
-
-    const timeout = window.setTimeout(() => setActiveEmote(null), 2400);
-    return () => window.clearTimeout(timeout);
-  }, [activeEmote]);
+  useEffect(
+    () => () => {
+      if (cooldownTimerRef.current !== null) {
+        window.clearTimeout(cooldownTimerRef.current);
+      }
+      if (localEmoteTimerRef.current !== null) {
+        window.clearTimeout(localEmoteTimerRef.current);
+      }
+    },
+    [],
+  );
 
   return (
     <section
@@ -122,6 +144,7 @@ export function TeamLoungeV2({
             roster={roster}
             onStateChange={updateRuntimeState}
             onPresenceChange={updatePresence}
+            onSignalPortChange={updateSignalPort}
             onDiagnostics={showDeveloperTools ? setDiagnostics : undefined}
           />
         ) : (
@@ -134,13 +157,13 @@ export function TeamLoungeV2({
         {showDeveloperTools && showCollisionMap ? (
           <CollisionDebugOverlay />
         ) : null}
-        {activeEmote ? (
+        {!sharedRoom && localEmote ? (
           <span
-            className="team-lounge-v2__active-emote"
+            className="team-lounge-v2__local-emote"
             role="status"
-            aria-label={`You sent ${activeEmote}`}
+            aria-label={`You previewed ${localEmote.label}`}
           >
-            {activeEmote}
+            {localEmote.symbol}
           </span>
         ) : null}
         {runtimeState === "error" ? (
@@ -169,17 +192,39 @@ export function TeamLoungeV2({
 
       {tray === "emotes" ? (
         <div className="team-lounge-v2__tray" aria-label="Choose an emote">
-          {["👋", "❤️", "⚽", "⭐", "😂"].map((emote) => (
+          {loungeEmotes.map((emote) => (
             <button
-              key={emote}
+              key={emote.kind}
               type="button"
-              aria-label={`Send ${emote} emote`}
+              aria-label={`Send ${emote.label} emote`}
+              disabled={(sharedRoom && !signalReady) || emoteCoolingDown}
               onClick={() => {
-                setActiveEmote(emote);
+                const send = signalPortRef.current;
+                if (emoteCoolingDown || (sharedRoom && !send)) return;
+                if (sharedRoom) {
+                  send?.(emote.kind);
+                } else {
+                  setLocalEmote(emote);
+                  if (localEmoteTimerRef.current !== null) {
+                    window.clearTimeout(localEmoteTimerRef.current);
+                  }
+                  localEmoteTimerRef.current = window.setTimeout(() => {
+                    localEmoteTimerRef.current = null;
+                    setLocalEmote(null);
+                  }, LOUNGE_EMOTE_DURATION_MS);
+                }
+                setEmoteCoolingDown(true);
+                if (cooldownTimerRef.current !== null) {
+                  window.clearTimeout(cooldownTimerRef.current);
+                }
+                cooldownTimerRef.current = window.setTimeout(() => {
+                  cooldownTimerRef.current = null;
+                  setEmoteCoolingDown(false);
+                }, LOUNGE_EMOTE_COOLDOWN_MS);
                 setTray(null);
               }}
             >
-              {emote}
+              {emote.symbol}
             </button>
           ))}
         </div>

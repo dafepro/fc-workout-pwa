@@ -128,9 +128,55 @@ Outcome: returning players can tell what changed without adding a feed.
 - [x] Merge presence with roster state without exposing workout data or storing
       roster presentation in Canvas snapshots.
 - [x] Persist the ball and system scene checkpoint across room sleep/restart.
-- [ ] Add capped predefined visit traces for earlier visitors.
-- [ ] Add five transient predefined emotes with expiry and rate limits.
+- [x] Add capped predefined visit traces for earlier visitors.
+- [x] Add five transient predefined emotes with expiry and rate limits.
 - [ ] Cover reconnect identity, stale avatars, expiry, and no-cross-team leaks.
+
+### Segment 3A vertical slice — social signals and weekly visit traces
+
+This slice makes the shared room feel inhabited without adding chat, a feed,
+or another Zoomigo realtime transport.
+
+1. Extend the pinned Canvas protocol and SDK with a generic participant signal.
+   The server allowlists signal kinds, stamps authenticated sender identity,
+   enforces a payload cap and cooldown, and relays the signal only inside the
+   current room. Signals are transient and never enter checkpoints or replay.
+2. Map the five Zoomigo emotes to five payload-free Canvas signal kinds. Render
+   a received emote above the sender's current avatar for a bounded duration;
+   do not render an optimistic duplicate before the server accepts it.
+3. Record one visit per authenticated player and immutable weekly room when the
+   Canvas socket is accepted. Expose a same-team, capped trace projection with
+   no exact timestamp, workout data, connection identifier, or free text.
+4. Place up to three prior-visitor traces at predefined boardwalk anchors.
+   Active players and the current player are excluded so traces do not compete
+   with live presence.
+5. Cover allowlists, rate limits, room isolation, weekly expiry, reconnect
+   idempotency, roster safety, accessible copy, and timer cleanup before dev
+   deployment.
+
+Proposed file tree for this slice:
+
+```text
+Canvas/
+  packages/protocol/proto/room.proto
+  packages/protocol/src/gen/room.ts
+  packages/client/src/net/room-client.ts
+  packages/client/src/runtime/{room-session,canvas-runtime}.ts
+  packages/client/test/participant-signals.test.ts
+  server/gen/canvasphysicsv1/room.pb.go
+  server/pkg/roomsdk/{config,room}.go
+  server/pkg/roomsdk/participant_signal_test.go
+
+Hill Striders PWA/
+  backend/migrations/000030_team_lounge_weekly_visits.{up,down}.sql
+  backend/internal/teamlounge/{store,store_test}.go
+  backend/internal/httpapi/{team_lounge,team_lounge_http_test}.go
+  app/team-lounge-v2/data/{lounge-gateway,lounge-gateway.test}.ts
+  app/team-lounge-v2/{SharedLoungeCanvas,adapter,presence}.tsx
+  app/team-lounge-v2/overlays/{AvatarOverlays,VisitTraces}.tsx
+  app/team-lounge-v2/social/{emotes,emotes.test}.ts
+  app/team-lounge-v2/team-lounge-v2.css
+```
 
 ## Segment 4 — app-authorized stamps and items
 

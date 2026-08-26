@@ -5,10 +5,11 @@ go 1.26.0
 require (
 	filippo.io/age v1.3.1
 	github.com/coder/websocket v1.8.15
-	github.com/dafepro/canvas/server v0.0.0-20260825231508-469634571d56
+	github.com/dafepro/canvas/server v0.0.0-20260826074053-d04ed59af52c
 	github.com/prometheus/client_golang v1.24.1
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	golang.org/x/crypto v0.54.0
+	google.golang.org/protobuf v1.36.12
 	modernc.org/sqlite v1.54.0
 )
 
@@ -27,7 +28,6 @@ require (
 	github.com/prometheus/procfs v0.21.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	golang.org/x/sys v0.47.0 // indirect
-	google.golang.org/protobuf v1.36.12 // indirect
 	modernc.org/libc v1.74.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect

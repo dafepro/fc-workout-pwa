@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -10,6 +11,23 @@ import (
 	"github.com/dafepro/canvas/server/pkg/roomsdktest"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 )
+
+type loungeVisitRecorder struct {
+	roomID   string
+	playerID string
+	visits   int
+}
+
+func (recorder *loungeVisitRecorder) RecordVisit(
+	_ context.Context,
+	roomID, playerID string,
+	_ time.Time,
+) error {
+	recorder.roomID = roomID
+	recorder.playerID = playerID
+	recorder.visits++
+	return nil
+}
 
 func TestTeamLoungeAuthenticatorConformsAndConsumesOneTimeTickets(t *testing.T) {
 	tickets := newTeamCanvasSocketTickets(time.Now)
@@ -22,7 +40,8 @@ func TestTeamLoungeAuthenticatorConformsAndConsumesOneTimeTickets(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	auth := newTeamLoungeAuthenticator(tickets)
+	visits := &loungeVisitRecorder{}
+	auth := newTeamLoungeAuthenticator(tickets, visits, time.Now)
 	request := func(roomID, ticket string) *http.Request {
 		req := httptest.NewRequest("GET", "/v1/realtime/rooms/"+roomID, nil)
 		req.SetPathValue("id", roomID)
@@ -40,6 +59,9 @@ func TestTeamLoungeAuthenticatorConformsAndConsumesOneTimeTickets(t *testing.T) 
 		{Name: "missing credential", Request: request("team:team-one:lounge:2026-08-24:v2", ""), Unauthorized: true},
 		{Name: "V1 credential", Request: request("team:team-one:lounge:2026-08-24:v2", v1), Unauthorized: true},
 	})
+	if visits.visits != 1 || visits.roomID != "team:team-one:lounge:2026-08-24:v2" || visits.playerID != "player-one" {
+		t.Fatalf("recorded visits = %#v", visits)
+	}
 
 	if identity, err := auth.Authenticate(t.Context(), request("team:team-one:lounge:2026-08-24:v2", valid)); err == nil || identity != (roomsdk.Identity{}) {
 		t.Fatalf("replayed identity = %#v, %v", identity, err)

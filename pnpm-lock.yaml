@@ -248,7 +248,7 @@ packages:
   "@canvas-physics/client@file:vendor/canvas/canvas-physics-client-0.1.0.tgz":
     resolution:
       {
-        integrity: sha512-wiYd4wr9zqGuox7v9VPP74N+zXc4cVucgEwpeAHYZA+uAT6GlEuobjyzCSFJrHbSVeu8W6GnZRhE8Fuuvf4IOw==,
+        integrity: sha512-7yFENWU7dtOTQNfeEx4CZSiw9G1SLUjQBtmGkL9rYPXIsmYUbCrB6K+HxRFIDcH6JQ6JPvokgLXw2Q7YSENXjg==,
         tarball: file:vendor/canvas/canvas-physics-client-0.1.0.tgz,
       }
     version: 0.1.0
@@ -264,7 +264,7 @@ packages:
   "@canvas-physics/protocol@file:vendor/canvas/canvas-physics-protocol-0.1.0.tgz":
     resolution:
       {
-        integrity: sha512-k4mfwvFy+qAEqkC/hY/esImji4gGPMrZRQJ8GqXXgjZAVsQGD5ApLjhHT5kGjrqFxEWHnkhBO7dSUJub6TdYXw==,
+        integrity: sha512-mpgnuI0qTcHCmTu8LWS6ncvs79xftG+xEb+r+VZd3CvmfhLiZfX3SIzVspG3nbx4eCQminc5+alZY2EmlbPVHg==,
         tarball: file:vendor/canvas/canvas-physics-protocol-0.1.0.tgz,
       }
     version: 0.1.0

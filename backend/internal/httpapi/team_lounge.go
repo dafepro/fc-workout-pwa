@@ -4,10 +4,15 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/dafepro/canvas/server/pkg/roomsdk"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/teamlounge"
 )
+
+type teamLoungeVisitStore interface {
+	RecordVisit(context.Context, string, string, time.Time) error
+}
 
 func (service *service) createTeamLoungeSocketTicket(w http.ResponseWriter, r *http.Request) {
 	actor, ok := service.authenticate(w, r)
@@ -35,16 +40,35 @@ func (service *service) createTeamLoungeSocketTicket(w http.ResponseWriter, r *h
 		writeError(w, r, http.StatusConflict, "room_template_conflict", "This week's lounge could not be opened.")
 		return
 	}
+	traces, err := service.teamLoungeStore.ListVisitTraces(r.Context(), roomID, actor.PlayerID, 20)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "internal_error", "This week's lounge could not be opened.")
+		return
+	}
+	members := make(map[string]struct{}, len(projection.Members))
+	for _, member := range projection.Members {
+		members[member.PlayerID] = struct{}{}
+	}
+	visitorIDs := make([]string, 0, len(traces))
+	for _, trace := range traces {
+		if _, activeMember := members[trace.PlayerID]; activeMember {
+			visitorIDs = append(visitorIDs, trace.PlayerID)
+			if len(visitorIDs) == 3 {
+				break
+			}
+		}
+	}
 	ticket, err := service.canvasTickets.issueForAudience(actor, teamID, projection.WeekKey, teamLoungeV2TicketAudience)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "internal_error", "Live team updates could not be started.")
 		return
 	}
 	writeJSON(w, http.StatusCreated, struct {
-		Ticket           string `json:"ticket"`
-		RoomID           string `json:"roomId"`
-		ExpiresInSeconds int    `json:"expiresInSeconds"`
-	}{Ticket: ticket, RoomID: roomID, ExpiresInSeconds: int(teamCanvasSocketTicketTTL.Seconds())})
+		Ticket           string   `json:"ticket"`
+		RoomID           string   `json:"roomId"`
+		ExpiresInSeconds int      `json:"expiresInSeconds"`
+		VisitorIDs       []string `json:"visitorIds"`
+	}{Ticket: ticket, RoomID: roomID, ExpiresInSeconds: int(teamCanvasSocketTicketTTL.Seconds()), VisitorIDs: visitorIDs})
 }
 
 func (service *service) connectTeamLoungeRoom(w http.ResponseWriter, r *http.Request) {
@@ -63,8 +87,12 @@ func teamLoungeAllowedOrigins(origin string) []string {
 	return []string{teamCanvasOriginPattern(origin)}
 }
 
-func newTeamLoungeAuthenticator(tickets *teamCanvasSocketTickets) roomsdk.Authenticator {
-	return roomsdk.AuthenticatorFunc(func(_ context.Context, r *http.Request) (roomsdk.Identity, error) {
+func newTeamLoungeAuthenticator(
+	tickets *teamCanvasSocketTickets,
+	visits teamLoungeVisitStore,
+	now func() time.Time,
+) roomsdk.Authenticator {
+	return roomsdk.AuthenticatorFunc(func(ctx context.Context, r *http.Request) (roomsdk.Identity, error) {
 		teamID, weekKey, err := teamlounge.ParseWeeklyRoomID(r.PathValue("id"))
 		if err != nil {
 			return roomsdk.Identity{}, roomsdk.ErrUnauthorized
@@ -72,6 +100,9 @@ func newTeamLoungeAuthenticator(tickets *teamCanvasSocketTickets) roomsdk.Authen
 		ticket := teamCanvasSocketTicket(r.Header.Values("Sec-WebSocket-Protocol"))
 		claim, ok := tickets.consumeForAudience(ticket, teamID, weekKey, teamLoungeV2TicketAudience)
 		if !ok || claim.Actor.PlayerID == "" {
+			return roomsdk.Identity{}, roomsdk.ErrUnauthorized
+		}
+		if visits == nil || visits.RecordVisit(ctx, r.PathValue("id"), claim.Actor.PlayerID, now().UTC()) != nil {
 			return roomsdk.Identity{}, roomsdk.ErrUnauthorized
 		}
 		return roomsdk.Identity{UserID: claim.Actor.PlayerID, DisplayName: "Player"}, nil
