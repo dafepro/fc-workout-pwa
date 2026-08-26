@@ -202,6 +202,7 @@ export const playerExperienceCopy = {
     momentumPreview: "Momentum preview",
     todayPreview: "Today preview",
     teamAccess: "Team access preview",
+    teamLoungeVersion: "Team Lounge version",
     showMomentum: "Show Momentum status",
     showRewards: "Show rewards preview",
     reset: "Reset dev controls",

@@ -26,11 +26,11 @@ app/
     team-lounge-v2.css                        # mobile shell and overlays
     content.ts                                # centralized copy
     adapter.tsx                               # lazy adapter entry
-    canvas-runtime.ts                         # Canvas public runtime composition
-    canvas.worker.ts                          # Zoomigo behavior registration
+    LocalLoungeCanvas.tsx                     # Canvas public runtime composition
+    local-simulation.ts                       # disposable local simulation adapter
     scene/
       beach-boardwalk.ts                      # template and item definitions
-      soccer-ball-behavior.ts                 # deterministic kick behavior
+      assets.ts                               # allowlisted room assets
     overlays/
       AvatarOverlays.tsx                      # safe names/status/emotes
     controls/
@@ -84,17 +84,19 @@ provenance, and completion gates before runtime code lands.
 Outcome: a developer can choose V2 in Me, enter Team, move a Zoomigo avatar in
 Beach Boardwalk, kick one ball, and return to V1 without a reload race.
 
-- [ ] Add a `teamLoungeVersion` dev setting with safe parser/reset behavior.
-- [ ] Render the selector only when server-projected dev controls are enabled.
-- [ ] Resolve and lazy-load one adapter; prove the inactive adapter does not
+- [x] Add a `teamLoungeVersion` dev setting with safe parser/reset behavior.
+- [x] Render the selector only when server-projected dev controls are enabled.
+- [x] Resolve and lazy-load one adapter; prove the inactive adapter does not
       mount or connect.
-- [ ] Compose Canvas runtime and application worker from public package exports.
-- [ ] Add a minimal versioned Beach Boardwalk scene and system-owned ball.
-- [ ] Add relative thumbstick movement, avatar art/label overlay, loading/error
+- [x] Compose the Canvas scene, input, renderer, and packaged simulation worker
+      from public package exports.
+- [x] Add a minimal versioned Beach Boardwalk scene and system-owned ball.
+- [x] Add relative thumbstick movement, a temporary avatar token/name overlay,
+      transient emotes, loading/error
       states, and the four-control shell.
-- [ ] Keep unavailable controls explicit and noninteractive.
+- [x] Keep unavailable controls explicit and noninteractive.
 - [ ] Cover selection, lazy failure, route cleanup, movement, and reduced motion.
-- [ ] Verify at 320 CSS pixels and with one Android-sized viewport.
+- [x] Verify at 320 CSS pixels and with one Android-sized viewport.
 
 The local room is a development integration proof, not a multiplayer claim.
 Its UI must label the connection state in developer tooling.

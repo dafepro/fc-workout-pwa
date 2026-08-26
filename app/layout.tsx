@@ -4,6 +4,7 @@ import { copy } from "./content/copy";
 import { AuthGate } from "./state/auth-context";
 import "./globals.css";
 import "./team-canvas/team-canvas.css";
+import "./team-lounge-v2/team-lounge-v2.css";
 import "./player/player.css";
 
 export async function generateMetadata(): Promise<Metadata> {

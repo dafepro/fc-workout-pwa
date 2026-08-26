@@ -1,0 +1,159 @@
+import {
+  CollisionLayer,
+  defaultKickableConfig,
+  type CanvasDefinition,
+  type ItemDefinition,
+} from "@canvas-physics/core";
+
+export const beachBallDefinition: ItemDefinition = {
+  definitionId: "beach-ball",
+  version: 1,
+  displayName: "Beach ball",
+  visual: {
+    size: { width: 9, height: 9 },
+    placeholder: { shape: "circle", color: 0xffd33d },
+    zIndex: 8,
+  },
+  body: {
+    mode: "dynamic",
+    mass: 0.35,
+    gravityScale: 0,
+    linearDamping: 0.4,
+    angularDamping: 0.55,
+    canSleep: true,
+  },
+  colliders: [
+    {
+      id: "solid",
+      role: "itemSolid",
+      shape: { type: "circle", radius: 4.5 },
+      restitution: 0.82,
+      friction: 0.18,
+      collisionMask:
+        CollisionLayer.WORLD_STATIC |
+        CollisionLayer.ITEM_SOLID |
+        CollisionLayer.ITEM_SENSOR,
+    },
+    {
+      id: "kick",
+      role: "itemSensor",
+      shape: { type: "circle", radius: 5.8 },
+    },
+  ],
+  behaviorType: "kickable",
+  defaultConfig: {
+    ...defaultKickableConfig,
+    kickStrength: 1.25,
+    maxImpulse: 18,
+  },
+  persistence: {
+    transform: true,
+    behaviorState: true,
+    onRoomSleep: "pause",
+  },
+  complexity: "simple",
+};
+
+export const loungeAvatarDefinition: ItemDefinition = {
+  definitionId: "avatar",
+  version: 1,
+  displayName: "Player avatar",
+  visual: {
+    size: { width: 9, height: 9 },
+    placeholder: { shape: "circle", color: 0x1d5a87 },
+    zIndex: 12,
+  },
+  colliders: [],
+  defaultConfig: {},
+  persistence: {
+    transform: false,
+    behaviorState: false,
+    onRoomSleep: "pause",
+  },
+  complexity: "simple",
+};
+
+export const beachBoardwalkDefinitions: ItemDefinition[] = [
+  beachBallDefinition,
+  loungeAvatarDefinition,
+];
+
+export const beachBoardwalkCanvas: CanvasDefinition = {
+  id: "zoomigo-beach-boardwalk",
+  version: 1,
+  size: { width: 100, height: 150 },
+  orientation: "topDown",
+  backgroundAssetId: "lounge.background",
+  edges: { top: "solid", right: "solid", bottom: "solid", left: "solid" },
+  staticGeometry: [
+    {
+      id: "lifeguard-hut",
+      shape: { type: "rect", width: 23, height: 13 },
+      position: { x: 76, y: 29 },
+      rotation: -0.08,
+      blocks: { avatars: true, items: true },
+    },
+    {
+      id: "umbrella-table",
+      shape: { type: "circle", radius: 8 },
+      position: { x: 20, y: 55 },
+      blocks: { avatars: true, items: true },
+    },
+    {
+      id: "boardwalk-bench",
+      shape: { type: "rect", width: 18, height: 7 },
+      position: { x: 19, y: 106 },
+      rotation: -0.12,
+      blocks: { avatars: true, items: true },
+    },
+    {
+      id: "snack-cart",
+      shape: { type: "rect", width: 15, height: 12 },
+      position: { x: 78, y: 119 },
+      rotation: 0.06,
+      blocks: { avatars: true, items: true },
+    },
+    {
+      id: "water-marker",
+      shape: { type: "capsule", halfHeight: 30, radius: 3 },
+      position: { x: 91, y: 79 },
+      rotation: 0.12,
+      blocks: { avatars: true, items: true },
+    },
+  ],
+  regions: [],
+  environment: {
+    base: {
+      gravityXY: { x: 0, y: 0 },
+      linearDrag: 0.2,
+      angularDrag: 0.2,
+      softSpeedLimit: 28,
+      surfaceFrictionMultiplier: 1,
+    },
+  },
+  spawnPoints: [{ id: "arrival", position: { x: 43, y: 92 } }],
+  systemItems: [
+    {
+      entityId: "boardwalk-beach-ball",
+      definitionId: beachBallDefinition.definitionId,
+      definitionVersion: beachBallDefinition.version,
+      transform: { x: 62, y: 98, rotation: 0 },
+      resolvedConfig: beachBallDefinition.defaultConfig,
+    },
+  ],
+  limits: {
+    maxAvatars: 24,
+    maxItems: 48,
+    maxComplexPhysicsItems: 4,
+  },
+  avatarController: {
+    radius: 4,
+    maxSpeed: 26,
+    acceleration: 125,
+    flickDeceleration: 42,
+    maxTurnSpeed: 9,
+    facing: "fixed",
+    directInteractionMaxSpeed: 32,
+  },
+  terrainDefaults: { avatars: true, items: true },
+};

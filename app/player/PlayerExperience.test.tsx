@@ -351,7 +351,47 @@ describe("consolidated default player experience", () => {
     expect(screen.getByText("Canvas dev console")).toBeInTheDocument();
   });
 
-  it("resets Momentum, Today, lock, and rewards preview controls together", () => {
+  it("mounts only the Team Lounge version selected in the dev console", async () => {
+    const complete = recordPrimary(initialTeamCanvasState(), {
+      completion: "goal",
+      effort: 4,
+      tiredness: 3,
+    });
+    renderExperience(
+      <>
+        <PlayerDevConsole />
+        <ConsolidatedTeam />
+      </>,
+      complete,
+      true,
+    );
+
+    expect(
+      screen.getByLabelText("Hill Striders weekly canvas"),
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Team Lounge version"), {
+      target: { value: "v2" },
+    });
+
+    expect(
+      await screen.findByRole("region", {
+        name: "Beach Boardwalk Team Lounge",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Hill Striders weekly canvas"),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Emotes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send 👋 emote" }));
+
+    expect(
+      screen.getByRole("status", { name: "You sent 👋" }),
+    ).toBeInTheDocument();
+  });
+
+  it("resets Momentum, Today, Team Lounge, lock, and rewards preview controls together", () => {
     renderExperience(
       <>
         <PlayerDevConsole />
@@ -367,6 +407,9 @@ describe("consolidated default player experience", () => {
     fireEvent.change(screen.getByLabelText("Today preview"), {
       target: { value: "complete" },
     });
+    fireEvent.change(screen.getByLabelText("Team Lounge version"), {
+      target: { value: "v2" },
+    });
     fireEvent.click(screen.getByLabelText("Show Momentum status"));
     fireEvent.click(screen.getByLabelText("Show rewards preview"));
 
@@ -377,6 +420,7 @@ describe("consolidated default player experience", () => {
     expect(
       screen.queryByText("Team rewards coming soon"),
     ).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Team Lounge version")).toHaveValue("v2");
 
     fireEvent.click(screen.getByLabelText("Show Momentum status"));
     expect(
@@ -394,6 +438,7 @@ describe("consolidated default player experience", () => {
     expect(
       screen.queryByText("Team rewards coming soon"),
     ).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Team Lounge version")).toHaveValue("v1");
   });
 
   it("does not render the ME dev console without the dev capability", () => {

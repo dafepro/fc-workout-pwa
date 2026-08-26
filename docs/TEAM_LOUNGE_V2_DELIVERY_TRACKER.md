@@ -8,30 +8,30 @@ the intended boundary; this file records delivered evidence and remaining risk.
 
 ## Status
 
-| Segment | Reviewable outcome                                                 | Status      | Evidence                              | Next gate                        |
-| ------- | ------------------------------------------------------------------ | ----------- | ------------------------------------- | -------------------------------- |
-| 0       | Architecture, segmented plan, file tree, safety boundary, rollback | Delivered   | Canvas package/release/boundary gates | Segment 1 selector test          |
-| 1       | Dev Me selector plus local Beach Boardwalk room                    | Not started | —                                     | Selector tests fail first        |
-| 2       | Authenticated team multiplayer room                                | Not started | —                                     | Coordinated JS/Go release pin    |
-| 3       | Presence, visit traces, emotes, durable physical state             | Not started | —                                     | Segment 2 conformance green      |
-| 4       | Earned stamps/items with app-owned authorization                   | Not started | —                                     | Inventory transaction decision   |
-| 5       | Weekly reset and theme framework                                   | Not started | —                                     | Timezone/template rollover tests |
-| 6       | Device budgets, observability, release and cutover                 | Not started | —                                     | All parity/safety gates green    |
+| Segment | Reviewable outcome                                                 | Status       | Evidence                              | Next gate                        |
+| ------- | ------------------------------------------------------------------ | ------------ | ------------------------------------- | -------------------------------- |
+| 0       | Architecture, segmented plan, file tree, safety boundary, rollback | Delivered    | Canvas package/release/boundary gates | Segment 1 selector test          |
+| 1       | Dev Me selector plus local Beach Boardwalk room                    | Local review | Selector, scene, simulation, build    | Dev deployment and review        |
+| 2       | Authenticated team multiplayer room                                | Not started  | —                                     | Coordinated JS/Go release pin    |
+| 3       | Presence, visit traces, emotes, durable physical state             | Not started  | —                                     | Segment 2 conformance green      |
+| 4       | Earned stamps/items with app-owned authorization                   | Not started  | —                                     | Inventory transaction decision   |
+| 5       | Weekly reset and theme framework                                   | Not started  | —                                     | Timezone/template rollover tests |
+| 6       | Device budgets, observability, release and cutover                 | Not started  | —                                     | All parity/safety gates green    |
 
 ## Product parity ledger
 
-| Capability                     | V1 today                 | V2 target                              | Current V2   |
-| ------------------------------ | ------------------------ | -------------------------------------- | ------------ |
-| Dev-only switch and reset      | No                       | Yes                                    | Not started  |
-| Mobile avatar movement         | Built-in drag/coast      | Canvas relative touch stick/flick      | Not started  |
-| Safe avatar and name           | Yes                      | Canvas sprite + DOM overlay            | Not started  |
-| Live teammates                 | Yes                      | Authenticated Canvas presence          | Not started  |
-| Persistent stamps              | Yes                      | Zoomigo-authorized durable item        | Not started  |
-| Physical objects               | Built-in cosmetic pieces | One system-owned beach ball            | Not started  |
-| Reconnect/background lifecycle | Yes                      | Canvas lifecycle with visible recovery | Not started  |
-| Weekly reset                   | Existing week state      | Immutable team/week room binding       | Not started  |
-| Developer telemetry            | V1 metrics               | V2 typed, name-free metrics            | Not started  |
-| Production default             | V1                       | Explicitly reviewed V2 cutover         | Not eligible |
+| Capability                     | V1 today                 | V2 target                              | Current V2    |
+| ------------------------------ | ------------------------ | -------------------------------------- | ------------- |
+| Dev-only switch and reset      | No                       | Yes                                    | Delivered     |
+| Mobile avatar movement         | Built-in drag/coast      | Canvas relative touch stick/flick      | Local only    |
+| Safe avatar and name           | Yes                      | Canvas sprite + DOM overlay            | Token + label |
+| Live teammates                 | Yes                      | Authenticated Canvas presence          | Not started   |
+| Persistent stamps              | Yes                      | Zoomigo-authorized durable item        | Not started   |
+| Physical objects               | Built-in cosmetic pieces | One system-owned beach ball            | Local ball    |
+| Reconnect/background lifecycle | Yes                      | Canvas lifecycle with visible recovery | Retry shell   |
+| Weekly reset                   | Existing week state      | Immutable team/week room binding       | Not started   |
+| Developer telemetry            | V1 metrics               | V2 typed, name-free metrics            | Not started   |
+| Production default             | V1                       | Explicitly reviewed V2 cutover         | Not eligible  |
 
 ## Risk register
 
@@ -48,6 +48,7 @@ the intended boundary; this file records delivered evidence and remaining risk.
 
 ## Slice log
 
-| Date       | Segment | Revision                      | Delivered                                                 | Verification                                     | Review focus                |
-| ---------- | ------- | ----------------------------- | --------------------------------------------------------- | ------------------------------------------------ | --------------------------- |
-| 2026-08-25 | 0       | `c4410d4` + dependency commit | Architecture, plan, decisions, and pinned Canvas packages | Canvas artifact/release/boundary gates: 4 passed | Boundary, scope, sequencing |
+| Date       | Segment | Revision                      | Delivered                                                                            | Verification                                                                              | Review focus                                     |
+| ---------- | ------- | ----------------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| 2026-08-25 | 0       | `c4410d4` + dependency commit | Architecture, plan, decisions, and pinned Canvas packages                            | Canvas artifact/release/boundary gates: 4 passed                                          | Boundary, scope, sequencing                      |
+| 2026-08-25 | 1       | This revision                 | Dev selector, lazy V2 adapter, local Boardwalk, movement, ball, emotes, mobile shell | Targeted app/scene/simulation tests; typecheck, lint, build; 320px and Android browser QA | Movement feel, room scale, first-scene direction |

@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, type ComponentType } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+  type ComponentType,
+} from "react";
 import { TeamCanvasBoard } from "../../team-canvas/components/TeamCanvasBoard";
 import { teamCanvasStamp } from "../../team-canvas/catalog";
 import { availableRewardCount } from "../../team-canvas/model";
@@ -37,8 +44,14 @@ const builtInCanvasAdapter: TeamCanvasWidgetAdapter = {
   Canvas: TeamCanvasBoard,
 };
 
+const TeamLoungeV2 = lazy(() =>
+  import("../../team-lounge-v2/adapter").then((module) => ({
+    default: module.TeamLoungeV2,
+  })),
+);
+
 export function TeamCanvasWidget({
-  adapter = builtInCanvasAdapter,
+  adapter,
 }: {
   adapter?: TeamCanvasWidgetAdapter;
 }) {
@@ -48,7 +61,13 @@ export function TeamCanvasWidget({
   const avatarIdentity = useAvatarIdentity();
   const analytics = useOptionalAnalytics();
   const lastHealthSample = useRef(0);
-  const Canvas = adapter.Canvas;
+  const selectedVersion = adapter ? "custom" : dev.settings.teamLoungeVersion;
+  const selectedAdapter = adapter ?? builtInCanvasAdapter;
+  const Canvas = adapter
+    ? adapter.Canvas
+    : selectedVersion === "v2"
+      ? TeamLoungeV2
+      : builtInCanvasAdapter.Canvas;
   const connected =
     canvas.connectedStatus === "ready" && canvas.connectedProjection;
   const connectedTeamID = connected ? connected.team.id : null;
@@ -133,7 +152,7 @@ export function TeamCanvasWidget({
     );
   }, [analytics, canvas.connectionState, canvas.telemetry]);
   const host: TeamCanvasWidgetContract = {
-    version: adapter.contractVersion,
+    version: selectedAdapter.contractVersion,
     identity: {
       teamID:
         canvas.connectedProjection?.team.id ??
@@ -170,11 +189,14 @@ export function TeamCanvasWidget({
     telemetry: canvas.telemetry,
   };
   return (
-    <Canvas
-      host={host}
-      showDeveloperTools={dev.enabled}
-      todayHref="/"
-      stampUnlocks={stampUnlocks}
-    />
+    <Suspense fallback={<p className="tc-opening">Opening Team Lounge…</p>}>
+      <Canvas
+        key={selectedVersion}
+        host={host}
+        showDeveloperTools={dev.enabled}
+        todayHref="/"
+        stampUnlocks={stampUnlocks}
+      />
+    </Suspense>
   );
 }

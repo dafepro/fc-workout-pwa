@@ -12,7 +12,9 @@ export function PlayerDevConsole() {
   if (!enabled) return null;
   const copy = playerExperienceCopy.devConsole;
 
-  function select<K extends "momentumBand" | "today" | "teamAccess">(key: K) {
+  function select<
+    K extends "momentumBand" | "today" | "teamAccess" | "teamLoungeVersion",
+  >(key: K) {
     return (event: ChangeEvent<HTMLSelectElement>) =>
       update({ [key]: event.target.value } as Pick<PlayerDevSettings, K>);
   }
@@ -65,6 +67,17 @@ export function PlayerDevConsole() {
             >
               <option value="real">Live access</option>
               <option value="locked">Force locked presentation</option>
+            </select>
+          </label>
+          <label>
+            <span>{copy.teamLoungeVersion}</span>
+            <select
+              aria-label={copy.teamLoungeVersion}
+              value={settings.teamLoungeVersion}
+              onChange={select("teamLoungeVersion")}
+            >
+              <option value="v1">V1 · Current Canvas</option>
+              <option value="v2">V2 · Canvas library preview</option>
             </select>
           </label>
         </div>

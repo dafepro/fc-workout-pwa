@@ -6,12 +6,14 @@ import type { MomentumProgressState } from "../momentum-progress";
 
 export type TodayPreview = "real" | "training" | "rest" | "complete";
 export type TeamAccessPreview = "real" | "locked";
+export type TeamLoungeVersion = "v1" | "v2";
 
 export interface PlayerDevSettings {
   momentumVisible: boolean;
   momentumBand: "real" | MomentumProgressState;
   today: TodayPreview;
   teamAccess: TeamAccessPreview;
+  teamLoungeVersion: TeamLoungeVersion;
   rewardsVisible: boolean;
 }
 
@@ -28,6 +30,7 @@ export const defaultPlayerDevSettings: PlayerDevSettings = {
   momentumBand: "real",
   today: "real",
   teamAccess: "real",
+  teamLoungeVersion: "v1",
   rewardsVisible: true,
 };
 
@@ -99,6 +102,7 @@ function parseSettings(raw: string): PlayerDevSettings {
   const momentumBands = ["real", "ready", "started", "building", "on-a-roll"];
   const todayValues = ["real", "training", "rest", "complete"];
   const teamAccessValues = ["real", "locked"];
+  const teamLoungeVersions = ["v1", "v2"];
   return {
     momentumVisible:
       typeof parsed.momentumVisible === "boolean"
@@ -113,6 +117,11 @@ function parseSettings(raw: string): PlayerDevSettings {
     teamAccess: teamAccessValues.includes(parsed.teamAccess ?? "")
       ? (parsed.teamAccess as TeamAccessPreview)
       : defaultPlayerDevSettings.teamAccess,
+    teamLoungeVersion: teamLoungeVersions.includes(
+      parsed.teamLoungeVersion ?? "",
+    )
+      ? (parsed.teamLoungeVersion as TeamLoungeVersion)
+      : defaultPlayerDevSettings.teamLoungeVersion,
     rewardsVisible:
       typeof parsed.rewardsVisible === "boolean"
         ? parsed.rewardsVisible

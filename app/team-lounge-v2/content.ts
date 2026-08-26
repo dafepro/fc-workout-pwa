@@ -1,0 +1,17 @@
+export const teamLoungeV2Copy = {
+  label: "Team Lounge",
+  theme: "Beach Boardwalk",
+  regionLabel: "Beach Boardwalk Team Lounge",
+  preview: "V2 · Local Canvas preview",
+  loading: "Setting up the boardwalk…",
+  ready: "Drag anywhere in the room to move.",
+  unavailable: "The boardwalk could not open.",
+  retry: "Try again",
+  emotes: "Emotes",
+  stamps: "Stamps",
+  items: "Items",
+  map: "Map",
+  mapHint: "This room fits on one screen.",
+  itemsHint: "Props arrive in a later V2 slice.",
+  localHint: "Local physics preview · teammates and persistence come next",
+} as const;
