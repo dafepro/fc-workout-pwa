@@ -74,17 +74,18 @@ moderation, reporting, retention, and child-safety design decision.
 | 2026-08-26 | 4F      | `3cd1741` + Canvas `d5f96bc`          | Adds unlimited bidirectional 15-degree rotation, hold-to-repeat controls, normalized persistence, and shared move/scale/rotate previews                                      | Canvas real three-client relay and preview ownership tests; Zoomigo transform policy, component, and authenticated WebSocket persistence tests | Two-player live manipulation, full-circle controls, reconnect persistence                |
 | 2026-08-26 | 4G      | `40c5a71` + Canvas `923bfce`          | Isolates projected edit controls from room gestures and makes the authoritative Canvas avatar body visually transparent beneath the projected saved avatar                   | Canvas pointer-routing regression; Zoomigo editor-lifecycle and transparent-avatar contract tests; dev public smoke                            | Repeated mobile edit controls; rapid avatar drag with no visible split                   |
 | 2026-08-26 | 4H      | `89c0b29` + Canvas `9efe474`          | Holds owner-visible scale and rotation through stale projections until canonical state confirms the transform                                                                | Canvas consumer-transform presentation regression; full Canvas network and artifact suite; dev public smoke                                    | Rapid repeated scale/rotation with no shake; two-viewer preview behavior                 |
-| 2026-08-26 | 4I      | Current authoritative inventory slice | Makes the authenticated server projection the sole V2 placeable catalog, separates collection source from weekly credits, and refreshes stale access without spending credit | 510 frontend tests; all Go tests; authenticated catalog/access HTTP test; format, lint, typecheck, vet, contracts, build                       | Included/New/Earned labels; no V1 dev-only stamp; stale selection recovery               |
+| 2026-08-26 | 4I      | `9d4a38c`                              | Makes the authenticated server projection the sole V2 placeable catalog, separates collection source from weekly credits, and refreshes stale access without spending credit | 510 frontend tests; all Go tests; authenticated catalog/access HTTP test; format, lint, typecheck, vet, contracts, build                       | Included/New/Earned labels; no V1 dev-only stamp; stale selection recovery               |
 | 2026-08-26 | 5A      | `3cd1741`                             | Adds a server-owned Beach Boardwalk theme manifest, exact template binding, ticket projection, and fail-closed client metadata validation                                    | Go manifest/ticket tests; gateway validation and reconnect-generation tests                                                                    | Canonical theme heading and unchanged weekly room behavior                               |
 
 ## Latest dev delivery
 
-- Deployed application revision: `89c0b29988883ad1d62d8664036a944065878041`.
+- Deployed application revision: `9d4a38cc8befe64c46b4175d0341bc4bffa50a43`.
 - Included Canvas revision: `9efe474e4cad3f307e56b58acb0ad278b2eaf118`.
-- GitHub Actions dev operation `32990561019` completed successfully on
+- GitHub Actions dev operation `32997671117` completed successfully on
   2026-08-26.
-- Independent public smoke: API `/healthz` returned `200 {"status":"ok"}` and
-  the PWA returned the expected `303` to its password gate.
+- Independent authenticated public smoke: API `/healthz` and `/readyz` returned
+  `200`; `/dev-access`, the self-disabling service worker, and all 18 referenced
+  scripts and styles returned `200` through one gated session.
 - The service worker is self-disabling on dev as a defense against stale app
   shells. Worker-first gating for static assets is also implemented in this
   branch, but becomes the trusted deployment control only after mainline
