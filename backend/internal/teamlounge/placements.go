@@ -172,6 +172,12 @@ func authorizeStampEdit(request roomsdk.DurableAuthorizationRequest, dayKey stri
 		if !inStampDecoratingArea(request.Position) {
 			return denied(StampInvalidPlacementReason)
 		}
+		if !validStampScale(request.Scale) {
+			return denied(StampInvalidScaleReason)
+		}
+		if !validStampRotation(request.Rotation) {
+			return denied(StampInvalidRotationReason)
+		}
 		return roomsdk.DurableAuthorizationResult{Allowed: true}
 	}
 	if request.Operation == roomsdk.DurableRotate {
@@ -180,22 +186,22 @@ func authorizeStampEdit(request roomsdk.DurableAuthorizationRequest, dayKey stri
 		}
 		return roomsdk.DurableAuthorizationResult{Allowed: true}
 	}
-	if request.Preview || !finite(request.Scale) || request.Scale < 0.75 || request.Scale > 1.4 {
+	if request.Preview || !validStampScale(request.Scale) {
 		return denied(StampInvalidScaleReason)
 	}
 	return roomsdk.DurableAuthorizationResult{Allowed: true}
 }
 
 func validStampRotation(rotation float64) bool {
-	if !finite(rotation) {
+	if !finite(rotation) || rotation < -math.Pi-0.000001 || rotation >= math.Pi-0.000001 {
 		return false
 	}
-	for _, allowed := range []float64{-math.Pi / 12, 0, math.Pi / 12} {
-		if math.Abs(rotation-allowed) <= 0.000001 {
-			return true
-		}
-	}
-	return false
+	step := math.Pi / 12
+	return math.Abs(rotation-math.Round(rotation/step)*step) <= 0.000001
+}
+
+func validStampScale(scale float64) bool {
+	return finite(scale) && scale >= 0.75 && scale <= 1.4
 }
 
 func stampAssetIDs() []string {

@@ -24,6 +24,22 @@ func TestWeeklyRoomIdentityRoundTrips(t *testing.T) {
 	}
 }
 
+func TestWeeklyThemeManifestOwnsTheImmutableCanvasBinding(t *testing.T) {
+	theme, err := WeeklyTheme("2026-08-24")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if theme.ID != "beach-boardwalk" || theme.Version != 1 || theme.Name != "Beach Boardwalk" {
+		t.Fatalf("theme identity = %#v", theme)
+	}
+	if theme.Template.CanvasID != BeachBoardwalkCanvasID || theme.Template.CanvasVersion != BeachBoardwalkCanvasVersion {
+		t.Fatalf("theme template = %#v", theme.Template)
+	}
+	if _, err := WeeklyTheme("today"); err == nil {
+		t.Fatal("accepted invalid week key")
+	}
+}
+
 func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 	catalog := BeachBoardwalkCatalog()
 	if len(catalog.Canvases) != 1 || len(catalog.Items) != 14 {

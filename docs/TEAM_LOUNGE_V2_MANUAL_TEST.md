@@ -4,7 +4,8 @@ Updated: 2026-08-26.
 
 This plan covers scroll-safe direct avatar dragging, collision-map revision 2,
 safe live teammate overlays, server-relayed emotes, prior-visitor traces, the
-authenticated shared room, and a check-in-funded weekly placement budget.
+authenticated shared room, a check-in-funded weekly placement budget, shared
+stamp transforms, and canonical weekly theme metadata.
 
 ## Setup
 
@@ -61,33 +62,38 @@ authenticated shared room, and a check-in-funded weekly placement budget.
     the accepted stamp with the reduced budget or restore the credit for retry.
     It must not remain stuck on **Adding your stamp…** or create two stamps.
 15. Reopen **Stamps**, tap any stamp you placed today, and confirm it gains one
-    clear selection ring plus the compact edit controls. Drag it, resize it,
-    and choose left, straight, then right tilt. Each current-day stamp should
-    retain its transform after leaving and returning. At 320 px, no control may
-    clip or force horizontal page scrolling.
-16. On the next team-local day, confirm yesterday's stamps remain visible but
+    clear selection ring plus compact edit controls. Tap and hold both 15-degree
+    turn buttons. Confirm the stamp can pass a full revolution in either
+    direction, the displayed angle wraps cleanly, and drag/size/rotation all
+    retain their final transform after leaving and returning. At 320 px, no
+    control may clip or force horizontal page scrolling.
+16. Keep the same stamp selected while a second same-team player watches in
+    another browser. Hold a size or turn control, then drag the stamp. The other
+    viewer should see every in-progress transform before release, then retain
+    the same final transform after both players reconnect.
+17. On the next team-local day, confirm yesterday's stamps remain visible but
     cannot be selected or changed. A newly placed stamp should remain editable
     until that day's local midnight. A teammate's stamps are always view-only.
     Walk an avatar across them: each stamp should remain one coherent image
     behind the avatar, never two copies split across layers.
-17. Confirm **Items** is visibly disabled and **Map** is visibly disabled because
+18. Confirm **Items** is visibly disabled and **Map** is visibly disabled because
     the first room fits on one screen. Neither should look tappable.
-18. Sign in as a second player on the same team in another browser profile.
+19. Sign in as a second player on the same team in another browser profile.
     Confirm **2 here** appears and both windows render each player's saved avatar
     plus safe first-name/last-initial label.
-19. Close the second player's room, then leave and re-enter Team as the first
+20. Close the second player's room, then leave and re-enter Team as the first
     player. Confirm the absent teammate appears once as a subdued **visited**
     trace at a fixed room anchor. It must not show a time, workout, duration, or
     message.
-20. Reopen the room as the second player. Confirm their prior-visitor trace
+21. Reopen the room as the second player. Confirm their prior-visitor trace
     disappears while their live avatar is present. At most three absent-player
     traces may be visible.
-21. Switch back to V1 in Me. Confirm the current Team Canvas returns and the V2
+22. Switch back to V1 in Me. Confirm the current Team Canvas returns and the V2
     room is gone. Switch to V2 again and confirm only one room is present.
-22. Expand **Lounge diagnostics**. Confirm the role says **Host** in the first
+23. Expand **Lounge diagnostics**. Confirm the role says **Host** in the first
     window and **Peer** in the second. During a drag, correction should normally
     remain below `3.00`; record a screen capture if it repeatedly jumps above it.
-23. Enable **Show collision map**. The red shapes should sit over the visible
+24. Enable **Show collision map**. The red shapes should sit over the visible
     hut, umbrella table, bench, snack cart/planter, and lower pool edge. The open
     center boardwalk should have no red blocker.
 
@@ -109,8 +115,8 @@ authenticated shared room, and a check-in-funded weekly placement budget.
 
 - One stamp or future item may use each earned placement credit. This slice
   spends credits only on stamps. Current-day stamps can move, resize, and use
-  three tilt positions; older stamps cannot. Mirror, replace, delete, Props,
-  and Map remain disabled.
+  15-degree rotation steps in either direction; older stamps cannot. Mirror,
+  replace, delete, Props, and Map remain disabled.
 - Visit traces are ambient weekly presence only; they are not a feed or history.
 
 Record feedback on movement feel, any correction spikes, collision alignment,

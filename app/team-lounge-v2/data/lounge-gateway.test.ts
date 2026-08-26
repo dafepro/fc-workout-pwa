@@ -18,6 +18,11 @@ describe("Team Lounge V2 gateway", () => {
           visitorIds: ["player-two"],
           placementCredits: 2,
           placementDay: "2026-08-26",
+          theme: {
+            id: "beach-boardwalk",
+            version: 1,
+            name: "Beach Boardwalk",
+          },
         }),
         { status: 201, headers: { "Content-Type": "application/json" } },
       ),
@@ -31,6 +36,11 @@ describe("Team Lounge V2 gateway", () => {
       visitorIDs: ["player-two"],
       placementCredits: 2,
       placementDay: "2026-08-26",
+      theme: {
+        id: "beach-boardwalk",
+        version: 1,
+        name: "Beach Boardwalk",
+      },
     });
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/zoomigo/v1/teams/team-one/lounge-v2/socket-ticket",
@@ -63,6 +73,11 @@ describe("Team Lounge V2 gateway", () => {
             visitorIds: ["player-two"],
             placementCredits: 2,
             placementDay: "2026-08-26",
+            theme: {
+              id: "beach-boardwalk",
+              version: 1,
+              name: "Beach Boardwalk",
+            },
           }),
           { status: 201 },
         ),

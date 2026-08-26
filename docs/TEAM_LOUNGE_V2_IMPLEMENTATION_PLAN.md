@@ -202,7 +202,8 @@ placement credits.
 - [ ] Add props only after their ownership and interaction semantics are
       separately defined.
 - [x] Add owner-authorized move and bounded scale after selection.
-- [x] Add three restrained owner-only rotation snaps without free rotation.
+- [x] Add owner-only rotation in 15-degree steps in either direction, with
+      normalized durable angles and shared live previews.
 - [x] Define atomic replacement and explicitly keep standalone delete disabled.
 - [x] Keep mirroring off until individual art opts in and Canvas supports a
       first-class reflection transform; negative scale is never a mirror API.
@@ -263,7 +264,7 @@ The server rechecks owner, definition, operation, bounds, and scale. Other
 players' stamps remain view-only. Rotation, delete, replacement, free inventory
 consumption, and arbitrary item editing remain out of scope.
 
-### Segment 4D vertical slice — restrained orientation
+### Segment 4D vertical slice — initial restrained orientation
 
 An owner may set their selected stamp to `−15°`, `0°`, or `+15°`. These are
 explicit buttons rather than a free-rotation handle: they are easier to use on
@@ -316,23 +317,52 @@ the same generic weekly budget, but props remain disabled until their own
 ownership and interaction rules ship.
 
 Replacement, standalone delete, and mirroring remain separate decisions. The
-three rotation snaps remain `−15°`, `0°`, and `+15°`; “three snaps” refers to
-those three allowed angles, not three placement locations or credits.
+initial three rotation snaps are superseded by Segment 4F; placement locations
+and credits are unaffected.
+
+### Segment 4F vertical slice — shared transform previews and full rotation
+
+The two compact turn controls move by 15 degrees clockwise or counterclockwise
+and may continue through unlimited revolutions. A press makes one step; holding
+repeats. The UI normalizes the final radians into `[-π, π)` so durable state has
+24 canonical orientations instead of an ever-growing turn count.
+
+Move, scale, and rotation previews use one Canvas full-transform preview seam.
+The room host relays those authorized previews in the normal presentation stream
+so connected viewers see a stamp while another player manipulates it. Release
+sends the operation-specific durable command; Zoomigo revalidates all transform
+fields, ownership, and the current edit day before canonical state changes.
+Reconnect restores only the last accepted durable transform.
 
 ## Segment 5 — weekly cadence and theme framework
 
 Outcome: the room resets safely each week and can add one attraction without
 changing the core controls.
 
-- [ ] Bind the current team week to an immutable template ID/version.
-- [ ] Preserve player inventory while isolating prior weekly snapshots.
-- [ ] Add theme metadata and staged environmental changes as data.
+- [x] Bind the current team week to an immutable template ID/version.
+- [x] Preserve player inventory while isolating prior weekly snapshots.
+- [x] Add a server-owned theme manifest and project supported metadata through
+      the authenticated room ticket.
+- [ ] Add staged environmental changes as data.
 - [ ] Prove daylight-saving/timezone and asleep-room rollover behavior.
 - [ ] Add operator preview/rollback tooling before a second production theme.
 
 Future themes progress one interaction at a time: Campfire Night, Soccer Field
 Hangout, Stormy Sky Deck, then Treasure Island. Linked rooms remain out of the
 initial production scope.
+
+### Segment 5A vertical slice — canonical theme identity
+
+The backend resolves a canonical theme manifest for the team-local week before
+binding or issuing a room ticket. That manifest owns the player-facing theme ID,
+version, name, and exact Canvas template. The browser accepts only supported
+metadata and uses it for the lounge heading; a tampered or newer unknown theme
+fails closed instead of opening the wrong room.
+
+This establishes the data boundary without silently choosing a future cadence.
+Beach Boardwalk V1 remains the sole manifest until staged theme state,
+daylight-saving rollover, and operator preview/rollback controls are specified
+and tested together.
 
 ## Segment 6 — production hardening and cutover
 

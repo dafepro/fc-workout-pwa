@@ -33,10 +33,12 @@ func (service *service) createTeamLoungeSocketTicket(w http.ResponseWriter, r *h
 		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
 		return
 	}
-	template := roomsdk.RoomTemplate{
-		CanvasID: teamlounge.BeachBoardwalkCanvasID, CanvasVersion: teamlounge.BeachBoardwalkCanvasVersion,
+	theme, err := teamlounge.WeeklyTheme(projection.WeekKey)
+	if err != nil {
+		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
+		return
 	}
-	if err := service.teamLoungeStore.BindRoom(r.Context(), roomID, teamID, projection.WeekKey, template); err != nil {
+	if err := service.teamLoungeStore.BindRoom(r.Context(), roomID, teamID, projection.WeekKey, theme.Template); err != nil {
 		writeError(w, r, http.StatusConflict, "room_template_conflict", "This week's lounge could not be opened.")
 		return
 	}
@@ -75,9 +77,19 @@ func (service *service) createTeamLoungeSocketTicket(w http.ResponseWriter, r *h
 		VisitorIDs       []string `json:"visitorIds"`
 		PlacementCredits int      `json:"placementCredits"`
 		PlacementDay     string   `json:"placementDay"`
+		Theme            struct {
+			ID      string `json:"id"`
+			Version uint32 `json:"version"`
+			Name    string `json:"name"`
+		} `json:"theme"`
 	}{
 		Ticket: ticket, RoomID: roomID, ExpiresInSeconds: int(teamCanvasSocketTicketTTL.Seconds()), VisitorIDs: visitorIDs,
 		PlacementCredits: placementBudget.Earned, PlacementDay: placementBudget.DayKey,
+		Theme: struct {
+			ID      string `json:"id"`
+			Version uint32 `json:"version"`
+			Name    string `json:"name"`
+		}{ID: theme.ID, Version: theme.Version, Name: theme.Name},
 	})
 }
 

@@ -1,3 +1,9 @@
+export interface LoungeTheme {
+  id: "beach-boardwalk";
+  version: 1;
+  name: "Beach Boardwalk";
+}
+
 export interface TeamLoungeCredential {
   ticket: string;
   roomID: string;
@@ -5,6 +11,7 @@ export interface TeamLoungeCredential {
   visitorIDs: string[];
   placementCredits: number;
   placementDay: string;
+  theme: LoungeTheme;
 }
 
 export interface PreparedTeamLoungeJoin {
@@ -13,6 +20,7 @@ export interface PreparedTeamLoungeJoin {
   visitorIDs: string[];
   placementCredits: number;
   placementDay: string;
+  theme: LoungeTheme;
   credentialProvider(): Promise<string>;
 }
 
@@ -23,16 +31,23 @@ export async function prepareTeamLoungeJoin(
     await requestTeamLoungeCredential(teamID);
   const roomID = queued.roomID;
   const serverURL = queued.serverURL;
+  const queuedTheme = queued.theme;
   return {
     roomID,
     serverURL,
     visitorIDs: [...queued.visitorIDs],
     placementCredits: queued.placementCredits,
     placementDay: queued.placementDay,
+    theme: queuedTheme,
     async credentialProvider() {
       const credential = queued ?? (await requestTeamLoungeCredential(teamID));
       queued = null;
-      if (credential.roomID !== roomID || credential.serverURL !== serverURL) {
+      if (
+        credential.roomID !== roomID ||
+        credential.serverURL !== serverURL ||
+        credential.theme.id !== queuedTheme.id ||
+        credential.theme.version !== queuedTheme.version
+      ) {
         throw new Error("The team lounge changed during reconnect.");
       }
       return `ticket.${credential.ticket}`;
@@ -66,6 +81,7 @@ export async function requestTeamLoungeCredential(
   const placementCredits = body.placementCredits;
   const placementDay =
     typeof body.placementDay === "string" ? body.placementDay : "";
+  const theme = loungeTheme(body.theme);
   let parsedServer: URL;
   try {
     parsedServer = new URL(serverURL);
@@ -86,7 +102,8 @@ export async function requestTeamLoungeCredential(
     !Number.isInteger(placementCredits) ||
     (placementCredits as number) < 0 ||
     (placementCredits as number) > 7 ||
-    !/^\d{4}-\d{2}-\d{2}$/u.test(placementDay)
+    !/^\d{4}-\d{2}-\d{2}$/u.test(placementDay) ||
+    !theme
   ) {
     throw new Error("The team lounge is unavailable.");
   }
@@ -97,5 +114,16 @@ export async function requestTeamLoungeCredential(
     visitorIDs: [...visitorIDs] as string[],
     placementCredits: placementCredits as number,
     placementDay,
+    theme,
   };
+}
+
+function loungeTheme(value: unknown): LoungeTheme | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const theme = value as Record<string, unknown>;
+  return theme.id === "beach-boardwalk" &&
+    theme.version === 1 &&
+    theme.name === "Beach Boardwalk"
+    ? { id: "beach-boardwalk", version: 1, name: "Beach Boardwalk" }
+    : null;
 }

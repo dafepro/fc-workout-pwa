@@ -1,7 +1,14 @@
+import type { LoungeTheme } from "./data/lounge-gateway";
+
+export const defaultLoungeTheme: LoungeTheme = {
+  id: "beach-boardwalk",
+  version: 1,
+  name: "Beach Boardwalk",
+};
+
 export const teamLoungeV2Copy = {
   label: "Team Lounge",
-  theme: "Beach Boardwalk",
-  regionLabel: "Beach Boardwalk Team Lounge",
+  regionLabel: (themeName: string) => `${themeName} Team Lounge`,
   preview: "V2 · Local Canvas preview",
   shared: "V2 · Shared Canvas room",
   loading: "Setting up the boardwalk…",
@@ -36,7 +43,7 @@ export const teamLoungeV2Copy = {
     stamp_unavailable: "That stamp is not in your collection.",
     stamp_invalid_placement: "Tap inside the lounge, away from the very edge.",
     stamp_invalid_scale: "Keep your stamp between the small and large limits.",
-    stamp_invalid_rotation: "Choose left, straight, or right for your stamp.",
+    stamp_invalid_rotation: "Rotate your stamp in 15 degree steps.",
     stamp_budget_exhausted: "You’ve used this week’s placement credits.",
     stamp_locked: "This stamp was set on an earlier day and is now locked.",
     stamp_editing_unavailable:

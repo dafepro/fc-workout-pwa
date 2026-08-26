@@ -248,7 +248,7 @@ packages:
   "@canvas-physics/client@file:vendor/canvas/canvas-physics-client-0.1.0.tgz":
     resolution:
       {
-        integrity: sha512-7TW0udjddDZcF/HWBK7Hah2p9Cz4SOz/7pg0u1CexgtaUMXk4vF6NvA7ovNzTlAvL2QTNLGZZzu88GC4JFyRCA==,
+        integrity: sha512-UHSeHBHgxxgq0aXY25AG5yW7OL7YiwZfMXuHbe+qSlfAvjPck4xnSYGVsfxfi5aHRp4pnscnAcLIKo0aATFT9g==,
         tarball: file:vendor/canvas/canvas-physics-client-0.1.0.tgz,
       }
     version: 0.1.0

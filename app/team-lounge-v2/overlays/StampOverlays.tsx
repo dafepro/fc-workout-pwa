@@ -1,9 +1,11 @@
+import { useCallback, useEffect, useRef } from "react";
+import type { ReactNode } from "react";
 import {
   StampAssetView,
   stampAssetLabel,
 } from "../../team-canvas/components/StampAsset";
 import type { StampAsset } from "../../team-canvas/model";
-import { LOUNGE_STAMP_ROTATIONS } from "../placement/orientation";
+import { nextLoungeStampRotation } from "../placement/orientation";
 
 export interface LoungeStampOverlay {
   entityID: string;
@@ -12,6 +14,7 @@ export interface LoungeStampOverlay {
   rotation: number;
   scale: number;
   screen: Readonly<{ x: number; y: number }>;
+  world: Readonly<{ x: number; y: number; z?: number }> | null;
   placementDay: string | null;
 }
 
@@ -36,8 +39,8 @@ export function StampOverlays({
   selectedEntityID?: string | null;
   onPlace(screen: Readonly<{ x: number; y: number }>): void;
   onSelect?(entityID: string): void;
-  onScale?(entityID: string, scale: number): void;
-  onRotate?(entityID: string, rotation: number): void;
+  onScale?(entityID: string, scale: number, preview: boolean): void;
+  onRotate?(entityID: string, rotation: number, preview: boolean): void;
   onDone?(): void;
 }) {
   const selected = stamps.find(({ entityID }) => entityID === selectedEntityID);
@@ -114,61 +117,144 @@ export function StampOverlays({
             Done
           </button>
           <div className="team-lounge-v2__stamp-edit-tools">
-            <div role="group" aria-label="Stamp tilt">
+            <div role="group" aria-label="Stamp rotation">
               <span>Turn</span>
-              {LOUNGE_STAMP_ROTATIONS.map((rotation, index) => (
-                <button
-                  key={rotation}
-                  type="button"
-                  aria-label={
-                    index === 0
-                      ? "Tilt stamp left"
-                      : index === 1
-                        ? "Straighten stamp"
-                        : "Tilt stamp right"
-                  }
-                  aria-pressed={Math.abs(selected.rotation - rotation) < 0.001}
-                  onClick={() => onRotate?.(selected.entityID, rotation)}
-                >
-                  {index === 0 ? "−15°" : index === 1 ? "0°" : "+15°"}
-                </button>
-              ))}
+              <TransformStepButton
+                ariaLabel="Rotate stamp left 15 degrees"
+                value={selected.rotation}
+                next={(rotation) => nextLoungeStampRotation(rotation, -1)}
+                onPreview={(rotation) =>
+                  onRotate?.(selected.entityID, rotation, true)
+                }
+                onCommit={(rotation) =>
+                  onRotate?.(selected.entityID, rotation, false)
+                }
+              >
+                ↺ 15°
+              </TransformStepButton>
+              <TransformStepButton
+                ariaLabel="Rotate stamp right 15 degrees"
+                value={selected.rotation}
+                next={(rotation) => nextLoungeStampRotation(rotation, 1)}
+                onPreview={(rotation) =>
+                  onRotate?.(selected.entityID, rotation, true)
+                }
+                onCommit={(rotation) =>
+                  onRotate?.(selected.entityID, rotation, false)
+                }
+              >
+                15° ↻
+              </TransformStepButton>
+              <output aria-live="polite">
+                {Math.round((selected.rotation * 180) / Math.PI)}°
+              </output>
             </div>
             <div role="group" aria-label="Stamp size">
               <span>Size</span>
-              <button
-                type="button"
-                aria-label="Make stamp smaller"
+              <TransformStepButton
+                ariaLabel="Make stamp smaller"
+                value={selected.scale}
                 disabled={selected.scale <= 0.75}
-                onClick={() =>
-                  onScale?.(
-                    selected.entityID,
-                    Math.max(
-                      0.75,
-                      Math.round((selected.scale - 0.1) * 10) / 10,
-                    ),
-                  )
+                next={(scale) =>
+                  Math.max(0.75, Math.round((scale - 0.1) * 10) / 10)
                 }
+                onPreview={(scale) => onScale?.(selected.entityID, scale, true)}
+                onCommit={(scale) => onScale?.(selected.entityID, scale, false)}
               >
                 −
-              </button>
-              <button
-                type="button"
-                aria-label="Make stamp larger"
+              </TransformStepButton>
+              <TransformStepButton
+                ariaLabel="Make stamp larger"
+                value={selected.scale}
                 disabled={selected.scale >= 1.4}
-                onClick={() =>
-                  onScale?.(
-                    selected.entityID,
-                    Math.min(1.4, Math.round((selected.scale + 0.1) * 10) / 10),
-                  )
+                next={(scale) =>
+                  Math.min(1.4, Math.round((scale + 0.1) * 10) / 10)
                 }
+                onPreview={(scale) => onScale?.(selected.entityID, scale, true)}
+                onCommit={(scale) => onScale?.(selected.entityID, scale, false)}
               >
                 +
-              </button>
+              </TransformStepButton>
             </div>
           </div>
         </div>
       ) : null}
     </div>
+  );
+}
+
+function TransformStepButton({
+  ariaLabel,
+  value,
+  next,
+  onPreview,
+  onCommit,
+  disabled = false,
+  children,
+}: {
+  ariaLabel: string;
+  value: number;
+  next(value: number): number;
+  onPreview(value: number): void;
+  onCommit(value: number): void;
+  disabled?: boolean;
+  children: ReactNode;
+}) {
+  const currentRef = useRef(value);
+  const pointerRef = useRef<number | null>(null);
+  const delayRef = useRef<number | null>(null);
+  const repeatRef = useRef<number | null>(null);
+
+  const clearTimers = useCallback(() => {
+    if (delayRef.current !== null) window.clearTimeout(delayRef.current);
+    if (repeatRef.current !== null) window.clearInterval(repeatRef.current);
+    delayRef.current = null;
+    repeatRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    if (pointerRef.current === null) currentRef.current = value;
+  }, [value]);
+
+  useEffect(() => () => clearTimers(), [clearTimers]);
+
+  const previewStep = () => {
+    currentRef.current = next(currentRef.current);
+    onPreview(currentRef.current);
+  };
+
+  const finishPointer = (pointerID: number) => {
+    if (pointerRef.current !== pointerID) return;
+    clearTimers();
+    pointerRef.current = null;
+    onCommit(currentRef.current);
+  };
+
+  return (
+    <button
+      type="button"
+      aria-label={ariaLabel}
+      disabled={disabled}
+      onPointerDown={(event) => {
+        if (disabled || pointerRef.current !== null) return;
+        event.preventDefault();
+        pointerRef.current = event.pointerId;
+        currentRef.current = value;
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+        previewStep();
+        delayRef.current = window.setTimeout(() => {
+          repeatRef.current = window.setInterval(previewStep, 140);
+        }, 320);
+      }}
+      onPointerUp={(event) => finishPointer(event.pointerId)}
+      onPointerCancel={(event) => finishPointer(event.pointerId)}
+      onClick={(event) => {
+        if (event.detail !== 0) return;
+        currentRef.current = next(value);
+        onCommit(currentRef.current);
+      }}
+    >
+      {children}
+    </button>
   );
 }

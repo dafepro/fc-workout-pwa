@@ -41,6 +41,17 @@ const runtime = vi.hoisted(() => ({
   clearedSelections: 0,
   scaled: [] as Array<{ entityID: string; scale: number }>,
   rotated: [] as Array<{ entityID: string; rotation: number }>,
+  transformed: [] as Array<{
+    entityID: string;
+    transform: {
+      x: number;
+      y: number;
+      rotation: number;
+      scale?: number;
+      z?: number;
+    };
+    preview: boolean;
+  }>,
 }));
 
 vi.mock("@canvas-physics/client", () => ({
@@ -140,6 +151,20 @@ vi.mock("@canvas-physics/client", () => ({
       runtime.rotated.push({ entityID, rotation });
     }
 
+    transformItem(
+      entityID: string,
+      transform: {
+        x: number;
+        y: number;
+        rotation: number;
+        scale?: number;
+        z?: number;
+      },
+      preview = false,
+    ) {
+      runtime.transformed.push({ entityID, transform, preview });
+    }
+
     projectWorldPoint(point: { x: number; y: number }) {
       if (!runtime.presented) throw new Error("viewport is not ready");
       return { screen: point, inCanvas: true, inViewport: true };
@@ -171,6 +196,11 @@ vi.mock("./data/lounge-gateway", () => ({
     visitorIDs: ["player-two"],
     placementCredits: 2,
     placementDay: "2026-08-26",
+    theme: {
+      id: "beach-boardwalk",
+      version: 1,
+      name: "Beach Boardwalk",
+    },
   }),
 }));
 
@@ -192,6 +222,7 @@ describe("SharedLoungeCanvas", () => {
     runtime.clearedSelections = 0;
     runtime.scaled = [];
     runtime.rotated = [];
+    runtime.transformed = [];
   });
 
   it("keeps empty room gestures scrollable and reserves the current avatar gesture", async () => {
@@ -418,10 +449,27 @@ describe("SharedLoungeCanvas", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Make stamp larger" }));
     expect(runtime.scaled).toEqual([{ entityID: "mine", scale: 1.1 }]);
-    fireEvent.click(screen.getByRole("button", { name: "Tilt stamp right" }));
-    expect(runtime.rotated).toEqual([
-      { entityID: "mine", rotation: Math.PI / 12 },
-    ]);
+    const rotateRight = screen.getByRole("button", {
+      name: "Rotate stamp right 15 degrees",
+    });
+    fireEvent.pointerDown(rotateRight, { pointerId: 1, pointerType: "touch" });
+    fireEvent.pointerUp(rotateRight, { pointerId: 1, pointerType: "touch" });
+    expect(runtime.transformed.at(-1)).toMatchObject({
+      entityID: "mine",
+      transform: {
+        x: 45,
+        y: 60,
+        z: 0,
+        scale: 1.1,
+      },
+      preview: true,
+    });
+    expect(runtime.transformed.at(-1)?.transform.rotation).toBeCloseTo(
+      Math.PI / 12,
+    );
+    expect(runtime.rotated).toHaveLength(1);
+    expect(runtime.rotated[0]?.entityID).toBe("mine");
+    expect(runtime.rotated[0]?.rotation).toBeCloseTo(Math.PI / 12);
     expect(screen.queryByRole("button", { name: /mirror/i })).toBeNull();
 
     view.rerender(

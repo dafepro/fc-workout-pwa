@@ -82,6 +82,9 @@ through V1 movement and piece endpoints.
 - Canvas template binding: an exact ID and version such as
   `zoomigo-beach-boardwalk@3`.
 - The server, never the browser, resolves product room to template.
+- The authenticated ticket projects the server-owned theme ID, theme version,
+  and display name that correspond to that exact binding. The client accepts
+  only supported manifests and never invents a fallback theme for unknown data.
 - A weekly room is immutable after binding. A new week gets a new product room,
   which provides the reset without deleting the prior week's snapshot.
 - Carry-forward inventory stays in Zoomigo. Only explicitly placed room
@@ -115,6 +118,9 @@ not include scoring in the first release.
 - Stamps use `pick -> tap anywhere inside the room margin`. A vertical drag on
   the placement surface still scrolls the page. Rotation and scale appear only
   after an editable owned item is selected.
+- Stamp rotation uses two 15-degree step controls. Pressing once advances once;
+  holding repeats in either direction through any number of revolutions. Stored
+  angles are normalized into `[-180°, 180°)`.
 - Player names and controls are semantic DOM overlays. The canvas has an
   accessible name and a concise non-visual status summary.
 - Development controls can reveal the authored collision shapes plus the
@@ -150,6 +156,11 @@ not include scoring in the first release.
 - Zoomigo validates the permanent stamp unlock, weekly earned budget, room
   margin, authenticated owner, and current team-local edit day before a durable
   Canvas mutation changes canonical state.
+- Move, scale, and rotate controls publish authorized full-transform previews
+  through the shared Canvas presentation stream. Every viewer therefore sees
+  manipulation in progress, while only the operation-specific final command is
+  persisted. Preview authorization rechecks position, scale, rotation, owner,
+  and edit day so a forged move preview cannot bypass another transform rule.
 - The server stamps each accepted placement with canonical `placementDay`
   metadata. All of the owner's current-day placements remain editable; prior-
   day placements are immutable. Canvas cannot author or increase either value.

@@ -8,7 +8,7 @@ import type {
   TeamCanvasWidgetContract,
 } from "../player/team-canvas/widget-contract";
 import type { StampAsset } from "../team-canvas/model";
-import { teamLoungeV2Copy as copy } from "./content";
+import { defaultLoungeTheme, teamLoungeV2Copy as copy } from "./content";
 import {
   LocalLoungeCanvas,
   type LocalLoungeCanvasState,
@@ -60,6 +60,7 @@ export function TeamLoungeV2({
     useState<LoungePlacementSummary | null>(null);
   const [placementError, setPlacementError] = useState<string | null>(null);
   const [placementPending, setPlacementPending] = useState(false);
+  const [theme, setTheme] = useState(defaultLoungeTheme);
   const placedStampCountRef = useRef(0);
   const signalPortRef = useRef<((kind: string) => void) | null>(null);
   const cooldownTimerRef = useRef<number | null>(null);
@@ -137,14 +138,14 @@ export function TeamLoungeV2({
     <section
       className="team-lounge-v2"
       role="region"
-      aria-label={copy.regionLabel}
+      aria-label={copy.regionLabel(theme.name)}
     >
       <header className="team-lounge-v2__header">
         <div>
           <p>{copy.label}</p>
           <h1>
             <span>This week</span>
-            {copy.theme}
+            {theme.name}
           </h1>
         </div>
         <span
@@ -190,6 +191,7 @@ export function TeamLoungeV2({
               );
             }}
             onPlacementPendingChange={setPlacementPending}
+            onThemeChange={setTheme}
           />
         ) : (
           <LocalLoungeCanvas

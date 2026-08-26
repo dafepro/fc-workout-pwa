@@ -14,26 +14,26 @@ the intended boundary; this file records delivered evidence and remaining risk.
 | 1       | Dev Me selector plus local Beach Boardwalk room                    | Delivered   | Direct-drag tests and browser proof   | Shared-room regression coverage  |
 | 2       | Authenticated team multiplayer room                                | Dev review  | SDK conformance and protocol JOIN     | Two-player browser proof         |
 | 3       | Presence, visit traces, emotes, durable physical state             | Dev review  | Relayed emotes, traces, shared ball   | Two-player lifecycle proof       |
-| 4       | Earned stamps/items with app-owned authorization                   | Dev review  | Earned budget + daily lock tests      | Two-player/day-rollover proof    |
-| 5       | Weekly reset and theme framework                                   | Not started | —                                     | Timezone/template rollover tests |
+| 4       | Earned stamps/items with app-owned authorization                   | Dev review  | Budget, lock, live-transform tests    | Two-player/day-rollover proof    |
+| 5       | Weekly reset and theme framework                                   | Foundation  | Canonical ticket theme manifest       | Timezone/template rollover tests |
 | 6       | Device budgets, observability, release and cutover                 | Not started | —                                     | All parity/safety gates green    |
 
 ## Product parity ledger
 
-| Capability                     | V1 today                 | V2 target                                | Current V2              |
-| ------------------------------ | ------------------------ | ---------------------------------------- | ----------------------- |
-| Dev-only switch and reset      | No                       | Yes                                      | Delivered               |
-| Mobile avatar movement         | Built-in drag/coast      | Canvas direct avatar drag                | 60 Hz, no coast         |
-| Safe avatar and name           | Yes                      | Canvas token + safe DOM overlay          | Delivered               |
-| Live teammates                 | Yes                      | Authenticated Canvas presence            | Avatars + count         |
-| Safe social signals            | Local predefined emotes  | Five bounded, server-relayed emotes      | Dev review              |
-| Prior-visitor traces           | No                       | Three privacy-safe weekly traces         | Dev review              |
-| Persistent stamps              | Yes                      | Zoomigo-authorized durable item          | Free place + daily lock |
-| Physical objects               | Built-in cosmetic pieces | One system-owned beach ball              | Shared ball             |
-| Reconnect/background lifecycle | Yes                      | Canvas lifecycle with visible recovery   | Connected               |
-| Weekly reset                   | Existing week state      | Immutable team/week/version room binding | Bound                   |
-| Developer telemetry            | V1 metrics               | V2 typed, name-free metrics              | Dev panel               |
-| Production default             | V1                       | Explicitly reviewed V2 cutover           | Not eligible            |
+| Capability                     | V1 today                 | V2 target                                | Current V2                  |
+| ------------------------------ | ------------------------ | ---------------------------------------- | --------------------------- |
+| Dev-only switch and reset      | No                       | Yes                                      | Delivered                   |
+| Mobile avatar movement         | Built-in drag/coast      | Canvas direct avatar drag                | 60 Hz, no coast             |
+| Safe avatar and name           | Yes                      | Canvas token + safe DOM overlay          | Delivered                   |
+| Live teammates                 | Yes                      | Authenticated Canvas presence            | Avatars + count             |
+| Safe social signals            | Local predefined emotes  | Five bounded, server-relayed emotes      | Dev review                  |
+| Prior-visitor traces           | No                       | Three privacy-safe weekly traces         | Dev review                  |
+| Persistent stamps              | Yes                      | Zoomigo-authorized durable item          | Free place, lock, live edit |
+| Physical objects               | Built-in cosmetic pieces | One system-owned beach ball              | Shared ball                 |
+| Reconnect/background lifecycle | Yes                      | Canvas lifecycle with visible recovery   | Connected                   |
+| Weekly reset                   | Existing week state      | Immutable team/week/version room binding | Bound                       |
+| Developer telemetry            | V1 metrics               | V2 typed, name-free metrics              | Dev panel                   |
+| Production default             | V1                       | Explicitly reviewed V2 cutover           | Not eligible                |
 
 ## Risk register
 
@@ -64,6 +64,8 @@ the intended boundary; this file records delivered evidence and remaining risk.
 | 2026-08-26 | 4C      | `90d10a6` + Canvas `f61f0cb`     | Restores vertical page scrolling from empty room space, removes the duplicate Canvas stamp artwork, and adds owner-only drag plus bounded scale                | Canvas 360-test suite; Zoomigo 498-test suite; authenticated spawn/move/scale WebSocket; lint, typecheck, build, Go vet/test; dev public smoke | Empty-space scrolling, single-layer overlap, move/scale persistence                      |
 | 2026-08-26 | 4D      | `513e048` + Canvas `f94bc54`     | Adds owner-only `−15° / 0° / +15°` rotation, persisted rendering, bounded authorization, and responsive edit controls; records the atomic replacement boundary | Canvas 360-test suite; Zoomigo 499-test suite; authenticated rotation WebSocket; lint, typecheck, build, Go vet/test; 320px shell proof        | Rotation controls and persistence at 320px; replacement contract                         |
 | 2026-08-26 | 4E      | `f885702` + Canvas `af4e1a7`     | Replaces authored spots/one-stamp policy with one latched credit per check-in day, free placement, multi-stamp editing today, and immutable prior-day stamps   | Canvas SDK/client targets; Zoomigo 504 tests; all Go tests; format, lint, typecheck, vet, build; 320 px local shell                            | Credit copy, authenticated free tap/scroll feel, two-tab last-credit race, next-day lock |
+| 2026-08-26 | 4F      | Current + Canvas `d5f96bc`       | Adds unlimited bidirectional 15-degree rotation, hold-to-repeat controls, normalized persistence, and shared move/scale/rotate previews                        | Canvas real three-client relay and preview ownership tests; Zoomigo transform policy, component, and authenticated WebSocket persistence tests | Two-player live manipulation, full-circle controls, reconnect persistence                |
+| 2026-08-26 | 5A      | Current                          | Adds a server-owned Beach Boardwalk theme manifest, exact template binding, ticket projection, and fail-closed client metadata validation                      | Go manifest/ticket tests; gateway validation and reconnect-generation tests                                                                    | Canonical theme heading and unchanged weekly room behavior                               |
 
 ## Latest dev delivery
 

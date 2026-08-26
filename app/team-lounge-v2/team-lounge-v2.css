@@ -383,6 +383,21 @@
   background: rgba(255, 255, 255, 0.13);
   color: white;
   font: inherit;
+  touch-action: none;
+  user-select: none;
+}
+
+.team-lounge-v2__stamp-edit-controls button:active {
+  background: var(--lounge-lime);
+  color: #05242a;
+}
+
+.team-lounge-v2__stamp-edit-tools output {
+  min-width: 2.25rem;
+  color: var(--lounge-lime);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 
 .team-lounge-v2__stamp-edit-controls .team-lounge-v2__stamp-edit-done {

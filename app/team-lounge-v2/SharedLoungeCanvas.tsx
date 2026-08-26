@@ -10,7 +10,7 @@ import type {
   RuntimeDiagnostics,
 } from "@canvas-physics/client";
 import type { StampAsset } from "../team-canvas/model";
-import { prepareTeamLoungeJoin } from "./data/lounge-gateway";
+import { prepareTeamLoungeJoin, type LoungeTheme } from "./data/lounge-gateway";
 import type { LocalLoungeCanvasState } from "./LocalLoungeCanvas";
 import { AvatarOverlays } from "./overlays/AvatarOverlays";
 import {
@@ -70,6 +70,7 @@ export function SharedLoungeCanvas({
   onPlacementSummaryChange,
   onPlacementError,
   onPlacementPendingChange,
+  onThemeChange,
 }: {
   teamID: string;
   playerID: string;
@@ -83,6 +84,7 @@ export function SharedLoungeCanvas({
   onPlacementSummaryChange?(summary: LoungePlacementSummary): void;
   onPlacementError?(reason: string): void;
   onPlacementPendingChange?(pending: boolean): void;
+  onThemeChange?(theme: LoungeTheme): void;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const runtimeRef = useRef<CanvasRuntime | null>(null);
@@ -90,6 +92,7 @@ export function SharedLoungeCanvas({
   const onPlacementSummaryChangeRef = useRef(onPlacementSummaryChange);
   const onPlacementErrorRef = useRef(onPlacementError);
   const onPlacementPendingChangeRef = useRef(onPlacementPendingChange);
+  const onThemeChangeRef = useRef(onThemeChange);
   const placementCreditsRef = useRef(0);
   const placementDayRef = useRef("");
   const projectionFrameRef = useRef<
@@ -129,6 +132,10 @@ export function SharedLoungeCanvas({
   useEffect(() => {
     onPlacementPendingChangeRef.current = onPlacementPendingChange;
   }, [onPlacementPendingChange]);
+
+  useEffect(() => {
+    onThemeChangeRef.current = onThemeChange;
+  }, [onThemeChange]);
 
   useEffect(() => {
     stampEditingEnabledRef.current = stampEditingEnabled;
@@ -184,6 +191,7 @@ export function SharedLoungeCanvas({
               rotation: projection.rotation,
               scale: projection.scale,
               screen: projection.screen,
+              world: projection.world ?? null,
               placementDay: placementDayFromConfig(projection.resolvedConfig),
             },
           ];
@@ -236,6 +244,7 @@ export function SharedLoungeCanvas({
       const join = await prepareTeamLoungeJoin(teamID);
       if (disposed) return;
       visitorIDs = join.visitorIDs;
+      onThemeChangeRef.current?.(join.theme);
       placementCreditsRef.current = join.placementCredits;
       placementDayRef.current = join.placementDay;
       setPlacementPolicy({
@@ -412,16 +421,48 @@ export function SharedLoungeCanvas({
         editableEntityIDs={editableStampIDs}
         selectedEntityID={stampEditingEnabled ? editSelectionID : null}
         onSelect={(entityID) => runtimeRef.current?.selectItemForEdit(entityID)}
-        onScale={(entityID, scale) => {
-          runtimeRef.current?.scaleItem(entityID, scale);
+        onScale={(entityID, scale, preview) => {
+          const stamp = stampOverlays.find(
+            (candidate) => candidate.entityID === entityID,
+          );
+          if (!stamp?.world) return;
+          if (preview) {
+            runtimeRef.current?.transformItem(
+              entityID,
+              {
+                ...stamp.world,
+                rotation: stamp.rotation,
+                scale,
+              },
+              true,
+            );
+          } else {
+            runtimeRef.current?.scaleItem(entityID, scale);
+          }
           setStampOverlays((current) =>
             current.map((stamp) =>
               stamp.entityID === entityID ? { ...stamp, scale } : stamp,
             ),
           );
         }}
-        onRotate={(entityID, rotation) => {
-          runtimeRef.current?.rotateItem(entityID, rotation);
+        onRotate={(entityID, rotation, preview) => {
+          const stamp = stampOverlays.find(
+            (candidate) => candidate.entityID === entityID,
+          );
+          if (!stamp?.world) return;
+          if (preview) {
+            runtimeRef.current?.transformItem(
+              entityID,
+              {
+                ...stamp.world,
+                rotation,
+                scale: stamp.scale,
+              },
+              true,
+            );
+          } else {
+            runtimeRef.current?.rotateItem(entityID, rotation);
+          }
           setStampOverlays((current) =>
             current.map((stamp) =>
               stamp.entityID === entityID ? { ...stamp, rotation } : stamp,

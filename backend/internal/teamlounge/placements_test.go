@@ -98,6 +98,7 @@ func TestStampPlacementAuthorizerLetsOwnersEditOnlyTodaysPlacements(t *testing.T
 		move := base
 		move.Operation = roomsdk.DurableMove
 		move.Position = roomsdk.DurablePosition{X: 5, Y: 145}
+		move.Scale = 1
 		move.Preview = preview
 		if result := authorizer.AuthorizeDurable(t.Context(), move); !result.Allowed {
 			t.Fatalf("owner move preview=%v denied: %+v", preview, result)
@@ -110,22 +111,46 @@ func TestStampPlacementAuthorizerLetsOwnersEditOnlyTodaysPlacements(t *testing.T
 			t.Fatalf("owner scale %v denied: %+v", scale, result)
 		}
 	}
-	for _, rotation := range []float64{-math.Pi / 12, 0, math.Pi / 12} {
+	for step := -12; step < 12; step++ {
+		request := base
+		request.Operation, request.Rotation = roomsdk.DurableRotate, float64(step)*math.Pi/12
+		if result := authorizer.AuthorizeDurable(t.Context(), request); !result.Allowed {
+			t.Fatalf("owner rotation step %d denied: %+v", step, result)
+		}
+	}
+	for _, rotation := range []float64{math.Pi, 2 * math.Pi, math.Pi / 13} {
 		request := base
 		request.Operation, request.Rotation = roomsdk.DurableRotate, rotation
-		if result := authorizer.AuthorizeDurable(t.Context(), request); !result.Allowed {
-			t.Fatalf("owner rotation %v denied: %+v", rotation, result)
+		if result := authorizer.AuthorizeDurable(t.Context(), request); result.Allowed || result.Reason != StampInvalidRotationReason {
+			t.Fatalf("invalid rotation %v result = %+v", rotation, result)
 		}
+	}
+	preview := base
+	preview.Operation, preview.Preview = roomsdk.DurableMove, true
+	preview.Position = roomsdk.DurablePosition{X: 45, Y: 60}
+	preview.Rotation, preview.Scale = math.Pi/12, 1.2
+	if result := authorizer.AuthorizeDurable(t.Context(), preview); !result.Allowed {
+		t.Fatalf("valid full-transform preview denied: %+v", result)
+	}
+	preview.Scale = 3
+	if result := authorizer.AuthorizeDurable(t.Context(), preview); result.Allowed || result.Reason != StampInvalidScaleReason {
+		t.Fatalf("preview scale bypass result = %+v", result)
+	}
+	preview.Scale, preview.Rotation = 1, math.Pi/13
+	if result := authorizer.AuthorizeDurable(t.Context(), preview); result.Allowed || result.Reason != StampInvalidRotationReason {
+		t.Fatalf("preview rotation bypass result = %+v", result)
 	}
 	locked := base
 	locked.EntityID, locked.Operation = yesterday.EntityID, roomsdk.DurableMove
 	locked.Position = roomsdk.DurablePosition{X: 45, Y: 60}
+	locked.Scale = 1
 	if result := authorizer.AuthorizeDurable(t.Context(), locked); result.Allowed || result.Reason != StampLockedReason {
 		t.Fatalf("prior-day edit result = %+v", result)
 	}
 	notOwner := base
 	notOwner.UserID, notOwner.Operation = "player-two", roomsdk.DurableMove
 	notOwner.Position = roomsdk.DurablePosition{X: 45, Y: 60}
+	notOwner.Scale = 1
 	if result := authorizer.AuthorizeDurable(t.Context(), notOwner); result.Allowed || result.Reason != StampEditingUnavailableReason {
 		t.Fatalf("non-owner move result = %+v", result)
 	}

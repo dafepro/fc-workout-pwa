@@ -16,6 +16,25 @@ const (
 	BeachBoardwalkCanvasVersion = uint32(3)
 )
 
+type ThemeManifest struct {
+	ID       string
+	Version  uint32
+	Name     string
+	Template roomsdk.RoomTemplate
+}
+
+func WeeklyTheme(weekKey string) (ThemeManifest, error) {
+	if !validWeekKey(weekKey) {
+		return ThemeManifest{}, errors.New("invalid weekly lounge theme")
+	}
+	return ThemeManifest{
+		ID: "beach-boardwalk", Version: 1, Name: "Beach Boardwalk",
+		Template: roomsdk.RoomTemplate{
+			CanvasID: BeachBoardwalkCanvasID, CanvasVersion: BeachBoardwalkCanvasVersion,
+		},
+	}, nil
+}
+
 func WeeklyRoomID(teamID, weekKey string) (string, error) {
 	if !validTeamID(teamID) || !validWeekKey(weekKey) {
 		return "", errors.New("invalid weekly lounge identity")

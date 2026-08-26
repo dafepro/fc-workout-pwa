@@ -1158,10 +1158,14 @@ Momentum Alpha needs independent PWA install/offline behavior.
   `1.40`. The server rechecks the authenticated owner and bounds. Replacement,
   deletion, consumable quantities, and editing another player's stamp remain
   deferred.
-- Refined 2026-08-26: owner rotation is limited to `−15°`, `0°`, and `+15°`
-  and authorized server-side. Mirroring remains disabled for every current
-  asset; a later asset must explicitly opt in after art review and Canvas must
-  expose reflection directly rather than abusing negative scale.
+- Superseded 2026-08-26: the initial `−15°`, `0°`, and `+15°` rotation allowlist
+  proved the durable boundary but was too restrictive for decorating.
+- Decided: either turn control advances by 15 degrees and may continue through
+  any number of revolutions. The client normalizes durable angles to
+  `[-180°, 180°)` so repeated turns never grow stored state without bound.
+  Mirroring remains disabled for every current asset; a later asset must
+  explicitly opt in after art review and Canvas must expose reflection directly
+  rather than abusing negative scale.
 - Decided: replacement will be one atomic **Change stamp** mutation that keeps
   the existing entity ID, owner, and transform while swapping to another owned
   asset. The old stamp remains until acceptance, so retries and disconnects
@@ -1181,12 +1185,22 @@ Momentum Alpha needs independent PWA install/offline behavior.
   durable item; Zoomigo alone validates the authenticated owner, unlock, weekly
   budget, bounds, and canonical placement day.
 - Decided: every stamp placed on the current team-local day may be moved,
-  resized, or set to one of the three allowed tilt snaps. At local midnight it
-  locks in place. Prior-day stamps and teammate stamps stay visible but cannot
-  be edited. The server injects `placementDay`; the browser cannot choose it.
+  resized, or rotated in 15-degree steps. At local midnight it locks in place.
+  Prior-day stamps and teammate stamps stay visible but cannot be edited. The
+  server injects `placementDay`; the browser cannot choose it.
+- Decided: move, scale, and rotate previews travel through Canvas's shared room
+  stream, so every connected viewer sees an in-progress transform. The final
+  durable command remains authoritative. Zoomigo validates the complete preview
+  transform—position, scale, rotation, owner, and edit day—rather than trusting
+  a browser-supplied field that the visible control did not change.
 - Decided: this policy starts Beach Boardwalk room generation V3 and stamp
   definition V2, so existing V2 snapshots are never reinterpreted. Replacement,
   standalone delete, and mirroring remain separate future actions.
+- Decided: every lounge ticket includes a server-owned theme ID, version, and
+  display name tied to the exact immutable Canvas template binding. The browser
+  fails closed on unsupported metadata. Beach Boardwalk V1 remains the only
+  current theme; selection cadence, staged changes, and operator rollback are
+  intentionally deferred until the second theme is designed.
 - Decided: transient player emotes use a generic Canvas participant-signal
   channel, not Zoomigo chat or a second websocket. The room server allowlists
   five payload-free kinds and permits one accepted signal per player every two

@@ -115,6 +115,11 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 		VisitorIDs       []string `json:"visitorIds"`
 		PlacementCredits int      `json:"placementCredits"`
 		PlacementDay     string   `json:"placementDay"`
+		Theme            struct {
+			ID      string `json:"id"`
+			Version uint32 `json:"version"`
+			Name    string `json:"name"`
+		} `json:"theme"`
 	}
 	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
 		t.Fatal(err)
@@ -128,6 +133,9 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 	}
 	if response.PlacementCredits != 1 || response.PlacementDay == "" {
 		t.Fatalf("placement budget projection = %#v", response)
+	}
+	if response.Theme.ID != "beach-boardwalk" || response.Theme.Version != 1 || response.Theme.Name != "Beach Boardwalk" {
+		t.Fatalf("theme projection = %#v", response.Theme)
 	}
 	template, err := loungeStore.ResolveRoomTemplate(ctx, response.RoomID)
 	if err != nil || template.CanvasID != teamlounge.BeachBoardwalkCanvasID || template.CanvasVersion != teamlounge.BeachBoardwalkCanvasVersion {
@@ -268,10 +276,27 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 	if err := reconnected.Write(ctx, websocket.MessageBinary, mustMarshalLoungeEnvelope(t, rejoin)); err != nil {
 		t.Fatal(err)
 	}
-	if joined := awaitLoungeEnvelope(t, ctx, reconnected, func(candidate *pb.RoomEnvelope) bool {
+	joined := awaitLoungeEnvelope(t, ctx, reconnected, func(candidate *pb.RoomEnvelope) bool {
 		return candidate.GetJoinAccepted() != nil
-	}); joined.GetJoinAccepted().GetUserId() != "player-one" {
+	})
+	if joined.GetJoinAccepted().GetUserId() != "player-one" {
 		t.Fatalf("reconnected join = %#v", joined.GetJoinAccepted())
+	}
+	var rejoinedSnapshot roomsdk.CanvasSnapshot
+	if err := json.Unmarshal(joined.GetJoinAccepted().GetSnapshotJson(), &rejoinedSnapshot); err != nil {
+		t.Fatalf("reconnected snapshot: %v", err)
+	}
+	var persisted *roomsdk.SnapshotItem
+	for index := range rejoinedSnapshot.Items {
+		if rejoinedSnapshot.Items[index].EntityID == placedItem.EntityID {
+			persisted = &rejoinedSnapshot.Items[index]
+			break
+		}
+	}
+	if persisted == nil || math.Abs(persisted.Transform.X-52) > 0.001 ||
+		math.Abs(persisted.Transform.Y-84) > 0.001 || math.Abs(persisted.Transform.Scale-1.2) > 0.001 ||
+		math.Abs(persisted.Transform.Rotation-math.Pi/12) > 0.001 {
+		t.Fatalf("persisted stamp transform = %#v", persisted)
 	}
 
 	duplicate := proto.Clone(placement).(*pb.DurableCommand)
