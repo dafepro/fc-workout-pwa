@@ -12,6 +12,7 @@ import {
 export type LocalLoungeCanvasState =
   | "loading"
   | "ready"
+  | "reconnecting"
   | "static-preview"
   | "error";
 

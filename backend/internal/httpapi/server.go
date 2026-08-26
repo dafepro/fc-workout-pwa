@@ -14,12 +14,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dafepro/canvas/server/pkg/roomsdk"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/authn"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/canvasphysics"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/config"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/rewardmedia"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/store"
+	"github.com/dafepro/fc-workout-pwa/backend/internal/teamlounge"
 )
 
 type contextKey string
@@ -41,27 +43,29 @@ type errorBody struct {
 }
 
 type service struct {
-	cfg           config.Config
-	store         Repository
-	authenticator authn.Authenticator
-	sessions      SessionManager
-	staff         StaffSessionManager
-	staffStore    StaffRepository
-	rewards       TeamRewardRepository
-	rewardMedia   rewardmedia.Store
-	rewardImages  *rewardmedia.Processor
-	staffAccounts StaffAccountManager
-	credentials   CredentialManager
-	devAccess     DevAccessManager
-	authFixtures  func(context.Context) error
-	throttles     []*loginThrottle
-	canvasEvents  *teamCanvasBroker
-	canvasPhysics *teamCanvasPhysicsManager
-	canvasTickets *teamCanvasSocketTickets
-	canvasRooms   *teamCanvasRealtimeRooms
-	middleware    func(http.Handler) http.Handler
-	operations    OperationalObserver
-	now           func() time.Time
+	cfg             config.Config
+	store           Repository
+	authenticator   authn.Authenticator
+	sessions        SessionManager
+	staff           StaffSessionManager
+	staffStore      StaffRepository
+	rewards         TeamRewardRepository
+	rewardMedia     rewardmedia.Store
+	rewardImages    *rewardmedia.Processor
+	staffAccounts   StaffAccountManager
+	credentials     CredentialManager
+	devAccess       DevAccessManager
+	authFixtures    func(context.Context) error
+	throttles       []*loginThrottle
+	canvasEvents    *teamCanvasBroker
+	canvasPhysics   *teamCanvasPhysicsManager
+	canvasTickets   *teamCanvasSocketTickets
+	canvasRooms     *teamCanvasRealtimeRooms
+	teamLoungeStore *teamlounge.SQLiteStore
+	teamLoungeRooms http.Handler
+	middleware      func(http.Handler) http.Handler
+	operations      OperationalObserver
+	now             func() time.Time
 }
 
 type OperationalObserver interface {
@@ -134,6 +138,10 @@ func WithOperationalObserver(observer OperationalObserver) Option {
 	return func(service *service) { service.operations = observer }
 }
 
+func WithTeamLoungeStore(store *teamlounge.SQLiteStore) Option {
+	return func(service *service) { service.teamLoungeStore = store }
+}
+
 func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	service := &service{cfg: cfg, authenticator: authn.Disabled{}, canvasEvents: newTeamCanvasBroker(), now: time.Now}
 	for _, option := range options {
@@ -142,6 +150,17 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	service.canvasTickets = newTeamCanvasSocketTickets(service.now)
 	service.canvasRooms = newTeamCanvasRealtimeRooms()
 	service.canvasPhysics = newTeamCanvasPhysicsManager()
+	if service.teamLoungeStore != nil {
+		roomServer, err := roomsdk.New(roomsdk.Config{
+			Store:          service.teamLoungeStore,
+			RoomTemplates:  service.teamLoungeStore,
+			Auth:           newTeamLoungeAuthenticator(service.canvasTickets),
+			AllowedOrigins: teamLoungeAllowedOrigins(cfg.AllowedOrigin),
+		})
+		if err == nil {
+			service.teamLoungeRooms = roomServer.Handler()
+		}
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -201,6 +220,8 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	mux.HandleFunc("PUT /v1/teams/{teamId}/canvas/dev-settings", service.updateTeamCanvasSettings)
 	mux.HandleFunc("POST /v1/teams/{teamId}/canvas/socket-ticket", service.createTeamCanvasSocketTicket)
 	mux.HandleFunc("GET /v1/teams/{teamId}/canvas/socket", service.connectTeamCanvasSocket)
+	mux.HandleFunc("POST /v1/teams/{teamId}/lounge-v2/socket-ticket", service.createTeamLoungeSocketTicket)
+	mux.HandleFunc("GET /v1/realtime/rooms/{id}", service.connectTeamLoungeRoom)
 	if _, ok := service.store.(fixtureResetter); cfg.EnableE2EFixtures && ok {
 		mux.HandleFunc("POST /__e2e/reset", service.resetE2EFixtures)
 		mux.HandleFunc("POST /__e2e/unlocks", service.grantE2EUnlocks)
@@ -226,7 +247,8 @@ func devGateway(cfg config.Config, next http.Handler) http.Handler {
 		return next
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/healthz" || r.URL.Path == "/readyz" || isTicketedTeamCanvasSocketUpgrade(r) {
+		if r.URL.Path == "/healthz" || r.URL.Path == "/readyz" ||
+			isTicketedTeamCanvasSocketUpgrade(r) || isTicketedTeamLoungeSocketUpgrade(r) {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -251,12 +273,40 @@ func isTicketedTeamCanvasSocketUpgrade(r *http.Request) bool {
 	if !ok || teamID == "" || strings.Contains(teamID, "/") {
 		return false
 	}
-	ticket := teamCanvasSocketTicket(r.Header.Values("Sec-WebSocket-Protocol"))
+	return validCanvasSocketTicket(teamCanvasSocketTicket(r.Header.Values("Sec-WebSocket-Protocol")))
+}
+
+func isTicketedTeamLoungeSocketUpgrade(r *http.Request) bool {
+	if r.Method != http.MethodGet || !strings.EqualFold(r.Header.Get("Upgrade"), "websocket") {
+		return false
+	}
+	roomID, ok := strings.CutPrefix(r.URL.Path, "/v1/realtime/rooms/")
+	if !ok {
+		return false
+	}
+	if _, _, err := teamlounge.ParseWeeklyRoomID(roomID); err != nil {
+		return false
+	}
+	hasRealtimeProtocol := false
+	for _, protocol := range strings.Split(r.Header.Get("Sec-WebSocket-Protocol"), ",") {
+		if strings.TrimSpace(protocol) == "canvas-realtime" {
+			hasRealtimeProtocol = true
+			break
+		}
+	}
+	if !hasRealtimeProtocol {
+		return false
+	}
+	return validCanvasSocketTicket(teamCanvasSocketTicket(r.Header.Values("Sec-WebSocket-Protocol")))
+}
+
+func validCanvasSocketTicket(ticket string) bool {
 	if len(ticket) != 43 {
 		return false
 	}
 	for _, character := range ticket {
-		if character != '-' && character != '_' && (character < '0' || character > '9') && (character < 'A' || character > 'Z') && (character < 'a' || character > 'z') {
+		if character != '-' && character != '_' && (character < '0' || character > '9') &&
+			(character < 'A' || character > 'Z') && (character < 'a' || character > 'z') {
 			return false
 		}
 	}

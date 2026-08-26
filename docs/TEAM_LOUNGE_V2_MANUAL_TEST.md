@@ -2,9 +2,8 @@
 
 Updated: 2026-08-25.
 
-This plan covers the first reviewable V2 slice. It is intentionally a local,
-single-player Canvas integration; multiplayer, persistence, earned-item
-placement, and weekly rollover are later segments.
+This plan covers direct avatar dragging and the first authenticated shared-room
+slice. Earned-item placement remains a later segment.
 
 ## Setup
 
@@ -16,7 +15,7 @@ placement, and weekly rollover are later segments.
 ## Core review
 
 1. Confirm the card says **This week · Beach Boardwalk** and
-   **V2 · Local Canvas preview**.
+   **V2 · Shared Canvas room**.
 2. Press directly on the blue player token, then drag for one to two seconds.
    The token and its **You** label should follow the pointer.
 3. Drag empty boardwalk space. The player should remain still; empty space is
@@ -31,8 +30,11 @@ placement, and weekly rollover are later segments.
    without allowing placement yet.
 8. Confirm **Items** is visibly disabled and **Map** is visibly disabled because
    the first room fits on one screen. Neither should look tappable.
-9. Switch back to V1 in Me. Confirm the current Team Canvas returns and the V2
-   room is gone. Switch to V2 again and confirm only one room is present.
+9. Sign in as a second player on the same team in another browser profile.
+   Confirm **2 here** appears and both windows render the shared ball and player
+   movement.
+10. Switch back to V1 in Me. Confirm the current Team Canvas returns and the V2
+    room is gone. Switch to V2 again and confirm only one room is present.
 
 ## Mobile and lifecycle checks
 
@@ -42,19 +44,19 @@ placement, and weekly rollover are later segments.
    readable.
 3. Rotate once, then return to portrait. The room should resize without adding a
    second Canvas.
-4. Leave Team for Today and return. The room should start cleanly with no frozen
-   controls or duplicate player token.
+4. Move the ball, leave Team for Today, wait a moment, and return. The room
+   should restore without a duplicate player and the ball should retain its
+   last canonical position.
 5. Enable reduced motion at the operating-system/browser level. Movement should
    still work, while decorative emote motion is reduced.
 
 ## Expected limitations in this slice
 
-- The room contains only the current player; **1 here** is a local-preview fact.
 - The token is temporary and does not yet render the saved Zoomigo avatar.
-- Ball position, emotes, and room state reset when the local room remounts.
+- Teammate names and avatar overlays are not yet projected; only the live count
+  is wired in this slice.
 - Stamps cannot be placed. Items and Map are disabled.
-- No lounge state is written to the Zoomigo backend.
+- Emotes remain local presentation and are not yet relayed.
 
-Record feedback on movement feel, the visible world scale, whether one ball is
-enough to understand the interaction, and whether the control shell feels too
-prominent or too quiet.
+Record feedback on movement feel, reconnect clarity, the live presence count,
+ball persistence, and whether the control shell feels too prominent or quiet.

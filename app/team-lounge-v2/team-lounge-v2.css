@@ -208,9 +208,15 @@
 
 .team-lounge-v2__world[data-canvas-state="ready"]
   .team-lounge-v2__avatar-fallback,
+.team-lounge-v2__world[data-canvas-state="reconnecting"]
+  .team-lounge-v2__avatar-fallback,
 .team-lounge-v2__world[data-canvas-state="ready"] .team-lounge-v2__sky,
+.team-lounge-v2__world[data-canvas-state="reconnecting"] .team-lounge-v2__sky,
 .team-lounge-v2__world[data-canvas-state="ready"] .team-lounge-v2__shore,
-.team-lounge-v2__world[data-canvas-state="ready"] .team-lounge-v2__boardwalk {
+.team-lounge-v2__world[data-canvas-state="reconnecting"] .team-lounge-v2__shore,
+.team-lounge-v2__world[data-canvas-state="ready"] .team-lounge-v2__boardwalk,
+.team-lounge-v2__world[data-canvas-state="reconnecting"]
+  .team-lounge-v2__boardwalk {
   visibility: hidden;
 }
 

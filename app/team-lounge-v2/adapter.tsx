@@ -10,6 +10,7 @@ import {
   LocalLoungeCanvas,
   type LocalLoungeCanvasState,
 } from "./LocalLoungeCanvas";
+import { SharedLoungeCanvas } from "./SharedLoungeCanvas";
 
 export function TeamLoungeV2({
   host,
@@ -24,11 +25,20 @@ export function TeamLoungeV2({
   const [runtimeKey, setRuntimeKey] = useState(0);
   const [runtimeState, setRuntimeState] =
     useState<LocalLoungeCanvasState>("loading");
+  const [presenceCount, setPresenceCount] = useState(1);
   const [activeEmote, setActiveEmote] = useState<string | null>(null);
   const updateRuntimeState = useCallback(
     (next: LocalLoungeCanvasState) => setRuntimeState(next),
     [],
   );
+  const updatePresence = useCallback(
+    (next: number) => setPresenceCount(Math.max(0, next)),
+    [],
+  );
+  const sharedRoom =
+    host.access.state === "ready" &&
+    host.identity.teamID.length > 0 &&
+    host.identity.playerID !== "player";
   const stampCount =
     stampUnlocks?.choices.length ?? host.inventory.choices.length;
 
@@ -55,8 +65,12 @@ export function TeamLoungeV2({
             {copy.theme}
           </h1>
         </div>
-        <span className="team-lounge-v2__presence" aria-label="One player here">
-          <span aria-hidden="true" />1 here
+        <span
+          className="team-lounge-v2__presence"
+          aria-label={`${presenceCount} ${presenceCount === 1 ? "player" : "players"} here`}
+        >
+          <span aria-hidden="true" />
+          {presenceCount} here
         </span>
       </header>
 
@@ -68,12 +82,22 @@ export function TeamLoungeV2({
         </div>
         <div className="team-lounge-v2__shore" aria-hidden="true" />
         <div className="team-lounge-v2__boardwalk" aria-hidden="true" />
-        <LocalLoungeCanvas
-          key={runtimeKey}
-          playerID={host.identity.playerID}
-          reducedMotion={host.lifecycle.reducedMotion}
-          onStateChange={updateRuntimeState}
-        />
+        {sharedRoom ? (
+          <SharedLoungeCanvas
+            key={`shared-${runtimeKey}`}
+            teamID={host.identity.teamID}
+            reducedMotion={host.lifecycle.reducedMotion}
+            onStateChange={updateRuntimeState}
+            onPresenceChange={updatePresence}
+          />
+        ) : (
+          <LocalLoungeCanvas
+            key={`local-${runtimeKey}`}
+            playerID={host.identity.playerID}
+            reducedMotion={host.lifecycle.reducedMotion}
+            onStateChange={updateRuntimeState}
+          />
+        )}
         {activeEmote ? (
           <span
             className="team-lounge-v2__active-emote"
@@ -95,10 +119,16 @@ export function TeamLoungeV2({
           </div>
         ) : (
           <p className="team-lounge-v2__hint">
-            {runtimeState === "loading" ? copy.loading : copy.ready}
+            {runtimeState === "loading"
+              ? copy.loading
+              : runtimeState === "reconnecting"
+                ? copy.reconnecting
+                : copy.ready}
           </p>
         )}
-        <span className="team-lounge-v2__preview">{copy.preview}</span>
+        <span className="team-lounge-v2__preview">
+          {sharedRoom ? copy.shared : copy.preview}
+        </span>
       </div>
 
       {tray === "emotes" ? (
@@ -159,7 +189,9 @@ export function TeamLoungeV2({
         <span id="v2-items-hint">{copy.itemsHint}</span>
         <span id="v2-map-hint">{copy.mapHint}</span>
       </div>
-      <p className="team-lounge-v2__local-hint">{copy.localHint}</p>
+      <p className="team-lounge-v2__local-hint">
+        {sharedRoom ? copy.sharedHint : copy.localHint}
+      </p>
     </section>
   );
 }

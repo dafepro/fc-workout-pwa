@@ -75,7 +75,8 @@ through V1 movement and piece endpoints.
 
 ## Room and weekly identity
 
-- Product room ID: `team:<team-id>:lounge:<week-key>`.
+- Product room ID: `team:<team-id>:lounge:<week-key>`, where the existing
+  Zoomigo week key is the team's local Monday date (`YYYY-MM-DD`).
 - Canvas template binding: an exact ID and version such as
   `zoomigo-beach-boardwalk@1`.
 - The server, never the browser, resolves product room to template.

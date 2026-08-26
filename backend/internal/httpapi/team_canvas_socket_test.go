@@ -52,3 +52,19 @@ func TestTeamCanvasSocketTicketMismatchDoesNotSpendTicket(t *testing.T) {
 		t.Fatal("a mismatched attempt spent the valid ticket")
 	}
 }
+
+func TestTeamCanvasSocketTicketsCannotCrossProtocolAudiences(t *testing.T) {
+	tickets := newTeamCanvasSocketTickets(time.Now)
+	actor := domain.Actor{Role: domain.RolePlayer, PlayerID: "player-one", ClubID: "club-one"}
+	v2Ticket, err := tickets.issueForAudience(actor, "team-one", "2026-W34", teamLoungeV2TicketAudience)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, ok := tickets.consumeForAudience(v2Ticket, "team-one", "2026-W34", teamCanvasV1TicketAudience); ok {
+		t.Fatal("V2 ticket was accepted by the V1 audience")
+	}
+	if _, ok := tickets.consumeForAudience(v2Ticket, "team-one", "2026-W34", teamLoungeV2TicketAudience); !ok {
+		t.Fatal("audience mismatch spent the valid V2 ticket")
+	}
+}

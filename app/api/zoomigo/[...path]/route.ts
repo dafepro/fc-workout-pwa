@@ -80,12 +80,16 @@ async function proxy(request: Request) {
   if (
     response.ok &&
     request.method === "POST" &&
-    /v1\/teams\/[^/]+\/canvas\/socket-ticket$/.test(path)
+    /v1\/teams\/[^/]+\/(?:canvas|lounge-v2)\/socket-ticket$/.test(path)
   ) {
     try {
       const ticket = (await response.clone().json()) as Record<string, unknown>;
-      const socketPath = path.replace(/socket-ticket$/, "socket");
-      ticket.socketUrl = `${baseURL.replace(/^http/, "ws")}/${socketPath}`;
+      if (path.includes("/lounge-v2/")) {
+        ticket.serverUrl = baseURL;
+      } else {
+        const socketPath = path.replace(/socket-ticket$/, "socket");
+        ticket.socketUrl = `${baseURL.replace(/^http/, "ws")}/${socketPath}`;
+      }
       responseBody = JSON.stringify(ticket);
     } catch {
       return jsonError(

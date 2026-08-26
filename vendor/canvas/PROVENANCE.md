@@ -10,6 +10,7 @@ not need private GitHub or npm registry credentials.
 | Source commit        | `469634571d5658d1bb53200dcf3f323b74e82eb4`     |
 | Source commit date   | `2026-08-25T18:15:08-05:00`                    |
 | Package version      | `0.1.0`                                        |
+| Go rooms SDK         | `v0.0.0-20260825231508-469634571d56`           |
 | Protocol version     | Exact version in the coordinated source commit |
 | Pack tool            | pnpm `11.20.0`                                 |
 | Runtime used to pack | Node.js `24.19.0`                              |

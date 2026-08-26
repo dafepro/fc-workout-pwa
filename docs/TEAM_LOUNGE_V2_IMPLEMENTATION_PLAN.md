@@ -106,13 +106,13 @@ Its UI must label the connection state in developer tooling.
 Outcome: two authenticated members of one team see the same room, avatars, and
 ball while another team cannot join it.
 
-- [ ] Pin the Go rooms SDK to the same Canvas release commit/protocol.
-- [ ] Implement Canvas Authenticator, Store, and RoomTemplateResolver adapters.
-- [ ] Run Canvas conformance kits against the real Zoomigo database adapters.
-- [ ] Issue short-lived, audience-restricted, one-time credentials and validate
+- [x] Pin the Go rooms SDK to the same Canvas release commit/protocol.
+- [x] Implement Canvas Authenticator, Store, and RoomTemplateResolver adapters.
+- [x] Run Canvas conformance kits against the real Zoomigo database adapters.
+- [x] Issue short-lived, audience-restricted, one-time credentials and validate
       exact WebSocket origins.
-- [ ] Map one team/week to one exact Beach Boardwalk template version.
-- [ ] Add route/background/reconnect lifecycle and visible recovery states.
+- [x] Map one team/week to one exact Beach Boardwalk template version.
+- [x] Add route/background/reconnect lifecycle and visible recovery states.
 - [ ] Add two-client, reconnect, stale-ticket, wrong-team, and protocol-mismatch
       black-box coverage.
 

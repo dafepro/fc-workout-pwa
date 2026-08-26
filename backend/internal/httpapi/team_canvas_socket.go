@@ -22,12 +22,15 @@ import (
 
 const teamCanvasSocketTicketTTL = 30 * time.Second
 const teamCanvasSocketProtocol = "zoomigo.team-canvas.v1"
+const teamCanvasV1TicketAudience = "team-canvas-v1"
+const teamLoungeV2TicketAudience = "team-lounge-v2"
 
 type teamCanvasSocketClaim struct {
-	Actor   domain.Actor
-	TeamID  string
-	WeekKey string
-	Expires time.Time
+	Actor    domain.Actor
+	TeamID   string
+	WeekKey  string
+	Audience string
+	Expires  time.Time
 }
 
 type teamCanvasSocketTickets struct {
@@ -64,6 +67,10 @@ func newTeamCanvasSocketTickets(now func() time.Time) *teamCanvasSocketTickets {
 }
 
 func (tickets *teamCanvasSocketTickets) issue(actor domain.Actor, teamID, weekKey string) (string, error) {
+	return tickets.issueForAudience(actor, teamID, weekKey, teamCanvasV1TicketAudience)
+}
+
+func (tickets *teamCanvasSocketTickets) issueForAudience(actor domain.Actor, teamID, weekKey, audience string) (string, error) {
 	random := make([]byte, 32)
 	if _, err := rand.Read(random); err != nil {
 		return "", err
@@ -78,12 +85,17 @@ func (tickets *teamCanvasSocketTickets) issue(actor domain.Actor, teamID, weekKe
 		}
 	}
 	tickets.claims[ticket] = teamCanvasSocketClaim{
-		Actor: actor, TeamID: teamID, WeekKey: weekKey, Expires: now.Add(teamCanvasSocketTicketTTL),
+		Actor: actor, TeamID: teamID, WeekKey: weekKey, Audience: audience,
+		Expires: now.Add(teamCanvasSocketTicketTTL),
 	}
 	return ticket, nil
 }
 
 func (tickets *teamCanvasSocketTickets) consume(ticket, teamID, weekKey string) (teamCanvasSocketClaim, bool) {
+	return tickets.consumeForAudience(ticket, teamID, weekKey, teamCanvasV1TicketAudience)
+}
+
+func (tickets *teamCanvasSocketTickets) consumeForAudience(ticket, teamID, weekKey, audience string) (teamCanvasSocketClaim, bool) {
 	now := tickets.now().UTC()
 	tickets.mu.Lock()
 	defer tickets.mu.Unlock()
@@ -94,7 +106,7 @@ func (tickets *teamCanvasSocketTickets) consume(ticket, teamID, weekKey string) 
 		}
 		return teamCanvasSocketClaim{}, false
 	}
-	if claim.TeamID != teamID || claim.WeekKey != weekKey {
+	if claim.TeamID != teamID || claim.WeekKey != weekKey || claim.Audience != audience {
 		return teamCanvasSocketClaim{}, false
 	}
 	delete(tickets.claims, ticket)
@@ -112,7 +124,7 @@ func (tickets *teamCanvasSocketTickets) consumeTeam(ticket, teamID string) (team
 		}
 		return teamCanvasSocketClaim{}, false
 	}
-	if claim.TeamID != teamID {
+	if claim.TeamID != teamID || claim.Audience != teamCanvasV1TicketAudience {
 		return teamCanvasSocketClaim{}, false
 	}
 	delete(tickets.claims, ticket)

@@ -47,6 +47,15 @@ describe("player API route allowlist", () => {
     expect(
       allowsPlayerRoute("POST", "v1/teams/team-one/canvas/socket-ticket"),
     ).toBe(true);
+    expect(
+      allowsPlayerRoute("POST", "v1/teams/team-one/lounge-v2/socket-ticket"),
+    ).toBe(true);
+    expect(
+      allowsPlayerRoute(
+        "GET",
+        "v1/realtime/rooms/team:team-one:lounge:2026-08-24",
+      ),
+    ).toBe(false);
     expect(allowsPlayerRoute("GET", "v1/teams/team-one/canvas/events")).toBe(
       false,
     );

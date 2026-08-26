@@ -3,8 +3,10 @@ export const teamLoungeV2Copy = {
   theme: "Beach Boardwalk",
   regionLabel: "Beach Boardwalk Team Lounge",
   preview: "V2 · Local Canvas preview",
+  shared: "V2 · Shared Canvas room",
   loading: "Setting up the boardwalk…",
   ready: "Press your player, then drag to move.",
+  reconnecting: "Rejoining the team…",
   unavailable: "The boardwalk could not open.",
   retry: "Try again",
   emotes: "Emotes",
@@ -14,4 +16,5 @@ export const teamLoungeV2Copy = {
   mapHint: "This room fits on one screen.",
   itemsHint: "Props arrive in a later V2 slice.",
   localHint: "Local physics preview · teammates and persistence come next",
+  sharedHint: "Live team room · the boardwalk ball persists between visits",
 } as const;

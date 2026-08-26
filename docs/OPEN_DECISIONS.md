@@ -1114,3 +1114,22 @@ Momentum Alpha needs independent PWA install/offline behavior.
 - Notes are plain text and inherit private-session authorization. They never
   enter Team pulse, Canvas, rewards, leaderboards, client analytics, email, or
   teammate-facing projections.
+
+## Team Lounge V2 shared rooms (2026-08-25)
+
+- Refined: player movement starts only when the player presses their own avatar;
+  empty room space remains available for placement and object interactions.
+- Decided: V2 uses the existing canonical team-week key, the team's local Monday
+  date, in `team:<team-id>:lounge:<YYYY-MM-DD>`. It does not create a second ISO
+  week representation.
+- Decided: V1 and V2 socket credentials use separate audiences. A credential is
+  one-time, expires after 30 seconds, and is bound to one player, team, week,
+  and transport generation.
+- Decided: each weekly room is durably bound to one exact Canvas template and
+  version before a ticket is issued. Later theme changes create new bindings;
+  they never reinterpret an existing snapshot.
+- Decided: Canvas canonical checkpoints use a separate V2 SQLite store and
+  newest-revision-wins writes. Zoomigo remains the authority for room access,
+  inventory, rewards, and future stamp placement.
+- Deferred: stamp persistence stays disabled until inventory reservation,
+  idempotency, removal, and refund behavior are implemented together.

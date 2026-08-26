@@ -8,28 +8,28 @@ the intended boundary; this file records delivered evidence and remaining risk.
 
 ## Status
 
-| Segment | Reviewable outcome                                                 | Status       | Evidence                              | Next gate                        |
-| ------- | ------------------------------------------------------------------ | ------------ | ------------------------------------- | -------------------------------- |
-| 0       | Architecture, segmented plan, file tree, safety boundary, rollback | Delivered    | Canvas package/release/boundary gates | Segment 1 selector test          |
-| 1       | Dev Me selector plus local Beach Boardwalk room                    | Local update | Direct-drag tests and browser proof   | Ship with next dev slice         |
-| 2       | Authenticated team multiplayer room                                | Not started  | —                                     | Coordinated JS/Go release pin    |
-| 3       | Presence, visit traces, emotes, durable physical state             | Not started  | —                                     | Segment 2 conformance green      |
-| 4       | Earned stamps/items with app-owned authorization                   | Not started  | —                                     | Inventory transaction decision   |
-| 5       | Weekly reset and theme framework                                   | Not started  | —                                     | Timezone/template rollover tests |
-| 6       | Device budgets, observability, release and cutover                 | Not started  | —                                     | All parity/safety gates green    |
+| Segment | Reviewable outcome                                                 | Status      | Evidence                              | Next gate                        |
+| ------- | ------------------------------------------------------------------ | ----------- | ------------------------------------- | -------------------------------- |
+| 0       | Architecture, segmented plan, file tree, safety boundary, rollback | Delivered   | Canvas package/release/boundary gates | Segment 1 selector test          |
+| 1       | Dev Me selector plus local Beach Boardwalk room                    | Delivered   | Direct-drag tests and browser proof   | Shared-room regression coverage  |
+| 2       | Authenticated team multiplayer room                                | Dev review  | SDK conformance and protocol JOIN     | Two-player browser proof         |
+| 3       | Presence, visit traces, emotes, durable physical state             | Not started | —                                     | Segment 2 conformance green      |
+| 4       | Earned stamps/items with app-owned authorization                   | Not started | —                                     | Inventory transaction decision   |
+| 5       | Weekly reset and theme framework                                   | Not started | —                                     | Timezone/template rollover tests |
+| 6       | Device budgets, observability, release and cutover                 | Not started | —                                     | All parity/safety gates green    |
 
 ## Product parity ledger
 
 | Capability                     | V1 today                 | V2 target                              | Current V2    |
 | ------------------------------ | ------------------------ | -------------------------------------- | ------------- |
 | Dev-only switch and reset      | No                       | Yes                                    | Delivered     |
-| Mobile avatar movement         | Built-in drag/coast      | Canvas direct avatar drag/coast        | Local only    |
+| Mobile avatar movement         | Built-in drag/coast      | Canvas direct avatar drag/coast        | Shared room   |
 | Safe avatar and name           | Yes                      | Canvas sprite + DOM overlay            | Token + label |
-| Live teammates                 | Yes                      | Authenticated Canvas presence          | Not started   |
+| Live teammates                 | Yes                      | Authenticated Canvas presence          | Count only    |
 | Persistent stamps              | Yes                      | Zoomigo-authorized durable item        | Not started   |
-| Physical objects               | Built-in cosmetic pieces | One system-owned beach ball            | Local ball    |
-| Reconnect/background lifecycle | Yes                      | Canvas lifecycle with visible recovery | Retry shell   |
-| Weekly reset                   | Existing week state      | Immutable team/week room binding       | Not started   |
+| Physical objects               | Built-in cosmetic pieces | One system-owned beach ball            | Shared ball   |
+| Reconnect/background lifecycle | Yes                      | Canvas lifecycle with visible recovery | Connected     |
+| Weekly reset                   | Existing week state      | Immutable team/week room binding       | Bound         |
 | Developer telemetry            | V1 metrics               | V2 typed, name-free metrics            | Not started   |
 | Production default             | V1                       | Explicitly reviewed V2 cutover         | Not eligible  |
 
@@ -48,8 +48,9 @@ the intended boundary; this file records delivered evidence and remaining risk.
 
 ## Slice log
 
-| Date       | Segment | Revision                      | Delivered                                                                            | Verification                                                                                              | Review focus                                     |
-| ---------- | ------- | ----------------------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| 2026-08-25 | 0       | `c4410d4` + dependency commit | Architecture, plan, decisions, and pinned Canvas packages                            | Canvas artifact/release/boundary gates: 4 passed                                                          | Boundary, scope, sequencing                      |
-| 2026-08-25 | 1       | `30c2105`                     | Dev selector, lazy V2 adapter, local Boardwalk, movement, ball, emotes, mobile shell | 18 targeted tests; typecheck, lint, build; 320px/Android QA; deployed Canvas ready with no browser errors | Movement feel, room scale, first-scene direction |
-| 2026-08-25 | 1       | This revision                 | Replaced drag-anywhere thumbstick with avatar-origin direct drag                     | Target-forwarding test; empty-room/avatar-origin browser gesture proof; no browser errors                 | Grab radius and release-coast feel               |
+| Date       | Segment | Revision                      | Delivered                                                                                                     | Verification                                                                                              | Review focus                                     |
+| ---------- | ------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| 2026-08-25 | 0       | `c4410d4` + dependency commit | Architecture, plan, decisions, and pinned Canvas packages                                                     | Canvas artifact/release/boundary gates: 4 passed                                                          | Boundary, scope, sequencing                      |
+| 2026-08-25 | 1       | `30c2105`                     | Dev selector, lazy V2 adapter, local Boardwalk, movement, ball, emotes, mobile shell                          | 18 targeted tests; typecheck, lint, build; 320px/Android QA; deployed Canvas ready with no browser errors | Movement feel, room scale, first-scene direction |
+| 2026-08-25 | 1       | This revision                 | Replaced drag-anywhere thumbstick with avatar-origin direct drag                                              | Target-forwarding test; empty-room/avatar-origin browser gesture proof; no browser errors                 | Grab radius and release-coast feel               |
+| 2026-08-25 | 2       | This revision                 | Exact Go SDK pin, immutable weekly bindings, SQLite checkpoints, one-time room tickets, shared Canvas runtime | Canvas store/auth conformance; HTTP ticket + protocol-v8 WebSocket JOIN; reconnect credential tests       | Two-player presence, reconnect, ball persistence |

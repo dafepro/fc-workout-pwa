@@ -20,6 +20,7 @@ import (
 	"github.com/dafepro/fc-workout-pwa/backend/internal/rewardmedia"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/staffauth"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/store"
+	"github.com/dafepro/fc-workout-pwa/backend/internal/teamlounge"
 )
 
 func main() {
@@ -83,6 +84,7 @@ func run() error {
 
 	handlerOptions := []httpapi.Option{
 		httpapi.WithStore(observedRepository),
+		httpapi.WithTeamLoungeStore(teamlounge.NewSQLiteStore(db, teamlounge.BeachBoardwalkCatalog())),
 		// A staff bearer token resolves through the same interface as a player
 		// one, so authorization stays the single place that decides anything.
 		httpapi.WithAuthenticator(authn.Fallback{Primary: authenticator, Secondary: staff}),
