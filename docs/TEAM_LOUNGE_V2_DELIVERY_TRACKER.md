@@ -65,14 +65,14 @@ the intended boundary; this file records delivered evidence and remaining risk.
 | 2026-08-26 | 4D      | `513e048` + Canvas `f94bc54`     | Adds owner-only `−15° / 0° / +15°` rotation, persisted rendering, bounded authorization, and responsive edit controls; records the atomic replacement boundary | Canvas 360-test suite; Zoomigo 499-test suite; authenticated rotation WebSocket; lint, typecheck, build, Go vet/test; 320px shell proof        | Rotation controls and persistence at 320px; replacement contract                         |
 | 2026-08-26 | 4E      | `f885702` + Canvas `af4e1a7`     | Replaces authored spots/one-stamp policy with one latched credit per check-in day, free placement, multi-stamp editing today, and immutable prior-day stamps   | Canvas SDK/client targets; Zoomigo 504 tests; all Go tests; format, lint, typecheck, vet, build; 320 px local shell                            | Credit copy, authenticated free tap/scroll feel, two-tab last-credit race, next-day lock |
 | 2026-08-26 | 4F      | `3cd1741` + Canvas `d5f96bc`     | Adds unlimited bidirectional 15-degree rotation, hold-to-repeat controls, normalized persistence, and shared move/scale/rotate previews                        | Canvas real three-client relay and preview ownership tests; Zoomigo transform policy, component, and authenticated WebSocket persistence tests | Two-player live manipulation, full-circle controls, reconnect persistence                |
-| 2026-08-26 | 4G      | Current + Canvas `923bfce`       | Isolates projected edit controls from room gestures and makes the authoritative Canvas avatar body visually transparent beneath the projected saved avatar     | Canvas pointer-routing regression; Zoomigo editor-lifecycle and transparent-avatar contract tests                                              | Repeated mobile edit controls; rapid avatar drag with no visible split                   |
+| 2026-08-26 | 4G      | `40c5a71` + Canvas `923bfce`     | Isolates projected edit controls from room gestures and makes the authoritative Canvas avatar body visually transparent beneath the projected saved avatar     | Canvas pointer-routing regression; Zoomigo editor-lifecycle and transparent-avatar contract tests; dev public smoke                            | Repeated mobile edit controls; rapid avatar drag with no visible split                   |
 | 2026-08-26 | 5A      | `3cd1741`                        | Adds a server-owned Beach Boardwalk theme manifest, exact template binding, ticket projection, and fail-closed client metadata validation                      | Go manifest/ticket tests; gateway validation and reconnect-generation tests                                                                    | Canonical theme heading and unchanged weekly room behavior                               |
 
 ## Latest dev delivery
 
-- Deployed application revision: `3cd17417046d227b3191ad5daf00636042d9403a`.
-- Included Canvas revision: `d5f96bc70cae264c9755e266ac6f6bb6ce3445e8`.
-- GitHub Actions dev operation `32986690876` completed successfully on
+- Deployed application revision: `40c5a7145df268981f89ff37415a86e2644d8522`.
+- Included Canvas revision: `923bfce1360b743b0c5c3875e521f5c23ec7cdb3`.
+- GitHub Actions dev operation `32988758780` completed successfully on
   2026-08-26.
 - Independent public smoke: API `/healthz` returned `200 {"status":"ok"}` and
   the PWA returned the expected `303` to its password gate.
