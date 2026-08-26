@@ -62,6 +62,29 @@ func TestRoomBindingIsImmutable(t *testing.T) {
 	}
 }
 
+func TestRoomBindingsAllowImmutableTemplateGenerationsForOneWeek(t *testing.T) {
+	db := openMigratedDatabase(t)
+	seedTeam(t, db)
+	store := NewSQLiteStore(db, Catalog{})
+	rooms := []struct {
+		id       string
+		template roomsdk.RoomTemplate
+	}{
+		{id: "team:team-one:lounge:2026-08-24:v1", template: roomsdk.RoomTemplate{CanvasID: "beach-boardwalk", CanvasVersion: 1}},
+		{id: "team:team-one:lounge:2026-08-24:v2", template: roomsdk.RoomTemplate{CanvasID: "beach-boardwalk", CanvasVersion: 2}},
+	}
+
+	for _, room := range rooms {
+		if err := store.BindRoom(t.Context(), room.id, "team-one", "2026-08-24", room.template); err != nil {
+			t.Fatalf("bind %s: %v", room.id, err)
+		}
+		got, err := store.ResolveRoomTemplate(t.Context(), room.id)
+		if err != nil || got != room.template {
+			t.Fatalf("resolve %s = %#v, %v", room.id, got, err)
+		}
+	}
+}
+
 func openMigratedDatabase(t *testing.T) *sql.DB {
 	t.Helper()
 	databaseURL := "file:" + filepath.ToSlash(filepath.Join(t.TempDir(), "team-lounge.db"))

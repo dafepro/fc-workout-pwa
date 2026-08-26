@@ -2,8 +2,9 @@
 
 Updated: 2026-08-25.
 
-This plan covers direct avatar dragging and the first authenticated shared-room
-slice. Earned-item placement remains a later segment.
+This plan covers tuned direct avatar dragging, collision-map revision 2, safe
+live teammate overlays, and the authenticated shared room. Earned-item
+placement remains a later segment.
 
 ## Setup
 
@@ -16,12 +17,13 @@ slice. Earned-item placement remains a later segment.
 
 1. Confirm the card says **This week · Beach Boardwalk** and
    **V2 · Shared Canvas room**.
-2. Press directly on the blue player token, then drag for one to two seconds.
-   The token and its **You** label should follow the pointer.
+2. Press directly on your avatar, then drag slowly and quickly for one to two
+   seconds. The avatar and **You** label should follow smoothly without visible
+   30 Hz stepping.
 3. Drag empty boardwalk space. The player should remain still; empty space is
    reserved for room and item interactions.
-4. Release after a deliberate drag. The token may coast briefly but must stop
-   without crossing the room. Reduced motion removes that coast.
+4. Release after a deliberate drag. The avatar should stop; direct drag has no
+   hidden flick or coast.
 5. Walk into the yellow beach ball. It should move from the collision, bounce
    off room boundaries, and remain in the room.
 6. Open **Emotes**, choose each reaction, and confirm it appears briefly above
@@ -31,10 +33,16 @@ slice. Earned-item placement remains a later segment.
 8. Confirm **Items** is visibly disabled and **Map** is visibly disabled because
    the first room fits on one screen. Neither should look tappable.
 9. Sign in as a second player on the same team in another browser profile.
-   Confirm **2 here** appears and both windows render the shared ball and player
-   movement.
+   Confirm **2 here** appears and both windows render each player's saved avatar
+   plus safe first-name/last-initial label.
 10. Switch back to V1 in Me. Confirm the current Team Canvas returns and the V2
     room is gone. Switch to V2 again and confirm only one room is present.
+11. Expand **Lounge diagnostics**. Confirm the role says **Host** in the first
+    window and **Peer** in the second. During a drag, correction should normally
+    remain below `3.00`; record a screen capture if it repeatedly jumps above it.
+12. Enable **Show collision map**. The red shapes should sit over the visible
+    hut, umbrella table, bench, snack cart/planter, and lower pool edge. The open
+    center boardwalk should have no red blocker.
 
 ## Mobile and lifecycle checks
 
@@ -48,15 +56,14 @@ slice. Earned-item placement remains a later segment.
    should restore without a duplicate player and the ball should retain its
    last canonical position.
 5. Enable reduced motion at the operating-system/browser level. Movement should
-   still work, while decorative emote motion is reduced.
+   still work and stop on release, while decorative emote motion is reduced.
 
 ## Expected limitations in this slice
 
-- The token is temporary and does not yet render the saved Zoomigo avatar.
-- Teammate names and avatar overlays are not yet projected; only the live count
-  is wired in this slice.
 - Stamps cannot be placed. Items and Map are disabled.
 - Emotes remain local presentation and are not yet relayed.
+- Returning-player visit traces are not yet projected.
 
-Record feedback on movement feel, reconnect clarity, the live presence count,
-ball persistence, and whether the control shell feels too prominent or quiet.
+Record feedback on movement feel, any correction spikes, collision alignment,
+teammate overlays, reconnect clarity, ball persistence, and whether the control
+shell feels too prominent or quiet.

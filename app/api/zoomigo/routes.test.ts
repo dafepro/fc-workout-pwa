@@ -53,7 +53,7 @@ describe("player API route allowlist", () => {
     expect(
       allowsPlayerRoute(
         "GET",
-        "v1/realtime/rooms/team:team-one:lounge:2026-08-24",
+        "v1/realtime/rooms/team:team-one:lounge:2026-08-24:v2",
       ),
     ).toBe(false);
     expect(allowsPlayerRoute("GET", "v1/teams/team-one/canvas/events")).toBe(

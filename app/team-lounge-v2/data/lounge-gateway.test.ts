@@ -12,7 +12,7 @@ describe("Team Lounge V2 gateway", () => {
       new Response(
         JSON.stringify({
           ticket: "a".repeat(43),
-          roomId: "team:team-one:lounge:2026-08-24",
+          roomId: "team:team-one:lounge:2026-08-24:v2",
           serverUrl: "https://api.example.test",
           expiresInSeconds: 30,
         }),
@@ -23,7 +23,7 @@ describe("Team Lounge V2 gateway", () => {
 
     await expect(requestTeamLoungeCredential("team-one")).resolves.toEqual({
       ticket: "a".repeat(43),
-      roomID: "team:team-one:lounge:2026-08-24",
+      roomID: "team:team-one:lounge:2026-08-24:v2",
       serverURL: "https://api.example.test",
     });
     expect(fetchMock).toHaveBeenCalledWith(
@@ -52,7 +52,7 @@ describe("Team Lounge V2 gateway", () => {
         new Response(
           JSON.stringify({
             ticket: ticket.repeat(43),
-            roomId: "team:team-one:lounge:2026-08-24",
+            roomId: "team:team-one:lounge:2026-08-24:v2",
             serverUrl: "https://api.example.test",
           }),
           { status: 201 },

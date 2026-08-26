@@ -34,14 +34,14 @@ func TestTeamLoungeAuthenticatorConformsAndConsumesOneTimeTickets(t *testing.T) 
 
 	roomsdktest.RunAuthenticatorConformance(t, auth, []roomsdktest.AuthenticatorCase{
 		{
-			Name: "team member with exact room ticket", Request: request("team:team-one:lounge:2026-08-24", valid),
+			Name: "team member with exact room ticket", Request: request("team:team-one:lounge:2026-08-24:v2", valid),
 			WantIdentity: roomsdk.Identity{UserID: "player-one", DisplayName: "Player"},
 		},
-		{Name: "missing credential", Request: request("team:team-one:lounge:2026-08-24", ""), Unauthorized: true},
-		{Name: "V1 credential", Request: request("team:team-one:lounge:2026-08-24", v1), Unauthorized: true},
+		{Name: "missing credential", Request: request("team:team-one:lounge:2026-08-24:v2", ""), Unauthorized: true},
+		{Name: "V1 credential", Request: request("team:team-one:lounge:2026-08-24:v2", v1), Unauthorized: true},
 	})
 
-	if identity, err := auth.Authenticate(t.Context(), request("team:team-one:lounge:2026-08-24", valid)); err == nil || identity != (roomsdk.Identity{}) {
+	if identity, err := auth.Authenticate(t.Context(), request("team:team-one:lounge:2026-08-24:v2", valid)); err == nil || identity != (roomsdk.Identity{}) {
 		t.Fatalf("replayed identity = %#v, %v", identity, err)
 	}
 }

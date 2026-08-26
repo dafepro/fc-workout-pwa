@@ -10,14 +10,14 @@ func TestWeeklyRoomIdentityRoundTrips(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if roomID != "team:team-one:lounge:2026-08-24" {
+	if roomID != "team:team-one:lounge:2026-08-24:v2" {
 		t.Fatalf("room id = %q", roomID)
 	}
 	teamID, weekKey, err := ParseWeeklyRoomID(roomID)
 	if err != nil || teamID != "team-one" || weekKey != "2026-08-24" {
 		t.Fatalf("parsed = %q, %q, %v", teamID, weekKey, err)
 	}
-	for _, invalid := range []string{"", "team:other", "team:team/one:lounge:2026-08-24", "team:team-one:lounge:today", "team:team-one:lounge:2026-08-25"} {
+	for _, invalid := range []string{"", "team:other", "team:team/one:lounge:2026-08-24:v2", "team:team-one:lounge:today:v2", "team:team-one:lounge:2026-08-25:v2", "team:team-one:lounge:2026-08-24", "team:team-one:lounge:2026-08-24:v1"} {
 		if _, _, err := ParseWeeklyRoomID(invalid); err == nil {
 			t.Fatalf("accepted invalid room id %q", invalid)
 		}
@@ -32,6 +32,9 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 	canvas := catalog.Canvases[0]
 	if canvas.CanvasID != BeachBoardwalkCanvasID || canvas.Version != BeachBoardwalkCanvasVersion || !json.Valid(canvas.DefinitionRaw) {
 		t.Fatalf("canvas record = %#v", canvas)
+	}
+	if canvas.Version != 2 {
+		t.Fatalf("canvas version = %d", canvas.Version)
 	}
 	var shape struct {
 		ID          string `json:"id"`

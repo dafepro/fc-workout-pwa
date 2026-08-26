@@ -1,0 +1,40 @@
+import { memo } from "react";
+import { AvatarArt } from "../../avatar/AvatarArt";
+import type { AvatarConfiguration } from "../../avatar/types";
+import type { LoungeParticipantOverlay } from "../presence";
+
+const LoungeAvatarArt = memo(function LoungeAvatarArt({
+  config,
+}: {
+  config: AvatarConfiguration;
+}) {
+  return <AvatarArt config={config} />;
+});
+
+export function AvatarOverlays({
+  participants,
+}: {
+  participants: readonly LoungeParticipantOverlay[];
+}) {
+  return (
+    <div className="team-lounge-v2__avatar-overlays" aria-live="off">
+      {participants.map((participant) => (
+        <div
+          key={participant.playerID}
+          className="team-lounge-v2__participant"
+          aria-label={participant.accessibleName}
+          style={{
+            transform: `translate3d(${participant.screen.x}px, ${participant.screen.y}px, 0) translate(-50%, -50%)`,
+          }}
+        >
+          <span className="team-lounge-v2__participant-avatar" aria-hidden>
+            <LoungeAvatarArt config={participant.avatarConfiguration} />
+          </span>
+          <span className="team-lounge-v2__participant-name">
+            {participant.displayName}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}

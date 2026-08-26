@@ -1119,6 +1119,15 @@ Momentum Alpha needs independent PWA install/offline behavior.
 
 - Refined: player movement starts only when the player presses their own avatar;
   empty room space remains available for placement and object interactions.
+- Refined: direct drag samples at the 60 Hz simulation cadence and stops on
+  release. Flick/coast is removed because it made pointer ownership and
+  collision outcomes feel unpredictable.
+- Refined: a template version is part of the product room ID. Collision-map
+  revision 2 opens a new current-week room while retaining the prior snapshot,
+  so a correction never silently reinterprets canonical room state.
+- Implemented: active Canvas presence is merged with the authorized Team roster
+  for safe names and saved avatar art. Those presentation fields remain outside
+  Canvas packets and snapshots.
 - Decided: V2 uses the existing canonical team-week key, the team's local Monday
   date, in `team:<team-id>:lounge:<YYYY-MM-DD>`. It does not create a second ISO
   week representation.

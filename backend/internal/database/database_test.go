@@ -108,8 +108,8 @@ func TestMigrateUpgradesAnExistingFoundationDatabase(t *testing.T) {
 	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM schema_migrations`).Scan(&migrationCount); err != nil {
 		t.Fatal(err)
 	}
-	if migrationCount != 28 {
-		t.Fatalf("migration count = %d, want 28", migrationCount)
+	if migrationCount != 29 {
+		t.Fatalf("migration count = %d, want 29", migrationCount)
 	}
 }
 
@@ -150,6 +150,64 @@ func TestPlanPrizeBoxMigrationPreservesPopulatedUnlocks(t *testing.T) {
 	}
 	if unlocks != 1 || grantTable != 1 {
 		t.Fatalf("migration result unlocks=%d grantTable=%d", unlocks, grantTable)
+	}
+}
+
+func TestTeamLoungeRoomGenerationMigrationPreservesAPopulatedBinding(t *testing.T) {
+	ctx := context.Background()
+	databaseURL := "file:" + filepath.ToSlash(filepath.Join(t.TempDir(), "populated-lounge-room.db"))
+	db, err := Open(ctx, databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+
+	if _, err = db.ExecContext(ctx, `
+		CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL);
+		WITH RECURSIVE versions(version) AS (
+			SELECT 1
+			UNION ALL
+			SELECT version + 1 FROM versions WHERE version < 28
+		)
+		INSERT INTO schema_migrations (version, applied_at)
+		SELECT version, '2026-08-25T00:00:00Z' FROM versions;
+
+		CREATE TABLE teams (id TEXT PRIMARY KEY);
+		CREATE TABLE team_lounge_v2_room_bindings (
+			room_id TEXT PRIMARY KEY CHECK (length(room_id) BETWEEN 1 AND 255),
+			team_id TEXT NOT NULL REFERENCES teams(id),
+			week_key TEXT NOT NULL CHECK (length(week_key) BETWEEN 1 AND 32),
+			canvas_id TEXT NOT NULL CHECK (length(canvas_id) BETWEEN 1 AND 128),
+			canvas_version INTEGER NOT NULL CHECK (canvas_version > 0),
+			created_at TEXT NOT NULL,
+			UNIQUE (team_id, week_key)
+		);
+		INSERT INTO teams (id) VALUES ('team-lounge-migration');
+		INSERT INTO team_lounge_v2_room_bindings
+			(room_id, team_id, week_key, canvas_id, canvas_version, created_at)
+		VALUES
+			('team:team-lounge-migration:lounge:2026-08-24:v1', 'team-lounge-migration', '2026-08-24', 'beach-boardwalk', 1, '2026-08-25T00:00:00Z');
+	`); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = Migrate(ctx, db); err != nil {
+		t.Fatalf("upgrade a populated lounge room binding: %v", err)
+	}
+	if _, err = db.ExecContext(ctx, `INSERT INTO team_lounge_v2_room_bindings
+		(room_id, team_id, week_key, canvas_id, canvas_version, created_at)
+		VALUES
+		('team:team-lounge-migration:lounge:2026-08-24:v2', 'team-lounge-migration', '2026-08-24', 'beach-boardwalk', 2, '2026-08-25T01:00:00Z')`); err != nil {
+		t.Fatalf("insert the next immutable room generation: %v", err)
+	}
+
+	var generations int
+	if err = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM team_lounge_v2_room_bindings
+		WHERE team_id = 'team-lounge-migration' AND week_key = '2026-08-24'`).Scan(&generations); err != nil {
+		t.Fatal(err)
+	}
+	if generations != 2 {
+		t.Fatalf("room generations = %d, want 2", generations)
 	}
 }
 

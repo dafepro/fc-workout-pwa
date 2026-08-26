@@ -94,6 +94,9 @@ Beach Boardwalk, kick one ball, and return to V1 without a reload race.
 - [x] Add direct avatar press/drag movement, a temporary avatar token/name overlay,
       transient emotes, loading/error
       states, and the four-control shell.
+- [x] Tune direct drag to the simulation cadence, remove release coast, align
+      authored collision geometry, and expose a dev-only collision/diagnostics
+      review panel.
 - [x] Keep unavailable controls explicit and noninteractive.
 - [ ] Cover selection, lazy failure, route cleanup, movement, and reduced motion.
 - [x] Verify at 320 CSS pixels and with one Android-sized viewport.
@@ -120,9 +123,11 @@ ball while another team cannot join it.
 
 Outcome: returning players can tell what changed without adding a feed.
 
-- [ ] Render active teammates from authenticated presence with safe names.
-- [ ] Merge presence with roster state without exposing workout data.
-- [ ] Persist the ball and system scene checkpoint across room sleep/restart.
+- [x] Render active teammates from authenticated presence with safe names and
+      saved Zoomigo avatar art.
+- [x] Merge presence with roster state without exposing workout data or storing
+      roster presentation in Canvas snapshots.
+- [x] Persist the ball and system scene checkpoint across room sleep/restart.
 - [ ] Add capped predefined visit traces for earlier visitors.
 - [ ] Add five transient predefined emotes with expiry and rate limits.
 - [ ] Cover reconnect identity, stale avatars, expiry, and no-cross-team leaks.

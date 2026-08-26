@@ -33,11 +33,38 @@ describe("Beach Boardwalk Canvas scene", () => {
   });
 
   it("keeps the room within the initial mobile scene budget", () => {
+    expect(beachBoardwalkCanvas.version).toBe(2);
     expect(beachBoardwalkCanvas.limits).toEqual({
       maxAvatars: 24,
       maxItems: 48,
       maxComplexPhysicsItems: 4,
     });
-    expect(beachBoardwalkCanvas.staticGeometry).toHaveLength(5);
+    expect(beachBoardwalkCanvas.staticGeometry).toEqual([
+      expect.objectContaining({
+        id: "lifeguard-hut",
+        shape: { type: "rect", width: 38, height: 42 },
+        position: { x: 79, y: 27 },
+      }),
+      expect.objectContaining({
+        id: "umbrella-table",
+        shape: { type: "circle", radius: 14 },
+        position: { x: 18, y: 36 },
+      }),
+      expect.objectContaining({
+        id: "boardwalk-bench",
+        shape: { type: "rect", width: 31, height: 21 },
+        position: { x: 16, y: 108 },
+      }),
+      expect.objectContaining({
+        id: "snack-cart",
+        shape: { type: "rect", width: 28, height: 49 },
+        position: { x: 88, y: 116.5 },
+      }),
+      expect.objectContaining({
+        id: "lower-pool-edge",
+        shape: { type: "rect", width: 76, height: 16 },
+        position: { x: 25, y: 141 },
+      }),
+    ]);
   });
 });

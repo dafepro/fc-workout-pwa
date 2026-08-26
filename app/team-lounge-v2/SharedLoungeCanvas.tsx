@@ -1,24 +1,44 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import type { CanvasRuntime } from "@canvas-physics/client";
+import { useEffect, useRef, useState } from "react";
+import type {
+  CanvasRuntime,
+  OverlayEntityProjection,
+  ParticipantPresence,
+  RuntimeDiagnostics,
+} from "@canvas-physics/client";
 import { prepareTeamLoungeJoin } from "./data/lounge-gateway";
 import type { LocalLoungeCanvasState } from "./LocalLoungeCanvas";
+import { AvatarOverlays } from "./overlays/AvatarOverlays";
+import {
+  mergeLoungePresence,
+  type LoungeParticipantOverlay,
+  type LoungeRosterMember,
+} from "./presence";
+import {
+  sharedLoungePointerOptions,
+  sharedLoungeRates,
+} from "./runtime-config";
 import { beachBoardwalkAssets } from "./scene/assets";
 import { beachBoardwalkDefinitions } from "./scene/beach-boardwalk";
 
 export function SharedLoungeCanvas({
   teamID,
-  reducedMotion,
+  playerID,
+  roster,
   onStateChange,
   onPresenceChange,
+  onDiagnostics,
 }: {
   teamID: string;
-  reducedMotion: boolean;
+  playerID: string;
+  roster: readonly LoungeRosterMember[];
   onStateChange(state: LocalLoungeCanvasState): void;
   onPresenceChange(count: number): void;
+  onDiagnostics?(diagnostics: RuntimeDiagnostics): void;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
+  const [overlays, setOverlays] = useState<LoungeParticipantOverlay[]>([]);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -27,6 +47,20 @@ export function SharedLoungeCanvas({
     let runtime: CanvasRuntime | undefined;
     let unsubscribeLifecycle: () => void = () => undefined;
     let unsubscribePresence: () => void = () => undefined;
+    let unsubscribeProjection: () => void = () => undefined;
+    let participants: readonly ParticipantPresence[] = [];
+    let projections: readonly OverlayEntityProjection[] = [];
+    const publishOverlays = () => {
+      if (disposed) return;
+      setOverlays(
+        mergeLoungePresence({
+          currentPlayerID: playerID,
+          roster,
+          participants,
+          projections,
+        }),
+      );
+    };
     onStateChange("loading");
 
     void (async () => {
@@ -44,18 +78,10 @@ export function SharedLoungeCanvas({
           background: 0x63c9dc,
           resolution: Math.min(devicePixelRatio, 2),
         },
-        pointer: {
-          mode: "avatarDrag",
-          deadZonePx: 2,
-          grabRadiusPx: 36,
-          flick: reducedMotion
-            ? false
-            : {
-                sampleWindowMs: 100,
-                minimumSpeedPxPerSecond: 320,
-                fullSpeedPxPerSecond: 1_250,
-              },
-        },
+        rates: sharedLoungeRates,
+        pointer: sharedLoungePointerOptions(),
+        hideDisabledAvatars: true,
+        onDiagnostics,
         onError: () => {
           if (!disposed) onStateChange("error");
         },
@@ -65,12 +91,24 @@ export function SharedLoungeCanvas({
         if (state === "reconnecting") onStateChange("reconnecting");
         if (state === "failed") onStateChange("error");
       });
-      unsubscribePresence = runtime.subscribePresence(({ participants }) => {
-        if (disposed) return;
-        onPresenceChange(
-          participants.filter(({ status }) => status !== "disconnected").length,
-        );
-      });
+      unsubscribePresence = runtime.subscribePresence(
+        ({ participants: nextParticipants }) => {
+          if (disposed) return;
+          participants = nextParticipants;
+          onPresenceChange(
+            participants.filter(({ status }) => status !== "disconnected")
+              .length,
+          );
+          publishOverlays();
+        },
+      );
+      unsubscribeProjection = runtime.subscribeOverlayProjection(
+        (snapshot) => {
+          projections = snapshot.entities;
+          publishOverlays();
+        },
+        { kinds: ["avatar"], maxEntities: 24, maxHz: 60 },
+      );
       await runtime.start();
       await runtime.whenPresented();
       if (!disposed) onStateChange("ready");
@@ -82,6 +120,7 @@ export function SharedLoungeCanvas({
       disposed = true;
       unsubscribeLifecycle();
       unsubscribePresence();
+      unsubscribeProjection();
       const activeRuntime = runtime;
       runtime = undefined;
       if (activeRuntime) {
@@ -90,14 +129,24 @@ export function SharedLoungeCanvas({
           .catch(() => activeRuntime.stop());
       }
     };
-  }, [onPresenceChange, onStateChange, reducedMotion, teamID]);
+  }, [
+    onDiagnostics,
+    onPresenceChange,
+    onStateChange,
+    playerID,
+    roster,
+    teamID,
+  ]);
 
   return (
-    <div
-      ref={mountRef}
-      className="team-lounge-v2__stage"
-      aria-label="Interactive shared lounge canvas"
-      tabIndex={0}
-    />
+    <>
+      <div
+        ref={mountRef}
+        className="team-lounge-v2__stage"
+        aria-label="Interactive shared lounge canvas"
+        tabIndex={0}
+      />
+      <AvatarOverlays participants={overlays} />
+    </>
   );
 }

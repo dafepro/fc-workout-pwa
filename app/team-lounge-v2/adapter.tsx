@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { RuntimeDiagnostics } from "@canvas-physics/client";
+import { defaultAvatar } from "../avatar/config";
 import type {
   TeamCanvasStampUnlockPort,
   TeamCanvasWidgetContract,
@@ -11,10 +13,14 @@ import {
   type LocalLoungeCanvasState,
 } from "./LocalLoungeCanvas";
 import { SharedLoungeCanvas } from "./SharedLoungeCanvas";
+import { CollisionDebugOverlay } from "./dev/CollisionDebugOverlay";
+import { LoungeDevPanel } from "./dev/LoungeDevPanel";
+import type { LoungeRosterMember } from "./presence";
 
 export function TeamLoungeV2({
   host,
   stampUnlocks,
+  showDeveloperTools = false,
 }: {
   host: TeamCanvasWidgetContract;
   showDeveloperTools?: boolean;
@@ -26,11 +32,15 @@ export function TeamLoungeV2({
   const [runtimeState, setRuntimeState] =
     useState<LocalLoungeCanvasState>("loading");
   const [presenceCount, setPresenceCount] = useState(1);
-  const [activeEmote, setActiveEmote] = useState<string | null>(null);
-  const updateRuntimeState = useCallback(
-    (next: LocalLoungeCanvasState) => setRuntimeState(next),
-    [],
+  const [diagnostics, setDiagnostics] = useState<RuntimeDiagnostics | null>(
+    null,
   );
+  const [showCollisionMap, setShowCollisionMap] = useState(false);
+  const [activeEmote, setActiveEmote] = useState<string | null>(null);
+  const updateRuntimeState = useCallback((next: LocalLoungeCanvasState) => {
+    setRuntimeState(next);
+    if (next === "loading") setDiagnostics(null);
+  }, []);
   const updatePresence = useCallback(
     (next: number) => setPresenceCount(Math.max(0, next)),
     [],
@@ -41,6 +51,28 @@ export function TeamLoungeV2({
     host.identity.playerID !== "player";
   const stampCount =
     stampUnlocks?.choices.length ?? host.inventory.choices.length;
+  const roster = useMemo<LoungeRosterMember[]>(() => {
+    const members = (host.room.projection?.members ?? []).map((member) => ({
+      playerID: member.player.id,
+      displayName: `${member.player.firstName} ${member.player.lastInitial}`,
+      avatarConfiguration:
+        member.player.id === host.identity.playerID && host.identity.avatar
+          ? host.identity.avatar
+          : member.avatarConfiguration,
+    }));
+    if (!members.some(({ playerID }) => playerID === host.identity.playerID)) {
+      members.push({
+        playerID: host.identity.playerID,
+        displayName: "You",
+        avatarConfiguration: host.identity.avatar ?? defaultAvatar(),
+      });
+    }
+    return members;
+  }, [
+    host.identity.avatar,
+    host.identity.playerID,
+    host.room.projection?.members,
+  ]);
 
   useEffect(() => {
     if (!activeEmote) {
@@ -86,18 +118,22 @@ export function TeamLoungeV2({
           <SharedLoungeCanvas
             key={`shared-${runtimeKey}`}
             teamID={host.identity.teamID}
-            reducedMotion={host.lifecycle.reducedMotion}
+            playerID={host.identity.playerID}
+            roster={roster}
             onStateChange={updateRuntimeState}
             onPresenceChange={updatePresence}
+            onDiagnostics={showDeveloperTools ? setDiagnostics : undefined}
           />
         ) : (
           <LocalLoungeCanvas
             key={`local-${runtimeKey}`}
             playerID={host.identity.playerID}
-            reducedMotion={host.lifecycle.reducedMotion}
             onStateChange={updateRuntimeState}
           />
         )}
+        {showDeveloperTools && showCollisionMap ? (
+          <CollisionDebugOverlay />
+        ) : null}
         {activeEmote ? (
           <span
             className="team-lounge-v2__active-emote"
@@ -185,6 +221,13 @@ export function TeamLoungeV2({
           {copy.map}
         </button>
       </nav>
+      {showDeveloperTools && sharedRoom ? (
+        <LoungeDevPanel
+          diagnostics={diagnostics}
+          showCollisionMap={showCollisionMap}
+          onShowCollisionMapChange={setShowCollisionMap}
+        />
+      ) : null}
       <div className="team-lounge-v2__disabled-hints">
         <span id="v2-items-hint">{copy.itemsHint}</span>
         <span id="v2-map-hint">{copy.mapHint}</span>

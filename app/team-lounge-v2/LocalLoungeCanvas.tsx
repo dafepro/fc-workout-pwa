@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import type { AvatarPointerIntent, RenderEntity } from "@canvas-physics/client";
 import { startLocalBeachBoardwalkSimulation } from "./local-simulation";
 import { beachBoardwalkAssets } from "./scene/assets";
+import { sharedLoungePointerOptions } from "./runtime-config";
 import {
   beachBoardwalkCanvas,
   beachBoardwalkDefinitions,
@@ -18,11 +19,9 @@ export type LocalLoungeCanvasState =
 
 export function LocalLoungeCanvas({
   playerID,
-  reducedMotion,
   onStateChange,
 }: {
   playerID: string;
-  reducedMotion: boolean;
   onStateChange(state: LocalLoungeCanvasState): void;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -72,18 +71,9 @@ export function LocalLoungeCanvas({
 
       let entities: RenderEntity[] = [];
       const movement = new AvatarPointerInteraction({
-        mode: "avatarDrag",
-        deadZonePx: 2,
-        grabRadiusPx: 36,
+        ...sharedLoungePointerOptions(),
         avatarPosition: () =>
           avatarCssPosition(scene, entities, playerID, mount),
-        flick: reducedMotion
-          ? false
-          : {
-              sampleWindowMs: 100,
-              minimumSpeedPxPerSecond: 320,
-              fullSpeedPxPerSecond: 1_250,
-            },
       });
       const pointer = new PointerInteractionCoordinator(mount, {
         strategies: [movement],
@@ -149,7 +139,7 @@ export function LocalLoungeCanvas({
       disposed = true;
       dispose();
     };
-  }, [onStateChange, playerID, reducedMotion]);
+  }, [onStateChange, playerID]);
 
   return (
     <>

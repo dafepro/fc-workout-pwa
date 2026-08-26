@@ -3,6 +3,7 @@ package teamlounge
 import (
 	"encoding/json"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -12,14 +13,14 @@ import (
 
 const (
 	BeachBoardwalkCanvasID      = "zoomigo-beach-boardwalk"
-	BeachBoardwalkCanvasVersion = uint32(1)
+	BeachBoardwalkCanvasVersion = uint32(2)
 )
 
 func WeeklyRoomID(teamID, weekKey string) (string, error) {
 	if !validTeamID(teamID) || !validWeekKey(weekKey) {
 		return "", errors.New("invalid weekly lounge identity")
 	}
-	return "team:" + teamID + ":lounge:" + weekKey, nil
+	return "team:" + teamID + ":lounge:" + weekKey + ":v" + strconv.FormatUint(uint64(BeachBoardwalkCanvasVersion), 10), nil
 }
 
 func ParseWeeklyRoomID(roomID string) (string, string, error) {
@@ -27,8 +28,12 @@ func ParseWeeklyRoomID(roomID string) (string, string, error) {
 	if !ok {
 		return "", "", errors.New("invalid weekly lounge room")
 	}
-	teamID, weekKey, ok := strings.Cut(remainder, ":lounge:")
-	if !ok || !validTeamID(teamID) || !validWeekKey(weekKey) {
+	teamID, versionedWeek, ok := strings.Cut(remainder, ":lounge:")
+	if !ok {
+		return "", "", errors.New("invalid weekly lounge room")
+	}
+	weekKey, version, ok := strings.Cut(versionedWeek, ":v")
+	if !ok || version != strconv.FormatUint(uint64(BeachBoardwalkCanvasVersion), 10) || !validTeamID(teamID) || !validWeekKey(weekKey) {
 		return "", "", errors.New("invalid weekly lounge room")
 	}
 	return teamID, weekKey, nil
@@ -73,16 +78,16 @@ func BeachBoardwalkCatalog() Catalog {
 }
 
 const beachBoardwalkCanvasJSON = `{
-  "id":"zoomigo-beach-boardwalk","version":1,
+  "id":"zoomigo-beach-boardwalk","version":2,
   "size":{"width":100,"height":150},"orientation":"topDown",
   "backgroundAssetId":"lounge.background",
   "edges":{"top":"solid","right":"solid","bottom":"solid","left":"solid"},
   "staticGeometry":[
-    {"id":"lifeguard-hut","shape":{"type":"rect","width":23,"height":13},"position":{"x":76,"y":29},"rotation":-0.08,"blocks":{"avatars":true,"items":true}},
-    {"id":"umbrella-table","shape":{"type":"circle","radius":8},"position":{"x":20,"y":55},"blocks":{"avatars":true,"items":true}},
-    {"id":"boardwalk-bench","shape":{"type":"rect","width":18,"height":7},"position":{"x":19,"y":106},"rotation":-0.12,"blocks":{"avatars":true,"items":true}},
-    {"id":"snack-cart","shape":{"type":"rect","width":15,"height":12},"position":{"x":78,"y":119},"rotation":0.06,"blocks":{"avatars":true,"items":true}},
-    {"id":"water-marker","shape":{"type":"capsule","halfHeight":30,"radius":3},"position":{"x":91,"y":79},"rotation":0.12,"blocks":{"avatars":true,"items":true}}
+    {"id":"lifeguard-hut","shape":{"type":"rect","width":38,"height":42},"position":{"x":79,"y":27},"rotation":0,"blocks":{"avatars":true,"items":true}},
+    {"id":"umbrella-table","shape":{"type":"circle","radius":14},"position":{"x":18,"y":36},"blocks":{"avatars":true,"items":true}},
+    {"id":"boardwalk-bench","shape":{"type":"rect","width":31,"height":21},"position":{"x":16,"y":108},"rotation":-0.12,"blocks":{"avatars":true,"items":true}},
+    {"id":"snack-cart","shape":{"type":"rect","width":28,"height":49},"position":{"x":88,"y":116.5},"rotation":0.02,"blocks":{"avatars":true,"items":true}},
+    {"id":"lower-pool-edge","shape":{"type":"rect","width":76,"height":16},"position":{"x":25,"y":141},"rotation":0.29,"blocks":{"avatars":true,"items":true}}
   ],
   "regions":[],
   "environment":{"base":{"gravityXY":{"x":0,"y":0},"linearDrag":0.2,"angularDrag":0.2,"softSpeedLimit":28,"surfaceFrictionMultiplier":1}},

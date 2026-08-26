@@ -75,10 +75,12 @@ through V1 movement and piece endpoints.
 
 ## Room and weekly identity
 
-- Product room ID: `team:<team-id>:lounge:<week-key>`, where the existing
-  Zoomigo week key is the team's local Monday date (`YYYY-MM-DD`).
+- Product room ID: `team:<team-id>:lounge:<week-key>:v<template-version>`, where
+  the existing Zoomigo week key is the team's local Monday date (`YYYY-MM-DD`).
+  A template correction starts a new reversible room generation instead of
+  reinterpreting or deleting an existing snapshot.
 - Canvas template binding: an exact ID and version such as
-  `zoomigo-beach-boardwalk@1`.
+  `zoomigo-beach-boardwalk@2`.
 - The server, never the browser, resolves product room to template.
 - A weekly room is immutable after binding. A new week gets a new product room,
   which provides the reset without deleting the prior week's snapshot.
@@ -105,7 +107,8 @@ not include scoring in the first release.
 - Pressing on the player's avatar claims movement; dragging empty room space
   does not move the player and remains available for room interactions.
 - The avatar follows the pointer through the Canvas collision controller.
-  Releasing permits a small bounded coast only when reduced motion is off.
+  Pointer targets are sampled at the 60 Hz simulation cadence and release stops
+  movement. Direct dragging does not add a flick or coast gesture.
 - Four bottom actions are reserved: Emotes, Stamps, Items, and Map. Map stays
   visibly unavailable until a room requires it; it does not render a dead
   button.
@@ -113,13 +116,19 @@ not include scoring in the first release.
   after an owned item is selected.
 - Player names and controls are semantic DOM overlays. The canvas has an
   accessible name and a concise non-visual status summary.
+- Development controls can reveal the authored collision shapes plus the
+  runtime role, render/simulation rate, interpolation depth, extrapolation
+  count, and reconciliation error. The panel is absent without server-enabled
+  developer controls.
 - The layout must work at 320 CSS pixels, safe-area insets, portrait and
   landscape, Android Chrome, iOS Safari, keyboard, and reduced motion.
 
 ## Presence, traces, and emotes
 
 - Live presence comes only from server-authenticated Canvas identity and is
-  merged with the Zoomigo roster. Connection IDs are never product identity.
+  merged client-side with the already-authorized Zoomigo Team roster. Safe
+  names and avatar configurations never enter Canvas snapshots. Connection IDs
+  are never product identity.
 - A reconnect reuses one stable avatar entity.
 - Short emotes are predefined, transient effects and disappear after a bounded
   duration. They are not chat and are not replayed.

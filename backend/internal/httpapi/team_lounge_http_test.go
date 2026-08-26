@@ -82,7 +82,7 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 		t.Fatalf("ticket response = %#v", response)
 	}
 	template, err := loungeStore.ResolveRoomTemplate(ctx, response.RoomID)
-	if err != nil || template.CanvasID != teamlounge.BeachBoardwalkCanvasID || template.CanvasVersion != 1 {
+	if err != nil || template.CanvasID != teamlounge.BeachBoardwalkCanvasID || template.CanvasVersion != teamlounge.BeachBoardwalkCanvasVersion {
 		t.Fatalf("bound template = %#v, %v", template, err)
 	}
 
