@@ -80,7 +80,7 @@ through V1 movement and piece endpoints.
   A template correction starts a new reversible room generation instead of
   reinterpreting or deleting an existing snapshot.
 - Canvas template binding: an exact ID and version such as
-  `zoomigo-beach-boardwalk@2`.
+  `zoomigo-beach-boardwalk@3`.
 - The server, never the browser, resolves product room to template.
 - A weekly room is immutable after binding. A new week gets a new product room,
   which provides the reset without deleting the prior week's snapshot.
@@ -94,7 +94,7 @@ Beach Boardwalk contains:
 - a bounded portrait-first walkable area with a responsive camera;
 - fixed boardwalk, sand, water-edge, and prop collision geometry;
 - a system-owned beach ball that avatars can kick but cannot delete;
-- authored placement zones for stamps and later props;
+- open stamp placement inside a small server-enforced outer margin;
 - one local avatar plus safe name overlay;
 - active teammates when connected, with inactive/disconnected treatment added
   in the presence slice.
@@ -112,8 +112,9 @@ not include scoring in the first release.
 - Four bottom actions are reserved: Emotes, Stamps, Items, and Map. Map stays
   visibly unavailable until a room requires it; it does not render a dead
   button.
-- Stamps/Items use `pick -> tap a valid place`. Rotation and scale appear only
-  after an owned item is selected.
+- Stamps use `pick -> tap anywhere inside the room margin`. A vertical drag on
+  the placement surface still scrolls the page. Rotation and scale appear only
+  after an editable owned item is selected.
 - Player names and controls are semantic DOM overlays. The canvas has an
   accessible name and a concise non-visual status summary.
 - Development controls can reveal the authored collision shapes plus the
@@ -142,11 +143,22 @@ not include scoring in the first release.
 ## Persistence and inventory
 
 - Canvas persists transforms, physics state, and template-owned items.
-- Zoomigo validates ownership and remaining copies before an item-placement
-  request can become a durable Canvas spawn.
-- A durable placement has one idempotency key. Zoomigo records the inventory
-  reservation and Canvas mutation result so retries cannot duplicate or lose an
-  item.
+- Zoomigo grants one latched placement credit for each distinct team-local day
+  with an accepted workout or planned-rest check-in. Multiple activities on
+  the same date do not increase the budget, and deleting a workout does not
+  revoke an already granted credit.
+- Zoomigo validates the permanent stamp unlock, weekly earned budget, room
+  margin, authenticated owner, and current team-local edit day before a durable
+  Canvas mutation changes canonical state.
+- The server stamps each accepted placement with canonical `placementDay`
+  metadata. All of the owner's current-day placements remain editable; prior-
+  day placements are immutable. Canvas cannot author or increase either value.
+- Room generation V3 reserves one simple item slot for each of seven daily
+  credits across all 24 allowed avatars, plus the system ball. Increasing this
+  ceiling does not pre-create or simulate empty items; device-budget testing
+  must still cover a deliberately full room before production cutover.
+- Reconnect recovery derives used budget from canonical room items, so a lost
+  client acknowledgement cannot spend or restore a credit twice.
 - Removing an owned consumable placement returns or updates inventory according
   to a future explicit policy. Until that policy is implemented, removal is not
   offered for consumable inventory.

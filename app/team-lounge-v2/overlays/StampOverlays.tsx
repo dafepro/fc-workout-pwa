@@ -4,7 +4,6 @@ import {
 } from "../../team-canvas/components/StampAsset";
 import type { StampAsset } from "../../team-canvas/model";
 import { LOUNGE_STAMP_ROTATIONS } from "../placement/orientation";
-import type { LoungeStampZone } from "../placement/zones";
 
 export interface LoungeStampOverlay {
   entityID: string;
@@ -13,19 +12,15 @@ export interface LoungeStampOverlay {
   rotation: number;
   scale: number;
   screen: Readonly<{ x: number; y: number }>;
-}
-
-export interface LoungeStampSpotOverlay {
-  zone: LoungeStampZone;
-  screen: Readonly<{ x: number; y: number }>;
+  placementDay: string | null;
 }
 
 export function StampOverlays({
   stamps,
-  spots,
   selectedStamp,
   placementPending = false,
-  editableEntityID = null,
+  currentPlayerID,
+  editableEntityIDs = [],
   selectedEntityID = null,
   onPlace,
   onSelect,
@@ -34,70 +29,75 @@ export function StampOverlays({
   onDone,
 }: {
   stamps: readonly LoungeStampOverlay[];
-  spots: readonly LoungeStampSpotOverlay[];
   selectedStamp: StampAsset | null;
   placementPending?: boolean;
-  editableEntityID?: string | null;
+  currentPlayerID: string;
+  editableEntityIDs?: readonly string[];
   selectedEntityID?: string | null;
-  onPlace(zone: LoungeStampZone): void;
+  onPlace(screen: Readonly<{ x: number; y: number }>): void;
   onSelect?(entityID: string): void;
   onScale?(entityID: string, scale: number): void;
   onRotate?(entityID: string, rotation: number): void;
   onDone?(): void;
 }) {
   const selected = stamps.find(({ entityID }) => entityID === selectedEntityID);
+  const editable = new Set(editableEntityIDs);
   return (
     <div className="team-lounge-v2__stamp-overlays" aria-live="polite">
-      {stamps.map(({ entityID, asset, rotation, screen, scale }) => {
-        const editable = entityID === editableEntityID;
-        const selected = entityID === selectedEntityID;
-        const className = `team-lounge-v2__placed-stamp${editable ? " team-lounge-v2__placed-stamp--editable" : ""}${selected ? " team-lounge-v2__placed-stamp--selected" : ""}`;
-        const style = {
-          transform: `translate3d(${screen.x}px, ${screen.y}px, 0) translate(-50%, -50%) rotate(${rotation}rad) scale(${scale})`,
-        };
-        const label = editable
-          ? `${stampAssetLabel(asset)} stamp, yours; tap then drag to move`
-          : `${stampAssetLabel(asset)} stamp placed by a teammate`;
-        return editable ? (
-          <button
-            key={entityID}
-            className={className}
-            style={style}
-            type="button"
-            aria-label={label}
-            aria-pressed={selected}
-            onClick={() => onSelect?.(entityID)}
-          >
-            <StampAssetView asset={asset} />
-          </button>
-        ) : (
-          <span
-            key={entityID}
-            className={className}
-            style={style}
-            aria-label={label}
-          >
-            <StampAssetView asset={asset} />
-          </span>
-        );
-      })}
-      {selectedStamp
-        ? spots.map(({ zone, screen }) => (
+      {stamps.map(
+        ({ entityID, asset, ownerUserID, rotation, screen, scale }) => {
+          const canEdit = editable.has(entityID);
+          const selected = entityID === selectedEntityID;
+          const className = `team-lounge-v2__placed-stamp${canEdit ? " team-lounge-v2__placed-stamp--editable" : ""}${selected ? " team-lounge-v2__placed-stamp--selected" : ""}`;
+          const style = {
+            transform: `translate3d(${screen.x}px, ${screen.y}px, 0) translate(-50%, -50%) rotate(${rotation}rad) scale(${scale})`,
+          };
+          const label = canEdit
+            ? `${stampAssetLabel(asset)} stamp, yours; tap then drag to move`
+            : ownerUserID === currentPlayerID
+              ? `${stampAssetLabel(asset)} stamp, yours; locked from an earlier day`
+              : `${stampAssetLabel(asset)} stamp placed by a teammate`;
+          return canEdit ? (
             <button
-              key={zone.id}
-              className="team-lounge-v2__stamp-spot"
-              style={{
-                transform: `translate3d(${screen.x}px, ${screen.y}px, 0) translate(-50%, -50%)`,
-              }}
+              key={entityID}
+              className={className}
+              style={style}
               type="button"
-              disabled={placementPending}
-              aria-label={`Place ${stampAssetLabel(selectedStamp)} at ${zone.label}`}
-              onClick={() => onPlace(zone)}
+              aria-label={label}
+              aria-pressed={selected}
+              onClick={() => onSelect?.(entityID)}
             >
-              <span aria-hidden="true" />
+              <StampAssetView asset={asset} />
             </button>
-          ))
-        : null}
+          ) : (
+            <span
+              key={entityID}
+              className={className}
+              style={style}
+              aria-label={label}
+            >
+              <StampAssetView asset={asset} />
+            </span>
+          );
+        },
+      )}
+      {selectedStamp ? (
+        <button
+          className="team-lounge-v2__placement-surface"
+          type="button"
+          disabled={placementPending}
+          aria-label={`Place ${stampAssetLabel(selectedStamp)} in the lounge`}
+          onClick={(event) => {
+            const bounds = event.currentTarget.getBoundingClientRect();
+            onPlace({
+              x: event.clientX - bounds.left,
+              y: event.clientY - bounds.top,
+            });
+          }}
+        >
+          <span>Tap where you want it</span>
+        </button>
+      ) : null}
       {selected ? (
         <div
           className="team-lounge-v2__stamp-edit-controls"

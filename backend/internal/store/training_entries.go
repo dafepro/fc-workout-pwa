@@ -252,6 +252,11 @@ func (store *Store) CreateTrainingEntry(ctx context.Context, input CreateTrainin
 	if err != nil {
 		return TrainingEntry{}, fmt.Errorf("insert training entry: %w", err)
 	}
+	if err = grantTeamLoungePlacementCredit(
+		ctx, tx, entry.TeamID, entry.PlayerID, teamDay, "training_entry", entry.ID, now, location,
+	); err != nil {
+		return TrainingEntry{}, err
+	}
 	if entry.Plan != nil {
 		if _, err = syncPlanPrizeBoxGrants(ctx, tx, entry.PlayerID, entry.Plan.PlanID, now); err != nil {
 			return TrainingEntry{}, err

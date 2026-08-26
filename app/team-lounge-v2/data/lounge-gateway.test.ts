@@ -12,10 +12,12 @@ describe("Team Lounge V2 gateway", () => {
       new Response(
         JSON.stringify({
           ticket: "a".repeat(43),
-          roomId: "team:team-one:lounge:2026-08-24:v2",
+          roomId: "team:team-one:lounge:2026-08-24:v3",
           serverUrl: "https://api.example.test",
           expiresInSeconds: 30,
           visitorIds: ["player-two"],
+          placementCredits: 2,
+          placementDay: "2026-08-26",
         }),
         { status: 201, headers: { "Content-Type": "application/json" } },
       ),
@@ -24,9 +26,11 @@ describe("Team Lounge V2 gateway", () => {
 
     await expect(requestTeamLoungeCredential("team-one")).resolves.toEqual({
       ticket: "a".repeat(43),
-      roomID: "team:team-one:lounge:2026-08-24:v2",
+      roomID: "team:team-one:lounge:2026-08-24:v3",
       serverURL: "https://api.example.test",
       visitorIDs: ["player-two"],
+      placementCredits: 2,
+      placementDay: "2026-08-26",
     });
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/zoomigo/v1/teams/team-one/lounge-v2/socket-ticket",
@@ -54,9 +58,11 @@ describe("Team Lounge V2 gateway", () => {
         new Response(
           JSON.stringify({
             ticket: ticket.repeat(43),
-            roomId: "team:team-one:lounge:2026-08-24:v2",
+            roomId: "team:team-one:lounge:2026-08-24:v3",
             serverUrl: "https://api.example.test",
             visitorIds: ["player-two"],
+            placementCredits: 2,
+            placementDay: "2026-08-26",
           }),
           { status: 201 },
         ),

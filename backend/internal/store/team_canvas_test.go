@@ -86,6 +86,14 @@ func TestTeamCanvasPlannedRestRequiresAndPreservesExactPlanDay(t *testing.T) {
 	if err = repository.RecordTeamCanvasRest(context.Background(), actor, "team-one", request, now); err != nil {
 		t.Fatalf("exact replay was not idempotent: %v", err)
 	}
+	var placementCredits int
+	if err = db.QueryRow(`SELECT COUNT(*) FROM team_lounge_v2_placement_credits
+		WHERE team_id = 'team-one' AND player_id = 'player-mason' AND day_key = '2026-08-12'`).Scan(&placementCredits); err != nil {
+		t.Fatal(err)
+	}
+	if placementCredits != 1 {
+		t.Fatalf("planned rest placement credits = %d, want 1", placementCredits)
+	}
 	projection, err := repository.TrainingDashboard(context.Background(), actor, "team-one", now)
 	if err != nil {
 		t.Fatal(err)

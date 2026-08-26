@@ -3,26 +3,28 @@ import {
   stampAssetLabel,
 } from "../../team-canvas/components/StampAsset";
 import type { StampAsset } from "../../team-canvas/model";
+import type { LoungePlacementSummary } from "../SharedLoungeCanvas";
+import { teamLoungeV2Copy as copy } from "../content";
 
 export type StampPlacementStatus =
   | "loading"
   | "ready"
   | "placing"
   | "local"
-  | "placed"
+  | "exhausted"
   | "error";
 
 export function StampPlacementTray({
   choices,
   selected,
-  placed,
+  summary,
   status,
   error,
   onSelect,
 }: {
   choices: readonly StampAsset[];
   selected: StampAsset | null;
-  placed: StampAsset | null;
+  summary: LoungePlacementSummary | null;
   status: StampPlacementStatus;
   error: string | null;
   onSelect(asset: StampAsset): void;
@@ -30,28 +32,38 @@ export function StampPlacementTray({
   if (status === "loading") {
     return (
       <p className="team-lounge-v2__tray-note" role="status">
-        Loading your stamps…
+        {copy.placementTray.loading}
       </p>
     );
   }
   if (status === "local") {
     return (
       <p className="team-lounge-v2__tray-note" role="status">
-        Join the shared team room to leave a weekly stamp.
+        {copy.placementTray.sharedOnly}
       </p>
     );
   }
-  if (status === "placed" && placed) {
+  if (status === "error") {
     return (
-      <div className="team-lounge-v2__stamp-placed" role="status">
-        <StampAssetView asset={placed} />
-        <span>
-          <strong>Your stamp is here for the week.</strong>
-          Tap it in the lounge to move or resize it.
-        </span>
-      </div>
+      <p className="team-lounge-v2__tray-note" role="alert">
+        {copy.placementTray.error}
+      </p>
     );
   }
+  const remaining = summary?.remaining ?? 0;
+  const title =
+    remaining > 0
+      ? copy.placementTray.ready(remaining)
+      : summary?.earned === 0
+        ? copy.placementTray.earn
+        : copy.placementTray.used;
+  const instruction = selected
+    ? status === "placing"
+      ? copy.placementTray.placing
+      : copy.placementTray.place
+    : status === "exhausted"
+      ? copy.placementTray.locked
+      : copy.placementTray.explanation;
 
   return (
     <section
@@ -60,24 +72,16 @@ export function StampPlacementTray({
       aria-busy={status === "placing"}
     >
       <div>
-        <h2>Leave one stamp this week</h2>
-        <p>
-          {selected
-            ? status === "placing"
-              ? "Adding your stamp…"
-              : "Choose a glowing spot in the lounge."
-            : "Pick something from your collection."}
-        </p>
+        <h2>{title}</h2>
+        <p>{instruction}</p>
       </div>
       {error ? (
         <p className="team-lounge-v2__placement-error" role="alert">
           {error}
         </p>
       ) : null}
-      {choices.length === 0 ? (
-        <p className="team-lounge-v2__tray-note">
-          No stamps are available to place yet.
-        </p>
+      {status === "exhausted" ? null : choices.length === 0 ? (
+        <p className="team-lounge-v2__tray-note">{copy.placementTray.empty}</p>
       ) : (
         <div className="team-lounge-v2__stamp-choices">
           {choices.map((asset) => {
@@ -88,7 +92,7 @@ export function StampPlacementTray({
                 type="button"
                 aria-label={`Choose ${label} stamp`}
                 aria-pressed={selected?.id === asset.id}
-                disabled={status === "placing"}
+                disabled={status === "placing" || remaining === 0}
                 onClick={() => onSelect(asset)}
               >
                 <StampAssetView asset={asset} />

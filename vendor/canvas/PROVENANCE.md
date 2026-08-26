@@ -7,36 +7,36 @@ not need private GitHub or npm registry credentials.
 | Field                | Value                                          |
 | -------------------- | ---------------------------------------------- |
 | Source repository    | `https://github.com/dafepro/canvas.git`        |
-| Source commit        | `f94bc54300cb50e15a3fd9e9fc58bd99a9da38b3`     |
-| Source commit date   | `2026-08-26T07:33:21-05:00`                    |
+| Source commit        | `af4e1a71f457ce784aaf396b027a6f233e720ad6`     |
+| Source commit date   | `2026-08-26T09:10:01-05:00`                    |
 | Package version      | `0.1.0`                                        |
-| Go rooms SDK         | `v0.0.0-20260826123321-f94bc54300cb`           |
+| Go rooms SDK         | `v0.0.0-20260826141001-af4e1a71f457`           |
 | Protocol version     | Exact version in the coordinated source commit |
-| Pack tool            | pnpm `11.20.0`                                 |
+| Pack tool            | pnpm `11.21.0`                                 |
 | Runtime used to pack | Node.js `24.19.0`                              |
 
 ## SHA-256
 
 | Archive                             | Digest                                                             |
 | ----------------------------------- | ------------------------------------------------------------------ |
-| `canvas-physics-client-0.1.0.tgz`   | `BAC2ADFBB67A7BCFFD3FC4B6E096A9CD7E07BDDABD64DB07013CCC410B139293` |
+| `canvas-physics-client-0.1.0.tgz`   | `1382169D1827FA46E4D1ECE02266D8B174A7F83A2C76A75D8DE5741D2D21018D` |
 | `canvas-physics-core-0.1.0.tgz`     | `A914EAEBEC44B74E972456DF905EB9661C3644328C046774E9C47956C85EC3E7` |
 | `canvas-physics-protocol-0.1.0.tgz` | `C6529015464A2541EA2BBF247170ECDA6C255DBC1672A344B07CE545B95E584A` |
 
 ## Verification performed
 
-From a clean Canvas checkout at the source commit:
+At the source commit:
 
 ```powershell
-pnpm install --frozen-lockfile
-pnpm vitest run test/package-artifacts.test.ts test/release-contract.test.ts test/library-boundaries.test.ts
+go test ./pkg/roomsdk
+pnpm vitest run packages/client/src/overlay-projection.test.ts packages/client/src/client.test.ts
+pnpm --filter @canvas-physics/client build
 ```
 
-Result: the three release/artifact files and four contract tests passed,
-including installation and builds in clean external consumer projects. The full
-Canvas suite also passed: 55 files and 360 tests. This source change touches the
-Go host-authorization request only; rebuilding all three JavaScript archives
-produced the unchanged digests above.
+Result: the Go SDK package passed, the two targeted client files passed 12
+tests, and the client package built. The coordinated change lets a host
+canonicalize durable item metadata and exposes that immutable metadata to the
+client overlay projection. Core and protocol archive digests are unchanged.
 
 ## Rebuild
 

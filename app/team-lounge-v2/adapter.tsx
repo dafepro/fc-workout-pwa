@@ -13,14 +13,17 @@ import {
   LocalLoungeCanvas,
   type LocalLoungeCanvasState,
 } from "./LocalLoungeCanvas";
-import { SharedLoungeCanvas } from "./SharedLoungeCanvas";
+import {
+  SharedLoungeCanvas,
+  type LoungePlacementSummary,
+} from "./SharedLoungeCanvas";
 import { CollisionDebugOverlay } from "./dev/CollisionDebugOverlay";
 import { LoungeDevPanel } from "./dev/LoungeDevPanel";
 import {
   StampPlacementTray,
   type StampPlacementStatus,
 } from "./controls/StampPlacementTray";
-import { loungeStampChoices, loungeStampAsset } from "./placement/catalog";
+import { loungeStampChoices } from "./placement/catalog";
 import type { LoungeRosterMember } from "./presence";
 import {
   LOUNGE_EMOTE_COOLDOWN_MS,
@@ -53,9 +56,11 @@ export function TeamLoungeV2({
     (typeof loungeEmotes)[number] | null
   >(null);
   const [selectedStamp, setSelectedStamp] = useState<StampAsset | null>(null);
-  const [placedStampID, setPlacedStampID] = useState<string | null>(null);
+  const [placementSummary, setPlacementSummary] =
+    useState<LoungePlacementSummary | null>(null);
   const [placementError, setPlacementError] = useState<string | null>(null);
   const [placementPending, setPlacementPending] = useState(false);
+  const placedStampCountRef = useRef(0);
   const signalPortRef = useRef<((kind: string) => void) | null>(null);
   const cooldownTimerRef = useRef<number | null>(null);
   const localEmoteTimerRef = useRef<number | null>(null);
@@ -82,19 +87,16 @@ export function TeamLoungeV2({
     () => loungeStampChoices(stampUnlocks?.choices ?? host.inventory.choices),
     [host.inventory.choices, stampUnlocks?.choices],
   );
-  const placedStamp = placedStampID
-    ? (loungeStampAsset(placedStampID) ?? null)
-    : null;
-  const placementStatus: StampPlacementStatus = placedStamp
-    ? "placed"
-    : placementPending
-      ? "placing"
-      : !sharedRoom
-        ? "local"
-        : stampUnlocks?.status === "loading"
+  const placementStatus: StampPlacementStatus = placementPending
+    ? "placing"
+    : !sharedRoom
+      ? "local"
+      : stampUnlocks?.status === "error"
+        ? "error"
+        : stampUnlocks?.status === "loading" || placementSummary === null
           ? "loading"
-          : stampUnlocks?.status === "error"
-            ? "error"
+          : placementSummary.remaining === 0
+            ? "exhausted"
             : "ready";
   const roster = useMemo<LoungeRosterMember[]>(() => {
     const members = (host.room.projection?.members ?? []).map((member) => ({
@@ -173,10 +175,13 @@ export function TeamLoungeV2({
             onSignalPortChange={updateSignalPort}
             onDiagnostics={showDeveloperTools ? setDiagnostics : undefined}
             selectedStamp={selectedStamp}
-            stampEditingEnabled={tray === "stamps" && placedStamp !== null}
-            onPlacementChange={(assetID) => {
-              setPlacedStampID(assetID);
-              if (assetID) setSelectedStamp(null);
+            stampEditingEnabled={tray === "stamps"}
+            onPlacementSummaryChange={(summary) => {
+              if (summary.used > placedStampCountRef.current) {
+                setSelectedStamp(null);
+              }
+              placedStampCountRef.current = summary.used;
+              setPlacementSummary(summary);
               setPlacementError(null);
             }}
             onPlacementError={(reason) => {
@@ -271,7 +276,7 @@ export function TeamLoungeV2({
         <StampPlacementTray
           choices={stampChoices}
           selected={selectedStamp}
-          placed={placedStamp}
+          summary={placementSummary}
           status={placementStatus}
           error={placementError}
           onSelect={(asset) => {

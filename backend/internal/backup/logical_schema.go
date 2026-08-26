@@ -378,6 +378,19 @@ var logicalTables = []logicalTable{
 		},
 	},
 	{
+		Name:    "team_lounge_v2_placement_credits",
+		OrderBy: []string{"team_id", "player_id", "week_key", "day_key"},
+		Fields: []logicalField{
+			textField("team_id"),
+			textField("player_id"),
+			textField("week_key"),
+			textField("day_key"),
+			textField("source_kind"),
+			textField("source_id"),
+			textField("granted_at"),
+		},
+	},
+	{
 		Name:    "team_canvas_settings",
 		OrderBy: []string{"team_id"},
 		Fields: []logicalField{

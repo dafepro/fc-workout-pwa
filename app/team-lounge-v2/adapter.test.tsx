@@ -13,13 +13,17 @@ vi.mock("./SharedLoungeCanvas", async () => {
       onSignalPortChange,
       selectedStamp,
       stampEditingEnabled = false,
-      onPlacementChange,
+      onPlacementSummaryChange,
       onPlacementPendingChange,
     }: {
       onSignalPortChange(sender: ((kind: string) => void) | null): void;
       selectedStamp?: { label?: string; alt?: string } | null;
       stampEditingEnabled?: boolean;
-      onPlacementChange?(assetID: string | null): void;
+      onPlacementSummaryChange?(summary: {
+        earned: number;
+        used: number;
+        remaining: number;
+      }): void;
       onPlacementPendingChange?(pending: boolean): void;
     }) {
       useEffect(() => {
@@ -39,8 +43,13 @@ vi.mock("./SharedLoungeCanvas", async () => {
               Simulate spot
             </button>
           ) : null}
-          <button type="button" onClick={() => onPlacementChange?.("target")}>
-            Simulate canonical stamp
+          <button
+            type="button"
+            onClick={() =>
+              onPlacementSummaryChange?.({ earned: 2, used: 1, remaining: 1 })
+            }
+          >
+            Simulate placement budget
           </button>
         </div>
       );
@@ -75,16 +84,9 @@ describe("TeamLoungeV2 emote controls", () => {
     vi.useFakeTimers();
   });
 
-  it("opens owner editing after the canonical weekly stamp appears", () => {
+  it("opens owner editing for any stamps placed today", () => {
     render(<TeamLoungeV2 host={host} />);
     fireEvent.click(screen.getByRole("button", { name: "Stamps" }));
-    fireEvent.click(
-      screen.getByRole("button", { name: "Simulate canonical stamp" }),
-    );
-
-    expect(
-      screen.getByText("Tap it in the lounge to move or resize it."),
-    ).toBeVisible();
     expect(screen.getByText(/Shared lounge\s+editing on/)).toBeVisible();
     expect(relay.editing).toContain(true);
   });
@@ -107,7 +109,7 @@ describe("TeamLoungeV2 emote controls", () => {
     ).toBeEnabled();
   });
 
-  it("lets a player choose one owned stamp before selecting an authored room spot", () => {
+  it("shows the earned weekly budget before free-position placement", () => {
     const viewNew = vi.fn();
     render(
       <TeamLoungeV2
@@ -126,15 +128,18 @@ describe("TeamLoungeV2 emote controls", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Stamps" }));
-    expect(screen.getByText("Leave one stamp this week")).toBeVisible();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Simulate placement budget" }),
+    );
+    expect(screen.getByText("1 placement ready")).toBeVisible();
     fireEvent.click(
       screen.getByRole("button", { name: "Choose Target stamp" }),
     );
     expect(
-      screen.getByText(/Shared lounge\s+Target\s+editing off/),
+      screen.getByText(/Shared lounge\s+Target\s+editing on/),
     ).toBeVisible();
     expect(
-      screen.getByText("Choose a glowing spot in the lounge."),
+      screen.getByText("Tap anywhere in the lounge to place it."),
     ).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Simulate spot" }));
     expect(screen.getByText("Adding your stamp…")).toBeVisible();

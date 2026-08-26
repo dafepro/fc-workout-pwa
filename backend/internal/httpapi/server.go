@@ -157,7 +157,7 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 			Auth:              newTeamLoungeAuthenticator(service.canvasTickets, service.teamLoungeStore, service.now),
 			AllowedOrigins:    teamLoungeAllowedOrigins(cfg.AllowedOrigin),
 			Metrics:           newTeamLoungeRoomMetrics(service.operations),
-			DurableAuthorizer: teamlounge.NewStampPlacementAuthorizer(service.teamLoungeStore),
+			DurableAuthorizer: teamlounge.NewStampPlacementAuthorizer(service.teamLoungeStore, service.now),
 			ParticipantSignals: roomsdk.ParticipantSignalPolicy{
 				AllowedKinds: map[string]struct{}{
 					"zoomigo.emote.wave":  {},

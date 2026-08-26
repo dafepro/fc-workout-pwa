@@ -45,6 +45,7 @@ func TestTeamLoungeMetricsMapSDKEventsToBoundedOperations(t *testing.T) {
 	metrics.DurableAccepted("private-room-id", "rotate")
 	metrics.DurableRejected("private-room-id", "stamp_unavailable")
 	metrics.DurableRejected("private-room-id", "stamp_invalid_rotation")
+	metrics.DurableRejected("private-room-id", "stamp_locked")
 
 	if observer.connections != 0 ||
 		!observer.sawMessage("reaction", "success") ||
@@ -54,6 +55,7 @@ func TestTeamLoungeMetricsMapSDKEventsToBoundedOperations(t *testing.T) {
 		!slices.Contains(observer.features, [3]string{"canvas", "stamp_scale", "success"}) ||
 		!slices.Contains(observer.features, [3]string{"canvas", "stamp_rotate", "success"}) ||
 		!slices.Contains(observer.features, [3]string{"canvas", "stamp_rotate", "rejected"}) ||
+		!slices.Contains(observer.features, [3]string{"canvas", "stamp_edit", "rejected"}) ||
 		!slices.Contains(observer.features, [3]string{"canvas", "stamp_placement", "rejected"}) {
 		t.Fatalf("lounge metrics = %+v", observer)
 	}

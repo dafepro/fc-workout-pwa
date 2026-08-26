@@ -26,6 +26,13 @@ type VisitTrace struct {
 	PlayerID string
 }
 
+type PlacementBudget struct {
+	TeamID  string
+	WeekKey string
+	DayKey  string
+	Earned  int
+}
+
 func NewSQLiteStore(db *sql.DB, catalog Catalog) *SQLiteStore {
 	canvases := make(map[string]roomsdk.CanvasRecord, len(catalog.Canvases))
 	for _, record := range catalog.Canvases {
@@ -208,4 +215,128 @@ func (store *SQLiteStore) ListVisitTraces(
 		return nil, fmt.Errorf("list lounge visits: %w", err)
 	}
 	return traces, nil
+}
+
+func (store *SQLiteStore) PlacementBudget(
+	ctx context.Context,
+	roomID, playerID string,
+	now time.Time,
+) (PlacementBudget, error) {
+	teamID, weekKey, err := ParseWeeklyRoomID(roomID)
+	if err != nil || playerID == "" {
+		return PlacementBudget{}, errors.New("load lounge placement budget: invalid request")
+	}
+	var timeZone string
+	if err = store.db.QueryRowContext(ctx, `SELECT time_zone FROM teams WHERE id = ?`, teamID).Scan(&timeZone); err != nil {
+		return PlacementBudget{}, fmt.Errorf("load lounge placement timezone: %w", err)
+	}
+	location, err := time.LoadLocation(timeZone)
+	if err != nil {
+		return PlacementBudget{}, fmt.Errorf("load lounge placement location: %w", err)
+	}
+	localNow := now.In(location)
+	dayKey := localNow.Format(time.DateOnly)
+	weekStart := localMidnight(localNow).AddDate(0, 0, -(int(localNow.Weekday())+6)%7)
+	if weekStart.Format(time.DateOnly) != weekKey {
+		return PlacementBudget{}, errors.New("load lounge placement budget: room is not current")
+	}
+	weekEnd := weekStart.AddDate(0, 0, 7)
+	tx, err := store.db.BeginTx(ctx, nil)
+	if err != nil {
+		return PlacementBudget{}, fmt.Errorf("begin lounge placement reconciliation: %w", err)
+	}
+	defer tx.Rollback()
+	rows, err := tx.QueryContext(ctx, `SELECT id, occurred_at FROM training_entries
+		WHERE team_id = ? AND player_id = ? AND deleted_at IS NULL
+		AND occurred_at >= ? AND occurred_at < ? ORDER BY occurred_at, id`,
+		teamID, playerID, weekStart.UTC().Format(time.RFC3339Nano), weekEnd.UTC().Format(time.RFC3339Nano))
+	if err != nil {
+		return PlacementBudget{}, fmt.Errorf("list lounge training check-ins: %w", err)
+	}
+	for rows.Next() {
+		var entryID, occurredAt string
+		if err = rows.Scan(&entryID, &occurredAt); err != nil {
+			rows.Close()
+			return PlacementBudget{}, fmt.Errorf("scan lounge training check-in: %w", err)
+		}
+		occurred, parseErr := time.Parse(time.RFC3339Nano, occurredAt)
+		if parseErr != nil {
+			rows.Close()
+			return PlacementBudget{}, fmt.Errorf("parse lounge training check-in: %w", parseErr)
+		}
+		entryDay := occurred.In(location).Format(time.DateOnly)
+		if entryDay > dayKey {
+			continue
+		}
+		if _, err = tx.ExecContext(ctx, `INSERT INTO team_lounge_v2_placement_credits
+			(team_id, player_id, week_key, day_key, source_kind, source_id, granted_at)
+			VALUES (?, ?, ?, ?, 'training_entry', ?, ?)
+			ON CONFLICT(team_id, player_id, week_key, day_key) DO NOTHING`,
+			teamID, playerID, weekKey, entryDay, entryID, now.UTC().Format(time.RFC3339Nano)); err != nil {
+			rows.Close()
+			return PlacementBudget{}, fmt.Errorf("reconcile lounge training check-in: %w", err)
+		}
+	}
+	if err = rows.Close(); err != nil {
+		return PlacementBudget{}, fmt.Errorf("close lounge training check-ins: %w", err)
+	}
+	restRows, err := tx.QueryContext(ctx, `SELECT day_key FROM team_canvas_rest_days
+		WHERE team_id = ? AND player_id = ? AND day_key >= ? AND day_key <= ? ORDER BY day_key`,
+		teamID, playerID, weekKey, dayKey)
+	if err != nil {
+		return PlacementBudget{}, fmt.Errorf("list lounge rest check-ins: %w", err)
+	}
+	for restRows.Next() {
+		var restDay string
+		if err = restRows.Scan(&restDay); err != nil {
+			restRows.Close()
+			return PlacementBudget{}, fmt.Errorf("scan lounge rest check-in: %w", err)
+		}
+		if _, err = tx.ExecContext(ctx, `INSERT INTO team_lounge_v2_placement_credits
+			(team_id, player_id, week_key, day_key, source_kind, source_id, granted_at)
+			VALUES (?, ?, ?, ?, 'planned_rest', ?, ?)
+			ON CONFLICT(team_id, player_id, week_key, day_key) DO NOTHING`,
+			teamID, playerID, weekKey, restDay, teamID+":"+playerID+":"+restDay,
+			now.UTC().Format(time.RFC3339Nano)); err != nil {
+			restRows.Close()
+			return PlacementBudget{}, fmt.Errorf("reconcile lounge rest check-in: %w", err)
+		}
+	}
+	if err = restRows.Close(); err != nil {
+		return PlacementBudget{}, fmt.Errorf("close lounge rest check-ins: %w", err)
+	}
+	var earned int
+	if err = tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM team_lounge_v2_placement_credits
+		WHERE team_id = ? AND player_id = ? AND week_key = ?`, teamID, playerID, weekKey).Scan(&earned); err != nil {
+		return PlacementBudget{}, fmt.Errorf("count lounge placement credits: %w", err)
+	}
+	if err = tx.Commit(); err != nil {
+		return PlacementBudget{}, fmt.Errorf("commit lounge placement reconciliation: %w", err)
+	}
+	return PlacementBudget{TeamID: teamID, WeekKey: weekKey, DayKey: dayKey, Earned: earned}, nil
+}
+
+func (store *SQLiteStore) PlacementDay(ctx context.Context, roomID string, now time.Time) (string, error) {
+	teamID, weekKey, err := ParseWeeklyRoomID(roomID)
+	if err != nil {
+		return "", errors.New("load lounge placement day: invalid room")
+	}
+	var timeZone string
+	if err = store.db.QueryRowContext(ctx, `SELECT time_zone FROM teams WHERE id = ?`, teamID).Scan(&timeZone); err != nil {
+		return "", fmt.Errorf("load lounge placement timezone: %w", err)
+	}
+	location, err := time.LoadLocation(timeZone)
+	if err != nil {
+		return "", fmt.Errorf("load lounge placement location: %w", err)
+	}
+	localNow := now.In(location)
+	weekStart := localMidnight(localNow).AddDate(0, 0, -(int(localNow.Weekday())+6)%7)
+	if weekStart.Format(time.DateOnly) != weekKey {
+		return "", errors.New("load lounge placement day: room is not current")
+	}
+	return localNow.Format(time.DateOnly), nil
+}
+
+func localMidnight(value time.Time) time.Time {
+	return time.Date(value.Year(), value.Month(), value.Day(), 0, 0, 0, 0, value.Location())
 }

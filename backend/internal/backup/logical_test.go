@@ -49,6 +49,7 @@ var exportedTables = []string{
 	"assignments",
 	"training_entries",
 	"team_canvas_rest_days",
+	"team_lounge_v2_placement_credits",
 	"team_canvas_settings",
 	"team_canvas_avatar_positions",
 	"team_canvas_scene_states",
@@ -525,6 +526,12 @@ func fullyPopulatedDatabase(t *testing.T, ctx context.Context) string {
 		`UPDATE training_entries SET deleted_at = '2026-08-01T00:00:00Z' WHERE id = 'entry-mason-expired'`,
 		`INSERT INTO team_canvas_rest_days (team_id, player_id, day_key, created_at)
 		 VALUES ('team-hill-striders', 'player-mason', '2026-08-03', '2026-08-03T12:00:00Z')`,
+		`INSERT INTO team_lounge_v2_placement_credits (
+			team_id, player_id, week_key, day_key, source_kind, source_id, granted_at
+		) VALUES (
+			'team-hill-striders', 'player-mason', '2026-08-03', '2026-08-03',
+			'planned_rest', 'team-hill-striders:player-mason:2026-08-03', '2026-08-03T12:00:00Z'
+		)`,
 		`INSERT INTO team_canvas_settings (
 			team_id, background_asset_id, background_color, text_color, text_size,
 			text_style, stamp_choices_json, revision, updated_at

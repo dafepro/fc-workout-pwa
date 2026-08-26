@@ -10,14 +10,14 @@ func TestWeeklyRoomIdentityRoundTrips(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if roomID != "team:team-one:lounge:2026-08-24:v2" {
+	if roomID != "team:team-one:lounge:2026-08-24:v3" {
 		t.Fatalf("room id = %q", roomID)
 	}
 	teamID, weekKey, err := ParseWeeklyRoomID(roomID)
 	if err != nil || teamID != "team-one" || weekKey != "2026-08-24" {
 		t.Fatalf("parsed = %q, %q, %v", teamID, weekKey, err)
 	}
-	for _, invalid := range []string{"", "team:other", "team:team/one:lounge:2026-08-24:v2", "team:team-one:lounge:today:v2", "team:team-one:lounge:2026-08-25:v2", "team:team-one:lounge:2026-08-24", "team:team-one:lounge:2026-08-24:v1"} {
+	for _, invalid := range []string{"", "team:other", "team:team/one:lounge:2026-08-24:v3", "team:team-one:lounge:today:v3", "team:team-one:lounge:2026-08-25:v3", "team:team-one:lounge:2026-08-24", "team:team-one:lounge:2026-08-24:v2"} {
 		if _, _, err := ParseWeeklyRoomID(invalid); err == nil {
 			t.Fatalf("accepted invalid room id %q", invalid)
 		}
@@ -33,12 +33,16 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 	if canvas.CanvasID != BeachBoardwalkCanvasID || canvas.Version != BeachBoardwalkCanvasVersion || !json.Valid(canvas.DefinitionRaw) {
 		t.Fatalf("canvas record = %#v", canvas)
 	}
-	if canvas.Version != 2 {
+	if canvas.Version != 3 {
 		t.Fatalf("canvas version = %d", canvas.Version)
 	}
 	var shape struct {
-		ID          string `json:"id"`
-		Version     uint32 `json:"version"`
+		ID      string `json:"id"`
+		Version uint32 `json:"version"`
+		Limits  struct {
+			MaxAvatars int `json:"maxAvatars"`
+			MaxItems   int `json:"maxItems"`
+		} `json:"limits"`
 		SystemItems []struct {
 			DefinitionID string `json:"definitionId"`
 		} `json:"systemItems"`
@@ -48,6 +52,9 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 	}
 	if shape.ID != canvas.CanvasID || shape.Version != canvas.Version || len(shape.SystemItems) != 1 || shape.SystemItems[0].DefinitionID != "beach-ball" {
 		t.Fatalf("canvas shape = %#v", shape)
+	}
+	if shape.Limits.MaxAvatars != 24 || shape.Limits.MaxItems != 1+24*7 {
+		t.Fatalf("weekly placement capacity = %#v", shape.Limits)
 	}
 	var stamp struct {
 		Visual struct {

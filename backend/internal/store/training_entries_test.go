@@ -98,6 +98,54 @@ func TestCreateTrainingEntryUsesTheTeamDayDespiteClientClockSkew(t *testing.T) {
 	}
 }
 
+func TestTrainingCheckInsLatchOneLoungePlacementCreditPerTeamDay(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+	request := store.TrainingEntryRequest{
+		TeamID: "team-one", ActivityDefinitionID: "hill-sprints",
+		OccurredAt:  now.Format(time.RFC3339),
+		Result:      store.TrainingResult{Kind: "repetitions", Value: 8, Unit: "reps"},
+		EffortLevel: 4, ExhaustionLevel: 3,
+	}
+	first, err := repository.CreateTrainingEntry(context.Background(), store.CreateTrainingEntryInput{
+		PlayerID: "player-mason", IdempotencyKey: "lounge-credit-one", Request: request, Now: now,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = repository.CreateTrainingEntry(context.Background(), store.CreateTrainingEntryInput{
+		PlayerID: "player-mason", IdempotencyKey: "lounge-credit-same-day", Request: request, Now: now,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	request.OccurredAt = now.AddDate(0, 0, -1).Format(time.RFC3339)
+	if _, err = repository.CreateTrainingEntry(context.Background(), store.CreateTrainingEntryInput{
+		PlayerID: "player-mason", IdempotencyKey: "lounge-credit-yesterday", Request: request, Now: now,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	var credits int
+	if err = db.QueryRow(`SELECT COUNT(*) FROM team_lounge_v2_placement_credits
+		WHERE team_id = 'team-one' AND player_id = 'player-mason' AND week_key = '2026-08-10'`).Scan(&credits); err != nil {
+		t.Fatal(err)
+	}
+	if credits != 2 {
+		t.Fatalf("placement credits = %d, want one per distinct team day", credits)
+	}
+	if _, err = repository.DeleteTrainingEntry(context.Background(), first.ID, now.Add(time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if err = db.QueryRow(`SELECT COUNT(*) FROM team_lounge_v2_placement_credits
+		WHERE team_id = 'team-one' AND player_id = 'player-mason' AND week_key = '2026-08-10'`).Scan(&credits); err != nil {
+		t.Fatal(err)
+	}
+	if credits != 2 {
+		t.Fatalf("deleting an entry revoked a latched placement credit: %d", credits)
+	}
+}
+
 func TestCreateTrainingEntryUsesTheTeamsCalendarForMembership(t *testing.T) {
 	_, db := socialProjectionStore(t)
 	seedSocialProjection(t, db, time.Date(2026, time.August, 8, 1, 30, 0, 0, time.UTC))

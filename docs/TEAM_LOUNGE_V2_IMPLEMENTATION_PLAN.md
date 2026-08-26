@@ -33,14 +33,14 @@ app/
       assets.ts                               # allowlisted room assets
     overlays/
       AvatarOverlays.tsx                      # safe names/status/emotes
-      StampOverlays.tsx                       # durable stamp art and authored spots
+      StampOverlays.tsx                       # durable stamp art and free placement surface
     controls/
       LoungeActionBar.tsx
       StampPlacementTray.tsx                  # owned-stamp chooser and result state
     placement/
       catalog.ts                              # product inventory -> Canvas definitions
       orientation.ts                          # snap angles and mirror capability policy
-      zones.ts                                # exact client placement affordances
+      coordinates.ts                          # screen-to-world free placement mapping
     data/
       lounge-gateway.ts                       # tickets and app-authorized mutations
     telemetry.ts
@@ -58,6 +58,8 @@ backend/
     store.go                                  # Canvas Store adapter
     templates.go                              # room -> exact weekly template
     metrics.go
+  internal/store/
+    lounge_placement_credits.go               # latched daily credit writes
     *_test.go
   internal/httpapi/
     team_lounge.go                            # ticket/product mutation routes
@@ -185,15 +187,16 @@ Hill Striders PWA/
 
 ## Segment 4 — app-authorized stamps and items
 
-Outcome: earned Zoomigo inventory can be placed once and remains in the weekly
-room without letting the Canvas runtime mint inventory.
+Outcome: earned Zoomigo inventory can use a weekly check-in-funded placement
+budget and remains in the room without letting Canvas mint either inventory or
+placement credits.
 
 - [x] Add the Stamps tray using the existing permanent unlock inventory.
-- [x] Author six placement zones and accessible rejection feedback.
+- [x] Initially author six placement zones and accessible rejection feedback.
 - [x] Add a generic Canvas host-authorization seam; keep ownership, allowed
       assets, room policy, and rejection copy in Zoomigo.
-- [x] Enforce a create-only one-stamp-per-player weekly policy in the serialized
-      room loop, with an authenticated WebSocket integration test.
+- [x] Initially enforce a create-only one-stamp-per-player weekly policy in the
+      serialized room loop, with an authenticated WebSocket integration test.
 - [x] Persist accepted stamps in the existing weekly Canvas checkpoint and
       project their authenticated owner back to the app.
 - [ ] Add props only after their ownership and interaction semantics are
@@ -204,6 +207,9 @@ room without letting the Canvas runtime mint inventory.
 - [x] Keep mirroring off until individual art opts in and Canvas supports a
       first-class reflection transform; negative scale is never a mirror API.
 - [x] Cover concurrent reconnect placement and fault-injected checkpoint retry.
+- [x] Supersede authored spots and the one-per-week cap with one latched credit
+      per qualifying team-local check-in day, free in-room placement, and
+      team-local end-of-day editing locks.
 
 ### Segment 4A vertical slice — one durable weekly stamp
 
@@ -281,6 +287,37 @@ changes nothing. This preserves exactly one active weekly stamp through every
 failure. A standalone delete is not offered because “remove and reopen the
 weekly slot” is a different product rule and creates an avoidable empty/failure
 state. Consumable inventory remains a later, separately transactional design.
+
+### Segment 4E vertical slice — earned weekly budget and daily locks
+
+This slice supersedes the reversible one-stamp and six-zone policies from 4A.
+One accepted workout or planned-rest check-in grants one placement credit for
+that team-local date. Extra entries on the same date grant nothing more. The
+credit is latched in the same database transaction as the check-in, survives a
+later workout deletion, and belongs only to that Monday-based team week.
+Current-week records created before the ledger migration are reconciled when a
+player requests a room ticket.
+
+The authenticated ticket projects only the earned count and current team-local
+day. Canvas projects the authenticated owner and server-canonical
+`placementDay` for each durable item; Zoomigo derives used and remaining budget
+from canonical room state. The serialized room authorizer rejects a spawn once
+the player's owned stamp count reaches the earned count. A new version-3 room
+and item definition keep the policy change from reinterpreting version-2
+snapshots.
+
+Placement is now `pick stamp -> tap anywhere inside the room margin`. Overlap is
+allowed; only a five-unit outer safety margin is reserved. The placement
+surface keeps `touch-action: pan-y`, so a vertical drag continues to scroll the
+page while an un-dragged tap places the stamp. Every current-day stamp owned by
+the player can be moved, resized, or snap-rotated. At the next team-local
+midnight it becomes visible but immutable. Stamps and future props will spend
+the same generic weekly budget, but props remain disabled until their own
+ownership and interaction rules ship.
+
+Replacement, standalone delete, and mirroring remain separate decisions. The
+three rotation snaps remain `−15°`, `0°`, and `+15°`; “three snaps” refers to
+those three allowed angles, not three placement locations or credits.
 
 ## Segment 5 — weekly cadence and theme framework
 

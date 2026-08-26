@@ -7,62 +7,50 @@ import (
 	"errors"
 	"math"
 	"strings"
+	"time"
 
 	"github.com/dafepro/canvas/server/pkg/roomsdk"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 )
 
 const (
-	stampDefinitionPrefix         = "zoomigo-stamp-"
-	StampUnavailableReason        = "stamp_unavailable"
-	StampInvalidPlacementReason   = "stamp_invalid_placement"
-	StampInvalidScaleReason       = "stamp_invalid_scale"
-	StampInvalidRotationReason    = "stamp_invalid_rotation"
-	StampAlreadyPlacedReason      = "stamp_already_placed"
-	StampEditingUnavailableReason = "stamp_editing_unavailable"
+	stampDefinitionPrefix               = "zoomigo-stamp-"
+	StampUnavailableReason              = "stamp_unavailable"
+	StampInvalidPlacementReason         = "stamp_invalid_placement"
+	StampInvalidScaleReason             = "stamp_invalid_scale"
+	StampInvalidRotationReason          = "stamp_invalid_rotation"
+	StampPlacementBudgetExhaustedReason = "stamp_budget_exhausted"
+	StampLockedReason                   = "stamp_locked"
+	StampEditingUnavailableReason       = "stamp_editing_unavailable"
+	stampPlacementConfigSchemaJSON      = `{"type":"object","properties":{"placementDay":{"type":"string","pattern":"^[0-9]{4}-[0-9]{2}-[0-9]{2}$"}},"additionalProperties":false}`
 )
-
-type StampPlacementZone struct {
-	ID     string
-	X      float64
-	Y      float64
-	Radius float64
-}
-
-var beachBoardwalkStampZones = []StampPlacementZone{
-	{ID: "sand-left", X: 37, Y: 41, Radius: 2.5},
-	{ID: "sand-center", X: 45, Y: 60, Radius: 2.5},
-	{ID: "shore-right", X: 72, Y: 70, Radius: 2.5},
-	{ID: "boardwalk-upper", X: 22, Y: 75, Radius: 2.5},
-	{ID: "boardwalk-lower", X: 42, Y: 119, Radius: 2.5},
-	{ID: "sand-lower", X: 67, Y: 126, Radius: 2.5},
-}
 
 type StampPlacementAuthorizer struct {
 	store *SQLiteStore
+	now   func() time.Time
 }
 
-func NewStampPlacementAuthorizer(store *SQLiteStore) StampPlacementAuthorizer {
-	return StampPlacementAuthorizer{store: store}
+func NewStampPlacementAuthorizer(store *SQLiteStore, now func() time.Time) StampPlacementAuthorizer {
+	return StampPlacementAuthorizer{store: store, now: now}
 }
 
 func StampDefinitionID(assetID string) string {
 	return stampDefinitionPrefix + assetID
 }
 
-func BeachBoardwalkStampZones() []StampPlacementZone {
-	return append([]StampPlacementZone(nil), beachBoardwalkStampZones...)
-}
-
 func (authorizer StampPlacementAuthorizer) AuthorizeDurable(
 	ctx context.Context,
 	request roomsdk.DurableAuthorizationRequest,
 ) roomsdk.DurableAuthorizationResult {
-	if _, _, err := ParseWeeklyRoomID(request.RoomID); err != nil {
+	if authorizer.store == nil || authorizer.now == nil {
 		return denied(roomsdk.DurableRejectedByApplication)
 	}
 	if request.Operation == roomsdk.DurableMove || request.Operation == roomsdk.DurableScale || request.Operation == roomsdk.DurableRotate {
-		return authorizeStampEdit(request)
+		dayKey, err := authorizer.store.PlacementDay(ctx, request.RoomID, authorizer.now().UTC())
+		if err != nil {
+			return denied(roomsdk.DurableRejectedByApplication)
+		}
+		return authorizeStampEdit(request, dayKey)
 	}
 	if request.Operation != roomsdk.DurableSpawn || request.Preview {
 		return denied(StampEditingUnavailableReason)
@@ -71,13 +59,21 @@ func (authorizer StampPlacementAuthorizer) AuthorizeDurable(
 	if !ok || !knownStampAsset(assetID) {
 		return denied(StampUnavailableReason)
 	}
-	if !inStampPlacementZone(request.Position) {
+	if !inStampDecoratingArea(request.Position) {
 		return denied(StampInvalidPlacementReason)
 	}
+	budget, err := authorizer.store.PlacementBudget(ctx, request.RoomID, request.UserID, authorizer.now().UTC())
+	if err != nil {
+		return denied(roomsdk.DurableRejectedByApplication)
+	}
+	used := 0
 	for _, item := range request.ExistingItems {
 		if item.OwnerUserID == request.UserID && strings.HasPrefix(item.DefinitionID, stampDefinitionPrefix) {
-			return denied(StampAlreadyPlacedReason)
+			used++
 		}
+	}
+	if used >= budget.Earned {
+		return denied(StampPlacementBudgetExhaustedReason)
 	}
 	owned, err := authorizer.store.PlayerOwnsCanvasStamp(ctx, request.UserID, assetID)
 	if err != nil {
@@ -86,7 +82,13 @@ func (authorizer StampPlacementAuthorizer) AuthorizeDurable(
 	if !owned {
 		return denied(StampUnavailableReason)
 	}
-	return roomsdk.DurableAuthorizationResult{Allowed: true}
+	config, err := json.Marshal(struct {
+		PlacementDay string `json:"placementDay"`
+	}{PlacementDay: budget.DayKey})
+	if err != nil {
+		return denied(roomsdk.DurableRejectedByApplication)
+	}
+	return roomsdk.DurableAuthorizationResult{Allowed: true, CanonicalConfig: config}
 }
 
 func (store *SQLiteStore) PlayerOwnsCanvasStamp(ctx context.Context, playerID, assetID string) (bool, error) {
@@ -116,9 +118,9 @@ func stampDefinitionRecords() []roomsdk.ItemDefinitionRecord {
 	records := make([]roomsdk.ItemDefinitionRecord, 0, len(stampAssetIDs()))
 	for _, assetID := range stampAssetIDs() {
 		records = append(records, roomsdk.ItemDefinitionRecord{
-			DefinitionID: StampDefinitionID(assetID), Version: 1,
+			DefinitionID: StampDefinitionID(assetID), Version: 2,
 			Complexity:    roomsdk.ItemComplexitySimple,
-			ConfigSchema:  json.RawMessage(emptyConfigSchemaJSON),
+			ConfigSchema:  json.RawMessage(stampPlacementConfigSchemaJSON),
 			DefinitionRaw: stampDefinitionJSON(assetID),
 		})
 	}
@@ -127,7 +129,7 @@ func stampDefinitionRecords() []roomsdk.ItemDefinitionRecord {
 
 func stampDefinitionJSON(assetID string) json.RawMessage {
 	record := map[string]any{
-		"definitionId": StampDefinitionID(assetID), "version": 1,
+		"definitionId": StampDefinitionID(assetID), "version": 2,
 		"displayName": assetID + " stamp",
 		"visual": map[string]any{
 			"size":        map[string]float64{"width": 10, "height": 10},
@@ -146,7 +148,7 @@ func stampDefinitionJSON(assetID string) json.RawMessage {
 	return raw
 }
 
-func authorizeStampEdit(request roomsdk.DurableAuthorizationRequest) roomsdk.DurableAuthorizationResult {
+func authorizeStampEdit(request roomsdk.DurableAuthorizationRequest, dayKey string) roomsdk.DurableAuthorizationResult {
 	var owned *roomsdk.DurableAuthorizationItem
 	for index := range request.ExistingItems {
 		item := &request.ExistingItems[index]
@@ -159,6 +161,12 @@ func authorizeStampEdit(request roomsdk.DurableAuthorizationRequest) roomsdk.Dur
 	}
 	if owned == nil {
 		return denied(StampEditingUnavailableReason)
+	}
+	var metadata struct {
+		PlacementDay string `json:"placementDay"`
+	}
+	if json.Unmarshal(owned.ResolvedConfig, &metadata) != nil || metadata.PlacementDay != dayKey {
+		return denied(StampLockedReason)
 	}
 	if request.Operation == roomsdk.DurableMove {
 		if !inStampDecoratingArea(request.Position) {
@@ -203,19 +211,6 @@ func stampAssetIDs() []string {
 func knownStampAsset(assetID string) bool {
 	for _, candidate := range stampAssetIDs() {
 		if candidate == assetID {
-			return true
-		}
-	}
-	return false
-}
-
-func inStampPlacementZone(position roomsdk.DurablePosition) bool {
-	if !finite(position.X) || !finite(position.Y) {
-		return false
-	}
-	for _, zone := range beachBoardwalkStampZones {
-		dx, dy := position.X-zone.X, position.Y-zone.Y
-		if dx*dx+dy*dy <= zone.Radius*zone.Radius {
 			return true
 		}
 	}

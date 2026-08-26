@@ -223,6 +223,12 @@ func (store *Store) RecordTeamCanvasRest(ctx context.Context, actor domain.Actor
 	if err != nil {
 		return err
 	}
+	if err = grantTeamLoungePlacementCredit(
+		ctx, tx, teamID, actor.PlayerID, dayKey, "planned_rest",
+		teamID+":"+actor.PlayerID+":"+dayKey, now, location,
+	); err != nil {
+		return err
+	}
 	if request.PlanID == "" {
 		return tx.Commit()
 	}

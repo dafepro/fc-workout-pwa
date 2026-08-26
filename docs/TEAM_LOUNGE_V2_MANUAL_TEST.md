@@ -4,7 +4,7 @@ Updated: 2026-08-26.
 
 This plan covers scroll-safe direct avatar dragging, collision-map revision 2,
 safe live teammate overlays, server-relayed emotes, prior-visitor traces, the
-authenticated shared room, and one owner-editable weekly stamp per player.
+authenticated shared room, and a check-in-funded weekly placement budget.
 
 ## Setup
 
@@ -33,51 +33,61 @@ authenticated shared room, and one owner-editable weekly stamp per player.
 7. Immediately try another reaction. The emote choices should remain disabled
    for about two seconds, then become available again. No duplicate reaction
    should appear after the cooldown.
-8. Open **Stamps**. Confirm the tray says **Leave one stamp this week** and shows
-   only included or earned stamps from this player's collection.
-9. Choose a stamp. Six glowing placement spots should appear in the room and
-   the tray should say **Choose a glowing spot in the lounge.** Tap one spot.
-   The tray should briefly say **Adding your stamp…**, the stamp choices and
-   placement spots should stop accepting taps, then the stamp should appear,
-   the glow should disappear, and the tray should confirm the stamp is here for
-   the week. No unlock count should decrease.
-10. Leave and re-enter Team. Confirm the stamp returns in the same place. Open
-    the same team as a second player and confirm they see it, then place their
-    own stamp at another glowing spot.
-11. Reopen **Stamps** as the first player. A second placement must not be
-    offered. If two tabs race, at most one placement should be accepted and the
-    other should show calm rejection copy without closing the lounge.
-12. As a separate reconnect check, throttle or briefly disconnect the network
-    immediately after tapping a placement spot. When the lounge reconnects, it
-    must either show the accepted stamp or make the spot available to retry. It
-    must not remain stuck on **Adding your stamp…** or create two stamps.
-13. Reopen **Stamps**, tap your placed stamp, and confirm it gains one clear
-    selection ring plus the compact edit controls. Drag it to a new location,
-    use minus/plus to resize it, and choose left, straight, then right tilt. The
-    stamp should stay within the room margin and retain its size and angle after
-    leaving and returning. At 320 px, no control may clip or force horizontal
-    page scrolling.
-14. Confirm a teammate's stamp is visible but cannot be selected, moved, or
-    resized. Walk your avatar across both stamps: each stamp should be one
-    coherent image behind the avatar, never two copies split across layers.
-15. Confirm **Items** is visibly disabled and **Map** is visibly disabled because
+8. Before recording anything today, open **Stamps** and note the budget. If no
+   earlier check-in exists this week, it should say **Check in to earn a
+   placement** and offer no placement action.
+9. Record one accepted workout or planned rest for today, return to the lounge,
+   and open **Stamps**. Confirm the tray says **1 placement ready** and shows
+   only included or earned stamps from this player's collection. Record a
+   second activity on the same team-local day and confirm it does not add a
+   second credit.
+10. Choose a stamp. The tray should say **Tap anywhere in the lounge to place
+    it.** Tap an open point away from the outer edge. The tray should briefly
+    say **Adding your stamp…**, prevent repeat taps, and then reduce the ready
+    count by one. No unlock count should decrease.
+11. Earn a credit on another date in the same week, then place a second stamp
+    at a freely chosen point, including overlapping another decoration if
+    useful. Confirm there are no glowing authored spots and that the two stamps
+    can use different assets.
+12. Starting on the free placement surface, drag vertically instead of tapping.
+    The page should scroll and no stamp should be added. Tapping within the
+    five-unit outer margin should show calm retry copy and leave the budget
+    unchanged.
+13. Leave and re-enter Team. Confirm every accepted stamp returns in the same
+    place and a same-team player can see each one. If two tabs race for the last
+    remaining credit, at most one placement should be accepted.
+14. As a separate reconnect check, throttle or briefly disconnect the network
+    immediately after tapping. When the lounge reconnects, it must either show
+    the accepted stamp with the reduced budget or restore the credit for retry.
+    It must not remain stuck on **Adding your stamp…** or create two stamps.
+15. Reopen **Stamps**, tap any stamp you placed today, and confirm it gains one
+    clear selection ring plus the compact edit controls. Drag it, resize it,
+    and choose left, straight, then right tilt. Each current-day stamp should
+    retain its transform after leaving and returning. At 320 px, no control may
+    clip or force horizontal page scrolling.
+16. On the next team-local day, confirm yesterday's stamps remain visible but
+    cannot be selected or changed. A newly placed stamp should remain editable
+    until that day's local midnight. A teammate's stamps are always view-only.
+    Walk an avatar across them: each stamp should remain one coherent image
+    behind the avatar, never two copies split across layers.
+17. Confirm **Items** is visibly disabled and **Map** is visibly disabled because
     the first room fits on one screen. Neither should look tappable.
-16. Sign in as a second player on the same team in another browser profile.
+18. Sign in as a second player on the same team in another browser profile.
     Confirm **2 here** appears and both windows render each player's saved avatar
     plus safe first-name/last-initial label.
-17. Close the second player's room, then leave and re-enter Team as the first
+19. Close the second player's room, then leave and re-enter Team as the first
     player. Confirm the absent teammate appears once as a subdued **visited**
     trace at a fixed room anchor. It must not show a time, workout, duration, or
     message.
-18. Reopen the room as the second player. Confirm their prior-visitor trace
+20. Reopen the room as the second player. Confirm their prior-visitor trace
     disappears while their live avatar is present. At most three absent-player
     traces may be visible.
-19. Switch back to V1 in Me. Confirm the current Team Canvas returns and the V2
+21. Switch back to V1 in Me. Confirm the current Team Canvas returns and the V2
     room is gone. Switch to V2 again and confirm only one room is present.
-20. Expand **Lounge diagnostics**. Confirm the role says **Host** in the first
+22. Expand **Lounge diagnostics**. Confirm the role says **Host** in the first
     window and **Peer** in the second. During a drag, correction should normally
     remain below `3.00`; record a screen capture if it repeatedly jumps above it.
-21. Enable **Show collision map**. The red shapes should sit over the visible
+23. Enable **Show collision map**. The red shapes should sit over the visible
     hut, umbrella table, bench, snack cart/planter, and lower pool edge. The open
     center boardwalk should have no red blocker.
 
@@ -97,11 +107,13 @@ authenticated shared room, and one owner-editable weekly stamp per player.
 
 ## Expected limitations in this slice
 
-- One stamp may be placed per player each week. Its owner can move, resize, and
-  use three tilt positions, but cannot mirror, replace, or delete it. Props and
-  Map remain disabled.
+- One stamp or future item may use each earned placement credit. This slice
+  spends credits only on stamps. Current-day stamps can move, resize, and use
+  three tilt positions; older stamps cannot. Mirror, replace, delete, Props,
+  and Map remain disabled.
 - Visit traces are ambient weekly presence only; they are not a feed or history.
 
 Record feedback on movement feel, any correction spikes, collision alignment,
-teammate overlays, reconnect clarity, ball/stamp persistence, authored spot
-placement, and whether the control shell feels too prominent or quiet.
+teammate overlays, reconnect clarity, ball/stamp persistence, free-placement
+clarity, daily locking, and whether the control shell feels too prominent or
+quiet.

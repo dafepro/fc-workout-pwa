@@ -1,0 +1,2 @@
+DROP INDEX IF EXISTS team_lounge_v2_placement_credits_player_week_idx;
+DROP TABLE IF EXISTS team_lounge_v2_placement_credits;

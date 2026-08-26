@@ -110,9 +110,11 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 		t.Fatalf("ticket status = %d: %s", recorder.Code, recorder.Body.String())
 	}
 	var response struct {
-		Ticket     string   `json:"ticket"`
-		RoomID     string   `json:"roomId"`
-		VisitorIDs []string `json:"visitorIds"`
+		Ticket           string   `json:"ticket"`
+		RoomID           string   `json:"roomId"`
+		VisitorIDs       []string `json:"visitorIds"`
+		PlacementCredits int      `json:"placementCredits"`
+		PlacementDay     string   `json:"placementDay"`
 	}
 	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
 		t.Fatal(err)
@@ -123,6 +125,9 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 	}
 	if len(response.VisitorIDs) != 1 || response.VisitorIDs[0] != "player-two" {
 		t.Fatalf("safe visitor projection = %#v", response.VisitorIDs)
+	}
+	if response.PlacementCredits != 1 || response.PlacementDay == "" {
+		t.Fatalf("placement budget projection = %#v", response)
 	}
 	template, err := loungeStore.ResolveRoomTemplate(ctx, response.RoomID)
 	if err != nil || template.CanvasID != teamlounge.BeachBoardwalkCanvasID || template.CanvasVersion != teamlounge.BeachBoardwalkCanvasVersion {
@@ -181,7 +186,7 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 		CommandId:         "place-weekly-stamp",
 		Kind:              pb.DurableCommandKind_DURABLE_SPAWN_ITEM,
 		DefinitionId:      teamlounge.StampDefinitionID("star"),
-		DefinitionVersion: 1,
+		DefinitionVersion: 2,
 		Position:          &pb.Vec2{X: 45, Y: 60},
 		Scale:             1,
 		ConfigJson:        []byte("{}"),
@@ -192,10 +197,14 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 		t.Fatalf("included stamp placement rejected: %s", placed.RejectReason)
 	}
 	var placedItem struct {
-		EntityID string `json:"entityId"`
+		EntityID       string          `json:"entityId"`
+		ResolvedConfig json.RawMessage `json:"resolvedConfig"`
 	}
 	if err := json.Unmarshal(placed.ItemInstanceJson, &placedItem); err != nil || placedItem.EntityID == "" {
 		t.Fatalf("placed item = %#v, %v", placedItem, err)
+	}
+	if string(placedItem.ResolvedConfig) != `{"placementDay":"`+response.PlacementDay+`"}` {
+		t.Fatalf("server placement metadata = %s", placedItem.ResolvedConfig)
 	}
 	move := &pb.DurableCommand{
 		CommandId: "move-weekly-stamp", Kind: pb.DurableCommandKind_DURABLE_MOVE_ITEM,
@@ -270,7 +279,7 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 	duplicate.Position = &pb.Vec2{X: 37, Y: 41}
 	sendLoungeDurableCommand(t, ctx, reconnected, response.RoomID, duplicate)
 	second := awaitLoungeDurableResult(t, ctx, reconnected, duplicate.CommandId)
-	if second.Accepted || second.RejectReason != teamlounge.StampAlreadyPlacedReason {
+	if second.Accepted || second.RejectReason != teamlounge.StampPlacementBudgetExhaustedReason {
 		t.Fatalf("second placement = accepted %v reason %q", second.Accepted, second.RejectReason)
 	}
 }

@@ -135,6 +135,25 @@ The unique player, plan, and source tuple latches each tier once. Completion is
 derived from distinct proven plan days; planned rest counts, while repeated
 blocks and unrelated activities do not.
 
+## TeamLoungePlacementCredit
+
+- teamId
+- playerId
+- weekKey: canonical team-local Monday date
+- dayKey: qualifying team-local check-in date
+- sourceKind: training_entry | planned_rest
+- sourceId
+- grantedAt
+
+The team, player, week, and day tuple is unique. One or more accepted workouts
+or a planned-rest check-in on the same date grants one latched credit. Deleting
+a workout does not revoke a granted credit. Credits do not cross weekly room
+boundaries and cannot be created by Canvas state.
+
+A durable lounge stamp stores server-canonical `placementDay` metadata. The
+owner may edit it only while that date remains the team's current local date;
+older placements and teammate placements are immutable.
+
 ## Reaction
 
 - id

@@ -82,7 +82,7 @@ export const beachBoardwalkDefinitions: ItemDefinition[] = [
 
 export const beachBoardwalkCanvas: CanvasDefinition = {
   id: "zoomigo-beach-boardwalk",
-  version: 2,
+  version: 3,
   size: { width: 100, height: 150 },
   orientation: "topDown",
   backgroundAssetId: "lounge.background",
@@ -145,7 +145,7 @@ export const beachBoardwalkCanvas: CanvasDefinition = {
   ],
   limits: {
     maxAvatars: 24,
-    maxItems: 48,
+    maxItems: 169,
     maxComplexPhysicsItems: 4,
   },
   avatarController: {

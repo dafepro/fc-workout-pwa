@@ -32,11 +32,11 @@ describe("Beach Boardwalk Canvas scene", () => {
     ).toEqual(expect.objectContaining({ behaviorType: "kickable" }));
   });
 
-  it("keeps the room within the initial mobile scene budget", () => {
-    expect(beachBoardwalkCanvas.version).toBe(2);
+  it("reserves one non-complex item slot per avatar-day plus the ball", () => {
+    expect(beachBoardwalkCanvas.version).toBe(3);
     expect(beachBoardwalkCanvas.limits).toEqual({
       maxAvatars: 24,
-      maxItems: 48,
+      maxItems: 169,
       maxComplexPhysicsItems: 4,
     });
     expect(beachBoardwalkCanvas.staticGeometry).toEqual([

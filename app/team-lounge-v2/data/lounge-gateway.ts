@@ -3,12 +3,16 @@ export interface TeamLoungeCredential {
   roomID: string;
   serverURL: string;
   visitorIDs: string[];
+  placementCredits: number;
+  placementDay: string;
 }
 
 export interface PreparedTeamLoungeJoin {
   roomID: string;
   serverURL: string;
   visitorIDs: string[];
+  placementCredits: number;
+  placementDay: string;
   credentialProvider(): Promise<string>;
 }
 
@@ -23,6 +27,8 @@ export async function prepareTeamLoungeJoin(
     roomID,
     serverURL,
     visitorIDs: [...queued.visitorIDs],
+    placementCredits: queued.placementCredits,
+    placementDay: queued.placementDay,
     async credentialProvider() {
       const credential = queued ?? (await requestTeamLoungeCredential(teamID));
       queued = null;
@@ -57,6 +63,9 @@ export async function requestTeamLoungeCredential(
   const roomID = typeof body.roomId === "string" ? body.roomId : "";
   const serverURL = typeof body.serverUrl === "string" ? body.serverUrl : "";
   const visitorIDs = Array.isArray(body.visitorIds) ? body.visitorIds : [];
+  const placementCredits = body.placementCredits;
+  const placementDay =
+    typeof body.placementDay === "string" ? body.placementDay : "";
   let parsedServer: URL;
   try {
     parsedServer = new URL(serverURL);
@@ -73,7 +82,11 @@ export async function requestTeamLoungeCredential(
         typeof playerID !== "string" ||
         !/^[a-zA-Z0-9_-]{1,128}$/u.test(playerID),
     ) ||
-    new Set(visitorIDs).size !== visitorIDs.length
+    new Set(visitorIDs).size !== visitorIDs.length ||
+    !Number.isInteger(placementCredits) ||
+    (placementCredits as number) < 0 ||
+    (placementCredits as number) > 7 ||
+    !/^\d{4}-\d{2}-\d{2}$/u.test(placementDay)
   ) {
     throw new Error("The team lounge is unavailable.");
   }
@@ -82,5 +95,7 @@ export async function requestTeamLoungeCredential(
     roomID,
     serverURL: parsedServer.toString().replace(/\/$/u, ""),
     visitorIDs: [...visitorIDs] as string[],
+    placementCredits: placementCredits as number,
+    placementDay,
   };
 }

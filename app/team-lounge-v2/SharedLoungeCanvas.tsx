@@ -5,6 +5,7 @@ import type {
   CanvasConsumerError,
   CanvasRuntime,
   OverlayEntityProjection,
+  OverlayProjectionSnapshot,
   ParticipantPresence,
   RuntimeDiagnostics,
 } from "@canvas-physics/client";
@@ -15,7 +16,6 @@ import { AvatarOverlays } from "./overlays/AvatarOverlays";
 import {
   StampOverlays,
   type LoungeStampOverlay,
-  type LoungeStampSpotOverlay,
 } from "./overlays/StampOverlays";
 import { VisitTraces } from "./overlays/VisitTraces";
 import {
@@ -34,7 +34,7 @@ import {
   stampAssetIDFromDefinition,
   stampDefinitionID,
 } from "./placement/catalog";
-import { loungeStampZones, type LoungeStampZone } from "./placement/zones";
+import { loungeWorldPoint } from "./placement/coordinates";
 import {
   LOUNGE_EMOTE_DURATION_MS,
   loungeEmoteForSignal,
@@ -51,6 +51,12 @@ const visitTraceWorldAnchors = [
   { x: 48, y: 125 },
 ] as const;
 
+export interface LoungePlacementSummary {
+  earned: number;
+  used: number;
+  remaining: number;
+}
+
 export function SharedLoungeCanvas({
   teamID,
   playerID,
@@ -61,7 +67,7 @@ export function SharedLoungeCanvas({
   onDiagnostics,
   selectedStamp = null,
   stampEditingEnabled = false,
-  onPlacementChange,
+  onPlacementSummaryChange,
   onPlacementError,
   onPlacementPendingChange,
 }: {
@@ -74,23 +80,31 @@ export function SharedLoungeCanvas({
   onDiagnostics?(diagnostics: RuntimeDiagnostics): void;
   selectedStamp?: StampAsset | null;
   stampEditingEnabled?: boolean;
-  onPlacementChange?(assetID: string | null): void;
+  onPlacementSummaryChange?(summary: LoungePlacementSummary): void;
   onPlacementError?(reason: string): void;
   onPlacementPendingChange?(pending: boolean): void;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const runtimeRef = useRef<CanvasRuntime | null>(null);
   const rosterRef = useRef(roster);
-  const onPlacementChangeRef = useRef(onPlacementChange);
+  const onPlacementSummaryChangeRef = useRef(onPlacementSummaryChange);
   const onPlacementErrorRef = useRef(onPlacementError);
   const onPlacementPendingChangeRef = useRef(onPlacementPendingChange);
-  const placedAssetIDRef = useRef<string | null>(null);
+  const placementCreditsRef = useRef(0);
+  const placementDayRef = useRef("");
+  const projectionFrameRef = useRef<
+    Pick<OverlayProjectionSnapshot, "canvasSize" | "viewport"> | undefined
+  >(undefined);
+  const ownStampCountRef = useRef(0);
   const placementPendingRef = useRef(false);
   const stampEditingEnabledRef = useRef(stampEditingEnabled);
   const [overlays, setOverlays] = useState<LoungeParticipantOverlay[]>([]);
   const [stampOverlays, setStampOverlays] = useState<LoungeStampOverlay[]>([]);
-  const [stampSpots, setStampSpots] = useState<LoungeStampSpotOverlay[]>([]);
-  const [ownStampID, setOwnStampID] = useState<string | null>(null);
+  const [placementPolicy, setPlacementPolicy] = useState({
+    credits: 0,
+    day: "",
+  });
+  const [usedPlacements, setUsedPlacements] = useState(0);
   const [editSelectionID, setEditSelectionID] = useState<string | null>(null);
   const [placementPending, setPlacementPending] = useState(false);
   const [visitTraces, setVisitTraces] = useState<LoungeVisitTraceOverlay[]>([]);
@@ -105,8 +119,8 @@ export function SharedLoungeCanvas({
   }, [roster]);
 
   useEffect(() => {
-    onPlacementChangeRef.current = onPlacementChange;
-  }, [onPlacementChange]);
+    onPlacementSummaryChangeRef.current = onPlacementSummaryChange;
+  }, [onPlacementSummaryChange]);
 
   useEffect(() => {
     onPlacementErrorRef.current = onPlacementError;
@@ -141,6 +155,7 @@ export function SharedLoungeCanvas({
     let projections: readonly OverlayEntityProjection[] = [];
     let visitorIDs: readonly string[] = [];
     let presented = false;
+    let lastPlacementSummary = "";
     const publishOverlays = () => {
       if (disposed) return;
       setOverlays(
@@ -151,38 +166,50 @@ export function SharedLoungeCanvas({
           projections,
         }),
       );
-      const nextStampOverlays = projections.flatMap((projection) => {
-        if (projection.kind !== "item" || !projection.inViewport) return [];
+      const stampProjections = projections.flatMap((projection) => {
+        if (projection.kind !== "item") return [];
         const assetID = stampAssetIDFromDefinition(projection.definitionId);
         const asset = assetID ? loungeStampAsset(assetID) : undefined;
         if (!asset) return [];
-        return [
-          {
-            entityID: projection.entityId,
-            asset,
-            ownerUserID:
-              (
-                projection as OverlayEntityProjection & {
-                  ownerUserId?: string;
-                }
-              ).ownerUserId ?? null,
-            rotation: projection.rotation,
-            scale: projection.scale,
-            screen: projection.screen,
-          },
-        ];
+        return [{ projection, asset }];
       });
+      const nextStampOverlays = stampProjections.flatMap(
+        ({ projection, asset }) => {
+          if (!projection.inViewport) return [];
+          return [
+            {
+              entityID: projection.entityId,
+              asset,
+              ownerUserID: projectionOwnerUserID(projection),
+              rotation: projection.rotation,
+              scale: projection.scale,
+              screen: projection.screen,
+              placementDay: placementDayFromConfig(projection.resolvedConfig),
+            },
+          ];
+        },
+      );
       setStampOverlays(nextStampOverlays);
-      const ownAssetID =
-        nextStampOverlays.find(({ ownerUserID }) => ownerUserID === playerID)
-          ?.asset.id ?? null;
-      if (ownAssetID !== placedAssetIDRef.current) {
-        placedAssetIDRef.current = ownAssetID;
-        setOwnStampID(ownAssetID);
-        onPlacementChangeRef.current?.(ownAssetID);
-      }
-      if (ownAssetID && placementPendingRef.current) {
+      const ownStampCount = stampProjections.filter(
+        ({ projection }) => projectionOwnerUserID(projection) === playerID,
+      ).length;
+      if (
+        ownStampCount > ownStampCountRef.current &&
+        placementPendingRef.current
+      ) {
         updatePlacementPending(false);
+      }
+      ownStampCountRef.current = ownStampCount;
+      setUsedPlacements(ownStampCount);
+      const summary = {
+        earned: placementCreditsRef.current,
+        used: ownStampCount,
+        remaining: Math.max(0, placementCreditsRef.current - ownStampCount),
+      };
+      const summaryKey = `${summary.earned}:${summary.used}:${summary.remaining}`;
+      if (summaryKey !== lastPlacementSummary) {
+        lastPlacementSummary = summaryKey;
+        onPlacementSummaryChangeRef.current?.(summary);
       }
       const activePlayerIDs = participants
         .filter(({ status }) => status === "active")
@@ -202,22 +229,19 @@ export function SharedLoungeCanvas({
           anchors,
         }),
       );
-      setStampSpots(
-        presented
-          ? loungeStampZones.flatMap((zone) => {
-              const projection = runtime?.projectWorldPoint(zone.position);
-              return projection?.inViewport
-                ? [{ zone, screen: projection.screen }]
-                : [];
-            })
-          : [],
-      );
     };
     onStateChange("loading");
 
     void (async () => {
       const join = await prepareTeamLoungeJoin(teamID);
+      if (disposed) return;
       visitorIDs = join.visitorIDs;
+      placementCreditsRef.current = join.placementCredits;
+      placementDayRef.current = join.placementDay;
+      setPlacementPolicy({
+        credits: join.placementCredits,
+        day: join.placementDay,
+      });
       const { CanvasRuntime: Runtime } = await import("@canvas-physics/client");
       if (disposed) return;
       runtime = new Runtime({
@@ -275,10 +299,14 @@ export function SharedLoungeCanvas({
       );
       unsubscribeProjection = runtime.subscribeOverlayProjection(
         (snapshot) => {
+          projectionFrameRef.current = {
+            canvasSize: snapshot.canvasSize,
+            viewport: snapshot.viewport,
+          };
           projections = snapshot.entities;
           publishOverlays();
         },
-        { kinds: ["avatar", "item"], maxEntities: 72, maxHz: 60 },
+        { kinds: ["avatar", "item"], maxEntities: 200, maxHz: 60 },
       );
       unsubscribeSignals = runtime.subscribeParticipantSignals((signal) => {
         const emote = loungeEmoteForSignal(signal.kind);
@@ -353,9 +381,18 @@ export function SharedLoungeCanvas({
     updatePlacementPending,
   ]);
 
-  const editableStamp = stampEditingEnabled
-    ? stampOverlays.find(({ ownerUserID }) => ownerUserID === playerID)
-    : undefined;
+  const editableStampIDs = stampEditingEnabled
+    ? stampOverlays
+        .filter(
+          ({ ownerUserID, placementDay }) =>
+            ownerUserID === playerID && placementDay === placementPolicy.day,
+        )
+        .map(({ entityID }) => entityID)
+    : [];
+  const remainingPlacements = Math.max(
+    0,
+    placementPolicy.credits - usedPlacements,
+  );
 
   return (
     <>
@@ -369,10 +406,10 @@ export function SharedLoungeCanvas({
       <AvatarOverlays participants={overlays} emotes={participantEmotes} />
       <StampOverlays
         stamps={stampOverlays}
-        spots={ownStampID ? [] : stampSpots}
-        selectedStamp={ownStampID ? null : selectedStamp}
+        selectedStamp={remainingPlacements > 0 ? selectedStamp : null}
         placementPending={placementPending}
-        editableEntityID={editableStamp?.entityID}
+        currentPlayerID={playerID}
+        editableEntityIDs={editableStampIDs}
         selectedEntityID={stampEditingEnabled ? editSelectionID : null}
         onSelect={(entityID) => runtimeRef.current?.selectItemForEdit(entityID)}
         onScale={(entityID, scale) => {
@@ -392,23 +429,52 @@ export function SharedLoungeCanvas({
           );
         }}
         onDone={() => runtimeRef.current?.clearItemEditSelection()}
-        onPlace={(zone: LoungeStampZone) => {
+        onPlace={(screen) => {
           if (
             !selectedStamp ||
-            placedAssetIDRef.current ||
+            remainingPlacements <= 0 ||
             placementPendingRef.current
           ) {
             return;
           }
           const runtime = runtimeRef.current;
-          if (!runtime) return;
+          const frame = projectionFrameRef.current;
+          if (!runtime || !frame) return;
+          const position = loungeWorldPoint(
+            screen,
+            frame.viewport,
+            frame.canvasSize,
+          );
+          if (!position) {
+            onPlacementErrorRef.current?.("stamp_invalid_placement");
+            return;
+          }
           updatePlacementPending(true);
-          runtime.spawnItem(stampDefinitionID(selectedStamp.id), zone.position);
+          runtime.spawnItem(stampDefinitionID(selectedStamp.id), position);
         }}
       />
       <p className="sr-only" role="status" aria-live="polite">
         {announcement}
       </p>
     </>
+  );
+}
+
+function placementDayFromConfig(config: unknown): string | null {
+  if (!config || typeof config !== "object" || Array.isArray(config))
+    return null;
+  const placementDay = (config as Record<string, unknown>).placementDay;
+  return typeof placementDay === "string" &&
+    /^\d{4}-\d{2}-\d{2}$/u.test(placementDay)
+    ? placementDay
+    : null;
+}
+
+function projectionOwnerUserID(
+  projection: OverlayEntityProjection,
+): string | null {
+  return (
+    (projection as OverlayEntityProjection & { ownerUserId?: string })
+      .ownerUserId ?? null
   );
 }

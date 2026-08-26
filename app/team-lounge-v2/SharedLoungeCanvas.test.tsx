@@ -80,6 +80,14 @@ vi.mock("@canvas-physics/client", () => ({
     subscribeOverlayProjection(observer: (snapshot: unknown) => void) {
       runtime.overlayObserver = observer as typeof runtime.overlayObserver;
       observer({
+        canvasSize: { width: 100, height: 150 },
+        viewport: {
+          width: 1_000,
+          height: 1_500,
+          scale: 10,
+          offsetX: 0,
+          offsetY: 0,
+        },
         entities: [
           {
             entityId: "avatar:player-one",
@@ -157,10 +165,12 @@ vi.mock("@canvas-physics/client", () => ({
 
 vi.mock("./data/lounge-gateway", () => ({
   prepareTeamLoungeJoin: vi.fn().mockResolvedValue({
-    roomID: "team:team-one:lounge:2026-08-24:v2",
+    roomID: "team:team-one:lounge:2026-08-24:v3",
     serverURL: "wss://example.test/canvas",
     credentialProvider: vi.fn(),
     visitorIDs: ["player-two"],
+    placementCredits: 2,
+    placementDay: "2026-08-26",
   }),
 }));
 
@@ -214,8 +224,8 @@ describe("SharedLoungeCanvas", () => {
     );
   });
 
-  it("places an owned stamp through an authored spot and recognizes the canonical item", async () => {
-    const onPlacementChange = vi.fn();
+  it("places an owned stamp at a tapped free position and recognizes the canonical item", async () => {
+    const onPlacementSummaryChange = vi.fn();
     const onPlacementError = vi.fn();
     const onPlacementPendingChange = vi.fn();
     render(
@@ -235,7 +245,7 @@ describe("SharedLoungeCanvas", () => {
           glyph: "🎯",
           label: "Target",
         }}
-        onPlacementChange={onPlacementChange}
+        onPlacementSummaryChange={onPlacementSummaryChange}
         onPlacementError={onPlacementError}
         onPlacementPendingChange={onPlacementPendingChange}
         onStateChange={vi.fn()}
@@ -244,11 +254,11 @@ describe("SharedLoungeCanvas", () => {
       />,
     );
 
-    const spot = await screen.findByRole("button", {
-      name: "Place Target at Sand center",
+    const placementSurface = await screen.findByRole("button", {
+      name: "Place Target in the lounge",
     });
-    fireEvent.click(spot);
-    fireEvent.click(spot);
+    fireEvent.click(placementSurface, { clientX: 450, clientY: 600 });
+    fireEvent.click(placementSurface, { clientX: 450, clientY: 600 });
     expect(runtime.spawned).toEqual([
       {
         definitionId: "zoomigo-stamp-target",
@@ -268,16 +278,59 @@ describe("SharedLoungeCanvas", () => {
             screen: { x: 140, y: 210 },
             scale: 1,
             rotation: 0,
+            resolvedConfig: { placementDay: "2026-08-26" },
             visible: true,
             inViewport: true,
           },
         ],
       }),
     );
-    expect(onPlacementChange).toHaveBeenLastCalledWith("target");
+    expect(onPlacementSummaryChange).toHaveBeenLastCalledWith({
+      earned: 2,
+      used: 1,
+      remaining: 1,
+    });
+    expect(screen.getByLabelText(/Target stamp, yours/)).toBeVisible();
+
+    act(() =>
+      runtime.overlayObserver?.({
+        entities: [
+          {
+            entityId: "i1",
+            kind: "item",
+            definitionId: "zoomigo-stamp-target",
+            ownerUserId: "player-one",
+            screen: { x: 140, y: 210 },
+            scale: 1,
+            rotation: 0,
+            resolvedConfig: { placementDay: "2026-08-26" },
+            visible: true,
+            inViewport: true,
+          },
+          {
+            entityId: "i2",
+            kind: "item",
+            definitionId: "zoomigo-stamp-star",
+            ownerUserId: "player-one",
+            screen: { x: -20, y: -20 },
+            scale: 1,
+            rotation: 0,
+            resolvedConfig: { placementDay: "2026-08-25" },
+            visible: false,
+            inViewport: false,
+          },
+        ],
+      }),
+    );
+    expect(onPlacementSummaryChange).toHaveBeenLastCalledWith({
+      earned: 2,
+      used: 2,
+      remaining: 0,
+    });
+    expect(screen.queryByLabelText(/Star stamp/)).toBeNull();
     expect(
-      screen.getByLabelText("Target stamp placed by a teammate"),
-    ).toBeVisible();
+      screen.queryByRole("button", { name: "Place Target in the lounge" }),
+    ).toBeNull();
 
     act(() =>
       runtime.onError?.({
@@ -315,6 +368,7 @@ describe("SharedLoungeCanvas", () => {
             world: { x: 45, y: 60, z: 0 },
             rotation: 0,
             scale: 1,
+            resolvedConfig: { placementDay: "2026-08-26" },
             visible: true,
             inViewport: true,
           },
@@ -327,6 +381,20 @@ describe("SharedLoungeCanvas", () => {
             world: { x: 20, y: 30, z: 0 },
             rotation: 0,
             scale: 1,
+            resolvedConfig: { placementDay: "2026-08-25" },
+            visible: true,
+            inViewport: true,
+          },
+          {
+            entityId: "old-mine",
+            kind: "item",
+            definitionId: "zoomigo-stamp-star",
+            ownerUserId: "player-one",
+            screen: { x: 60, y: 120 },
+            world: { x: 15, y: 35, z: 0 },
+            rotation: 0,
+            scale: 1,
+            resolvedConfig: { placementDay: "2026-08-25" },
             visible: true,
             inViewport: true,
           },
@@ -341,6 +409,9 @@ describe("SharedLoungeCanvas", () => {
     expect(
       screen.getByLabelText("Star stamp placed by a teammate"),
     ).not.toHaveClass("team-lounge-v2__placed-stamp--editable");
+    expect(screen.getByLabelText(/Star stamp, yours; locked/)).not.toHaveClass(
+      "team-lounge-v2__placed-stamp--editable",
+    );
 
     act(() =>
       runtime.options?.onEditSelectionChange?.({ selectedEntityId: "mine" }),
@@ -387,16 +458,16 @@ describe("SharedLoungeCanvas", () => {
       />,
     );
 
-    const spot = await screen.findByRole("button", {
-      name: "Place Star at Sand center",
+    const placementSurface = await screen.findByRole("button", {
+      name: "Place Star in the lounge",
     });
-    fireEvent.click(spot);
-    expect(spot).toBeDisabled();
+    fireEvent.click(placementSurface, { clientX: 450, clientY: 600 });
+    expect(placementSurface).toBeDisabled();
 
     act(() => runtime.lifecycleObserver?.({ state: "reconnecting" }));
     expect(onPlacementPendingChange).toHaveBeenLastCalledWith(false);
-    expect(spot).toBeEnabled();
-    fireEvent.click(spot);
+    expect(placementSurface).toBeEnabled();
+    fireEvent.click(placementSurface, { clientX: 450, clientY: 600 });
     expect(runtime.spawned).toHaveLength(2);
   });
 

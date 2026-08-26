@@ -63,6 +63,10 @@ func (metrics teamLoungeRoomMetrics) DurableRejected(_ string, reason string) {
 		metrics.feature("stamp_rotate", "rejected")
 		return
 	}
+	if reason == "stamp_locked" || reason == "stamp_editing_unavailable" {
+		metrics.feature("stamp_edit", "rejected")
+		return
+	}
 	if strings.HasPrefix(reason, "stamp_") {
 		metrics.feature("stamp_placement", "rejected")
 		return

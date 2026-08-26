@@ -55,7 +55,7 @@ export const loungeStampDefinitions: ItemDefinition[] =
     LOUNGE_STAMP_ASSET_IDS.includes(id as never),
   ).map((asset) => ({
     definitionId: stampDefinitionID(asset.id),
-    version: 1,
+    version: 2,
     displayName: `${asset.kind === "emoji" ? asset.label : asset.alt} stamp`,
     visual: {
       size: { width: 10, height: 10 },

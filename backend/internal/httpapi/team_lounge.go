@@ -40,6 +40,11 @@ func (service *service) createTeamLoungeSocketTicket(w http.ResponseWriter, r *h
 		writeError(w, r, http.StatusConflict, "room_template_conflict", "This week's lounge could not be opened.")
 		return
 	}
+	placementBudget, err := service.teamLoungeStore.PlacementBudget(r.Context(), roomID, actor.PlayerID, service.now().UTC())
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "internal_error", "This week's lounge could not be opened.")
+		return
+	}
 	traces, err := service.teamLoungeStore.ListVisitTraces(r.Context(), roomID, actor.PlayerID, 20)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "internal_error", "This week's lounge could not be opened.")
@@ -68,7 +73,12 @@ func (service *service) createTeamLoungeSocketTicket(w http.ResponseWriter, r *h
 		RoomID           string   `json:"roomId"`
 		ExpiresInSeconds int      `json:"expiresInSeconds"`
 		VisitorIDs       []string `json:"visitorIds"`
-	}{Ticket: ticket, RoomID: roomID, ExpiresInSeconds: int(teamCanvasSocketTicketTTL.Seconds()), VisitorIDs: visitorIDs})
+		PlacementCredits int      `json:"placementCredits"`
+		PlacementDay     string   `json:"placementDay"`
+	}{
+		Ticket: ticket, RoomID: roomID, ExpiresInSeconds: int(teamCanvasSocketTicketTTL.Seconds()), VisitorIDs: visitorIDs,
+		PlacementCredits: placementBudget.Earned, PlacementDay: placementBudget.DayKey,
+	})
 }
 
 func (service *service) connectTeamLoungeRoom(w http.ResponseWriter, r *http.Request) {

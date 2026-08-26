@@ -1167,6 +1167,26 @@ Momentum Alpha needs independent PWA install/offline behavior.
   asset. The old stamp remains until acceptance, so retries and disconnects
   never produce an empty slot or two weekly stamps. Standalone delete is not a
   current player action; consumable reservation/refund semantics remain later.
+- Superseded 2026-08-26: the one-stamp cap and six authored points were useful
+  integration constraints, but they are no longer product policy. One accepted
+  workout or planned-rest check-in grants one latched placement credit for that
+  team-local date. Multiple entries on one date grant one credit total; later
+  deletion does not revoke it. Credits are isolated to the canonical Monday-
+  based team week and current-week pre-migration records reconcile on room join.
+- Decided: a player may spend accumulated weekly credits at any time during the
+  current room week. Stamps now share one generic budget that props will use
+  later. Permanent stamp unlocks are eligibility, not consumable copies.
+- Decided: stamp placement is free within the server-enforced five-unit outer
+  room margin. Overlap is permitted. Canvas renders the world and persists the
+  durable item; Zoomigo alone validates the authenticated owner, unlock, weekly
+  budget, bounds, and canonical placement day.
+- Decided: every stamp placed on the current team-local day may be moved,
+  resized, or set to one of the three allowed tilt snaps. At local midnight it
+  locks in place. Prior-day stamps and teammate stamps stay visible but cannot
+  be edited. The server injects `placementDay`; the browser cannot choose it.
+- Decided: this policy starts Beach Boardwalk room generation V3 and stamp
+  definition V2, so existing V2 snapshots are never reinterpreted. Replacement,
+  standalone delete, and mirroring remain separate future actions.
 - Decided: transient player emotes use a generic Canvas participant-signal
   channel, not Zoomigo chat or a second websocket. The room server allowlists
   five payload-free kinds and permits one accepted signal per player every two

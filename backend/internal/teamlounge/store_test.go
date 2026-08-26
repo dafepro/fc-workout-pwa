@@ -57,6 +57,32 @@ func TestWeeklyVisitTracesAreIdempotentCappedAndRoomScoped(t *testing.T) {
 	}
 }
 
+func TestPlacementBudgetBackfillsCurrentWeekCheckInsAndUsesTeamTime(t *testing.T) {
+	db := openMigratedDatabase(t)
+	seedTeam(t, db)
+	for _, statement := range []string{
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-one', 'club-one', 'One', 'P', '{}', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-one', 'player-one', '2026-01-01')`,
+		`INSERT INTO training_entries (id, player_id, team_id, activity_definition_id, occurred_at, result_value, result_unit, effort_level, exhaustion_level, created_at, delete_eligible_until)
+		 VALUES ('entry-one', 'player-one', 'team-one', 'hill-sprints', '2026-08-25T04:30:00Z', 8, 'reps', 3, 3, '2026-08-25T04:30:00Z', '2026-08-26T04:30:00Z')`,
+		`INSERT INTO training_entries (id, player_id, team_id, activity_definition_id, occurred_at, result_value, result_unit, effort_level, exhaustion_level, created_at, delete_eligible_until)
+		 VALUES ('entry-two', 'player-one', 'team-one', 'hill-sprints', '2026-08-26T17:00:00Z', 8, 'reps', 3, 3, '2026-08-26T17:00:00Z', '2026-08-27T17:00:00Z')`,
+	} {
+		if _, err := db.ExecContext(t.Context(), statement); err != nil {
+			t.Fatal(err)
+		}
+	}
+	store := NewSQLiteStore(db, Catalog{})
+	now := time.Date(2026, time.August, 26, 18, 0, 0, 0, time.UTC)
+	budget, err := store.PlacementBudget(t.Context(), "team:team-one:lounge:2026-08-24:v3", "player-one", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if budget.DayKey != "2026-08-26" || budget.WeekKey != "2026-08-24" || budget.Earned != 2 {
+		t.Fatalf("placement budget = %+v", budget)
+	}
+}
+
 var conformanceCanvas = roomsdk.CanvasRecord{
 	CanvasID: "test-canvas", Version: 1,
 	DefinitionRaw: json.RawMessage(`{"id":"test-canvas","version":1}`),

@@ -15,5 +15,8 @@ describe("Team Lounge V2 stamp presentation", () => {
         ({ visual }) => visual.spriteId === "lounge.stamp.transparent",
       ),
     ).toBe(true);
+    expect(loungeStampDefinitions.every(({ version }) => version === 2)).toBe(
+      true,
+    );
   });
 });
