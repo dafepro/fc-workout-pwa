@@ -75,9 +75,9 @@ provenance, and completion gates before runtime code lands.
 - [x] Audit current V1 and Canvas public contracts.
 - [x] Record safety/privacy boundaries and weekly room identity.
 - [x] Segment the implementation and define rollback.
-- [ ] Pack the three coordinated Canvas JS packages from one verified commit.
-- [ ] Record versions, source commit, SHA-256 digests, and rebuild commands.
-- [ ] Verify the Canvas package-artifact/release gates before consuming them.
+- [x] Pack the three coordinated Canvas JS packages from one verified commit.
+- [x] Record versions, source commit, SHA-256 digests, and rebuild commands.
+- [x] Verify the Canvas package-artifact/release gates before consuming them.
 
 ## Segment 1 — dev selector and local room
 

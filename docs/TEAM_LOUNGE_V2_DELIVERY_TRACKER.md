@@ -8,15 +8,15 @@ the intended boundary; this file records delivered evidence and remaining risk.
 
 ## Status
 
-| Segment | Reviewable outcome                                                 | Status      | Evidence                                   | Next gate                               |
-| ------- | ------------------------------------------------------------------ | ----------- | ------------------------------------------ | --------------------------------------- |
-| 0       | Architecture, segmented plan, file tree, safety boundary, rollback | In progress | Canvas and Zoomigo contract audit complete | Pack and verify pinned Canvas artifacts |
-| 1       | Dev Me selector plus local Beach Boardwalk room                    | Not started | —                                          | Selector tests fail first               |
-| 2       | Authenticated team multiplayer room                                | Not started | —                                          | Coordinated JS/Go release pin           |
-| 3       | Presence, visit traces, emotes, durable physical state             | Not started | —                                          | Segment 2 conformance green             |
-| 4       | Earned stamps/items with app-owned authorization                   | Not started | —                                          | Inventory transaction decision          |
-| 5       | Weekly reset and theme framework                                   | Not started | —                                          | Timezone/template rollover tests        |
-| 6       | Device budgets, observability, release and cutover                 | Not started | —                                          | All parity/safety gates green           |
+| Segment | Reviewable outcome                                                 | Status      | Evidence                              | Next gate                        |
+| ------- | ------------------------------------------------------------------ | ----------- | ------------------------------------- | -------------------------------- |
+| 0       | Architecture, segmented plan, file tree, safety boundary, rollback | Delivered   | Canvas package/release/boundary gates | Segment 1 selector test          |
+| 1       | Dev Me selector plus local Beach Boardwalk room                    | Not started | —                                     | Selector tests fail first        |
+| 2       | Authenticated team multiplayer room                                | Not started | —                                     | Coordinated JS/Go release pin    |
+| 3       | Presence, visit traces, emotes, durable physical state             | Not started | —                                     | Segment 2 conformance green      |
+| 4       | Earned stamps/items with app-owned authorization                   | Not started | —                                     | Inventory transaction decision   |
+| 5       | Weekly reset and theme framework                                   | Not started | —                                     | Timezone/template rollover tests |
+| 6       | Device budgets, observability, release and cutover                 | Not started | —                                     | All parity/safety gates green    |
 
 ## Product parity ledger
 
@@ -48,6 +48,6 @@ the intended boundary; this file records delivered evidence and remaining risk.
 
 ## Slice log
 
-| Date       | Segment | Revision | Delivered                                             | Verification                      | Review focus                |
-| ---------- | ------- | -------- | ----------------------------------------------------- | --------------------------------- | --------------------------- |
-| 2026-08-25 | 0       | Pending  | Architecture, implementation plan, tracker, decisions | Documentation format/lint pending | Boundary, scope, sequencing |
+| Date       | Segment | Revision                      | Delivered                                                 | Verification                                     | Review focus                |
+| ---------- | ------- | ----------------------------- | --------------------------------------------------------- | ------------------------------------------------ | --------------------------- |
+| 2026-08-25 | 0       | `c4410d4` + dependency commit | Architecture, plan, decisions, and pinned Canvas packages | Canvas artifact/release/boundary gates: 4 passed | Boundary, scope, sequencing |
