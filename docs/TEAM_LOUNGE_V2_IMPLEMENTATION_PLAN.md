@@ -91,7 +91,7 @@ Beach Boardwalk, kick one ball, and return to V1 without a reload race.
 - [x] Compose the Canvas scene, input, renderer, and packaged simulation worker
       from public package exports.
 - [x] Add a minimal versioned Beach Boardwalk scene and system-owned ball.
-- [x] Add relative thumbstick movement, a temporary avatar token/name overlay,
+- [x] Add direct avatar press/drag movement, a temporary avatar token/name overlay,
       transient emotes, loading/error
       states, and the four-control shell.
 - [x] Keep unavailable controls explicit and noninteractive.

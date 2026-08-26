@@ -7,7 +7,7 @@ let stop: (() => void) | undefined;
 afterEach(() => stop?.());
 
 describe("local Beach Boardwalk simulation", () => {
-  it("presents one avatar and the room-owned beach ball, then moves locally", async () => {
+  it("presents one avatar and lets a direct-drag target move it locally", async () => {
     const getContext = vi
       .spyOn(HTMLCanvasElement.prototype, "getContext")
       .mockReturnValue(null);
@@ -29,12 +29,18 @@ describe("local Beach Boardwalk simulation", () => {
       expect.arrayContaining(["avatar:mason", "boardwalk-beach-ball"]),
     );
 
-    const startingX = entities.find(({ id }) => id === "avatar:mason")!.x;
-    simulation.move({ direction: { x: 1, y: 0 }, intensity: 1, held: true });
+    const startingAvatar = entities.find(({ id }) => id === "avatar:mason")!;
+    simulation.move({
+      direction: { x: 0, y: 0 },
+      intensity: 0,
+      held: true,
+      target: { x: startingAvatar.x + 15, y: startingAvatar.y },
+    });
     await until(
       () =>
-        (entities.find(({ id }) => id === "avatar:mason")?.x ?? startingX) >
-        startingX + 0.5,
+        (entities.find(({ id }) => id === "avatar:mason")?.x ??
+          startingAvatar.x) >
+        startingAvatar.x + 0.5,
     );
     simulation.move({
       direction: { x: 0, y: 0 },

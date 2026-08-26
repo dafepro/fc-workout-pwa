@@ -17,18 +17,21 @@ placement, and weekly rollover are later segments.
 
 1. Confirm the card says **This week · Beach Boardwalk** and
    **V2 · Local Canvas preview**.
-2. Press and drag anywhere inside the room for one to two seconds. The blue
-   player token and its **You** label should glide in the drag direction.
-3. Release. The token should stop without continuing across the room.
-4. Walk into the yellow beach ball. It should move from the collision, bounce
+2. Press directly on the blue player token, then drag for one to two seconds.
+   The token and its **You** label should follow the pointer.
+3. Drag empty boardwalk space. The player should remain still; empty space is
+   reserved for room and item interactions.
+4. Release after a deliberate drag. The token may coast briefly but must stop
+   without crossing the room. Reduced motion removes that coast.
+5. Walk into the yellow beach ball. It should move from the collision, bounce
    off room boundaries, and remain in the room.
-5. Open **Emotes**, choose each reaction, and confirm it appears briefly above
+6. Open **Emotes**, choose each reaction, and confirm it appears briefly above
    the player while the tray closes.
-6. Open **Stamps**. The message should report the current earned-stamp count
+7. Open **Stamps**. The message should report the current earned-stamp count
    without allowing placement yet.
-7. Confirm **Items** is visibly disabled and **Map** is visibly disabled because
+8. Confirm **Items** is visibly disabled and **Map** is visibly disabled because
    the first room fits on one screen. Neither should look tappable.
-8. Switch back to V1 in Me. Confirm the current Team Canvas returns and the V2
+9. Switch back to V1 in Me. Confirm the current Team Canvas returns and the V2
    room is gone. Switch to V2 again and confirm only one room is present.
 
 ## Mobile and lifecycle checks

@@ -17,7 +17,7 @@ rankings, chat, currencies, quests, or reward catalog belongs in the room.
 | Zoomigo owns                                                         | `dafepro/canvas` owns                                    |
 | -------------------------------------------------------------------- | -------------------------------------------------------- |
 | Session authentication and team membership                           | Rendering and camera fitting                             |
-| Whether the player may enter this team room                          | Pointer coordination and relative thumbstick input       |
+| Whether the player may enter this team room                          | Pointer coordination and direct avatar dragging          |
 | Safe display identity and avatar configuration                       | Deterministic simulation and cosmetic physics            |
 | Earned inventory, placement authorization, and consumption           | Room transport, host lease, replication, and checkpoints |
 | Weekly theme selection and reset policy                              | Versioned canvas and item definitions                    |
@@ -101,8 +101,10 @@ not include scoring in the first release.
 
 ## Controls and accessibility
 
-- Drag in the movement zone to move; release stops movement. A small bounded
-  flick is allowed unless reduced motion is enabled.
+- Pressing on the player's avatar claims movement; dragging empty room space
+  does not move the player and remains available for room interactions.
+- The avatar follows the pointer through the Canvas collision controller.
+  Releasing permits a small bounded coast only when reduced motion is off.
 - Four bottom actions are reserved: Emotes, Stamps, Items, and Map. Map stays
   visibly unavailable until a room requires it; it does not render a dead
   button.

@@ -4,7 +4,7 @@ export const teamLoungeV2Copy = {
   regionLabel: "Beach Boardwalk Team Lounge",
   preview: "V2 · Local Canvas preview",
   loading: "Setting up the boardwalk…",
-  ready: "Drag anywhere in the room to move.",
+  ready: "Press your player, then drag to move.",
   unavailable: "The boardwalk could not open.",
   retry: "Try again",
   emotes: "Emotes",

@@ -382,6 +382,9 @@ describe("consolidated default player experience", () => {
     expect(
       screen.queryByLabelText("Hill Striders weekly canvas"),
     ).not.toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Interactive lounge canvas"),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Emotes" }));
     fireEvent.click(screen.getByRole("button", { name: "Send 👋 emote" }));

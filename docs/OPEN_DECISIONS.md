@@ -738,6 +738,10 @@ Momentum Alpha needs independent PWA install/offline behavior.
   presence, persistent stamps, and one system-owned kickable beach ball. One
   attraction is the ceiling; chat, rankings, workout data, quest lists,
   currencies, and reward catalogs remain outside the room.
+- Refined 2026-08-25: V2 movement begins only when a pointer presses the player
+  avatar, then follows the pointer through Canvas collision handling. Dragging
+  empty room space does not move the player. Release may add a short bounded
+  coast when reduced motion is off; V2 does not show a relative thumbstick.
 - Decided: a weekly product room uses
   `team:<team-id>:lounge:<week-key>` and resolves server-side to one exact
   Canvas template ID/version. A new week creates a new room rather than

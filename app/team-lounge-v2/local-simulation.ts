@@ -89,6 +89,7 @@ export function startLocalBeachBoardwalkSimulation({
         direction: intent.direction,
         intensity: intent.intensity,
         held: intent.held,
+        target: intent.target,
         inputSequence: ++inputSequence,
       });
     },

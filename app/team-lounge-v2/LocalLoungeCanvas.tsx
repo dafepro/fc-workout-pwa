@@ -46,6 +46,7 @@ export function LocalLoungeCanvas({
         PixiScene,
         PointerInteractionCoordinator,
         SimulationDriver,
+        cssPointToRenderer,
         pixiAssetLoader,
         preloadAssetManifest,
       } = await import("@canvas-physics/client");
@@ -68,10 +69,13 @@ export function LocalLoungeCanvas({
         return;
       }
 
+      let entities: RenderEntity[] = [];
       const movement = new AvatarPointerInteraction({
-        mode: "thumbstick",
-        deadZonePx: 5,
-        fullRangePx: 62,
+        mode: "avatarDrag",
+        deadZonePx: 2,
+        grabRadiusPx: 36,
+        avatarPosition: () =>
+          avatarCssPosition(scene, entities, playerID, mount),
         flick: reducedMotion
           ? false
           : {
@@ -85,7 +89,6 @@ export function LocalLoungeCanvas({
       });
       const keyboard = new KeyboardController(window);
       const driver = SimulationDriver.spawn();
-      let entities: RenderEntity[] = [];
       let lastFrameAt = performance.now();
       let lastIntent = "";
       let frame = 0;
@@ -113,8 +116,12 @@ export function LocalLoungeCanvas({
         const deltaMs = Math.min(50, Math.max(0, now - lastFrameAt));
         lastFrameAt = now;
         scene.update(entities, deltaMs);
-        scene.setThumbstick(movement.gesture);
-        const intent = activeIntent(movement.intent, keyboard.intent);
+        const intent = worldIntent(
+          activeIntent(movement.intent, keyboard.intent),
+          scene,
+          mount,
+          cssPointToRenderer,
+        );
         const serialized = intentKey(intent);
         if (serialized !== lastIntent) {
           lastIntent = serialized;
@@ -174,7 +181,69 @@ function intentKey(intent: AvatarPointerIntent) {
     intent.direction.y.toFixed(3),
     intent.intensity.toFixed(3),
     intent.held ? "1" : "0",
+    intent.target?.x.toFixed(3) ?? "",
+    intent.target?.y.toFixed(3) ?? "",
   ].join(":");
+}
+
+function worldIntent(
+  intent: AvatarPointerIntent,
+  scene: {
+    app: {
+      canvas: HTMLCanvasElement;
+      renderer: { width: number; height: number };
+    };
+    camera: {
+      toWorld(x: number, y: number): { x: number; y: number };
+    };
+  },
+  mount: HTMLDivElement,
+  toRenderer: (
+    point: Readonly<{ x: number; y: number }>,
+    rendererSize: Readonly<{ width: number; height: number }>,
+    cssSize: Readonly<{ width: number; height: number }>,
+  ) => Readonly<{ x: number; y: number }>,
+): AvatarPointerIntent {
+  if (!intent.target) return intent;
+  const rect = scene.app.canvas.getBoundingClientRect();
+  const rendererTarget = toRenderer(intent.target, scene.app.renderer, {
+    width: rect.width || mount.clientWidth,
+    height: rect.height || mount.clientHeight,
+  });
+  return {
+    ...intent,
+    target: scene.camera.toWorld(rendererTarget.x, rendererTarget.y),
+  };
+}
+
+function avatarCssPosition(
+  scene: {
+    app: {
+      canvas: HTMLCanvasElement;
+      renderer: { width: number; height: number };
+    };
+    camera: {
+      toScreenX(value: number): number;
+      toScreenY(value: number): number;
+    };
+  },
+  entities: RenderEntity[],
+  playerID: string,
+  mount: HTMLDivElement,
+) {
+  const avatar = entities.find(({ id }) => id === `avatar:${playerID}`);
+  if (!avatar) return undefined;
+  const rect = scene.app.canvas.getBoundingClientRect();
+  const width = rect.width || mount.clientWidth;
+  const height = rect.height || mount.clientHeight;
+  return {
+    x:
+      scene.camera.toScreenX(avatar.x) *
+      (scene.app.renderer.width > 0 ? width / scene.app.renderer.width : 1),
+    y:
+      scene.camera.toScreenY(avatar.y) *
+      (scene.app.renderer.height > 0 ? height / scene.app.renderer.height : 1),
+  };
 }
 
 function positionName(
