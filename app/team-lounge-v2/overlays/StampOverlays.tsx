@@ -21,11 +21,13 @@ export function StampOverlays({
   stamps,
   spots,
   selectedStamp,
+  placementPending = false,
   onPlace,
 }: {
   stamps: readonly LoungeStampOverlay[];
   spots: readonly LoungeStampSpotOverlay[];
   selectedStamp: StampAsset | null;
+  placementPending?: boolean;
   onPlace(zone: LoungeStampZone): void;
 }) {
   return (
@@ -51,6 +53,7 @@ export function StampOverlays({
                 transform: `translate3d(${screen.x}px, ${screen.y}px, 0) translate(-50%, -50%)`,
               }}
               type="button"
+              disabled={placementPending}
               aria-label={`Place ${stampAssetLabel(selectedStamp)} at ${zone.label}`}
               onClick={() => onPlace(zone)}
             >

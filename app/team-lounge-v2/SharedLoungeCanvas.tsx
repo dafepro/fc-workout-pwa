@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   CanvasConsumerError,
   CanvasRuntime,
@@ -62,6 +62,7 @@ export function SharedLoungeCanvas({
   selectedStamp = null,
   onPlacementChange,
   onPlacementError,
+  onPlacementPendingChange,
 }: {
   teamID: string;
   playerID: string;
@@ -73,17 +74,21 @@ export function SharedLoungeCanvas({
   selectedStamp?: StampAsset | null;
   onPlacementChange?(assetID: string | null): void;
   onPlacementError?(reason: string): void;
+  onPlacementPendingChange?(pending: boolean): void;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const runtimeRef = useRef<CanvasRuntime | null>(null);
   const rosterRef = useRef(roster);
   const onPlacementChangeRef = useRef(onPlacementChange);
   const onPlacementErrorRef = useRef(onPlacementError);
+  const onPlacementPendingChangeRef = useRef(onPlacementPendingChange);
   const placedAssetIDRef = useRef<string | null>(null);
+  const placementPendingRef = useRef(false);
   const [overlays, setOverlays] = useState<LoungeParticipantOverlay[]>([]);
   const [stampOverlays, setStampOverlays] = useState<LoungeStampOverlay[]>([]);
   const [stampSpots, setStampSpots] = useState<LoungeStampSpotOverlay[]>([]);
   const [ownStampID, setOwnStampID] = useState<string | null>(null);
+  const [placementPending, setPlacementPending] = useState(false);
   const [visitTraces, setVisitTraces] = useState<LoungeVisitTraceOverlay[]>([]);
   const [participantEmotes, setParticipantEmotes] = useState<
     Record<string, LoungeEmote>
@@ -102,6 +107,16 @@ export function SharedLoungeCanvas({
   useEffect(() => {
     onPlacementErrorRef.current = onPlacementError;
   }, [onPlacementError]);
+
+  useEffect(() => {
+    onPlacementPendingChangeRef.current = onPlacementPendingChange;
+  }, [onPlacementPendingChange]);
+
+  const updatePlacementPending = useCallback((pending: boolean) => {
+    placementPendingRef.current = pending;
+    setPlacementPending(pending);
+    onPlacementPendingChangeRef.current?.(pending);
+  }, []);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -154,6 +169,9 @@ export function SharedLoungeCanvas({
         placedAssetIDRef.current = ownAssetID;
         setOwnStampID(ownAssetID);
         onPlacementChangeRef.current?.(ownAssetID);
+      }
+      if (ownAssetID && placementPendingRef.current) {
+        updatePlacementPending(false);
       }
       const activePlayerIDs = participants
         .filter(({ status }) => status === "active")
@@ -209,6 +227,7 @@ export function SharedLoungeCanvas({
         onError: (error: CanvasConsumerError) => {
           if (disposed) return;
           if (error.code === "durable_command_rejected") {
+            updatePlacementPending(false);
             onPlacementErrorRef.current?.(error.message);
             return;
           }
@@ -218,8 +237,14 @@ export function SharedLoungeCanvas({
       runtimeRef.current = runtime;
       unsubscribeLifecycle = runtime.subscribeLifecycle(({ state }) => {
         if (disposed) return;
-        if (state === "reconnecting") onStateChange("reconnecting");
-        if (state === "failed") onStateChange("error");
+        if (state === "reconnecting") {
+          updatePlacementPending(false);
+          onStateChange("reconnecting");
+        }
+        if (state === "failed") {
+          updatePlacementPending(false);
+          onStateChange("error");
+        }
       });
       unsubscribePresence = runtime.subscribePresence(
         ({ participants: nextParticipants }) => {
@@ -286,6 +311,8 @@ export function SharedLoungeCanvas({
       unsubscribeProjection();
       unsubscribeSignals();
       onSignalPortChange(null);
+      placementPendingRef.current = false;
+      onPlacementPendingChangeRef.current?.(false);
       for (const timer of emoteTimers.values()) {
         window.clearTimeout(timer);
       }
@@ -306,6 +333,7 @@ export function SharedLoungeCanvas({
     onStateChange,
     playerID,
     teamID,
+    updatePlacementPending,
   ]);
 
   return (
@@ -322,12 +350,19 @@ export function SharedLoungeCanvas({
         stamps={stampOverlays}
         spots={ownStampID ? [] : stampSpots}
         selectedStamp={ownStampID ? null : selectedStamp}
+        placementPending={placementPending}
         onPlace={(zone: LoungeStampZone) => {
-          if (!selectedStamp || placedAssetIDRef.current) return;
-          runtimeRef.current?.spawnItem(
-            stampDefinitionID(selectedStamp.id),
-            zone.position,
-          );
+          if (
+            !selectedStamp ||
+            placedAssetIDRef.current ||
+            placementPendingRef.current
+          ) {
+            return;
+          }
+          const runtime = runtimeRef.current;
+          if (!runtime) return;
+          updatePlacementPending(true);
+          runtime.spawnItem(stampDefinitionID(selectedStamp.id), zone.position);
         }}
       />
       <p className="sr-only" role="status" aria-live="polite">

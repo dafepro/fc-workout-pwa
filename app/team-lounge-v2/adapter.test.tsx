@@ -12,16 +12,28 @@ vi.mock("./SharedLoungeCanvas", async () => {
     SharedLoungeCanvas({
       onSignalPortChange,
       selectedStamp,
+      onPlacementPendingChange,
     }: {
       onSignalPortChange(sender: ((kind: string) => void) | null): void;
       selectedStamp?: { label?: string; alt?: string } | null;
+      onPlacementPendingChange?(pending: boolean): void;
     }) {
       useEffect(() => {
         onSignalPortChange(relay.send);
         return () => onSignalPortChange(null);
       }, [onSignalPortChange]);
       return (
-        <div>Shared lounge {selectedStamp?.label ?? selectedStamp?.alt}</div>
+        <div>
+          Shared lounge {selectedStamp?.label ?? selectedStamp?.alt}
+          {selectedStamp ? (
+            <button
+              type="button"
+              onClick={() => onPlacementPendingChange?.(true)}
+            >
+              Simulate spot
+            </button>
+          ) : null}
+        </div>
       );
     },
   };
@@ -98,6 +110,11 @@ describe("TeamLoungeV2 emote controls", () => {
     expect(
       screen.getByText("Choose a glowing spot in the lounge."),
     ).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Simulate spot" }));
+    expect(screen.getByText("Adding your stamp…")).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Choose Target stamp" }),
+    ).toBeDisabled();
     expect(viewNew).toHaveBeenCalledOnce();
   });
 });

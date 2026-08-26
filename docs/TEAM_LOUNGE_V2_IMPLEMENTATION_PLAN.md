@@ -199,7 +199,7 @@ room without letting the Canvas runtime mint inventory.
       separately defined.
 - [ ] Add owner-authorized move/rotate/scale after selection.
 - [ ] Define and implement removal/refund semantics before enabling delete.
-- [ ] Cover concurrent reconnect placement and fault-injected checkpoint retry.
+- [x] Cover concurrent reconnect placement and fault-injected checkpoint retry.
 
 ### Segment 4A vertical slice — one durable weekly stamp
 
@@ -214,6 +214,23 @@ lose inventory; the player can retry because nothing was consumed.
 This cap is intentionally reversible product policy, not a database invariant.
 Move, rotate, scale, delete, props, duplicate quantities, and free-form placement
 remain disabled until their UX and failure semantics are designed together.
+
+### Segment 4B vertical slice — reconnect-safe placement
+
+The second placement slice keeps the same one-stamp rule and hardens its delivery
+semantics. A placement is visibly pending after the authored spot is tapped, so
+repeat taps cannot enqueue extra commands. Reconnecting clears a stranded local
+pending state and the authoritative projection decides whether the stamp was
+accepted; if it was not, the player can retry. Two connections for the same
+player still serialize through one room, so at most one placement is accepted.
+
+Canvas retries a transient snapshot-store failure inside its existing bounded
+persistence worker. The retry does not replay the durable command or create a
+second item; it only stores the newest canonical snapshot. Tests must prove an
+eventual save after a fault, one accepted result across reconnecting clients,
+and a clear player-facing retry path. Command-result caching and a permanent
+idempotency protocol are deliberately out of scope because they would create a
+broader cross-product contract than this slice needs.
 
 ## Segment 5 — weekly cadence and theme framework
 

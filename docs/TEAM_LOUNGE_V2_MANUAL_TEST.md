@@ -36,32 +36,38 @@ authenticated shared room, and one persistent weekly stamp per player.
    only included or earned stamps from this player's collection.
 9. Choose a stamp. Six glowing placement spots should appear in the room and
    the tray should say **Choose a glowing spot in the lounge.** Tap one spot.
-   The stamp should appear there, the glow should disappear, and the tray should
-   confirm the stamp is here for the week. No unlock count should decrease.
+   The tray should briefly say **Adding your stamp…**, the stamp choices and
+   placement spots should stop accepting taps, then the stamp should appear,
+   the glow should disappear, and the tray should confirm the stamp is here for
+   the week. No unlock count should decrease.
 10. Leave and re-enter Team. Confirm the stamp returns in the same place. Open
     the same team as a second player and confirm they see it, then place their
     own stamp at another glowing spot.
 11. Reopen **Stamps** as the first player. A second placement must not be
     offered. If two tabs race, at most one placement should be accepted and the
     other should show calm rejection copy without closing the lounge.
-12. Confirm **Items** is visibly disabled and **Map** is visibly disabled because
+12. As a separate reconnect check, throttle or briefly disconnect the network
+    immediately after tapping a placement spot. When the lounge reconnects, it
+    must either show the accepted stamp or make the spot available to retry. It
+    must not remain stuck on **Adding your stamp…** or create two stamps.
+13. Confirm **Items** is visibly disabled and **Map** is visibly disabled because
     the first room fits on one screen. Neither should look tappable.
-13. Sign in as a second player on the same team in another browser profile.
+14. Sign in as a second player on the same team in another browser profile.
     Confirm **2 here** appears and both windows render each player's saved avatar
     plus safe first-name/last-initial label.
-14. Close the second player's room, then leave and re-enter Team as the first
+15. Close the second player's room, then leave and re-enter Team as the first
     player. Confirm the absent teammate appears once as a subdued **visited**
     trace at a fixed room anchor. It must not show a time, workout, duration, or
     message.
-15. Reopen the room as the second player. Confirm their prior-visitor trace
+16. Reopen the room as the second player. Confirm their prior-visitor trace
     disappears while their live avatar is present. At most three absent-player
     traces may be visible.
-16. Switch back to V1 in Me. Confirm the current Team Canvas returns and the V2
+17. Switch back to V1 in Me. Confirm the current Team Canvas returns and the V2
     room is gone. Switch to V2 again and confirm only one room is present.
-17. Expand **Lounge diagnostics**. Confirm the role says **Host** in the first
+18. Expand **Lounge diagnostics**. Confirm the role says **Host** in the first
     window and **Peer** in the second. During a drag, correction should normally
     remain below `3.00`; record a screen capture if it repeatedly jumps above it.
-18. Enable **Show collision map**. The red shapes should sit over the visible
+19. Enable **Show collision map**. The red shapes should sit over the visible
     hut, umbrella table, bench, snack cart/planter, and lower pool edge. The open
     center boardwalk should have no red blocker.
 

@@ -55,6 +55,7 @@ export function TeamLoungeV2({
   const [selectedStamp, setSelectedStamp] = useState<StampAsset | null>(null);
   const [placedStampID, setPlacedStampID] = useState<string | null>(null);
   const [placementError, setPlacementError] = useState<string | null>(null);
+  const [placementPending, setPlacementPending] = useState(false);
   const signalPortRef = useRef<((kind: string) => void) | null>(null);
   const cooldownTimerRef = useRef<number | null>(null);
   const localEmoteTimerRef = useRef<number | null>(null);
@@ -86,13 +87,15 @@ export function TeamLoungeV2({
     : null;
   const placementStatus: StampPlacementStatus = placedStamp
     ? "placed"
-    : !sharedRoom
-      ? "local"
-      : stampUnlocks?.status === "loading"
-        ? "loading"
-        : stampUnlocks?.status === "error"
-          ? "error"
-          : "ready";
+    : placementPending
+      ? "placing"
+      : !sharedRoom
+        ? "local"
+        : stampUnlocks?.status === "loading"
+          ? "loading"
+          : stampUnlocks?.status === "error"
+            ? "error"
+            : "ready";
   const roster = useMemo<LoungeRosterMember[]>(() => {
     const members = (host.room.projection?.members ?? []).map((member) => ({
       playerID: member.player.id,
@@ -180,6 +183,7 @@ export function TeamLoungeV2({
                 copy.placementErrors[reason] ?? copy.placementError,
               );
             }}
+            onPlacementPendingChange={setPlacementPending}
           />
         ) : (
           <LocalLoungeCanvas

@@ -190,14 +190,93 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 	if !placed.Accepted {
 		t.Fatalf("included stamp placement rejected: %s", placed.RejectReason)
 	}
+	if err := socket.Close(websocket.StatusNormalClosure, "reconnect test"); err != nil {
+		t.Fatal(err)
+	}
+
+	reconnectTicketRequest := httptest.NewRequest(http.MethodPost, "/v1/teams/team-one/lounge-v2/socket-ticket", nil)
+	reconnectTicketRequest.Header.Set("Authorization", "Bearer test-session")
+	reconnectTicketRecorder := httptest.NewRecorder()
+	handler.ServeHTTP(reconnectTicketRecorder, reconnectTicketRequest)
+	if reconnectTicketRecorder.Code != http.StatusCreated {
+		t.Fatalf("reconnect ticket status = %d: %s", reconnectTicketRecorder.Code, reconnectTicketRecorder.Body.String())
+	}
+	var reconnectTicket struct {
+		Ticket string `json:"ticket"`
+		RoomID string `json:"roomId"`
+	}
+	if err := json.NewDecoder(reconnectTicketRecorder.Body).Decode(&reconnectTicket); err != nil {
+		t.Fatal(err)
+	}
+	reconnected, _, err := websocket.Dial(ctx, socketURL, &websocket.DialOptions{
+		Subprotocols: []string{"canvas-realtime", "ticket." + reconnectTicket.Ticket},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = reconnected.CloseNow() })
+	rejoin := &pb.RoomEnvelope{
+		RoomId: reconnectTicket.RoomID,
+		Payload: &pb.RoomEnvelope_Join{Join: &pb.Join{
+			RoomId: reconnectTicket.RoomID, ProtocolVersion: 8,
+			Definitions: []*pb.DefinitionVersion{
+				{DefinitionId: "beach-ball", Version: 1},
+				{DefinitionId: "avatar", Version: 1},
+			},
+		}},
+	}
+	if err := reconnected.Write(ctx, websocket.MessageBinary, mustMarshalLoungeEnvelope(t, rejoin)); err != nil {
+		t.Fatal(err)
+	}
+	if joined := awaitLoungeEnvelope(t, ctx, reconnected, func(candidate *pb.RoomEnvelope) bool {
+		return candidate.GetJoinAccepted() != nil
+	}); joined.GetJoinAccepted().GetUserId() != "player-one" {
+		t.Fatalf("reconnected join = %#v", joined.GetJoinAccepted())
+	}
 
 	duplicate := proto.Clone(placement).(*pb.DurableCommand)
 	duplicate.CommandId = "place-second-weekly-stamp"
 	duplicate.Position = &pb.Vec2{X: 37, Y: 41}
-	sendLoungeDurableCommand(t, ctx, socket, response.RoomID, duplicate)
-	second := awaitLoungeDurableResult(t, ctx, socket, duplicate.CommandId)
+	sendLoungeDurableCommand(t, ctx, reconnected, response.RoomID, duplicate)
+	second := awaitLoungeDurableResult(t, ctx, reconnected, duplicate.CommandId)
 	if second.Accepted || second.RejectReason != teamlounge.StampAlreadyPlacedReason {
 		t.Fatalf("second placement = accepted %v reason %q", second.Accepted, second.RejectReason)
+	}
+}
+
+func mustMarshalLoungeEnvelope(t *testing.T, envelope *pb.RoomEnvelope) []byte {
+	t.Helper()
+	raw, err := proto.Marshal(envelope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return raw
+}
+
+func awaitLoungeEnvelope(
+	t *testing.T,
+	ctx context.Context,
+	socket *websocket.Conn,
+	accept func(*pb.RoomEnvelope) bool,
+) *pb.RoomEnvelope {
+	t.Helper()
+	deadline, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	for {
+		messageType, raw, err := socket.Read(deadline)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if messageType != websocket.MessageBinary {
+			continue
+		}
+		envelope := &pb.RoomEnvelope{}
+		if err := proto.Unmarshal(raw, envelope); err != nil {
+			t.Fatal(err)
+		}
+		if accept(envelope) {
+			return envelope
+		}
 	}
 }
 

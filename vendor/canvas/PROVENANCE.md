@@ -7,10 +7,10 @@ not need private GitHub or npm registry credentials.
 | Field                | Value                                          |
 | -------------------- | ---------------------------------------------- |
 | Source repository    | `https://github.com/dafepro/canvas.git`        |
-| Source commit        | `a70f50ed04e95eecf6a8c42b0b07351224dc30d5`     |
-| Source commit date   | `2026-08-26T06:05:29-05:00`                    |
+| Source commit        | `b784286cefc2d91663a8f911386ba54101c75f64`     |
+| Source commit date   | `2026-08-26T06:35:28-05:00`                    |
 | Package version      | `0.1.0`                                        |
-| Go rooms SDK         | `v0.0.0-20260826110529-a70f50ed04e9`           |
+| Go rooms SDK         | `v0.0.0-20260826113528-b784286cefc2`           |
 | Protocol version     | Exact version in the coordinated source commit |
 | Pack tool            | pnpm `11.20.0`                                 |
 | Runtime used to pack | Node.js `24.19.0`                              |

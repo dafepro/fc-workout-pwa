@@ -7,6 +7,7 @@ import type { StampAsset } from "../../team-canvas/model";
 export type StampPlacementStatus =
   | "loading"
   | "ready"
+  | "placing"
   | "local"
   | "placed"
   | "error";
@@ -56,12 +57,15 @@ export function StampPlacementTray({
     <section
       className="team-lounge-v2__stamp-tray"
       aria-label="Choose a stamp to place"
+      aria-busy={status === "placing"}
     >
       <div>
         <h2>Leave one stamp this week</h2>
         <p>
           {selected
-            ? "Choose a glowing spot in the lounge."
+            ? status === "placing"
+              ? "Adding your stamp…"
+              : "Choose a glowing spot in the lounge."
             : "Pick something from your collection."}
         </p>
       </div>
@@ -84,6 +88,7 @@ export function StampPlacementTray({
                 type="button"
                 aria-label={`Choose ${label} stamp`}
                 aria-pressed={selected?.id === asset.id}
+                disabled={status === "placing"}
                 onClick={() => onSelect(asset)}
               >
                 <StampAssetView asset={asset} />

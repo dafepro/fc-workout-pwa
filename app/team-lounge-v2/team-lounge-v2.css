@@ -297,6 +297,12 @@
   background: var(--lounge-lime);
 }
 
+.team-lounge-v2__stamp-spot:disabled {
+  opacity: 0.55;
+  cursor: wait;
+  animation: none;
+}
+
 @keyframes lounge-placement-pulse {
   to {
     scale: 1.08;
@@ -638,6 +644,11 @@
   border-color: var(--lounge-lime);
   background: rgba(201, 243, 29, 0.18);
   box-shadow: 0 0 0 0.12rem rgba(201, 243, 29, 0.12);
+}
+
+.team-lounge-v2__stamp-choices button:disabled {
+  opacity: 0.58;
+  cursor: wait;
 }
 
 .team-lounge-v2__stamp-choices .tc-stamp-asset {

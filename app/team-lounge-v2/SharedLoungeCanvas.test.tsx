@@ -25,6 +25,9 @@ const runtime = vi.hoisted(() => ({
   onError: undefined as
     | ((error: { code: string; message: string }) => void)
     | undefined,
+  lifecycleObserver: undefined as
+    | ((event: { state: string }) => void)
+    | undefined,
 }));
 
 vi.mock("@canvas-physics/client", () => ({
@@ -36,8 +39,11 @@ vi.mock("@canvas-physics/client", () => ({
       runtime.onError = options.onError;
     }
 
-    subscribeLifecycle() {
-      return () => undefined;
+    subscribeLifecycle(observer: (event: { state: string }) => void) {
+      runtime.lifecycleObserver = observer;
+      return () => {
+        runtime.lifecycleObserver = undefined;
+      };
     }
 
     subscribePresence(observer: (snapshot: unknown) => void) {
@@ -128,11 +134,13 @@ describe("SharedLoungeCanvas", () => {
     runtime.overlayObserver = undefined;
     runtime.spawned = [];
     runtime.onError = undefined;
+    runtime.lifecycleObserver = undefined;
   });
 
   it("places an owned stamp through an authored spot and recognizes the canonical item", async () => {
     const onPlacementChange = vi.fn();
     const onPlacementError = vi.fn();
+    const onPlacementPendingChange = vi.fn();
     render(
       <SharedLoungeCanvas
         teamID="team-one"
@@ -152,6 +160,7 @@ describe("SharedLoungeCanvas", () => {
         }}
         onPlacementChange={onPlacementChange}
         onPlacementError={onPlacementError}
+        onPlacementPendingChange={onPlacementPendingChange}
         onStateChange={vi.fn()}
         onPresenceChange={vi.fn()}
         onSignalPortChange={vi.fn()}
@@ -162,10 +171,14 @@ describe("SharedLoungeCanvas", () => {
       name: "Place Target at Sand center",
     });
     fireEvent.click(spot);
-    expect(runtime.spawned).toContainEqual({
-      definitionId: "zoomigo-stamp-target",
-      at: { x: 45, y: 60 },
-    });
+    fireEvent.click(spot);
+    expect(runtime.spawned).toEqual([
+      {
+        definitionId: "zoomigo-stamp-target",
+        at: { x: 45, y: 60 },
+      },
+    ]);
+    expect(onPlacementPendingChange).toHaveBeenLastCalledWith(true);
 
     act(() =>
       runtime.overlayObserver?.({
@@ -195,6 +208,40 @@ describe("SharedLoungeCanvas", () => {
       }),
     );
     expect(onPlacementError).toHaveBeenCalledWith("stamp_unavailable");
+    expect(onPlacementPendingChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it("clears a stranded placement when reconnecting so the player can retry", async () => {
+    const onPlacementPendingChange = vi.fn();
+    render(
+      <SharedLoungeCanvas
+        teamID="team-one"
+        playerID="player-one"
+        roster={[]}
+        selectedStamp={{
+          id: "star",
+          kind: "emoji",
+          glyph: "⭐",
+          label: "Star",
+        }}
+        onPlacementPendingChange={onPlacementPendingChange}
+        onStateChange={vi.fn()}
+        onPresenceChange={vi.fn()}
+        onSignalPortChange={vi.fn()}
+      />,
+    );
+
+    const spot = await screen.findByRole("button", {
+      name: "Place Star at Sand center",
+    });
+    fireEvent.click(spot);
+    expect(spot).toBeDisabled();
+
+    act(() => runtime.lifecycleObserver?.({ state: "reconnecting" }));
+    expect(onPlacementPendingChange).toHaveBeenLastCalledWith(false);
+    expect(spot).toBeEnabled();
+    fireEvent.click(spot);
+    expect(runtime.spawned).toHaveLength(2);
   });
 
   it("keeps the room runtime alive when safe roster presentation refreshes", async () => {
