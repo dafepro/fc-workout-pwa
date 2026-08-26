@@ -129,6 +129,9 @@ not include scoring in the first release.
   merged client-side with the already-authorized Zoomigo Team roster. Safe
   names and avatar configurations never enter Canvas snapshots. Connection IDs
   are never product identity.
+- Roster and avatar presentation refreshes update the DOM overlay through a
+  latest-value boundary. They do not recreate the Canvas room runtime; only a
+  team or player identity change starts a new session.
 - A reconnect reuses one stable avatar entity.
 - Short emotes are predefined, transient effects and disappear after a bounded
   duration. They are not chat and are not replayed.

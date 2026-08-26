@@ -38,7 +38,12 @@ export function SharedLoungeCanvas({
   onDiagnostics?(diagnostics: RuntimeDiagnostics): void;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
+  const rosterRef = useRef(roster);
   const [overlays, setOverlays] = useState<LoungeParticipantOverlay[]>([]);
+
+  useEffect(() => {
+    rosterRef.current = roster;
+  }, [roster]);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -55,7 +60,7 @@ export function SharedLoungeCanvas({
       setOverlays(
         mergeLoungePresence({
           currentPlayerID: playerID,
-          roster,
+          roster: rosterRef.current,
           participants,
           projections,
         }),
@@ -129,14 +134,7 @@ export function SharedLoungeCanvas({
           .catch(() => activeRuntime.stop());
       }
     };
-  }, [
-    onDiagnostics,
-    onPresenceChange,
-    onStateChange,
-    playerID,
-    roster,
-    teamID,
-  ]);
+  }, [onDiagnostics, onPresenceChange, onStateChange, playerID, teamID]);
 
   return (
     <>

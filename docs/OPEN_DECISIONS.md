@@ -1128,6 +1128,9 @@ Momentum Alpha needs independent PWA install/offline behavior.
 - Implemented: active Canvas presence is merged with the authorized Team roster
   for safe names and saved avatar art. Those presentation fields remain outside
   Canvas packets and snapshots.
+- Refined: safe roster/avatar presentation changes update overlays without
+  restarting the Canvas runtime. Team or player identity remains the lifecycle
+  boundary for replacing a shared room session.
 - Decided: V2 uses the existing canonical team-week key, the team's local Monday
   date, in `team:<team-id>:lounge:<YYYY-MM-DD>`. It does not create a second ISO
   week representation.
