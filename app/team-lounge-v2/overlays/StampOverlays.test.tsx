@@ -190,4 +190,29 @@ describe("StampOverlays", () => {
     ).toBeVisible();
     expect(onScale).toHaveBeenCalledWith(stamp.entityID, 1.1, true);
   });
+
+  it("leaves only the moving stamp visible while its edit chrome is suppressed", () => {
+    render(
+      <StampOverlays
+        stamps={[stamp]}
+        selectedStamp={null}
+        currentPlayerID="player-one"
+        editableEntityIDs={[stamp.entityID]}
+        selectedEntityID={stamp.entityID}
+        draggingEntityID={stamp.entityID}
+        onPlace={vi.fn()}
+      />,
+    );
+
+    const movingStamp = screen.getByLabelText(/Target stamp, yours/);
+    expect(movingStamp).toBeVisible();
+    expect(
+      screen.queryByRole("group", { name: "Edit selected stamp" }),
+    ).toBeNull();
+    expect(screen.queryByText("Edit")).toBeNull();
+    expect(movingStamp).not.toHaveClass(
+      "team-lounge-v2__placed-stamp--editable",
+      "team-lounge-v2__placed-stamp--selected",
+    );
+  });
 });

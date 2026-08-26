@@ -160,6 +160,11 @@ describe("TeamLoungeV2 emote controls", () => {
   it("replaces the action tray with trash during a stamp drag without opening stamps", () => {
     render(<TeamLoungeV2 host={host} />);
 
+    fireEvent.click(screen.getByRole("button", { name: "Stamps" }));
+    expect(
+      screen.getByRole("dialog", { name: "Choose a stamp to place" }),
+    ).toBeVisible();
+
     fireEvent.click(
       screen.getByRole("button", { name: "Simulate stamp drag" }),
     );
@@ -167,6 +172,9 @@ describe("TeamLoungeV2 emote controls", () => {
       screen.getByRole("status", { name: "Drop to remove stamp" }),
     ).toBeVisible();
     expect(screen.queryByRole("button", { name: "Stamps" })).toBeNull();
+    expect(
+      screen.queryByRole("dialog", { name: "Choose a stamp to place" }),
+    ).toBeNull();
 
     fireEvent.click(
       screen.getByRole("button", { name: "Simulate stamp drop" }),

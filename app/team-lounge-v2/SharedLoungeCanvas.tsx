@@ -140,6 +140,9 @@ export function SharedLoungeCanvas({
   });
   const [usedPlacements, setUsedPlacements] = useState(0);
   const [editSelectionID, setEditSelectionID] = useState<string | null>(null);
+  const [draggedEditEntityID, setDraggedEditEntityID] = useState<string | null>(
+    null,
+  );
   const [placementPending, setPlacementPending] = useState(false);
   const [visitTraces, setVisitTraces] = useState<LoungeVisitTraceOverlay[]>([]);
   const [participantEmotes, setParticipantEmotes] = useState<
@@ -234,6 +237,7 @@ export function SharedLoungeCanvas({
       if (!draggedStampID) return;
       draggedStampID = null;
       dragOverTrash = false;
+      if (!disposed) setDraggedEditEntityID(null);
       onStampDragStateChangeRef.current?.(null);
     };
     const trackStampDrag = (event: PointerEvent) => {
@@ -399,6 +403,7 @@ export function SharedLoungeCanvas({
           if (nextDraggedStampID && nextDraggedStampID !== draggedStampID) {
             draggedStampID = nextDraggedStampID;
             dragOverTrash = false;
+            setDraggedEditEntityID(nextDraggedStampID);
             onStampDragStateChangeRef.current?.({
               entityID: nextDraggedStampID,
               overTrash: false,
@@ -606,6 +611,7 @@ export function SharedLoungeCanvas({
         currentPlayerID={playerID}
         editableEntityIDs={editableStampIDs}
         selectedEntityID={stampEditingEnabled ? editSelectionID : null}
+        draggingEntityID={draggedEditEntityID}
         onSelect={(entityID) => {
           const runtime = runtimeRef.current;
           if (!runtime) return;

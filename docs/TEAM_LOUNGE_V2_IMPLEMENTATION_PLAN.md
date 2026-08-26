@@ -394,6 +394,9 @@ While the owner moves a current-day stamp, the normal four-action tray is
 replaced in place by one animated trash target. Pointer release is resolved by
 screen coordinates before the normal controls return, so dropping there cannot
 fall through and open the stamp catalog. Releasing elsewhere remains a move.
+Movement is a focused interaction mode: the selected stamp's scale/rotation
+tray, selection treatment, editable badges, and any previously open action menu
+are removed until release. Dismissed menus do not reopen after the gesture.
 
 Zoomigo authorizes the durable delete by authenticated owner and canonical
 placement day. The entity disappears for every viewer; permanent collection

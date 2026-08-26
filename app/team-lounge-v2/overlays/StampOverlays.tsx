@@ -26,6 +26,7 @@ export function StampOverlays({
   currentPlayerID,
   editableEntityIDs = [],
   selectedEntityID = null,
+  draggingEntityID = null,
   onPlace,
   onSelect,
   onScale,
@@ -38,13 +39,17 @@ export function StampOverlays({
   currentPlayerID: string;
   editableEntityIDs?: readonly string[];
   selectedEntityID?: string | null;
+  draggingEntityID?: string | null;
   onPlace(screen: Readonly<{ x: number; y: number }>): void;
   onSelect?(entityID: string): void;
   onScale?(entityID: string, scale: number, preview: boolean): void;
   onRotate?(entityID: string, rotation: number, preview: boolean): void;
   onDone?(): void;
 }) {
-  const selected = stamps.find(({ entityID }) => entityID === selectedEntityID);
+  const editingChromeVisible = draggingEntityID === null;
+  const selected = editingChromeVisible
+    ? stamps.find(({ entityID }) => entityID === selectedEntityID)
+    : undefined;
   const editable = new Set(editableEntityIDs);
   const [ghostPoint, setGhostPoint] = useState<{
     assetID: string;
@@ -72,8 +77,9 @@ export function StampOverlays({
       {stamps.map(
         ({ entityID, asset, ownerUserID, rotation, screen, scale }) => {
           const canEdit = editable.has(entityID);
-          const selected = entityID === selectedEntityID;
-          const className = `team-lounge-v2__placed-stamp${canEdit ? " team-lounge-v2__placed-stamp--editable" : ""}${selected ? " team-lounge-v2__placed-stamp--selected" : ""}`;
+          const isSelected = entityID === selectedEntityID;
+          const showEditableChrome = canEdit && editingChromeVisible;
+          const className = `team-lounge-v2__placed-stamp${showEditableChrome ? " team-lounge-v2__placed-stamp--editable" : ""}${isSelected && editingChromeVisible ? " team-lounge-v2__placed-stamp--selected" : ""}`;
           const style = {
             transform: `translate3d(${screen.x}px, ${screen.y}px, 0) translate(-50%, -50%) rotate(${rotation}rad) scale(${scale})`,
             "--stamp-counter-rotation": `${-rotation}rad`,
@@ -90,9 +96,9 @@ export function StampOverlays({
               style={style}
               type="button"
               aria-label={label}
-              aria-pressed={selected}
+              aria-pressed={isSelected}
               onPointerDownCapture={(event) => {
-                if (selected) return;
+                if (isSelected) return;
                 event.preventDefault();
                 event.stopPropagation();
                 onSelect?.(entityID);
@@ -102,12 +108,14 @@ export function StampOverlays({
               }}
             >
               <StampAssetView asset={asset} />
-              <span
-                className="team-lounge-v2__stamp-edit-badge"
-                aria-hidden="true"
-              >
-                {copy.editableStampBadge}
-              </span>
+              {editingChromeVisible ? (
+                <span
+                  className="team-lounge-v2__stamp-edit-badge"
+                  aria-hidden="true"
+                >
+                  {copy.editableStampBadge}
+                </span>
+              ) : null}
             </button>
           ) : (
             <span

@@ -140,11 +140,15 @@ theme metadata.
     remain stable.
 30. Select one of your stamps placed today, then drag it toward the bottom
     action tray. The four lounge actions should animate into **Drop here to
-    remove** without opening the stamp selector. Moving over it should change
-    the prompt to **Release to remove**. Release elsewhere and confirm the stamp
-    only moves. Repeat and release over the trash: the stamp should disappear
-    for both viewers and its weekly placement should become available again.
-    A teammate's or prior-day stamp must never expose this deletion gesture.
+    remove** without opening the stamp selector. As soon as movement begins,
+    the scale/rotation tray, **EDIT** badges, selection rings, and any open
+    stamp/emote menu should disappear so only the moving stamp, room, and trash
+    target remain. Moving over it should change the prompt to **Release to
+    remove**. Release elsewhere and confirm the stamp only moves and normal
+    editing controls return without reopening a dismissed menu. Repeat and
+    release over the trash: the stamp should disappear for both viewers and its
+    weekly placement should become available again. A teammate's or prior-day
+    stamp must never expose this deletion gesture.
 
 ## Mobile and lifecycle checks
 

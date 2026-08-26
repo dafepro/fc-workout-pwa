@@ -241,7 +241,10 @@ export function TeamLoungeV2({
             onThemeChange={setTheme}
             stampTrashTargetRef={stampTrashTargetRef}
             onStampDragStateChange={(state) => {
-              if (state) setStampDeleteError(null);
+              if (state) {
+                setTray(null);
+                setStampDeleteError(null);
+              }
               setStampDragState(state);
             }}
             onStampDeleteError={(reason) => {
