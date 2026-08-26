@@ -118,6 +118,18 @@ theme metadata.
 26. Enable **Show collision map**. The red shapes should sit over the visible
     hut, umbrella table, bench, snack cart/planter, and lower pool edge. The open
     center boardwalk should have no red blocker.
+27. Place one stamp as Mason, leave the room, then sign in as Ava and place a
+    different stamp. Re-enter as each player and confirm both stamps remain with
+    their original owner and transform. Ava's placement must never replace or
+    hide Mason's stamp.
+28. Overlap Mason and Ava's avatars. In Mason's browser, Mason must render on
+    top; in Ava's browser, Ava must render on top. This ordering is intentionally
+    local to each viewer and must not change either player's shared position.
+29. Note the lounge height, then open **Stamps**. The selector should overlay
+    the viewport with its own close control and scrolling instead of shrinking
+    or moving the lounge. Choosing a stamp should close it and return directly
+    to placement. Open **Emotes** and confirm only a compact tray appears above
+    the tapped control; the lounge dimensions must remain stable.
 
 ## Mobile and lifecycle checks
 

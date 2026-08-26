@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { createPortal } from "react-dom";
 import type { RuntimeDiagnostics } from "@canvas-physics/client";
 import { defaultAvatar } from "../avatar/config";
 import type {
@@ -153,6 +161,20 @@ export function TeamLoungeV2({
     [],
   );
 
+  useEffect(() => {
+    if (tray !== "stamps") return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setTray(null);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [tray]);
+
   return (
     <section
       className="team-lounge-v2"
@@ -210,6 +232,7 @@ export function TeamLoungeV2({
               setPlacementError(
                 copy.placementErrors[reason] ?? copy.placementError,
               );
+              setTray("stamps");
             }}
             onPlacementPendingChange={setPlacementPending}
             onPlaceableStampsChange={updatePlaceableStamps}
@@ -258,59 +281,71 @@ export function TeamLoungeV2({
         </span>
       </div>
 
-      {tray === "emotes" ? (
-        <div className="team-lounge-v2__tray" aria-label="Choose an emote">
-          {loungeEmotes.map((emote) => (
-            <button
-              key={emote.kind}
-              type="button"
-              aria-label={`Send ${emote.label} emote`}
-              disabled={(sharedRoom && !signalReady) || emoteCoolingDown}
-              onClick={() => {
-                const send = signalPortRef.current;
-                if (emoteCoolingDown || (sharedRoom && !send)) return;
-                if (sharedRoom) {
-                  send?.(emote.kind);
-                } else {
-                  setLocalEmote(emote);
-                  if (localEmoteTimerRef.current !== null) {
-                    window.clearTimeout(localEmoteTimerRef.current);
-                  }
-                  localEmoteTimerRef.current = window.setTimeout(() => {
-                    localEmoteTimerRef.current = null;
-                    setLocalEmote(null);
-                  }, LOUNGE_EMOTE_DURATION_MS);
-                }
-                setEmoteCoolingDown(true);
-                if (cooldownTimerRef.current !== null) {
-                  window.clearTimeout(cooldownTimerRef.current);
-                }
-                cooldownTimerRef.current = window.setTimeout(() => {
-                  cooldownTimerRef.current = null;
-                  setEmoteCoolingDown(false);
-                }, LOUNGE_EMOTE_COOLDOWN_MS);
-                setTray(null);
-              }}
-            >
-              {emote.symbol}
-            </button>
-          ))}
-        </div>
-      ) : tray === "stamps" ? (
-        <StampPlacementTray
-          choices={stampChoices}
-          selected={selectedStamp}
-          summary={placementSummary}
-          status={placementStatus}
-          error={placementError}
-          onSelect={(asset) => {
-            setPlacementError(null);
-            setSelectedStamp(asset);
-          }}
-        />
+      {tray === "stamps" ? (
+        <LoungeMenuOverlay
+          title={copy.stamps}
+          dialogLabel="Choose a stamp to place"
+          closeLabel={copy.closeStamps}
+          onClose={() => setTray(null)}
+        >
+          <StampPlacementTray
+            choices={stampChoices}
+            selected={selectedStamp}
+            summary={placementSummary}
+            status={placementStatus}
+            error={placementError}
+            onSelect={(asset) => {
+              setPlacementError(null);
+              setSelectedStamp(asset);
+              setTray(null);
+            }}
+          />
+        </LoungeMenuOverlay>
       ) : null}
 
       <nav className="team-lounge-v2__actions" aria-label="Lounge actions">
+        {tray === "emotes" ? (
+          <div
+            className="team-lounge-v2__emote-popover"
+            aria-label="Choose an emote"
+          >
+            {loungeEmotes.map((emote) => (
+              <button
+                key={emote.kind}
+                type="button"
+                aria-label={`Send ${emote.label} emote`}
+                disabled={(sharedRoom && !signalReady) || emoteCoolingDown}
+                onClick={() => {
+                  const send = signalPortRef.current;
+                  if (emoteCoolingDown || (sharedRoom && !send)) return;
+                  if (sharedRoom) {
+                    send?.(emote.kind);
+                  } else {
+                    setLocalEmote(emote);
+                    if (localEmoteTimerRef.current !== null) {
+                      window.clearTimeout(localEmoteTimerRef.current);
+                    }
+                    localEmoteTimerRef.current = window.setTimeout(() => {
+                      localEmoteTimerRef.current = null;
+                      setLocalEmote(null);
+                    }, LOUNGE_EMOTE_DURATION_MS);
+                  }
+                  setEmoteCoolingDown(true);
+                  if (cooldownTimerRef.current !== null) {
+                    window.clearTimeout(cooldownTimerRef.current);
+                  }
+                  cooldownTimerRef.current = window.setTimeout(() => {
+                    cooldownTimerRef.current = null;
+                    setEmoteCoolingDown(false);
+                  }, LOUNGE_EMOTE_COOLDOWN_MS);
+                  setTray(null);
+                }}
+              >
+                {emote.symbol}
+              </button>
+            ))}
+          </div>
+        ) : null}
         <button
           type="button"
           aria-pressed={tray === "emotes"}
@@ -325,19 +360,20 @@ export function TeamLoungeV2({
           type="button"
           aria-pressed={tray === "stamps"}
           onClick={() => {
-            setTray((current) => {
-              if (current === "stamps") return null;
-              void Promise.resolve(stampUnlocks?.viewNew?.())
-                .then(() =>
-                  setPlaceableStamps(
-                    (current) =>
-                      current?.map((stamp) => ({ ...stamp, isNew: false })) ??
-                      null,
-                  ),
-                )
-                .catch(() => undefined);
-              return "stamps";
-            });
+            if (tray === "stamps") {
+              setTray(null);
+              return;
+            }
+            if (placeableStamps?.some(({ isNew }) => isNew)) {
+              setPlaceableStamps(
+                (current) =>
+                  current?.map((stamp) => ({ ...stamp, isNew: false })) ?? null,
+              );
+              void Promise.resolve(stampUnlocks?.viewNew?.()).catch(
+                () => undefined,
+              );
+            }
+            setTray("stamps");
           }}
         >
           <span aria-hidden="true">✦</span>
@@ -367,5 +403,46 @@ export function TeamLoungeV2({
         {sharedRoom ? copy.sharedHint : copy.localHint}
       </p>
     </section>
+  );
+}
+
+function LoungeMenuOverlay({
+  title,
+  dialogLabel,
+  closeLabel,
+  onClose,
+  children,
+}: {
+  title: string;
+  dialogLabel: string;
+  closeLabel: string;
+  onClose(): void;
+  children: ReactNode;
+}) {
+  return createPortal(
+    <div className="team-lounge-v2__menu-overlay">
+      <button
+        className="team-lounge-v2__menu-backdrop"
+        type="button"
+        aria-hidden="true"
+        tabIndex={-1}
+        onClick={onClose}
+      />
+      <section
+        className="team-lounge-v2__menu-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-label={dialogLabel}
+      >
+        <header>
+          <strong>{title}</strong>
+          <button type="button" aria-label={closeLabel} onClick={onClose}>
+            ×
+          </button>
+        </header>
+        {children}
+      </section>
+    </div>,
+    document.body,
   );
 }

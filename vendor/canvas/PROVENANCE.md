@@ -4,16 +4,17 @@ These prerelease package archives are generated, reviewable dependencies from
 the private `dafepro/canvas` repository. They are committed so Zoomigo builds do
 not need private GitHub or npm registry credentials.
 
-| Field                | Value                                          |
-| -------------------- | ---------------------------------------------- |
-| Source repository    | `https://github.com/dafepro/canvas.git`        |
-| Source commit        | `9efe474e4cad3f307e56b58acb0ad278b2eaf118`     |
-| Source commit date   | `2026-08-26T11:44:51-05:00`                    |
-| Package version      | `0.1.0`                                        |
-| Go rooms SDK         | `v0.0.0-20260826164451-9efe474e4cad`           |
-| Protocol version     | Exact version in the coordinated source commit |
-| Pack tool            | pnpm `11.21.0`                                 |
-| Runtime used to pack | Node.js `24.19.0`                              |
+| Field                         | Value                                          |
+| ----------------------------- | ---------------------------------------------- |
+| Source repository             | `https://github.com/dafepro/canvas.git`        |
+| Package archive source commit | `9efe474e4cad3f307e56b58acb0ad278b2eaf118`     |
+| Package archive source date   | `2026-08-26T11:44:51-05:00`                    |
+| Package version               | `0.1.0`                                        |
+| Go rooms SDK source commit    | `d12ffe9e056029e90c32d8e4e02d07f8f08195af`     |
+| Go rooms SDK                  | `v0.0.0-20260826195321-d12ffe9e0560`           |
+| Protocol version              | Exact version in the coordinated source commit |
+| Pack tool                     | pnpm `11.21.0`                                 |
+| Runtime used to pack          | Node.js `24.19.0`                              |
 
 ## SHA-256
 
@@ -25,7 +26,8 @@ not need private GitHub or npm registry credentials.
 
 ## Verification performed
 
-At the source commit:
+At the package archive source commit, with the Go rooms SDK subsequently
+verified at its separately pinned source commit:
 
 ```powershell
 go test ./pkg/roomsdk

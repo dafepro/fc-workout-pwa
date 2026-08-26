@@ -18,6 +18,7 @@ export const teamLoungeV2Copy = {
   retry: "Try again",
   emotes: "Emotes",
   stamps: "Stamps",
+  closeStamps: "Close stamps",
   items: "Items",
   map: "Map",
   mapHint: "This room fits on one screen.",

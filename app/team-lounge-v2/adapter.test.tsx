@@ -136,6 +136,26 @@ describe("TeamLoungeV2 emote controls", () => {
     ).toBeEnabled();
   });
 
+  it("opens emotes as an anchored popover and stamps as a viewport overlay", () => {
+    render(<TeamLoungeV2 host={host} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Emotes" }));
+    expect(screen.getByLabelText("Choose an emote")).toHaveClass(
+      "team-lounge-v2__emote-popover",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Stamps" }));
+    const dialog = screen.getByRole("dialog", {
+      name: "Choose a stamp to place",
+    });
+    expect(dialog).toHaveClass("team-lounge-v2__menu-sheet");
+    expect(dialog).not.toBe(
+      document.querySelector(".team-lounge-v2__world")?.nextElementSibling,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Close stamps" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
   it("shows the earned weekly budget before free-position placement", () => {
     const viewNew = vi.fn();
     render(
@@ -168,10 +188,9 @@ describe("TeamLoungeV2 emote controls", () => {
     expect(
       screen.getByText(/Shared lounge\s+Target\s+editing on/),
     ).toBeVisible();
-    expect(
-      screen.getByText("Tap anywhere in the lounge to place it."),
-    ).toBeVisible();
+    expect(screen.queryByRole("dialog")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Simulate spot" }));
+    fireEvent.click(screen.getByRole("button", { name: "Stamps" }));
     expect(screen.getByText("Adding your stamp…")).toBeVisible();
     expect(
       screen.getByRole("button", { name: "Choose Target stamp" }),

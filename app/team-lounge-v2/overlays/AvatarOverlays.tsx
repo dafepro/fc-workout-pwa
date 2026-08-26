@@ -28,6 +28,7 @@ export function AvatarOverlays({
           aria-label={participant.accessibleName}
           style={{
             transform: `translate3d(${participant.screen.x}px, ${participant.screen.y}px, 0) translate(-50%, -50%)`,
+            zIndex: participant.current ? 2 : 1,
           }}
         >
           {emotes[participant.playerID] ? (
