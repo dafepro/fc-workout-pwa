@@ -83,13 +83,15 @@ moderation, reporting, retention, and child-safety design decision.
 
 ## Latest dev delivery
 
-- Deployed application revision: `7de1ae69965468dcfd18d75814f50b73169dd963`.
+- Deployed application revision: `c77c452e25b49257eb90875bc04b00412ae4f667`.
 - Included Canvas revision: `9efe474e4cad3f307e56b58acb0ad278b2eaf118`.
-- GitHub Actions dev operation `32998948854` completed successfully on
+- GitHub Actions dev operation `33005307501` completed successfully on
   2026-08-26.
 - Independent authenticated public smoke: API `/healthz` and `/readyz` returned
-  `200`; `/dev-access`, the self-disabling service worker, and all 18 referenced
-  scripts and styles returned `200` through one gated session.
+  `200`; `/dev-access` and the self-disabling service worker returned `200`
+  through one gated session. One browser then switched Mason to Ava through the
+  real QR/PIN flow without signing out, and `/me` projected Ava rather than
+  Mason.
 - The service worker is self-disabling on dev as a defense against stale app
   shells. Worker-first gating for static assets is also implemented in this
   branch, but becomes the trusted deployment control only after mainline
