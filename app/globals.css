@@ -658,6 +658,90 @@ h2 {
   color: #d9deff;
 }
 
+.hero-card__warning {
+  max-width: 28rem;
+  padding: 0.75rem;
+  border-radius: 0.8rem;
+  background: rgb(255 255 255 / 14%);
+  color: white;
+  font-weight: 750;
+}
+
+.hero-card__blocks {
+  display: grid;
+  max-width: 28rem;
+  gap: 0.35rem;
+  padding: 0;
+  list-style: none;
+}
+
+.hero-card__blocks li {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.plan-week-strip {
+  display: grid;
+  gap: 1rem;
+}
+
+.plan-week-strip__heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.plan-week-strip__heading h2,
+.plan-week-strip__heading p {
+  margin: 0;
+}
+
+.plan-week-strip__heading > strong {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.plan-week-strip ol {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  gap: 0.45rem;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  list-style: none;
+}
+
+.plan-week-strip li {
+  display: grid;
+  min-width: 0;
+  min-height: 5.5rem;
+  place-items: center;
+  padding: 0.45rem 0.2rem;
+  border: 1px solid #e2e3f0;
+  border-radius: 0.85rem;
+  background: #f8f8fc;
+  color: var(--muted);
+  text-align: center;
+}
+
+.plan-week-strip li.is-today {
+  border-color: var(--purple);
+  background: #eeebff;
+  color: var(--ink);
+}
+
+.plan-week-strip li.is-complete {
+  color: #176c60;
+}
+
+.plan-week-strip li small,
+.plan-week-strip li strong {
+  overflow: hidden;
+  max-width: 100%;
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+}
+
 .button {
   display: inline-flex;
   min-height: 3.15rem;

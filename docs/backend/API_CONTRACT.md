@@ -67,6 +67,7 @@ Creates one entry for the authenticated player. `Idempotency-Key` is required. T
   "teamId": "team_opaque",
   "activityDefinitionId": "hill-sprints",
   "assignmentId": "assignment_opaque",
+  "plan": { "planId": "plan_opaque", "dayIndex": 0, "blockIndex": 0 },
   "occurredAt": "2026-08-05T22:15:00Z",
   "result": { "kind": "repetitions", "value": 8, "unit": "reps" },
   "effortLevel": 4,
@@ -79,9 +80,20 @@ Creates one entry for the authenticated player. `Idempotency-Key` is required. T
 `as_listed`, `partial`, or `extra`. Activity kind, unit, range, backdating, and
 assignment eligibility are validated against server-owned definitions. An
 explicit `partial` outcome does not complete an assignment even when its numeric
-result reaches the target.
+result reaches the target, and it likewise leaves a linked plan block incomplete.
+When `plan` is present, the server requires that exact published team/day/block
+and predefined activity on the entry's team-local date. `plan` and
+`assignmentId` are mutually exclusive provenance.
 
 A new entry returns `201`; an idempotent replay returns `200`. Future timestamps and dates earlier than seven team-local calendar days before today return `422 entry_date_not_allowed`.
+
+### `POST /v1/me/planned-rest-check-ins`
+
+Records today’s rest only when the authenticated player is an active member and
+the supplied published plan day is a rest day on the team’s local calendar.
+`Idempotency-Key` is required. A planned-rest check-in contributes one daily
+Momentum credit without creating a training entry or accepting effort,
+exhaustion, performance, or free text.
 
 ### `GET /v1/training-entries/{entryId}`
 

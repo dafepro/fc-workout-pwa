@@ -15,6 +15,7 @@ const allowed = [
   { method: "GET", pattern: /^v1\/me\/training-entries$/ },
   { method: "GET", pattern: /^v1\/me\/training-dashboard$/ },
   { method: "POST", pattern: /^v1\/me\/training-entries$/ },
+  { method: "POST", pattern: /^v1\/me\/planned-rest-check-ins$/ },
   { method: "GET", pattern: /^v1\/me\/reaction-badges$/ },
   { method: "POST", pattern: /^v1\/reactions$/ },
   { method: "PUT", pattern: /^v1\/me\/avatar$/ },

@@ -38,6 +38,13 @@ export interface TrainingEntry {
   createdAt: string;
   deleteEligibleUntil: string;
   assignmentId?: string;
+  plan?: TrainingPlanProvenance;
+}
+
+export interface TrainingPlanProvenance {
+  planId: string;
+  dayIndex: number;
+  blockIndex: number;
 }
 
 export type TrainingEntryInput = Pick<
@@ -51,6 +58,7 @@ export type TrainingEntryInput = Pick<
 > & {
   inputKind: InputKind;
   assignmentId?: string;
+  plan?: TrainingPlanProvenance;
   completionOutcome: CompletionOutcome;
 };
 
@@ -75,10 +83,42 @@ export interface TrainingAssignment {
   completed: boolean;
 }
 
+export interface CurrentTrainingPlanDay {
+  planId: string;
+  dayIndex: number;
+  templateName: string;
+  occursOn: string;
+  kind: "training" | "recovery" | "rest";
+  focus: "speed" | "endurance" | "recovery";
+  durationMinutes: number;
+  intensity: "easy" | "steady" | "hard";
+  completed: boolean;
+  blocks: {
+    blockIndex: number;
+    activityDefinitionId: ActivityId;
+    label: string;
+    durationMinutes: number;
+    completed: boolean;
+  }[];
+}
+
+export interface TrainingPlanWindow {
+  planId: string;
+  templateName: string;
+  dayNumber: number;
+  dayCount: number;
+  yesterday: CurrentTrainingPlanDay | null;
+  today: CurrentTrainingPlanDay;
+  tomorrow: CurrentTrainingPlanDay | null;
+  days: CurrentTrainingPlanDay[];
+}
+
 export interface TrainingDashboard {
   team: SocialTeam;
   activities: ActivityDefinition[];
   currentAssignment: TrainingAssignment | null;
+  currentPlanDay: CurrentTrainingPlanDay | null;
+  currentPlan: TrainingPlanWindow | null;
   summary: {
     weeklySessions: number;
     rolling30Sessions: number;

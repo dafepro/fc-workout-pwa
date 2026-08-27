@@ -11,6 +11,8 @@ import { useTraining } from "./state/training-context";
 import { useAuth } from "./state/auth-context";
 import { MomentumStatus } from "./player/MomentumStatus";
 import { TodayAdditionalAction } from "./player/TodayAdditionalAction";
+import { TodayPlanHero } from "./player/TodayPlanHero";
+import { PlanWeekStrip } from "./player/PlanWeekStrip";
 
 export default function HomePage() {
   const {
@@ -21,6 +23,7 @@ export default function HomePage() {
     entriesStatus,
     refreshDashboard,
     refreshEntries,
+    recordPlannedRest,
   } = useTraining();
   const { currentPlayerID } = useAuth();
   const [showSavedToast, setShowSavedToast] = useState(false);
@@ -35,7 +38,10 @@ export default function HomePage() {
     (activity) => activity.id === assignment?.activityDefinitionId,
   );
   const assignmentComplete = assignment?.completed ?? false;
-  const isCelebrating = assignmentComplete && celebrateCompletion;
+  const planDay = dashboard?.currentPlanDay ?? null;
+  const currentPlan = dashboard?.currentPlan ?? null;
+  const primaryComplete = planDay?.completed ?? assignmentComplete;
+  const isCelebrating = primaryComplete && celebrateCompletion;
 
   useEffect(() => {
     const parameters = new URLSearchParams(window.location.search);
@@ -94,80 +100,93 @@ export default function HomePage() {
         checkInStreak={checkInStreak}
       />
 
-      <section
-        className={`hero-card ${assignmentComplete ? "hero-card--complete" : ""} ${isCelebrating ? "is-celebrating" : ""}`}
-        aria-labelledby="assignment-title"
-        aria-live={assignmentComplete ? "polite" : undefined}
-      >
-        <div className="hero-card__content">
-          <p className="eyebrow eyebrow--lime">
-            {assignmentComplete
-              ? copy.completion.eyebrow
-              : assignment
-                ? `Next workout · due ${assignment.dueOn}`
-                : "Approved training"}
-          </p>
-          <h1 id="assignment-title">
-            {assignmentComplete
-              ? copy.completion.title
-              : (assignmentActivity?.name ?? "Choose a workout")}
-          </h1>
-          <p className="hero-card__detail">
-            {assignmentComplete && assignmentActivity
-              ? copy.completion.activity(assignmentActivity.name)
-              : assignment
-                ? `${assignment.targetValue} ${assignment.targetUnit}`
-                : "Pick from your team’s activity list"}
-            {!assignmentComplete && assignmentActivity?.qualifier ? (
+      {planDay && currentPlan ? (
+        <TodayPlanHero
+          day={planDay}
+          dayNumber={currentPlan.dayNumber}
+          dayCount={currentPlan.dayCount}
+          activities={dashboard?.activities ?? []}
+          onRecordRest={recordPlannedRest}
+          celebrating={isCelebrating}
+        />
+      ) : (
+        <section
+          className={`hero-card ${assignmentComplete ? "hero-card--complete" : ""} ${isCelebrating ? "is-celebrating" : ""}`}
+          aria-labelledby="assignment-title"
+          aria-live={assignmentComplete ? "polite" : undefined}
+        >
+          <div className="hero-card__content">
+            <p className="eyebrow eyebrow--lime">
+              {assignmentComplete
+                ? copy.completion.eyebrow
+                : assignment
+                  ? `Next workout · due ${assignment.dueOn}`
+                  : "Approved training"}
+            </p>
+            <h1 id="assignment-title">
+              {assignmentComplete
+                ? copy.completion.title
+                : (assignmentActivity?.name ?? "Choose a workout")}
+            </h1>
+            <p className="hero-card__detail">
+              {assignmentComplete && assignmentActivity
+                ? copy.completion.activity(assignmentActivity.name)
+                : assignment
+                  ? `${assignment.targetValue} ${assignment.targetUnit}`
+                  : "Pick from your team’s activity list"}
+              {!assignmentComplete && assignmentActivity?.qualifier ? (
+                <>
+                  {" "}
+                  <span>×</span> {assignmentActivity.qualifier}
+                </>
+              ) : null}
+            </p>
+            {assignmentComplete ? (
               <>
-                {" "}
-                <span>×</span> {assignmentActivity.qualifier}
+                <p className="hero-card__support">
+                  {copy.completion.teamContribution(
+                    dashboard?.team.name ?? "your team",
+                  )}
+                </p>
+                <Link className="button button--lime" href="/team">
+                  {copy.completion.action} <span aria-hidden="true">→</span>
+                </Link>
+              </>
+            ) : (
+              <Link className="button button--lime" href="/log">
+                Log session <span aria-hidden="true">→</span>
+              </Link>
+            )}
+          </div>
+          {assignmentActivity && !assignmentComplete ? (
+            <WorkoutInstructions
+              activityName={assignmentActivity.name}
+              instructions={assignmentActivity.instructions}
+            />
+          ) : null}
+          <div
+            className={`hill-art ${assignmentComplete ? "hill-art--complete" : ""}`}
+            aria-hidden="true"
+          >
+            <span className="hill-art__sun">✦</span>
+            {assignmentComplete ? (
+              <>
+                <span className="completion-burst">
+                  <i>✦</i>
+                  <i>★</i>
+                  <i>✦</i>
+                </span>
+                <span className="completion-check">✓</span>
               </>
             ) : null}
-          </p>
-          {assignmentComplete ? (
-            <>
-              <p className="hero-card__support">
-                {copy.completion.teamContribution(
-                  dashboard?.team.name ?? "your team",
-                )}
-              </p>
-              <Link className="button button--lime" href="/team">
-                {copy.completion.action} <span aria-hidden="true">→</span>
-              </Link>
-            </>
-          ) : (
-            <Link className="button button--lime" href="/log">
-              Log session <span aria-hidden="true">→</span>
-            </Link>
-          )}
-        </div>
-        {assignmentActivity && !assignmentComplete ? (
-          <WorkoutInstructions
-            activityName={assignmentActivity.name}
-            instructions={assignmentActivity.instructions}
-          />
-        ) : null}
-        <div
-          className={`hill-art ${assignmentComplete ? "hill-art--complete" : ""}`}
-          aria-hidden="true"
-        >
-          <span className="hill-art__sun">✦</span>
-          {assignmentComplete ? (
-            <>
-              <span className="completion-burst">
-                <i>✦</i>
-                <i>★</i>
-                <i>✦</i>
-              </span>
-              <span className="completion-check">✓</span>
-            </>
-          ) : null}
-          <span className="hill-art__runner">🏃</span>
-        </div>
-      </section>
+            <span className="hill-art__runner">🏃</span>
+          </div>
+        </section>
+      )}
 
-      {assignmentComplete ? <TodayAdditionalAction /> : null}
+      {currentPlan ? <PlanWeekStrip plan={currentPlan} /> : null}
+
+      {primaryComplete ? <TodayAdditionalAction /> : null}
 
       <SessionList
         entries={personalEntries}

@@ -14,6 +14,7 @@ import { activityPresentation } from "../content/activities";
 
 export interface TrainingDashboardGateway {
   get(): Promise<TrainingDashboard>;
+  recordPlannedRest(planID: string, dayIndex: number): Promise<void>;
 }
 
 interface APIActivityDefinition {
@@ -53,9 +54,23 @@ class HTTPTrainingDashboardGateway implements TrainingDashboardGateway {
       })),
     };
   }
+
+  async recordPlannedRest(planID: string, dayIndex: number): Promise<void> {
+    const response = await fetch("/api/zoomigo/v1/me/planned-rest-check-ins", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": crypto.randomUUID(),
+      },
+      body: JSON.stringify({ teamId: this.teamID, planId: planID, dayIndex }),
+    });
+    if (!response.ok) throw new Error("Planned rest could not be saved.");
+  }
 }
 
 class LocalTrainingDashboardGateway implements TrainingDashboardGateway {
+  async recordPlannedRest(): Promise<void> {}
+
   async get(): Promise<TrainingDashboard> {
     const streak = currentStreak(initialEntries);
     return {
@@ -75,6 +90,8 @@ class LocalTrainingDashboardGateway implements TrainingDashboardGateway {
         dueOn: new Date().toISOString().slice(0, 10),
         completed: false,
       },
+      currentPlanDay: null,
+      currentPlan: null,
       summary: {
         weeklySessions: entriesWithinDays(initialEntries, 7).length,
         rolling30Sessions: entriesWithinDays(initialEntries, 30).length,

@@ -56,4 +56,40 @@ describe("connected training dashboard gateway", () => {
       { cache: "no-store" },
     );
   });
+
+  it("records planned rest with a separate idempotent request", async () => {
+    const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          id: "rest-one",
+          planId: "plan-one",
+          dayIndex: 3,
+          occursOn: "2026-08-24",
+        }),
+        { status: 201 },
+      ),
+    );
+
+    await createTrainingDashboardGateway(true, "team-real").recordPlannedRest(
+      "plan-one",
+      3,
+    );
+
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/zoomigo/v1/me/planned-rest-check-ins",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          teamId: "team-real",
+          planId: "plan-one",
+          dayIndex: 3,
+        }),
+      }),
+    );
+    expect(
+      (fetch.mock.calls[0][1]?.headers as Record<string, string>)[
+        "Idempotency-Key"
+      ],
+    ).toBeTruthy();
+  });
 });

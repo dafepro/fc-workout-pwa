@@ -70,10 +70,36 @@ type StreakComparisonProjection struct {
 	Message     string `json:"message"`
 }
 
+type CurrentTrainingPlanDay struct {
+	PlanID          string              `json:"planId"`
+	DayIndex        int                 `json:"dayIndex"`
+	TemplateName    string              `json:"templateName"`
+	OccursOn        string              `json:"occursOn"`
+	Kind            string              `json:"kind"`
+	Focus           string              `json:"focus"`
+	DurationMinutes int                 `json:"durationMinutes"`
+	Intensity       string              `json:"intensity"`
+	Completed       bool                `json:"completed"`
+	Blocks          []TrainingPlanBlock `json:"blocks"`
+}
+
+type TrainingPlanWindow struct {
+	PlanID       string                   `json:"planId"`
+	TemplateName string                   `json:"templateName"`
+	DayNumber    int                      `json:"dayNumber"`
+	DayCount     int                      `json:"dayCount"`
+	Yesterday    *CurrentTrainingPlanDay  `json:"yesterday"`
+	Today        CurrentTrainingPlanDay   `json:"today"`
+	Tomorrow     *CurrentTrainingPlanDay  `json:"tomorrow"`
+	Days         []CurrentTrainingPlanDay `json:"days"`
+}
+
 type TrainingDashboardProjection struct {
 	Team              SocialTeam                     `json:"team"`
 	Activities        []ActivityDefinitionProjection `json:"activities"`
 	CurrentAssignment *AssignmentProjection          `json:"currentAssignment"`
+	CurrentPlanDay    *CurrentTrainingPlanDay        `json:"currentPlanDay"`
+	CurrentPlan       *TrainingPlanWindow            `json:"currentPlan"`
 	Summary           PersonalTrainingSummary        `json:"summary"`
 	TeamPulse         TeamPulseProjection            `json:"teamPulse"`
 	StreakComparison  StreakComparisonProjection     `json:"streakComparison"`
@@ -98,23 +124,179 @@ func (store *Store) TrainingDashboard(ctx context.Context, actor domain.Actor, t
 	if err != nil {
 		return TrainingDashboardProjection{}, err
 	}
-	assignment, err := store.currentAssignment(ctx, actor.PlayerID, teamID, now.In(location).Format("2006-01-02"))
+	teamDay := now.In(location).Format("2006-01-02")
+	assignment, err := store.currentAssignment(ctx, actor.PlayerID, teamID, teamDay)
+	if err != nil {
+		return TrainingDashboardProjection{}, err
+	}
+	plan, err := store.currentTrainingPlan(ctx, actor.PlayerID, teamID, teamDay)
+	if err != nil {
+		return TrainingDashboardProjection{}, err
+	}
+	var planDay *CurrentTrainingPlanDay
+	if plan != nil {
+		planDay = &plan.Today
+	}
+	restDays, err := store.personalRestDayKeys(ctx, actor.PlayerID, teamID, now, location)
 	if err != nil {
 		return TrainingDashboardProjection{}, err
 	}
 	weekStart, _ := domain.LeaderboardPeriodStart(domain.PeriodWeekly, now, team.CreatedAt, location)
 	seasonMetrics := domain.ParticipationMetrics(entries, now, team.CreatedAt, location)[actor.PlayerID]
 	weekMetrics := domain.ParticipationMetrics(entries, now, weekStart, location)[actor.PlayerID]
-	summary := buildPersonalSummary(entries, actor.PlayerID, now, location, weekMetrics.Sessions, seasonMetrics.EffortPoints)
+	summary := buildPersonalSummary(entries, restDays, actor.PlayerID, now, location, weekMetrics.Sessions, seasonMetrics.EffortPoints)
 	activeCount, err := store.activeTeamMembersThisWeek(ctx, teamID, weekStart, now, now.In(location).Format("2006-01-02"))
 	if err != nil {
 		return TrainingDashboardProjection{}, err
 	}
 	return TrainingDashboardProjection{
-		Team: team.SocialTeam, Activities: activities, CurrentAssignment: assignment, Summary: summary,
+		Team: team.SocialTeam, Activities: activities, CurrentAssignment: assignment,
+		CurrentPlanDay: planDay, CurrentPlan: plan, Summary: summary,
 		TeamPulse:        TeamPulseProjection{ActiveThisWeek: activeCount},
 		StreakComparison: streakComparison(actor.PlayerID, now.In(location).Format("2006-01-02"), summary.CurrentStreak),
 	}, nil
+}
+
+func (store *Store) currentTrainingPlan(ctx context.Context, playerID, teamID, teamDay string) (*TrainingPlanWindow, error) {
+	var planID string
+	err := store.db.QueryRowContext(ctx, `SELECT p.id
+		FROM training_plans p
+		JOIN training_plan_days d ON d.plan_id = p.id
+		WHERE p.team_id = ? AND p.status = 'published' AND d.occurs_on = ?
+		ORDER BY p.created_at DESC LIMIT 1`, teamID, teamDay).Scan(&planID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("load current training plan: %w", err)
+	}
+	today, err := store.trainingPlanDay(ctx, planID, playerID, teamID, teamDay)
+	if err != nil || today == nil {
+		return nil, err
+	}
+	date, err := time.Parse("2006-01-02", teamDay)
+	if err != nil {
+		return nil, fmt.Errorf("parse current training plan date: %w", err)
+	}
+	yesterday, err := store.trainingPlanDay(ctx, planID, playerID, teamID, date.AddDate(0, 0, -1).Format("2006-01-02"))
+	if err != nil {
+		return nil, err
+	}
+	tomorrow, err := store.trainingPlanDay(ctx, planID, playerID, teamID, date.AddDate(0, 0, 1).Format("2006-01-02"))
+	if err != nil {
+		return nil, err
+	}
+	days, err := store.trainingPlanDays(ctx, planID, playerID, teamID)
+	if err != nil {
+		return nil, err
+	}
+	return &TrainingPlanWindow{
+		PlanID: planID, TemplateName: today.TemplateName, DayNumber: today.DayIndex + 1,
+		DayCount: len(days), Yesterday: yesterday, Today: *today, Tomorrow: tomorrow, Days: days,
+	}, nil
+}
+
+func (store *Store) trainingPlanDays(ctx context.Context, planID, playerID, teamID string) ([]CurrentTrainingPlanDay, error) {
+	rows, err := store.db.QueryContext(ctx, `SELECT occurs_on FROM training_plan_days
+		WHERE plan_id = ? ORDER BY day_index`, planID)
+	if err != nil {
+		return nil, fmt.Errorf("list training plan timeline: %w", err)
+	}
+	dayKeys := make([]string, 0)
+	for rows.Next() {
+		var dayKey string
+		if err = rows.Scan(&dayKey); err != nil {
+			_ = rows.Close()
+			return nil, fmt.Errorf("scan training plan timeline: %w", err)
+		}
+		dayKeys = append(dayKeys, dayKey)
+	}
+	if err = rows.Err(); err != nil {
+		_ = rows.Close()
+		return nil, fmt.Errorf("iterate training plan timeline: %w", err)
+	}
+	if err = rows.Close(); err != nil {
+		return nil, fmt.Errorf("close training plan timeline: %w", err)
+	}
+	days := make([]CurrentTrainingPlanDay, 0, len(dayKeys))
+	for _, dayKey := range dayKeys {
+		day, loadErr := store.trainingPlanDay(ctx, planID, playerID, teamID, dayKey)
+		if loadErr != nil {
+			return nil, loadErr
+		}
+		if day != nil {
+			days = append(days, *day)
+		}
+	}
+	return days, nil
+}
+
+func (store *Store) trainingPlanDay(ctx context.Context, planID, playerID, teamID, teamDay string) (*CurrentTrainingPlanDay, error) {
+	var item CurrentTrainingPlanDay
+	err := store.db.QueryRowContext(ctx, `SELECT p.id, p.template_name, d.day_index,
+		d.occurs_on, d.kind, d.focus, d.duration_minutes, d.intensity
+		FROM training_plans p
+		JOIN training_plan_days d ON d.plan_id = p.id
+		WHERE p.id = ? AND p.team_id = ? AND p.status = 'published' AND d.occurs_on = ?`,
+		planID, teamID, teamDay).Scan(
+		&item.PlanID, &item.TemplateName, &item.DayIndex, &item.OccursOn, &item.Kind,
+		&item.Focus, &item.DurationMinutes, &item.Intensity)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("load training plan day: %w", err)
+	}
+	item.Blocks, err = loadTrainingPlanBlocks(ctx, store.db, item.PlanID, item.DayIndex)
+	if err != nil {
+		return nil, err
+	}
+	if item.Kind == string(domain.TrainingPlanRest) {
+		err = store.db.QueryRowContext(ctx, `SELECT EXISTS (
+			SELECT 1 FROM planned_rest_check_ins
+			WHERE team_id = ? AND player_id = ? AND occurs_on = ?
+			  AND training_plan_id = ? AND training_plan_day_index = ?
+		)`, teamID, playerID, teamDay, item.PlanID, item.DayIndex).Scan(&item.Completed)
+	} else {
+		item.Completed = len(item.Blocks) > 0
+		for index := range item.Blocks {
+			err = store.db.QueryRowContext(ctx, `SELECT EXISTS (
+				SELECT 1 FROM training_entries e
+				WHERE e.player_id = ? AND e.team_id = ? AND e.deleted_at IS NULL
+				  AND e.training_plan_id = ? AND e.training_plan_day_index = ?
+				  AND e.training_plan_block_index = ?
+				  AND (e.completion_outcome IS NULL OR e.completion_outcome <> 'partial')
+			)`, playerID, teamID, item.PlanID, item.DayIndex, item.Blocks[index].BlockIndex).Scan(&item.Blocks[index].Completed)
+			if err != nil {
+				break
+			}
+			item.Completed = item.Completed && item.Blocks[index].Completed
+		}
+	}
+	if err != nil {
+		return nil, fmt.Errorf("load training plan completion: %w", err)
+	}
+	return &item, nil
+}
+
+func (store *Store) personalRestDayKeys(ctx context.Context, playerID, teamID string, now time.Time, location *time.Location) ([]string, error) {
+	today := localDateStart(now, location)
+	rows, err := store.db.QueryContext(ctx, `SELECT occurs_on FROM planned_rest_check_ins
+		WHERE player_id = ? AND team_id = ? AND occurs_on >= ? AND occurs_on <= ?`,
+		playerID, teamID, today.AddDate(0, 0, -55).Format("2006-01-02"), today.Format("2006-01-02"))
+	if err != nil {
+		return nil, fmt.Errorf("list personal planned rest days: %w", err)
+	}
+	defer rows.Close()
+	keys := make([]string, 0)
+	for rows.Next() {
+		var key string
+		if err = rows.Scan(&key); err != nil {
+			return nil, fmt.Errorf("scan personal planned rest day: %w", err)
+		}
+		keys = append(keys, key)
+	}
+	return keys, rows.Err()
 }
 
 func (store *Store) approvedActivities(ctx context.Context) ([]ActivityDefinitionProjection, error) {
@@ -195,7 +377,7 @@ func (store *Store) activeAssignment(ctx context.Context, teamID, teamDay string
 	return &item, nil
 }
 
-func buildPersonalSummary(entries []domain.ProjectionEntry, playerID string, now time.Time, location *time.Location, weeklySessions, effortPoints int) PersonalTrainingSummary {
+func buildPersonalSummary(entries []domain.ProjectionEntry, restDays []string, playerID string, now time.Time, location *time.Location, weeklySessions, effortPoints int) PersonalTrainingSummary {
 	today := localDateStart(now, location)
 	counts := make(map[string]int)
 	for _, entry := range entries {
@@ -239,8 +421,8 @@ func buildPersonalSummary(entries []domain.ProjectionEntry, playerID string, now
 	return PersonalTrainingSummary{
 		WeeklySessions:       weeklySessions,
 		Rolling30Sessions:    rolling,
-		MomentumScore:        momentum.Score(counts, nil, today),
-		CurrentCheckInStreak: momentum.CurrentStreak(counts, nil, today),
+		MomentumScore:        momentum.Score(counts, restDays, today),
+		CurrentCheckInStreak: momentum.CurrentStreak(counts, restDays, today),
 		CurrentStreak:        season.StreakDays,
 		LongestStreak:        longest,
 		EffortPoints:         effortPoints,

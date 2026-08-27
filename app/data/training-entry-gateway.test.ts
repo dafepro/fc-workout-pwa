@@ -38,7 +38,7 @@ describe("connected training-entry gateway", () => {
     expect(entries[0].completionOutcome).toBe("as_listed");
   });
 
-  it("sends the predefined completion outcome without a note field", async () => {
+  it("sends predefined completion and plan provenance without a note field", async () => {
     const fetch = vi.fn().mockResolvedValue(
       Response.json(
         {
@@ -69,6 +69,7 @@ describe("connected training-entry gateway", () => {
       effortLevel: 4,
       exhaustionLevel: 3,
       completionOutcome: "partial",
+      plan: { planId: "plan-one", dayIndex: 2, blockIndex: 0 },
     });
 
     const body = JSON.parse(fetch.mock.calls[0][1].body as string) as Record<
@@ -76,6 +77,11 @@ describe("connected training-entry gateway", () => {
       unknown
     >;
     expect(body.completionOutcome).toBe("partial");
+    expect(body.plan).toEqual({
+      planId: "plan-one",
+      dayIndex: 2,
+      blockIndex: 0,
+    });
     expect(body).not.toHaveProperty("note");
   });
 });

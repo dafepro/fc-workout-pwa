@@ -46,6 +46,7 @@ interface TrainingState {
   refreshReactionBadges: () => Promise<void>;
   loadMoreReactionBadges: () => Promise<void>;
   refreshDashboard: () => Promise<void>;
+  recordPlannedRest: (planID: string, dayIndex: number) => Promise<void>;
 }
 
 const TrainingContext = createContext<TrainingState | null>(null);
@@ -96,6 +97,14 @@ export function TrainingProvider({
       setDashboardStatus("error");
     }
   }, [trainingDashboardGateway]);
+
+  const recordPlannedRest = useCallback(
+    async (planID: string, dayIndex: number) => {
+      await trainingDashboardGateway.recordPlannedRest(planID, dayIndex);
+      await refreshDashboard();
+    },
+    [refreshDashboard, trainingDashboardGateway],
+  );
 
   const refreshEntries = useCallback(async () => {
     try {
@@ -271,6 +280,7 @@ export function TrainingProvider({
       refreshReactionBadges,
       loadMoreReactionBadges,
       refreshDashboard,
+      recordPlannedRest,
     }),
     [
       addEntry,
@@ -290,6 +300,7 @@ export function TrainingProvider({
       refreshReactionBadges,
       loadMoreReactionBadges,
       refreshDashboard,
+      recordPlannedRest,
       sendReaction,
     ],
   );

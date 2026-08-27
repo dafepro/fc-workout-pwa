@@ -143,6 +143,7 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	mux.HandleFunc("GET /v1/me/training-entries", service.listTrainingEntries)
 	mux.HandleFunc("GET /v1/me/training-dashboard", service.getTrainingDashboard)
 	mux.HandleFunc("POST /v1/me/training-entries", service.createTrainingEntry)
+	mux.HandleFunc("POST /v1/me/planned-rest-check-ins", service.createPlannedRestCheckIn)
 	mux.HandleFunc("PUT /v1/me/avatar", service.updateAvatar)
 	mux.HandleFunc("GET /v1/training-entries/{entryId}", service.getTrainingEntry)
 	mux.HandleFunc("DELETE /v1/training-entries/{entryId}", service.deleteTrainingEntry)
@@ -299,6 +300,8 @@ func (service *service) createTrainingEntry(w http.ResponseWriter, r *http.Reque
 			writeError(w, r, http.StatusUnprocessableEntity, "entry_feelings_not_allowed", "Effort and exhaustion must use the seven-step scale.")
 		case errors.Is(err, store.ErrEntryOutcomeNotAllowed):
 			writeError(w, r, http.StatusUnprocessableEntity, "entry_outcome_not_allowed", "Choose one of the approved workout outcomes.")
+		case errors.Is(err, store.ErrEntryPlanUnavailable):
+			writeError(w, r, http.StatusUnprocessableEntity, "entry_plan_unavailable", "That planned workout is unavailable.")
 		default:
 			writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")
 		}
