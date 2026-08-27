@@ -102,3 +102,5 @@ Each step is test-first and small enough to review independently.
   fresh infrastructure runs it after fixture seeding, while the geographically gated canonical Lounge browser proof remains an explicit follow-up.
 - Release-candidate verification: both build profiles, 293 frontend tests, production/dev-tagged Linux Go suites, migration paths, deployment contracts, and VM persistence/backup passed;
   the real Docker stack passed its migrated API suite and all 24 browser workflows, including the canonical 320px canvas Lounge.
+- Disposable-dev recreation evidence: [destroy run 33109385002](https://github.com/dafepro/fc-workout-pwa/actions/runs/33109385002) removed the old environment and [create run 33109538950](https://github.com/dafepro/fc-workout-pwa/actions/runs/33109538950) deployed exact SHA `1020a9696c09115de259c47a145ad3ef7c540f07` to fresh infrastructure;
+  migration 000016 startup, final fixture seeding, API health/readiness, and the password-gated PWA passed; the authenticated final-flow smoke awaits this reviewed workflow change landing on trusted `main`.
