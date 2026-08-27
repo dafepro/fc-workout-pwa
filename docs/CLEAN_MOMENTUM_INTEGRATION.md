@@ -60,3 +60,5 @@ Each step is test-first and small enough to review independently.
   retaining safe historical reaction rendering and backend compatibility.
 - Developer route packaging: suffixed dev-only pages explicitly and configured
   route discovery so production omits them while development still ships them.
+- Momentum projection core: ported the authoritative diminishing daily credit,
+  56-day fade, planned-rest, score cap, and current check-in streak rules.
