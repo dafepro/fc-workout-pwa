@@ -97,6 +97,21 @@ test("V2 stamp drags own the touch gesture and repeated trash drops settle clean
     await ownedStamp.tap();
     await expect(ownedStamp).toHaveAttribute("aria-pressed", "true");
     await ownedStamp.scrollIntoViewIfNeeded();
+    const editor = page.getByRole("group", { name: "Edit selected stamp" });
+    await expect(editor).toBeVisible();
+    const selectedStampBox = await requiredBox(ownedStamp, "selected stamp");
+    const editorBox = await requiredBox(editor, "object editor");
+    expect(rectanglesOverlap(selectedStampBox, editorBox)).toBe(false);
+    const moreActions = editor.getByRole("button", {
+      name: "More stamp actions",
+    });
+    await moreActions.tap();
+    const moreMenu = page.getByRole("menu", { name: "More stamp actions" });
+    await expect(moreMenu).toBeVisible();
+    const moreMenuBox = await requiredBox(moreMenu, "more actions menu");
+    expect(rectanglesOverlap(selectedStampBox, moreMenuBox)).toBe(false);
+    await moreActions.tap();
+    await expect(moreMenu).toHaveCount(0);
 
     const beforeScroll = await page.evaluate(() => window.scrollY);
     const stampBox = await requiredBox(ownedStamp, "owned stamp");
@@ -182,6 +197,18 @@ interface Point {
 
 function center(box: { x: number; y: number; width: number; height: number }) {
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+}
+
+function rectanglesOverlap(
+  first: { x: number; y: number; width: number; height: number },
+  second: { x: number; y: number; width: number; height: number },
+) {
+  return !(
+    first.x + first.width <= second.x ||
+    second.x + second.width <= first.x ||
+    first.y + first.height <= second.y ||
+    second.y + second.height <= first.y
+  );
 }
 
 async function requiredBox(

@@ -189,6 +189,72 @@ describe("StampOverlays", () => {
     expect(onScale).toHaveBeenCalledWith(stamp.entityID, 1.1, true);
   });
 
+  it("keeps the contextual editor on the opposite side of the selected stamp", () => {
+    const onScale = vi.fn();
+    const onRotate = vi.fn();
+    const onDone = vi.fn();
+    const { rerender } = render(
+      <StampOverlays
+        stamps={[
+          {
+            ...stamp,
+            rotation: Math.PI / 4,
+            scale: 1.2,
+            screen: { x: 28, y: 48 },
+          },
+        ]}
+        selectedStamp={null}
+        currentPlayerID="player-one"
+        editableEntityIDs={[stamp.entityID]}
+        selectedEntityID={stamp.entityID}
+        onPlace={vi.fn()}
+        onScale={onScale}
+        onRotate={onRotate}
+        onDone={onDone}
+      />,
+    );
+
+    const toolbar = screen.getByRole("group", {
+      name: "Edit selected stamp",
+    });
+    expect(toolbar).toHaveClass("team-lounge-v2__stamp-editor--below");
+    expect(toolbar).toHaveStyle({
+      "--stamp-editor-x": "28px",
+      "--stamp-editor-y": "48px",
+    });
+    expect(
+      screen.queryByRole("menu", { name: "More stamp actions" }),
+    ).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "More stamp actions" }));
+    expect(
+      screen.getByRole("menu", { name: "More stamp actions" }),
+    ).toBeVisible();
+    fireEvent.click(
+      screen.getByRole("menuitem", { name: "Reset stamp appearance" }),
+    );
+    expect(onRotate).toHaveBeenCalledWith(stamp.entityID, 0, false);
+    expect(onScale).toHaveBeenCalledWith(stamp.entityID, 1, false);
+
+    rerender(
+      <StampOverlays
+        stamps={[{ ...stamp, screen: { x: 300, y: 280 } }]}
+        selectedStamp={null}
+        currentPlayerID="player-one"
+        editableEntityIDs={[stamp.entityID]}
+        selectedEntityID={stamp.entityID}
+        onPlace={vi.fn()}
+        onDone={onDone}
+      />,
+    );
+    expect(
+      screen.getByRole("group", { name: "Edit selected stamp" }),
+    ).toHaveClass("team-lounge-v2__stamp-editor--above");
+    expect(
+      screen.queryByRole("menu", { name: "More stamp actions" }),
+    ).toBeNull();
+  });
+
   it("leaves only the moving stamp visible while its edit chrome is suppressed", () => {
     render(
       <StampOverlays

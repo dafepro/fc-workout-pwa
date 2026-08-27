@@ -49,6 +49,10 @@ export function StampOverlays({
   const selected = editingChromeVisible
     ? stamps.find(({ entityID }) => entityID === selectedEntityID)
     : undefined;
+  const [moreActionsEntityID, setMoreActionsEntityID] = useState<string | null>(
+    null,
+  );
+  const moreActionsOpen = selected?.entityID === moreActionsEntityID;
   const editable = new Set(editableEntityIDs);
   const [ghostPoint, setGhostPoint] = useState<{
     assetID: string;
@@ -98,6 +102,7 @@ export function StampOverlays({
               aria-pressed={isSelected}
               onPointerDownCapture={(event) => {
                 event.preventDefault();
+                setMoreActionsEntityID(null);
                 if (isSelected) {
                   event.currentTarget.setPointerCapture?.(event.pointerId);
                   return;
@@ -164,23 +169,20 @@ export function StampOverlays({
       ) : null}
       {selected ? (
         <div
-          className="team-lounge-v2__stamp-edit-controls"
+          className={`team-lounge-v2__stamp-editor ${selected.screen.y < 190 ? "team-lounge-v2__stamp-editor--below" : "team-lounge-v2__stamp-editor--above"}`}
+          style={
+            {
+              "--stamp-editor-x": `${selected.screen.x}px`,
+              "--stamp-editor-y": `${selected.screen.y}px`,
+            } as CSSProperties
+          }
           role="group"
           aria-label="Edit selected stamp"
           data-canvas-pointer-ignore="true"
           onPointerDown={(event) => event.stopPropagation()}
         >
-          <span>Drag the stamp to move it</span>
-          <button
-            className="team-lounge-v2__stamp-edit-done"
-            type="button"
-            onClick={onDone}
-          >
-            Done
-          </button>
-          <div className="team-lounge-v2__stamp-edit-tools">
+          <div className="team-lounge-v2__stamp-editor-toolbar">
             <div role="group" aria-label="Stamp rotation">
-              <span>Turn</span>
               <TransformStepButton
                 ariaLabel="Rotate stamp left 15 degrees"
                 value={selected.rotation}
@@ -192,7 +194,7 @@ export function StampOverlays({
                   onRotate?.(selected.entityID, rotation, false)
                 }
               >
-                ↺ 15°
+                ↺
               </TransformStepButton>
               <TransformStepButton
                 ariaLabel="Rotate stamp right 15 degrees"
@@ -205,14 +207,10 @@ export function StampOverlays({
                   onRotate?.(selected.entityID, rotation, false)
                 }
               >
-                15° ↻
+                ↻
               </TransformStepButton>
-              <output aria-live="polite">
-                {Math.round((selected.rotation * 180) / Math.PI)}°
-              </output>
             </div>
             <div role="group" aria-label="Stamp size">
-              <span>Size</span>
               <TransformStepButton
                 ariaLabel="Make stamp smaller"
                 value={selected.scale}
@@ -238,7 +236,52 @@ export function StampOverlays({
                 +
               </TransformStepButton>
             </div>
+            <button
+              className="team-lounge-v2__stamp-editor-more"
+              type="button"
+              aria-label="More stamp actions"
+              aria-expanded={moreActionsOpen}
+              aria-haspopup="menu"
+              onClick={() =>
+                setMoreActionsEntityID((entityID) =>
+                  entityID === selected.entityID ? null : selected.entityID,
+                )
+              }
+            >
+              •••
+            </button>
           </div>
+          {moreActionsOpen ? (
+            <div
+              className="team-lounge-v2__stamp-editor-menu"
+              role="menu"
+              aria-label="More stamp actions"
+            >
+              <button
+                type="button"
+                role="menuitem"
+                aria-label="Reset stamp appearance"
+                disabled={selected.rotation === 0 && selected.scale === 1}
+                onClick={() => {
+                  onRotate?.(selected.entityID, 0, false);
+                  onScale?.(selected.entityID, 1, false);
+                  setMoreActionsEntityID(null);
+                }}
+              >
+                Reset appearance
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setMoreActionsEntityID(null);
+                  onDone?.();
+                }}
+              >
+                Finish editing
+              </button>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

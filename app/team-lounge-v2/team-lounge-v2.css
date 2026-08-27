@@ -365,102 +365,115 @@
   cursor: wait;
 }
 
-.team-lounge-v2__stamp-edit-controls {
+.team-lounge-v2__stamp-editor {
   position: absolute;
   z-index: 5;
-  right: 0.65rem;
-  bottom: 2.8rem;
-  left: 0.65rem;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.45rem 0.55rem;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 0.85rem;
-  background: rgba(3, 24, 30, 0.9);
-  box-shadow: 0 0.55rem 1.1rem rgba(1, 25, 31, 0.3);
+  top: var(--stamp-editor-y);
+  left: clamp(7rem, var(--stamp-editor-x), calc(100% - 7rem));
+  width: max-content;
+  max-width: calc(100% - 0.8rem);
   color: white;
-  font-size: 0.75rem;
-  font-weight: 800;
+  font-size: 0.78rem;
+  font-weight: 850;
   pointer-events: auto;
 }
 
-.team-lounge-v2__stamp-edit-tools {
-  grid-column: 1 / -1;
+.team-lounge-v2__stamp-editor--above {
+  transform: translate(-50%, calc(-100% - 2.65rem));
+}
+
+.team-lounge-v2__stamp-editor--below {
+  transform: translate(-50%, 2.65rem);
+}
+
+.team-lounge-v2__stamp-editor-toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.45rem;
+  gap: 0.3rem;
+  padding: 0.32rem;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(3, 24, 30, 0.94);
+  box-shadow: 0 0.55rem 1.1rem rgba(1, 25, 31, 0.3);
+  backdrop-filter: blur(0.45rem);
 }
 
-.team-lounge-v2__stamp-edit-tools [role="group"] {
+.team-lounge-v2__stamp-editor-toolbar [role="group"] {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.16rem;
 }
 
-.team-lounge-v2__stamp-edit-tools [role="group"] > span {
-  margin-right: 0.1rem;
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 0.68rem;
-}
-
-.team-lounge-v2__stamp-edit-controls button {
-  min-width: 2rem;
-  min-height: 2rem;
-  padding: 0.3rem 0.55rem;
+.team-lounge-v2__stamp-editor button {
+  min-width: 2.35rem;
+  min-height: 2.35rem;
+  padding: 0.3rem 0.48rem;
   border: 0;
-  border-radius: 0.6rem;
+  border-radius: 999px;
   background: rgba(255, 255, 255, 0.13);
   color: white;
   font: inherit;
+  font-size: 1rem;
   touch-action: none;
   user-select: none;
 }
 
-.team-lounge-v2__stamp-edit-controls button:active {
+.team-lounge-v2__stamp-editor button:active {
   background: var(--lounge-lime);
   color: #05242a;
 }
 
-.team-lounge-v2__stamp-edit-tools output {
-  min-width: 2.25rem;
+.team-lounge-v2__stamp-editor-toolbar [role="group"] + [role="group"],
+.team-lounge-v2__stamp-editor-more {
+  margin-left: 0.14rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.team-lounge-v2__stamp-editor .team-lounge-v2__stamp-editor-more {
+  min-width: 2.55rem;
+  padding-bottom: 0.52rem;
   color: var(--lounge-lime);
-  font-size: 0.68rem;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
+  letter-spacing: 0.08em;
 }
 
-.team-lounge-v2__stamp-edit-controls .team-lounge-v2__stamp-edit-done {
-  background: var(--lounge-lime);
-  color: #05242a;
+.team-lounge-v2__stamp-editor-menu {
+  position: absolute;
+  left: 50%;
+  display: grid;
+  width: 10.5rem;
+  padding: 0.32rem;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.8rem;
+  background: rgba(3, 24, 30, 0.96);
+  box-shadow: 0 0.55rem 1.1rem rgba(1, 25, 31, 0.34);
+  backdrop-filter: blur(0.45rem);
 }
 
-.team-lounge-v2__stamp-edit-controls button[aria-pressed="true"] {
-  box-shadow: inset 0 0 0 0.1rem var(--lounge-lime);
-  color: var(--lounge-lime);
+.team-lounge-v2__stamp-editor--above .team-lounge-v2__stamp-editor-menu {
+  bottom: calc(100% + 0.4rem);
 }
 
-.team-lounge-v2__stamp-edit-controls button:disabled {
+.team-lounge-v2__stamp-editor--below .team-lounge-v2__stamp-editor-menu {
+  top: calc(100% + 0.4rem);
+}
+
+.team-lounge-v2__stamp-editor-menu button {
+  width: 100%;
+  min-height: 2.45rem;
+  padding-inline: 0.7rem;
+  border-radius: 0.55rem;
+  background: transparent;
+  font-size: 0.76rem;
+  text-align: left;
+}
+
+.team-lounge-v2__stamp-editor-menu button + button {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.team-lounge-v2__stamp-editor button:disabled {
   opacity: 0.42;
-}
-
-@media (max-width: 340px) {
-  .team-lounge-v2__stamp-edit-controls {
-    right: 0.4rem;
-    left: 0.4rem;
-    padding-inline: 0.42rem;
-  }
-
-  .team-lounge-v2__stamp-edit-controls button {
-    min-width: 1.85rem;
-    padding-inline: 0.35rem;
-  }
-
-  .team-lounge-v2__stamp-edit-tools {
-    gap: 0.25rem;
-  }
 }
 
 .team-lounge-v2__visit-traces {
