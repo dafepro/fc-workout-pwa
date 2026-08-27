@@ -100,3 +100,5 @@ Each step is test-first and small enough to review independently.
   the upgraded database then accepts linked plans/rest, Prize Boxes, canonical Lounge inventory, Team Rewards, and their event ledger.
 - Disposable-dev API smoke: proves dev player/staff sign-in, published plans and planned rest, sealed Prize Box claim/open and inventory, and privacy-safe Team Rewards;
   fresh infrastructure runs it after fixture seeding, while the geographically gated canonical Lounge browser proof remains an explicit follow-up.
+- Release-candidate verification: both build profiles, 293 frontend tests, production/dev-tagged Linux Go suites, migration paths, deployment contracts, and VM persistence/backup passed;
+  the real Docker stack passed its migrated API suite and all 24 browser workflows, including the canonical 320px canvas Lounge.
