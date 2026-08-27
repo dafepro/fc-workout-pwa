@@ -10,7 +10,7 @@ vi.mock("../../lib/analytics/AnalyticsProvider", () => ({
 
 describe("TodayAdditionalAction", () => {
   it("keeps additional activity logging on Today", () => {
-    render(<TodayAdditionalAction />);
+    render(<TodayAdditionalAction showAdditionalWorkout />);
 
     const action = screen.getByRole("link", {
       name: /Log another activity/i,
@@ -26,5 +26,17 @@ describe("TodayAdditionalAction", () => {
       source: "navigation",
       defaulted_activity: true,
     });
+  });
+
+  it("always offers the one Prize Boxes destination", () => {
+    render(<TodayAdditionalAction showAdditionalWorkout={false} />);
+
+    expect(screen.getByRole("link", { name: /Prize boxes/i })).toHaveAttribute(
+      "href",
+      "/prizes",
+    );
+    expect(
+      screen.queryByRole("link", { name: /Log another activity/i }),
+    ).not.toBeInTheDocument();
   });
 });

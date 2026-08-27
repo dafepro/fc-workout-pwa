@@ -80,3 +80,5 @@ Each step is test-first and small enough to review independently.
   partial work stays locked and counts no team completion, while IDs and performance details remain private.
 - Prize Box authority: consolidated sealed daily and 3/7-day plan awards into one idempotent ledger;
   opening grants predefined nonduplicate Avatar or canonical Team Lounge inventory, with backups included.
+- Player Prize Boxes: added one `/prizes` flow from Today for sealed daily claims, earned-box opening,
+  reward reveal, and consolidated collection history; failed mutations reuse their idempotency keys.

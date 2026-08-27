@@ -185,7 +185,7 @@ export default function HomePage() {
 
       {currentPlan ? <PlanWeekStrip plan={currentPlan} /> : null}
 
-      {primaryComplete ? <TodayAdditionalAction /> : null}
+      <TodayAdditionalAction showAdditionalWorkout={primaryComplete} />
 
       <SessionList
         entries={personalEntries}

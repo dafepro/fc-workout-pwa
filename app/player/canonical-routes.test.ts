@@ -35,4 +35,13 @@ describe("canonical player routes", () => {
     expect(existsSync(join(routeDirectory, "route.ts"))).toBe(false);
     expect(existsSync(join(routeDirectory, "route.dev.ts"))).toBe(true);
   });
+
+  it("ships one consolidated Prize Boxes route without an alternate gallery", () => {
+    expect(existsSync(join(process.cwd(), "app", "prizes", "page.tsx"))).toBe(
+      true,
+    );
+    expect(
+      existsSync(join(process.cwd(), "app", "prizes", "all", "page.tsx")),
+    ).toBe(false);
+  });
 });
