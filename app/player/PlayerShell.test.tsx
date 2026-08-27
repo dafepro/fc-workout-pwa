@@ -28,10 +28,6 @@ vi.mock("../components/PlayerAvatar", () => ({
   PlayerAvatar: () => <span data-testid="player-avatar" />,
 }));
 
-vi.mock("../../lib/analytics/AnalyticsProvider", () => ({
-  useAnalytics: () => ({ track: vi.fn() }),
-}));
-
 describe("PlayerShell", () => {
   beforeEach(() => {
     pathname = "/";
@@ -68,6 +64,26 @@ describe("PlayerShell", () => {
     expect(
       within(navigations[0]).getByRole("link", { name: "Today" }),
     ).toHaveAttribute("aria-current", "page");
+    expect(
+      screen.queryByRole("link", { name: "Record training" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("does not add a global training action outside Today", () => {
+    pathname = "/team";
+
+    render(
+      <PlayerShell>
+        <p>Team screen</p>
+      </PlayerShell>,
+    );
+
+    expect(
+      screen.queryByRole("link", { name: "Record training" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Close training entry" }),
+    ).not.toBeInTheDocument();
   });
 
   it("keeps avatar editing focused and marks Me active", () => {

@@ -11,6 +11,7 @@ import { players, WEEKLY_GOAL } from "./data/mockData";
 import { activityDays, currentStreak, entriesWithinDays } from "./domain/rules";
 import { useTraining } from "./state/training-context";
 import { useAuth } from "./state/auth-context";
+import { TodayAdditionalAction } from "./player/TodayAdditionalAction";
 
 export default function HomePage() {
   const {
@@ -174,6 +175,8 @@ export default function HomePage() {
           <span className="hill-art__runner">🏃</span>
         </div>
       </section>
+
+      {assignmentComplete ? <TodayAdditionalAction /> : null}
 
       <section
         className={`goal-card ${isCelebrating ? "goal-card--celebrating" : ""}`}

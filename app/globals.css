@@ -290,31 +290,6 @@ h2 {
   content: "";
 }
 
-.training-fab {
-  position: fixed;
-  z-index: 24;
-  right: 1rem;
-  bottom: calc(5rem + env(safe-area-inset-bottom));
-  display: grid;
-  width: 4rem;
-  height: 4rem;
-  place-items: center;
-  border: 3px solid white;
-  border-radius: 50%;
-  background: var(--lime);
-  box-shadow: 0 14px 28px rgb(11 18 61 / 26%);
-  color: var(--ink);
-  font-size: 2.35rem;
-  font-weight: 500;
-  line-height: 1;
-}
-
-.training-fab--close {
-  border-color: rgb(255 255 255 / 85%);
-  background: var(--ink);
-  color: white;
-}
-
 .toast-overlay {
   position: fixed;
   z-index: 40;
@@ -1231,6 +1206,48 @@ h2 {
   display: grid;
   align-items: center;
   gap: 1rem;
+}
+
+.today-additional-action {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 1.15rem;
+}
+
+.today-additional-action h2,
+.today-additional-action strong,
+.today-additional-action small {
+  margin: 0;
+}
+
+.today-additional-action h2 {
+  font-size: 1rem;
+}
+
+.today-additional-action > a {
+  display: flex;
+  min-height: 3.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.today-additional-action > a > span:first-child {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.today-additional-action small {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.today-additional-action > a > span:last-child {
+  font-size: 1.25rem;
+  font-weight: 900;
 }
 .team-preview h2 {
   margin-bottom: 0.3rem;
@@ -3220,10 +3237,6 @@ h2 {
   .bottom-nav {
     display: none;
   }
-  .training-fab {
-    right: 2rem;
-    bottom: 2rem;
-  }
   .main-content {
     padding-bottom: 0;
   }
@@ -3231,6 +3244,9 @@ h2 {
     min-height: 22rem;
   }
   .goal-card {
+    padding: 1.6rem;
+  }
+  .today-additional-action {
     padding: 1.6rem;
   }
   .page--team .challenge-card {

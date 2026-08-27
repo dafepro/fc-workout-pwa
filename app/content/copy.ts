@@ -45,6 +45,11 @@ export const copy = {
       "Drained",
     ],
   },
+  today: {
+    moreForToday: "More for today",
+    logAnother: "Log another activity",
+    logAnotherDetail: "Record something outside today’s completed workout.",
+  },
   log: {
     overMax: (max: number, unit: string) => `Max is ${max} ${unit}`,
     underMin: (min: number, unit: string) => `Min is ${min} ${unit}`,

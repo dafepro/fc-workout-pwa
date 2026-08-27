@@ -51,3 +51,8 @@ gates.
    destroy/create evidence.
 
 Each step is test-first and small enough to review independently.
+
+## Completed slices
+
+- Focused Today logging: moved additional-session entry into completed Today,
+  removed the global floating action, and updated connected workflow coverage.

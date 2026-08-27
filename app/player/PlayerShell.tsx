@@ -7,7 +7,6 @@ import { PlayerAvatar } from "../components/PlayerAvatar";
 import { copy } from "../content/copy";
 import { routes } from "../content/routes";
 import { useAuth } from "../state/auth-context";
-import { useAnalytics } from "../../lib/analytics/AnalyticsProvider";
 
 const SERVICE_WORKER_URL = "/sw.js?v=4";
 
@@ -20,8 +19,6 @@ const navigation = [
 export function PlayerShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { currentPlayer: player } = useAuth();
-  const analytics = useAnalytics();
-  const logging = pathname === "/log";
   const focused = pathname === routes.playerAvatar;
 
   useEffect(() => {
@@ -99,26 +96,9 @@ export function PlayerShell({ children }: { children: React.ReactNode }) {
       </aside>
       <main className="main-content">{children}</main>
       {!focused ? (
-        <>
-          <Link
-            className={`training-fab ${logging ? "training-fab--close" : ""}`}
-            href={logging ? "/" : "/log"}
-            aria-label={logging ? "Close training entry" : "Record training"}
-            onClick={() => {
-              if (!logging) {
-                analytics.track("training_entry_started", {
-                  source: "fab",
-                  defaulted_activity: true,
-                });
-              }
-            }}
-          >
-            <span aria-hidden="true">{logging ? "−" : "+"}</span>
-          </Link>
-          <nav className="bottom-nav" aria-label="Primary navigation">
-            {links}
-          </nav>
-        </>
+        <nav className="bottom-nav" aria-label="Primary navigation">
+          {links}
+        </nav>
       ) : null}
     </div>
   );

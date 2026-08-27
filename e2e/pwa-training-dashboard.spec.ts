@@ -34,7 +34,7 @@ test.beforeEach(async () => {
   await api.dispose();
 });
 
-test("connected Home and Record Training use the server assignment", async ({
+test("connected Today and activity logging use the server assignment", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 320, height: 700 });
@@ -47,12 +47,9 @@ test("connected Home and Record Training use the server assignment", async ({
   ).toBeVisible();
 
   await page.getByRole("link", { name: /Log session/i }).click();
-  await expect(page.getByRole("link", { name: "Record training" })).toHaveCount(
-    0,
-  );
   await expect(
     page.getByRole("link", { name: "Close training entry" }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expect(
     page
       .locator(".selected-activity")
@@ -130,7 +127,8 @@ test("connected Home and Record Training use the server assignment", async ({
 
   const firstEffort = await playerEffort(api);
 
-  await page.getByRole("link", { name: "Record training" }).click();
+  await page.getByRole("link", { name: "Today" }).click();
+  await page.getByRole("link", { name: /Log another activity/i }).click();
   const secondCreateResponse = page.waitForResponse(
     (response) =>
       response.url().includes("/api/zoomigo/v1/me/training-entries") &&
