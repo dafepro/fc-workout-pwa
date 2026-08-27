@@ -26,6 +26,7 @@ import (
 
 func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 	ctx := context.Background()
+	now := time.Date(2026, time.August, 26, 18, 0, 0, 0, time.UTC)
 	databaseURL := "file:" + filepath.ToSlash(filepath.Join(t.TempDir(), "team-lounge-http.db"))
 	db, err := database.Open(ctx, databaseURL)
 	if err != nil {
@@ -61,6 +62,7 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 		config.Config{Environment: "development", AllowedOrigin: "http://example.test"},
 		httpapi.WithStore(repository),
 		httpapi.WithTeamLoungeStore(loungeStore),
+		httpapi.WithE2EClock(func() time.Time { return now }, func(time.Time) {}, func() {}),
 		httpapi.WithAuthenticator(socialAuthenticator{actor: domain.Actor{
 			Role: domain.RolePlayer, PlayerID: "player-one", ClubID: "club-one",
 		}}),
@@ -73,7 +75,7 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 	if restRecorder.Code != http.StatusNoContent {
 		t.Fatalf("rest status = %d: %s", restRecorder.Code, restRecorder.Body.String())
 	}
-	visitorAt := time.Now().UTC().Add(-time.Hour)
+	visitorAt := now.Add(-time.Hour)
 	if _, err := db.ExecContext(ctx, `INSERT INTO training_entries (
 		id, player_id, team_id, activity_definition_id, occurred_at, result_value,
 		result_unit, effort_level, exhaustion_level, created_at, delete_eligible_until
@@ -84,7 +86,7 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 	}
 	projection, err := repository.TeamCanvas(ctx, domain.Actor{
 		Role: domain.RolePlayer, PlayerID: "player-one", ClubID: "club-one",
-	}, "team-one", time.Now().UTC())
+	}, "team-one", now)
 	if err != nil {
 		t.Fatal(err)
 	}
