@@ -76,6 +76,7 @@ export const consoleCopy = {
     training: "Training",
     progress: "Progress",
     roster: "Roster",
+    reward: "Team Reward",
   },
   progress: {
     title: "This week",
@@ -106,6 +107,29 @@ export const consoleCopy = {
     // F-C8 allows a coach raw values on their own team; the surface still says
     // nothing about anyone's assessments (REQ-508).
     privacy: "Only you and other staff on this team can see this.",
+  },
+  teamReward: {
+    title: "Team Reward",
+    devHint:
+      "Development control — this screen is not included in production builds.",
+    startsOn: "Starts on",
+    endsOn: "Ends on",
+    requiredDays: "Days to earn",
+    participation: "Team participation",
+    participationOption: (percent: number) => `${percent}% of active players`,
+    publish: "Publish reward",
+    published: "Reward published.",
+    cancel: "Cancel reward",
+    cancelQuestion:
+      "Cancel this team reward? Player progress will stop showing.",
+    cancelConfirm: "Yes, cancel reward",
+    cancelled: "Reward cancelled.",
+    progress: (current: number, target: number) =>
+      `${current} of ${target} qualifying days`,
+    rule: (days: number, percent: number) =>
+      `${days} days with ${percent}% team participation`,
+    window: (start: string, end: string) => `${start} to ${end}`,
+    none: "No active team reward.",
   },
   home: {
     coachTitle: "Coach console",

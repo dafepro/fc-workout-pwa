@@ -90,3 +90,5 @@ Each step is test-first and small enough to review independently.
   progress counts distinct active players through accepted plan work or planned rest and exposes aggregates only.
 - Player Team Reward: added one optional card to the canonical Team view with predefined art, copy, and team-day progress;
   absent rewards render no placeholder, achieved rewards celebrate in place, and no contributor or performance details appear.
+- Development Team Reward control: added a dev-profile-only coach route with one predefined reward and structured dates/rules;
+  publish retries keep one idempotency key, aggregate progress can be reviewed, cancellation is confirmed, and production route discovery omits it.
