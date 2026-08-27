@@ -74,6 +74,9 @@ export function TeamLoungeV2({
     overTrash: boolean;
   } | null>(null);
   const [stampDeleteError, setStampDeleteError] = useState<string | null>(null);
+  const [stampDeleteErrorReason, setStampDeleteErrorReason] = useState<
+    string | null
+  >(null);
   const [placeableStamps, setPlaceableStamps] = useState<
     LoungePlaceableStamp[] | null
   >(null);
@@ -232,6 +235,7 @@ export function TeamLoungeV2({
             onPlacementError={(reason) => {
               if (stampDragState) {
                 if (reason !== "stamp_invalid_placement") {
+                  setStampDeleteErrorReason(reason);
                   setStampDeleteError(
                     copy.placementErrors[reason] ?? copy.deleteStampError,
                   );
@@ -239,6 +243,7 @@ export function TeamLoungeV2({
                 return;
               }
               if (selectedStamp === null && !placementPending) {
+                setStampDeleteErrorReason(reason);
                 setStampDeleteError(
                   copy.placementErrors[reason] ?? copy.deleteStampError,
                 );
@@ -258,10 +263,12 @@ export function TeamLoungeV2({
               if (state) {
                 setTray(null);
                 setStampDeleteError(null);
+                setStampDeleteErrorReason(null);
               }
               setStampDragState(state);
             }}
             onStampDeleteError={(reason) => {
+              setStampDeleteErrorReason(reason);
               setStampDeleteError(
                 copy.placementErrors[reason] ?? copy.deleteStampError,
               );
@@ -437,7 +444,11 @@ export function TeamLoungeV2({
         </nav>
       )}
       {stampDeleteError ? (
-        <p className="team-lounge-v2__action-error" role="alert">
+        <p
+          className="team-lounge-v2__action-error"
+          role="alert"
+          data-error-reason={stampDeleteErrorReason ?? "unknown"}
+        >
           {stampDeleteError}
         </p>
       ) : null}

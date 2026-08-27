@@ -138,6 +138,9 @@ describe("StampOverlays", () => {
       pointerType: "touch",
     });
     expect(canvasPointerDown).toHaveBeenCalledTimes(1);
+    expect(canvasPointerDown.mock.calls[0]?.[0]).toMatchObject({
+      defaultPrevented: true,
+    });
   });
 
   it("keeps edit controls selected when the Canvas pointer surface sees empty-space taps", () => {

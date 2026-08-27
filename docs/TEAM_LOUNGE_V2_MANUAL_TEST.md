@@ -153,6 +153,13 @@ theme metadata.
     release over the trash: the stamp should disappear for both viewers and its
     weekly placement should become available again. A teammate's or prior-day
     stamp must never expose this deletion gesture.
+31. On mobile, select today's stamp and start a vertical drag directly on its
+    artwork. The stamp—not the page—must move for the full gesture. Start the
+    same vertical drag on empty room space and confirm the page can still
+    scroll. Repeat placement and trash removal several times with quick and
+    slow releases. Wait at least two seconds after each removal; no delayed
+    removal error or stamp inventory may appear. A real rejected delete should
+    keep the stamp visible and show one inline error.
 
 ## Mobile and lifecycle checks
 

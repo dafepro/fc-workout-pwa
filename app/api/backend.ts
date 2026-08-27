@@ -3,6 +3,7 @@ import {
   missingBackendCodeFor,
   resolveBackendBaseURL,
   resolveBackendRequired,
+  resolveDevAccessEnabled,
 } from "./backend-config";
 
 export const SESSION_COOKIE = "__Host-zoomigo_session";
@@ -29,7 +30,16 @@ export function backendHeaders(initial?: HeadersInit): Headers {
 export function devAccessEnabled(): boolean {
   const workerValue = (env as { DEV_ACCESS_ENABLED?: string })
     .DEV_ACCESS_ENABLED;
-  return (workerValue?.trim() || process.env.DEV_ACCESS_ENABLED) === "true";
+  const e2ePlayerControls = (
+    env as { E2E_PLAYER_DEV_CONTROLS_ENABLED?: string }
+  ).E2E_PLAYER_DEV_CONTROLS_ENABLED;
+  if (
+    process.env.NODE_ENV !== "production" &&
+    e2ePlayerControls?.trim() === "true"
+  ) {
+    return true;
+  }
+  return resolveDevAccessEnabled(process.env.DEV_ACCESS_ENABLED, workerValue);
 }
 
 export function backendRequired(): boolean {

@@ -3,6 +3,7 @@ import {
   missingBackendCodeFor,
   resolveBackendBaseURL,
   resolveBackendRequired,
+  resolveDevAccessEnabled,
 } from "./backend-config";
 
 describe("resolveBackendBaseURL", () => {
@@ -42,5 +43,13 @@ describe("resolveBackendRequired", () => {
   it("uses a non-prototype error when production requires the backend", () => {
     expect(missingBackendCodeFor(true)).toBe("backend_required");
     expect(missingBackendCodeFor(false)).toBe("backend_not_configured");
+  });
+});
+
+describe("resolveDevAccessEnabled", () => {
+  it("lets an explicit Node test runtime override the Worker default", () => {
+    expect(resolveDevAccessEnabled("true", "false")).toBe(true);
+    expect(resolveDevAccessEnabled(undefined, "true")).toBe(true);
+    expect(resolveDevAccessEnabled(undefined, "false")).toBe(false);
   });
 });

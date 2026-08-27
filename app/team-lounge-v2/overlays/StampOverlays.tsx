@@ -98,8 +98,11 @@ export function StampOverlays({
               aria-label={label}
               aria-pressed={isSelected}
               onPointerDownCapture={(event) => {
-                if (isSelected) return;
                 event.preventDefault();
+                if (isSelected) {
+                  event.currentTarget.setPointerCapture?.(event.pointerId);
+                  return;
+                }
                 event.stopPropagation();
                 onSelect?.(entityID);
               }}

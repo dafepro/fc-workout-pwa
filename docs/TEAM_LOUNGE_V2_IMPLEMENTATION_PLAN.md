@@ -402,11 +402,13 @@ frames. Crossing between the canvas and trash target therefore cannot flicker
 the edit UI, and an expected out-of-room move preview rejection never opens the
 placement catalog.
 
-Canvas reports durable rejection reasons without the originating command kind,
-so a bounded post-drag window ignores only `stamp_invalid_placement`. This keeps
-a late rejected move preview from being mistaken for a failed delete after the
-canonical stamp has already disappeared. Other delete failures still surface,
-and all non-placement edit errors render inline rather than opening inventory.
+Canvas reports durable rejection reasons with the originating entity and
+command kind. Zoomigo therefore distinguishes an authoritative rejected delete
+from the trailing move rejection produced when the pointer is released over the
+off-canvas trash target. The bounded post-drag window treats both
+`stamp_invalid_placement` and Canvas's canonical `outside_canvas` reason as
+expected gesture cleanup. Other delete failures still surface, and all
+non-placement edit errors render inline rather than opening inventory.
 
 Zoomigo authorizes the durable delete by authenticated owner and canonical
 placement day. The entity disappears for every viewer; permanent collection
@@ -426,6 +428,41 @@ backend/internal/teamlounge/
   placements.go                            # owner/day delete authorization
 docs/
   TEAM_LOUNGE_V2_MANUAL_TEST.md            # live two-viewer deletion proof
+```
+
+### Segment 4T hardening — browser-owned stamp gestures and delete authority
+
+The selected stamp claims its pointer gesture before Chrome can start vertical
+page scrolling; empty room space keeps `pan-y` behavior. Deletion settles from
+the exact entity's authoritative projection and exact rejected command rather
+than whichever Canvas rejection happens next. A successful removal cannot be
+contradicted by a late move rejection, while a rejected delete still reports an
+inline error if the entity remains.
+
+The Canvas dependency preserves behaviorless item metadata in host checkpoints
+and decorates host presentation frames with that durable metadata. This keeps a
+newly placed stamp editable for its canonical placement day on both host and
+peer clients and across reconnects.
+
+A real Docker browser test uses mobile Chromium touch dispatch with a seeded
+random sequence. Six placement/move/delete cycles vary positions and event
+delays, assert that stamp drags do not move `window.scrollY`, wait past delayed
+rejection timing, and prove neither the stamp catalog nor a false removal alert
+appears.
+
+Proposed file tree for this hardening slice:
+
+```text
+app/team-lounge-v2/
+  SharedLoungeCanvas.tsx                   # entity/operation-scoped rejection handling
+  adapter.tsx                              # inline error diagnostics without reopening menus
+  overlays/StampOverlays.tsx               # selected-stamp pointer ownership
+e2e/
+  pwa-team-lounge-v2.spec.ts               # randomized real-touch delete/scroll regression
+vendor/canvas/
+  canvas-physics-client-0.1.0.tgz          # durable host metadata and rejection context
+Dockerfile.e2e                             # install vendored packages before dependency install
+backend/compose.e2e.yaml                   # non-production V2 selector capability
 ```
 
 ### Candidate Segment 3B — predefined quick team phrases

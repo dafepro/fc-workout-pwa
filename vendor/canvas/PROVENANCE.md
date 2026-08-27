@@ -7,8 +7,8 @@ not need private GitHub or npm registry credentials.
 | Field                         | Value                                          |
 | ----------------------------- | ---------------------------------------------- |
 | Source repository             | `https://github.com/dafepro/canvas.git`        |
-| Package archive source commit | `9efe474e4cad3f307e56b58acb0ad278b2eaf118`     |
-| Package archive source date   | `2026-08-26T11:44:51-05:00`                    |
+| Package archive source commit | `238d317a69f931560c60aa217465572098a270a6`     |
+| Package archive source date   | `2026-08-26T19:25:57-05:00`                    |
 | Package version               | `0.1.0`                                        |
 | Go rooms SDK source commit    | `d12ffe9e056029e90c32d8e4e02d07f8f08195af`     |
 | Go rooms SDK                  | `v0.0.0-20260826195321-d12ffe9e0560`           |
@@ -20,7 +20,7 @@ not need private GitHub or npm registry credentials.
 
 | Archive                             | Digest                                                             |
 | ----------------------------------- | ------------------------------------------------------------------ |
-| `canvas-physics-client-0.1.0.tgz`   | `B2B3A21963C32A445D65D49AE4DE40F8A4A041F0B4E09AAFE59DB8A477C19C92` |
+| `canvas-physics-client-0.1.0.tgz`   | `6D6BE0027AC5A78873CE2D6772485114BDE6968085FB97A4EEE404881A56DBBE` |
 | `canvas-physics-core-0.1.0.tgz`     | `A914EAEBEC44B74E972456DF905EB9661C3644328C046774E9C47956C85EC3E7` |
 | `canvas-physics-protocol-0.1.0.tgz` | `C6529015464A2541EA2BBF247170ECDA6C255DBC1672A344B07CE545B95E584A` |
 
@@ -36,12 +36,11 @@ pnpm --filter @canvas-physics/client exec tsc --noEmit
 pnpm build
 ```
 
-Result: the Go SDK package passed, the full Canvas suite passed 363 tests, the
-client typecheck passed, and all three packages built. The coordinated change
-holds consumer-triggered item previews and scale/rotation commits until the
-canonical transform catches up, preventing old projections from shaking the
-local item during a server round trip. Core and protocol archive digests are
-unchanged.
+Result: 55 targeted durable-command, host simulation, and replication tests
+passed and the client typecheck passed. Behaviorless items retain metadata in
+checkpoints and host presentation frames, and rejected commands expose their
+entity and operation so consumers can distinguish a failed delete from a late
+drag update. Core and protocol archive digests are unchanged.
 
 ## Rebuild
 

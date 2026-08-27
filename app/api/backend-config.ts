@@ -30,6 +30,13 @@ export function resolveBackendRequired(
   throw new Error("ZOOMIGO_REQUIRE_BACKEND must be true or false");
 }
 
+export function resolveDevAccessEnabled(
+  nodeValue: string | undefined,
+  workerValue: string | undefined,
+): boolean {
+  return (nodeValue?.trim() || workerValue?.trim()) === "true";
+}
+
 export function missingBackendCodeFor(required: boolean): string {
   return required ? "backend_required" : "backend_not_configured";
 }

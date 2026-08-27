@@ -40,6 +40,7 @@ services:
       api:
         condition: service_healthy
     environment:
+      E2E_PLAYER_DEV_CONTROLS_ENABLED: "true"
       ZOOMIGO_API_BASE_URL: http://api:8080
     healthcheck:
       test:

@@ -15,6 +15,7 @@ import type {
   ParticipantPresence,
   RuntimeDiagnostics,
 } from "@canvas-physics/client";
+import { DurableCommandKind } from "@canvas-physics/protocol";
 import type { StampAsset } from "../team-canvas/model";
 import {
   prepareTeamLoungeJoin,
@@ -63,6 +64,7 @@ const visitTraceWorldAnchors = [
   { x: 48, y: 125 },
 ] as const;
 const postDragRejectionGraceMs = 2_000;
+const deleteRejectionConfirmationMs = 1_500;
 
 export interface LoungePlacementSummary {
   earned: number;
@@ -131,7 +133,6 @@ export function SharedLoungeCanvas({
   >(undefined);
   const ownStampCountRef = useRef(0);
   const placementPendingRef = useRef(false);
-  const deletionPendingRef = useRef(false);
   const stampEditingEnabledRef = useRef(stampEditingEnabled);
   const [overlays, setOverlays] = useState<LoungeParticipantOverlay[]>([]);
   const [stampOverlays, setStampOverlays] = useState<LoungeStampOverlay[]>([]);
@@ -213,9 +214,16 @@ export function SharedLoungeCanvas({
     let lastPlacementSummary = "";
     let avatarPointerRestoreTimer: number | undefined;
     let draggedStampID: string | null = null;
-    let deletingStampID: string | null = null;
     let dragOverTrash = false;
     let ignoreInvalidPlacementUntil = 0;
+    let ignoreEditRejectionsUntil = 0;
+    let deleteAttempt:
+      | {
+          entityID: string;
+          rejectedReason: string | null;
+          confirmationTimer: number | undefined;
+        }
+      | undefined;
     const extendDragRejectionGrace = () => {
       ignoreInvalidPlacementUntil = Date.now() + postDragRejectionGraceMs;
     };
@@ -245,6 +253,38 @@ export function SharedLoungeCanvas({
       if (!disposed) setDraggedEditEntityID(null);
       onStampDragStateChangeRef.current?.(null);
     };
+    const clearDeleteAttempt = (succeeded = false) => {
+      if (deleteAttempt?.confirmationTimer !== undefined) {
+        window.clearTimeout(deleteAttempt.confirmationTimer);
+      }
+      deleteAttempt = undefined;
+      if (succeeded) {
+        ignoreEditRejectionsUntil = Date.now() + postDragRejectionGraceMs;
+      }
+    };
+    const confirmRejectedDelete = () => {
+      const attempt = deleteAttempt;
+      if (!attempt?.rejectedReason) return;
+      if (!projections.some(({ entityId }) => entityId === attempt.entityID)) {
+        clearDeleteAttempt(true);
+        return;
+      }
+      const reason = attempt.rejectedReason;
+      clearDeleteAttempt();
+      onStampDeleteErrorRef.current?.(reason);
+    };
+    const holdDeleteRejection = (reason: string) => {
+      const attempt = deleteAttempt;
+      if (!attempt) return;
+      attempt.rejectedReason = reason;
+      if (attempt.confirmationTimer !== undefined) {
+        window.clearTimeout(attempt.confirmationTimer);
+      }
+      attempt.confirmationTimer = window.setTimeout(
+        confirmRejectedDelete,
+        deleteRejectionConfirmationMs,
+      );
+    };
     const trackStampDrag = (event: PointerEvent) => {
       if (!draggedStampID) return;
       extendDragRejectionGrace();
@@ -257,8 +297,12 @@ export function SharedLoungeCanvas({
       const shouldDelete = isOverTrash(event);
       clearStampDrag();
       if (!shouldDelete || !runtime) return;
-      deletionPendingRef.current = true;
-      deletingStampID = entityID;
+      clearDeleteAttempt();
+      deleteAttempt = {
+        entityID,
+        rejectedReason: null,
+        confirmationTimer: undefined,
+      };
       runtime.clearItemEditSelection();
       runtime.deleteItem(entityID);
       event.preventDefault();
@@ -423,16 +467,41 @@ export function SharedLoungeCanvas({
         onError: (error: CanvasConsumerError) => {
           if (disposed) return;
           if (error.code === "durable_command_rejected") {
+            const rejectedEntityID =
+              typeof error.details?.entityId === "string"
+                ? error.details.entityId
+                : null;
+            const rejectedCommandKind = error.details?.commandKind;
             if (
-              error.message === "stamp_invalid_placement" &&
+              (error.message === "stamp_invalid_placement" ||
+                error.message === "outside_canvas") &&
               Date.now() <= ignoreInvalidPlacementUntil
             ) {
               return;
             }
-            if (deletionPendingRef.current) {
-              deletionPendingRef.current = false;
-              deletingStampID = null;
-              onStampDeleteErrorRef.current?.(error.message);
+            if (
+              deleteAttempt &&
+              rejectedEntityID === deleteAttempt.entityID &&
+              rejectedCommandKind === DurableCommandKind.DURABLE_DELETE_ITEM &&
+              !placementPendingRef.current
+            ) {
+              holdDeleteRejection(error.message);
+              return;
+            }
+            if (
+              deleteAttempt &&
+              rejectedEntityID === deleteAttempt.entityID &&
+              (rejectedCommandKind === DurableCommandKind.DURABLE_MOVE_ITEM ||
+                rejectedCommandKind ===
+                  DurableCommandKind.DURABLE_ROTATE_ITEM ||
+                rejectedCommandKind === DurableCommandKind.DURABLE_SCALE_ITEM)
+            ) {
+              return;
+            }
+            if (
+              !placementPendingRef.current &&
+              Date.now() <= ignoreEditRejectionsUntil
+            ) {
               return;
             }
             updatePlacementPending(false);
@@ -500,12 +569,12 @@ export function SharedLoungeCanvas({
           };
           projections = snapshot.entities;
           if (
-            deletionPendingRef.current &&
-            deletingStampID !== null &&
-            !projections.some(({ entityId }) => entityId === deletingStampID)
+            deleteAttempt &&
+            !projections.some(
+              ({ entityId }) => entityId === deleteAttempt?.entityID,
+            )
           ) {
-            deletionPendingRef.current = false;
-            deletingStampID = null;
+            clearDeleteAttempt(true);
           }
           publishOverlays();
         },
@@ -568,6 +637,7 @@ export function SharedLoungeCanvas({
       document.removeEventListener("pointercancel", clearStampDrag, true);
       window.removeEventListener("blur", clearStampDrag);
       clearStampDrag();
+      clearDeleteAttempt();
       if (avatarPointerRestoreTimer !== undefined) {
         window.clearTimeout(avatarPointerRestoreTimer);
       }

@@ -17,6 +17,9 @@ const bindingConfig = () => ({
   compatibility_flags: ["nodejs_compat"],
   vars: {
     ZOOMIGO_API_BASE_URL: process.env.ZOOMIGO_API_BASE_URL ?? "",
+    DEV_ACCESS_ENABLED: process.env.DEV_ACCESS_ENABLED ?? "false",
+    E2E_PLAYER_DEV_CONTROLS_ENABLED:
+      process.env.E2E_PLAYER_DEV_CONTROLS_ENABLED ?? "false",
     PRODUCT_ANALYTICS_ENABLED: process.env.PRODUCT_ANALYTICS_ENABLED ?? "false",
     ANALYTICS_SUBJECT_KEY: process.env.ANALYTICS_SUBJECT_KEY ?? "",
   },

@@ -23,7 +23,11 @@ const runtime = vi.hoisted(() => ({
     | undefined,
   spawned: [] as Array<{ definitionId: string; at: { x: number; y: number } }>,
   onError: undefined as
-    | ((error: { code: string; message: string }) => void)
+    | ((error: {
+        code: string;
+        message: string;
+        details?: Record<string, unknown>;
+      }) => void)
     | undefined,
   lifecycleObserver: undefined as
     | ((event: { state: string }) => void)
@@ -69,7 +73,11 @@ vi.mock("@canvas-physics/client", () => ({
       mount: HTMLElement;
       pointerElement?: HTMLElement;
       scene?: { touchAction?: string };
-      onError?: (error: { code: string; message: string }) => void;
+      onError?: (error: {
+        code: string;
+        message: string;
+        details?: Record<string, unknown>;
+      }) => void;
       onEditSelectionChange?: (state: {
         selectedEntityId?: string;
         ghost?: { entityId: string };
@@ -745,15 +753,69 @@ describe("SharedLoungeCanvas", () => {
     expect(runtime.clearedSelections).toBeGreaterThan(0);
     expect(runtime.deleted).toEqual(["mine"]);
     expect(onStampDragStateChange).toHaveBeenLastCalledWith(null);
+    act(() =>
+      runtime.onError?.({
+        code: "durable_command_rejected",
+        message: "stamp_unavailable",
+        details: {
+          commandKind: 3,
+          entityId: "mine",
+          preview: false,
+        },
+      }),
+    );
     act(() => runtime.overlayObserver?.({ entities: [] }));
     act(() =>
       runtime.onError?.({
         code: "durable_command_rejected",
-        message: "stamp_invalid_placement",
+        message: "outside_canvas",
       }),
     );
     expect(onPlacementError).not.toHaveBeenCalled();
     expect(onStampDeleteError).not.toHaveBeenCalled();
+
+    act(() =>
+      runtime.overlayObserver?.({
+        entities: [
+          {
+            entityId: "mine",
+            kind: "item",
+            definitionId: "zoomigo-stamp-target",
+            ownerUserId: "player-one",
+            screen: { x: 140, y: 210 },
+            world: { x: 45, y: 60, z: 0 },
+            rotation: 0,
+            scale: 1,
+            resolvedConfig: { placementDay: "2026-08-26" },
+            visible: true,
+            inViewport: true,
+          },
+        ],
+      }),
+    );
+    act(() =>
+      runtime.options?.onEditSelectionChange?.({
+        selectedEntityId: "mine",
+        ghost: { entityId: "mine" },
+      }),
+    );
+    fireEvent.pointerMove(document, { clientX: 120, clientY: 640 });
+    fireEvent.pointerUp(document, { clientX: 120, clientY: 640 });
+    act(() =>
+      runtime.onError?.({
+        code: "durable_command_rejected",
+        message: "stamp_locked",
+        details: {
+          commandKind: 2,
+          entityId: "mine",
+          preview: false,
+        },
+      }),
+    );
+    await waitFor(
+      () => expect(onStampDeleteError).toHaveBeenCalledWith("stamp_locked"),
+      { timeout: 2_500 },
+    );
   });
 
   it("clears a stranded placement when reconnecting so the player can retry", async () => {
