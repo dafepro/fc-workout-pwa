@@ -89,18 +89,18 @@ moderation, reporting, retention, and child-safety design decision.
 | 2026-08-26 | 4T      | `c6a439e` + Canvas `238d317`     | Gives a selected stamp ownership of its touch gesture, preserves host-side placement metadata, and scopes removal errors to the rejected entity and command operation                             | 55 Canvas dependency tests; 20 Zoomigo component tests; six-cycle randomized mobile Chromium/Docker regression                                           | Repeated trash drops and stamp drags on Pixel 10; genuine rejected-delete copy           |
 | 2026-08-26 | 4U      | `f801f50`                        | Removes the redundant Edit badge and locally conceals a trash-dropped stamp until its durable delete settles, preventing stale canonical projections from flashing it back into the room          | 14 focused component tests; six-cycle randomized mobile Chromium/Docker regression with frame-level reappearance detection; static and build gates       | Trash-drop visual continuity; genuine rejection restores the stamp                       |
 | 2026-08-26 | 4V      | `8f525f6`                        | Replaces the canvas-width edit tray with a selected-object toolbar that flips and clamps away from the item; keeps rotate and size direct while placing reset and finish behind More              | 21 focused component tests; six-cycle randomized mobile Chromium/Docker regression with toolbar and menu intersection assertions; static and build gates | Edge placement, repeated reselection, More-menu reachability, and unobstructed dragging  |
+| 2026-08-26 | 4W      | `330f2d7`                        | Accepts Canvas's quantized 15-degree rotation when that transform is carried into a move, and replaces the linear toolbar with a collision-aware radial editor around the selected object         | Team Lounge and HTTP API tests; 26 focused UI/layout tests; six-cycle mobile Chromium/Docker rotate-then-move regression; static and build gates         | Every rotation step including -180; four canvas corners; radial controls and More panel  |
 | 2026-08-26 | 5A      | `3cd1741`                        | Adds a server-owned Beach Boardwalk theme manifest, exact template binding, ticket projection, and fail-closed client metadata validation                                                         | Go manifest/ticket tests; gateway validation and reconnect-generation tests                                                                              | Canonical theme heading and unchanged weekly room behavior                               |
 
 ## Latest dev delivery
 
-- Deployed application revision: `8f525f6df39f4f09630e004ca7446412ea93cfb9`.
+- Deployed application revision: `330f2d7d3ffd81b563f9de020916bacc5b85d26a`.
 - Included Canvas revision: `238d317a69f931560c60aa217465572098a270a6`.
-- GitHub Actions dev update `33031209297` completed successfully on 2026-08-26.
+- GitHub Actions dev update `33033893020` completed successfully on 2026-08-26.
 - CI resolved and published the exact application revision, then reported the
   dev API and Caddy containers healthy. The randomized mobile regression
-  completed six placements while checking that the selected object, contextual
-  toolbar, and expanded More menu never intersected; drag-to-trash and scroll
-  ownership checks remained green.
+  rotated and moved six stamps without a rotation rejection or snap-back, while
+  retaining the drag-to-trash, scroll ownership, and no-overlap checks.
 - The service worker is self-disabling on dev as a defense against stale app
   shells. Worker-first gating for static assets is also implemented in this
   branch, but becomes the trusted deployment control only after mainline
