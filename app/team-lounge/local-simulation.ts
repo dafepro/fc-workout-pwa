@@ -104,5 +104,6 @@ function systemItemInstance(
     resolvedConfig: item.resolvedConfig,
     createdAt: "2026-08-25T00:00:00.000Z",
     sceneRevision: 1,
+    itemRevision: 1,
   };
 }

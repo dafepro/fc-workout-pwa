@@ -20,7 +20,7 @@ experiments.
 
 ## Team Lounge
 
-- Connect the canonical canvas to a team-authorized shared room with durable ball, presence, and predefined item placement using one final migration.
+- Connect the canonical canvas to a team-authorized shared room with durable ball, presence, and predefined item placement using one final migration and the current exact-version Canvas contract; do not import legacy room, Lounge, or stamp payloads.
 - Project owned Lounge stamps/props from Prize Box inventory once shared-room authorization exists; keep local authoring and uploads prohibited.
 - Record physical iOS Safari and Android Chrome performance budgets.
 - Select and prove a shared room coordinator before allowing multiple API

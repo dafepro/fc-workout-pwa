@@ -31,6 +31,28 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
     lounge.getByText("Press your player, then drag to move."),
   ).toBeVisible();
 
+  const playerName = lounge.getByText("You", { exact: true });
+  await expect(playerName).toBeVisible();
+  const startingPlayer = await playerName.boundingBox();
+  expect(startingPlayer).not.toBeNull();
+  const canvas = stage.locator("canvas");
+  const canvasBox = await canvas.boundingBox();
+  expect(canvasBox).not.toBeNull();
+  await page.mouse.move(
+    startingPlayer!.x + startingPlayer!.width / 2,
+    startingPlayer!.y + 30,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    Math.min(startingPlayer!.x + 55, canvasBox!.x + canvasBox!.width - 8),
+    startingPlayer!.y + 30,
+    { steps: 8 },
+  );
+  await page.mouse.up();
+  await expect
+    .poll(async () => (await playerName.boundingBox())?.x ?? startingPlayer!.x)
+    .toBeGreaterThan(startingPlayer!.x + 3);
+
   await expect(lounge.getByRole("combobox")).toHaveCount(0);
   await expect(lounge).not.toContainText(/\bV[12]\b|alternative|preview/i);
   expect(

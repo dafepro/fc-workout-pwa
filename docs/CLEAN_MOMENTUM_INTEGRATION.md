@@ -104,3 +104,5 @@ Each step is test-first and small enough to review independently.
   the real Docker stack passed its migrated API suite and all 24 browser workflows, including the canonical 320px canvas Lounge.
 - Disposable-dev recreation evidence: [destroy run 33109385002](https://github.com/dafepro/fc-workout-pwa/actions/runs/33109385002) removed the old environment and [create run 33109538950](https://github.com/dafepro/fc-workout-pwa/actions/runs/33109538950) deployed exact SHA `1020a9696c09115de259c47a145ad3ef7c540f07` to fresh infrastructure;
   migration 000016 startup, final fixture seeding, API health/readiness, and the password-gated PWA passed; the authenticated final-flow smoke awaits this reviewed workflow change landing on trusted `main`.
+- Canvas 0.4.0 replacement: replaced all three 0.1.0 archives/pins, adopted revisioned item instances with no legacy-room or stamp compatibility path, and recorded exact source provenance;
+  package, Lounge simulation, production-build, and Docker browser tests prove the canonical 320px Lounge starts and accepts a real direct drag against the new library.

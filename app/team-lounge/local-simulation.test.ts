@@ -1,19 +1,63 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import type { RenderEntity } from "@canvas-physics/client";
 
 import { startLocalBeachBoardwalkSimulation } from "./local-simulation";
 
 let stop: (() => void) | undefined;
+let getContext: { mockRestore(): void };
+
+beforeAll(() => {
+  getContext = vi
+    .spyOn(HTMLCanvasElement.prototype, "getContext")
+    .mockReturnValue(null);
+});
 
 afterEach(() => stop?.());
+afterAll(() => getContext.mockRestore());
 
 describe("canonical local Lounge simulation", () => {
-  it("presents the player and lets a direct-drag target move them", async () => {
-    const getContext = vi
-      .spyOn(HTMLCanvasElement.prototype, "getContext")
-      .mockReturnValue(null);
+  it("seeds system items with the current revisioned Canvas contract", async () => {
     const { SimulationDriver } = await import("@canvas-physics/client");
-    getContext.mockRestore();
+    const requests: Array<{ type: string; [key: string]: unknown }> = [];
+    const driver = new SimulationDriver((post) => ({
+      send(request) {
+        requests.push(request);
+        if (request.type === "init") {
+          queueMicrotask(() =>
+            post({ type: "ready", generation: request.generation }),
+          );
+        }
+      },
+      terminate() {},
+    }));
+    const simulation = startLocalBeachBoardwalkSimulation({
+      playerID: "mason",
+      driver,
+      onRender() {},
+    });
+    stop = simulation.stop;
+
+    await simulation.ready;
+
+    const seeded = requests.find(({ type }) => type === "addItem") as {
+      instance?: { itemRevision?: number; sceneRevision?: number };
+    };
+    expect(seeded.instance).toMatchObject({
+      itemRevision: 1,
+      sceneRevision: 1,
+    });
+  });
+
+  it("presents the player and lets a direct-drag target move them", async () => {
+    const { SimulationDriver } = await import("@canvas-physics/client");
     let entities: RenderEntity[] = [];
     const simulation = startLocalBeachBoardwalkSimulation({
       playerID: "mason",
