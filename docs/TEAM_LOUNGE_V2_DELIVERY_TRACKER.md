@@ -99,18 +99,18 @@ retention, and child-safety decision.
 | 2026-08-26 | 5A      | `3cd1741`                        | Adds a server-owned Beach Boardwalk theme manifest, exact template binding, ticket projection, and fail-closed client metadata validation                                                                            | Go manifest/ticket tests; gateway validation and reconnect-generation tests                                                                              | Canonical theme heading and unchanged weekly room behavior                               |
 | 2026-08-26 | 5B      | Current rollover slice           | Adds an append-only platform theme schedule, DST-safe team-week resolver, bound checkpoint store, rollover telemetry, and simultaneous old/new room isolation                                                        | Team Lounge Go contracts; Docker two-player browser spec: 2 passed; static and build gates                                                               | Real-Monday dev behavior; production device and lifecycle evidence                       |
 | 2026-08-27 | 4Y      | `d0a2842` + `4140fdb`            | Adds Beach ball as a permanent Prize Box award, authoritative Props inventory, shared placement credits, current-day ownership controls, and persistent teammate physics; removes the planned Change stamp operation | Populated migration; reward/catalog/access/authorization tests; real Canvas host-simulation displacement proof; Docker reward-destination E2E; dev CI    | Open reward, place prop, kick from two viewers, reconnect persistence, same-day removal  |
-| 2026-08-27 | 4Z      | Current corrective slice         | Registers visible room-ball art, aligns avatar contact with Canvas's sensor-driven kick example, strengthens kick tuning, and opens a fresh V5 weekly room instead of reusing incomplete V4 state                    | Required-asset contract; production avatar-drag `kickCount`, velocity, and displacement regression; frontend and Go suites                               | Ball visible at room entry; drag avatar through it; teammate sees the same moving ball   |
+| 2026-08-27 | 4Z      | `6c1424c`                        | Registers visible room-ball art, aligns avatar contact with Canvas's sensor-driven kick example, strengthens kick tuning, and opens a fresh V5 weekly room instead of reusing incomplete V4 state                    | Required-asset browser E2E; production avatar-drag `kickCount`, velocity, and displacement regression; 535 frontend and all Go tests; dev CI             | Ball visible at room entry; drag avatar through it; teammate sees the same moving ball   |
 
 ## Latest dev delivery
 
-- Deployed application revision: `4140fdbbe0287af47b3c5a8c1fcb6d14f33ca768`.
+- Deployed application revision: `6c1424c50cd9147c2161ecbd2061820ad190bd63`.
 - Included Canvas revision: `238d317a69f931560c60aa217465572098a270a6`.
-- GitHub Actions dev update `33041490913` completed successfully on 2026-08-27.
+- GitHub Actions dev update `33054022916` completed successfully on 2026-08-27.
 - CI resolved and published the exact application revision, then reported the
   dev API and Caddy containers healthy. An independent public probe returned
   `200` for API readiness and confirmed the application remained protected by
-  the preview gate. Docker browser coverage proved Avatar, stamp, and Beach
-  ball rewards reach their supported destinations.
+  the preview gate. Docker Chromium proved the shared lounge requested the
+  required Beach ball art and received a V5 room binding.
 - The service worker is self-disabling on dev as a defense against stale app
   shells. Worker-first gating for static assets is also implemented in this
   branch, but becomes the trusted deployment control only after mainline
