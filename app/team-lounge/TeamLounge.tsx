@@ -38,7 +38,7 @@ export function TeamLounge({ playerID }: { playerID: string }) {
             {copy.teamLounge.unavailable}
           </p>
         ) : (
-          <p className="team-lounge__status" role="status">
+          <p className="team-lounge__status" aria-live="polite">
             {state === "loading"
               ? copy.teamLounge.loading
               : state === "static"

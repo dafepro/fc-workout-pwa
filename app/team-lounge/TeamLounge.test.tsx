@@ -26,6 +26,7 @@ describe("canonical Team Lounge", () => {
       screen.getByRole("button", { name: "Interactive lounge canvas" }),
     ).toBeVisible();
     expect(screen.queryByRole("combobox")).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
     expect(document.body.textContent).not.toMatch(
       /\bV[12]\b|preview|alternative/i,
     );
