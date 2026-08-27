@@ -145,6 +145,13 @@ func TestStampPlacementAuthorizerLetsOwnersEditOnlyTodaysPlacements(t *testing.T
 		if result := authorizer.AuthorizeDurable(t.Context(), request); !result.Allowed {
 			t.Fatalf("owner rotation step %d denied: %+v", step, result)
 		}
+		request.Operation = roomsdk.DurableMove
+		request.Position = roomsdk.DurablePosition{X: 45, Y: 60}
+		request.Scale = 1
+		request.Rotation = math.Round(request.Rotation*1000) / 1000
+		if result := authorizer.AuthorizeDurable(t.Context(), request); !result.Allowed {
+			t.Fatalf("owner move at quantized rotation step %d denied: %+v", step, result)
+		}
 	}
 	remove := base
 	remove.Operation = roomsdk.DurableDelete

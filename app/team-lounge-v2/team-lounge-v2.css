@@ -368,46 +368,36 @@
 .team-lounge-v2__stamp-editor {
   position: absolute;
   z-index: 5;
-  top: var(--stamp-editor-y);
-  left: clamp(7rem, var(--stamp-editor-x), calc(100% - 7rem));
-  width: max-content;
-  max-width: calc(100% - 0.8rem);
+  inset: 0;
   color: white;
   font-size: 0.78rem;
   font-weight: 850;
-  pointer-events: auto;
+  pointer-events: none;
 }
 
-.team-lounge-v2__stamp-editor--above {
-  transform: translate(-50%, calc(-100% - 2.65rem));
-}
-
-.team-lounge-v2__stamp-editor--below {
-  transform: translate(-50%, 2.65rem);
-}
-
-.team-lounge-v2__stamp-editor-toolbar {
+.team-lounge-v2__stamp-editor-size,
+.team-lounge-v2__stamp-editor-bottom {
+  position: absolute;
   display: flex;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.32rem;
+  gap: 0.16rem;
+  padding: 0.2rem;
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 999px;
   background: rgba(3, 24, 30, 0.94);
   box-shadow: 0 0.55rem 1.1rem rgba(1, 25, 31, 0.3);
   backdrop-filter: blur(0.45rem);
+  pointer-events: auto;
 }
 
-.team-lounge-v2__stamp-editor-toolbar [role="group"] {
-  display: flex;
-  align-items: center;
-  gap: 0.16rem;
+.team-lounge-v2__stamp-editor-rotation {
+  display: contents;
 }
 
 .team-lounge-v2__stamp-editor button {
-  min-width: 2.35rem;
-  min-height: 2.35rem;
-  padding: 0.3rem 0.48rem;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
   border: 0;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.13);
@@ -418,44 +408,41 @@
   user-select: none;
 }
 
+.team-lounge-v2__stamp-editor-size button {
+  flex: 1;
+  align-self: stretch;
+}
+
+.team-lounge-v2__stamp-editor-rotate {
+  position: absolute;
+  background: rgba(3, 24, 30, 0.94) !important;
+  box-shadow: 0 0.45rem 0.9rem rgba(1, 25, 31, 0.3);
+  pointer-events: auto;
+}
+
 .team-lounge-v2__stamp-editor button:active {
-  background: var(--lounge-lime);
+  background: var(--lounge-lime) !important;
   color: #05242a;
 }
 
-.team-lounge-v2__stamp-editor-toolbar [role="group"] + [role="group"],
-.team-lounge-v2__stamp-editor-more {
-  margin-left: 0.14rem;
-  border-left: 1px solid rgba(255, 255, 255, 0.18);
-}
-
 .team-lounge-v2__stamp-editor .team-lounge-v2__stamp-editor-more {
-  min-width: 2.55rem;
-  padding-bottom: 0.52rem;
+  width: 100%;
+  height: 100%;
+  padding-bottom: 0.28rem;
   color: var(--lounge-lime);
   letter-spacing: 0.08em;
 }
 
 .team-lounge-v2__stamp-editor-menu {
   position: absolute;
-  left: 50%;
   display: grid;
-  width: 10.5rem;
   padding: 0.32rem;
-  transform: translateX(-50%);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 0.8rem;
   background: rgba(3, 24, 30, 0.96);
   box-shadow: 0 0.55rem 1.1rem rgba(1, 25, 31, 0.34);
   backdrop-filter: blur(0.45rem);
-}
-
-.team-lounge-v2__stamp-editor--above .team-lounge-v2__stamp-editor-menu {
-  bottom: calc(100% + 0.4rem);
-}
-
-.team-lounge-v2__stamp-editor--below .team-lounge-v2__stamp-editor-menu {
-  top: calc(100% + 0.4rem);
+  pointer-events: auto;
 }
 
 .team-lounge-v2__stamp-editor-menu button {

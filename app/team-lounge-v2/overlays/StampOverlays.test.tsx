@@ -189,7 +189,7 @@ describe("StampOverlays", () => {
     expect(onScale).toHaveBeenCalledWith(stamp.entityID, 1.1, true);
   });
 
-  it("keeps the contextual editor on the opposite side of the selected stamp", () => {
+  it("encircles the selected stamp and keeps secondary actions behind More", () => {
     const onScale = vi.fn();
     const onRotate = vi.fn();
     const onDone = vi.fn();
@@ -217,11 +217,16 @@ describe("StampOverlays", () => {
     const toolbar = screen.getByRole("group", {
       name: "Edit selected stamp",
     });
-    expect(toolbar).toHaveClass("team-lounge-v2__stamp-editor--below");
-    expect(toolbar).toHaveStyle({
-      "--stamp-editor-x": "28px",
-      "--stamp-editor-y": "48px",
-    });
+    expect(
+      toolbar.querySelectorAll('[data-editor-control="true"]'),
+    ).toHaveLength(4);
+    expect(screen.getByRole("group", { name: "Stamp size" })).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Rotate stamp left 15 degrees" }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Rotate stamp right 15 degrees" }),
+    ).toBeVisible();
     expect(
       screen.queryByRole("menu", { name: "More stamp actions" }),
     ).toBeNull();
@@ -230,6 +235,10 @@ describe("StampOverlays", () => {
     expect(
       screen.getByRole("menu", { name: "More stamp actions" }),
     ).toBeVisible();
+    expect(screen.queryByRole("group", { name: "Stamp size" })).toBeNull();
+    expect(
+      toolbar.querySelectorAll('[data-editor-control="true"]'),
+    ).toHaveLength(1);
     fireEvent.click(
       screen.getByRole("menuitem", { name: "Reset stamp appearance" }),
     );
@@ -249,7 +258,7 @@ describe("StampOverlays", () => {
     );
     expect(
       screen.getByRole("group", { name: "Edit selected stamp" }),
-    ).toHaveClass("team-lounge-v2__stamp-editor--above");
+    ).toBeVisible();
     expect(
       screen.queryByRole("menu", { name: "More stamp actions" }),
     ).toBeNull();

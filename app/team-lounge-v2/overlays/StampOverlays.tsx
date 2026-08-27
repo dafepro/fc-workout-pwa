@@ -6,6 +6,7 @@ import {
 } from "../../team-canvas/components/StampAsset";
 import type { StampAsset } from "../../team-canvas/model";
 import { nextLoungeStampRotation } from "../placement/orientation";
+import { layoutStampEditor, type EditorRect } from "./stamp-editor-layout";
 
 export interface LoungeStampOverlay {
   entityID: string;
@@ -54,6 +55,8 @@ export function StampOverlays({
   );
   const moreActionsOpen = selected?.entityID === moreActionsEntityID;
   const editable = new Set(editableEntityIDs);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const [surfaceSize, setSurfaceSize] = useState({ width: 320, height: 480 });
   const [ghostPoint, setGhostPoint] = useState<{
     assetID: string;
     x: number;
@@ -61,6 +64,31 @@ export function StampOverlays({
   } | null>(null);
   const activeGhostPoint =
     ghostPoint?.assetID === selectedStamp?.id ? ghostPoint : null;
+  const editorLayout = selected
+    ? layoutStampEditor(
+        selected.screen,
+        surfaceSize,
+        Math.max(24, 27 * selected.scale),
+      )
+    : null;
+
+  useEffect(() => {
+    const surface = overlayRef.current;
+    if (!surface || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (!entry) return;
+      const width = Math.round(entry.contentRect.width);
+      const height = Math.round(entry.contentRect.height);
+      if (width <= 0 || height <= 0) return;
+      setSurfaceSize((current) =>
+        current.width === width && current.height === height
+          ? current
+          : { width, height },
+      );
+    });
+    observer.observe(surface);
+    return () => observer.disconnect();
+  }, []);
 
   const updateGhostPoint = (
     surface: HTMLElement,
@@ -76,7 +104,11 @@ export function StampOverlays({
     return point;
   };
   return (
-    <div className="team-lounge-v2__stamp-overlays" aria-live="polite">
+    <div
+      ref={overlayRef}
+      className="team-lounge-v2__stamp-overlays"
+      aria-live="polite"
+    >
       {stamps.map(
         ({ entityID, asset, ownerUserID, rotation, screen, scale }) => {
           const canEdit = editable.has(entityID);
@@ -167,75 +199,101 @@ export function StampOverlays({
           </span>
         </button>
       ) : null}
-      {selected ? (
+      {selected && editorLayout ? (
         <div
-          className={`team-lounge-v2__stamp-editor ${selected.screen.y < 190 ? "team-lounge-v2__stamp-editor--below" : "team-lounge-v2__stamp-editor--above"}`}
-          style={
-            {
-              "--stamp-editor-x": `${selected.screen.x}px`,
-              "--stamp-editor-y": `${selected.screen.y}px`,
-            } as CSSProperties
-          }
+          className="team-lounge-v2__stamp-editor"
           role="group"
           aria-label="Edit selected stamp"
           data-canvas-pointer-ignore="true"
           onPointerDown={(event) => event.stopPropagation()}
         >
-          <div className="team-lounge-v2__stamp-editor-toolbar">
-            <div role="group" aria-label="Stamp rotation">
-              <TransformStepButton
-                ariaLabel="Rotate stamp left 15 degrees"
-                value={selected.rotation}
-                next={(rotation) => nextLoungeStampRotation(rotation, -1)}
-                onPreview={(rotation) =>
-                  onRotate?.(selected.entityID, rotation, true)
-                }
-                onCommit={(rotation) =>
-                  onRotate?.(selected.entityID, rotation, false)
-                }
+          {!moreActionsOpen ? (
+            <>
+              <div
+                className="team-lounge-v2__stamp-editor-size"
+                style={rectStyle(editorLayout.size)}
+                role="group"
+                aria-label="Stamp size"
+                data-editor-control="true"
               >
-                ↺
-              </TransformStepButton>
-              <TransformStepButton
-                ariaLabel="Rotate stamp right 15 degrees"
-                value={selected.rotation}
-                next={(rotation) => nextLoungeStampRotation(rotation, 1)}
-                onPreview={(rotation) =>
-                  onRotate?.(selected.entityID, rotation, true)
-                }
-                onCommit={(rotation) =>
-                  onRotate?.(selected.entityID, rotation, false)
-                }
+                <TransformStepButton
+                  ariaLabel="Make stamp smaller"
+                  value={selected.scale}
+                  disabled={selected.scale <= 0.75}
+                  next={(scale) =>
+                    Math.max(0.75, Math.round((scale - 0.1) * 10) / 10)
+                  }
+                  onPreview={(scale) =>
+                    onScale?.(selected.entityID, scale, true)
+                  }
+                  onCommit={(scale) =>
+                    onScale?.(selected.entityID, scale, false)
+                  }
+                >
+                  −
+                </TransformStepButton>
+                <TransformStepButton
+                  ariaLabel="Make stamp larger"
+                  value={selected.scale}
+                  disabled={selected.scale >= 1.4}
+                  next={(scale) =>
+                    Math.min(1.4, Math.round((scale + 0.1) * 10) / 10)
+                  }
+                  onPreview={(scale) =>
+                    onScale?.(selected.entityID, scale, true)
+                  }
+                  onCommit={(scale) =>
+                    onScale?.(selected.entityID, scale, false)
+                  }
+                >
+                  +
+                </TransformStepButton>
+              </div>
+              <div
+                className="team-lounge-v2__stamp-editor-rotation"
+                role="group"
+                aria-label="Stamp rotation"
               >
-                ↻
-              </TransformStepButton>
-            </div>
-            <div role="group" aria-label="Stamp size">
-              <TransformStepButton
-                ariaLabel="Make stamp smaller"
-                value={selected.scale}
-                disabled={selected.scale <= 0.75}
-                next={(scale) =>
-                  Math.max(0.75, Math.round((scale - 0.1) * 10) / 10)
-                }
-                onPreview={(scale) => onScale?.(selected.entityID, scale, true)}
-                onCommit={(scale) => onScale?.(selected.entityID, scale, false)}
-              >
-                −
-              </TransformStepButton>
-              <TransformStepButton
-                ariaLabel="Make stamp larger"
-                value={selected.scale}
-                disabled={selected.scale >= 1.4}
-                next={(scale) =>
-                  Math.min(1.4, Math.round((scale + 0.1) * 10) / 10)
-                }
-                onPreview={(scale) => onScale?.(selected.entityID, scale, true)}
-                onCommit={(scale) => onScale?.(selected.entityID, scale, false)}
-              >
-                +
-              </TransformStepButton>
-            </div>
+                <TransformStepButton
+                  className="team-lounge-v2__stamp-editor-rotate"
+                  style={rectStyle(editorLayout.rotateLeft)}
+                  dataEditorControl
+                  ariaLabel="Rotate stamp left 15 degrees"
+                  value={selected.rotation}
+                  next={(rotation) => nextLoungeStampRotation(rotation, -1)}
+                  onPreview={(rotation) =>
+                    onRotate?.(selected.entityID, rotation, true)
+                  }
+                  onCommit={(rotation) =>
+                    onRotate?.(selected.entityID, rotation, false)
+                  }
+                >
+                  ↺
+                </TransformStepButton>
+                <TransformStepButton
+                  className="team-lounge-v2__stamp-editor-rotate"
+                  style={rectStyle(editorLayout.rotateRight)}
+                  dataEditorControl
+                  ariaLabel="Rotate stamp right 15 degrees"
+                  value={selected.rotation}
+                  next={(rotation) => nextLoungeStampRotation(rotation, 1)}
+                  onPreview={(rotation) =>
+                    onRotate?.(selected.entityID, rotation, true)
+                  }
+                  onCommit={(rotation) =>
+                    onRotate?.(selected.entityID, rotation, false)
+                  }
+                >
+                  ↻
+                </TransformStepButton>
+              </div>
+            </>
+          ) : null}
+          <div
+            className="team-lounge-v2__stamp-editor-bottom"
+            style={rectStyle(editorLayout.more)}
+            data-editor-control="true"
+          >
             <button
               className="team-lounge-v2__stamp-editor-more"
               type="button"
@@ -254,6 +312,7 @@ export function StampOverlays({
           {moreActionsOpen ? (
             <div
               className="team-lounge-v2__stamp-editor-menu"
+              style={rectStyle(editorLayout.menu)}
               role="menu"
               aria-label="More stamp actions"
             >
@@ -289,6 +348,9 @@ export function StampOverlays({
 }
 
 function TransformStepButton({
+  className,
+  style,
+  dataEditorControl = false,
   ariaLabel,
   value,
   next,
@@ -297,6 +359,9 @@ function TransformStepButton({
   disabled = false,
   children,
 }: {
+  className?: string;
+  style?: CSSProperties;
+  dataEditorControl?: boolean;
   ariaLabel: string;
   value: number;
   next(value: number): number;
@@ -337,6 +402,9 @@ function TransformStepButton({
 
   return (
     <button
+      className={className}
+      style={style}
+      data-editor-control={dataEditorControl ? "true" : undefined}
       type="button"
       aria-label={ariaLabel}
       disabled={disabled}
@@ -362,4 +430,13 @@ function TransformStepButton({
       {children}
     </button>
   );
+}
+
+function rectStyle(rect: EditorRect): CSSProperties {
+  return {
+    left: `${rect.x}px`,
+    top: `${rect.y}px`,
+    width: `${rect.width}px`,
+    height: `${rect.height}px`,
+  };
 }

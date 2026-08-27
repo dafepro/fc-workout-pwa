@@ -205,11 +205,16 @@ func authorizeStampEdit(request roomsdk.DurableAuthorizationRequest, dayKey stri
 }
 
 func validStampRotation(rotation float64) bool {
-	if !finite(rotation) || rotation < -math.Pi-0.000001 || rotation >= math.Pi-0.000001 {
+	if !finite(rotation) {
 		return false
 	}
 	step := math.Pi / 12
-	return math.Abs(rotation-math.Round(rotation/step)*step) <= 0.000001
+	stepIndex := math.Round(rotation / step)
+	if stepIndex < -12 || stepIndex >= 12 {
+		return false
+	}
+	// Canvas snapshots carry radians at 0.001 precision before the next move.
+	return math.Abs(rotation-stepIndex*step) <= 0.000501
 }
 
 func validStampScale(scale float64) bool {

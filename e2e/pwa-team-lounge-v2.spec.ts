@@ -100,8 +100,15 @@ test("V2 stamp drags own the touch gesture and repeated trash drops settle clean
     const editor = page.getByRole("group", { name: "Edit selected stamp" });
     await expect(editor).toBeVisible();
     const selectedStampBox = await requiredBox(ownedStamp, "selected stamp");
-    const editorBox = await requiredBox(editor, "object editor");
-    expect(rectanglesOverlap(selectedStampBox, editorBox)).toBe(false);
+    const editorControls = editor.locator('[data-editor-control="true"]');
+    await expect(editorControls).toHaveCount(4);
+    for (let controlIndex = 0; controlIndex < 4; controlIndex += 1) {
+      const controlBox = await requiredBox(
+        editorControls.nth(controlIndex),
+        `object editor control ${controlIndex + 1}`,
+      );
+      expect(rectanglesOverlap(selectedStampBox, controlBox)).toBe(false);
+    }
     const moreActions = editor.getByRole("button", {
       name: "More stamp actions",
     });
@@ -112,6 +119,12 @@ test("V2 stamp drags own the touch gesture and repeated trash drops settle clean
     expect(rectanglesOverlap(selectedStampBox, moreMenuBox)).toBe(false);
     await moreActions.tap();
     await expect(moreMenu).toHaveCount(0);
+    await editor
+      .getByRole("button", { name: "Rotate stamp right 15 degrees" })
+      .tap();
+    await expect(
+      page.getByText("Rotate your stamp in 15 degree steps."),
+    ).toHaveCount(0);
 
     const beforeScroll = await page.evaluate(() => window.scrollY);
     const stampBox = await requiredBox(ownedStamp, "owned stamp");
@@ -125,6 +138,10 @@ test("V2 stamp drags own the touch gesture and repeated trash drops settle clean
     expect(Math.abs(afterStampMoveScroll - beforeScroll)).toBeLessThanOrEqual(
       1,
     );
+    await page.waitForTimeout(160);
+    await expect(
+      page.getByText("Rotate your stamp in 15 degree steps."),
+    ).toHaveCount(0);
 
     const movedStampBox = await requiredBox(ownedStamp, "moved stamp");
     const deleteStart = center(movedStampBox);
