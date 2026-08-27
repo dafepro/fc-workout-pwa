@@ -86,17 +86,19 @@ moderation, reporting, retention, and child-safety design decision.
 | 2026-08-26 | 4Q      | `1e898b0`                        | Suppresses edit controls, badges, selection chrome, and open action menus for the full item-movement gesture while retaining only the room, moving item, and trash target                         | Overlay and adapter interaction regressions; typecheck, lint, format, build, and dev health gates                                              | Mobile visual focus; controls return cleanly after move                                  |
 | 2026-08-26 | 4R      | `3d55680`                        | Latches focused drag mode through transient Canvas ghost gaps and suppresses expected out-of-room preview errors so no picker or editor chrome flickers at the trash boundary                     | Pointer lifecycle and rejected-preview regressions; typecheck, lint, format, build, and dev health gates                                       | Repeated canvas/trash crossings on touch and mouse                                       |
 | 2026-08-26 | 4S      | `0074835`                        | Prevents a late rejected move preview from masquerading as a failed successful delete and guarantees existing-item edit errors cannot open the placement inventory                                | Success-then-late-rejection and edit-error routing regressions; typecheck, lint, format, build, and dev health gates                           | Delete at trash edge under latency; no false error or inventory                          |
-| 2026-08-26 | 4T      | Current hardening slice          | Gives a selected stamp ownership of its touch gesture, preserves host-side placement metadata, and scopes removal errors to the rejected entity and command operation                             | 55 Canvas dependency tests; 20 Zoomigo component tests; six-cycle randomized mobile Chromium/Docker regression                                 | Repeated trash drops and stamp drags on Pixel 10; genuine rejected-delete copy           |
+| 2026-08-26 | 4T      | `c6a439e` + Canvas `238d317`     | Gives a selected stamp ownership of its touch gesture, preserves host-side placement metadata, and scopes removal errors to the rejected entity and command operation                             | 55 Canvas dependency tests; 20 Zoomigo component tests; six-cycle randomized mobile Chromium/Docker regression                                 | Repeated trash drops and stamp drags on Pixel 10; genuine rejected-delete copy           |
 | 2026-08-26 | 5A      | `3cd1741`                        | Adds a server-owned Beach Boardwalk theme manifest, exact template binding, ticket projection, and fail-closed client metadata validation                                                         | Go manifest/ticket tests; gateway validation and reconnect-generation tests                                                                    | Canonical theme heading and unchanged weekly room behavior                               |
 
 ## Latest dev delivery
 
-- Deployed application revision: `0074835`.
-- Included Canvas revision: `d12ffe9e056029e90c32d8e4e02d07f8f08195af`.
-- GitHub Actions dev update `33018777371` completed successfully on 2026-08-26.
+- Deployed application revision: `c6a439e71b749a87a56a25150260a34b65835d81`.
+- Included Canvas revision: `238d317a69f931560c60aa217465572098a270a6`.
+- GitHub Actions dev update `33027458329` completed successfully on 2026-08-26.
 - CI resolved and published the exact application revision, then reported the
-  dev API and Caddy containers healthy. Drag-to-trash remains the focused
-  authenticated interaction review for this slice.
+  dev API and Caddy containers healthy. A live authenticated smoke check loaded
+  the Beach Boardwalk room and its persisted editable stamps. The randomized
+  mobile regression also completed six delayed drag-to-trash cycles without a
+  false removal error, reopened picker, or page-scroll takeover.
 - The service worker is self-disabling on dev as a defense against stale app
   shells. Worker-first gating for static assets is also implemented in this
   branch, but becomes the trusted deployment control only after mainline
