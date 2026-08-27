@@ -56,3 +56,5 @@ Each step is test-first and small enough to review independently.
 
 - Focused Today logging: moved additional-session entry into completed Today,
   removed the global floating action, and updated connected workflow coverage.
+- Canonical route surface: removed the Leaders player route and its UI while
+  retaining safe historical reaction rendering and backend compatibility.

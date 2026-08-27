@@ -54,7 +54,6 @@ export const copy = {
     overMax: (max: number, unit: string) => `Max is ${max} ${unit}`,
     underMin: (min: number, unit: string) => `Min is ${min} ${unit}`,
   },
-  allEffortCounts: "Every player’s effort counts.",
   recoveryNote:
     "Feeling worn out? Hydrate, take it easy, and check with a parent or coach.",
   noEditing:
@@ -83,8 +82,6 @@ export const copy = {
   social: {
     teamLoading: "Loading team progress…",
     teamError: "Team progress could not be loaded.",
-    leaderboardLoading: "Loading leaderboard…",
-    leaderboardError: "The leaderboard could not be loaded.",
     retry: "Try again",
     weeklyGoal: "This week’s goal",
     dueSunday: "◇ By Sunday",
@@ -96,8 +93,6 @@ export const copy = {
     challengeDue: (date: string) => `Due ${date}`,
     noChallenge: "The next Team challenge is warming up.",
     cheer: "Cheer",
-    safePoints: "safe participation points",
-    noParticipation: "No participation has been recorded for this period yet.",
   },
   cheers: {
     inboxEyebrow: "From your teammates · Last 7 days",

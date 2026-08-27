@@ -81,13 +81,6 @@ test("a player builds a v4 look with independent Gear sublayers", async ({
     page.locator(".player-progress .avatar--self .avatar-art"),
   ).toBeVisible();
 
-  await page.goto("/leaders");
-  await expect(page.locator(".avatar--self .avatar-art").first()).toBeVisible();
-  await expect(page.locator(".avatar--self").first()).toHaveAttribute(
-    "aria-label",
-    /, you$/,
-  );
-
   await page.goto("/me");
   await page.getByRole("link", { name: "Customize avatar" }).click();
   await page.getByRole("button", { name: "Gear" }).click();

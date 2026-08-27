@@ -131,21 +131,6 @@ test("the sixth cheer to one teammate within 30 minutes shows only the limit err
   await expect(page.getByRole("status")).toHaveCount(0);
 });
 
-test("leader cards retain leaderboard context and the current player is not reactable", async ({
-  page,
-}) => {
-  await openReadyPage(page, "/leaders");
-
-  await expect(
-    page.getByRole("button", { name: /Cheer for Mason C\./ }),
-  ).toHaveCount(0);
-  await page.getByRole("button", { name: /Cheer for Ava R\./ }).click();
-  const picker = page.getByRole("dialog", { name: "Cheer for Ava" });
-  await picker.getByRole("button", { name: "Send Clap to Ava" }).click();
-
-  await expect(page.getByRole("status")).toContainText("sent to Ava");
-});
-
 test("received contextual reactions appear privately on Me", async ({
   page,
 }) => {
