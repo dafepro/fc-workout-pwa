@@ -2,6 +2,8 @@ package httpapi
 
 import (
 	"context"
+	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -128,9 +130,29 @@ func (service *service) resolveTeamLoungeAccess(
 		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
 		return teamLoungeAccessResponse{}, nil, false
 	}
-	if err := service.teamLoungeStore.BindRoom(r.Context(), roomID, teamID, projection.WeekKey, theme.Template); err != nil {
+	binding, err := service.teamLoungeStore.BindRoom(r.Context(), roomID, teamID, projection.WeekKey, theme.Template)
+	if err != nil {
+		outcome := "error"
+		if errors.Is(err, roomsdk.ErrRoomTemplateConflict) {
+			outcome = "conflict"
+		}
+		if service.operations != nil {
+			service.operations.ObserveFeature("canvas", "room_binding", outcome)
+		}
+		slog.Warn("team lounge room binding failed", "week_key", projection.WeekKey,
+			"theme_id", theme.ID, "theme_version", theme.Version, "outcome", outcome)
 		writeError(w, r, http.StatusConflict, "room_template_conflict", "This week's lounge could not be opened.")
 		return teamLoungeAccessResponse{}, nil, false
+	}
+	if binding.Created {
+		if service.operations != nil {
+			service.operations.ObserveFeature("canvas", "room_binding", "success")
+			if binding.Rollover {
+				service.operations.ObserveFeature("canvas", "week_rollover", "success")
+			}
+		}
+		slog.Info("team lounge room bound", "week_key", projection.WeekKey,
+			"theme_id", theme.ID, "theme_version", theme.Version, "rollover", binding.Rollover)
 	}
 	placementBudget, err := service.teamLoungeStore.PlacementBudget(r.Context(), roomID, actor.PlayerID, service.now().UTC())
 	if err != nil {

@@ -17,29 +17,67 @@ const (
 )
 
 type ThemeManifest struct {
-	ID       string
-	Version  uint32
-	Name     string
-	Template roomsdk.RoomTemplate
+	ID             string
+	Version        uint32
+	Name           string
+	RoomGeneration uint32
+	Template       roomsdk.RoomTemplate
 }
 
-func WeeklyTheme(weekKey string) (ThemeManifest, error) {
-	if !validWeekKey(weekKey) {
-		return ThemeManifest{}, errors.New("invalid weekly lounge theme")
-	}
-	return ThemeManifest{
-		ID: "beach-boardwalk", Version: 1, Name: "Beach Boardwalk",
+type ThemeScheduleEntry struct {
+	StartsOn string
+	Theme    ThemeManifest
+}
+
+var platformThemeSchedule = []ThemeScheduleEntry{{
+	StartsOn: "0001-01-01",
+	Theme: ThemeManifest{
+		ID: "beach-boardwalk", Version: 1, Name: "Beach Boardwalk", RoomGeneration: BeachBoardwalkCanvasVersion,
 		Template: roomsdk.RoomTemplate{
 			CanvasID: BeachBoardwalkCanvasID, CanvasVersion: BeachBoardwalkCanvasVersion,
 		},
-	}, nil
+	},
+}}
+
+func WeeklyTheme(weekKey string) (ThemeManifest, error) {
+	return themeForWeek(platformThemeSchedule, weekKey)
+}
+
+func themeForWeek(schedule []ThemeScheduleEntry, weekKey string) (ThemeManifest, error) {
+	if !validWeekKey(weekKey) || len(schedule) == 0 {
+		return ThemeManifest{}, errors.New("invalid weekly lounge theme")
+	}
+	var selected ThemeManifest
+	previousStart := ""
+	for _, entry := range schedule {
+		if !validWeekKey(entry.StartsOn) || entry.StartsOn <= previousStart || !validTheme(entry.Theme) {
+			return ThemeManifest{}, errors.New("invalid weekly lounge theme schedule")
+		}
+		previousStart = entry.StartsOn
+		if entry.StartsOn <= weekKey {
+			selected = entry.Theme
+		}
+	}
+	if !validTheme(selected) {
+		return ThemeManifest{}, errors.New("weekly lounge theme is not scheduled")
+	}
+	return selected, nil
+}
+
+func validTheme(theme ThemeManifest) bool {
+	return validTeamID(theme.ID) && theme.Version > 0 && strings.TrimSpace(theme.Name) != "" &&
+		theme.RoomGeneration > 0 && theme.Template.CanvasID != "" && theme.Template.CanvasVersion > 0
 }
 
 func WeeklyRoomID(teamID, weekKey string) (string, error) {
 	if !validTeamID(teamID) || !validWeekKey(weekKey) {
 		return "", errors.New("invalid weekly lounge identity")
 	}
-	return "team:" + teamID + ":lounge:" + weekKey + ":v" + strconv.FormatUint(uint64(BeachBoardwalkCanvasVersion), 10), nil
+	theme, err := WeeklyTheme(weekKey)
+	if err != nil {
+		return "", err
+	}
+	return "team:" + teamID + ":lounge:" + weekKey + ":v" + strconv.FormatUint(uint64(theme.RoomGeneration), 10), nil
 }
 
 func ParseWeeklyRoomID(roomID string) (string, string, error) {
@@ -52,7 +90,11 @@ func ParseWeeklyRoomID(roomID string) (string, string, error) {
 		return "", "", errors.New("invalid weekly lounge room")
 	}
 	weekKey, version, ok := strings.Cut(versionedWeek, ":v")
-	if !ok || version != strconv.FormatUint(uint64(BeachBoardwalkCanvasVersion), 10) || !validTeamID(teamID) || !validWeekKey(weekKey) {
+	if !ok || !validTeamID(teamID) || !validWeekKey(weekKey) {
+		return "", "", errors.New("invalid weekly lounge room")
+	}
+	theme, err := WeeklyTheme(weekKey)
+	if err != nil || version != strconv.FormatUint(uint64(theme.RoomGeneration), 10) {
 		return "", "", errors.New("invalid weekly lounge room")
 	}
 	return teamID, weekKey, nil

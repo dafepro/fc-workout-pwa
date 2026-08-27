@@ -47,6 +47,9 @@ func TestOperationalMetricLabelsAreEnumerated(t *testing.T) {
 	metrics.SetCanvasConnections(2)
 	metrics.ObserveCanvasMessage("reaction", "success")
 	metrics.ObserveFeature("training_plans", "publish", "success")
+	metrics.ObserveFeature("canvas", "room_binding", "success")
+	metrics.ObserveFeature("canvas", "week_rollover", "success")
+	metrics.ObserveFeature("canvas", "checkpoint", "conflict")
 	metrics.ObserveFeature("private-team-id", "private-plan-id", "private-player-id")
 
 	if got := testutil.ToFloat64(metrics.SQLiteOperations.WithLabelValues("training_entries_create", "success")); got != 1 {
@@ -60,6 +63,15 @@ func TestOperationalMetricLabelsAreEnumerated(t *testing.T) {
 	}
 	if got := testutil.ToFloat64(metrics.FeatureOperations.WithLabelValues("training_plans", "publish", "success")); got != 1 {
 		t.Fatalf("plan operations = %v, want 1", got)
+	}
+	for _, label := range [][3]string{
+		{"canvas", "room_binding", "success"},
+		{"canvas", "week_rollover", "success"},
+		{"canvas", "checkpoint", "conflict"},
+	} {
+		if got := testutil.ToFloat64(metrics.FeatureOperations.WithLabelValues(label[0], label[1], label[2])); got != 1 {
+			t.Fatalf("lounge operation %v = %v, want 1", label, got)
+		}
 	}
 	if got := testutil.ToFloat64(metrics.FeatureOperations.WithLabelValues("other", "other", "other")); got != 1 {
 		t.Fatalf("unbounded operation labels were not collapsed: %v", got)

@@ -1207,6 +1207,18 @@ Momentum Alpha needs independent PWA install/offline behavior.
   fails closed on unsupported metadata. Beach Boardwalk V1 remains the only
   current theme; selection cadence, staged changes, and operator rollback are
   intentionally deferred until the second theme is designed.
+- Decided 2026-08-26: Zoomigo platform staff own an append-only schedule of
+  approved weekly lounge manifests. The backend deterministically resolves the
+  team-local Monday to one manifest and room generation before issuing access;
+  coaches, players, and Canvas do not select the theme. Adding a future entry
+  cannot reinterpret an existing room binding. Beach Boardwalk remains the
+  only approved production manifest until another theme and its rollback path
+  pass review.
+- Decided: lounge weeks are local civil weeks, not fixed 168-hour intervals.
+  The shared resolver uses the team's IANA time zone and Monday midnight, so a
+  daylight-saving transition may make the UTC window 167 or 169 hours. A late
+  checkpoint from a sleeping prior-week room remains fenced to that exact room
+  and template and cannot populate the new week.
 - Decided: transient player emotes use a generic Canvas participant-signal
   channel, not Zoomigo chat or a second websocket. The room server allowlists
   five payload-free kinds and permits one accepted signal per player every two

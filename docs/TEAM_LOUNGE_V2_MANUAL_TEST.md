@@ -35,6 +35,26 @@ Docker automation performs the same sequence with an E2E-only clock so the
 local-midnight boundary is exercised without waiting. The development and
 production applications expose no clock-changing control.
 
+## Weekly rollover review
+
+1. Leave one player connected to the prior week's lounge across the team's
+   Monday midnight. Open or refresh the lounge as a second player after Monday
+   begins. The second player should enter a clean room with no prior-week
+   stamps, visitors, or active-player count.
+2. Confirm the new room still offers the player's same permanent stamp
+   collection, while its placement budget contains only check-in days from the
+   new week.
+3. Refresh the first player. They should leave the prior room and join the new
+   one. Refresh the second player once more; the first room's final checkpoint
+   must not reintroduce old stamps or visitors.
+4. Confirm the heading still says **Beach Boardwalk**. The schedule mechanism
+   is delivered, but Beach Boardwalk remains the only approved production
+   manifest; no placeholder second theme should appear.
+
+The Docker browser test advances time deterministically for this sequence.
+Manual dev review must use a real team-local Monday because clock overrides are
+not compiled into the development or production applications.
+
 ## Core review
 
 1. Confirm the card says **This week · Beach Boardwalk** and

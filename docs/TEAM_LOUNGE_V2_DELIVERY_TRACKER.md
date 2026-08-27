@@ -8,15 +8,15 @@ the intended boundary; this file records delivered evidence and remaining risk.
 
 ## Status
 
-| Segment | Reviewable outcome                                                 | Status      | Evidence                              | Next gate                        |
-| ------- | ------------------------------------------------------------------ | ----------- | ------------------------------------- | -------------------------------- |
-| 0       | Architecture, segmented plan, file tree, safety boundary, rollback | Delivered   | Canvas package/release/boundary gates | Segment 1 selector test          |
-| 1       | Dev Me selector plus local Beach Boardwalk room                    | Delivered   | Direct-drag tests and browser proof   | Shared-room regression coverage  |
-| 2       | Authenticated team multiplayer room                                | Delivered   | Two-player browser and reconnect      | Production hardening             |
-| 3       | Presence, visit traces, emotes, durable physical state             | Delivered   | Two-player lifecycle browser proof    | Production hardening             |
-| 4       | Earned stamps/items with app-owned authorization                   | Delivered   | Ownership and local-day rollover E2E  | Production hardening             |
-| 5       | Weekly reset and theme framework                                   | Foundation  | Canonical ticket theme manifest       | Timezone/template rollover tests |
-| 6       | Device budgets, observability, release and cutover                 | Not started | —                                     | All parity/safety gates green    |
+| Segment | Reviewable outcome                                                 | Status      | Evidence                              | Next gate                       |
+| ------- | ------------------------------------------------------------------ | ----------- | ------------------------------------- | ------------------------------- |
+| 0       | Architecture, segmented plan, file tree, safety boundary, rollback | Delivered   | Canvas package/release/boundary gates | Segment 1 selector test         |
+| 1       | Dev Me selector plus local Beach Boardwalk room                    | Delivered   | Direct-drag tests and browser proof   | Shared-room regression coverage |
+| 2       | Authenticated team multiplayer room                                | Delivered   | Two-player browser and reconnect      | Production hardening            |
+| 3       | Presence, visit traces, emotes, durable physical state             | Delivered   | Two-player lifecycle browser proof    | Production hardening            |
+| 4       | Earned stamps/items with app-owned authorization                   | Delivered   | Ownership and local-day rollover E2E  | Production hardening            |
+| 5       | Weekly reset and theme framework                                   | Dev review  | DST and sleeping-room rollover proof  | Second-theme operator tooling   |
+| 6       | Device budgets, observability, release and cutover                 | Not started | —                                     | All parity/safety gates green   |
 
 ## Product parity ledger
 
@@ -51,11 +51,11 @@ the intended boundary; this file records delivered evidence and remaining risk.
 
 ## Next planned slice
 
-**Segment 5B — timezone and sleeping-room rollover** is next. Prove team-local
-week changes across daylight-saving boundaries, immutable template selection,
-and late checkpoints from a sleeping prior-week room. Keep production clocks
-real; deterministic time control remains compiled into the Docker E2E binary
-only.
+**Segment 6A — production evidence baseline** is next. Complete the remaining
+name-free failure telemetry and record representative mobile CPU, memory,
+bandwidth, bundle, and long-frame budgets before considering V2 as a default.
+Second-theme preview and rollback tooling remains gated on an actual reviewed
+second theme rather than an invented placeholder.
 
 Predefined Quick phrases remain a compatible later social slice. Arbitrary
 typed player messages stay blocked pending a separate moderation, reporting,
@@ -97,6 +97,7 @@ retention, and child-safety decision.
 | 2026-08-26 | 4W      | `330f2d7`                        | Accepts Canvas's quantized 15-degree rotation when that transform is carried into a move, and replaces the linear toolbar with a collision-aware radial editor around the selected object             | Team Lounge and HTTP API tests; 26 focused UI/layout tests; six-cycle mobile Chromium/Docker rotate-then-move regression; static and build gates         | Every rotation step including -180; four canvas corners; radial controls and More panel  |
 | 2026-08-26 | 4X      | Current two-player proof         | Adds deterministic E2E-only time, a second real player session, two-client presence/emote/visit proof, independent durable stamps, live transforms, reconnect persistence, and next-day locks/credits | Docker browser Team Lounge V2 spec: 2 passed; targeted Go E2E build tests; static and build gates                                                        | Two-device dev parity; next team-local week and sleeping-room rollover                   |
 | 2026-08-26 | 5A      | `3cd1741`                        | Adds a server-owned Beach Boardwalk theme manifest, exact template binding, ticket projection, and fail-closed client metadata validation                                                             | Go manifest/ticket tests; gateway validation and reconnect-generation tests                                                                              | Canonical theme heading and unchanged weekly room behavior                               |
+| 2026-08-26 | 5B      | Current rollover slice           | Adds an append-only platform theme schedule, DST-safe team-week resolver, bound checkpoint store, rollover telemetry, and simultaneous old/new room isolation                                         | Team Lounge Go contracts; Docker two-player browser spec: 2 passed; static and build gates                                                               | Real-Monday dev behavior; production device and lifecycle evidence                       |
 
 ## Latest dev delivery
 

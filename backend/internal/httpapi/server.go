@@ -745,8 +745,13 @@ func (service *service) resetE2EFixtures(w http.ResponseWriter, r *http.Request)
 }
 
 func (service *service) buildTeamLoungeRoomHandler() http.Handler {
+	roomStore := teamlounge.NewBoundRoomStore(service.teamLoungeStore, func(outcome string) {
+		if service.operations != nil {
+			service.operations.ObserveFeature("canvas", "checkpoint", outcome)
+		}
+	})
 	roomServer, err := roomsdk.New(roomsdk.Config{
-		Store:          service.teamLoungeStore,
+		Store:          roomStore,
 		RoomTemplates:  service.teamLoungeStore,
 		Auth:           newTeamLoungeAuthenticator(service.canvasTickets, service.teamLoungeStore, service.now),
 		AllowedOrigins: teamLoungeAllowedOrigins(service.cfg.AllowedOrigin),

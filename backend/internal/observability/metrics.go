@@ -255,6 +255,7 @@ var featureOperations = map[string]struct{}{
 	"claim": {}, "open": {}, "create": {}, "publish": {}, "cancel": {}, "reschedule": {},
 	"report": {}, "resolve": {}, "transition": {}, "drain": {}, "delivery": {}, "connection": {}, "message": {},
 	"stamp_placement": {}, "stamp_move": {}, "stamp_scale": {}, "stamp_rotate": {}, "stamp_edit": {}, "stamp_inventory": {},
+	"room_binding": {}, "week_rollover": {}, "checkpoint": {},
 }
 var outcomes = map[string]struct{}{
 	"success": {}, "invalid": {}, "locked": {}, "throttled": {}, "busy": {}, "not_ready": {}, "conflict": {},

@@ -90,7 +90,7 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := loungeStore.BindRoom(ctx, seedRoomID, "team-one", projection.WeekKey, roomsdk.RoomTemplate{
+	if _, err := loungeStore.BindRoom(ctx, seedRoomID, "team-one", projection.WeekKey, roomsdk.RoomTemplate{
 		CanvasID: teamlounge.BeachBoardwalkCanvasID, CanvasVersion: teamlounge.BeachBoardwalkCanvasVersion,
 	}); err != nil {
 		t.Fatal(err)

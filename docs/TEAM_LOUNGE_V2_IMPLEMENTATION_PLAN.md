@@ -520,7 +520,7 @@ changing the core controls.
 - [x] Add a server-owned theme manifest and project supported metadata through
       the authenticated room ticket.
 - [ ] Add staged environmental changes as data.
-- [ ] Prove daylight-saving/timezone and asleep-room rollover behavior.
+- [x] Prove daylight-saving/timezone and asleep-room rollover behavior.
 - [ ] Add operator preview/rollback tooling before a second production theme.
 
 Future themes progress one interaction at a time: Campfire Night, Soccer Field
@@ -539,6 +539,44 @@ This establishes the data boundary without silently choosing a future cadence.
 Beach Boardwalk V1 remains the sole manifest until staged theme state,
 daylight-saving rollover, and operator preview/rollback controls are specified
 and tested together.
+
+### Segment 5B vertical slice — staff-owned schedule and safe week rollover
+
+Platform staff own an append-only schedule of approved theme manifests. The
+backend resolves the team's local Monday through that schedule and includes the
+selected room generation in the immutable room ID. Beach Boardwalk remains the
+only production manifest, so this slice changes weekly lifecycle correctness
+without inventing a second scene.
+
+A shared civil-week resolver covers both daylight-saving transitions: the UTC
+window may be 167, 168, or 169 hours. Canvas persistence runs through a bound
+store wrapper that requires an existing room binding and exact Canvas ID and
+version. A prior room may complete a late sleep checkpoint only against its own
+room record. Bounded metrics record room binding, rollover, and checkpoint
+outcomes; structured logs contain week/theme fields but no player or team name.
+
+The browser proof deliberately leaves Mason connected to the prior room while
+Ava enters Monday's room. The new room starts without prior stamps, preserves
+Ava's permanent placeable collection, grants only the new week's credit, and
+remains clean after Mason's prior room closes and checkpoints.
+
+Delivered file tree:
+
+```text
+backend/internal/teamlounge/
+  catalog.go                          # append-only platform theme schedule
+  catalog_test.go                     # schedule and DST contract
+  week.go                             # team-local civil week resolver
+  store.go                            # binding result and bound checkpoint store
+  store_test.go                       # late-room isolation proof
+backend/internal/httpapi/
+  server.go                           # Canvas uses the bound store
+  team_lounge.go                      # binding/rollover metrics and safe logs
+backend/internal/observability/
+  metrics.go                          # bounded rollover operations
+e2e/
+  pwa-team-lounge-v2.spec.ts          # simultaneous old/new week proof
+```
 
 ## Segment 6 — production hardening and cutover
 

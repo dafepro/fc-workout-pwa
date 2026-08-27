@@ -13,6 +13,7 @@ const masonHeaders = { Authorization: "Bearer e2e-player-mason" };
 const avaHeaders = { Authorization: "Bearer e2e-player-ava" };
 const firstLoungeDay = "2026-08-26T17:00:00Z";
 const secondLoungeDay = "2026-08-27T17:00:00Z";
+const nextLoungeWeek = "2026-08-31T17:00:00Z";
 const touchRegressionDay = "2026-08-19T17:00:00Z";
 
 test.beforeEach(async ({}, testInfo) => {
@@ -40,7 +41,7 @@ test.beforeEach(async ({}, testInfo) => {
   await api.dispose();
 });
 
-test("two players keep separate stamps through live edits, reconnect, and day rollover", async ({
+test("two players keep separate stamps through reconnect, day rollover, and week rollover", async ({
   browser,
 }) => {
   test.setTimeout(90_000);
@@ -158,7 +159,8 @@ test("two players keep separate stamps through live edits, reconnect, and day ro
     { headers: avaHeaders },
   );
   expect(nextDayAccess.status()).toBe(200);
-  expect(await nextDayAccess.json()).toMatchObject({
+  const priorWeekAccess = await nextDayAccess.json();
+  expect(priorWeekAccess).toMatchObject({
     placementCredits: 2,
     placementDay: "2026-08-27",
   });
@@ -187,6 +189,67 @@ test("two players keep separate stamps through live edits, reconnect, and day ro
   await expect(
     masonPage.getByLabel("Bolt stamp, yours; locked from an earlier day"),
   ).toBeVisible();
+
+  const nextWeek = await request.newContext({ baseURL: apiBaseURL });
+  const advanceWeek = await nextWeek.post("/__e2e/time", {
+    headers: { "X-E2E-Reset-Key": resetKey },
+    data: { now: nextLoungeWeek },
+  });
+  expect(advanceWeek.status()).toBe(204);
+  for (const headers of [masonHeaders, avaHeaders]) {
+    const rest = await nextWeek.post(
+      "/v1/teams/team-hill-striders/canvas/rest",
+      { headers, data: {} },
+    );
+    expect(rest.status()).toBe(204);
+  }
+  const nextWeekAccessResponse = await nextWeek.get(
+    "/v1/teams/team-hill-striders/lounge-v2/access",
+    { headers: avaHeaders },
+  );
+  expect(nextWeekAccessResponse.status()).toBe(200);
+  const nextWeekAccess = await nextWeekAccessResponse.json();
+  expect(nextWeekAccess).toMatchObject({
+    placementCredits: 1,
+    placementDay: "2026-08-31",
+  });
+  expect(nextWeekAccess.roomId).not.toBe(priorWeekAccess.roomId);
+  expect(nextWeekAccess.placeableStamps).toEqual(
+    priorWeekAccess.placeableStamps,
+  );
+  await nextWeek.dispose();
+
+  await avaPage.reload();
+  await waitForSharedLounge(avaPage);
+  await expect(avaPage.getByLabel("1 player here")).toBeVisible();
+  await expect(avaPage.getByLabel(/stamp, yours; locked/)).toHaveCount(0);
+  await expect(avaPage.getByLabel(/stamp placed by a teammate/)).toHaveCount(0);
+  await placeStamp(avaPage, "Crown", { x: 210, y: 205 });
+  await expect(
+    avaPage.getByRole("button", {
+      name: "Crown stamp, yours; tap then drag to move",
+    }),
+  ).toBeVisible();
+
+  await expect(
+    masonPage.getByLabel("Bolt stamp, yours; locked from an earlier day"),
+  ).toBeVisible();
+  await masonPage.reload();
+  await waitForSharedLounge(masonPage);
+  await expect(masonPage.getByLabel("2 players here")).toBeVisible();
+  await expect(masonPage.getByLabel(/stamp, yours; locked/)).toHaveCount(0);
+  await expect(
+    masonPage.getByLabel("Crown stamp placed by a teammate"),
+  ).toBeVisible();
+
+  await avaPage.reload();
+  await waitForSharedLounge(avaPage);
+  await expect(
+    avaPage.getByRole("button", {
+      name: "Crown stamp, yours; tap then drag to move",
+    }),
+  ).toBeVisible();
+  await expect(avaPage.getByLabel(/stamp, yours; locked/)).toHaveCount(0);
 
   await Promise.all([masonContext.close(), avaContext.close()]);
 });

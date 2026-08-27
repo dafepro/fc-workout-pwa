@@ -75,8 +75,12 @@ through V1 movement and piece endpoints.
 
 ## Room and weekly identity
 
-- Product room ID: `team:<team-id>:lounge:<week-key>:v<template-version>`, where
+- Product room ID: `team:<team-id>:lounge:<week-key>:v<room-generation>`, where
   the existing Zoomigo week key is the team's local Monday date (`YYYY-MM-DD`).
+  The room generation selects one exact immutable Canvas template version.
+- Lounge weeks are local civil weeks resolved with the team's IANA time zone.
+  Their UTC span may be 167 or 169 hours across daylight-saving changes; no
+  code may derive rollover by adding a fixed 168 hours.
   A template correction starts a new reversible room generation instead of
   reinterpreting or deleting an existing snapshot.
 - Canvas template binding: an exact ID and version such as
@@ -87,6 +91,14 @@ through V1 movement and piece endpoints.
   only supported manifests and never invents a fallback theme for unknown data.
 - A weekly room is immutable after binding. A new week gets a new product room,
   which provides the reset without deleting the prior week's snapshot.
+- Platform staff publish an append-only schedule of approved manifests. The
+  backend resolves the schedule; coaches, players, and Canvas never choose a
+  theme. A later schedule entry may create a new room generation but cannot
+  alter an existing binding.
+- The Canvas persistence port is wrapped by a Zoomigo binding fence. A
+  checkpoint is accepted only when its room ID already exists and its Canvas ID
+  and version exactly match that room's binding. A sleeping old room may finish
+  writing its own checkpoint, but never the new week's checkpoint.
 - Carry-forward inventory stays in Zoomigo. Only explicitly placed room
   instances live in the weekly Canvas snapshot.
 
@@ -205,7 +217,8 @@ not include scoring in the first release.
 
 Name-free metrics cover join result, time to first presented frame, reconnects,
 host migrations, long frames, input-to-present latency, correction distance,
-checkpoint age, placement result, and runtime/worker errors. Dimensions are
+checkpoint age and binding outcome, weekly rollover, placement result, and
+runtime/worker errors. Dimensions are
 bounded enums such as adapter version, template ID/version, device tier, and
 failure code. They never contain player/team IDs, display names, item free text,
 or snapshots.

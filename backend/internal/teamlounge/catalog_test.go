@@ -3,7 +3,89 @@ package teamlounge
 import (
 	"encoding/json"
 	"testing"
+	"time"
+
+	"github.com/dafepro/canvas/server/pkg/roomsdk"
 )
+
+func TestTeamWeekUsesTheTeamLocalMondayAcrossDaylightSavingChanges(t *testing.T) {
+	location, err := time.LoadLocation("America/Chicago")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cases := []struct {
+		name         string
+		now          time.Time
+		wantWeek     string
+		wantDay      string
+		wantDuration time.Duration
+	}{
+		{
+			name:     "spring Sunday before local Monday",
+			now:      time.Date(2026, time.March, 9, 4, 59, 0, 0, time.UTC),
+			wantWeek: "2026-03-02", wantDay: "2026-03-08", wantDuration: 167 * time.Hour,
+		},
+		{
+			name:     "spring Monday after local midnight",
+			now:      time.Date(2026, time.March, 9, 5, 1, 0, 0, time.UTC),
+			wantWeek: "2026-03-09", wantDay: "2026-03-09", wantDuration: 168 * time.Hour,
+		},
+		{
+			name:     "fall Sunday before local Monday",
+			now:      time.Date(2026, time.November, 2, 5, 59, 0, 0, time.UTC),
+			wantWeek: "2026-10-26", wantDay: "2026-11-01", wantDuration: 169 * time.Hour,
+		},
+		{
+			name:     "fall Monday after local midnight",
+			now:      time.Date(2026, time.November, 2, 6, 1, 0, 0, time.UTC),
+			wantWeek: "2026-11-02", wantDay: "2026-11-02", wantDuration: 168 * time.Hour,
+		},
+	}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			week, err := TeamWeek(test.now, location)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if week.Key != test.wantWeek || week.DayKey != test.wantDay || week.End.Sub(week.Start) != test.wantDuration {
+				t.Fatalf("team week = %+v, duration %s", week, week.End.Sub(week.Start))
+			}
+		})
+	}
+}
+
+func TestPlatformThemeScheduleIsAppendOnlyAndDeterministic(t *testing.T) {
+	beach := ThemeManifest{
+		ID: "beach-boardwalk", Version: 1, Name: "Beach Boardwalk", RoomGeneration: 3,
+		Template: roomsdk.RoomTemplate{CanvasID: "beach", CanvasVersion: 3},
+	}
+	campfire := ThemeManifest{
+		ID: "campfire-night", Version: 1, Name: "Campfire Night", RoomGeneration: 4,
+		Template: roomsdk.RoomTemplate{CanvasID: "campfire", CanvasVersion: 1},
+	}
+	schedule := []ThemeScheduleEntry{
+		{StartsOn: "2026-08-24", Theme: beach},
+		{StartsOn: "2026-09-07", Theme: campfire},
+	}
+	for weekKey, want := range map[string]ThemeManifest{
+		"2026-08-24": beach,
+		"2026-08-31": beach,
+		"2026-09-07": campfire,
+		"2026-09-14": campfire,
+	} {
+		got, err := themeForWeek(schedule, weekKey)
+		if err != nil || got != want {
+			t.Fatalf("theme for %s = %#v, %v; want %#v", weekKey, got, err, want)
+		}
+	}
+	invalid := []ThemeScheduleEntry{
+		{StartsOn: "2026-09-07", Theme: campfire},
+		{StartsOn: "2026-08-24", Theme: beach},
+	}
+	if _, err := themeForWeek(invalid, "2026-09-07"); err == nil {
+		t.Fatal("accepted a schedule whose effective weeks move backward")
+	}
+}
 
 func TestWeeklyRoomIdentityRoundTrips(t *testing.T) {
 	roomID, err := WeeklyRoomID("team-one", "2026-08-24")
@@ -31,6 +113,9 @@ func TestWeeklyThemeManifestOwnsTheImmutableCanvasBinding(t *testing.T) {
 	}
 	if theme.ID != "beach-boardwalk" || theme.Version != 1 || theme.Name != "Beach Boardwalk" {
 		t.Fatalf("theme identity = %#v", theme)
+	}
+	if theme.RoomGeneration != BeachBoardwalkCanvasVersion {
+		t.Fatalf("room generation = %d", theme.RoomGeneration)
 	}
 	if theme.Template.CanvasID != BeachBoardwalkCanvasID || theme.Template.CanvasVersion != BeachBoardwalkCanvasVersion {
 		t.Fatalf("theme template = %#v", theme.Template)

@@ -33,6 +33,52 @@ type PlacementBudget struct {
 	Earned  int
 }
 
+type RoomBindingResult struct {
+	Created  bool
+	Rollover bool
+}
+
+type BoundRoomStore struct {
+	*SQLiteStore
+	observeSnapshot func(string)
+}
+
+func NewBoundRoomStore(store *SQLiteStore, observeSnapshot func(string)) *BoundRoomStore {
+	return &BoundRoomStore{SQLiteStore: store, observeSnapshot: observeSnapshot}
+}
+
+func (store *BoundRoomStore) SaveSnapshot(ctx context.Context, snapshot roomsdk.SnapshotRecord) error {
+	var template roomsdk.RoomTemplate
+	err := store.db.QueryRowContext(ctx, `SELECT canvas_id, canvas_version
+		FROM team_lounge_v2_room_bindings WHERE room_id = ?`, snapshot.RoomID).Scan(
+		&template.CanvasID, &template.CanvasVersion,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		store.observe("not_found")
+		return roomsdk.ErrNotFound
+	}
+	if err != nil {
+		store.observe("error")
+		return fmt.Errorf("read lounge snapshot binding: %w", err)
+	}
+	if snapshot.CanvasID != template.CanvasID || snapshot.CanvasVersion != template.CanvasVersion {
+		store.observe("conflict")
+		return roomsdk.ErrRoomTemplateConflict
+	}
+	if err := store.SQLiteStore.SaveSnapshot(ctx, snapshot); err != nil {
+		store.observe("error")
+		return err
+	}
+	store.observe("success")
+	return nil
+}
+
+func (store *BoundRoomStore) observe(outcome string) {
+	if store.observeSnapshot != nil {
+		store.observeSnapshot(outcome)
+	}
+}
+
 func NewSQLiteStore(db *sql.DB, catalog Catalog) *SQLiteStore {
 	canvases := make(map[string]roomsdk.CanvasRecord, len(catalog.Canvases))
 	for _, record := range catalog.Canvases {
@@ -124,16 +170,20 @@ func (store *SQLiteStore) BindRoom(
 	ctx context.Context,
 	roomID, teamID, weekKey string,
 	template roomsdk.RoomTemplate,
-) error {
+) (RoomBindingResult, error) {
 	if roomID == "" || teamID == "" || weekKey == "" || template.CanvasID == "" || template.CanvasVersion == 0 {
-		return errors.New("bind lounge room: invalid binding")
+		return RoomBindingResult{}, errors.New("bind lounge room: invalid binding")
 	}
-	_, err := store.db.ExecContext(ctx, `INSERT INTO team_lounge_v2_room_bindings (
+	insert, err := store.db.ExecContext(ctx, `INSERT INTO team_lounge_v2_room_bindings (
 		room_id, team_id, week_key, canvas_id, canvas_version, created_at
 	) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`, roomID, teamID, weekKey,
 		template.CanvasID, template.CanvasVersion, time.Now().UTC().Format(time.RFC3339Nano))
 	if err != nil {
-		return fmt.Errorf("bind lounge room: %w", err)
+		return RoomBindingResult{}, fmt.Errorf("bind lounge room: %w", err)
+	}
+	rowsAffected, err := insert.RowsAffected()
+	if err != nil {
+		return RoomBindingResult{}, fmt.Errorf("read lounge room binding result: %w", err)
 	}
 	var storedTeam, storedWeek string
 	var stored roomsdk.RoomTemplate
@@ -142,12 +192,20 @@ func (store *SQLiteStore) BindRoom(
 		&storedTeam, &storedWeek, &stored.CanvasID, &stored.CanvasVersion,
 	)
 	if err != nil {
-		return fmt.Errorf("read lounge room binding: %w", err)
+		return RoomBindingResult{}, fmt.Errorf("read lounge room binding: %w", err)
 	}
 	if storedTeam != teamID || storedWeek != weekKey || stored != template {
-		return roomsdk.ErrRoomTemplateConflict
+		return RoomBindingResult{}, roomsdk.ErrRoomTemplateConflict
 	}
-	return nil
+	created := rowsAffected == 1
+	var priorWeeks int
+	if created {
+		if err := store.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM team_lounge_v2_room_bindings
+			WHERE team_id = ? AND week_key < ?`, teamID, weekKey).Scan(&priorWeeks); err != nil {
+			return RoomBindingResult{}, fmt.Errorf("read prior lounge room binding: %w", err)
+		}
+	}
+	return RoomBindingResult{Created: created, Rollover: created && priorWeeks > 0}, nil
 }
 
 func (store *SQLiteStore) ResolveRoomTemplate(ctx context.Context, roomID string) (roomsdk.RoomTemplate, error) {
@@ -234,13 +292,13 @@ func (store *SQLiteStore) PlacementBudget(
 	if err != nil {
 		return PlacementBudget{}, fmt.Errorf("load lounge placement location: %w", err)
 	}
-	localNow := now.In(location)
-	dayKey := localNow.Format(time.DateOnly)
-	weekStart := localMidnight(localNow).AddDate(0, 0, -(int(localNow.Weekday())+6)%7)
-	if weekStart.Format(time.DateOnly) != weekKey {
+	week, err := TeamWeek(now, location)
+	if err != nil {
+		return PlacementBudget{}, fmt.Errorf("load lounge placement week: %w", err)
+	}
+	if week.Key != weekKey {
 		return PlacementBudget{}, errors.New("load lounge placement budget: room is not current")
 	}
-	weekEnd := weekStart.AddDate(0, 0, 7)
 	tx, err := store.db.BeginTx(ctx, nil)
 	if err != nil {
 		return PlacementBudget{}, fmt.Errorf("begin lounge placement reconciliation: %w", err)
@@ -249,7 +307,7 @@ func (store *SQLiteStore) PlacementBudget(
 	rows, err := tx.QueryContext(ctx, `SELECT id, occurred_at FROM training_entries
 		WHERE team_id = ? AND player_id = ? AND deleted_at IS NULL
 		AND occurred_at >= ? AND occurred_at < ? ORDER BY occurred_at, id`,
-		teamID, playerID, weekStart.UTC().Format(time.RFC3339Nano), weekEnd.UTC().Format(time.RFC3339Nano))
+		teamID, playerID, week.Start.UTC().Format(time.RFC3339Nano), week.End.UTC().Format(time.RFC3339Nano))
 	if err != nil {
 		return PlacementBudget{}, fmt.Errorf("list lounge training check-ins: %w", err)
 	}
@@ -265,7 +323,7 @@ func (store *SQLiteStore) PlacementBudget(
 			return PlacementBudget{}, fmt.Errorf("parse lounge training check-in: %w", parseErr)
 		}
 		entryDay := occurred.In(location).Format(time.DateOnly)
-		if entryDay > dayKey {
+		if entryDay > week.DayKey {
 			continue
 		}
 		if _, err = tx.ExecContext(ctx, `INSERT INTO team_lounge_v2_placement_credits
@@ -282,7 +340,7 @@ func (store *SQLiteStore) PlacementBudget(
 	}
 	restRows, err := tx.QueryContext(ctx, `SELECT day_key FROM team_canvas_rest_days
 		WHERE team_id = ? AND player_id = ? AND day_key >= ? AND day_key <= ? ORDER BY day_key`,
-		teamID, playerID, weekKey, dayKey)
+		teamID, playerID, weekKey, week.DayKey)
 	if err != nil {
 		return PlacementBudget{}, fmt.Errorf("list lounge rest check-ins: %w", err)
 	}
@@ -313,7 +371,7 @@ func (store *SQLiteStore) PlacementBudget(
 	if err = tx.Commit(); err != nil {
 		return PlacementBudget{}, fmt.Errorf("commit lounge placement reconciliation: %w", err)
 	}
-	return PlacementBudget{TeamID: teamID, WeekKey: weekKey, DayKey: dayKey, Earned: earned}, nil
+	return PlacementBudget{TeamID: teamID, WeekKey: weekKey, DayKey: week.DayKey, Earned: earned}, nil
 }
 
 func (store *SQLiteStore) PlacementDay(ctx context.Context, roomID string, now time.Time) (string, error) {
@@ -329,12 +387,14 @@ func (store *SQLiteStore) PlacementDay(ctx context.Context, roomID string, now t
 	if err != nil {
 		return "", fmt.Errorf("load lounge placement location: %w", err)
 	}
-	localNow := now.In(location)
-	weekStart := localMidnight(localNow).AddDate(0, 0, -(int(localNow.Weekday())+6)%7)
-	if weekStart.Format(time.DateOnly) != weekKey {
+	week, err := TeamWeek(now, location)
+	if err != nil {
+		return "", fmt.Errorf("load lounge placement week: %w", err)
+	}
+	if week.Key != weekKey {
 		return "", errors.New("load lounge placement day: room is not current")
 	}
-	return localNow.Format(time.DateOnly), nil
+	return week.DayKey, nil
 }
 
 func localMidnight(value time.Time) time.Time {
