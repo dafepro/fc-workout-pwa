@@ -246,6 +246,37 @@ var logicalTables = []logicalTable{
 		},
 	},
 	{
+		Name:    "prize_boxes",
+		OrderBy: []string{"id"},
+		Fields: []logicalField{
+			textField("id"),
+			textField("player_id"),
+			textField("source"),
+			nullable(textField("daily_day")),
+			nullable(textField("daily_time_zone")),
+			nullable(textField("training_plan_id")),
+			integerField("catalog_version"),
+			textField("earned_at"),
+			nullable(blobField("earned_idempotency_key_hash")),
+			nullable(textField("opened_at")),
+			nullable(blobField("open_idempotency_key_hash")),
+			nullable(textField("item_kind")),
+			nullable(textField("item_id")),
+		},
+	},
+	{
+		Name:    "player_unlocks",
+		OrderBy: []string{"player_id", "item_kind", "item_id"},
+		Fields: []logicalField{
+			textField("player_id"),
+			textField("item_kind"),
+			textField("item_id"),
+			textField("source"),
+			textField("unlocked_at"),
+			nullable(textField("viewed_at")),
+		},
+	},
+	{
 		Name:    "reactions",
 		OrderBy: []string{"id"},
 		Fields: []logicalField{

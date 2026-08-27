@@ -113,6 +113,9 @@ func (store *Store) CreatePlannedRestCheckIn(ctx context.Context, input CreatePl
 		checkIn.PlanID, checkIn.DayIndex, checkIn.OccursOn, input.IdempotencyKey, checkIn.CreatedAt); err != nil {
 		return PlannedRestCheckIn{}, fmt.Errorf("insert planned rest check-in: %w", err)
 	}
+	if _, err = syncPlanPrizeBoxGrants(ctx, tx, checkIn.PlayerID, input.Now); err != nil {
+		return PlannedRestCheckIn{}, err
+	}
 	if err = tx.Commit(); err != nil {
 		return PlannedRestCheckIn{}, fmt.Errorf("commit planned rest check-in: %w", err)
 	}

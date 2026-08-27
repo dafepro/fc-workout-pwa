@@ -125,6 +125,32 @@ Initial automatic badges:
 - weekly-goal-complete
 - above-and-beyond
 
+## PrizeBox
+
+- id
+- playerId
+- source: daily_check_in | plan_participation_3 | plan_completion_7
+- dailyDay and dailyTimeZone for a daily box, or trainingPlanId for a plan box
+- earnedAt
+- openedAt optional
+- itemKind and itemId optional until opened
+- hashed earn/open idempotency keys where applicable
+
+A box is sealed when earned and chooses no item until its owner opens it. Three
+and seven distinct proven plan days grant separate boxes exactly once.
+
+## PlayerUnlock
+
+- playerId
+- itemKind: avatar_part | lounge_stamp | lounge_prop
+- itemId from the predefined versioned catalog
+- source
+- unlockedAt
+- viewedAt optional
+
+Ownership is private. Team Lounge receives only the authenticated player’s
+approved owned item IDs through its inventory boundary.
+
 ## Derived progress
 
 Compute rather than store when practical:

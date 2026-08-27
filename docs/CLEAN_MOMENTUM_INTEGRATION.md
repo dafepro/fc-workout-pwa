@@ -78,3 +78,5 @@ Each step is test-first and small enough to review independently.
   plan-linked workouts and standalone rest check-ins now complete Momentum without Canvas.
 - Completion-gated Team pulse: accepted workouts or planned rest unlock one safe recent item per teammate;
   partial work stays locked and counts no team completion, while IDs and performance details remain private.
+- Prize Box authority: consolidated sealed daily and 3/7-day plan awards into one idempotent ledger;
+  opening grants predefined nonduplicate Avatar or canonical Team Lounge inventory, with backups included.

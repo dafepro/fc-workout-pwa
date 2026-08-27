@@ -40,6 +40,8 @@ var exportedTables = []string{
 	"training_plan_blocks",
 	"training_entries",
 	"planned_rest_check_ins",
+	"prize_boxes",
+	"player_unlocks",
 	"reactions",
 	"auth_credentials",
 	"auth_sessions",
@@ -187,7 +189,8 @@ func TestLogicalExportFromAnOlderSchemaImportsIntoTheCurrentSchema(t *testing.T)
 	// Tables the old schema never had must import as empty, not as errors.
 	for _, table := range []string{
 		"assignments", "training_plans", "training_plan_days", "training_plan_blocks",
-		"planned_rest_check_ins", "auth_credentials", "auth_sessions", "auth_audit_events",
+		"planned_rest_check_ins", "prize_boxes", "player_unlocks",
+		"auth_credentials", "auth_sessions", "auth_audit_events",
 	} {
 		var count int
 		if err := target.QueryRowContext(ctx, "SELECT COUNT(*) FROM "+table).Scan(&count); err != nil {
@@ -416,7 +419,21 @@ func fullyPopulatedDatabase(t *testing.T, ctx context.Context) string {
 		 occurs_on, idempotency_key, created_at
 		) VALUES (
 		 'rest-mason', 'player-mason', 'team-hill-striders', 'plan-speed', 1,
-		 '2026-08-02', 'rest-key-1', '2026-08-02T12:00:00Z'
+			'2026-08-02', 'rest-key-1', '2026-08-02T12:00:00Z'
+		)`,
+		`INSERT INTO prize_boxes (
+			id, player_id, source, training_plan_id, catalog_version, earned_at,
+			opened_at, open_idempotency_key_hash, item_kind, item_id
+		) VALUES (
+			'prize-plan-three', 'player-mason', 'plan_participation_3', 'plan-speed', 1,
+			'2026-08-02T12:00:00Z', '2026-08-02T12:05:00Z', zeroblob(32),
+			'avatar_part', 'avatar-head-dog'
+		)`,
+		`INSERT INTO player_unlocks (
+			player_id, item_kind, item_id, source, unlocked_at, viewed_at
+		) VALUES (
+			'player-mason', 'avatar_part', 'avatar-head-dog', 'plan_participation_3',
+			'2026-08-02T12:05:00Z', '2026-08-02T13:00:00Z'
 		)`,
 		`UPDATE training_entries SET deleted_at = '2026-08-01T00:00:00Z' WHERE id = 'entry-mason-expired'`,
 		`INSERT INTO reactions (

@@ -289,8 +289,13 @@ to resolve, not the implementing agent's.
 - Avatars are rendered on the player's own surfaces only — the builder, the `/me`
   hero, and the nav. Team and leaderboard rows keep initials, so no teammate's
   chosen look can appear in a row that is not theirs.
-- Unlocks and currency remain out of scope. Catalog entries are object-shaped so
-  an `unlock` field is additive.
+- Decided 2026-08-27: Prize Boxes own a versioned, server-authorized inventory
+  for optional Avatar parts and Team Lounge items. Included basics require no
+  per-player row. Currency, purchases, trades, rerolls, and crafting remain out
+  of scope.
+- Integration assumption 2026-08-27: one free sealed daily box is independent
+  of training and does not change Momentum. Opening later chooses the item, so
+  claiming cannot reveal or reroll a reward.
 
 ## Coach console UX, issue #9 (2026-08-12)
 

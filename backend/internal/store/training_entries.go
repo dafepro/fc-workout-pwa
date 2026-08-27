@@ -242,6 +242,11 @@ func (store *Store) CreateTrainingEntry(ctx context.Context, input CreateTrainin
 	if err != nil {
 		return TrainingEntry{}, fmt.Errorf("insert training entry: %w", err)
 	}
+	if entry.Plan != nil && entry.CompletionOutcome != "partial" {
+		if _, err = syncPlanPrizeBoxGrants(ctx, tx, entry.PlayerID, now); err != nil {
+			return TrainingEntry{}, err
+		}
+	}
 	if err := tx.Commit(); err != nil {
 		return TrainingEntry{}, fmt.Errorf("commit training entry: %w", err)
 	}

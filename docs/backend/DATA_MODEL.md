@@ -30,6 +30,8 @@ Club
 - `coach_team_assignments`: active coach/team authorization with date bounds
 - `activity_definitions`: server-owned input kind, unit, allowed ranges, and safe point policy
 - `training_entries`: private structured result, effort/exhaustion, trusted timestamps, and soft deletion
+- `prize_boxes`: sealed daily and 3/7-day plan awards with hashed idempotency keys and transactional open results
+- `player_unlocks`: private predefined Avatar and Team Lounge inventory; no labels, files, or player-authored metadata
 - `reactions`: predefined type, recipient, safe context snapshot, team-local day, read state, and idempotency key
 
 ## Reaction rolling limit

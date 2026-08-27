@@ -8,6 +8,7 @@ experiments.
 ## Product and safety
 
 - Approve numeric workload bounds for coach training plans.
+- Approve the initial Prize Box catalog, rarity labels, and destination balance.
 - Resolve multi-team timezone authority for plan, Prize Box, reward, and lounge
   day boundaries.
 - Finish guardian ownership, credential recovery, retention, export, deletion,

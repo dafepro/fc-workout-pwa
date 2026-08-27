@@ -123,6 +123,43 @@ Soft-deletes an entry only when the authenticated player owns it and the trusted
 
 An owner outside the window receives `422 entry_delete_window_closed`. Other callers receive concealed `404` responses.
 
+## Prize boxes and inventory
+
+### `GET /v1/me/prize-boxes`
+
+Returns today’s daily-claim state, unopened boxes, aggregate earned/opened
+counts, and at most three recently opened items for the authenticated player.
+Unopened boxes expose only their opaque ID, predefined source, and earned time;
+they never reveal the item or rarity before opening.
+
+### `POST /v1/me/prize-boxes/claim-daily`
+
+Requires `Idempotency-Key`. Creates or replays one sealed box for the configured
+local calendar day without creating a workout or changing Momentum. A claim
+never chooses or returns an item.
+
+### `POST /v1/me/prize-boxes/{boxId}/open`
+
+Requires a separate `Idempotency-Key`. The box must belong to the authenticated
+player. Item selection, opening, and inventory insertion are one transaction;
+an identical retry returns the original item and never rerolls. Selection uses
+only enabled predefined items the player does not own. A completed collection
+opens to a predefined no-item result without currency or duplicates.
+
+Completing three distinct proven days of one seven-day plan earns one sealed
+box; completing all seven earns one more. A training day counts only when every
+predefined block has an accepted, non-deleted check-in. Planned rest counts
+through its standalone check-in. Extra rows and partial outcomes cannot
+accelerate a tier, and a granted box is never revoked by later deletion or plan
+cancellation.
+
+### `GET /v1/me/unlocks?kind=avatar_part|lounge_stamp|lounge_prop`
+
+Returns only the authenticated player’s matching predefined inventory items,
+including safe asset metadata, rarity, destination, source, unlock time, and
+optional viewed time. `POST /v1/me/unlocks/{itemId}/viewed` idempotently records
+that the owner deliberately viewed an earned item.
+
 ## Avatar
 
 ### `PUT /v1/me/avatar`
