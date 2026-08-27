@@ -42,6 +42,8 @@ var exportedTables = []string{
 	"planned_rest_check_ins",
 	"prize_boxes",
 	"player_unlocks",
+	"team_rewards",
+	"team_reward_events",
 	"reactions",
 	"auth_credentials",
 	"auth_sessions",
@@ -190,6 +192,7 @@ func TestLogicalExportFromAnOlderSchemaImportsIntoTheCurrentSchema(t *testing.T)
 	for _, table := range []string{
 		"assignments", "training_plans", "training_plan_days", "training_plan_blocks",
 		"planned_rest_check_ins", "prize_boxes", "player_unlocks",
+		"team_rewards", "team_reward_events",
 		"auth_credentials", "auth_sessions", "auth_audit_events",
 	} {
 		var count int
@@ -434,6 +437,25 @@ func fullyPopulatedDatabase(t *testing.T, ctx context.Context) string {
 		) VALUES (
 			'player-mason', 'avatar_part', 'avatar-head-dog', 'plan_participation_3',
 			'2026-08-02T12:05:00Z', '2026-08-02T13:00:00Z'
+		)`,
+		`INSERT INTO team_rewards (
+			id, team_id, created_by_account_id, definition_id, definition_version,
+			prize_title, prize_description, artwork_id, status, starts_on, ends_on,
+			time_zone, rule_version, required_days, minimum_roster_percent,
+			publish_idempotency_key_hash, achieved_at, created_at, updated_at
+		) VALUES (
+			'reward-celebration', 'team-hill-striders', 'account-coach',
+			'team-celebration-v1', 1, 'Team celebration',
+			'Celebrate together at a future team gathering.', 'celebration-stars',
+			'achieved', '2026-08-01', '2026-08-07', 'America/Chicago', 1, 5, 80,
+			X'000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f',
+			'2026-08-07T12:00:00Z', '2026-08-01T12:00:00Z', '2026-08-07T12:00:00Z'
+		)`,
+		`INSERT INTO team_reward_events (
+			id, reward_id, actor_account_id, event_type, occurred_at
+		) VALUES (
+			'reward-event-achieved', 'reward-celebration', NULL, 'achieved',
+			'2026-08-07T12:00:00Z'
 		)`,
 		`UPDATE training_entries SET deleted_at = '2026-08-01T00:00:00Z' WHERE id = 'entry-mason-expired'`,
 		`INSERT INTO reactions (

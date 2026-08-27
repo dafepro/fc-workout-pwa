@@ -84,3 +84,5 @@ Each step is test-first and small enough to review independently.
   reward reveal, and consolidated collection history; failed mutations reuse their idempotency keys.
 - Avatar Prize inventory: owned predefined parts now unlock in the canonical Studio and are marked viewed;
   disposable E2E resets clear final plan/prize state, while browser coverage proves claim, open, and equip.
+- Team Reward foundation: replaced drafts, authored copy, uploads, and alternate rules with one predefined celebration;
+  migration 000016 stores bounded aggregate progress authority and events, with logical-backup and reset coverage.

@@ -9,6 +9,7 @@ experiments.
 
 - Approve numeric workload bounds for coach training plans.
 - Approve the initial Prize Box catalog, rarity labels, and destination balance.
+- Approve the initial Team Reward catalog, artwork, and fulfillment language.
 - Resolve multi-team timezone authority for plan, Prize Box, reward, and lounge
   day boundaries.
 - Finish guardian ownership, credential recovery, retention, export, deletion,

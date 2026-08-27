@@ -296,6 +296,10 @@ to resolve, not the implementing agent's.
 - Integration assumption 2026-08-27: one free sealed daily box is independent
   of training and does not change Momentum. Opening later chooses the item, so
   claiming cannot reveal or reroll a reward.
+- Integration assumption 2026-08-27: Team Rewards begin as one predefined,
+  versioned celebration with bundled artwork and immutable display snapshots.
+  Progress uses only qualifying team-local days at a bounded roster percentage;
+  authored copy, uploads, alternate rules, and player-level results stay out.
 
 ## Coach console UX, issue #9 (2026-08-12)
 
