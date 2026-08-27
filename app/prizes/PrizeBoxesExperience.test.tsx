@@ -100,13 +100,13 @@ describe("PrizeBoxesExperience", () => {
       timeZone: "America/Chicago",
       claimedAt: "2026-08-25T12:01:00Z",
       item: {
-        id: "canvas-stamp-lion",
-        kind: "canvas_stamp",
-        slot: "stamp",
-        assetId: "lion",
-        label: "Lion stamp",
+        id: "canvas-prop-beach-ball",
+        kind: "canvas_prop",
+        slot: "prop",
+        assetId: "beach-ball",
+        label: "Beach ball",
         catalogVersion: 1,
-        rarity: "epic",
+        rarity: "uncommon",
         destination: "team_lounge",
       },
     };
@@ -133,8 +133,8 @@ describe("PrizeBoxesExperience", () => {
     expect(
       await screen.findByRole("dialog", { name: "Zoomi found something!" }),
     ).toBeVisible();
-    expect(screen.getByText("Lion stamp")).toBeVisible();
-    expect(screen.getByText("Epic")).toBeVisible();
+    expect(screen.getByText("Beach ball")).toBeVisible();
+    expect(screen.getByText("Uncommon")).toBeVisible();
     expect(screen.getByText("Team Lounge")).toBeVisible();
     expect(
       screen.getByRole("link", { name: "Use in Team Lounge" }),

@@ -13,7 +13,7 @@ import (
 
 const (
 	BeachBoardwalkCanvasID      = "zoomigo-beach-boardwalk"
-	BeachBoardwalkCanvasVersion = uint32(3)
+	BeachBoardwalkCanvasVersion = uint32(4)
 )
 
 type ThemeManifest struct {
@@ -125,7 +125,7 @@ func BeachBoardwalkCatalog() Catalog {
 		}},
 		Items: []roomsdk.ItemDefinitionRecord{
 			{
-				DefinitionID: "beach-ball", Version: 1, Complexity: roomsdk.ItemComplexitySimple,
+				DefinitionID: "beach-ball", Version: 2, Complexity: roomsdk.ItemComplexitySimple,
 				ConfigSchema:  json.RawMessage(kickableConfigSchemaJSON),
 				DefinitionRaw: json.RawMessage(beachBallDefinitionJSON),
 			},
@@ -137,11 +137,12 @@ func BeachBoardwalkCatalog() Catalog {
 		},
 	}
 	catalog.Items = append(catalog.Items, stampDefinitionRecords()...)
+	catalog.Items = append(catalog.Items, propDefinitionRecords()...)
 	return catalog
 }
 
 const beachBoardwalkCanvasJSON = `{
-  "id":"zoomigo-beach-boardwalk","version":3,
+  "id":"zoomigo-beach-boardwalk","version":4,
   "size":{"width":100,"height":150},"orientation":"topDown",
   "backgroundAssetId":"lounge.background",
   "edges":{"top":"solid","right":"solid","bottom":"solid","left":"solid"},
@@ -155,21 +156,21 @@ const beachBoardwalkCanvasJSON = `{
   "regions":[],
   "environment":{"base":{"gravityXY":{"x":0,"y":0},"linearDrag":0.2,"angularDrag":0.2,"softSpeedLimit":28,"surfaceFrictionMultiplier":1}},
   "spawnPoints":[{"id":"arrival","position":{"x":43,"y":92}}],
-  "systemItems":[{"entityId":"boardwalk-beach-ball","definitionId":"beach-ball","definitionVersion":1,"transform":{"x":62,"y":98,"rotation":0},"resolvedConfig":{"sensorId":"kick","kickStrength":1.25,"minImpulse":0,"maxImpulse":18,"cooldownSeconds":0.25}}],
+  "systemItems":[{"entityId":"boardwalk-beach-ball","definitionId":"beach-ball","definitionVersion":2,"transform":{"x":62,"y":98,"rotation":0},"resolvedConfig":{"sensorId":"kick","kickStrength":1.25,"minImpulse":2.5,"maxImpulse":18,"cooldownSeconds":0.25}}],
   "limits":{"maxAvatars":24,"maxItems":169,"maxComplexPhysicsItems":4},
   "avatarController":{"radius":4,"maxSpeed":26,"acceleration":125,"flickDeceleration":42,"maxTurnSpeed":9,"facing":"fixed","directInteractionMaxSpeed":32},
   "terrainDefaults":{"avatars":true,"items":true}
 }`
 
 const beachBallDefinitionJSON = `{
-  "definitionId":"beach-ball","version":1,"displayName":"Beach ball",
+  "definitionId":"beach-ball","version":2,"displayName":"Beach ball",
   "visual":{"size":{"width":9,"height":9},"placeholder":{"shape":"circle","color":16765757},"zIndex":8},
   "body":{"mode":"dynamic","mass":0.35,"gravityScale":0,"linearDamping":0.4,"angularDamping":0.55,"canSleep":true},
   "colliders":[
-    {"id":"solid","role":"itemSolid","shape":{"type":"circle","radius":4.5},"restitution":0.82,"friction":0.18,"collisionMask":28},
+    {"id":"solid","role":"itemSolid","shape":{"type":"circle","radius":4.5},"restitution":0.82,"friction":0.18,"collisionMask":31},
     {"id":"kick","role":"itemSensor","shape":{"type":"circle","radius":5.8}}
   ],
-  "behaviorType":"kickable","defaultConfig":{"sensorId":"kick","kickStrength":1.25,"minImpulse":0,"maxImpulse":18,"cooldownSeconds":0.25},
+  "behaviorType":"kickable","defaultConfig":{"sensorId":"kick","kickStrength":1.25,"minImpulse":2.5,"maxImpulse":18,"cooldownSeconds":0.25},
   "persistence":{"transform":true,"behaviorState":true,"onRoomSleep":"pause"},"complexity":"simple"
 }`
 

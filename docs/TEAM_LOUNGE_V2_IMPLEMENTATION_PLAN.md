@@ -199,12 +199,11 @@ placement credits.
       serialized room loop, with an authenticated WebSocket integration test.
 - [x] Persist accepted stamps in the existing weekly Canvas checkpoint and
       project their authenticated owner back to the app.
-- [ ] Add props only after their ownership and interaction semantics are
-      separately defined.
+- [x] Add the permanent Beach ball prop after defining its Prize Box ownership,
+      shared-budget, current-day edit/delete, and persistent physics semantics.
 - [x] Add owner-authorized move and bounded scale after selection.
 - [x] Add owner-only rotation in 15-degree steps in either direction, with
       normalized durable angles and shared live previews.
-- [x] Define atomic replacement and explicitly keep standalone delete disabled.
 - [x] Keep mirroring off until individual art opts in and Canvas supports a
       first-class reflection transform; negative scale is never a mirror API.
 - [x] Cover concurrent reconnect placement and fault-injected checkpoint retry.
@@ -281,16 +280,6 @@ Later mirroring requires per-asset `canMirror` metadata, art review for logos,
 text-like and directional assets, and a first-class Canvas transform that keeps
 rendering, hit testing, persistence, and authorization aligned.
 
-Replacement is also a separate durable operation, not `delete` followed by
-`spawn`. The future player action is **Change stamp**: choose another owned
-asset, preview it at the existing transform, and confirm one atomic mutation
-that preserves the entity ID, owner, position, scale, and rotation. Until that
-mutation succeeds, the old stamp remains authoritative; cancel or disconnect
-changes nothing. This preserves exactly one active weekly stamp through every
-failure. A standalone delete is not offered because “remove and reopen the
-weekly slot” is a different product rule and creates an avoidable empty/failure
-state. Consumable inventory remains a later, separately transactional design.
-
 ### Segment 4E vertical slice — earned weekly budget and daily locks
 
 This slice supersedes the reversible one-stamp and six-zone policies from 4A.
@@ -314,13 +303,11 @@ allowed; only a five-unit outer safety margin is reserved. The placement
 surface keeps `touch-action: pan-y`, so a vertical drag continues to scroll the
 page while an un-dragged tap places the stamp. Every current-day stamp owned by
 the player can be moved, resized, or snap-rotated. At the next team-local
-midnight it becomes visible but immutable. Stamps and future props will spend
-the same generic weekly budget, but props remain disabled until their own
-ownership and interaction rules ship.
+midnight it becomes visible but immutable. Stamps and props spend the same
+generic weekly budget.
 
-Replacement, standalone delete, and mirroring remain separate decisions. The
-initial three rotation snaps are superseded by Segment 4F; placement locations
-and credits are unaffected.
+The initial three rotation snaps are superseded by Segment 4F; placement
+locations and credits are unaffected.
 
 ### Segment 4F vertical slice — shared transform previews and full rotation
 
@@ -509,6 +496,22 @@ e2e/
 docs/
   TEAM_LOUNGE_V2_{DELIVERY_TRACKER,IMPLEMENTATION_PLAN,MANUAL_TEST}.md
 ```
+
+### Segment 4Y vertical slice — first earned physical prop
+
+Beach ball is a permanent `canvas_prop` Prize Box award with restrained item
+art, rarity, collection history, and a Team Lounge destination. The
+authenticated lounge projection lists only props the current player owns. The
+Props tab shares the same check-in-funded placement budget as Stamps.
+
+Placing the ball creates a dynamic Canvas entity. It can be picked up or removed
+by its owner only on its placement day, but its authored physical size and
+rotation are fixed. Any teammate avatar may kick it; transform changes are
+shared live and checkpointed. Deleting it the same day restores the derived
+weekly placement without removing the permanent unlock. Room generation V4
+and beach-ball definition V2 isolate the corrected avatar collision contract
+from earlier snapshots. A real host-simulation regression must prove motion,
+not merely the kick animation.
 
 ## Segment 5 — weekly cadence and theme framework
 

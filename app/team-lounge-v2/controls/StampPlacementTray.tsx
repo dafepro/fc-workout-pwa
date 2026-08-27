@@ -16,6 +16,7 @@ export type StampPlacementStatus =
 
 export interface StampPlacementChoice {
   asset: StampAsset;
+  category?: "stamp" | "prop";
   source: "included" | "earned";
   isNew: boolean;
 }
@@ -26,6 +27,8 @@ export function StampPlacementTray({
   summary,
   status,
   error,
+  activeCategory = "stamp",
+  onCategoryChange = () => undefined,
   onSelect,
 }: {
   choices: readonly StampPlacementChoice[];
@@ -33,6 +36,8 @@ export function StampPlacementTray({
   summary: LoungePlacementSummary | null;
   status: StampPlacementStatus;
   error: string | null;
+  activeCategory?: "stamp" | "prop";
+  onCategoryChange?(category: "stamp" | "prop"): void;
   onSelect(asset: StampAsset): void;
 }) {
   if (status === "loading") {
@@ -71,44 +76,69 @@ export function StampPlacementTray({
       ? copy.placementTray.locked
       : copy.placementTray.explanation;
 
+  const visibleChoices = choices.filter(
+    ({ category }) => (category ?? "stamp") === activeCategory,
+  );
   return (
     <section
       className="team-lounge-v2__stamp-tray"
-      aria-label="Choose a stamp to place"
+      aria-label="Choose an item to place"
       aria-busy={status === "placing"}
     >
       <div>
         <h2>{title}</h2>
         <p>{instruction}</p>
       </div>
+      <div className="team-lounge-v2__inventory-tabs" aria-label="Item type">
+        {(["stamp", "prop"] as const).map((category) => (
+          <button
+            key={category}
+            type="button"
+            aria-pressed={activeCategory === category}
+            onClick={() => onCategoryChange(category)}
+          >
+            {category === "stamp" ? "Stamps" : "Props"}
+          </button>
+        ))}
+      </div>
       {error ? (
         <p className="team-lounge-v2__placement-error" role="alert">
           {error}
         </p>
       ) : null}
-      {status === "exhausted" ? null : choices.length === 0 ? (
-        <p className="team-lounge-v2__tray-note">{copy.placementTray.empty}</p>
+      {status === "exhausted" ? null : visibleChoices.length === 0 ? (
+        <p className="team-lounge-v2__tray-note">
+          {activeCategory === "prop"
+            ? copy.placementTray.emptyProps
+            : copy.placementTray.empty}
+        </p>
       ) : (
         <div className="team-lounge-v2__stamp-choices">
-          {choices.map(({ asset, source, isNew }) => {
-            const label = stampAssetLabel(asset);
-            return (
-              <button
-                key={asset.id}
-                type="button"
-                aria-label={`Choose ${label} stamp`}
-                aria-pressed={selected?.id === asset.id}
-                disabled={status === "placing" || remaining === 0}
-                onClick={() => onSelect(asset)}
-              >
-                <StampAssetView asset={asset} />
-                <span className="team-lounge-v2__stamp-label">{label}</span>
-                <small>
-                  {isNew ? "New" : source === "earned" ? "Earned" : "Included"}
-                </small>
-              </button>
-            );
-          })}
+          {visibleChoices.map(
+            ({ asset, category = "stamp", source, isNew }) => {
+              const label = stampAssetLabel(asset);
+              return (
+                <button
+                  key={asset.id}
+                  type="button"
+                  aria-label={`Choose ${label} ${category}`}
+                  aria-pressed={selected?.id === asset.id}
+                  disabled={status === "placing" || remaining === 0}
+                  onClick={() => onSelect(asset)}
+                >
+                  <StampAssetView asset={asset} />
+                  <span className="team-lounge-v2__stamp-label">{label}</span>
+                  <small>
+                    {isNew
+                      ? "New"
+                      : source === "earned"
+                        ? "Earned"
+                        : "Included"}
+                  </small>
+                </button>
+              );
+            },
+          )}
         </div>
       )}
     </section>

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { StampPlacementTray } from "./StampPlacementTray";
 
@@ -9,6 +9,17 @@ const target = {
   label: "Target",
 };
 const targetChoice = { asset: target, source: "earned" as const, isNew: true };
+const beachBallChoice = {
+  asset: {
+    id: "beach-ball",
+    kind: "image" as const,
+    src: "/team-lounge-v2/beach-ball.svg",
+    alt: "Beach ball",
+  },
+  category: "prop" as const,
+  source: "earned" as const,
+  isNew: true,
+};
 
 describe("StampPlacementTray", () => {
   it("labels collection access separately from the placement budget", () => {
@@ -63,7 +74,7 @@ describe("StampPlacementTray", () => {
     expect(screen.getByText("All weekly placements used")).toBeVisible();
     expect(
       screen.getByText(
-        "Earlier stamps are locked. Today’s stamps can still be adjusted.",
+        "Earlier items are locked. Today’s items can still be adjusted.",
       ),
     ).toBeVisible();
   });
@@ -81,7 +92,34 @@ describe("StampPlacementTray", () => {
     );
 
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "Your stamps could not load. Close Stamps and try again.",
+      "Your lounge items could not load. Close the picker and try again.",
     );
+  });
+
+  it("separates owned props from stamps without changing the placement budget", () => {
+    render(
+      <StampPlacementTray
+        choices={[targetChoice, beachBallChoice]}
+        selected={null}
+        summary={{ earned: 2, used: 1, remaining: 1 }}
+        status="ready"
+        error={null}
+        activeCategory="prop"
+        onCategoryChange={() => undefined}
+        onSelect={() => undefined}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Props" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(
+      screen.getByRole("button", { name: "Choose Beach ball prop" }),
+    ).toBeEnabled();
+    expect(
+      screen.queryByRole("button", { name: "Choose Target stamp" }),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Stamps" }));
   });
 });

@@ -215,7 +215,7 @@ vi.mock("@canvas-physics/client", () => ({
 
 vi.mock("./data/lounge-gateway", () => ({
   prepareTeamLoungeJoin: vi.fn().mockResolvedValue({
-    roomID: "team:team-one:lounge:2026-08-24:v3",
+    roomID: "team:team-one:lounge:2026-08-24:v4",
     serverURL: "wss://example.test/canvas",
     credentialProvider: vi.fn(),
     visitorIDs: ["player-two"],
@@ -227,6 +227,14 @@ vi.mock("./data/lounge-gateway", () => ({
         label: "Target stamp",
         source: "earned",
         unlockId: "canvas-stamp-target",
+        isNew: true,
+      },
+    ],
+    placeableProps: [
+      {
+        assetId: "beach-ball",
+        label: "Beach ball",
+        unlockId: "canvas-prop-beach-ball",
         isNew: true,
       },
     ],
@@ -262,7 +270,7 @@ describe("SharedLoungeCanvas", () => {
     runtime.transformed = [];
     gateway.refresh.mockReset();
     gateway.refresh.mockResolvedValue({
-      roomID: "team:team-one:lounge:2026-08-24:v3",
+      roomID: "team:team-one:lounge:2026-08-24:v4",
       placementCredits: 2,
       placementDay: "2026-08-26",
       placeableStamps: [
@@ -273,6 +281,7 @@ describe("SharedLoungeCanvas", () => {
           isNew: false,
         },
       ],
+      placeableProps: [],
     });
   });
 
@@ -351,6 +360,62 @@ describe("SharedLoungeCanvas", () => {
     expect(runtime.editModes).toContain(true);
     expect(runtime.selectedForEdit).toEqual(["mine"]);
     expect(stamp).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("projects an earned beach ball as a physical prop without stamp transforms", async () => {
+    const onPlaceablePropsChange = vi.fn();
+    render(
+      <SharedLoungeCanvas
+        teamID="team-one"
+        playerID="player-one"
+        roster={[]}
+        onStateChange={vi.fn()}
+        onPresenceChange={vi.fn()}
+        onSignalPortChange={vi.fn()}
+        onPlaceablePropsChange={onPlaceablePropsChange}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(onPlaceablePropsChange).toHaveBeenCalledWith([
+        expect.objectContaining({
+          assetId: "beach-ball",
+          unlockId: "canvas-prop-beach-ball",
+        }),
+      ]),
+    );
+    act(() =>
+      runtime.overlayObserver?.({
+        entities: [
+          {
+            entityId: "my-beach-ball",
+            kind: "item",
+            definitionId: "zoomigo-prop-beach-ball",
+            ownerUserId: "player-one",
+            screen: { x: 180, y: 240 },
+            world: { x: 52, y: 72, z: 0 },
+            rotation: 0,
+            scale: 1,
+            resolvedConfig: { placementDay: "2026-08-26" },
+            visible: true,
+            inViewport: true,
+          },
+        ],
+      }),
+    );
+
+    const prop = screen.getByRole("button", {
+      name: "Beach ball prop, yours; tap then drag to move",
+    });
+    fireEvent.pointerDown(prop, {
+      buttons: 1,
+      pointerId: 1,
+      pointerType: "touch",
+    });
+    expect(
+      screen.getByRole("group", { name: "Edit selected prop" }),
+    ).toBeVisible();
+    expect(screen.queryByRole("group", { name: "Stamp size" })).toBeNull();
   });
 
   it("gives the visible avatar first claim over an overlapping editable stamp", async () => {

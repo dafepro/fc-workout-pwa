@@ -17,6 +17,7 @@ vi.mock("./SharedLoungeCanvas", async () => {
       onPlacementError,
       onPlacementPendingChange,
       onPlaceableStampsChange,
+      onPlaceablePropsChange,
       onStampDragStateChange,
     }: {
       onSignalPortChange(sender: ((kind: string) => void) | null): void;
@@ -44,6 +45,14 @@ vi.mock("./SharedLoungeCanvas", async () => {
           isNew: boolean;
         }>,
       ): void;
+      onPlaceablePropsChange?(
+        props: Array<{
+          assetId: "beach-ball";
+          label: "Beach ball";
+          unlockId: "canvas-prop-beach-ball";
+          isNew: boolean;
+        }>,
+      ): void;
     }) {
       useEffect(() => {
         onSignalPortChange(relay.send);
@@ -56,8 +65,16 @@ vi.mock("./SharedLoungeCanvas", async () => {
             isNew: true,
           },
         ]);
+        onPlaceablePropsChange?.([
+          {
+            assetId: "beach-ball",
+            label: "Beach ball",
+            unlockId: "canvas-prop-beach-ball",
+            isNew: true,
+          },
+        ]);
         return () => onSignalPortChange(null);
-      }, [onPlaceableStampsChange, onSignalPortChange]);
+      }, [onPlaceablePropsChange, onPlaceableStampsChange, onSignalPortChange]);
       relay.editing.push(stampEditingEnabled);
       return (
         <div>
@@ -145,6 +162,21 @@ describe("TeamLoungeV2 emote controls", () => {
     expect(relay.editing).toContain(true);
   });
 
+  it("opens earned props in the shared item picker", () => {
+    render(<TeamLoungeV2 host={host} />);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Simulate placement budget" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Props" }));
+
+    expect(
+      screen.getByRole("dialog", { name: "Choose an item to place" }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Choose Beach ball prop" }),
+    ).toBeEnabled();
+  });
+
   it("sends an allowlisted signal once and holds the controls through cooldown", () => {
     render(<TeamLoungeV2 host={host} />);
     fireEvent.click(screen.getByRole("button", { name: "Emotes" }));
@@ -168,7 +200,7 @@ describe("TeamLoungeV2 emote controls", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Stamps" }));
     expect(
-      screen.getByRole("dialog", { name: "Choose a stamp to place" }),
+      screen.getByRole("dialog", { name: "Choose an item to place" }),
     ).toBeVisible();
 
     fireEvent.click(
@@ -179,13 +211,13 @@ describe("TeamLoungeV2 emote controls", () => {
     ).toBeVisible();
     expect(screen.queryByRole("button", { name: "Stamps" })).toBeNull();
     expect(
-      screen.queryByRole("dialog", { name: "Choose a stamp to place" }),
+      screen.queryByRole("dialog", { name: "Choose an item to place" }),
     ).toBeNull();
     fireEvent.click(
       screen.getByRole("button", { name: "Simulate unavailable" }),
     );
     expect(
-      screen.queryByRole("dialog", { name: "Choose a stamp to place" }),
+      screen.queryByRole("dialog", { name: "Choose an item to place" }),
     ).toBeNull();
 
     fireEvent.click(
@@ -210,7 +242,7 @@ describe("TeamLoungeV2 emote controls", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Stamps" }));
     const dialog = screen.getByRole("dialog", {
-      name: "Choose a stamp to place",
+      name: "Choose an item to place",
     });
     expect(dialog).toHaveClass("team-lounge-v2__menu-sheet");
     expect(dialog.closest(".team-lounge-v2__world")).toBe(
@@ -218,7 +250,7 @@ describe("TeamLoungeV2 emote controls", () => {
     );
     expect(dialog.closest(".team-lounge-v2__actions")).toBeNull();
     expect(document.body.style.overflow).not.toBe("hidden");
-    fireEvent.click(screen.getByRole("button", { name: "Close stamps" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close item picker" }));
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
@@ -257,7 +289,7 @@ describe("TeamLoungeV2 emote controls", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Simulate spot" }));
     fireEvent.click(screen.getByRole("button", { name: "Stamps" }));
-    expect(screen.getByText("Adding your stamp…")).toBeVisible();
+    expect(screen.getByText("Adding your item…")).toBeVisible();
     expect(
       screen.getByRole("button", { name: "Choose Target stamp" }),
     ).toBeDisabled();

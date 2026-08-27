@@ -95,6 +95,32 @@ test("an earned Team Lounge stamp enters the supported placement flow", async ({
   ).toBeVisible();
 });
 
+test("an earned beach ball reaches the Team Lounge props tray", async ({
+  page,
+}) => {
+  await grantRewards(["canvas-prop-beach-ball"]);
+  await recordShowingUpToday();
+  await openReadyPage(page, "/prizes/all");
+
+  const reward = page.getByRole("listitem").filter({ hasText: "Beach ball" });
+  await expect(reward.getByText("Team Lounge", { exact: true })).toBeVisible();
+  await page.evaluate(() => {
+    window.localStorage.setItem(
+      "zoomigo-player-dev-settings-v1",
+      JSON.stringify({ teamLoungeVersion: "v2" }),
+    );
+  });
+  await reward.getByRole("link", { name: "Use in Team Lounge" }).click();
+  await expect(page).toHaveURL(/\/team$/);
+  await page.reload();
+  await page.locator("html[data-app-ready='true']").waitFor();
+  await page.getByRole("button", { name: "Props" }).click();
+  const picker = page.getByRole("dialog", { name: "Choose an item to place" });
+  await expect(
+    picker.getByRole("button", { name: "Choose Beach ball prop" }),
+  ).toBeEnabled();
+});
+
 async function grantRewards(itemIds: string[]) {
   const api = await request.newContext({ baseURL: apiBaseURL });
   const response = await api.post("/__e2e/unlocks", {

@@ -20,6 +20,14 @@ const placeableStamps = [
     isNew: true,
   },
 ];
+const placeableProps = [
+  {
+    assetId: "beach-ball",
+    label: "Beach ball",
+    unlockId: "canvas-prop-beach-ball",
+    isNew: true,
+  },
+];
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -29,13 +37,14 @@ describe("Team Lounge V2 gateway", () => {
       new Response(
         JSON.stringify({
           ticket: "a".repeat(43),
-          roomId: "team:team-one:lounge:2026-08-24:v3",
+          roomId: "team:team-one:lounge:2026-08-24:v4",
           serverUrl: "https://api.example.test",
           expiresInSeconds: 30,
           visitorIds: ["player-two"],
           placementCredits: 2,
           placementDay: "2026-08-26",
           placeableStamps,
+          placeableProps,
           theme: {
             id: "beach-boardwalk",
             version: 1,
@@ -49,12 +58,13 @@ describe("Team Lounge V2 gateway", () => {
 
     await expect(requestTeamLoungeCredential("team-one")).resolves.toEqual({
       ticket: "a".repeat(43),
-      roomID: "team:team-one:lounge:2026-08-24:v3",
+      roomID: "team:team-one:lounge:2026-08-24:v4",
       serverURL: "https://api.example.test",
       visitorIDs: ["player-two"],
       placementCredits: 2,
       placementDay: "2026-08-26",
       placeableStamps,
+      placeableProps,
       theme: {
         id: "beach-boardwalk",
         version: 1,
@@ -87,12 +97,13 @@ describe("Team Lounge V2 gateway", () => {
         new Response(
           JSON.stringify({
             ticket: ticket.repeat(43),
-            roomId: "team:team-one:lounge:2026-08-24:v3",
+            roomId: "team:team-one:lounge:2026-08-24:v4",
             serverUrl: "https://api.example.test",
             visitorIds: ["player-two"],
             placementCredits: 2,
             placementDay: "2026-08-26",
             placeableStamps,
+            placeableProps,
             theme: {
               id: "beach-boardwalk",
               version: 1,
@@ -122,10 +133,11 @@ describe("Team Lounge V2 gateway", () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
-          roomId: "team:team-one:lounge:2026-08-24:v3",
+          roomId: "team:team-one:lounge:2026-08-24:v4",
           placementCredits: 2,
           placementDay: "2026-08-26",
           placeableStamps: [placeableStamps[0]],
+          placeableProps,
         }),
         { status: 200 },
       ),
@@ -133,10 +145,11 @@ describe("Team Lounge V2 gateway", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(requestTeamLoungeAccess("team-one")).resolves.toEqual({
-      roomID: "team:team-one:lounge:2026-08-24:v3",
+      roomID: "team:team-one:lounge:2026-08-24:v4",
       placementCredits: 2,
       placementDay: "2026-08-26",
       placeableStamps: [placeableStamps[0]],
+      placeableProps,
     });
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/zoomigo/v1/teams/team-one/lounge-v2/access",
@@ -150,7 +163,7 @@ describe("Team Lounge V2 gateway", () => {
       vi.fn().mockResolvedValue(
         new Response(
           JSON.stringify({
-            roomId: "team:team-one:lounge:2026-08-24:v3",
+            roomId: "team:team-one:lounge:2026-08-24:v4",
             placementCredits: 99,
             placementDay: "2026-08-26",
             placeableStamps: [placeableStamps[0]],
@@ -172,7 +185,7 @@ describe("Team Lounge V2 gateway", () => {
         new Response(
           JSON.stringify({
             ticket: "a".repeat(43),
-            roomId: "team:team-one:lounge:2026-08-24:v3",
+            roomId: "team:team-one:lounge:2026-08-24:v4",
             serverUrl: "https://api.example.test",
             visitorIds: [],
             placementCredits: 1,

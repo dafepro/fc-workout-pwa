@@ -14,11 +14,19 @@ export interface LoungePlaceableStamp {
   isNew: boolean;
 }
 
+export interface LoungePlaceableProp {
+  assetId: "beach-ball";
+  label: string;
+  unlockId: string;
+  isNew: boolean;
+}
+
 export interface TeamLoungeAccess {
   roomID: string;
   placementCredits: number;
   placementDay: string;
   placeableStamps: LoungePlaceableStamp[];
+  placeableProps?: LoungePlaceableProp[];
 }
 
 export interface TeamLoungeCredential extends TeamLoungeAccess {
@@ -50,6 +58,7 @@ export async function prepareTeamLoungeJoin(
     placementCredits: queued.placementCredits,
     placementDay: queued.placementDay,
     placeableStamps: [...queued.placeableStamps],
+    placeableProps: [...(queued.placeableProps ?? [])],
     theme: queuedTheme,
     async credentialProvider() {
       const credential = queued ?? (await requestTeamLoungeCredential(teamID));
@@ -122,6 +131,7 @@ export async function requestTeamLoungeCredential(
     placementCredits: access.placementCredits,
     placementDay: access.placementDay,
     placeableStamps: access.placeableStamps,
+    placeableProps: access.placeableProps ?? [],
     theme,
   };
 }
@@ -158,6 +168,13 @@ function loungeAccess(
     const stamp = loungePlaceableStamp(value);
     return stamp ? [stamp] : [];
   });
+  const placeableProps = Array.isArray(body.placeableProps)
+    ? body.placeableProps
+    : [];
+  const parsedProps = placeableProps.flatMap((value) => {
+    const prop = loungePlaceableProp(value);
+    return prop ? [prop] : [];
+  });
   if (
     !roomID.startsWith(`team:${teamID}:lounge:`) ||
     !Number.isInteger(placementCredits) ||
@@ -168,7 +185,9 @@ function loungeAccess(
     placeableStamps.length > LOUNGE_STAMP_ASSET_IDS.length ||
     parsedStamps.length !== placeableStamps.length ||
     new Set(parsedStamps.map(({ assetId }) => assetId)).size !==
-      parsedStamps.length
+      parsedStamps.length ||
+    placeableProps.length > 1 ||
+    parsedProps.length !== placeableProps.length
   ) {
     return null;
   }
@@ -177,6 +196,27 @@ function loungeAccess(
     placementCredits: placementCredits as number,
     placementDay,
     placeableStamps: parsedStamps,
+    placeableProps: parsedProps,
+  };
+}
+
+function loungePlaceableProp(value: unknown): LoungePlaceableProp | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const prop = value as Record<string, unknown>;
+  if (
+    prop.assetId !== "beach-ball" ||
+    prop.label !== "Beach ball" ||
+    typeof prop.unlockId !== "string" ||
+    !/^[a-z0-9][a-z0-9-]{0,63}$/u.test(prop.unlockId) ||
+    typeof prop.isNew !== "boolean"
+  ) {
+    return null;
+  }
+  return {
+    assetId: "beach-ball",
+    label: "Beach ball",
+    unlockId: prop.unlockId,
+    isNew: prop.isNew,
   };
 }
 

@@ -7,6 +7,7 @@ type UnlockDestination string
 const (
 	UnlockAvatarPart  UnlockItemKind = "avatar_part"
 	UnlockCanvasStamp UnlockItemKind = "canvas_stamp"
+	UnlockCanvasProp  UnlockItemKind = "canvas_prop"
 
 	UnlockCommon   UnlockRarity = "common"
 	UnlockUncommon UnlockRarity = "uncommon"
@@ -38,6 +39,7 @@ var dailyDropCatalog = []UnlockItem{
 	{ID: "canvas-stamp-lion", Kind: UnlockCanvasStamp, Slot: "stamp", AssetID: "lion", Label: "Lion stamp", CatalogVersion: 1, Rarity: UnlockEpic, Destination: UnlockDestinationTeamLounge},
 	{ID: "canvas-stamp-rocket", Kind: UnlockCanvasStamp, Slot: "stamp", AssetID: "rocket", Label: "Rocket stamp", CatalogVersion: 1, Rarity: UnlockUncommon, Destination: UnlockDestinationTeamLounge},
 	{ID: "canvas-stamp-sparkles", Kind: UnlockCanvasStamp, Slot: "stamp", AssetID: "sparkles", Label: "Sparkles stamp", CatalogVersion: 1, Rarity: UnlockUncommon, Destination: UnlockDestinationTeamLounge},
+	{ID: "canvas-prop-beach-ball", Kind: UnlockCanvasProp, Slot: "prop", AssetID: "beach-ball", Label: "Beach ball", CatalogVersion: 1, Rarity: UnlockUncommon, Destination: UnlockDestinationTeamLounge},
 }
 
 var includedCanvasStampAssets = map[string]bool{
@@ -110,6 +112,15 @@ func DailyDropAvatarItem(slot, assetID string) (UnlockItem, bool) {
 func DailyDropCanvasItem(assetID string) (UnlockItem, bool) {
 	for _, item := range dailyDropCatalog {
 		if item.Kind == UnlockCanvasStamp && item.AssetID == assetID {
+			return item, true
+		}
+	}
+	return UnlockItem{}, false
+}
+
+func DailyDropCanvasPropItem(assetID string) (UnlockItem, bool) {
+	for _, item := range dailyDropCatalog {
+		if item.Kind == UnlockCanvasProp && item.AssetID == assetID {
 			return item, true
 		}
 	}

@@ -24,6 +24,7 @@ type teamLoungeAccessResponse struct {
 	PlacementCredits int                         `json:"placementCredits"`
 	PlacementDay     string                      `json:"placementDay"`
 	PlaceableStamps  []teamlounge.PlaceableStamp `json:"placeableStamps"`
+	PlaceableProps   []teamlounge.PlaceableProp  `json:"placeableProps"`
 }
 
 func (service *service) getTeamLoungeAccess(w http.ResponseWriter, r *http.Request) {
@@ -93,6 +94,7 @@ func (service *service) createTeamLoungeSocketTicket(w http.ResponseWriter, r *h
 		PlacementCredits int                         `json:"placementCredits"`
 		PlacementDay     string                      `json:"placementDay"`
 		PlaceableStamps  []teamlounge.PlaceableStamp `json:"placeableStamps"`
+		PlaceableProps   []teamlounge.PlaceableProp  `json:"placeableProps"`
 		Theme            struct {
 			ID      string `json:"id"`
 			Version uint32 `json:"version"`
@@ -102,6 +104,7 @@ func (service *service) createTeamLoungeSocketTicket(w http.ResponseWriter, r *h
 		Ticket: ticket, RoomID: access.RoomID, ExpiresInSeconds: int(teamCanvasSocketTicketTTL.Seconds()), VisitorIDs: visitorIDs,
 		PlacementCredits: access.PlacementCredits, PlacementDay: access.PlacementDay,
 		PlaceableStamps: access.PlaceableStamps,
+		PlaceableProps:  access.PlaceableProps,
 		Theme: struct {
 			ID      string `json:"id"`
 			Version uint32 `json:"version"`
@@ -164,6 +167,11 @@ func (service *service) resolveTeamLoungeAccess(
 		writeError(w, r, http.StatusInternalServerError, "internal_error", "Your lounge collection could not be loaded.")
 		return teamLoungeAccessResponse{}, nil, false
 	}
+	placeableProps, err := service.teamLoungeStore.PlaceableProps(r.Context(), actor.PlayerID)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "internal_error", "Your lounge collection could not be loaded.")
+		return teamLoungeAccessResponse{}, nil, false
+	}
 	activeMembers := make(map[string]struct{}, len(projection.Members))
 	for _, member := range projection.Members {
 		activeMembers[member.PlayerID] = struct{}{}
@@ -171,6 +179,7 @@ func (service *service) resolveTeamLoungeAccess(
 	return teamLoungeAccessResponse{
 		RoomID: roomID, PlacementCredits: service.teamLoungePlacementCredits(placementBudget.Earned),
 		PlacementDay: placementBudget.DayKey, PlaceableStamps: placeableStamps,
+		PlaceableProps: placeableProps,
 	}, activeMembers, true
 }
 

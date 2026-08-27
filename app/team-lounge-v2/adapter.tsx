@@ -15,6 +15,7 @@ import type {
   TeamCanvasWidgetContract,
 } from "../player/team-canvas/widget-contract";
 import type { StampAsset } from "../team-canvas/model";
+import { markUnlockViewed } from "../data/unlock-inventory-gateway";
 import { defaultLoungeTheme, teamLoungeV2Copy as copy } from "./content";
 import {
   LocalLoungeCanvas,
@@ -31,8 +32,15 @@ import {
   type StampPlacementChoice,
   type StampPlacementStatus,
 } from "./controls/StampPlacementTray";
-import { loungeStampAsset, loungeStampChoices } from "./placement/catalog";
-import type { LoungePlaceableStamp } from "./data/lounge-gateway";
+import {
+  beachBallPropAsset,
+  loungeStampAsset,
+  loungeStampChoices,
+} from "./placement/catalog";
+import type {
+  LoungePlaceableProp,
+  LoungePlaceableStamp,
+} from "./data/lounge-gateway";
 import type { LoungeRosterMember } from "./presence";
 import {
   LOUNGE_EMOTE_COOLDOWN_MS,
@@ -50,7 +58,10 @@ export function TeamLoungeV2({
   todayHref?: string;
   stampUnlocks?: TeamCanvasStampUnlockPort;
 }) {
-  const [tray, setTray] = useState<"emotes" | "stamps" | null>(null);
+  const [tray, setTray] = useState<"emotes" | "inventory" | null>(null);
+  const [inventoryCategory, setInventoryCategory] = useState<"stamp" | "prop">(
+    "stamp",
+  );
   const [runtimeKey, setRuntimeKey] = useState(0);
   const [runtimeState, setRuntimeState] =
     useState<LocalLoungeCanvasState>("loading");
@@ -79,6 +90,9 @@ export function TeamLoungeV2({
   >(null);
   const [placeableStamps, setPlaceableStamps] = useState<
     LoungePlaceableStamp[] | null
+  >(null);
+  const [placeableProps, setPlaceableProps] = useState<
+    LoungePlaceableProp[] | null
   >(null);
   const [theme, setTheme] = useState(defaultLoungeTheme);
   const placedStampCountRef = useRef(0);
@@ -109,14 +123,38 @@ export function TeamLoungeV2({
     if (!sharedRoom) {
       return loungeStampChoices(
         stampUnlocks?.choices ?? host.inventory.choices,
-      ).map((asset) => ({ asset, source: "included", isNew: false }));
+      ).map((asset) => ({
+        asset,
+        category: "stamp" as const,
+        source: "included" as const,
+        isNew: false,
+      }));
     }
-    return (placeableStamps ?? []).flatMap((stamp) => {
+    const stamps = (placeableStamps ?? []).flatMap((stamp) => {
       const asset = loungeStampAsset(stamp.assetId);
-      return asset ? [{ asset, source: stamp.source, isNew: stamp.isNew }] : [];
+      return asset
+        ? [
+            {
+              asset,
+              category: "stamp" as const,
+              source: stamp.source,
+              isNew: stamp.isNew,
+            },
+          ]
+        : [];
     });
+    return [
+      ...stamps,
+      ...(placeableProps ?? []).map((prop) => ({
+        asset: beachBallPropAsset,
+        category: "prop" as const,
+        source: "earned" as const,
+        isNew: prop.isNew,
+      })),
+    ];
   }, [
     host.inventory.choices,
+    placeableProps,
     placeableStamps,
     sharedRoom,
     stampUnlocks?.choices,
@@ -125,11 +163,17 @@ export function TeamLoungeV2({
     (stamps: LoungePlaceableStamp[]) => setPlaceableStamps(stamps),
     [],
   );
+  const updatePlaceableProps = useCallback(
+    (props: LoungePlaceableProp[]) => setPlaceableProps(props),
+    [],
+  );
   const placementStatus: StampPlacementStatus = placementPending
     ? "placing"
     : !sharedRoom
       ? "local"
-      : placeableStamps === null || placementSummary === null
+      : placeableStamps === null ||
+          placeableProps === null ||
+          placementSummary === null
         ? "loading"
         : placementSummary.remaining === 0
           ? "exhausted"
@@ -170,7 +214,7 @@ export function TeamLoungeV2({
   );
 
   useEffect(() => {
-    if (tray !== "stamps") return;
+    if (tray !== "inventory") return;
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") setTray(null);
     };
@@ -253,10 +297,11 @@ export function TeamLoungeV2({
               setPlacementError(
                 copy.placementErrors[reason] ?? copy.placementError,
               );
-              setTray("stamps");
+              setTray("inventory");
             }}
             onPlacementPendingChange={setPlacementPending}
             onPlaceableStampsChange={updatePlaceableStamps}
+            onPlaceablePropsChange={updatePlaceableProps}
             onThemeChange={setTheme}
             stampTrashTargetRef={stampTrashTargetRef}
             onStampDragStateChange={(state) => {
@@ -315,11 +360,11 @@ export function TeamLoungeV2({
         <span className="team-lounge-v2__preview">
           {sharedRoom ? copy.shared : copy.preview}
         </span>
-        {tray === "stamps" ? (
+        {tray === "inventory" ? (
           <LoungeMenuOverlay
-            title={copy.stamps}
-            dialogLabel="Choose a stamp to place"
-            closeLabel={copy.closeStamps}
+            title="Place an item"
+            dialogLabel="Choose an item to place"
+            closeLabel="Close item picker"
             onClose={() => setTray(null)}
           >
             <StampPlacementTray
@@ -328,6 +373,8 @@ export function TeamLoungeV2({
               summary={placementSummary}
               status={placementStatus}
               error={placementError}
+              activeCategory={inventoryCategory}
+              onCategoryChange={setInventoryCategory}
               onSelect={(asset) => {
                 setPlacementError(null);
                 setSelectedStamp(asset);
@@ -411,9 +458,9 @@ export function TeamLoungeV2({
           </button>
           <button
             type="button"
-            aria-pressed={tray === "stamps"}
+            aria-pressed={tray === "inventory" && inventoryCategory === "stamp"}
             onClick={() => {
-              if (tray === "stamps") {
+              if (tray === "inventory" && inventoryCategory === "stamp") {
                 setTray(null);
                 return;
               }
@@ -427,13 +474,35 @@ export function TeamLoungeV2({
                   () => undefined,
                 );
               }
-              setTray("stamps");
+              setInventoryCategory("stamp");
+              setTray("inventory");
             }}
           >
             <span aria-hidden="true">✦</span>
             {copy.stamps}
           </button>
-          <button type="button" disabled aria-describedby="v2-items-hint">
+          <button
+            type="button"
+            aria-pressed={tray === "inventory" && inventoryCategory === "prop"}
+            onClick={() => {
+              if (tray === "inventory" && inventoryCategory === "prop") {
+                setTray(null);
+                return;
+              }
+              const unseen = placeableProps?.filter(({ isNew }) => isNew) ?? [];
+              if (unseen.length > 0) {
+                setPlaceableProps(
+                  (current) =>
+                    current?.map((prop) => ({ ...prop, isNew: false })) ?? null,
+                );
+                void Promise.all(
+                  unseen.map(({ unlockId }) => markUnlockViewed(unlockId)),
+                ).catch(() => undefined);
+              }
+              setInventoryCategory("prop");
+              setTray("inventory");
+            }}
+          >
             <span aria-hidden="true">▣</span>
             {copy.items}
           </button>
@@ -460,7 +529,6 @@ export function TeamLoungeV2({
         />
       ) : null}
       <div className="team-lounge-v2__disabled-hints">
-        <span id="v2-items-hint">{copy.itemsHint}</span>
         <span id="v2-map-hint">{copy.mapHint}</span>
       </div>
       <p className="team-lounge-v2__local-hint">

@@ -4,11 +4,11 @@ import {
   type CanvasDefinition,
   type ItemDefinition,
 } from "@canvas-physics/core";
-import { loungeStampDefinitions } from "../placement/catalog";
+import { loungeStampDefinitions, propDefinitionID } from "../placement/catalog";
 
 export const beachBallDefinition: ItemDefinition = {
   definitionId: "beach-ball",
-  version: 1,
+  version: 2,
   displayName: "Beach ball",
   visual: {
     size: { width: 9, height: 9 },
@@ -31,6 +31,8 @@ export const beachBallDefinition: ItemDefinition = {
       restitution: 0.82,
       friction: 0.18,
       collisionMask:
+        CollisionLayer.AVATAR_BODY |
+        CollisionLayer.AVATAR_SENSOR |
         CollisionLayer.WORLD_STATIC |
         CollisionLayer.ITEM_SOLID |
         CollisionLayer.ITEM_SENSOR,
@@ -45,6 +47,7 @@ export const beachBallDefinition: ItemDefinition = {
   defaultConfig: {
     ...defaultKickableConfig,
     kickStrength: 1.25,
+    minImpulse: 2.5,
     maxImpulse: 18,
   },
   persistence: {
@@ -75,15 +78,36 @@ export const loungeAvatarDefinition: ItemDefinition = {
   complexity: "simple",
 };
 
+export const beachBallPropDefinition: ItemDefinition = {
+  ...beachBallDefinition,
+  definitionId: propDefinitionID("beach-ball"),
+  version: 1,
+  displayName: "Beach ball prop",
+  visual: {
+    size: { width: 9, height: 9 },
+    spriteId: "lounge.stamp.transparent",
+    placeholder: { shape: "circle", color: 0xffd33d },
+    zIndex: 8,
+  },
+  defaultConfig: {
+    sensorId: "kick",
+    kickStrength: 1.25,
+    minImpulse: 2.5,
+    maxImpulse: 18,
+    cooldownSeconds: 0.25,
+  },
+};
+
 export const beachBoardwalkDefinitions: ItemDefinition[] = [
   beachBallDefinition,
+  beachBallPropDefinition,
   loungeAvatarDefinition,
   ...loungeStampDefinitions,
 ];
 
 export const beachBoardwalkCanvas: CanvasDefinition = {
   id: "zoomigo-beach-boardwalk",
-  version: 3,
+  version: 4,
   size: { width: 100, height: 150 },
   orientation: "topDown",
   backgroundAssetId: "lounge.background",

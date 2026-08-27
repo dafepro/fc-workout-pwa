@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   claimDailyPrizeBox,
+  isPrizeItem,
   loadPrizeBoxOverview,
   openPrizeBox,
 } from "./prize-box-gateway";
@@ -9,6 +10,21 @@ import {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("prize box gateway", () => {
+  it("accepts a Team Lounge prop prize", () => {
+    expect(
+      isPrizeItem({
+        id: "canvas-prop-beach-ball",
+        kind: "canvas_prop",
+        slot: "prop",
+        assetId: "beach-ball",
+        label: "Beach ball",
+        catalogVersion: 1,
+        rarity: "uncommon",
+        destination: "team_lounge",
+      }),
+    ).toBe(true);
+  });
+
   it("loads the unopened pool and recent collection", async () => {
     const fetch = vi.fn().mockResolvedValue({
       ok: true,

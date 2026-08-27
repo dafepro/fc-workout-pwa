@@ -16,7 +16,7 @@ func TestE2EUnlockGrantCreatesExactDailyRewardsOnlyInFixtureMode(t *testing.T) {
 
 	body, err := json.Marshal(map[string]any{
 		"playerId": "player-mason",
-		"itemIds":  []string{"avatar-head-dog", "canvas-stamp-lion"},
+		"itemIds":  []string{"avatar-head-dog", "canvas-stamp-lion", "canvas-prop-beach-ball"},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -34,7 +34,7 @@ func TestE2EUnlockGrantCreatesExactDailyRewardsOnlyInFixtureMode(t *testing.T) {
 	assertStatus(t, granted, http.StatusNoContent)
 	_ = granted.Body.Close()
 
-	for _, kind := range []string{"avatar_part", "canvas_stamp"} {
+	for _, kind := range []string{"avatar_part", "canvas_stamp", "canvas_prop"} {
 		inventory := api.do(t, http.MethodGet, "/v1/me/unlocks?kind="+kind, masonToken, "", nil)
 		assertStatus(t, inventory, http.StatusOK)
 		body := readBody(inventory)
@@ -44,6 +44,9 @@ func TestE2EUnlockGrantCreatesExactDailyRewardsOnlyInFixtureMode(t *testing.T) {
 		}
 		if kind == "canvas_stamp" && !strings.Contains(body, "canvas-stamp-lion") {
 			t.Fatalf("Canvas reward missing after fixture grant: %s", body)
+		}
+		if kind == "canvas_prop" && !strings.Contains(body, "canvas-prop-beach-ball") {
+			t.Fatalf("Canvas prop missing after fixture grant: %s", body)
 		}
 	}
 }

@@ -108,8 +108,8 @@ func TestMigrateUpgradesAnExistingFoundationDatabase(t *testing.T) {
 	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM schema_migrations`).Scan(&migrationCount); err != nil {
 		t.Fatal(err)
 	}
-	if migrationCount != 31 {
-		t.Fatalf("migration count = %d, want 31", migrationCount)
+	if migrationCount != 32 {
+		t.Fatalf("migration count = %d, want 32", migrationCount)
 	}
 }
 
@@ -124,7 +124,8 @@ func TestPlanPrizeBoxMigrationPreservesPopulatedUnlocks(t *testing.T) {
 	if _, err = db.ExecContext(ctx, `CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL);
 		INSERT INTO schema_migrations (version, applied_at) VALUES
 			(23, '2026-08-24T00:00:00Z'),
-			(27, '2026-08-24T00:00:00Z')`); err != nil {
+			(27, '2026-08-24T00:00:00Z'),
+			(32, '2026-08-26T00:00:00Z')`); err != nil {
 		t.Fatal(err)
 	}
 	if err = Migrate(ctx, db); err != nil {
@@ -153,6 +154,66 @@ func TestPlanPrizeBoxMigrationPreservesPopulatedUnlocks(t *testing.T) {
 	}
 }
 
+func TestCanvasPropMigrationPreservesPopulatedRewardLedgers(t *testing.T) {
+	ctx := context.Background()
+	databaseURL := "file:" + filepath.ToSlash(filepath.Join(t.TempDir(), "populated-canvas-props.db"))
+	db, err := Open(ctx, databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if err = Migrate(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = db.ExecContext(ctx, `
+		INSERT INTO clubs (id, name, created_at) VALUES ('club-prop-migration', 'Migration Club', '2026-08-26T00:00:00Z');
+		INSERT INTO teams (id, club_id, name, season_id, time_zone, weekly_default_goal, created_at)
+		VALUES ('team-prop-migration', 'club-prop-migration', 'Migration Team', 'season-prop', 'UTC', 3, '2026-08-26T00:00:00Z');
+		INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at)
+		VALUES ('player-prop-migration', 'club-prop-migration', 'Pat', 'M', '{}', '2026-08-26T00:00:00Z');
+		INSERT INTO training_plans
+			(id, team_id, template_id, template_version, template_name, template_summary, starts_on, ends_on, status, created_at)
+		VALUES
+			('plan-prop-migration', 'team-prop-migration', 'template-prop', 1, 'Migration plan', 'Migration plan', '2026-08-24', '2026-08-30', 'published', '2026-08-26T00:00:00Z');
+		INSERT INTO player_unlocks (player_id, item_kind, item_id, source, unlocked_at)
+		VALUES ('player-prop-migration', 'canvas_stamp', 'canvas-stamp-target', 'daily_drop', '2026-08-26T01:00:00Z');
+		INSERT INTO daily_drop_claims
+			(id, player_id, claim_day, time_zone, item_kind, item_id, catalog_version, claimed_at, idempotency_key_hash, opened_at, open_idempotency_key_hash)
+		VALUES
+			('daily-prop-migration', 'player-prop-migration', '2026-08-26', 'UTC', 'canvas_stamp', 'canvas-stamp-target', 1, '2026-08-26T01:00:00Z', zeroblob(32), '2026-08-26T01:01:00Z', randomblob(32));
+		INSERT INTO plan_prize_box_grants
+			(id, player_id, training_plan_id, source, earned_at, claim_day, time_zone, item_kind, item_id, catalog_version, claimed_at, idempotency_key_hash, opened_at)
+		VALUES
+			('grant-prop-migration', 'player-prop-migration', 'plan-prop-migration', 'plan_participation_3', '2026-08-26T02:00:00Z', '2026-08-26', 'UTC', 'avatar_part', 'avatar-head-dog', 1, '2026-08-26T02:01:00Z', randomblob(32), '2026-08-26T02:02:00Z');
+		DELETE FROM schema_migrations WHERE version = 32;
+	`); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = Migrate(ctx, db); err != nil {
+		t.Fatalf("upgrade populated reward ledgers for canvas props: %v", err)
+	}
+	for table, want := range map[string]int{
+		"player_unlocks":        1,
+		"daily_drop_claims":     1,
+		"plan_prize_box_grants": 1,
+	} {
+		var got int
+		if err = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM `+table).Scan(&got); err != nil {
+			t.Fatal(err)
+		}
+		if got != want {
+			t.Fatalf("%s rows = %d, want %d", table, got, want)
+		}
+	}
+	if _, err = db.ExecContext(ctx, `
+		INSERT INTO player_unlocks (player_id, item_kind, item_id, source, unlocked_at)
+		VALUES ('player-prop-migration', 'canvas_prop', 'canvas-prop-beach-ball', 'daily_drop', '2026-08-26T03:00:00Z')
+	`); err != nil {
+		t.Fatalf("insert canvas prop after migration: %v", err)
+	}
+}
+
 func TestTeamLoungeRoomGenerationMigrationPreservesAPopulatedBinding(t *testing.T) {
 	ctx := context.Background()
 	databaseURL := "file:" + filepath.ToSlash(filepath.Join(t.TempDir(), "populated-lounge-room.db"))
@@ -171,6 +232,7 @@ func TestTeamLoungeRoomGenerationMigrationPreservesAPopulatedBinding(t *testing.
 		)
 		INSERT INTO schema_migrations (version, applied_at)
 		SELECT version, '2026-08-25T00:00:00Z' FROM versions;
+		INSERT INTO schema_migrations (version, applied_at) VALUES (32, '2026-08-26T00:00:00Z');
 
 		CREATE TABLE teams (id TEXT PRIMARY KEY);
 		CREATE TABLE team_lounge_v2_room_bindings (

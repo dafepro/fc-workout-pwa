@@ -154,6 +154,12 @@ A durable lounge stamp stores server-canonical `placementDay` metadata. The
 owner may edit it only while that date remains the team's current local date;
 older placements and teammate placements are immutable.
 
+`PlayerUnlock.itemKind` also supports `canvas_prop`. A prop unlock is permanent;
+placing the first Beach ball spends one weekly placement credit but does not
+consume the unlock. Its owner may manually move or remove today's placement,
+while shared Canvas physics may move it for any teammate and persists the
+resulting transform.
+
 ## Reaction
 
 - id

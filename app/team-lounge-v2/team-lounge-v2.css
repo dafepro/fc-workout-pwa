@@ -834,6 +834,32 @@
   font-size: 0.68rem;
 }
 
+.team-lounge-v2__inventory-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem;
+  margin-top: 0.65rem;
+  padding: 0.2rem;
+  border-radius: 0.75rem;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.team-lounge-v2__inventory-tabs button {
+  min-height: 2rem;
+  border: 0;
+  border-radius: 0.58rem;
+  background: transparent;
+  color: rgba(247, 250, 242, 0.68);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.team-lounge-v2__inventory-tabs button[aria-pressed="true"] {
+  background: var(--lounge-lime);
+  color: #092a2d;
+}
+
 .team-lounge-v2__stamp-choices {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -871,6 +897,11 @@
   height: 1.9rem;
   object-fit: contain;
   font-size: 1.55rem;
+}
+
+.team-lounge-v2__stamp-choices img.tc-stamp-asset {
+  width: 2.25rem;
+  height: 2.25rem;
 }
 
 .team-lounge-v2__stamp-label {

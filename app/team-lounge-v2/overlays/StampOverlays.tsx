@@ -11,6 +11,7 @@ import { layoutStampEditor, type EditorRect } from "./stamp-editor-layout";
 export interface LoungeStampOverlay {
   entityID: string;
   asset: StampAsset;
+  category?: "stamp" | "prop";
   ownerUserID: string | null;
   rotation: number;
   scale: number;
@@ -50,6 +51,7 @@ export function StampOverlays({
   const selected = editingChromeVisible
     ? stamps.find(({ entityID }) => entityID === selectedEntityID)
     : undefined;
+  const selectedCategory = selected?.category ?? "stamp";
   const [moreActionsEntityID, setMoreActionsEntityID] = useState<string | null>(
     null,
   );
@@ -110,7 +112,15 @@ export function StampOverlays({
       aria-live="polite"
     >
       {stamps.map(
-        ({ entityID, asset, ownerUserID, rotation, screen, scale }) => {
+        ({
+          entityID,
+          asset,
+          category = "stamp",
+          ownerUserID,
+          rotation,
+          screen,
+          scale,
+        }) => {
           const canEdit = editable.has(entityID);
           const isSelected = entityID === selectedEntityID;
           const showEditableChrome = canEdit && editingChromeVisible;
@@ -119,11 +129,12 @@ export function StampOverlays({
             transform: `translate3d(${screen.x}px, ${screen.y}px, 0) translate(-50%, -50%) rotate(${rotation}rad) scale(${scale})`,
             "--stamp-counter-rotation": `${-rotation}rad`,
           } as CSSProperties;
+          const itemType = category === "prop" ? "prop" : "stamp";
           const label = canEdit
-            ? `${stampAssetLabel(asset)} stamp, yours; tap then drag to move`
+            ? `${stampAssetLabel(asset)} ${itemType}, yours; tap then drag to move`
             : ownerUserID === currentPlayerID
-              ? `${stampAssetLabel(asset)} stamp, yours; locked from an earlier day`
-              : `${stampAssetLabel(asset)} stamp placed by a teammate`;
+              ? `${stampAssetLabel(asset)} ${itemType}, yours; locked from an earlier day`
+              : `${stampAssetLabel(asset)} ${itemType} placed by a teammate`;
           return canEdit ? (
             <button
               key={entityID}
@@ -203,11 +214,11 @@ export function StampOverlays({
         <div
           className="team-lounge-v2__stamp-editor"
           role="group"
-          aria-label="Edit selected stamp"
+          aria-label={`Edit selected ${selectedCategory}`}
           data-canvas-pointer-ignore="true"
           onPointerDown={(event) => event.stopPropagation()}
         >
-          {!moreActionsOpen ? (
+          {!moreActionsOpen && selectedCategory === "stamp" ? (
             <>
               <div
                 className="team-lounge-v2__stamp-editor-size"
@@ -297,7 +308,7 @@ export function StampOverlays({
             <button
               className="team-lounge-v2__stamp-editor-more"
               type="button"
-              aria-label="More stamp actions"
+              aria-label={`More ${selectedCategory} actions`}
               aria-expanded={moreActionsOpen}
               aria-haspopup="menu"
               onClick={() =>
@@ -314,21 +325,23 @@ export function StampOverlays({
               className="team-lounge-v2__stamp-editor-menu"
               style={rectStyle(editorLayout.menu)}
               role="menu"
-              aria-label="More stamp actions"
+              aria-label={`More ${selectedCategory} actions`}
             >
-              <button
-                type="button"
-                role="menuitem"
-                aria-label="Reset stamp appearance"
-                disabled={selected.rotation === 0 && selected.scale === 1}
-                onClick={() => {
-                  onRotate?.(selected.entityID, 0, false);
-                  onScale?.(selected.entityID, 1, false);
-                  setMoreActionsEntityID(null);
-                }}
-              >
-                Reset appearance
-              </button>
+              {selectedCategory === "stamp" ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  aria-label="Reset stamp appearance"
+                  disabled={selected.rotation === 0 && selected.scale === 1}
+                  onClick={() => {
+                    onRotate?.(selected.entityID, 0, false);
+                    onScale?.(selected.entityID, 1, false);
+                    setMoreActionsEntityID(null);
+                  }}
+                >
+                  Reset appearance
+                </button>
+              ) : null}
               <button
                 type="button"
                 role="menuitem"

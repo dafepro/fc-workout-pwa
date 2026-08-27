@@ -189,7 +189,7 @@ not include scoring in the first release.
 - The server stamps each accepted placement with canonical `placementDay`
   metadata. All of the owner's current-day placements remain editable; prior-
   day placements are immutable. Canvas cannot author or increase either value.
-- Room generation V3 reserves one simple item slot for each of seven daily
+- Room generation V4 reserves one simple item slot for each of seven daily
   credits across all 24 allowed avatars, plus the system ball. Increasing this
   ceiling does not pre-create or simulate empty items; device-budget testing
   must still cover a deliberately full room before production cutover.
@@ -200,6 +200,10 @@ not include scoring in the first release.
   items, its placement credit becomes available again. The permanent collection
   unlock is unaffected. Prior-day and teammate placements remain immutable.
 - System items are immutable to player edit/delete operations.
+- The first owned prop is a permanent Beach ball unlock. It shares stamp
+  placement credits but keeps authored scale and rotation. The owner may move
+  or delete today's placement; every avatar may move it through physics. Both
+  manual and physical transforms remain visible to all viewers and persist.
 
 ## Failure behavior
 

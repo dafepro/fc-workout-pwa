@@ -20,6 +20,7 @@ import type { StampAsset } from "../team-canvas/model";
 import {
   prepareTeamLoungeJoin,
   requestTeamLoungeAccess,
+  type LoungePlaceableProp,
   type LoungePlaceableStamp,
   type LoungeTheme,
 } from "./data/lounge-gateway";
@@ -43,9 +44,8 @@ import {
 import { beachBoardwalkAssets } from "./scene/assets";
 import { beachBoardwalkDefinitions } from "./scene/beach-boardwalk";
 import {
-  loungeStampAsset,
-  stampAssetIDFromDefinition,
-  stampDefinitionID,
+  loungePlaceableAsset,
+  placeableDefinitionID,
 } from "./placement/catalog";
 import { loungeWorldPoint } from "./placement/coordinates";
 import {
@@ -87,6 +87,7 @@ export function SharedLoungeCanvas({
   onPlacementError,
   onPlacementPendingChange,
   onPlaceableStampsChange,
+  onPlaceablePropsChange,
   onThemeChange,
   stampTrashTargetRef,
   onStampDragStateChange,
@@ -106,6 +107,7 @@ export function SharedLoungeCanvas({
   onPlacementError?(reason: string): void;
   onPlacementPendingChange?(pending: boolean): void;
   onPlaceableStampsChange?(stamps: LoungePlaceableStamp[]): void;
+  onPlaceablePropsChange?(props: LoungePlaceableProp[]): void;
   onThemeChange?(theme: LoungeTheme): void;
   stampTrashTargetRef?: RefObject<HTMLElement | null>;
   onStampDragStateChange?(
@@ -123,6 +125,7 @@ export function SharedLoungeCanvas({
   const onPlacementErrorRef = useRef(onPlacementError);
   const onPlacementPendingChangeRef = useRef(onPlacementPendingChange);
   const onPlaceableStampsChangeRef = useRef(onPlaceableStampsChange);
+  const onPlaceablePropsChangeRef = useRef(onPlaceablePropsChange);
   const onThemeChangeRef = useRef(onThemeChange);
   const onStampDragStateChangeRef = useRef(onStampDragStateChange);
   const onStampDeleteErrorRef = useRef(onStampDeleteError);
@@ -173,6 +176,10 @@ export function SharedLoungeCanvas({
   useEffect(() => {
     onPlaceableStampsChangeRef.current = onPlaceableStampsChange;
   }, [onPlaceableStampsChange]);
+
+  useEffect(() => {
+    onPlaceablePropsChangeRef.current = onPlaceablePropsChange;
+  }, [onPlaceablePropsChange]);
 
   useEffect(() => {
     onThemeChangeRef.current = onThemeChange;
@@ -352,20 +359,19 @@ export function SharedLoungeCanvas({
           projections,
         }),
       );
-      const stampProjections = projections.flatMap((projection) => {
+      const placeableProjections = projections.flatMap((projection) => {
         if (projection.kind !== "item") return [];
-        const assetID = stampAssetIDFromDefinition(projection.definitionId);
-        const asset = assetID ? loungeStampAsset(assetID) : undefined;
-        if (!asset) return [];
-        return [{ projection, asset }];
+        const placeable = loungePlaceableAsset(projection.definitionId);
+        return placeable ? [{ projection, ...placeable }] : [];
       });
-      const nextStampOverlays = stampProjections.flatMap(
-        ({ projection, asset }) => {
+      const nextStampOverlays = placeableProjections.flatMap(
+        ({ projection, asset, category }) => {
           if (!projection.inViewport) return [];
           return [
             {
               entityID: projection.entityId,
               asset,
+              category,
               ownerUserID: projectionOwnerUserID(projection),
               rotation: projection.rotation,
               scale: projection.scale,
@@ -377,7 +383,7 @@ export function SharedLoungeCanvas({
         },
       );
       setStampOverlays(nextStampOverlays);
-      const ownStampCount = stampProjections.filter(
+      const ownStampCount = placeableProjections.filter(
         ({ projection }) => projectionOwnerUserID(projection) === playerID,
       ).length;
       if (
@@ -425,6 +431,7 @@ export function SharedLoungeCanvas({
       activeRoomID = join.roomID;
       visitorIDs = join.visitorIDs;
       onPlaceableStampsChangeRef.current?.(join.placeableStamps);
+      onPlaceablePropsChangeRef.current?.(join.placeableProps ?? []);
       onThemeChangeRef.current?.(join.theme);
       placementCreditsRef.current = join.placementCredits;
       placementDayRef.current = join.placementDay;
@@ -524,6 +531,9 @@ export function SharedLoungeCanvas({
                     day: access.placementDay,
                   });
                   onPlaceableStampsChangeRef.current?.(access.placeableStamps);
+                  onPlaceablePropsChangeRef.current?.(
+                    access.placeableProps ?? [],
+                  );
                   publishOverlays();
                 })
                 .catch(() => {
@@ -789,7 +799,7 @@ export function SharedLoungeCanvas({
             return;
           }
           updatePlacementPending(true);
-          runtime.spawnItem(stampDefinitionID(selectedStamp.id), position);
+          runtime.spawnItem(placeableDefinitionID(selectedStamp.id), position);
         }}
       />
       <p className="sr-only" role="status" aria-live="polite">

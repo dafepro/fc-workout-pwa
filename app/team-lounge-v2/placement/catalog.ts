@@ -6,6 +6,14 @@ import {
 import type { StampAsset } from "../../team-canvas/model";
 
 export const STAMP_DEFINITION_PREFIX = "zoomigo-stamp-";
+export const PROP_DEFINITION_PREFIX = "zoomigo-prop-";
+
+export const beachBallPropAsset: StampAsset = {
+  id: "beach-ball",
+  kind: "image",
+  src: "/team-lounge-v2/beach-ball.svg",
+  alt: "Beach ball",
+};
 
 export const LOUNGE_STAMP_ASSET_IDS = [
   "bolt",
@@ -24,6 +32,27 @@ export const LOUNGE_STAMP_ASSET_IDS = [
 
 export function stampDefinitionID(assetID: string): string {
   return `${STAMP_DEFINITION_PREFIX}${assetID}`;
+}
+
+export function propDefinitionID(assetID: string): string {
+  return `${PROP_DEFINITION_PREFIX}${assetID}`;
+}
+
+export function placeableDefinitionID(assetID: string): string {
+  return assetID === beachBallPropAsset.id
+    ? propDefinitionID(assetID)
+    : stampDefinitionID(assetID);
+}
+
+export function loungePlaceableAsset(
+  definitionID: string,
+): { asset: StampAsset; category: "stamp" | "prop" } | undefined {
+  if (definitionID === propDefinitionID(beachBallPropAsset.id)) {
+    return { asset: beachBallPropAsset, category: "prop" };
+  }
+  const stampID = stampAssetIDFromDefinition(definitionID);
+  const stamp = stampID ? loungeStampAsset(stampID) : undefined;
+  return stamp ? { asset: stamp, category: "stamp" } : undefined;
 }
 
 export function stampAssetIDFromDefinition(

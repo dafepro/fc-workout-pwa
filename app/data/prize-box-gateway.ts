@@ -7,7 +7,7 @@ export type PrizeDestination = "avatar" | "team_lounge";
 
 export interface PrizeItem {
   id: string;
-  kind: "avatar_part" | "canvas_stamp";
+  kind: "avatar_part" | "canvas_stamp" | "canvas_prop";
   slot: string;
   assetId: string;
   label: string;
@@ -182,7 +182,9 @@ export function isPrizeItem(value: unknown): value is PrizeItem {
   return (
     typeof item.id === "string" &&
     IDENTIFIER.test(item.id) &&
-    (item.kind === "avatar_part" || item.kind === "canvas_stamp") &&
+    (item.kind === "avatar_part" ||
+      item.kind === "canvas_stamp" ||
+      item.kind === "canvas_prop") &&
     typeof item.slot === "string" &&
     IDENTIFIER.test(item.slot) &&
     typeof item.assetId === "string" &&

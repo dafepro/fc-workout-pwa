@@ -15,6 +15,7 @@ import (
 
 const (
 	stampDefinitionPrefix               = "zoomigo-stamp-"
+	propDefinitionPrefix                = "zoomigo-prop-"
 	StampUnavailableReason              = "stamp_unavailable"
 	StampInvalidPlacementReason         = "stamp_invalid_placement"
 	StampInvalidScaleReason             = "stamp_invalid_scale"
@@ -23,6 +24,7 @@ const (
 	StampLockedReason                   = "stamp_locked"
 	StampEditingUnavailableReason       = "stamp_editing_unavailable"
 	stampPlacementConfigSchemaJSON      = `{"type":"object","properties":{"placementDay":{"type":"string","pattern":"^[0-9]{4}-[0-9]{2}-[0-9]{2}$"}},"additionalProperties":false}`
+	propPlacementConfigSchemaJSON       = `{"type":"object","properties":{"placementDay":{"type":"string","pattern":"^[0-9]{4}-[0-9]{2}-[0-9]{2}$"},"sensorId":{"type":"string"},"kickStrength":{"type":"number"},"minImpulse":{"type":"number"},"maxImpulse":{"type":"number"},"cooldownSeconds":{"type":"number"}},"required":["placementDay","sensorId","kickStrength","minImpulse","maxImpulse","cooldownSeconds"],"additionalProperties":false}`
 )
 
 type StampPlacementAuthorizer struct {
@@ -43,6 +45,10 @@ func StampDefinitionID(assetID string) string {
 	return stampDefinitionPrefix + assetID
 }
 
+func PropDefinitionID(assetID string) string {
+	return propDefinitionPrefix + assetID
+}
+
 func (authorizer StampPlacementAuthorizer) AuthorizeDurable(
 	ctx context.Context,
 	request roomsdk.DurableAuthorizationRequest,
@@ -55,13 +61,13 @@ func (authorizer StampPlacementAuthorizer) AuthorizeDurable(
 		if err != nil {
 			return denied(roomsdk.DurableRejectedByApplication)
 		}
-		return authorizeStampEdit(request, dayKey)
+		return authorizePlaceableEdit(request, dayKey)
 	}
 	if request.Operation != roomsdk.DurableSpawn || request.Preview {
 		return denied(StampEditingUnavailableReason)
 	}
-	assetID, ok := strings.CutPrefix(request.DefinitionID, stampDefinitionPrefix)
-	if !ok || !knownStampAsset(assetID) {
+	kind, assetID, ok := placeableDefinition(request.DefinitionID)
+	if !ok {
 		return denied(StampUnavailableReason)
 	}
 	if !inStampDecoratingArea(request.Position) {
@@ -74,27 +80,64 @@ func (authorizer StampPlacementAuthorizer) AuthorizeDurable(
 	earned := max(budget.Earned, authorizer.minimumCredits)
 	used := 0
 	for _, item := range request.ExistingItems {
-		if item.OwnerUserID == request.UserID && strings.HasPrefix(item.DefinitionID, stampDefinitionPrefix) {
+		if item.OwnerUserID == request.UserID && isPlaceableDefinition(item.DefinitionID) {
 			used++
 		}
 	}
 	if used >= earned {
 		return denied(StampPlacementBudgetExhaustedReason)
 	}
-	owned, err := authorizer.store.PlayerOwnsCanvasStamp(ctx, request.UserID, assetID)
+	owned, err := authorizer.store.playerOwnsPlaceable(ctx, request.UserID, kind, assetID)
 	if err != nil {
 		return denied(roomsdk.DurableRejectedByApplication)
 	}
 	if !owned {
 		return denied(StampUnavailableReason)
 	}
-	config, err := json.Marshal(struct {
-		PlacementDay string `json:"placementDay"`
-	}{PlacementDay: budget.DayKey})
+	config, err := placementConfig(kind, budget.DayKey)
 	if err != nil {
 		return denied(roomsdk.DurableRejectedByApplication)
 	}
 	return roomsdk.DurableAuthorizationResult{Allowed: true, CanonicalConfig: config}
+}
+
+func placementConfig(kind domain.UnlockItemKind, day string) (json.RawMessage, error) {
+	if kind == domain.UnlockCanvasProp {
+		return json.Marshal(struct {
+			PlacementDay   string  `json:"placementDay"`
+			SensorID       string  `json:"sensorId"`
+			KickStrength   float64 `json:"kickStrength"`
+			MinImpulse     float64 `json:"minImpulse"`
+			MaxImpulse     float64 `json:"maxImpulse"`
+			CooldownSecond float64 `json:"cooldownSeconds"`
+		}{day, "kick", 1.25, 2.5, 18, 0.25})
+	}
+	return json.Marshal(struct {
+		PlacementDay string `json:"placementDay"`
+	}{PlacementDay: day})
+}
+
+func (store *SQLiteStore) playerOwnsPlaceable(ctx context.Context, playerID string, kind domain.UnlockItemKind, assetID string) (bool, error) {
+	if kind == domain.UnlockCanvasStamp {
+		return store.PlayerOwnsCanvasStamp(ctx, playerID, assetID)
+	}
+	if playerID == "" || kind != domain.UnlockCanvasProp || !knownPropAsset(assetID) {
+		return false, nil
+	}
+	item, ok := domain.DailyDropCanvasPropItem(assetID)
+	if !ok {
+		return false, nil
+	}
+	var marker int
+	err := store.db.QueryRowContext(ctx, `SELECT 1 FROM player_unlocks
+		WHERE player_id = ? AND item_kind = 'canvas_prop' AND item_id = ?`, playerID, item.ID).Scan(&marker)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return marker == 1, nil
 }
 
 func (store *SQLiteStore) PlayerOwnsCanvasStamp(ctx context.Context, playerID, assetID string) (bool, error) {
@@ -133,6 +176,26 @@ func stampDefinitionRecords() []roomsdk.ItemDefinitionRecord {
 	return records
 }
 
+func propDefinitionRecords() []roomsdk.ItemDefinitionRecord {
+	return []roomsdk.ItemDefinitionRecord{{
+		DefinitionID: PropDefinitionID("beach-ball"), Version: 1,
+		Complexity:    roomsdk.ItemComplexitySimple,
+		ConfigSchema:  json.RawMessage(propPlacementConfigSchemaJSON),
+		DefinitionRaw: propDefinitionJSON(),
+	}}
+}
+
+func propDefinitionJSON() json.RawMessage {
+	return json.RawMessage(`{
+  "definitionId":"zoomigo-prop-beach-ball","version":1,"displayName":"Beach ball prop",
+  "visual":{"size":{"width":9,"height":9},"spriteId":"lounge.stamp.transparent","placeholder":{"shape":"circle","color":16765757},"zIndex":8},
+  "body":{"mode":"dynamic","mass":0.35,"gravityScale":0,"linearDamping":0.4,"angularDamping":0.55,"canSleep":true},
+  "colliders":[{"id":"solid","role":"itemSolid","shape":{"type":"circle","radius":4.5},"restitution":0.82,"friction":0.18,"collisionMask":31},{"id":"kick","role":"itemSensor","shape":{"type":"circle","radius":5.8}}],
+  "behaviorType":"kickable","defaultConfig":{"sensorId":"kick","kickStrength":1.25,"minImpulse":2.5,"maxImpulse":18,"cooldownSeconds":0.25},
+  "persistence":{"transform":true,"behaviorState":true,"onRoomSleep":"pause"},"complexity":"simple"
+}`)
+}
+
 func stampDefinitionJSON(assetID string) json.RawMessage {
 	record := map[string]any{
 		"definitionId": StampDefinitionID(assetID), "version": 2,
@@ -154,13 +217,13 @@ func stampDefinitionJSON(assetID string) json.RawMessage {
 	return raw
 }
 
-func authorizeStampEdit(request roomsdk.DurableAuthorizationRequest, dayKey string) roomsdk.DurableAuthorizationResult {
+func authorizePlaceableEdit(request roomsdk.DurableAuthorizationRequest, dayKey string) roomsdk.DurableAuthorizationResult {
 	var owned *roomsdk.DurableAuthorizationItem
 	for index := range request.ExistingItems {
 		item := &request.ExistingItems[index]
 		if item.EntityID == request.EntityID &&
 			item.OwnerUserID == request.UserID &&
-			strings.HasPrefix(item.DefinitionID, stampDefinitionPrefix) {
+			isPlaceableDefinition(item.DefinitionID) {
 			owned = item
 			break
 		}
@@ -180,17 +243,22 @@ func authorizeStampEdit(request roomsdk.DurableAuthorizationRequest, dayKey stri
 		}
 		return roomsdk.DurableAuthorizationResult{Allowed: true}
 	}
+	_, _, prop := placeableDefinition(owned.DefinitionID)
+	isProp := prop && strings.HasPrefix(owned.DefinitionID, propDefinitionPrefix)
 	if request.Operation == roomsdk.DurableMove {
 		if !inStampDecoratingArea(request.Position) {
 			return denied(StampInvalidPlacementReason)
 		}
-		if !validStampScale(request.Scale) {
+		if (isProp && request.Scale != 1) || (!isProp && !validStampScale(request.Scale)) {
 			return denied(StampInvalidScaleReason)
 		}
-		if !validStampRotation(request.Rotation) {
+		if (isProp && !finite(request.Rotation)) || (!isProp && !validStampRotation(request.Rotation)) {
 			return denied(StampInvalidRotationReason)
 		}
 		return roomsdk.DurableAuthorizationResult{Allowed: true}
+	}
+	if isProp {
+		return denied(StampEditingUnavailableReason)
 	}
 	if request.Operation == roomsdk.DurableRotate {
 		if request.Preview || !validStampRotation(request.Rotation) {
@@ -202,6 +270,25 @@ func authorizeStampEdit(request roomsdk.DurableAuthorizationRequest, dayKey stri
 		return denied(StampInvalidScaleReason)
 	}
 	return roomsdk.DurableAuthorizationResult{Allowed: true}
+}
+
+func placeableDefinition(definitionID string) (domain.UnlockItemKind, string, bool) {
+	if assetID, ok := strings.CutPrefix(definitionID, stampDefinitionPrefix); ok && knownStampAsset(assetID) {
+		return domain.UnlockCanvasStamp, assetID, true
+	}
+	if assetID, ok := strings.CutPrefix(definitionID, propDefinitionPrefix); ok && knownPropAsset(assetID) {
+		return domain.UnlockCanvasProp, assetID, true
+	}
+	return "", "", false
+}
+
+func isPlaceableDefinition(definitionID string) bool {
+	_, _, ok := placeableDefinition(definitionID)
+	return ok
+}
+
+func knownPropAsset(assetID string) bool {
+	return assetID == "beach-ball"
 }
 
 func validStampRotation(rotation float64) bool {

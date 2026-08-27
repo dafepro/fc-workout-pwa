@@ -68,7 +68,7 @@ not compiled into the development or production applications.
    avatar should move the avatar instead of scrolling.
 4. Release after a deliberate drag. The avatar should stop; direct drag has no
    hidden flick or coast.
-5. Walk into the yellow beach ball. It should move from the collision, bounce
+5. Walk into the yellow beach ball. It should visibly move from the collision, bounce
    off room boundaries, and remain in the room.
 6. With a second same-team player connected, open **Emotes** and choose each
    reaction. Confirm the reaction appears briefly above the sender in both
@@ -140,8 +140,9 @@ not compiled into the development or production applications.
     until that day's local midnight. A teammate's stamps are always view-only.
     Walk an avatar across them: each stamp should remain one coherent image
     behind the avatar, never two copies split across layers.
-19. Confirm **Items** is visibly disabled and **Map** is visibly disabled because
-    the first room fits on one screen. Neither should look tappable.
+19. Confirm **Props** opens the same canvas-scoped item picker on its Props tab.
+    If Beach ball is not owned, show a calm empty state. **Map** remains visibly
+    disabled because the first room fits on one screen.
 20. Sign in as a second player on the same team in another browser profile.
     Confirm **2 here** appears and both windows render each player's saved avatar
     plus safe first-name/last-initial label.
@@ -215,12 +216,29 @@ not compiled into the development or production applications.
 5. Enable reduced motion at the operating-system/browser level. Movement should
    still work and stop on release, while decorative emote motion is reduced.
 
+## Beach ball prize and prop review
+
+1. Earn or grant **Beach ball** from a Prize Box. Its reveal and All prizes tile
+   should show actual ball art, **Uncommon**, and **Team Lounge**.
+2. Follow **Use in Team Lounge**, open **Props**, and confirm Beach ball appears
+   as owned without revealing any unowned prop.
+3. With one placement credit ready, select Beach ball and tap an open location.
+   The ghost should preview its landing and the shared budget should decrease.
+4. Run your avatar into the placed ball. The ball—not just a puff animation—must
+   travel. A connected teammate must see the same movement before reconnecting.
+5. Reload both viewers. The ball must retain its canonical position. Its owner
+   may drag or trash it only on the placement day; no resize or rotate controls
+   appear. A teammate may kick it but may not manually edit it.
+6. Trash today's ball and confirm the weekly placement returns while Beach ball
+   remains in the permanent Props collection.
+
 ## Expected limitations in this slice
 
-- One stamp or future item may use each earned placement credit. This slice
-  spends credits only on stamps. Current-day stamps can move, resize, rotate in
-  15-degree steps, or be deleted to restore that weekly placement; older and
-  teammate stamps cannot. Mirror, replace, Props, and Map remain disabled.
+- One stamp or prop may use each earned placement credit. Current-day stamps can
+  move, resize, rotate in 15-degree steps, or be deleted. The Beach ball can
+  move through owner drag or team physics and be deleted, but cannot be resized
+  or rotated manually. Older and teammate items cannot be manually edited.
+  Mirror and Map remain disabled.
 - Visit traces are ambient weekly presence only; they are not a feed or history.
 
 Record feedback on movement feel, any correction spikes, collision alignment,

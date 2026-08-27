@@ -3346,6 +3346,12 @@
   font-size: 1.75rem;
 }
 
+.prize-item-art--prop img {
+  width: 82%;
+  height: 82%;
+  object-fit: contain;
+}
+
 .prize-item-art .avatar-part-art {
   width: 3.5rem;
   height: 3.5rem;
@@ -3405,6 +3411,11 @@
 
 .prize-reveal .prize-item-art .tc-stamp-asset {
   font-size: 5rem;
+}
+
+.prize-reveal .prize-item-art--prop img {
+  width: 78%;
+  height: 78%;
 }
 
 .prize-reveal .prize-item-art .avatar-part-art {

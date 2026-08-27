@@ -1,4 +1,5 @@
 import { AvatarPartArt } from "../avatar/AvatarArt";
+import Image from "next/image";
 import { AVATAR_LAYERS } from "../avatar/catalog";
 import { defaultAvatar } from "../avatar/config";
 import { findTeamCanvasStamp } from "../team-canvas/catalog";
@@ -6,6 +7,19 @@ import { StampAssetView } from "../team-canvas/components/StampAsset";
 import type { PrizeItem } from "../data/prize-box-gateway";
 
 export function PrizeItemArt({ item }: { item: PrizeItem }) {
+  if (item.kind === "canvas_prop") {
+    return (
+      <span className="prize-item-art prize-item-art--prop">
+        <Image
+          src="/team-lounge-v2/beach-ball.svg"
+          alt="Beach ball"
+          width={76}
+          height={76}
+          unoptimized
+        />
+      </span>
+    );
+  }
   if (item.kind === "canvas_stamp") {
     const asset = findTeamCanvasStamp(item.assetId);
     return (

@@ -21,11 +21,12 @@ export interface PrizeCollectionGateway {
 
 const connectedPrizeCollectionGateway: PrizeCollectionGateway = {
   async load() {
-    const [team, avatar] = await Promise.all([
+    const [stamps, props, avatar] = await Promise.all([
       loadUnlockInventory("canvas_stamp"),
+      loadUnlockInventory("canvas_prop"),
       loadUnlockInventory("avatar_part"),
     ]);
-    return [...team, ...avatar].sort(
+    return [...stamps, ...props, ...avatar].sort(
       (left, right) =>
         Date.parse(right.unlockedAt) - Date.parse(left.unlockedAt),
     );
@@ -154,7 +155,9 @@ export function PrizeCollection({
                     item_kind:
                       unlock.item.kind === "canvas_stamp"
                         ? "stamp"
-                        : "avatar_part",
+                        : unlock.item.kind === "canvas_prop"
+                          ? "prop"
+                          : "avatar_part",
                   })
                 }
               >

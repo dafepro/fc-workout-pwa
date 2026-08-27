@@ -92,14 +92,14 @@ func TestWeeklyRoomIdentityRoundTrips(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if roomID != "team:team-one:lounge:2026-08-24:v3" {
+	if roomID != "team:team-one:lounge:2026-08-24:v4" {
 		t.Fatalf("room id = %q", roomID)
 	}
 	teamID, weekKey, err := ParseWeeklyRoomID(roomID)
 	if err != nil || teamID != "team-one" || weekKey != "2026-08-24" {
 		t.Fatalf("parsed = %q, %q, %v", teamID, weekKey, err)
 	}
-	for _, invalid := range []string{"", "team:other", "team:team/one:lounge:2026-08-24:v3", "team:team-one:lounge:today:v3", "team:team-one:lounge:2026-08-25:v3", "team:team-one:lounge:2026-08-24", "team:team-one:lounge:2026-08-24:v2"} {
+	for _, invalid := range []string{"", "team:other", "team:team/one:lounge:2026-08-24:v4", "team:team-one:lounge:today:v4", "team:team-one:lounge:2026-08-25:v4", "team:team-one:lounge:2026-08-24", "team:team-one:lounge:2026-08-24:v2"} {
 		if _, _, err := ParseWeeklyRoomID(invalid); err == nil {
 			t.Fatalf("accepted invalid room id %q", invalid)
 		}
@@ -127,14 +127,14 @@ func TestWeeklyThemeManifestOwnsTheImmutableCanvasBinding(t *testing.T) {
 
 func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 	catalog := BeachBoardwalkCatalog()
-	if len(catalog.Canvases) != 1 || len(catalog.Items) != 14 {
+	if len(catalog.Canvases) != 1 || len(catalog.Items) != 15 {
 		t.Fatalf("catalog sizes = %d canvases, %d items", len(catalog.Canvases), len(catalog.Items))
 	}
 	canvas := catalog.Canvases[0]
 	if canvas.CanvasID != BeachBoardwalkCanvasID || canvas.Version != BeachBoardwalkCanvasVersion || !json.Valid(canvas.DefinitionRaw) {
 		t.Fatalf("canvas record = %#v", canvas)
 	}
-	if canvas.Version != 3 {
+	if canvas.Version != 4 {
 		t.Fatalf("canvas version = %d", canvas.Version)
 	}
 	var shape struct {
@@ -167,6 +167,10 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 	}
 	if avatar.Visual.SpriteID != "lounge.stamp.transparent" {
 		t.Fatalf("avatar sprite = %q", avatar.Visual.SpriteID)
+	}
+	prop := catalog.Items[len(catalog.Items)-1]
+	if prop.DefinitionID != PropDefinitionID("beach-ball") || prop.Version != 1 || !json.Valid(prop.DefinitionRaw) {
+		t.Fatalf("beach ball prop record = %#v", prop)
 	}
 	var stamp struct {
 		Visual struct {

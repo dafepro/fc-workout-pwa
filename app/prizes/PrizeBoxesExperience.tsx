@@ -403,7 +403,11 @@ function PrizeReveal({
                 analytics?.track("reward_destination_opened", {
                   destination: item.destination,
                   item_kind:
-                    item.kind === "canvas_stamp" ? "stamp" : "avatar_part",
+                    item.kind === "canvas_stamp"
+                      ? "stamp"
+                      : item.kind === "canvas_prop"
+                        ? "prop"
+                        : "avatar_part",
                 })
               }
             >

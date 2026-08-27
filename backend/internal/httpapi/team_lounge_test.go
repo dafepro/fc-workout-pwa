@@ -66,17 +66,17 @@ func TestTeamLoungeAuthenticatorConformsAndConsumesOneTimeTickets(t *testing.T) 
 
 	roomsdktest.RunAuthenticatorConformance(t, auth, []roomsdktest.AuthenticatorCase{
 		{
-			Name: "team member with exact room ticket", Request: request("team:team-one:lounge:2026-08-24:v3", valid),
+			Name: "team member with exact room ticket", Request: request("team:team-one:lounge:2026-08-24:v4", valid),
 			WantIdentity: roomsdk.Identity{UserID: "player-one", DisplayName: "Player"},
 		},
-		{Name: "missing credential", Request: request("team:team-one:lounge:2026-08-24:v3", ""), Unauthorized: true},
-		{Name: "V1 credential", Request: request("team:team-one:lounge:2026-08-24:v3", v1), Unauthorized: true},
+		{Name: "missing credential", Request: request("team:team-one:lounge:2026-08-24:v4", ""), Unauthorized: true},
+		{Name: "V1 credential", Request: request("team:team-one:lounge:2026-08-24:v4", v1), Unauthorized: true},
 	})
-	if visits.visits != 1 || visits.roomID != "team:team-one:lounge:2026-08-24:v3" || visits.playerID != "player-one" {
+	if visits.visits != 1 || visits.roomID != "team:team-one:lounge:2026-08-24:v4" || visits.playerID != "player-one" {
 		t.Fatalf("recorded visits = %#v", visits)
 	}
 
-	if identity, err := auth.Authenticate(t.Context(), request("team:team-one:lounge:2026-08-24:v3", valid)); err == nil || identity != (roomsdk.Identity{}) {
+	if identity, err := auth.Authenticate(t.Context(), request("team:team-one:lounge:2026-08-24:v4", valid)); err == nil || identity != (roomsdk.Identity{}) {
 		t.Fatalf("replayed identity = %#v, %v", identity, err)
 	}
 }

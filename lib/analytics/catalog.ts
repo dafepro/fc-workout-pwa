@@ -54,7 +54,7 @@ export interface ProductEventProperties {
   challenge_action_selected: { action: "open_log" | "open_reaction" };
   reward_destination_opened: {
     destination: "avatar" | "team_lounge";
-    item_kind: "avatar_part" | "stamp";
+    item_kind: "avatar_part" | "stamp" | "prop";
   };
   player_sign_in_succeeded: { remembered: boolean };
   player_sign_in_failed: {
@@ -359,7 +359,7 @@ function propertiesFor(
         ),
         item_kind: oneOf(
           value.item_kind,
-          ["avatar_part", "stamp"],
+          ["avatar_part", "stamp", "prop"],
           "item_kind",
         ),
       };

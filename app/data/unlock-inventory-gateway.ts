@@ -1,6 +1,6 @@
 import { isPrizeItem, type PrizeItem } from "./prize-box-gateway";
 
-export type UnlockItemKind = "avatar_part" | "canvas_stamp";
+export type UnlockItemKind = "avatar_part" | "canvas_stamp" | "canvas_prop";
 
 export interface PlayerUnlock {
   item: PrizeItem;

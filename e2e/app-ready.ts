@@ -46,7 +46,18 @@ export async function loginAsAva(page: Page) {
 }
 
 async function loginAsPlayer(page: Page, credential: string, pin: string) {
-  await page.goto(`/login?e2e=1#credential=${credential}`);
+  const credentialURL = `/login?e2e=1#credential=${credential}`;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      await page.goto(credentialURL);
+      break;
+    } catch (error) {
+      if (attempt > 0 || !String(error).includes("net::ERR_ABORTED")) {
+        throw error;
+      }
+      await page.waitForLoadState("domcontentloaded").catch(() => undefined);
+    }
+  }
   await page.locator("html[data-app-ready='true']").waitFor();
   await page.locator("form[data-credential-ready='true']").waitFor();
   await page.getByLabel("Four-digit PIN").fill(pin);

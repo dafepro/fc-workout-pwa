@@ -6,7 +6,7 @@ import (
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 )
 
-func TestDailyDropCatalogUsesStableAvatarAndCanvasItems(t *testing.T) {
+func TestDailyDropCatalogUsesStableAvatarAndLoungeItems(t *testing.T) {
 	items := domain.DailyDropCatalogItems()
 	if len(items) < 2 {
 		t.Fatalf("catalog has %d items, want both reward kinds", len(items))
@@ -24,14 +24,22 @@ func TestDailyDropCatalogUsesStableAvatarAndCanvasItems(t *testing.T) {
 		if item.Kind == domain.UnlockCanvasStamp && item.Destination != domain.UnlockDestinationTeamLounge {
 			t.Fatalf("canvas item destination = %q", item.Destination)
 		}
+		if item.Kind == domain.UnlockCanvasProp && item.Destination != domain.UnlockDestinationTeamLounge {
+			t.Fatalf("prop destination = %q", item.Destination)
+		}
 		if ids[item.ID] {
 			t.Fatalf("duplicate catalog id: %s", item.ID)
 		}
 		ids[item.ID] = true
 		kinds[item.Kind] = true
 	}
-	if !kinds[domain.UnlockAvatarPart] || !kinds[domain.UnlockCanvasStamp] {
-		t.Fatalf("catalog kinds = %+v, want avatar and canvas", kinds)
+	if !kinds[domain.UnlockAvatarPart] || !kinds[domain.UnlockCanvasStamp] || !kinds[domain.UnlockCanvasProp] {
+		t.Fatalf("catalog kinds = %+v, want avatar, stamp, and prop", kinds)
+	}
+	beachBall, ok := domain.DailyDropCatalogItem("canvas-prop-beach-ball")
+	if !ok || beachBall.Kind != domain.UnlockCanvasProp || beachBall.AssetID != "beach-ball" ||
+		beachBall.Slot != "prop" || beachBall.Rarity != domain.UnlockUncommon {
+		t.Fatalf("beach ball catalog item = %+v, found=%v", beachBall, ok)
 	}
 }
 

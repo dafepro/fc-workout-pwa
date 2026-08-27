@@ -131,8 +131,8 @@ func (service *service) listPlayerUnlocks(w http.ResponseWriter, r *http.Request
 		return
 	}
 	kind := domain.UnlockItemKind(r.URL.Query().Get("kind"))
-	if kind != domain.UnlockAvatarPart && kind != domain.UnlockCanvasStamp {
-		writeError(w, r, http.StatusBadRequest, "invalid_unlock_kind", "Choose avatar parts or Team Canvas stamps.")
+	if kind != domain.UnlockAvatarPart && kind != domain.UnlockCanvasStamp && kind != domain.UnlockCanvasProp {
+		writeError(w, r, http.StatusBadRequest, "invalid_unlock_kind", "Choose avatar parts, Team Lounge stamps, or props.")
 		return
 	}
 	items, err := repository.ListPlayerUnlocks(r.Context(), actor.PlayerID, kind)

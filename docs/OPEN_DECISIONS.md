@@ -1166,11 +1166,6 @@ Momentum Alpha needs independent PWA install/offline behavior.
   Mirroring remains disabled for every current asset; a later asset must
   explicitly opt in after art review and Canvas must expose reflection directly
   rather than abusing negative scale.
-- Decided: replacement will be one atomic **Change stamp** mutation that keeps
-  the existing entity ID, owner, and transform while swapping to another owned
-  asset. The old stamp remains until acceptance, so retries and disconnects
-  never produce an empty slot or two weekly stamps. Standalone delete is not a
-  current player action; consumable reservation/refund semantics remain later.
 - Superseded 2026-08-26: the one-stamp cap and six authored points were useful
   integration constraints, but they are no longer product policy. One accepted
   workout or planned-rest check-in grants one latched placement credit for that
@@ -1188,20 +1183,27 @@ Momentum Alpha needs independent PWA install/offline behavior.
   resized, or rotated in 15-degree steps. At local midnight it locks in place.
   Prior-day stamps and teammate stamps stay visible but cannot be edited. The
   server injects `placementDay`; the browser cannot choose it.
-- Refined 2026-08-26: standalone deletion is now available only by dragging the
-  owner's current-day stamp into the temporary lounge trash target. Deletion
+- Refined 2026-08-26: deletion is available only by dragging the owner's
+  current-day item into the temporary lounge trash target. Deletion
   removes the canonical room entity and therefore restores that week's derived
   placement availability; it does not remove the permanent stamp unlock.
-  Prior-day, teammate, and system-owned entities remain undeletable. Future
-  consumable props require their own refund decision before using this path.
+  Prior-day, teammate, and system-owned entities remain undeletable.
 - Decided: move, scale, and rotate previews travel through Canvas's shared room
   stream, so every connected viewer sees an in-progress transform. The final
   durable command remains authoritative. Zoomigo validates the complete preview
   transform—position, scale, rotation, owner, and edit day—rather than trusting
   a browser-supplied field that the visible control did not change.
-- Decided: this policy starts Beach Boardwalk room generation V3 and stamp
-  definition V2, so existing V2 snapshots are never reinterpreted. Replacement,
-  standalone delete, and mirroring remain separate future actions.
+- Decided: this policy started Beach Boardwalk room generation V3 and stamp
+  definition V2, so existing V2 snapshots are never reinterpreted. Mirroring
+  remains a separate future action.
+- Decided 2026-08-26: Beach Boardwalk V4 adds the first player-owned prop, the
+  permanent **Beach ball** Prize Box unlock. Stamps and props spend the same
+  weekly placement credits. An owner may place, move, or delete today's ball;
+  its physical scale and rotation are authored and cannot be customized.
+  Any avatar may kick it, and Canvas persists its shared transform. A minimum
+  contact impulse is required because direct-drag avatar input can report zero
+  closing velocity at sensor contact. V4 also corrects the system ball's avatar
+  collision mask rather than silently changing an existing room generation.
 - Decided: every lounge ticket includes a server-owned theme ID, version, and
   display name tied to the exact immutable Canvas template binding. The browser
   fails closed on unsupported metadata. Beach Boardwalk V1 remains the only

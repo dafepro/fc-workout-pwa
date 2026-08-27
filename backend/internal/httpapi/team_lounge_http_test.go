@@ -47,6 +47,8 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 		`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-one', 'player-two', '2026-01-01')`,
 		`INSERT INTO player_unlocks (player_id, item_kind, item_id, source, unlocked_at)
 		 VALUES ('player-one', 'canvas_stamp', 'canvas-stamp-target', 'daily_drop', '2026-08-26T12:00:00Z')`,
+		`INSERT INTO player_unlocks (player_id, item_kind, item_id, source, unlocked_at)
+		 VALUES ('player-one', 'canvas_prop', 'canvas-prop-beach-ball', 'daily_drop', '2026-08-26T12:01:00Z')`,
 	} {
 		if _, err := db.ExecContext(ctx, statement); err != nil {
 			t.Fatal(err)
@@ -124,6 +126,12 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 			UnlockID string `json:"unlockId"`
 			IsNew    bool   `json:"isNew"`
 		} `json:"placeableStamps"`
+		PlaceableProps []struct {
+			AssetID  string `json:"assetId"`
+			Label    string `json:"label"`
+			UnlockID string `json:"unlockId"`
+			IsNew    bool   `json:"isNew"`
+		} `json:"placeableProps"`
 		Theme struct {
 			ID      string `json:"id"`
 			Version uint32 `json:"version"`
@@ -160,11 +168,16 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 			t.Fatalf("unowned stamp leaked into projection = %#v", response.PlaceableStamps)
 		}
 	}
+	if len(response.PlaceableProps) != 1 || response.PlaceableProps[0].AssetID != "beach-ball" ||
+		response.PlaceableProps[0].Label != "Beach ball" ||
+		response.PlaceableProps[0].UnlockID != "canvas-prop-beach-ball" || !response.PlaceableProps[0].IsNew {
+		t.Fatalf("placeable prop projection = %#v", response.PlaceableProps)
+	}
 	if response.Theme.ID != "beach-boardwalk" || response.Theme.Version != 1 || response.Theme.Name != "Beach Boardwalk" {
 		t.Fatalf("theme projection = %#v", response.Theme)
 	}
 	if _, err := db.ExecContext(ctx, `DELETE FROM player_unlocks
-		WHERE player_id = 'player-one' AND item_id = 'canvas-stamp-target'`); err != nil {
+		WHERE player_id = 'player-one' AND item_id IN ('canvas-stamp-target', 'canvas-prop-beach-ball')`); err != nil {
 		t.Fatal(err)
 	}
 	accessRequest := httptest.NewRequest(http.MethodGet, "/v1/teams/team-one/lounge-v2/access", nil)
@@ -179,11 +192,14 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 		PlaceableStamps []struct {
 			AssetID string `json:"assetId"`
 		} `json:"placeableStamps"`
+		PlaceableProps []struct {
+			AssetID string `json:"assetId"`
+		} `json:"placeableProps"`
 	}
 	if err := json.NewDecoder(accessRecorder.Body).Decode(&accessResponse); err != nil {
 		t.Fatal(err)
 	}
-	if accessResponse.RoomID != response.RoomID || len(accessResponse.PlaceableStamps) != len(domain.IncludedCanvasStampAssets()) {
+	if accessResponse.RoomID != response.RoomID || len(accessResponse.PlaceableStamps) != len(domain.IncludedCanvasStampAssets()) || len(accessResponse.PlaceableProps) != 0 {
 		t.Fatalf("refreshed lounge access = %#v", accessResponse)
 	}
 	for _, stamp := range accessResponse.PlaceableStamps {
@@ -211,7 +227,7 @@ func TestTeamLoungeV2TicketBindsTheAuthenticatedPlayersExactWeek(t *testing.T) {
 		Payload: &pb.RoomEnvelope_Join{Join: &pb.Join{
 			RoomId: response.RoomID, ProtocolVersion: 8,
 			Definitions: []*pb.DefinitionVersion{
-				{DefinitionId: "beach-ball", Version: 1},
+				{DefinitionId: "beach-ball", Version: 2},
 				{DefinitionId: "avatar", Version: 1},
 			},
 		}},
