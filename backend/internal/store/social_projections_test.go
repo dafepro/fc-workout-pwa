@@ -56,6 +56,26 @@ func TestTeamActivityUsesActiveRosterAndSafeParticipationOnly(t *testing.T) {
 	}
 }
 
+func TestTeamActivityDoesNotPublishExplicitPartialAsChallengeCompletion(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+	if _, err := db.Exec(`UPDATE training_entries SET completion_outcome = 'partial'
+		WHERE id = 'entry-ava-one'`); err != nil {
+		t.Fatal(err)
+	}
+
+	projection, err := repository.TeamActivity(context.Background(), domain.Actor{
+		Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-one",
+	}, "team-one", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if projection.CurrentChallenge == nil || projection.CurrentChallenge.CompletedCount != 0 || projection.Members[0].ChallengeCompleted {
+		t.Fatalf("partial result published as completion: %+v", projection)
+	}
+}
+
 func TestLeaderboardSortsAuthoritativeSafeMetricsAndConcealsOtherTeams(t *testing.T) {
 	repository, db := socialProjectionStore(t)
 	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)

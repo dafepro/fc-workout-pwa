@@ -30,7 +30,7 @@ func TestTrainingDashboardOwnsAssignmentCatalogAndCompletion(t *testing.T) {
 
 	partial := validTrainingEntryPayload(time.Now().UTC().Add(-time.Hour))
 	partial["assignmentId"] = "assignment-hill-sprints"
-	partial["result"] = map[string]any{"kind": "repetitions", "value": 4, "unit": "reps"}
+	partial["completionOutcome"] = "partial"
 	partialResponse := api.do(t, http.MethodPost, "/v1/me/training-entries", masonToken, "assignment-partial", partial)
 	assertStatus(t, partialResponse, http.StatusCreated)
 	_ = partialResponse.Body.Close()

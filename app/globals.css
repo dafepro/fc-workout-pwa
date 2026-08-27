@@ -1525,6 +1525,81 @@ h2 {
   font-size: 0.7rem;
 }
 
+.workout-outcome-choices {
+  min-width: 0;
+  margin: 0;
+}
+
+.workout-outcome-choices legend {
+  width: 100%;
+  margin: 0 0 0.65rem;
+  padding: 0;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.workout-outcome-choices__options {
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.workout-outcome-choice {
+  display: grid;
+  min-width: 0;
+  min-height: 6.4rem;
+  align-content: end;
+  justify-items: center;
+  gap: 0.2rem;
+  padding: 0.3rem 0.15rem 0.55rem;
+  overflow: visible;
+  border: 1.5px solid #cfd4e4;
+  border-radius: 0.9rem;
+  background: #f5f7fc;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 900;
+  line-height: 1.05;
+  cursor: pointer;
+}
+
+.workout-outcome-choice[aria-pressed="true"] {
+  border-color: #6f9900;
+  background: #effbc9;
+  box-shadow: inset 0 0 0 1px #6f9900;
+}
+
+.workout-outcome-choice__image-frame {
+  display: grid;
+  width: 100%;
+  height: 3.8rem;
+  place-items: end center;
+  pointer-events: none;
+}
+
+.workout-outcome-choice__image {
+  width: 3.3rem;
+  height: 3.3rem;
+  object-fit: contain;
+  transform: scale(0.78);
+  transition: transform 180ms ease;
+}
+
+.workout-outcome-choice[data-outcome="extra"] .workout-outcome-choice__image {
+  transform: scale(1.05);
+}
+
+.workout-outcome-choice[aria-pressed="true"] .workout-outcome-choice__image {
+  transform: scale(1);
+}
+
+.workout-outcome-choice[data-outcome="extra"][aria-pressed="true"]
+  .workout-outcome-choice__image {
+  transform: scale(1.3);
+}
+
 /* The unit sits under the number so the number itself never shifts. */
 .value-entry {
   display: grid;

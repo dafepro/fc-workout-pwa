@@ -70,11 +70,16 @@ Creates one entry for the authenticated player. `Idempotency-Key` is required. T
   "occurredAt": "2026-08-05T22:15:00Z",
   "result": { "kind": "repetitions", "value": 8, "unit": "reps" },
   "effortLevel": 4,
-  "exhaustionLevel": 3
+  "exhaustionLevel": 3,
+  "completionOutcome": "as_listed"
 }
 ```
 
-Activity kind, unit, range, backdating, and assignment eligibility are validated against server-owned definitions.
+`completionOutcome` is optional for older clients and, when present, must be
+`as_listed`, `partial`, or `extra`. Activity kind, unit, range, backdating, and
+assignment eligibility are validated against server-owned definitions. An
+explicit `partial` outcome does not complete an assignment even when its numeric
+result reaches the target.
 
 A new entry returns `201`; an idempotent replay returns `200`. Future timestamps and dates earlier than seven team-local calendar days before today return `422 entry_date_not_allowed`.
 

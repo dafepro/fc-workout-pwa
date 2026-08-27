@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActivitySpecificFields } from "../components/ActivityFields";
 import { WorkoutSelect } from "../components/WorkoutSelect";
+import { WorkoutOutcomeChoices } from "../components/WorkoutOutcomeChoices";
 import { IntensityControls } from "../components/IntensityScale";
 import { copy } from "../content/copy";
 import {
@@ -11,7 +12,7 @@ import {
   isBackdateAllowed,
   toDateInput,
 } from "../domain/rules";
-import type { ActivityId } from "../domain/types";
+import type { ActivityId, CompletionOutcome } from "../domain/types";
 import { useTraining } from "../state/training-context";
 import { useAnalytics } from "../../lib/analytics/AnalyticsProvider";
 
@@ -51,6 +52,8 @@ export default function LogPage() {
   const [time, setTime] = useState(currentTimeInput());
   const [effort, setEffort] = useState(4);
   const [exhaustion, setExhaustion] = useState(4);
+  const [completionOutcome, setCompletionOutcome] =
+    useState<CompletionOutcome>("as_listed");
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const initialized = useRef(false);
@@ -110,6 +113,7 @@ export default function LogPage() {
       assignmentId &&
         assignment &&
         !assignment.completed &&
+        completionOutcome !== "partial" &&
         activity.unit === assignment.targetUnit &&
         value >= assignment.targetValue,
     );
@@ -125,6 +129,7 @@ export default function LogPage() {
         unit: activity.unit,
         effortLevel: effort,
         exhaustionLevel: exhaustion,
+        completionOutcome,
       });
       router.push(`/?saved=1${completesAssignment ? "&completed=1" : ""}`);
     } catch (cause) {
@@ -192,6 +197,10 @@ export default function LogPage() {
           value={value}
           onChange={setValue}
           activities={activities}
+        />
+        <WorkoutOutcomeChoices
+          value={completionOutcome}
+          onChange={setCompletionOutcome}
         />
         <IntensityControls
           effort={effort}

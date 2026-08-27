@@ -128,6 +128,7 @@ func (store *Store) CreateReaction(ctx context.Context, input CreateReactionInpu
 			WHERE a.id = ? AND a.team_id = ? AND e.player_id = ?
 			  AND e.deleted_at IS NULL AND e.result_unit = a.target_unit
 			  AND e.result_value >= a.target_value
+			  AND (e.completion_outcome IS NULL OR e.completion_outcome <> 'partial')
 		)`, input.Request.Context.AssignmentID, input.Request.Context.TeamID,
 			input.Request.RecipientPlayerID).Scan(&completed)
 		if err != nil {

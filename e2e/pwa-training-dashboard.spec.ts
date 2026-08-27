@@ -77,6 +77,10 @@ test("connected Today and activity logging use the server assignment", async ({
   });
   await expect(effort).toHaveValue("4");
   await expect(tiredness).toHaveValue("4");
+  const outcome = page.getByRole("group", { name: "Did you finish?" });
+  await expect(
+    outcome.getByRole("button", { name: "Did it!" }),
+  ).toHaveAttribute("aria-pressed", "true");
   await effort.focus();
   await page.keyboard.press("ArrowRight");
   await tiredness.focus();

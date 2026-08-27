@@ -62,6 +62,12 @@ export const copy = {
   log: {
     overMax: (max: number, unit: string) => `Max is ${max} ${unit}`,
     underMin: (min: number, unit: string) => `Min is ${min} ${unit}`,
+    outcomePrompt: "Did you finish?",
+    outcomes: {
+      partial: "Almost…",
+      as_listed: "Did it!",
+      extra: "Extra!",
+    },
   },
   recoveryNote:
     "Feeling worn out? Hydrate, take it easy, and check with a parent or coach.",

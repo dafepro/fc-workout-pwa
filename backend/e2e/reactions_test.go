@@ -223,15 +223,29 @@ func TestChallengeReactionRequiresCompletionAndBuildsPrivateSafeContext(t *testi
 
 	entry := validTrainingEntryPayload(time.Now().UTC().Add(-time.Hour))
 	entry["assignmentId"] = "assignment-hill-sprints"
-	completed := api.do(t, http.MethodPost, "/v1/me/training-entries", avaToken, "ava-challenge-entry", entry)
-	assertStatus(t, completed, http.StatusCreated)
-	_ = completed.Body.Close()
+	entry["completionOutcome"] = "partial"
+	partial := api.do(t, http.MethodPost, "/v1/me/training-entries", avaToken, "ava-challenge-partial", entry)
+	assertStatus(t, partial, http.StatusCreated)
+	_ = partial.Body.Close()
 
 	challengeContext := map[string]any{
 		"type":         "challenge",
 		"teamId":       "team-hill-striders",
 		"assignmentId": "assignment-hill-sprints",
 	}
+	partialCheer := api.do(t, http.MethodPost, "/v1/reactions", masonToken, "challenge-cheer-partial", map[string]any{
+		"recipientPlayerId": "player-ava",
+		"reactionType":      "strong",
+		"context":           challengeContext,
+	})
+	assertStatus(t, partialCheer, http.StatusUnprocessableEntity)
+	_ = partialCheer.Body.Close()
+
+	entry["completionOutcome"] = "as_listed"
+	completed := api.do(t, http.MethodPost, "/v1/me/training-entries", avaToken, "ava-challenge-complete", entry)
+	assertStatus(t, completed, http.StatusCreated)
+	_ = completed.Body.Close()
+
 	created := api.do(t, http.MethodPost, "/v1/reactions", masonToken, "challenge-cheer", map[string]any{
 		"recipientPlayerId": "player-ava",
 		"reactionType":      "strong",

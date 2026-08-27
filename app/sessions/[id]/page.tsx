@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { SessionFeelings } from "../../components/SessionFeelings";
 import { canDeleteEntry } from "../../domain/rules";
+import { copy } from "../../content/copy";
 import type { TrainingEntry } from "../../domain/types";
 import { useTraining } from "../../state/training-context";
 import { useAuth } from "../../state/auth-context";
@@ -111,6 +112,12 @@ export default function SessionDetailPage() {
               {entry.value} {entry.unit}
             </dd>
           </div>
+          {entry.completionOutcome ? (
+            <div>
+              <dt>Outcome</dt>
+              <dd>{copy.log.outcomes[entry.completionOutcome]}</dd>
+            </div>
+          ) : null}
           <div>
             <dt>Date</dt>
             <dd>

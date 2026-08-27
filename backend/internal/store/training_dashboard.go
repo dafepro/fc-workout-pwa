@@ -168,6 +168,7 @@ func (store *Store) currentAssignment(ctx context.Context, playerID, teamID, tea
 		SELECT 1 FROM training_entries e
 		WHERE e.assignment_id = ? AND e.player_id = ? AND e.deleted_at IS NULL
 		  AND e.result_unit = ? AND e.result_value >= ?
+		  AND (e.completion_outcome IS NULL OR e.completion_outcome <> 'partial')
 	)`, item.ID, playerID, item.TargetUnit, item.TargetValue).Scan(&item.Completed)
 	if err != nil {
 		return nil, fmt.Errorf("load assignment completion: %w", err)

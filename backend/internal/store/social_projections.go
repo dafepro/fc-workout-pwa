@@ -158,7 +158,8 @@ func (store *Store) assignmentCompletions(ctx context.Context, assignment Assign
 	rows, err := store.db.QueryContext(ctx, `SELECT DISTINCT player_id
 		FROM training_entries
 		WHERE assignment_id = ? AND deleted_at IS NULL
-		  AND result_unit = ? AND result_value >= ?`,
+		  AND result_unit = ? AND result_value >= ?
+		  AND (completion_outcome IS NULL OR completion_outcome <> 'partial')`,
 		assignment.ID, assignment.TargetUnit, assignment.TargetValue)
 	if err != nil {
 		return nil, fmt.Errorf("list assignment completions: %w", err)

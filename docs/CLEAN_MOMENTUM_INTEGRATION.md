@@ -70,3 +70,5 @@ Each step is test-first and small enough to review independently.
   completion outcomes, and standalone planned-rest check-ins into migration 000014.
 - Logical backups now round-trip the final fields and tables; free-text notes and
   legacy Canvas rest coupling remain excluded.
+- Structured workout outcomes: persisted Almost, Did it, and Extra check-ins;
+  explicit partial work remains incomplete across player, team, coach, and cheer views.

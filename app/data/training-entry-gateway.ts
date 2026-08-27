@@ -1,6 +1,7 @@
 import { createDeleteDeadline } from "../domain/rules";
 import type {
   ActivityId,
+  CompletionOutcome,
   TrainingEntry,
   TrainingEntryInput,
 } from "../domain/types";
@@ -36,6 +37,7 @@ interface APITrainingEntry {
   };
   effortLevel: number;
   exhaustionLevel: number;
+  completionOutcome?: CompletionOutcome;
   createdAt: string;
   deleteEligibleUntil: string;
 }
@@ -79,6 +81,7 @@ class HTTPTrainingEntryGateway implements TrainingEntryGateway {
         },
         effortLevel: input.effortLevel,
         exhaustionLevel: input.exhaustionLevel,
+        completionOutcome: input.completionOutcome,
       }),
     });
     await throwForError(response);
@@ -122,6 +125,7 @@ class LocalTrainingEntryGateway implements TrainingEntryGateway {
       unit: input.unit,
       effortLevel: input.effortLevel,
       exhaustionLevel: input.exhaustionLevel,
+      completionOutcome: input.completionOutcome,
       assignmentId: input.assignmentId,
       createdAt: now.toISOString(),
       deleteEligibleUntil: createDeleteDeadline(now),
@@ -172,6 +176,7 @@ function fromAPIEntry(entry: APITrainingEntry): TrainingEntry {
     unit: entry.result.unit,
     effortLevel: entry.effortLevel,
     exhaustionLevel: entry.exhaustionLevel,
+    completionOutcome: entry.completionOutcome,
     createdAt: entry.createdAt,
     deleteEligibleUntil: entry.deleteEligibleUntil,
     assignmentId: entry.assignmentId ?? undefined,

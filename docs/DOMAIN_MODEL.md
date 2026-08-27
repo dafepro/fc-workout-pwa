@@ -76,6 +76,7 @@ Initial prototype supports whole-team, one-time challenges.
 - unit
 - effortLevel: 1..7
 - exhaustionLevel: 1..7
+- completionOutcome optional: as_listed | partial | extra
 - createdAt
 - deleteEligibleUntil
 - deletedAt optional

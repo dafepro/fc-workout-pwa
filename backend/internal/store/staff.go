@@ -861,7 +861,8 @@ func (staff *StaffStore) CurrentAssignmentCompletion(ctx context.Context, teamID
 
 	rows, err := staff.db.QueryContext(ctx, `SELECT p.id, p.first_name, p.last_initial,
 		EXISTS (SELECT 1 FROM training_entries e WHERE e.assignment_id = ? AND e.player_id = p.id
-			AND e.deleted_at IS NULL AND e.result_unit = ? AND e.result_value >= ?) AS met,
+			AND e.deleted_at IS NULL AND e.result_unit = ? AND e.result_value >= ?
+			AND (e.completion_outcome IS NULL OR e.completion_outcome <> 'partial')) AS met,
 		EXISTS (SELECT 1 FROM training_entries e WHERE e.assignment_id = ? AND e.player_id = p.id AND e.deleted_at IS NULL) AS started
 		FROM players p
 		JOIN team_memberships m ON m.player_id = p.id

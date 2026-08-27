@@ -35,6 +35,19 @@ func TestTrainingDashboardReturnsOwnedCatalogAssignmentAndSafeSummary(t *testing
 	if projection.CurrentAssignment == nil || projection.CurrentAssignment.ID != "assignment-hills" || projection.CurrentAssignment.Completed {
 		t.Fatalf("unexpected assignment: %+v", projection.CurrentAssignment)
 	}
+	if _, err = db.Exec(`UPDATE training_entries SET assignment_id = 'assignment-hills',
+		completion_outcome = 'partial' WHERE id = 'entry-mason'`); err != nil {
+		t.Fatal(err)
+	}
+	projection, err = repository.TrainingDashboard(context.Background(), domain.Actor{
+		Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-one",
+	}, "team-one", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if projection.CurrentAssignment == nil || projection.CurrentAssignment.Completed {
+		t.Fatalf("explicit partial result completed assignment: %+v", projection.CurrentAssignment)
+	}
 	if projection.Summary.WeeklySessions != 1 || projection.Summary.Rolling30Sessions != 1 || projection.Summary.LongestStreak != 1 {
 		t.Fatalf("unexpected personal summary: %+v", projection.Summary)
 	}
