@@ -37,6 +37,13 @@ export const STAFF_ROUTES: ConsoleRoute[] = [
   { method: "DELETE", pattern: /^v1\/staff\/teams\/[^/]+\/roster\/[^/]+$/ },
   { method: "POST", pattern: /^v1\/staff\/teams\/[^/]+\/players$/ },
   { method: "GET", pattern: /^v1\/staff\/teams\/[^/]+\/progress$/ },
+  { method: "GET", pattern: /^v1\/staff\/team-reward-definitions$/ },
+  { method: "GET", pattern: /^v1\/staff\/teams\/[^/]+\/team-reward$/ },
+  { method: "POST", pattern: /^v1\/staff\/teams\/[^/]+\/team-reward$/ },
+  {
+    method: "POST",
+    pattern: /^v1\/staff\/teams\/[^/]+\/team-reward\/[^/]+\/cancel$/,
+  },
   { method: "GET", pattern: /^v1\/staff\/assignment-catalog$/ },
   { method: "GET", pattern: /^v1\/staff\/teams\/[^/]+\/assignments$/ },
   { method: "POST", pattern: /^v1\/staff\/teams\/[^/]+\/assignments$/ },

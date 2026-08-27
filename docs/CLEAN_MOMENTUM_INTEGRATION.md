@@ -86,3 +86,5 @@ Each step is test-first and small enough to review independently.
   disposable E2E resets clear final plan/prize state, while browser coverage proves claim, open, and equip.
 - Team Reward foundation: replaced drafts, authored copy, uploads, and alternate rules with one predefined celebration;
   migration 000016 stores bounded aggregate progress authority and events, with logical-backup and reset coverage.
+- Team Reward authority: added idempotent, team-authorized dev publication/cancellation and production-safe reads;
+  progress counts distinct active players through accepted plan work or planned rest and exposes aggregates only.

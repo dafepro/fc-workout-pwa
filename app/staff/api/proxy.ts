@@ -58,6 +58,8 @@ export async function proxyToBackend(
   const headers = backendHeaders({ Authorization: `Bearer ${token}` });
   const contentType = request.headers.get("content-type");
   if (contentType) headers.set("Content-Type", contentType);
+  const idempotencyKey = request.headers.get("idempotency-key");
+  if (idempotencyKey) headers.set("Idempotency-Key", idempotencyKey);
   let body: string | undefined;
   if (request.method !== "GET" && request.method !== "DELETE") {
     try {

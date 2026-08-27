@@ -300,6 +300,9 @@ to resolve, not the implementing agent's.
   versioned celebration with bundled artwork and immutable display snapshots.
   Progress uses only qualifying team-local days at a bounded roster percentage;
   authored copy, uploads, alternate rules, and player-level results stay out.
+- A player qualifies for a reward day only through an accepted workout linked
+  to that day's plan or its planned-rest check-in. Each active roster member
+  counts once per team-local day; partial work remains safe but does not count.
 
 ## Coach console UX, issue #9 (2026-08-12)
 

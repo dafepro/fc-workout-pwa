@@ -127,6 +127,27 @@ describe("console gateway routing", () => {
     expect(gatewayFor("POST", "v1/staff/teams/team-1/assignments")).toBe(
       STAFF_GATEWAY,
     );
+    expect(
+      allows(STAFF_ROUTES, "GET", "v1/staff/team-reward-definitions"),
+    ).toBe(true);
+    expect(
+      allows(STAFF_ROUTES, "POST", "v1/staff/teams/team-1/team-reward"),
+    ).toBe(true);
+    expect(
+      allows(
+        STAFF_ROUTES,
+        "POST",
+        "v1/staff/teams/team-1/team-reward/reward-1/cancel",
+      ),
+    ).toBe(true);
+  });
+
+  it("preserves mutation idempotency keys at the staff gateway", () => {
+    const source = readFileSync(
+      join(process.cwd(), "app/staff/api/proxy.ts"),
+      "utf8",
+    );
+    expect(source).toContain('headers.set("Idempotency-Key", idempotencyKey)');
   });
 
   /** An unknown path must not be promoted to the operator side by a lookup

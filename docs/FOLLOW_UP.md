@@ -10,6 +10,8 @@ experiments.
 - Approve numeric workload bounds for coach training plans.
 - Approve the initial Prize Box catalog, rarity labels, and destination balance.
 - Approve the initial Team Reward catalog, artwork, and fulfillment language.
+- Decide whether an incomplete Team Reward auto-closes at its end date or waits
+  for staff cancellation before production authoring is enabled.
 - Resolve multi-team timezone authority for plan, Prize Box, reward, and lounge
   day boundaries.
 - Finish guardian ownership, credential recovery, retention, export, deletion,
