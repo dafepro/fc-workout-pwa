@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveBuildProfile } from "../build/build-profile";
+import { pageExtensionsFor, resolveBuildProfile } from "../build/build-profile";
 
 describe("resolveBuildProfile", () => {
   it.each([undefined, "", "production"])(
@@ -21,4 +21,21 @@ describe("resolveBuildProfile", () => {
       );
     },
   );
+});
+
+describe("pageExtensionsFor", () => {
+  it("excludes development route modules from production discovery", () => {
+    expect(pageExtensionsFor("production")).toEqual(["tsx", "ts", "jsx", "js"]);
+  });
+
+  it("discovers explicitly suffixed development route modules in development", () => {
+    expect(pageExtensionsFor("development")).toEqual([
+      "tsx",
+      "ts",
+      "jsx",
+      "js",
+      "dev.tsx",
+      "dev.ts",
+    ]);
+  });
 });

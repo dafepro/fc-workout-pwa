@@ -58,3 +58,5 @@ Each step is test-first and small enough to review independently.
   removed the global floating action, and updated connected workflow coverage.
 - Canonical route surface: removed the Leaders player route and its UI while
   retaining safe historical reaction rendering and backend compatibility.
+- Developer route packaging: suffixed dev-only pages explicitly and configured
+  route discovery so production omits them while development still ships them.
