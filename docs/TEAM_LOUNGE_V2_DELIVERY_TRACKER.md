@@ -101,15 +101,15 @@ retention, and child-safety decision.
 
 ## Latest dev delivery
 
-- Deployed application revision: `66125e142ff78e8520ccee8acc46ef1863795ad5`.
+- Deployed application revision: `b26a451e997e65f0a78e456ed96c3a5c0ec9a20d`.
 - Included Canvas revision: `238d317a69f931560c60aa217465572098a270a6`.
-- GitHub Actions dev update `33036488838` completed successfully on 2026-08-26.
+- GitHub Actions dev update `33038658092` completed successfully on 2026-08-26.
 - CI resolved and published the exact application revision, then reported the
   dev API and Caddy containers healthy. An independent password-gated smoke
   returned `200` for the directory, home shell, all 17 referenced assets, and
-  API readiness. The Docker browser proof used separate Mason and Ava sessions
-  to verify live presence, emote expiry, independent stamp ownership, durable
-  transforms, reconnect traces, and next-team-local-day locks and credits.
+  API readiness. The Docker browser proof left Mason connected to the old room
+  while Ava entered a clean Monday room, then verified the old room's final
+  checkpoint could not repopulate the new week.
 - The service worker is self-disabling on dev as a defense against stale app
   shells. Worker-first gating for static assets is also implemented in this
   branch, but becomes the trusted deployment control only after mainline
