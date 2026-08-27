@@ -2,17 +2,16 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { PlayerAvatar } from "./components/PlayerAvatar";
 import { SessionList } from "./components/SessionList";
 import { WorkoutInstructions } from "./components/WorkoutInstructions";
 import { copy } from "./content/copy";
-import { players } from "./data/mockData";
 import { useTraining } from "./state/training-context";
 import { useAuth } from "./state/auth-context";
 import { MomentumStatus } from "./player/MomentumStatus";
 import { TodayAdditionalAction } from "./player/TodayAdditionalAction";
 import { TodayPlanHero } from "./player/TodayPlanHero";
 import { PlanWeekStrip } from "./player/PlanWeekStrip";
+import { TeamPulse } from "./player/TeamPulse";
 
 export default function HomePage() {
   const {
@@ -193,39 +192,15 @@ export default function HomePage() {
         activities={dashboard?.activities ?? []}
       />
 
-      <section className="card team-preview">
-        <div>
-          <p className="eyebrow">Team pulse</p>
-          <h2>
-            {dashboard?.teamPulse.activeThisWeek ?? 8} teammates showed up this
-            week
-          </h2>
-          <p>Your crew is building momentum together.</p>
-        </div>
-        <div
-          className="avatar-stack"
-          aria-label="Teammates who completed today's challenge"
-        >
-          {!connected
-            ? players
-                .slice(1, 6)
-                .map((teammate) => (
-                  <PlayerAvatar
-                    key={teammate.id}
-                    player={teammate}
-                    size="small"
-                    completed
-                  />
-                ))
-            : null}
-          {!connected ? (
-            <span className="avatar avatar--small avatar--more">+3</span>
-          ) : null}
-        </div>
-        <Link className="button button--outline" href="/team">
-          Team activity
-        </Link>
-      </section>
+      <TeamPulse
+        projection={dashboard?.teamPulse ?? localTeamPulseProjection}
+      />
     </div>
   );
 }
+
+const localTeamPulseProjection = {
+  activeThisWeek: 0,
+  unlocked: false,
+  recentActivities: [],
+};

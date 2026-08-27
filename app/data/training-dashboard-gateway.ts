@@ -102,7 +102,11 @@ class LocalTrainingDashboardGateway implements TrainingDashboardGateway {
         effortPoints: 520,
         activityDays: activityDays(initialEntries),
       },
-      teamPulse: { activeThisWeek: 8 },
+      teamPulse: {
+        activeThisWeek: 8,
+        unlocked: true,
+        recentActivities: [],
+      },
       streakComparison: {
         templateKey: "hammerhead_sharks",
         value: String(streak * 13),

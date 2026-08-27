@@ -129,12 +129,23 @@ export interface TrainingDashboard {
     effortPoints: number;
     activityDays: ActivityDay[];
   };
-  teamPulse: { activeThisWeek: number };
+  teamPulse: {
+    activeThisWeek: number;
+    unlocked: boolean;
+    recentActivities: TeamPulseActivity[];
+  };
   streakComparison: {
     templateKey: string;
     value: string;
     message: string;
   };
+}
+
+export interface TeamPulseActivity {
+  firstName: string;
+  lastInitial: string;
+  activityName: string;
+  recency: "Today" | "Yesterday" | "Recently";
 }
 
 export interface Player {

@@ -76,3 +76,5 @@ Each step is test-first and small enough to review independently.
   linked replacement history, and dev-only publish, cancel, and reschedule routes.
 - Canonical Today plans/rest: projected the published week into the sole Today view;
   plan-linked workouts and standalone rest check-ins now complete Momentum without Canvas.
+- Completion-gated Team pulse: accepted workouts or planned rest unlock one safe recent item per teammate;
+  partial work stays locked and counts no team completion, while IDs and performance details remain private.

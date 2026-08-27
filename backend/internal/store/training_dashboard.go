@@ -61,7 +61,16 @@ type PersonalTrainingSummary struct {
 }
 
 type TeamPulseProjection struct {
-	ActiveThisWeek int `json:"activeThisWeek"`
+	ActiveThisWeek   int                 `json:"activeThisWeek"`
+	Unlocked         bool                `json:"unlocked"`
+	RecentActivities []TeamPulseActivity `json:"recentActivities"`
+}
+
+type TeamPulseActivity struct {
+	FirstName    string `json:"firstName"`
+	LastInitial  string `json:"lastInitial"`
+	ActivityName string `json:"activityName"`
+	Recency      string `json:"recency"`
 }
 
 type StreakComparisonProjection struct {
@@ -145,14 +154,28 @@ func (store *Store) TrainingDashboard(ctx context.Context, actor domain.Actor, t
 	seasonMetrics := domain.ParticipationMetrics(entries, now, team.CreatedAt, location)[actor.PlayerID]
 	weekMetrics := domain.ParticipationMetrics(entries, now, weekStart, location)[actor.PlayerID]
 	summary := buildPersonalSummary(entries, restDays, actor.PlayerID, now, location, weekMetrics.Sessions, seasonMetrics.EffortPoints)
-	activeCount, err := store.activeTeamMembersThisWeek(ctx, teamID, weekStart, now, now.In(location).Format("2006-01-02"))
+	weekStartKey := weekStart.In(location).Format("2006-01-02")
+	activeCount, err := store.activeTeamMembersThisWeek(ctx, teamID, weekStart, now, weekStartKey, teamDay)
 	if err != nil {
 		return TrainingDashboardProjection{}, err
+	}
+	unlocked, err := store.teamPulseUnlocked(ctx, actor.PlayerID, teamID, localDateStart(now, location), now, teamDay)
+	if err != nil {
+		return TrainingDashboardProjection{}, err
+	}
+	recentActivities := make([]TeamPulseActivity, 0)
+	if unlocked {
+		recentActivities, err = store.recentTeamActivities(ctx, actor.PlayerID, teamID, weekStart, now, teamDay, location)
+		if err != nil {
+			return TrainingDashboardProjection{}, err
+		}
 	}
 	return TrainingDashboardProjection{
 		Team: team.SocialTeam, Activities: activities, CurrentAssignment: assignment,
 		CurrentPlanDay: planDay, CurrentPlan: plan, Summary: summary,
-		TeamPulse:        TeamPulseProjection{ActiveThisWeek: activeCount},
+		TeamPulse: TeamPulseProjection{
+			ActiveThisWeek: activeCount, Unlocked: unlocked, RecentActivities: recentActivities,
+		},
 		StreakComparison: streakComparison(actor.PlayerID, now.In(location).Format("2006-01-02"), summary.CurrentStreak),
 	}, nil
 }
@@ -430,14 +453,106 @@ func buildPersonalSummary(entries []domain.ProjectionEntry, restDays []string, p
 	}
 }
 
-func (store *Store) activeTeamMembersThisWeek(ctx context.Context, teamID string, start, now time.Time, teamDay string) (int, error) {
+func (store *Store) activeTeamMembersThisWeek(ctx context.Context, teamID string, start, now time.Time, weekStartDay, teamDay string) (int, error) {
 	var count int
-	err := store.db.QueryRowContext(ctx, `SELECT COUNT(DISTINCT e.player_id) FROM training_entries e
+	err := store.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM (
+		SELECT e.player_id FROM training_entries e
 		JOIN team_memberships m ON m.team_id = e.team_id AND m.player_id = e.player_id
-		WHERE e.team_id = ? AND e.deleted_at IS NULL AND e.occurred_at >= ? AND e.occurred_at <= ?
-		AND m.active_from <= ? AND (m.active_to IS NULL OR m.active_to >= ?)`,
-		teamID, start.UTC().Format(time.RFC3339Nano), now.UTC().Format(time.RFC3339Nano), teamDay, teamDay).Scan(&count)
-	return count, err
+		WHERE e.team_id = ? AND e.deleted_at IS NULL
+		  AND (e.completion_outcome IS NULL OR e.completion_outcome <> 'partial')
+		  AND e.occurred_at >= ? AND e.occurred_at <= ?
+		  AND m.active_from <= ? AND (m.active_to IS NULL OR m.active_to >= ?)
+		UNION
+		SELECT r.player_id FROM planned_rest_check_ins r
+		JOIN team_memberships m ON m.team_id = r.team_id AND m.player_id = r.player_id
+		WHERE r.team_id = ? AND r.occurs_on >= ? AND r.occurs_on <= ?
+		  AND m.active_from <= ? AND (m.active_to IS NULL OR m.active_to >= ?)
+	)`, teamID, start.UTC().Format(time.RFC3339Nano), now.UTC().Format(time.RFC3339Nano), teamDay, teamDay,
+		teamID, weekStartDay, teamDay, teamDay, teamDay).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count completed team participation: %w", err)
+	}
+	return count, nil
+}
+
+func (store *Store) teamPulseUnlocked(ctx context.Context, playerID, teamID string, dayStart, now time.Time, teamDay string) (bool, error) {
+	var unlocked bool
+	err := store.db.QueryRowContext(ctx, `SELECT EXISTS (
+		SELECT 1 FROM training_entries
+		WHERE player_id = ? AND team_id = ? AND deleted_at IS NULL
+		  AND (completion_outcome IS NULL OR completion_outcome <> 'partial')
+		  AND occurred_at >= ? AND occurred_at <= ?
+		UNION ALL
+		SELECT 1 FROM planned_rest_check_ins
+		WHERE player_id = ? AND team_id = ? AND occurs_on = ?
+	)`, playerID, teamID, dayStart.UTC().Format(time.RFC3339Nano), now.UTC().Format(time.RFC3339Nano),
+		playerID, teamID, teamDay).Scan(&unlocked)
+	if err != nil {
+		return false, fmt.Errorf("load team pulse access: %w", err)
+	}
+	return unlocked, nil
+}
+
+func (store *Store) recentTeamActivities(ctx context.Context, playerID, teamID string, start, now time.Time, teamDay string, location *time.Location) ([]TeamPulseActivity, error) {
+	rows, err := store.db.QueryContext(ctx, `SELECT player_id, first_name, last_initial, activity_name, event_at FROM (
+		SELECT e.player_id, p.first_name, p.last_initial, d.name AS activity_name, e.occurred_at AS event_at
+		FROM training_entries e
+		JOIN players p ON p.id = e.player_id
+		JOIN activity_definitions d ON d.id = e.activity_definition_id
+		JOIN team_memberships m ON m.team_id = e.team_id AND m.player_id = e.player_id
+		WHERE e.team_id = ? AND e.player_id <> ? AND e.deleted_at IS NULL
+		  AND (e.completion_outcome IS NULL OR e.completion_outcome <> 'partial')
+		  AND e.occurred_at >= ? AND e.occurred_at <= ?
+		  AND m.active_from <= ? AND (m.active_to IS NULL OR m.active_to >= ?)
+		UNION ALL
+		SELECT r.player_id, p.first_name, p.last_initial, 'Planned rest' AS activity_name, r.created_at AS event_at
+		FROM planned_rest_check_ins r
+		JOIN players p ON p.id = r.player_id
+		JOIN team_memberships m ON m.team_id = r.team_id AND m.player_id = r.player_id
+		WHERE r.team_id = ? AND r.player_id <> ? AND r.occurs_on >= ? AND r.occurs_on <= ?
+		  AND m.active_from <= ? AND (m.active_to IS NULL OR m.active_to >= ?)
+	) ORDER BY event_at DESC`, teamID, playerID, start.UTC().Format(time.RFC3339Nano), now.UTC().Format(time.RFC3339Nano), teamDay, teamDay,
+		teamID, playerID, start.In(location).Format("2006-01-02"), teamDay, teamDay, teamDay)
+	if err != nil {
+		return nil, fmt.Errorf("list recent team activity: %w", err)
+	}
+	defer rows.Close()
+
+	items := make([]TeamPulseActivity, 0, 5)
+	seen := make(map[string]bool)
+	today := localDateStart(now, location)
+	for rows.Next() && len(items) < 5 {
+		var item TeamPulseActivity
+		var playerID, occurredAt string
+		if err := rows.Scan(&playerID, &item.FirstName, &item.LastInitial, &item.ActivityName, &occurredAt); err != nil {
+			return nil, fmt.Errorf("scan recent team activity: %w", err)
+		}
+		if seen[playerID] {
+			continue
+		}
+		occurred, err := time.Parse(time.RFC3339Nano, occurredAt)
+		if err != nil {
+			return nil, fmt.Errorf("parse recent team activity: %w", err)
+		}
+		item.Recency = broadRecency(occurred, today, location)
+		seen[playerID] = true
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate recent team activity: %w", err)
+	}
+	return items, nil
+}
+
+func broadRecency(occurredAt, today time.Time, location *time.Location) string {
+	day := localDateStart(occurredAt, location)
+	if day.Equal(today) {
+		return "Today"
+	}
+	if day.Equal(today.AddDate(0, 0, -1)) {
+		return "Yesterday"
+	}
+	return "Recently"
 }
 
 func streakComparison(playerID, teamDay string, streak int) StreakComparisonProjection {

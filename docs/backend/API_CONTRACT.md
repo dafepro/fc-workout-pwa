@@ -95,6 +95,18 @@ the supplied published plan day is a rest day on the team’s local calendar.
 Momentum credit without creating a training entry or accepting effort,
 exhaustion, performance, or free text.
 
+### `GET /v1/me/training-dashboard`
+
+Returns the authenticated player’s canonical Today projection. Its Team pulse
+includes a weekly count of active teammates with accepted workout completions
+or planned-rest check-ins. Recent teammate activity stays empty until the
+player completes today’s workout or checks in for today’s planned rest. Once
+unlocked, each teammate appears at most once with only a first name, last
+initial, predefined activity name (including `Planned rest`), and `Today`,
+`Yesterday`, or `Recently`; player IDs, measurements, effort, exhaustion,
+outcomes, and exact timestamps are excluded. An explicit `partial` workout
+neither unlocks Team pulse nor counts as completed weekly participation.
+
 ### `GET /v1/training-entries/{entryId}`
 
 Returns private entry detail only to:

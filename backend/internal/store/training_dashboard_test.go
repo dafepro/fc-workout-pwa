@@ -35,6 +35,21 @@ func TestTrainingDashboardReturnsOwnedCatalogAssignmentAndSafeSummary(t *testing
 	if projection.CurrentAssignment == nil || projection.CurrentAssignment.ID != "assignment-hills" || projection.CurrentAssignment.Completed {
 		t.Fatalf("unexpected assignment: %+v", projection.CurrentAssignment)
 	}
+	if !projection.TeamPulse.Unlocked || projection.TeamPulse.ActiveThisWeek != 2 || len(projection.TeamPulse.RecentActivities) == 0 {
+		t.Fatalf("accepted check-in did not unlock safe team pulse: %+v", projection.TeamPulse)
+	}
+	if projection.TeamPulse.RecentActivities[0].FirstName != "Ava" || projection.TeamPulse.RecentActivities[0].Recency != "Today" {
+		t.Fatalf("unexpected safe team activity: %+v", projection.TeamPulse.RecentActivities)
+	}
+	encodedPulse, err := json.Marshal(projection.TeamPulse)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, privateField := range []string{"player-ava", "occurredAt", "effortLevel", "completionOutcome"} {
+		if strings.Contains(string(encodedPulse), privateField) {
+			t.Fatalf("unlocked team pulse leaked %q: %s", privateField, encodedPulse)
+		}
+	}
 	if _, err = db.Exec(`UPDATE training_entries SET assignment_id = 'assignment-hills',
 		completion_outcome = 'partial' WHERE id = 'entry-mason'`); err != nil {
 		t.Fatal(err)
@@ -54,8 +69,8 @@ func TestTrainingDashboardReturnsOwnedCatalogAssignmentAndSafeSummary(t *testing
 	if projection.Summary.MomentumScore != 4 || projection.Summary.CurrentCheckInStreak != 1 {
 		t.Fatalf("unexpected Momentum projection: %+v", projection.Summary)
 	}
-	if projection.TeamPulse.ActiveThisWeek != 2 {
-		t.Fatalf("team pulse included an inactive member: %+v", projection.TeamPulse)
+	if projection.TeamPulse.Unlocked || projection.TeamPulse.ActiveThisWeek != 1 || len(projection.TeamPulse.RecentActivities) != 0 {
+		t.Fatalf("partial workout unlocked team pulse or counted as completion: %+v", projection.TeamPulse)
 	}
 	if projection.StreakComparison.TemplateKey == "" || projection.StreakComparison.Value == "" {
 		t.Fatalf("server must choose a streak comparison: %+v", projection.StreakComparison)
@@ -69,10 +84,53 @@ func TestTrainingDashboardReturnsOwnedCatalogAssignmentAndSafeSummary(t *testing
 			t.Fatalf("dashboard missing %q: %s", requiredField, encoded)
 		}
 	}
-	for _, privateField := range []string{"exhaustionLevel", "resultValue", "player-ava"} {
+	for _, privateField := range []string{"exhaustionLevel", "resultValue", "effortLevel", "completionOutcome"} {
 		if strings.Contains(string(encoded), privateField) {
 			t.Fatalf("dashboard leaked %q: %s", privateField, encoded)
 		}
+	}
+}
+
+func TestTrainingDashboardPlannedRestUnlocksSafeTeamPulse(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+	if _, err := db.Exec(`UPDATE training_entries SET completion_outcome = 'partial'`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO training_plans (
+		id, team_id, template_id, template_version, template_name, template_summary,
+		starts_on, ends_on, status, created_at
+	) VALUES ('plan-rest', 'team-one', 'speed-reset', 1, 'Reset week', 'Safe recovery',
+		'2026-08-12', '2026-08-12', 'published', '2026-08-12T00:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO training_plan_days (
+		plan_id, day_index, occurs_on, kind, focus, duration_minutes, intensity
+	) VALUES ('plan-rest', 0, '2026-08-12', 'rest', 'recovery', 0, 'easy')`); err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	for _, player := range []string{"player-mason", "player-ava"} {
+		if _, err := repository.CreatePlannedRestCheckIn(ctx, store.CreatePlannedRestCheckInInput{
+			PlayerID: player, TeamID: "team-one", PlanID: "plan-rest", DayIndex: 0,
+			IdempotencyKey: "rest-" + player, Now: now,
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	projection, err := repository.TrainingDashboard(ctx, domain.Actor{
+		Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-one",
+	}, "team-one", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !projection.TeamPulse.Unlocked || projection.TeamPulse.ActiveThisWeek != 2 {
+		t.Fatalf("planned rest did not unlock and count team participation: %+v", projection.TeamPulse)
+	}
+	if len(projection.TeamPulse.RecentActivities) != 1 || projection.TeamPulse.RecentActivities[0].ActivityName != "Planned rest" {
+		t.Fatalf("planned rest was not projected as safe team activity: %+v", projection.TeamPulse.RecentActivities)
 	}
 }
 

@@ -30,7 +30,11 @@ describe("connected training dashboard gateway", () => {
         effortPoints: 42,
         activityDays: [],
       },
-      teamPulse: { activeThisWeek: 2 },
+      teamPulse: {
+        activeThisWeek: 2,
+        unlocked: true,
+        recentActivities: [],
+      },
       streakComparison: {
         templateKey: "hammerhead_sharks",
         value: "26",

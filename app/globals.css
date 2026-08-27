@@ -1278,6 +1278,27 @@ h2 {
   margin-bottom: 0;
   color: var(--muted);
 }
+.team-preview__activity {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.team-preview__activity li {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.team-preview__activity li:last-child {
+  border-bottom: 0;
+}
+.team-preview__activity span,
+.team-preview__empty {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
 .avatar-stack {
   display: flex;
   padding-left: 0.5rem;

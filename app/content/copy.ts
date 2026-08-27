@@ -45,6 +45,18 @@ export const copy = {
     logAnother: "Log another activity",
     logAnotherDetail: "Record something outside today’s completed workout.",
   },
+  teamPulse: {
+    eyebrow: "Team pulse",
+    lockedTitle: "Check in to open Team pulse",
+    lockedDetail:
+      "Finish today’s workout or check in for planned rest to see recent team activity.",
+    activeThisWeek: (count: number) =>
+      `${count} ${count === 1 ? "player" : "players"} checked in this week`,
+    encouragement: "Your crew is building momentum together.",
+    empty: "Your team’s next check-in will show here.",
+    listLabel: "Recent team activity",
+    action: "Team activity",
+  },
   momentum: {
     eyebrow: "Your momentum",
     states: {
