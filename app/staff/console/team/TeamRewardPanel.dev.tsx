@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 import { consoleRequest, ConsoleError, messageFor } from "../api";
 import { ConfirmButton } from "../ConfirmButton";
@@ -19,29 +19,33 @@ export function TeamRewardPanel({ teamId }: { teamId: string }) {
   const [notice, setNotice] = useState("");
   const publishKey = useRef("");
 
-  const load = useCallback(async () => {
-    setError("");
-    try {
-      const [catalog, current] = await Promise.all([
-        consoleRequest<{ definitions: TeamRewardDefinition[] }>(
-          "v1/staff/team-reward-definitions",
-        ),
-        consoleRequest<StaffTeamReward>(
-          `v1/staff/teams/${teamId}/team-reward`,
-        ).catch((caught: unknown) => {
-          if (caught instanceof ConsoleError && caught.status === 404)
-            return null;
-          throw caught;
-        }),
-      ]);
-      setDefinitions(catalog.definitions);
-      setReward(current);
-    } catch (caught) {
-      setError(messageFor(caught));
-    }
+  useEffect(() => {
+    let active = true;
+    Promise.all([
+      consoleRequest<{ definitions: TeamRewardDefinition[] }>(
+        "v1/staff/team-reward-definitions",
+      ),
+      consoleRequest<StaffTeamReward>(
+        `v1/staff/teams/${teamId}/team-reward`,
+      ).catch((caught: unknown) => {
+        if (caught instanceof ConsoleError && caught.status === 404)
+          return null;
+        throw caught;
+      }),
+    ]).then(
+      ([catalog, current]) => {
+        if (!active) return;
+        setDefinitions(catalog.definitions);
+        setReward(current);
+      },
+      (caught: unknown) => {
+        if (active) setError(messageFor(caught));
+      },
+    );
+    return () => {
+      active = false;
+    };
   }, [teamId]);
-
-  useEffect(() => void load(), [load]);
 
   async function publish(event: FormEvent) {
     event.preventDefault();
