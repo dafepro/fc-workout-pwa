@@ -2,6 +2,11 @@ export const copy = {
   brand: "ZoomiGo",
   tagline: "Show up. Build your stride.",
   safeSocial: "Team views celebrate participation—not speed or scores.",
+  navigation: {
+    today: "Today",
+    team: "Team",
+    me: "Me",
+  },
   saveSuccess: "Training saved",
   completion: {
     eyebrow: "Workout complete",

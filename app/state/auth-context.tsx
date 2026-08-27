@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { AppShell } from "../components/AppShell";
+import { PlayerShell } from "../player/PlayerShell";
 import { playerColor } from "../avatar/color";
 import type { AvatarConfiguration } from "../avatar/types";
 import { createAvatarGateway } from "../data/avatar-gateway";
@@ -162,7 +162,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             currentPlayerID={currentPlayerID}
             currentTeamID={currentTeamID}
           >
-            <AppShell>{children}</AppShell>
+            <PlayerShell>{children}</PlayerShell>
           </TrainingProvider>
         </AvatarIdentityProvider>
       </AnalyticsProvider>

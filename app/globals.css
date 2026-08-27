@@ -227,7 +227,7 @@ h2 {
   bottom: 0;
   left: 0;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   padding: 0.45rem max(0.4rem, env(safe-area-inset-right))
     calc(0.45rem + env(safe-area-inset-bottom))
     max(0.4rem, env(safe-area-inset-left));
