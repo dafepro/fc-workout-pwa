@@ -66,3 +66,7 @@ Each step is test-first and small enough to review independently.
   non-deleted, team-local activity entries; planned-rest wiring awaits final schema.
 - Compact Today Momentum: added named score states and an accessible explanation,
   replacing the duplicate weekly-goal, streak, effort, and calendar panels.
+- Final training/Momentum schema: consolidated plans, entry provenance, bounded
+  completion outcomes, and standalone planned-rest check-ins into migration 000014.
+- Logical backups now round-trip the final fields and tables; free-text notes and
+  legacy Canvas rest coupling remain excluded.

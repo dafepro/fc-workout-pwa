@@ -35,7 +35,11 @@ var exportedTables = []string{
 	"activity_definitions",
 	"assignment_catalog",
 	"assignments",
+	"training_plans",
+	"training_plan_days",
+	"training_plan_blocks",
 	"training_entries",
+	"planned_rest_check_ins",
 	"reactions",
 	"auth_credentials",
 	"auth_sessions",
@@ -159,24 +163,32 @@ func TestLogicalExportFromAnOlderSchemaImportsIntoTheCurrentSchema(t *testing.T)
 
 	target := openDatabase(t, ctx, "file:"+filepath.ToSlash(targetPath))
 	var entries, migrationsApplied int
-	var idempotencyKey sql.NullString
+	var idempotencyKey, planID, completionOutcome sql.NullString
+	var planDayIndex, planBlockIndex sql.NullInt64
 	if err := target.QueryRowContext(ctx, "SELECT COUNT(*) FROM training_entries").Scan(&entries); err != nil {
 		t.Fatal(err)
 	}
 	if err := target.QueryRowContext(ctx, "SELECT COUNT(*) FROM schema_migrations").Scan(&migrationsApplied); err != nil {
 		t.Fatal(err)
 	}
-	if err := target.QueryRowContext(ctx, "SELECT idempotency_key FROM training_entries WHERE id = 'entry-old'").Scan(&idempotencyKey); err != nil {
+	if err := target.QueryRowContext(ctx, `SELECT idempotency_key, training_plan_id,
+		training_plan_day_index, training_plan_block_index, completion_outcome
+		FROM training_entries WHERE id = 'entry-old'`).Scan(
+		&idempotencyKey, &planID, &planDayIndex, &planBlockIndex, &completionOutcome,
+	); err != nil {
 		t.Fatal(err)
 	}
 	if entries != 1 || migrationsApplied != currentSchemaMigrationCount {
 		t.Fatalf("entries=%d migrations=%d, want 1 and %d", entries, migrationsApplied, currentSchemaMigrationCount)
 	}
-	if idempotencyKey.Valid {
-		t.Fatalf("field added after the export defaulted to %q, want NULL", idempotencyKey.String)
+	if idempotencyKey.Valid || planID.Valid || planDayIndex.Valid || planBlockIndex.Valid || completionOutcome.Valid {
+		t.Fatal("fields added after the export must default to NULL")
 	}
 	// Tables the old schema never had must import as empty, not as errors.
-	for _, table := range []string{"assignments", "auth_credentials", "auth_sessions", "auth_audit_events"} {
+	for _, table := range []string{
+		"assignments", "training_plans", "training_plan_days", "training_plan_blocks",
+		"planned_rest_check_ins", "auth_credentials", "auth_sessions", "auth_audit_events",
+	} {
 		var count int
 		if err := target.QueryRowContext(ctx, "SELECT COUNT(*) FROM "+table).Scan(&count); err != nil {
 			t.Fatal(err)
@@ -379,6 +391,33 @@ func fullyPopulatedDatabase(t *testing.T, ctx context.Context) string {
 		`UPDATE team_memberships SET active_to = '2026-06-30' WHERE player_id = 'player-zoe'`,
 		`UPDATE training_entries SET idempotency_key = 'entry-key-1', assignment_id = 'assignment-hill-sprints'
 		 WHERE id = 'entry-mason-recent'`,
+		`INSERT INTO training_plans (
+		 id, team_id, template_id, template_version, template_name, template_summary,
+		 starts_on, ends_on, status, created_at
+		) VALUES (
+		 'plan-speed', 'team-hill-striders', 'safe-plan', 1, 'Safe plan', 'A bounded plan.',
+		 '2026-08-01', '2026-08-07', 'published', '2026-08-01T00:00:00Z'
+		)`,
+		`INSERT INTO training_plan_days (
+		 plan_id, day_index, occurs_on, kind, focus, duration_minutes, intensity
+		) VALUES ('plan-speed', 0, '2026-08-01', 'training', 'speed', 20, 'hard')`,
+		`INSERT INTO training_plan_days (
+		 plan_id, day_index, occurs_on, kind, focus, duration_minutes, intensity
+		) VALUES ('plan-speed', 1, '2026-08-02', 'rest', 'recovery', 0, 'easy')`,
+		`INSERT INTO training_plan_blocks (
+		 plan_id, day_index, block_index, activity_definition_id, label, duration_minutes
+		) VALUES ('plan-speed', 0, 0, 'hill-sprints', 'Hill sprints', 12)`,
+		`UPDATE training_entries SET
+		 training_plan_id = 'plan-speed', training_plan_day_index = 0,
+		 training_plan_block_index = 0, completion_outcome = 'as_listed'
+		 WHERE id = 'entry-mason-recent'`,
+		`INSERT INTO planned_rest_check_ins (
+		 id, player_id, team_id, training_plan_id, training_plan_day_index,
+		 occurs_on, idempotency_key, created_at
+		) VALUES (
+		 'rest-mason', 'player-mason', 'team-hill-striders', 'plan-speed', 1,
+		 '2026-08-02', 'rest-key-1', '2026-08-02T12:00:00Z'
+		)`,
 		`UPDATE training_entries SET deleted_at = '2026-08-01T00:00:00Z' WHERE id = 'entry-mason-expired'`,
 		`INSERT INTO reactions (
 			id, sender_player_id, recipient_player_id, team_id, reaction_type,
