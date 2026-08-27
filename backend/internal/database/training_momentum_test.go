@@ -10,7 +10,7 @@ import (
 	"github.com/dafepro/fc-workout-pwa/backend/migrations"
 )
 
-func TestTrainingMomentumMigrationUpgradesPopulatedMainSchema(t *testing.T) {
+func TestFinalFeatureMigrationsUpgradePopulatedMainSchema(t *testing.T) {
 	ctx := context.Background()
 	db, err := Open(ctx, "file:"+filepath.ToSlash(filepath.Join(t.TempDir(), "training-momentum.db")))
 	if err != nil {
@@ -41,6 +41,8 @@ func TestTrainingMomentumMigrationUpgradesPopulatedMainSchema(t *testing.T) {
 		 VALUES ('team-1', 'club-1', 'Team', 'season-2026', 3, 'UTC', '2026-01-01T00:00:00Z')`,
 		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at)
 		 VALUES ('player-1', 'club-1', 'Player', 'A', '{}', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO accounts (id, club_id, role, status, created_at)
+		 VALUES ('coach-1', 'club-1', 'coach', 'active', '2026-01-01T00:00:00Z')`,
 		`INSERT INTO training_entries (
 		 id, player_id, team_id, activity_definition_id, occurred_at, result_value,
 		 result_unit, effort_level, exhaustion_level, created_at, delete_eligible_until, idempotency_key
@@ -74,6 +76,10 @@ func TestTrainingMomentumMigrationUpgradesPopulatedMainSchema(t *testing.T) {
 		"training_plan_days",
 		"training_plan_blocks",
 		"planned_rest_check_ins",
+		"prize_boxes",
+		"player_unlocks",
+		"team_rewards",
+		"team_reward_events",
 	} {
 		var found int
 		if err = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = ?`, table).Scan(&found); err != nil {
@@ -112,10 +118,54 @@ func TestTrainingMomentumMigrationUpgradesPopulatedMainSchema(t *testing.T) {
 		 training_plan_id = 'plan-1', training_plan_day_index = 0,
 		 training_plan_block_index = 0, completion_outcome = 'partial'
 		 WHERE id = 'entry-1'`,
+		`INSERT INTO prize_boxes (
+		 id, player_id, source, daily_day, daily_time_zone, catalog_version,
+		 earned_at, earned_idempotency_key_hash
+		) VALUES (
+		 'box-1', 'player-1', 'daily_check_in', '2026-08-27', 'UTC', 1,
+		 '2026-08-27T12:00:00Z', zeroblob(32)
+		)`,
+		`INSERT INTO player_unlocks (
+		 player_id, item_kind, item_id, source, unlocked_at
+		) VALUES (
+		 'player-1', 'lounge_stamp', 'lounge-stamp-shield', 'daily_check_in',
+		 '2026-08-27T12:00:00Z'
+		)`,
+		`INSERT INTO team_rewards (
+		 id, team_id, created_by_account_id, definition_id, definition_version,
+		 prize_title, prize_description, artwork_id, status, starts_on, ends_on,
+		 time_zone, rule_version, required_days, minimum_roster_percent,
+		 publish_idempotency_key_hash, created_at, updated_at
+		) VALUES (
+		 'reward-1', 'team-1', 'coach-1', 'team-celebration-v1', 1,
+		 'Team celebration', 'Celebrate together at a future team gathering.',
+		 'celebration-stars', 'active', '2026-08-27', '2026-09-02', 'UTC',
+		 1, 4, 80, zeroblob(32), '2026-08-27T12:00:00Z', '2026-08-27T12:00:00Z'
+		)`,
+		`INSERT INTO team_reward_events (
+		 id, reward_id, actor_account_id, event_type, occurred_at
+		) VALUES (
+		 'reward-event-1', 'reward-1', 'coach-1', 'published', '2026-08-27T12:00:00Z'
+		)`,
 	} {
 		if _, err = db.ExecContext(ctx, statement); err != nil {
 			t.Fatalf("use final training schema: %v", err)
 		}
+	}
+
+	var finalRows int
+	if err = db.QueryRowContext(ctx, `
+		SELECT
+		 (SELECT COUNT(*) FROM training_entries WHERE id = 'entry-1') +
+		 (SELECT COUNT(*) FROM prize_boxes WHERE id = 'box-1') +
+		 (SELECT COUNT(*) FROM player_unlocks WHERE player_id = 'player-1') +
+		 (SELECT COUNT(*) FROM team_rewards WHERE id = 'reward-1') +
+		 (SELECT COUNT(*) FROM team_reward_events WHERE id = 'reward-event-1')
+	`).Scan(&finalRows); err != nil {
+		t.Fatal(err)
+	}
+	if finalRows != 5 {
+		t.Fatalf("final feature rows = %d, want 5", finalRows)
 	}
 	if _, err = db.ExecContext(ctx, `UPDATE training_entries SET completion_outcome = 'maximized' WHERE id = 'entry-1'`); err == nil {
 		t.Fatal("an unapproved completion outcome must be refused")

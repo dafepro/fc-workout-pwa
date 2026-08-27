@@ -96,3 +96,5 @@ Each step is test-first and small enough to review independently.
   removed version selection and alternate Lounge routes, pinned the reviewed Canvas packages, and retained a static safe fallback.
 - Docker E2E: added a 320px canonical Lounge/browser proof, taught both test images to install the pinned Canvas archives, and kept Lounge hints out of action-result status roles;
   the complete migrated-API suite and all 24 browser workflows now pass together.
+- Populated-main migration proof: upgrades a representative migration-000013 database through final migrations 14–16 without losing its training row;
+  the upgraded database then accepts linked plans/rest, Prize Boxes, canonical Lounge inventory, Team Rewards, and their event ledger.
