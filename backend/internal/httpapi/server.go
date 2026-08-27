@@ -63,9 +63,12 @@ type service struct {
 	canvasRooms     *teamCanvasRealtimeRooms
 	teamLoungeStore *teamlounge.SQLiteStore
 	teamLoungeRooms http.Handler
+	newLoungeRooms  func() http.Handler
 	middleware      func(http.Handler) http.Handler
 	operations      OperationalObserver
 	now             func() time.Time
+	e2eSetNow       func(time.Time)
+	e2eResetNow     func()
 }
 
 type OperationalObserver interface {
@@ -130,6 +133,14 @@ func WithAuthFixtureReset(reset func(context.Context) error) Option {
 	return func(service *service) { service.authFixtures = reset }
 }
 
+func WithE2EClock(now func() time.Time, set func(time.Time), reset func()) Option {
+	return func(service *service) {
+		service.now = now
+		service.e2eSetNow = set
+		service.e2eResetNow = reset
+	}
+}
+
 func WithMiddleware(middleware func(http.Handler) http.Handler) Option {
 	return func(service *service) { service.middleware = middleware }
 }
@@ -151,32 +162,8 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	service.canvasRooms = newTeamCanvasRealtimeRooms()
 	service.canvasPhysics = newTeamCanvasPhysicsManager()
 	if service.teamLoungeStore != nil {
-		roomServer, err := roomsdk.New(roomsdk.Config{
-			Store:          service.teamLoungeStore,
-			RoomTemplates:  service.teamLoungeStore,
-			Auth:           newTeamLoungeAuthenticator(service.canvasTickets, service.teamLoungeStore, service.now),
-			AllowedOrigins: teamLoungeAllowedOrigins(cfg.AllowedOrigin),
-			Metrics:        newTeamLoungeRoomMetrics(service.operations),
-			DurableAuthorizer: teamlounge.NewStampPlacementAuthorizer(
-				service.teamLoungeStore,
-				service.now,
-				service.teamLoungePlacementCredits(0),
-			),
-			ParticipantSignals: roomsdk.ParticipantSignalPolicy{
-				AllowedKinds: map[string]struct{}{
-					"zoomigo.emote.wave":  {},
-					"zoomigo.emote.heart": {},
-					"zoomigo.emote.ball":  {},
-					"zoomigo.emote.star":  {},
-					"zoomigo.emote.laugh": {},
-				},
-				MaxPayloadBytes: 0,
-				MinInterval:     2 * time.Second,
-			},
-		})
-		if err == nil {
-			service.teamLoungeRooms = roomServer.Handler()
-		}
+		service.newLoungeRooms = service.buildTeamLoungeRoomHandler
+		service.teamLoungeRooms = service.newLoungeRooms()
 	}
 
 	mux := http.NewServeMux()
@@ -243,6 +230,9 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	if _, ok := service.store.(fixtureResetter); cfg.EnableE2EFixtures && ok {
 		mux.HandleFunc("POST /__e2e/reset", service.resetE2EFixtures)
 		mux.HandleFunc("POST /__e2e/unlocks", service.grantE2EUnlocks)
+		if service.e2eSetNow != nil {
+			mux.HandleFunc("POST /__e2e/time", service.setE2ETime)
+		}
 	}
 	if cfg.EnableDevAccess && service.devAccess != nil {
 		mux.HandleFunc("GET /__dev/access", service.getDevAccess)
@@ -715,6 +705,19 @@ func (service *service) resetE2EFixtures(w http.ResponseWriter, r *http.Request)
 		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
 		return
 	}
+	if service.e2eSetNow != nil {
+		requestedNow := strings.TrimSpace(r.Header.Get("X-E2E-Now"))
+		if requestedNow == "" {
+			service.e2eResetNow()
+		} else {
+			now, err := time.Parse(time.RFC3339Nano, requestedNow)
+			if err != nil {
+				writeError(w, r, http.StatusBadRequest, "invalid_request", "The fixture time is invalid.")
+				return
+			}
+			service.e2eSetNow(now.UTC())
+		}
+	}
 	resetter, ok := service.store.(fixtureResetter)
 	if !ok {
 		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
@@ -730,11 +733,64 @@ func (service *service) resetE2EFixtures(w http.ResponseWriter, r *http.Request)
 			return
 		}
 	}
+	if service.newLoungeRooms != nil {
+		service.teamLoungeRooms = service.newLoungeRooms()
+	}
 	// A suite signing the same fixture player in once per test shares one client
 	// address, so its own volume would throttle it. The limits are untouched.
 	for _, throttle := range service.throttles {
 		throttle.reset()
 	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (service *service) buildTeamLoungeRoomHandler() http.Handler {
+	roomServer, err := roomsdk.New(roomsdk.Config{
+		Store:          service.teamLoungeStore,
+		RoomTemplates:  service.teamLoungeStore,
+		Auth:           newTeamLoungeAuthenticator(service.canvasTickets, service.teamLoungeStore, service.now),
+		AllowedOrigins: teamLoungeAllowedOrigins(service.cfg.AllowedOrigin),
+		Metrics:        newTeamLoungeRoomMetrics(service.operations),
+		DurableAuthorizer: teamlounge.NewStampPlacementAuthorizer(
+			service.teamLoungeStore,
+			service.now,
+			service.teamLoungePlacementCredits(0),
+		),
+		ParticipantSignals: roomsdk.ParticipantSignalPolicy{
+			AllowedKinds: map[string]struct{}{
+				"zoomigo.emote.wave":  {},
+				"zoomigo.emote.heart": {},
+				"zoomigo.emote.ball":  {},
+				"zoomigo.emote.star":  {},
+				"zoomigo.emote.laugh": {},
+			},
+			MaxPayloadBytes: 0,
+			MinInterval:     2 * time.Second,
+		},
+	})
+	if err != nil {
+		return nil
+	}
+	return roomServer.Handler()
+}
+
+func (service *service) setE2ETime(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("X-E2E-Reset-Key") != service.cfg.E2EResetKey || service.e2eSetNow == nil {
+		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
+		return
+	}
+	var request struct {
+		Now string `json:"now"`
+	}
+	if decodeStrictJSON(w, r, &request) != nil {
+		return
+	}
+	now, err := time.Parse(time.RFC3339Nano, strings.TrimSpace(request.Now))
+	if err != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid_request", "The fixture time is invalid.")
+		return
+	}
+	service.e2eSetNow(now.UTC())
 	w.WriteHeader(http.StatusNoContent)
 }
 

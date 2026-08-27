@@ -15,6 +15,26 @@ theme metadata.
    version** to **V2 · Canvas library preview**.
 3. Open **Team** and scroll to **Team Lounge**.
 
+## Review this two-player slice
+
+1. Open Mason and Ava in separate browsers or devices, select V2 for both, and
+   enter the same team lounge. Each should see two live players and always see
+   their own avatar above the teammate when the tokens overlap.
+2. Send **Wave** from Mason. Ava should see it near Mason, and it should expire
+   without entering a feed or replaying after refresh.
+3. Give each player a same-day check-in. Place a different stamp from each
+   browser, then rotate Mason's stamp while Ava watches. Ava should see the
+   in-progress transform; neither player may select the teammate's stamp.
+4. Reload both browsers. Both stamps and their final transforms should return.
+   Close Ava, reload Mason, and confirm Ava appears as a prior visitor. Rejoin
+   as Ava and confirm the trace gives way to live presence.
+5. On the next real team-local day, check in again. Yesterday's stamps should
+   remain visible and read-only, while today's new credit permits one new stamp.
+
+Docker automation performs the same sequence with an E2E-only clock so the
+local-midnight boundary is exercised without waiting. The development and
+production applications expose no clock-changing control.
+
 ## Core review
 
 1. Confirm the card says **This week · Beach Boardwalk** and

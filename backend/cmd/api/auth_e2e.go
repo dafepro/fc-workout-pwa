@@ -31,6 +31,10 @@ func configuredAuthenticator(cfg config.Config, sessions *authn.Service, staff *
 				"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"); err != nil {
 				return err
 			}
+			if _, err := sessions.IssueCredentialWithToken(ctx, "account-ava", "1357",
+				"BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"); err != nil {
+				return err
+			}
 			if !staff.Configured() {
 				return nil
 			}

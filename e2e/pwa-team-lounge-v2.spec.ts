@@ -1,14 +1,30 @@
-import { expect, request, test } from "@playwright/test";
-import { loginAsMason } from "./app-ready";
+import {
+  expect,
+  request,
+  test,
+  type BrowserContext,
+  type Page,
+} from "@playwright/test";
+import { loginAsAva, loginAsMason } from "./app-ready";
 
 const apiBaseURL = process.env.E2E_API_BASE_URL ?? "http://api:8080";
 const resetKey = process.env.E2E_RESET_KEY ?? "local-e2e-reset-only";
 const masonHeaders = { Authorization: "Bearer e2e-player-mason" };
+const avaHeaders = { Authorization: "Bearer e2e-player-ava" };
+const firstLoungeDay = "2026-08-26T17:00:00Z";
+const secondLoungeDay = "2026-08-27T17:00:00Z";
+const touchRegressionDay = "2026-08-19T17:00:00Z";
 
-test.beforeEach(async () => {
+test.beforeEach(async ({}, testInfo) => {
+  const fixtureNow = testInfo.title.includes("two players")
+    ? firstLoungeDay
+    : touchRegressionDay;
   const api = await request.newContext({ baseURL: apiBaseURL });
   const reset = await api.post("/__e2e/reset", {
-    headers: { "X-E2E-Reset-Key": resetKey },
+    headers: {
+      "X-E2E-Reset-Key": resetKey,
+      "X-E2E-Now": fixtureNow,
+    },
   });
   expect(reset.status()).toBe(204);
   const rest = await api.post("/v1/teams/team-hill-striders/canvas/rest", {
@@ -16,7 +32,163 @@ test.beforeEach(async () => {
     data: {},
   });
   expect(rest.status()).toBe(204);
+  const avaRest = await api.post("/v1/teams/team-hill-striders/canvas/rest", {
+    headers: avaHeaders,
+    data: {},
+  });
+  expect(avaRest.status()).toBe(204);
   await api.dispose();
+});
+
+test("two players keep separate stamps through live edits, reconnect, and day rollover", async ({
+  browser,
+}) => {
+  test.setTimeout(90_000);
+  const masonContext = await browser.newContext({
+    viewport: { width: 393, height: 852 },
+  });
+  const avaContext = await browser.newContext({
+    viewport: { width: 393, height: 852 },
+  });
+  await enableV2(masonContext);
+  await enableV2(avaContext);
+  const masonPage = await masonContext.newPage();
+  let avaPage = await avaContext.newPage();
+
+  await loginAsMason(masonPage);
+  await loginAsAva(avaPage);
+  await Promise.all([openSharedLounge(masonPage), openSharedLounge(avaPage)]);
+
+  const masonLounge = sharedLounge(masonPage);
+  const avaLounge = sharedLounge(avaPage);
+  await expect(masonPage.getByLabel("2 players here")).toBeVisible();
+  await expect(avaPage.getByLabel("2 players here")).toBeVisible();
+  await expect(masonLounge.getByLabel("Mason C., you")).toBeVisible();
+  await expect(masonLounge.getByLabel("Ava R.")).toBeVisible();
+  await expect(avaLounge.getByLabel("Ava R., you")).toBeVisible();
+  await expect(avaLounge.getByLabel("Mason C.")).toBeVisible();
+
+  await masonPage.getByRole("button", { name: "Emotes" }).click();
+  await masonPage.getByRole("button", { name: "Send Wave emote" }).click();
+  const remoteWave = avaLounge
+    .getByLabel("Mason C.")
+    .locator(".team-lounge-v2__participant-emote");
+  await expect(remoteWave).toHaveText("👋");
+  await expect(remoteWave).toHaveCount(0, { timeout: 4_000 });
+
+  await placeStamp(masonPage, "Bolt", { x: 118, y: 190 });
+  await expect(
+    masonPage.getByRole("button", {
+      name: "Bolt stamp, yours; tap then drag to move",
+    }),
+  ).toBeVisible();
+  const masonStampOnAva = avaPage.getByLabel("Bolt stamp placed by a teammate");
+  await expect(masonStampOnAva).toBeVisible();
+
+  await placeStamp(avaPage, "Star", { x: 230, y: 245 });
+  const avaStamp = avaPage.getByRole("button", {
+    name: "Star stamp, yours; tap then drag to move",
+  });
+  await expect(avaStamp).toBeVisible();
+  await expect(
+    masonPage.getByLabel("Star stamp placed by a teammate"),
+  ).toBeVisible();
+
+  expect(await masonStampOnAva.evaluate((element) => element.tagName)).toBe(
+    "SPAN",
+  );
+  const masonStamp = masonPage.getByRole("button", {
+    name: "Bolt stamp, yours; tap then drag to move",
+  });
+  await masonStamp.click();
+  const remoteStyleBefore = await masonStampOnAva.getAttribute("style");
+  await masonPage
+    .getByRole("button", { name: "Rotate stamp right 15 degrees" })
+    .click();
+  await expect
+    .poll(() => masonStampOnAva.getAttribute("style"))
+    .not.toBe(remoteStyleBefore);
+
+  await Promise.all([masonPage.reload(), avaPage.reload()]);
+  await Promise.all([
+    waitForSharedLounge(masonPage),
+    waitForSharedLounge(avaPage),
+  ]);
+  await expect(
+    masonPage.getByRole("button", {
+      name: "Bolt stamp, yours; tap then drag to move",
+    }),
+  ).toBeVisible();
+  await expect(
+    avaPage.getByRole("button", {
+      name: "Star stamp, yours; tap then drag to move",
+    }),
+  ).toBeVisible();
+
+  await avaPage.close();
+  await masonPage.reload();
+  await waitForSharedLounge(masonPage);
+  await expect(
+    sharedLounge(masonPage).getByLabel("Ava R. stopped by this week"),
+  ).toBeVisible();
+  avaPage = await avaContext.newPage();
+  await openSharedLounge(avaPage);
+  await expect(
+    sharedLounge(masonPage).getByLabel("Ava R. stopped by this week"),
+  ).toHaveCount(0);
+
+  const api = await request.newContext({ baseURL: apiBaseURL });
+  const advance = await api.post("/__e2e/time", {
+    headers: { "X-E2E-Reset-Key": resetKey },
+    data: { now: secondLoungeDay },
+  });
+  expect(advance.status()).toBe(204);
+  const nextDayMasonRest = await api.post(
+    "/v1/teams/team-hill-striders/canvas/rest",
+    { headers: masonHeaders, data: {} },
+  );
+  expect(nextDayMasonRest.status()).toBe(204);
+  const nextDayRest = await api.post(
+    "/v1/teams/team-hill-striders/canvas/rest",
+    { headers: avaHeaders, data: {} },
+  );
+  expect(nextDayRest.status()).toBe(204);
+  const nextDayAccess = await api.get(
+    "/v1/teams/team-hill-striders/lounge-v2/access",
+    { headers: avaHeaders },
+  );
+  expect(nextDayAccess.status()).toBe(200);
+  expect(await nextDayAccess.json()).toMatchObject({
+    placementCredits: 2,
+    placementDay: "2026-08-27",
+  });
+  await api.dispose();
+
+  await Promise.all([masonPage.reload(), avaPage.reload()]);
+  await Promise.all([
+    waitForSharedLounge(masonPage),
+    waitForSharedLounge(avaPage),
+  ]);
+  await expect(
+    masonPage.getByLabel("Bolt stamp, yours; locked from an earlier day"),
+  ).toBeVisible();
+  await expect(
+    avaPage.getByLabel("Star stamp, yours; locked from an earlier day"),
+  ).toBeVisible();
+  await expect(
+    masonPage.getByRole("button", {
+      name: "Bolt stamp, yours; tap then drag to move",
+    }),
+  ).toHaveCount(0);
+  await placeStamp(avaPage, "Soccer ball", { x: 175, y: 210 });
+  await expect(
+    masonPage.getByLabel("Soccer ball stamp placed by a teammate"),
+  ).toBeVisible();
+  await expect(
+    masonPage.getByLabel("Bolt stamp, yours; locked from an earlier day"),
+  ).toBeVisible();
+
+  await Promise.all([masonContext.close(), avaContext.close()]);
 });
 
 test("V2 stamp drags own the touch gesture and repeated trash drops settle cleanly", async ({
@@ -302,4 +474,56 @@ function seededRandom(seed: number) {
 
 function sleep(milliseconds: number) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+async function enableV2(context: BrowserContext) {
+  await context.addInitScript(() => {
+    window.localStorage.setItem(
+      "zoomigo-player-dev-settings-v1",
+      JSON.stringify({ teamLoungeVersion: "v2" }),
+    );
+  });
+}
+
+async function openSharedLounge(page: Page) {
+  await page.goto("/team");
+  await waitForSharedLounge(page);
+}
+
+async function waitForSharedLounge(page: Page) {
+  await expect(sharedLounge(page)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText("V2 · Shared Canvas room")).toBeVisible();
+  await expect(page.getByText("The boardwalk could not open.")).toHaveCount(0);
+}
+
+function sharedLounge(page: Page) {
+  return page.getByRole("region", { name: "Beach Boardwalk Team Lounge" });
+}
+
+async function placeStamp(
+  page: Page,
+  label: string,
+  position: Readonly<{ x: number; y: number }>,
+) {
+  await page.getByRole("button", { name: "Stamps" }).click();
+  const inventory = page.getByRole("dialog", {
+    name: "Choose a stamp to place",
+  });
+  await expect(inventory).toBeVisible();
+  await inventory
+    .getByRole("button", { name: `Choose ${label} stamp` })
+    .click();
+  const placementSurface = page.getByRole("button", {
+    name: `Place ${label} in the lounge`,
+  });
+  await expect(placementSurface).toBeVisible();
+  await placementSurface.click({ position });
+  try {
+    await expect(placementSurface).toHaveCount(0);
+  } catch (error) {
+    const alerts = await page.getByRole("alert").allTextContents();
+    throw new Error(
+      `Stamp placement remained open (${alerts.join(" | ") || "no alert"}): ${String(error)}`,
+    );
+  }
 }

@@ -30,12 +30,26 @@ export async function openReadyPage(page: Page, path: string) {
 }
 
 export async function loginAsMason(page: Page) {
-  await page.goto(
-    "/login?e2e=1#credential=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  await loginAsPlayer(
+    page,
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "2468",
   );
+}
+
+export async function loginAsAva(page: Page) {
+  await loginAsPlayer(
+    page,
+    "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+    "1357",
+  );
+}
+
+async function loginAsPlayer(page: Page, credential: string, pin: string) {
+  await page.goto(`/login?e2e=1#credential=${credential}`);
   await page.locator("html[data-app-ready='true']").waitFor();
   await page.locator("form[data-credential-ready='true']").waitFor();
-  await page.getByLabel("Four-digit PIN").fill("2468");
+  await page.getByLabel("Four-digit PIN").fill(pin);
   await page.getByLabel("Remember this device for 30 days").check();
   const signInResponse = page.waitForResponse(
     (response) =>

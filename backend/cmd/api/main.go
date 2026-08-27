@@ -98,6 +98,7 @@ func run() error {
 		httpapi.WithMiddleware(observability.HTTPMiddleware(logger, metrics)),
 		httpapi.WithOperationalObserver(metrics),
 	}
+	handlerOptions = appendBuildOptions(handlerOptions)
 	if resetAuthFixtures != nil {
 		handlerOptions = append(handlerOptions, httpapi.WithAuthFixtureReset(resetAuthFixtures))
 	}

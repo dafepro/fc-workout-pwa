@@ -123,7 +123,7 @@ ball while another team cannot join it.
       exact WebSocket origins.
 - [x] Map one team/week to one exact Beach Boardwalk template version.
 - [x] Add route/background/reconnect lifecycle and visible recovery states.
-- [ ] Add two-client, reconnect, stale-ticket, wrong-team, and protocol-mismatch
+- [x] Add two-client, reconnect, stale-ticket, wrong-team, and protocol-mismatch
       black-box coverage.
 
 ## Segment 3 — presence and persistent changes
@@ -137,7 +137,7 @@ Outcome: returning players can tell what changed without adding a feed.
 - [x] Persist the ball and system scene checkpoint across room sleep/restart.
 - [x] Add capped predefined visit traces for earlier visitors.
 - [x] Add five transient predefined emotes with expiry and rate limits.
-- [ ] Cover reconnect identity, stale avatars, expiry, and no-cross-team leaks.
+- [x] Cover reconnect identity, stale avatars, expiry, and no-cross-team leaks.
 
 ### Segment 3A vertical slice — social signals and weekly visit traces
 
@@ -480,6 +480,35 @@ replayed, searchable, nor addressed privately. Implementing actual typed text
 requires an explicit product-safety decision plus moderation, reporting,
 retention, staff visibility, and abuse-response design; it is not part of this
 candidate slice.
+
+### Segment 4X vertical slice — two-player ownership and day rollover proof
+
+This hardening slice closes the multiplayer evidence gap without adding a new
+player-facing surface. Two independent browser contexts authenticate as
+different same-team players, observe presence and transient emotes, place and
+edit their own stamps, verify teammate stamps remain read-only, reconnect to
+the same durable room, and cross a deterministic team-local midnight. Prior-day
+stamps remain visible and locked while the new day's check-in adds one new
+placement credit.
+
+The clock control is compiled only into the Docker E2E API. Production builds
+cannot register the time endpoint or replace their real clock. Each browser
+test uses a distinct canonical week because the Canvas SDK intentionally lets
+sleeping rooms finish their final checkpoint and exposes no test shutdown API.
+
+Proposed and delivered file tree:
+
+```text
+backend/cmd/api/
+  clock_e2e.go                         # mutex-backed deterministic E2E clock
+  clock_production.go                  # production no-op build option
+backend/internal/httpapi/server.go     # E2E time/reset and fresh room handler
+e2e/
+  app-ready.ts                         # second real player fixture login
+  pwa-team-lounge-v2.spec.ts           # two-player lifecycle/day rollover proof
+docs/
+  TEAM_LOUNGE_V2_{DELIVERY_TRACKER,IMPLEMENTATION_PLAN,MANUAL_TEST}.md
+```
 
 ## Segment 5 — weekly cadence and theme framework
 
