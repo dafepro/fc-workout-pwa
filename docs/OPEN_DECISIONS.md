@@ -73,6 +73,8 @@ to resolve, not the implementing agent's.
 
 ## Goals and workload
 
+- Approve the provisional training-plan duration, intensity, and spacing bounds;
+  plan publication remains development-only until then.
 - Default weekly goal calculation.
 - Whether players can select a goal from approved options.
 - Coach override rules.

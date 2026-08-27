@@ -127,6 +127,18 @@ Validation is shape only, not membership: the option catalog lives in the client
 
 Reading rides on `GET /v1/auth/session`; there is no separate avatar `GET`.
 
+## Staff training plans
+
+`GET /v1/staff/training-plan-templates` and
+`GET /v1/staff/teams/{teamId}/training-plans` expose the curated templates and
+immutable plan history to authorized staff. Published plans snapshot every day
+and predefined activity block; cancelled and replaced plans remain readable.
+
+Publishing, cancelling, and rescheduling use the corresponding `POST`
+endpoints below `/v1/staff/teams/{teamId}/training-plans`. Those write routes
+are registered only when development access is enabled. Production returns
+`404` until the provisional workload bounds receive product approval.
+
 ## Safe Team and leaderboard projections
 
 ### `GET /v1/teams/{teamId}/activity`

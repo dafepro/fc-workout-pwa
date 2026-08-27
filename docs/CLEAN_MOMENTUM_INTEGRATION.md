@@ -72,3 +72,5 @@ Each step is test-first and small enough to review independently.
   legacy Canvas rest coupling remain excluded.
 - Structured workout outcomes: persisted Almost, Did it, and Extra check-ins;
   explicit partial work remains incomplete across player, team, coach, and cheer views.
+- Training-plan authority: added curated templates, validated immutable snapshots,
+  linked replacement history, and dev-only publish, cancel, and reschedule routes.
