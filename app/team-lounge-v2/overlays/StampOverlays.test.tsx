@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { useEffect, useRef, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { ignoreLoungePointerTarget } from "../runtime-config";
@@ -78,13 +78,8 @@ describe("StampOverlays", () => {
     const editable = screen.getByRole("button", {
       name: "Target stamp, yours; tap then drag to move",
     });
-    expect(within(editable).getByText("Edit")).toBeVisible();
-    expect(
-      screen.getByLabelText(/locked from an earlier day/),
-    ).not.toHaveTextContent("Edit");
-    expect(screen.getByLabelText(/placed by a teammate/)).not.toHaveTextContent(
-      "Edit",
-    );
+    expect(editable).not.toHaveTextContent("Edit");
+    expect(screen.queryByText("Edit")).toBeNull();
   });
 
   it("selects the visible stamp before the Canvas surface can claim its first pointer", () => {

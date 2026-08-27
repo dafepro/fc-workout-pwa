@@ -302,25 +302,6 @@
   font-size: clamp(1.8rem, 8vw, 2.7rem);
 }
 
-.team-lounge-v2__stamp-edit-badge {
-  position: absolute;
-  top: -0.45rem;
-  right: -0.65rem;
-  padding: 0.14rem 0.28rem;
-  border: 0.08rem solid rgba(4, 31, 37, 0.45);
-  border-radius: 999px;
-  background: var(--lounge-lime);
-  box-shadow: 0 0.2rem 0.35rem rgba(1, 25, 31, 0.3);
-  color: #05242a;
-  font-size: 0.48rem;
-  font-weight: 950;
-  line-height: 1;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  transform: rotate(var(--stamp-counter-rotation));
-  pointer-events: none;
-}
-
 .team-lounge-v2__placement-surface {
   position: absolute;
   z-index: 2;

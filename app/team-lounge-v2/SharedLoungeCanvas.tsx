@@ -142,6 +142,7 @@ export function SharedLoungeCanvas({
   });
   const [usedPlacements, setUsedPlacements] = useState(0);
   const [editSelectionID, setEditSelectionID] = useState<string | null>(null);
+  const [deletingStampID, setDeletingStampID] = useState<string | null>(null);
   const [draggedEditEntityID, setDraggedEditEntityID] = useState<string | null>(
     null,
   );
@@ -258,6 +259,7 @@ export function SharedLoungeCanvas({
         window.clearTimeout(deleteAttempt.confirmationTimer);
       }
       deleteAttempt = undefined;
+      if (!disposed) setDeletingStampID(null);
       if (succeeded) {
         ignoreEditRejectionsUntil = Date.now() + postDragRejectionGraceMs;
       }
@@ -303,6 +305,7 @@ export function SharedLoungeCanvas({
         rejectedReason: null,
         confirmationTimer: undefined,
       };
+      setDeletingStampID(entityID);
       runtime.clearItemEditSelection();
       runtime.deleteItem(entityID);
       event.preventDefault();
@@ -692,7 +695,9 @@ export function SharedLoungeCanvas({
       <VisitTraces traces={visitTraces} />
       <AvatarOverlays participants={overlays} emotes={participantEmotes} />
       <StampOverlays
-        stamps={stampOverlays}
+        stamps={stampOverlays.filter(
+          ({ entityID }) => entityID !== deletingStampID,
+        )}
         selectedStamp={remainingPlacements > 0 ? selectedStamp : null}
         placementPending={placementPending}
         currentPlayerID={playerID}

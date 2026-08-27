@@ -113,6 +113,8 @@ test("V2 stamp drags own the touch gesture and repeated trash drops settle clean
 
     const movedStampBox = await requiredBox(ownedStamp, "moved stamp");
     const deleteStart = center(movedStampBox);
+    const stampLabel = await ownedStamp.getAttribute("aria-label");
+    expect(stampLabel).not.toBeNull();
     await touchStart(cdp, deleteStart);
     await touchMove(cdp, {
       x: deleteStart.x + (random() > 0.5 ? 16 : -16),
@@ -124,9 +126,40 @@ test("V2 stamp drags own the touch gesture and repeated trash drops settle clean
     await sleep(8 + Math.floor(random() * 32));
     await touchMove(cdp, center(trashBox));
     await sleep(8 + Math.floor(random() * 32));
+    await page.evaluate((label) => {
+      const root = document.documentElement;
+      root.dataset.stampDeleteTrace = "present";
+      let seenAbsent = false;
+      const sample = () => {
+        const present = [...document.querySelectorAll("button")].some(
+          (button) => button.getAttribute("aria-label") === label,
+        );
+        if (!present) {
+          seenAbsent = true;
+        } else if (seenAbsent) {
+          root.dataset.stampDeleteTrace = "reappeared";
+        }
+      };
+      const observer = new MutationObserver(sample);
+      observer.observe(document.body, { childList: true, subtree: true });
+      const sampler = window.setInterval(sample, 8);
+      window.setTimeout(() => {
+        window.clearInterval(sampler);
+        observer.disconnect();
+        sample();
+        if (root.dataset.stampDeleteTrace !== "reappeared" && seenAbsent) {
+          root.dataset.stampDeleteTrace = "removed-cleanly";
+        }
+      }, 900);
+    }, stampLabel);
     await touchEnd(cdp);
 
     await expect(ownedStamp).toHaveCount(0);
+    await expect
+      .poll(() =>
+        page.evaluate(() => document.documentElement.dataset.stampDeleteTrace),
+      )
+      .toBe("removed-cleanly");
     await page.waitForTimeout(1_700 + Math.floor(random() * 450));
     const deleteError = page.getByText(
       "That stamp could not be removed. Try again.",

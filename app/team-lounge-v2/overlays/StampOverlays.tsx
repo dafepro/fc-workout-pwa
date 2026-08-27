@@ -5,7 +5,6 @@ import {
   stampAssetLabel,
 } from "../../team-canvas/components/StampAsset";
 import type { StampAsset } from "../../team-canvas/model";
-import { teamLoungeV2Copy as copy } from "../content";
 import { nextLoungeStampRotation } from "../placement/orientation";
 
 export interface LoungeStampOverlay {
@@ -111,14 +110,6 @@ export function StampOverlays({
               }}
             >
               <StampAssetView asset={asset} />
-              {editingChromeVisible ? (
-                <span
-                  className="team-lounge-v2__stamp-edit-badge"
-                  aria-hidden="true"
-                >
-                  {copy.editableStampBadge}
-                </span>
-              ) : null}
             </button>
           ) : (
             <span

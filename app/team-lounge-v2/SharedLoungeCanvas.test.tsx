@@ -753,6 +753,35 @@ describe("SharedLoungeCanvas", () => {
     expect(runtime.clearedSelections).toBeGreaterThan(0);
     expect(runtime.deleted).toEqual(["mine"]);
     expect(onStampDragStateChange).toHaveBeenLastCalledWith(null);
+    expect(
+      screen.queryByRole("button", {
+        name: "Target stamp, yours; tap then drag to move",
+      }),
+    ).toBeNull();
+    act(() =>
+      runtime.overlayObserver?.({
+        entities: [
+          {
+            entityId: "mine",
+            kind: "item",
+            definitionId: "zoomigo-stamp-target",
+            ownerUserId: "player-one",
+            screen: { x: 140, y: 210 },
+            world: { x: 45, y: 60, z: 0 },
+            rotation: 0,
+            scale: 1,
+            resolvedConfig: { placementDay: "2026-08-26" },
+            visible: true,
+            inViewport: true,
+          },
+        ],
+      }),
+    );
+    expect(
+      screen.queryByRole("button", {
+        name: "Target stamp, yours; tap then drag to move",
+      }),
+    ).toBeNull();
     act(() =>
       runtime.onError?.({
         code: "durable_command_rejected",
@@ -816,6 +845,11 @@ describe("SharedLoungeCanvas", () => {
       () => expect(onStampDeleteError).toHaveBeenCalledWith("stamp_locked"),
       { timeout: 2_500 },
     );
+    expect(
+      screen.getByRole("button", {
+        name: "Target stamp, yours; tap then drag to move",
+      }),
+    ).toBeVisible();
   });
 
   it("clears a stranded placement when reconnecting so the player can retry", async () => {
