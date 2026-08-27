@@ -26,6 +26,7 @@ describe("Beach Boardwalk Canvas scene", () => {
       expect.objectContaining({
         entityId: "boardwalk-beach-ball",
         definitionId: "beach-ball",
+        transform: expect.objectContaining({ scale: 1 }),
       }),
     ]);
     expect(
@@ -54,7 +55,7 @@ describe("Beach Boardwalk Canvas scene", () => {
   });
 
   it("reserves one non-complex item slot per avatar-day plus the ball", () => {
-    expect(beachBoardwalkCanvas.version).toBe(5);
+    expect(beachBoardwalkCanvas.version).toBe(6);
     expect(beachBoardwalkCanvas.limits).toEqual({
       maxAvatars: 24,
       maxItems: 169,

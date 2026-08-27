@@ -67,14 +67,14 @@ func TestDevGatewayAllowsOnlyTicketAuthenticatedCanvasSocketUpgrades(t *testing.
 		t.Fatalf("ticketed socket upgrade = %d, want 204", response.Code)
 	}
 
-	v5 := httptest.NewRequest(http.MethodGet, "/v1/realtime/rooms/team:team-one:lounge:2026-08-24:v5", nil)
-	v5.Header.Set("Connection", "Upgrade")
-	v5.Header.Set("Upgrade", "websocket")
-	v5.Header.Set("Sec-WebSocket-Protocol", "canvas-realtime, ticket."+strings.Repeat("b", 43))
-	v5Response := httptest.NewRecorder()
-	handler.ServeHTTP(v5Response, v5)
-	if v5Response.Code != http.StatusNoContent {
-		t.Fatalf("ticketed V5 socket upgrade = %d, want 204", v5Response.Code)
+	v6 := httptest.NewRequest(http.MethodGet, "/v1/realtime/rooms/team:team-one:lounge:2026-08-24:v6", nil)
+	v6.Header.Set("Connection", "Upgrade")
+	v6.Header.Set("Upgrade", "websocket")
+	v6.Header.Set("Sec-WebSocket-Protocol", "canvas-realtime, ticket."+strings.Repeat("b", 43))
+	v6Response := httptest.NewRecorder()
+	handler.ServeHTTP(v6Response, v6)
+	if v6Response.Code != http.StatusNoContent {
+		t.Fatalf("ticketed V6 socket upgrade = %d, want 204", v6Response.Code)
 	}
 
 	request.Header.Del("Sec-WebSocket-Protocol")

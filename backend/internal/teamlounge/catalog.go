@@ -13,7 +13,7 @@ import (
 
 const (
 	BeachBoardwalkCanvasID      = "zoomigo-beach-boardwalk"
-	BeachBoardwalkCanvasVersion = uint32(5)
+	BeachBoardwalkCanvasVersion = uint32(6)
 )
 
 type ThemeManifest struct {
@@ -142,7 +142,7 @@ func BeachBoardwalkCatalog() Catalog {
 }
 
 const beachBoardwalkCanvasJSON = `{
-  "id":"zoomigo-beach-boardwalk","version":5,
+  "id":"zoomigo-beach-boardwalk","version":6,
   "size":{"width":100,"height":150},"orientation":"topDown",
   "backgroundAssetId":"lounge.background",
   "edges":{"top":"solid","right":"solid","bottom":"solid","left":"solid"},
@@ -156,7 +156,7 @@ const beachBoardwalkCanvasJSON = `{
   "regions":[],
   "environment":{"base":{"gravityXY":{"x":0,"y":0},"linearDrag":0.2,"angularDrag":0.2,"softSpeedLimit":28,"surfaceFrictionMultiplier":1}},
   "spawnPoints":[{"id":"arrival","position":{"x":43,"y":92}}],
-  "systemItems":[{"entityId":"boardwalk-beach-ball","definitionId":"beach-ball","definitionVersion":3,"transform":{"x":62,"y":98,"rotation":0},"resolvedConfig":{"sensorId":"kick","kickStrength":3.2,"minImpulse":9,"maxImpulse":42,"cooldownSeconds":0.18}}],
+  "systemItems":[{"entityId":"boardwalk-beach-ball","definitionId":"beach-ball","definitionVersion":3,"transform":{"x":62,"y":98,"rotation":0,"scale":1},"resolvedConfig":{"sensorId":"kick","kickStrength":3.2,"minImpulse":9,"maxImpulse":42,"cooldownSeconds":0.18}}],
   "limits":{"maxAvatars":24,"maxItems":169,"maxComplexPhysicsItems":4},
   "avatarController":{"radius":4,"maxSpeed":26,"acceleration":125,"flickDeceleration":42,"maxTurnSpeed":9,"facing":"fixed","directInteractionMaxSpeed":32},
   "terrainDefaults":{"avatars":true,"items":true}

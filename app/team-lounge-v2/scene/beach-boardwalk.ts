@@ -108,7 +108,7 @@ export const beachBoardwalkDefinitions: ItemDefinition[] = [
 
 export const beachBoardwalkCanvas: CanvasDefinition = {
   id: "zoomigo-beach-boardwalk",
-  version: 5,
+  version: 6,
   size: { width: 100, height: 150 },
   orientation: "topDown",
   backgroundAssetId: "lounge.background",
@@ -165,7 +165,7 @@ export const beachBoardwalkCanvas: CanvasDefinition = {
       entityId: "boardwalk-beach-ball",
       definitionId: beachBallDefinition.definitionId,
       definitionVersion: beachBallDefinition.version,
-      transform: { x: 62, y: 98, rotation: 0 },
+      transform: { x: 62, y: 98, rotation: 0, scale: 1 },
       resolvedConfig: beachBallDefinition.defaultConfig,
     },
   ],

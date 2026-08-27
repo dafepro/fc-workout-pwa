@@ -37,7 +37,7 @@ describe("Team Lounge V2 gateway", () => {
       new Response(
         JSON.stringify({
           ticket: "a".repeat(43),
-          roomId: "team:team-one:lounge:2026-08-24:v5",
+          roomId: "team:team-one:lounge:2026-08-24:v6",
           serverUrl: "https://api.example.test",
           expiresInSeconds: 30,
           visitorIds: ["player-two"],
@@ -58,7 +58,7 @@ describe("Team Lounge V2 gateway", () => {
 
     await expect(requestTeamLoungeCredential("team-one")).resolves.toEqual({
       ticket: "a".repeat(43),
-      roomID: "team:team-one:lounge:2026-08-24:v5",
+      roomID: "team:team-one:lounge:2026-08-24:v6",
       serverURL: "https://api.example.test",
       visitorIDs: ["player-two"],
       placementCredits: 2,
@@ -97,7 +97,7 @@ describe("Team Lounge V2 gateway", () => {
         new Response(
           JSON.stringify({
             ticket: ticket.repeat(43),
-            roomId: "team:team-one:lounge:2026-08-24:v5",
+            roomId: "team:team-one:lounge:2026-08-24:v6",
             serverUrl: "https://api.example.test",
             visitorIds: ["player-two"],
             placementCredits: 2,
@@ -133,7 +133,7 @@ describe("Team Lounge V2 gateway", () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
-          roomId: "team:team-one:lounge:2026-08-24:v5",
+          roomId: "team:team-one:lounge:2026-08-24:v6",
           placementCredits: 2,
           placementDay: "2026-08-26",
           placeableStamps: [placeableStamps[0]],
@@ -145,7 +145,7 @@ describe("Team Lounge V2 gateway", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(requestTeamLoungeAccess("team-one")).resolves.toEqual({
-      roomID: "team:team-one:lounge:2026-08-24:v5",
+      roomID: "team:team-one:lounge:2026-08-24:v6",
       placementCredits: 2,
       placementDay: "2026-08-26",
       placeableStamps: [placeableStamps[0]],
@@ -163,7 +163,7 @@ describe("Team Lounge V2 gateway", () => {
       vi.fn().mockResolvedValue(
         new Response(
           JSON.stringify({
-            roomId: "team:team-one:lounge:2026-08-24:v5",
+            roomId: "team:team-one:lounge:2026-08-24:v6",
             placementCredits: 99,
             placementDay: "2026-08-26",
             placeableStamps: [placeableStamps[0]],
@@ -185,7 +185,7 @@ describe("Team Lounge V2 gateway", () => {
         new Response(
           JSON.stringify({
             ticket: "a".repeat(43),
-            roomId: "team:team-one:lounge:2026-08-24:v5",
+            roomId: "team:team-one:lounge:2026-08-24:v6",
             serverUrl: "https://api.example.test",
             visitorIds: [],
             placementCredits: 1,

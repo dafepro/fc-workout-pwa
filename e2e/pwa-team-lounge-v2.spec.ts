@@ -287,7 +287,7 @@ test("shared lounge loads the V5 system beach ball art", async ({
   expect(access.status()).toBe(200);
   const accessBody = await access.json();
   expect(accessBody).toMatchObject({
-    roomId: expect.stringMatching(/:v5$/),
+    roomId: expect.stringMatching(/:v6$/),
   });
   await api.dispose();
   await context.close();
