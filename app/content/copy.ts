@@ -116,6 +116,17 @@ export const copy = {
     loadFailed: "Team reward progress could not be loaded.",
     retry: "Try reward again",
   },
+  teamLounge: {
+    label: "Team Lounge",
+    regionLabel: "Beach Boardwalk Team Lounge",
+    period: "This week",
+    theme: "Beach Boardwalk",
+    here: "1 here",
+    loading: "Setting up the boardwalk…",
+    ready: "Press your player, then drag to move.",
+    static: "The room is ready. Movement needs a supported browser.",
+    unavailable: "The boardwalk could not open.",
+  },
   momentum: {
     eyebrow: "Your momentum",
     states: {

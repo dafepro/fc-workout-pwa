@@ -21,6 +21,7 @@ import type {
 import { entriesWithinDays } from "../domain/rules";
 import { useTraining } from "../state/training-context";
 import { useAuth } from "../state/auth-context";
+import { TeamLounge } from "../team-lounge/TeamLounge";
 
 export default function TeamPage() {
   const { entries, sendReaction } = useTraining();
@@ -237,6 +238,8 @@ export default function TeamPage() {
           {teamReward?.teamId === teamID ? (
             <TeamRewardCard reward={teamReward} />
           ) : null}
+
+          <TeamLounge playerID={currentPlayerID} />
 
           <TeamChallengeCard
             challenge={displayedProjection.currentChallenge}

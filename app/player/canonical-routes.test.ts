@@ -57,4 +57,16 @@ describe("canonical player routes", () => {
       existsSync(join(process.cwd(), "app", "prizes", "all", "page.tsx")),
     ).toBe(false);
   });
+
+  it("ships the canvas Lounge only inside the consolidated Team view", () => {
+    expect(
+      existsSync(join(process.cwd(), "app", "team-lounge", "TeamLounge.tsx")),
+    ).toBe(true);
+    expect(existsSync(join(process.cwd(), "app", "team-lounge-v2"))).toBe(
+      false,
+    );
+    expect(
+      existsSync(join(process.cwd(), "app", "team", "lounge", "page.tsx")),
+    ).toBe(false);
+  });
 });

@@ -3,3 +3,7 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
   workerd: true
+
+overrides:
+  "@canvas-physics/core": "file:vendor/canvas/canvas-physics-core-0.1.0.tgz"
+  "@canvas-physics/protocol": "file:vendor/canvas/canvas-physics-protocol-0.1.0.tgz"

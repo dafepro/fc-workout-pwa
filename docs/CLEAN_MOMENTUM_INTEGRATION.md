@@ -92,3 +92,5 @@ Each step is test-first and small enough to review independently.
   absent rewards render no placeholder, achieved rewards celebrate in place, and no contributor or performance details appear.
 - Development Team Reward control: added a dev-profile-only coach route with one predefined reward and structured dates/rules;
   publish retries keep one idempotency key, aggregate progress can be reviewed, cancellation is confirmed, and production route discovery omits it.
+- Canonical Team Lounge: preserved the Beach Boardwalk canvas renderer, direct-drag physics, and kickable ball inside the consolidated Team view;
+  removed version selection and alternate Lounge routes, pinned the reviewed Canvas packages, and retained a static safe fallback.

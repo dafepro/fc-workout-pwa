@@ -4206,3 +4206,138 @@ h2 {
   border-color: var(--purple);
   background: #efedff;
 }
+
+.team-lounge {
+  position: relative;
+  width: min(100%, 32rem);
+  margin-inline: auto;
+  overflow: hidden;
+  color: #f7faf2;
+  border: 1px solid rgb(165 239 218 / 20%);
+  border-radius: 1.65rem;
+  background: linear-gradient(155deg, #0a3034, #071c25 72%);
+  box-shadow: 0 1.25rem 3rem rgb(3 22 28 / 20%);
+}
+
+.team-lounge__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.team-lounge__header p,
+.team-lounge__header h2 {
+  margin: 0;
+}
+
+.team-lounge__header p {
+  color: #c9f31d;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.team-lounge__header h2 {
+  display: flex;
+  flex-direction: column;
+  margin-top: 0.2rem;
+  font-size: clamp(1.15rem, 5vw, 1.55rem);
+  line-height: 1.05;
+}
+
+.team-lounge__header h2 span {
+  color: rgb(247 250 242 / 70%);
+  font-size: 0.68rem;
+}
+
+.team-lounge__presence {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 999px;
+  background: rgb(0 0 0 / 16%);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.team-lounge__presence > span {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: #c9f31d;
+}
+
+.team-lounge__world {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  background: #63c9dc url("/team-lounge/beach-boardwalk-v1.png") center / cover;
+  touch-action: pan-y;
+}
+
+.team-lounge__stage {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  touch-action: pan-y;
+}
+
+.team-lounge__stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.team-lounge__avatar-fallback {
+  position: absolute;
+  top: 61%;
+  left: 43%;
+  z-index: 1;
+  display: grid;
+  width: 2.5rem;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 0.2rem solid #fff;
+  border-radius: 50%;
+  background: #6e56cf;
+  font-weight: 900;
+}
+
+.team-lounge__world[data-canvas-state="ready"] .team-lounge__avatar-fallback {
+  display: none;
+}
+
+.team-lounge__player-name {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 4;
+  margin: 0;
+  padding: 0.15rem 0.4rem;
+  border-radius: 999px;
+  background: rgb(7 28 37 / 82%);
+  font-size: 0.68rem;
+  font-weight: 800;
+  pointer-events: none;
+}
+
+.team-lounge__status {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  left: 0.75rem;
+  z-index: 5;
+  margin: 0;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.75rem;
+  background: rgb(7 28 37 / 84%);
+  font-size: 0.76rem;
+  font-weight: 750;
+  text-align: center;
+  pointer-events: none;
+}
