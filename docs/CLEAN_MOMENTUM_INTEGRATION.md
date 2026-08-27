@@ -64,3 +64,5 @@ Each step is test-first and small enough to review independently.
   56-day fade, planned-rest, score cap, and current check-in streak rules.
 - Connected Momentum summary: exposed score and check-in streak from existing
   non-deleted, team-local activity entries; planned-rest wiring awaits final schema.
+- Compact Today Momentum: added named score states and an accessible explanation,
+  replacing the duplicate weekly-goal, streak, effort, and calendar panels.

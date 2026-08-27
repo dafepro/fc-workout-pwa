@@ -16,11 +16,6 @@ export const copy = {
       `Nice work—your effort helped ${teamName} move forward.`,
     action: "See team progress",
   },
-  streakQuips: [
-    "If each streak day were a hammerhead shark, your streak would be {value} feet long!",
-    "If each streak day were a soccer ball, your streak would stretch {value} feet!",
-    "If each streak day were a giant taco, you would have a {value}-foot snack tower!",
-  ],
   feelingQuestions: {
     effort: "How hard did you work?",
     exhaustion: "How tired were you after?",
@@ -49,6 +44,20 @@ export const copy = {
     moreForToday: "More for today",
     logAnother: "Log another activity",
     logAnotherDetail: "Record something outside today’s completed workout.",
+  },
+  momentum: {
+    eyebrow: "Your momentum",
+    states: {
+      ready: "Ready",
+      started: "Started",
+      building: "Building",
+      "on-a-roll": "On a roll",
+    },
+    metric: (score: number) => `${score} Momentum`,
+    streak: (days: number) => `${days}-day check-in streak`,
+    gauge: (score: number) => `Momentum: ${score} out of 100`,
+    infoAction: "What Momentum means",
+    info: "Regular check-ins matter most. A second and third activity add smaller boosts, and planned rest counts without stacking.",
   },
   log: {
     overMax: (max: number, unit: string) => `Max is ${max} ${unit}`,

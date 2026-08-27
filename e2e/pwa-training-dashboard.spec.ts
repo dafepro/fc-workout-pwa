@@ -42,9 +42,14 @@ test("connected Today and activity logging use the server assignment", async ({
   await expect(
     page.getByRole("heading", { name: "Hill Sprints" }),
   ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Started" })).toBeVisible();
+  await expect(page.getByText("8 Momentum", { exact: true })).toBeVisible();
   await expect(
-    page.locator(".goal-card").getByRole("heading", { name: "2 of 3" }),
+    page.getByText("2-day check-in streak", { exact: true }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("progressbar", { name: "Momentum: 8 out of 100" }),
+  ).toHaveAttribute("aria-valuenow", "8");
 
   await page.getByRole("link", { name: /Log session/i }).click();
   await expect(
@@ -98,9 +103,6 @@ test("connected Today and activity logging use the server assignment", async ({
     page.getByRole("link", { name: "See team progress" }),
   ).toBeVisible();
   await expect(page.locator(".hero-card.is-celebrating")).toBeVisible();
-  await expect(
-    page.locator(".goal-card").getByRole("heading", { name: "3 of 3" }),
-  ).toBeVisible();
 
   await page.getByRole("link", { name: "See team progress" }).click();
   const challenge = page.getByRole("region", { name: "Hill Sprints" });
@@ -141,9 +143,6 @@ test("connected Today and activity logging use the server assignment", async ({
     page.getByRole("heading", { name: "Done for today!" }),
   ).toBeVisible();
   await expect(page.locator(".hero-card.is-celebrating")).toHaveCount(0);
-  await expect(
-    page.locator(".goal-card").getByRole("heading", { name: "3 of 3" }),
-  ).toBeVisible();
 
   const secondEffort = await playerEffort(api);
   expect(secondEffort).toBe(firstEffort);
@@ -155,7 +154,6 @@ test("connected Today and activity logging use the server assignment", async ({
     ".hero-card.is-celebrating",
     ".completion-check",
     ".completion-burst i",
-    ".goal-card--celebrating .progress__fill",
   ]) {
     await expect
       .poll(() =>

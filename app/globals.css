@@ -472,13 +472,113 @@ h2 {
 }
 
 .card,
-.goal-card,
 .field-card,
 .intensity-card {
   border: 1px solid rgb(218 223 238 / 90%);
   border-radius: 1.4rem;
   background: rgb(255 255 255 / 94%);
   box-shadow: var(--shadow);
+}
+
+.momentum-status {
+  --momentum-color: #6f55ee;
+
+  display: grid;
+  min-width: 0;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid rgb(218 223 238 / 90%);
+  border-radius: 1.4rem;
+  background: rgb(255 255 255 / 94%);
+  box-shadow: var(--shadow);
+  grid-template-columns: 4.75rem minmax(0, 1fr);
+}
+
+.momentum-status--ready {
+  --momentum-color: #8b91a8;
+}
+
+.momentum-status--started {
+  --momentum-color: #3970eb;
+}
+
+.momentum-status--on-a-roll {
+  --momentum-color: #568900;
+}
+
+.momentum-status__gauge {
+  position: relative;
+  display: grid;
+  width: 4.75rem;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--momentum-color) var(--momentum-progress),
+    #e9ebf3 0
+  );
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 950;
+}
+
+.momentum-status__gauge::before {
+  position: absolute;
+  border-radius: inherit;
+  background: white;
+  content: "";
+  inset: 0.42rem;
+}
+
+.momentum-status__gauge span {
+  position: relative;
+}
+
+.momentum-status__content {
+  min-width: 0;
+}
+
+.momentum-status__content h2 {
+  margin: 0.05rem 0 0.25rem;
+  font-size: clamp(1.4rem, 7vw, 2rem);
+}
+
+.momentum-status__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.65rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.momentum-status__summary strong {
+  color: var(--ink);
+}
+
+.momentum-status__info {
+  min-height: 2.25rem;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #4432d0;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 850;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 0.18rem;
+  cursor: pointer;
+}
+
+.momentum-status__explanation {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.45;
 }
 
 .hero-card,
@@ -780,34 +880,6 @@ h2 {
   line-height: 1.45;
 }
 
-.goal-card {
-  display: grid;
-  gap: 1.2rem;
-  margin-top: 1rem;
-  padding: 1.25rem;
-  grid-template-columns: 1fr minmax(8rem, 0.8fr);
-}
-
-.goal-card h2 {
-  margin-bottom: 0.2rem;
-  font-size: 2.2rem;
-}
-.goal-card h2 span {
-  color: var(--muted);
-  font-size: 1rem;
-}
-.goal-card p {
-  margin: 0;
-  color: var(--muted);
-}
-.goal-card__progress {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  flex-direction: column;
-  gap: 0.45rem;
-}
-
 .progress {
   overflow: hidden;
   width: 100%;
@@ -832,139 +904,6 @@ h2 {
 }
 .progress__fill--purple {
   background: linear-gradient(90deg, #6143e8, #a68dff);
-}
-
-.goal-card--celebrating .progress__fill {
-  animation: completion-progress-pop 850ms cubic-bezier(0.2, 0.9, 0.25, 1);
-  transform-origin: left;
-}
-
-@keyframes completion-progress-pop {
-  0% {
-    transform: scaleX(0.72);
-  }
-  72% {
-    transform: scaleX(1.025);
-  }
-  100% {
-    transform: scaleX(1);
-  }
-}
-
-.metrics-grid {
-  display: grid;
-  gap: 0.75rem;
-  margin: 1rem 0;
-  grid-template-columns: repeat(2, 1fr);
-}
-
-.metrics-grid article {
-  display: grid;
-  min-height: 8.2rem;
-  place-items: center;
-  padding: 1rem 0.5rem;
-  border: 1px solid var(--line);
-  border-radius: 1.3rem;
-  background: white;
-  box-shadow: var(--shadow);
-  text-align: center;
-}
-
-.streak-card {
-  position: relative;
-}
-
-.streak-card__trigger {
-  display: grid;
-  width: 100%;
-  min-height: 6rem;
-  place-items: center;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-}
-
-.streak-card__trigger > span:first-child {
-  font-size: 1.35rem;
-}
-
-.streak-card__trigger > span:last-child {
-  color: var(--muted);
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
-.metrics-grid .streak-quip {
-  margin: 0 0.4rem 0.4rem;
-  padding: 0.55rem;
-  border-radius: 0.8rem;
-  background: #fff6d7;
-  color: #654f00;
-  font-size: 0.7rem;
-  line-height: 1.35;
-}
-
-.activity-calendar-card {
-  display: grid !important;
-  min-height: 8.2rem !important;
-  gap: 0.35rem;
-  padding: 0.7rem !important;
-  grid-template-columns: 1fr;
-  text-align: center !important;
-}
-
-.activity-calendar-card > span {
-  color: #568900;
-  font-size: 1rem !important;
-}
-
-.activity-calendar-card > strong {
-  font-size: 0.78rem;
-}
-
-.activity-calendar {
-  display: grid;
-  gap: 0.18rem;
-  width: min(100%, 6.6rem);
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-}
-
-.activity-calendar__day {
-  min-width: 0;
-  aspect-ratio: 1;
-  border-radius: 0.2rem;
-  background: #edf0e7;
-}
-
-.activity-calendar__day--1 {
-  background: #dff4a4;
-}
-
-.activity-calendar__day--2 {
-  background: #afdc47;
-}
-
-.activity-calendar__day--3 {
-  background: #65a51e;
-}
-
-.activity-calendar__day--4 {
-  background: #2f6917;
-}
-
-.metrics-grid article > span {
-  font-size: 1.35rem;
-}
-.metrics-grid strong {
-  font-size: 2rem;
-  line-height: 1.1;
-}
-.metrics-grid p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.78rem;
-  font-weight: 700;
 }
 
 .recent-card,
@@ -2764,12 +2703,6 @@ h2 {
     align-items: stretch;
     flex-direction: column;
   }
-  .goal-card {
-    grid-template-columns: 1fr;
-  }
-  .goal-card__progress {
-    align-items: flex-start;
-  }
   .activity-picker__grid {
     grid-template-columns: 1fr;
   }
@@ -2847,9 +2780,6 @@ h2 {
 @media (min-width: 680px) {
   .page {
     padding-top: 2rem;
-  }
-  .metrics-grid {
-    grid-template-columns: repeat(4, 1fr);
   }
   .team-preview {
     grid-template-columns: 1fr auto auto;
@@ -2984,9 +2914,6 @@ h2 {
   .hero-card {
     min-height: 22rem;
   }
-  .goal-card {
-    padding: 1.6rem;
-  }
   .today-additional-action {
     padding: 1.6rem;
   }
@@ -3010,8 +2937,7 @@ h2 {
   }
   .hero-card--complete.is-celebrating,
   .is-celebrating .completion-burst i,
-  .is-celebrating .completion-check,
-  .goal-card--celebrating .progress__fill {
+  .is-celebrating .completion-check {
     animation: none;
   }
 }

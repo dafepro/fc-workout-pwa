@@ -3,14 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { PlayerAvatar } from "./components/PlayerAvatar";
-import { ProgressBar } from "./components/ProgressBar";
 import { SessionList } from "./components/SessionList";
 import { WorkoutInstructions } from "./components/WorkoutInstructions";
 import { copy } from "./content/copy";
-import { players, WEEKLY_GOAL } from "./data/mockData";
-import { activityDays, currentStreak, entriesWithinDays } from "./domain/rules";
+import { players } from "./data/mockData";
 import { useTraining } from "./state/training-context";
 import { useAuth } from "./state/auth-context";
+import { MomentumStatus } from "./player/MomentumStatus";
 import { TodayAdditionalAction } from "./player/TodayAdditionalAction";
 
 export default function HomePage() {
@@ -26,30 +25,17 @@ export default function HomePage() {
   const { currentPlayerID } = useAuth();
   const [showSavedToast, setShowSavedToast] = useState(false);
   const [celebrateCompletion, setCelebrateCompletion] = useState(false);
-  const [showQuip, setShowQuip] = useState(false);
   const personalEntries = entries.filter(
     (entry) => entry.playerId === currentPlayerID,
   );
-  const weeklyEntries = entriesWithinDays(personalEntries, 7);
-  const summary = connected ? dashboard?.summary : null;
-  const monthDays = summary?.activityDays ?? activityDays(personalEntries);
-  const streak = summary?.currentStreak ?? currentStreak(personalEntries);
-  const longestStreak = summary?.longestStreak ?? 12;
-  const effortPoints = summary?.effortPoints ?? 520;
-  const weeklyGoal = dashboard?.team.weeklyGoal ?? WEEKLY_GOAL;
-  const weeklySessions = summary?.weeklySessions ?? weeklyEntries.length;
-  const goalValue = Math.min(weeklySessions, weeklyGoal);
+  const momentumScore = dashboard?.summary.momentumScore ?? 0;
+  const checkInStreak = dashboard?.summary.currentCheckInStreak ?? 0;
   const assignment = dashboard?.currentAssignment ?? null;
   const assignmentActivity = dashboard?.activities.find(
     (activity) => activity.id === assignment?.activityDefinitionId,
   );
   const assignmentComplete = assignment?.completed ?? false;
   const isCelebrating = assignmentComplete && celebrateCompletion;
-  const streakQuip = dashboard?.streakComparison.message;
-
-  function revealStreakQuip() {
-    setShowQuip(true);
-  }
 
   useEffect(() => {
     const parameters = new URLSearchParams(window.location.search);
@@ -102,6 +88,11 @@ export default function HomePage() {
           </button>
         </div>
       ) : null}
+
+      <MomentumStatus
+        momentumScore={momentumScore}
+        checkInStreak={checkInStreak}
+      />
 
       <section
         className={`hero-card ${assignmentComplete ? "hero-card--complete" : ""} ${isCelebrating ? "is-celebrating" : ""}`}
@@ -177,90 +168,6 @@ export default function HomePage() {
       </section>
 
       {assignmentComplete ? <TodayAdditionalAction /> : null}
-
-      <section
-        className={`goal-card ${isCelebrating ? "goal-card--celebrating" : ""}`}
-      >
-        <div>
-          <p className="eyebrow">Weekly goal</p>
-          <h2>
-            {goalValue} <span>of {weeklyGoal}</span>
-          </h2>
-          <p>
-            {goalValue >= weeklyGoal
-              ? "Goal met—nice work!"
-              : `${weeklyGoal - goalValue} more session to hit your goal.`}
-          </p>
-        </div>
-        <div className="goal-card__progress">
-          <strong>{Math.round((goalValue / weeklyGoal) * 100)}%</strong>
-          <ProgressBar
-            value={goalValue}
-            max={weeklyGoal}
-            label="Weekly goal progress"
-          />
-        </div>
-      </section>
-
-      <section className="metrics-grid" aria-label="Personal training summary">
-        <article className="streak-card">
-          <button
-            type="button"
-            className="streak-card__trigger"
-            onClick={revealStreakQuip}
-            onPointerEnter={revealStreakQuip}
-            aria-describedby={showQuip ? "streak-quip" : undefined}
-          >
-            <span aria-hidden="true">🔥</span>
-            <strong>{streak}</strong>
-            <span>Current streak</span>
-          </button>
-          {showQuip && streakQuip ? (
-            <p className="streak-quip" id="streak-quip" role="status">
-              {streakQuip}
-            </p>
-          ) : null}
-        </article>
-        <article>
-          <span aria-hidden="true">🏆</span>
-          <strong>{longestStreak}</strong>
-          <p>Longest streak</p>
-        </article>
-        <article>
-          <span aria-hidden="true">⚡</span>
-          <strong>{effortPoints}</strong>
-          <p>Effort points</p>
-        </article>
-        <article className="activity-calendar-card">
-          <span aria-hidden="true">◆</span>
-          <strong>Last 30 days</strong>
-          <div
-            className="activity-calendar"
-            aria-label="Training activity over the last 30 days"
-          >
-            {monthDays.map((day) => {
-              const dateLabel = new Date(
-                `${day.date}T12:00:00`,
-              ).toLocaleDateString(undefined, {
-                month: "short",
-                day: "numeric",
-              });
-              const sessionLabel = `${day.activityCount} ${
-                day.activityCount === 1 ? "session" : "sessions"
-              }`;
-              return (
-                <span
-                  key={day.date}
-                  className={`activity-calendar__day activity-calendar__day--${day.level}`}
-                  role="img"
-                  aria-label={`${dateLabel}: ${sessionLabel}`}
-                  title={`${dateLabel}: ${sessionLabel}`}
-                />
-              );
-            })}
-          </div>
-        </article>
-      </section>
 
       <SessionList
         entries={personalEntries}
