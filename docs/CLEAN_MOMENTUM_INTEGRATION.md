@@ -98,3 +98,5 @@ Each step is test-first and small enough to review independently.
   the complete migrated-API suite and all 24 browser workflows now pass together.
 - Populated-main migration proof: upgrades a representative migration-000013 database through final migrations 14–16 without losing its training row;
   the upgraded database then accepts linked plans/rest, Prize Boxes, canonical Lounge inventory, Team Rewards, and their event ledger.
+- Disposable-dev API smoke: proves dev player/staff sign-in, published plans and planned rest, sealed Prize Box claim/open and inventory, and privacy-safe Team Rewards;
+  fresh infrastructure runs it after fixture seeding, while the geographically gated canonical Lounge browser proof remains an explicit follow-up.

@@ -260,6 +260,13 @@ jobs:
             -H "X-Zoomigo-Dev-Reset: $DEV_RESET_KEY" \
             https://api-dev.zoomigo.quicktrack.cc/__dev/reset
 
+      - name: Prove final disposable-dev flows
+        if: inputs.operation == 'create' || steps.infra.outputs.created == 'true'
+        env:
+          DEV_SMOKE_API_BASE_URL: https://api-dev.zoomigo.quicktrack.cc
+          DEV_API_GATEWAY_TOKEN: ${{ secrets.DEV_API_GATEWAY_TOKEN }}
+        run: node scripts/dev-deploy-smoke.mjs
+
       - name: Remove Worker
         if: inputs.operation == 'destroy'
         env:

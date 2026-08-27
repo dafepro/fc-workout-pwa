@@ -31,6 +31,7 @@ experiments.
 
 ## Release quality
 
+- Run the canonical Lounge browser proof against the recreated dev PWA from an allowed Midwest network; the outer geographic gate intentionally keeps hosted CI from bypassing that check.
 - Complete installed-PWA, offline/update, keyboard, screen-reader, and
   reduced-motion reviews on physical devices.
 - Rehearse the production Team Lounge rollout and exact-revision rollback.
