@@ -23,6 +23,8 @@ describe("connected training dashboard gateway", () => {
       summary: {
         weeklySessions: 2,
         rolling30Sessions: 5,
+        momentumScore: 34.5,
+        currentCheckInStreak: 2,
         currentStreak: 2,
         longestStreak: 3,
         effortPoints: 42,
@@ -43,7 +45,11 @@ describe("connected training dashboard gateway", () => {
     ).resolves.toMatchObject({
       team: { id: "team-real", weeklyGoal: 4 },
       activities: [{ id: "hill-sprints", min: 1, max: 20, defaultValue: 8 }],
-      summary: { effortPoints: 42 },
+      summary: {
+        effortPoints: 42,
+        momentumScore: 34.5,
+        currentCheckInStreak: 2,
+      },
     });
     expect(fetch).toHaveBeenCalledWith(
       "/api/zoomigo/v1/me/training-dashboard?teamId=team-real",

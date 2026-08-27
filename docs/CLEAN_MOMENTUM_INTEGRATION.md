@@ -62,3 +62,5 @@ Each step is test-first and small enough to review independently.
   route discovery so production omits them while development still ships them.
 - Momentum projection core: ported the authoritative diminishing daily credit,
   56-day fade, planned-rest, score cap, and current check-in streak rules.
+- Connected Momentum summary: exposed score and check-in streak from existing
+  non-deleted, team-local activity entries; planned-rest wiring awaits final schema.

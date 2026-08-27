@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
+	"github.com/dafepro/fc-workout-pwa/backend/internal/momentum"
 )
 
 var ErrTrainingDashboardUnavailable = errors.New("training dashboard is unavailable")
@@ -49,12 +50,14 @@ type PersonalActivityDay struct {
 }
 
 type PersonalTrainingSummary struct {
-	WeeklySessions    int                   `json:"weeklySessions"`
-	Rolling30Sessions int                   `json:"rolling30Sessions"`
-	CurrentStreak     int                   `json:"currentStreak"`
-	LongestStreak     int                   `json:"longestStreak"`
-	EffortPoints      int                   `json:"effortPoints"`
-	ActivityDays      []PersonalActivityDay `json:"activityDays"`
+	WeeklySessions       int                   `json:"weeklySessions"`
+	Rolling30Sessions    int                   `json:"rolling30Sessions"`
+	MomentumScore        float64               `json:"momentumScore"`
+	CurrentCheckInStreak int                   `json:"currentCheckInStreak"`
+	CurrentStreak        int                   `json:"currentStreak"`
+	LongestStreak        int                   `json:"longestStreak"`
+	EffortPoints         int                   `json:"effortPoints"`
+	ActivityDays         []PersonalActivityDay `json:"activityDays"`
 }
 
 type TeamPulseProjection struct {
@@ -232,8 +235,16 @@ func buildPersonalSummary(entries []domain.ProjectionEntry, playerID string, now
 		previous = day
 	}
 	season := domain.ParticipationMetrics(entries, now, time.Time{}, location)[playerID]
-	return PersonalTrainingSummary{WeeklySessions: weeklySessions, Rolling30Sessions: rolling,
-		CurrentStreak: season.StreakDays, LongestStreak: longest, EffortPoints: effortPoints, ActivityDays: days}
+	return PersonalTrainingSummary{
+		WeeklySessions:       weeklySessions,
+		Rolling30Sessions:    rolling,
+		MomentumScore:        momentum.Score(counts, nil, today),
+		CurrentCheckInStreak: momentum.CurrentStreak(counts, nil, today),
+		CurrentStreak:        season.StreakDays,
+		LongestStreak:        longest,
+		EffortPoints:         effortPoints,
+		ActivityDays:         days,
+	}
 }
 
 func (store *Store) activeTeamMembersThisWeek(ctx context.Context, teamID string, start, now time.Time, teamDay string) (int, error) {

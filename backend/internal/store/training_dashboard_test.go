@@ -38,6 +38,9 @@ func TestTrainingDashboardReturnsOwnedCatalogAssignmentAndSafeSummary(t *testing
 	if projection.Summary.WeeklySessions != 1 || projection.Summary.Rolling30Sessions != 1 || projection.Summary.LongestStreak != 1 {
 		t.Fatalf("unexpected personal summary: %+v", projection.Summary)
 	}
+	if projection.Summary.MomentumScore != 4 || projection.Summary.CurrentCheckInStreak != 1 {
+		t.Fatalf("unexpected Momentum projection: %+v", projection.Summary)
+	}
 	if projection.TeamPulse.ActiveThisWeek != 2 {
 		t.Fatalf("team pulse included an inactive member: %+v", projection.TeamPulse)
 	}
@@ -47,6 +50,11 @@ func TestTrainingDashboardReturnsOwnedCatalogAssignmentAndSafeSummary(t *testing
 	encoded, err := json.Marshal(projection)
 	if err != nil {
 		t.Fatal(err)
+	}
+	for _, requiredField := range []string{`"momentumScore":4`, `"currentCheckInStreak":1`} {
+		if !strings.Contains(string(encoded), requiredField) {
+			t.Fatalf("dashboard missing %q: %s", requiredField, encoded)
+		}
 	}
 	for _, privateField := range []string{"exhaustionLevel", "resultValue", "player-ava"} {
 		if strings.Contains(string(encoded), privateField) {
