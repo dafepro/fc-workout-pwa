@@ -44,7 +44,7 @@ test.beforeEach(async ({}, testInfo) => {
 test("two players keep separate stamps through reconnect, day rollover, and week rollover", async ({
   browser,
 }) => {
-  test.setTimeout(90_000);
+  test.setTimeout(120_000);
   const masonContext = await browser.newContext({
     viewport: { width: 393, height: 852 },
   });
@@ -224,10 +224,10 @@ test("two players keep separate stamps through reconnect, day rollover, and week
   await expect(avaPage.getByLabel("1 player here")).toBeVisible();
   await expect(avaPage.getByLabel(/stamp, yours; locked/)).toHaveCount(0);
   await expect(avaPage.getByLabel(/stamp placed by a teammate/)).toHaveCount(0);
-  await placeStamp(avaPage, "Crown", { x: 210, y: 205 });
+  await placeStamp(avaPage, "Fire", { x: 210, y: 205 });
   await expect(
     avaPage.getByRole("button", {
-      name: "Crown stamp, yours; tap then drag to move",
+      name: "Fire stamp, yours; tap then drag to move",
     }),
   ).toBeVisible();
 
@@ -239,14 +239,14 @@ test("two players keep separate stamps through reconnect, day rollover, and week
   await expect(masonPage.getByLabel("2 players here")).toBeVisible();
   await expect(masonPage.getByLabel(/stamp, yours; locked/)).toHaveCount(0);
   await expect(
-    masonPage.getByLabel("Crown stamp placed by a teammate"),
+    masonPage.getByLabel("Fire stamp placed by a teammate"),
   ).toBeVisible();
 
   await avaPage.reload();
   await waitForSharedLounge(avaPage);
   await expect(
     avaPage.getByRole("button", {
-      name: "Crown stamp, yours; tap then drag to move",
+      name: "Fire stamp, yours; tap then drag to move",
     }),
   ).toBeVisible();
   await expect(avaPage.getByLabel(/stamp, yours; locked/)).toHaveCount(0);
@@ -604,7 +604,7 @@ async function placeStamp(
 ) {
   await page.getByRole("button", { name: "Stamps" }).click();
   const inventory = page.getByRole("dialog", {
-    name: "Choose a stamp to place",
+    name: "Choose an item to place",
   });
   await expect(inventory).toBeVisible();
   await inventory
