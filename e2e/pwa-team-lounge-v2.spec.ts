@@ -68,6 +68,11 @@ test("two players keep separate stamps through reconnect, day rollover, and week
   await expect(masonLounge.getByLabel("Ava R.")).toBeVisible();
   await expect(avaLounge.getByLabel("Ava R., you")).toBeVisible();
   await expect(avaLounge.getByLabel("Mason C.")).toBeVisible();
+  const beachBall = masonLounge.getByRole("img", { name: "Beach ball" });
+  await expect(beachBall).toBeVisible();
+  await expect
+    .poll(async () => (await beachBall.boundingBox())?.width ?? 0)
+    .toBeGreaterThan(30);
 
   await masonPage.getByRole("button", { name: "Emotes" }).click();
   await masonPage.getByRole("button", { name: "Send Wave emote" }).click();

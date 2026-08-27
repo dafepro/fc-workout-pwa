@@ -262,6 +262,7 @@
   position: absolute;
   top: 0;
   left: 0;
+  display: block;
   width: clamp(2.35rem, 11vw, 3rem);
   aspect-ratio: 1;
   background: center / contain no-repeat url("/team-lounge-v2/beach-ball.svg");
