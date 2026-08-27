@@ -6,7 +6,7 @@ test("a new service worker removes the previous app-shell cache", async ({
 }) => {
   await page.goto("/manifest.webmanifest");
   await page.evaluate(async () => {
-    const oldCache = await caches.open("legacy-shell-v3");
+    const oldCache = await caches.open("zoomigo-shell-v4");
     await oldCache.put("/team", new Response("outdated team screen"));
   });
 
@@ -17,5 +17,5 @@ test("a new service worker removes the previous app-shell cache", async ({
 
   await expect
     .poll(() => page.evaluate(() => caches.keys()))
-    .toEqual(["zoomigo-shell-v4"]);
+    .toEqual(["zoomigo-shell-v5"]);
 });

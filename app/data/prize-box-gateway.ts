@@ -48,7 +48,8 @@ export interface PrizeBoxOverview {
 
 export interface PrizeBoxGateway {
   overview(): Promise<PrizeBoxOverview>;
-  inventory(): Promise<PrizeUnlock[]>;
+  inventory(kinds?: readonly PrizeItemKind[]): Promise<PrizeUnlock[]>;
+  markViewed(itemId: string): Promise<PrizeUnlock>;
   claimDaily(idempotencyKey: string): Promise<PrizeBox>;
   open(boxId: string, idempotencyKey: string): Promise<PrizeBoxClaim>;
 }
@@ -69,12 +70,13 @@ class HTTPPrizeBoxGateway implements PrizeBoxGateway {
     });
   }
 
-  async inventory(): Promise<PrizeUnlock[]> {
-    const kinds: PrizeItemKind[] = [
+  async inventory(
+    kinds: readonly PrizeItemKind[] = [
       "avatar_part",
       "lounge_stamp",
       "lounge_prop",
-    ];
+    ],
+  ): Promise<PrizeUnlock[]> {
     const groups = await Promise.all(
       kinds.map((kind) =>
         request<{ items: PrizeUnlock[] }>(
@@ -86,6 +88,13 @@ class HTTPPrizeBoxGateway implements PrizeBoxGateway {
     return groups
       .flatMap(({ items }) => items)
       .sort((left, right) => right.unlockedAt.localeCompare(left.unlockedAt));
+  }
+
+  async markViewed(itemId: string): Promise<PrizeUnlock> {
+    return request<PrizeUnlock>(
+      `/api/zoomigo/v1/me/unlocks/${encodeURIComponent(itemId)}/viewed`,
+      { method: "POST" },
+    );
   }
 
   async claimDaily(idempotencyKey: string): Promise<PrizeBox> {
@@ -132,8 +141,22 @@ class LocalPrizeBoxGateway implements PrizeBoxGateway {
     };
   }
 
-  async inventory(): Promise<PrizeUnlock[]> {
-    return this.unlock ? [this.unlock] : [];
+  async inventory(kinds?: readonly PrizeItemKind[]): Promise<PrizeUnlock[]> {
+    if (!this.unlock || (kinds && !kinds.includes(this.unlock.item.kind))) {
+      return [];
+    }
+    return [this.unlock];
+  }
+
+  async markViewed(itemId: string): Promise<PrizeUnlock> {
+    if (!this.unlock || this.unlock.item.id !== itemId) {
+      throw new PrizeBoxGatewayError(
+        "unlock_not_found",
+        "That unlocked item is unavailable.",
+      );
+    }
+    this.unlock = { ...this.unlock, viewedAt: new Date().toISOString() };
+    return this.unlock;
   }
 
   async claimDaily(): Promise<PrizeBox> {

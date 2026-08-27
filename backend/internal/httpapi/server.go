@@ -78,6 +78,10 @@ type fixtureResetter interface {
 	ResetE2EFixtures(context.Context, time.Time) error
 }
 
+type fixturePrizeSeeder interface {
+	SeedE2EPlayerUnlock(context.Context, string, string, time.Time) error
+}
+
 type Option func(*service)
 
 func WithStore(repository Repository) Option {
@@ -574,6 +578,17 @@ func (service *service) resetE2EFixtures(w http.ResponseWriter, r *http.Request)
 	if err := resetter.ResetE2EFixtures(r.Context(), service.now().UTC()); err != nil {
 		writeError(w, r, http.StatusInternalServerError, "internal_error", "The fixture could not be reset.")
 		return
+	}
+	if itemID := strings.TrimSpace(r.Header.Get("X-E2E-Unlock-Item")); itemID != "" {
+		seeder, ready := service.store.(fixturePrizeSeeder)
+		if _, found := domain.PrizeCatalogItem(itemID); !ready || !found {
+			writeError(w, r, http.StatusBadRequest, "invalid_e2e_fixture", "The requested fixture is unavailable.")
+			return
+		}
+		if err := seeder.SeedE2EPlayerUnlock(r.Context(), "player-mason", itemID, service.now().UTC()); err != nil {
+			writeError(w, r, http.StatusInternalServerError, "internal_error", "The fixture could not be prepared.")
+			return
+		}
 	}
 	if service.authFixtures != nil {
 		if err := service.authFixtures(r.Context()); err != nil {

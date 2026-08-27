@@ -8,7 +8,7 @@ import { copy } from "../content/copy";
 import { routes } from "../content/routes";
 import { useAuth } from "../state/auth-context";
 
-const SERVICE_WORKER_URL = "/sw.js?v=4";
+const SERVICE_WORKER_URL = "/sw.js?v=5";
 
 const navigation = [
   { href: "/", label: copy.navigation.today, icon: "⌂" },

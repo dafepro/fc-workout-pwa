@@ -98,4 +98,37 @@ describe("connected Prize Box gateway", () => {
       "/api/zoomigo/v1/me/unlocks?kind=lounge_prop",
     ]);
   });
+
+  it("loads one destination and marks an owned item viewed", async () => {
+    const item = {
+      item: {
+        id: "avatar-head-dog",
+        kind: "avatar_part",
+        slot: "head",
+        assetId: "dog",
+        label: "Rover the dog",
+        catalogVersion: 1,
+        rarity: "common",
+        destination: "avatar",
+      },
+      source: "daily_check_in",
+      unlockedAt: "2026-08-27T12:00:00Z",
+      viewedAt: "2026-08-27T12:01:00Z",
+    } as const;
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ items: [item] }))
+      .mockResolvedValueOnce(Response.json(item));
+    vi.stubGlobal("fetch", fetchMock);
+    const gateway = createPrizeBoxGateway(true);
+
+    await expect(gateway.inventory(["avatar_part"])).resolves.toEqual([item]);
+    await expect(gateway.markViewed(item.item.id)).resolves.toEqual(item);
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "/api/zoomigo/v1/me/unlocks?kind=avatar_part",
+      "/api/zoomigo/v1/me/unlocks/avatar-head-dog/viewed",
+    ]);
+    expect(fetchMock.mock.calls[1][1].method).toBe("POST");
+  });
 });

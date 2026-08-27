@@ -82,3 +82,5 @@ Each step is test-first and small enough to review independently.
   opening grants predefined nonduplicate Avatar or canonical Team Lounge inventory, with backups included.
 - Player Prize Boxes: added one `/prizes` flow from Today for sealed daily claims, earned-box opening,
   reward reveal, and consolidated collection history; failed mutations reuse their idempotency keys.
+- Avatar Prize inventory: owned predefined parts now unlock in the canonical Studio and are marked viewed;
+  disposable E2E resets clear final plan/prize state, while browser coverage proves claim, open, and equip.

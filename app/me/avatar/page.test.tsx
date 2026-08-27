@@ -9,20 +9,31 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { defaultAvatar } from "../../avatar/config";
 import AvatarStudioPage from "./page";
 
-const { push, saveAvatar } = vi.hoisted(() => ({
+const { push, saveAvatar, inventory, markViewed } = vi.hoisted(() => ({
   push: vi.fn(),
   saveAvatar: vi.fn().mockResolvedValue(undefined),
+  inventory: vi.fn().mockResolvedValue([]),
+  markViewed: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 vi.mock("../../state/auth-context", () => ({
-  useAuth: () => ({ avatarConfig: defaultAvatar(), saveAvatar }),
+  useAuth: () => ({
+    connected: true,
+    avatarConfig: defaultAvatar(),
+    saveAvatar,
+  }),
+}));
+vi.mock("../../data/prize-box-gateway", () => ({
+  createPrizeBoxGateway: () => ({ inventory, markViewed }),
 }));
 
 afterEach(() => {
   cleanup();
   push.mockClear();
   saveAvatar.mockClear();
+  inventory.mockReset().mockResolvedValue([]);
+  markViewed.mockReset().mockResolvedValue(undefined);
 });
 
 describe("AvatarStudioPage", () => {
@@ -33,5 +44,34 @@ describe("AvatarStudioPage", () => {
 
     await waitFor(() => expect(saveAvatar).toHaveBeenCalledTimes(1));
     expect(push).toHaveBeenCalledWith("/me?avatar=saved");
+  });
+
+  it("enables owned Avatar parts and records that the Studio showed them", async () => {
+    inventory.mockResolvedValue([
+      {
+        item: {
+          id: "avatar-head-dog",
+          kind: "avatar_part",
+          slot: "head",
+          assetId: "dog",
+          label: "Rover the dog",
+          catalogVersion: 1,
+          rarity: "common",
+          destination: "avatar",
+        },
+        source: "daily_check_in",
+        unlockedAt: "2026-08-27T12:00:00Z",
+      },
+    ]);
+
+    render(<AvatarStudioPage />);
+
+    expect(
+      await screen.findByRole("radio", { name: "Rover the dog" }),
+    ).toBeEnabled();
+    await waitFor(() =>
+      expect(markViewed).toHaveBeenCalledWith("avatar-head-dog"),
+    );
+    expect(inventory).toHaveBeenCalledWith(["avatar_part"]);
   });
 });

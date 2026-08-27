@@ -35,6 +35,7 @@ function gateway(overrides: Partial<PrizeBoxGateway> = {}): PrizeBoxGateway {
       recent: [],
     }),
     inventory: vi.fn().mockResolvedValue([]),
+    markViewed: vi.fn().mockRejectedValue(new Error("not used here")),
     claimDaily: vi.fn().mockResolvedValue(box),
     open: vi.fn().mockResolvedValue({
       id: box.id,

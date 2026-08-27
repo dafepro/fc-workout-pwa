@@ -293,7 +293,13 @@ func (store *Store) ResetE2EFixtures(ctx context.Context, now time.Time) error {
 	defer tx.Rollback()
 	statements := []string{
 		"DELETE FROM reactions",
+		"DELETE FROM player_unlocks",
+		"DELETE FROM prize_boxes",
+		"DELETE FROM planned_rest_check_ins",
 		"DELETE FROM training_entries",
+		"DELETE FROM training_plan_blocks",
+		"DELETE FROM training_plan_days",
+		"DELETE FROM training_plans",
 		"DELETE FROM assignments",
 		// Staff state as well, or a second run of the console suite collides with
 		// the operator the first run created. The order is foreign-key order:

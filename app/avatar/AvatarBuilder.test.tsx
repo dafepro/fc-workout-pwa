@@ -19,6 +19,16 @@ function renderBuilder(onSave = vi.fn().mockResolvedValue(undefined)) {
   return { ...view, onSave };
 }
 
+function renderBuilderWithUnlocks(...unlockedOptionIDs: string[]) {
+  return render(
+    <AvatarBuilder
+      config={defaultAvatar()}
+      unlockedOptionIDs={new Set(unlockedOptionIDs)}
+      onSave={vi.fn().mockResolvedValue(undefined)}
+    />,
+  );
+}
+
 function pick(name: string) {
   fireEvent.click(screen.getByRole("radio", { name }));
 }
@@ -82,6 +92,16 @@ describe("AvatarBuilder", () => {
       screen.getByRole("radio", { name: /Rover the dog.*locked/i }),
     ).toBeDisabled();
     expect(screen.getAllByText("🔒")).toHaveLength(3);
+  });
+
+  it("enables only the advancement part present in Prize Box inventory", () => {
+    renderBuilderWithUnlocks("dog");
+
+    expect(screen.getByRole("radio", { name: "Rover the dog" })).toBeEnabled();
+    expect(
+      screen.getByRole("radio", { name: /Zoomi the cheetah.*locked/i }),
+    ).toBeDisabled();
+    expect(screen.getAllByText("🔒")).toHaveLength(2);
   });
 
   it("equips a hat and glasses simultaneously", async () => {
