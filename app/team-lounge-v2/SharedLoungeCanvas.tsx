@@ -32,6 +32,10 @@ import {
 } from "./overlays/StampOverlays";
 import { VisitTraces } from "./overlays/VisitTraces";
 import {
+  SystemItemOverlays,
+  type LoungeSystemItemOverlay,
+} from "./overlays/SystemItemOverlays";
+import {
   mergeLoungePresence,
   type LoungeParticipantOverlay,
   type LoungeRosterMember,
@@ -139,6 +143,9 @@ export function SharedLoungeCanvas({
   const stampEditingEnabledRef = useRef(stampEditingEnabled);
   const [overlays, setOverlays] = useState<LoungeParticipantOverlay[]>([]);
   const [stampOverlays, setStampOverlays] = useState<LoungeStampOverlay[]>([]);
+  const [systemItemOverlays, setSystemItemOverlays] = useState<
+    LoungeSystemItemOverlay[]
+  >([]);
   const [placementPolicy, setPlacementPolicy] = useState({
     credits: 0,
     day: "",
@@ -383,6 +390,23 @@ export function SharedLoungeCanvas({
         },
       );
       setStampOverlays(nextStampOverlays);
+      setSystemItemOverlays(
+        projections.flatMap((projection) =>
+          projection.kind === "item" &&
+          projection.definitionId === "beach-ball" &&
+          projection.inViewport
+            ? [
+                {
+                  entityID: projection.entityId,
+                  kind: "beach-ball" as const,
+                  rotation: projection.rotation,
+                  scale: projection.scale,
+                  screen: projection.screen,
+                },
+              ]
+            : [],
+        ),
+      );
       const ownStampCount = placeableProjections.filter(
         ({ projection }) => projectionOwnerUserID(projection) === playerID,
       ).length;
@@ -703,6 +727,7 @@ export function SharedLoungeCanvas({
         tabIndex={0}
       />
       <VisitTraces traces={visitTraces} />
+      <SystemItemOverlays items={systemItemOverlays} />
       <AvatarOverlays participants={overlays} emotes={participantEmotes} />
       <StampOverlays
         stamps={stampOverlays.filter(

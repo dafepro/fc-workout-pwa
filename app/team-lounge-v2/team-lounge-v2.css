@@ -240,6 +240,7 @@
 .team-lounge-v2__avatar-overlays,
 .team-lounge-v2__visit-traces,
 .team-lounge-v2__collision-map,
+.team-lounge-v2__system-item-overlays,
 .team-lounge-v2__stamp-overlays {
   position: absolute;
   z-index: 5;
@@ -251,6 +252,23 @@
 
 .team-lounge-v2__stamp-overlays {
   z-index: 5;
+}
+
+.team-lounge-v2__system-item-overlays {
+  z-index: 5;
+}
+
+.team-lounge-v2__system-item {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: clamp(2.35rem, 11vw, 3rem);
+  aspect-ratio: 1;
+  background: center / contain no-repeat url("/team-lounge-v2/beach-ball.svg");
+  filter: drop-shadow(0 0.35rem 0.28rem rgba(2, 23, 29, 0.35));
+  transform-origin: center;
+  scale: var(--system-item-scale, 1);
+  user-select: none;
 }
 
 .team-lounge-v2__avatar-overlays {

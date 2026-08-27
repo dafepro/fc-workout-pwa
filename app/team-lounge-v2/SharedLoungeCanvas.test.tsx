@@ -418,6 +418,75 @@ describe("SharedLoungeCanvas", () => {
     expect(screen.queryByRole("group", { name: "Stamp size" })).toBeNull();
   });
 
+  it("projects the room-owned beach ball from Canvas without intercepting input", async () => {
+    render(
+      <SharedLoungeCanvas
+        teamID="team-one"
+        playerID="player-one"
+        roster={[]}
+        onStateChange={vi.fn()}
+        onPresenceChange={vi.fn()}
+        onSignalPortChange={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => expect(runtime.started).toBe(1));
+    act(() =>
+      runtime.overlayObserver?.({
+        entities: [
+          {
+            entityId: "boardwalk-beach-ball",
+            kind: "item",
+            definitionId: "beach-ball",
+            ownerUserId: undefined,
+            screen: { x: 180, y: 240 },
+            world: { x: 62, y: 98, z: 0 },
+            rotation: 0.25,
+            scale: 1,
+            resolvedConfig: {},
+            visible: true,
+            inViewport: true,
+          },
+        ],
+      }),
+    );
+
+    const ball = screen.getByRole("img", { name: "Beach ball" });
+    expect(ball).toHaveStyle({
+      transform:
+        "translate3d(180px, 240px, 0) translate(-50%, -50%) rotate(0.25rad)",
+    });
+    expect(ball.tagName).toBe("SPAN");
+    expect(ball.parentElement).toHaveClass(
+      "team-lounge-v2__system-item-overlays",
+    );
+
+    act(() =>
+      runtime.overlayObserver?.({
+        entities: [
+          {
+            entityId: "boardwalk-beach-ball",
+            kind: "item",
+            definitionId: "beach-ball",
+            ownerUserId: undefined,
+            screen: { x: 212, y: 224 },
+            world: { x: 68, y: 95, z: 0 },
+            rotation: 0.5,
+            scale: 1,
+            resolvedConfig: {},
+            visible: true,
+            inViewport: true,
+          },
+        ],
+      }),
+    );
+
+    expect(ball).toHaveStyle({
+      transform:
+        "translate3d(212px, 224px, 0) translate(-50%, -50%) rotate(0.5rad)",
+    });
+  });
+
   it("gives the visible avatar first claim over an overlapping editable stamp", async () => {
     render(
       <SharedLoungeCanvas
