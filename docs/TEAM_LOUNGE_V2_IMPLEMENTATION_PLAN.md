@@ -508,10 +508,11 @@ Placing the ball creates a dynamic Canvas entity. It can be picked up or removed
 by its owner only on its placement day, but its authored physical size and
 rotation are fixed. Any teammate avatar may kick it; transform changes are
 shared live and checkpointed. Deleting it the same day restores the derived
-weekly placement without removing the permanent unlock. Room generation V4
-and beach-ball definition V2 isolate the corrected avatar collision contract
-from earlier snapshots. A real host-simulation regression must prove motion,
-not merely the kick animation.
+weekly placement without removing the permanent unlock. Room generation V5
+and beach-ball definition V3 isolate the visible texture and corrected
+sensor-driven collision contract from earlier snapshots. The regression uses
+the production avatar-drag target, requires a real `kickCount`, and proves both
+velocity and displacement rather than accepting the kick animation alone.
 
 ## Segment 5 — weekly cadence and theme framework
 

@@ -8,19 +8,20 @@ import { loungeStampDefinitions, propDefinitionID } from "../placement/catalog";
 
 export const beachBallDefinition: ItemDefinition = {
   definitionId: "beach-ball",
-  version: 2,
+  version: 3,
   displayName: "Beach ball",
   visual: {
     size: { width: 9, height: 9 },
+    spriteId: "lounge.ball",
     placeholder: { shape: "circle", color: 0xffd33d },
     zIndex: 8,
   },
   body: {
     mode: "dynamic",
-    mass: 0.35,
+    mass: 0.5,
     gravityScale: 0,
-    linearDamping: 0.4,
-    angularDamping: 0.55,
+    linearDamping: 0.35,
+    angularDamping: 0.2,
     canSleep: true,
   },
   colliders: [
@@ -31,11 +32,10 @@ export const beachBallDefinition: ItemDefinition = {
       restitution: 0.82,
       friction: 0.18,
       collisionMask:
-        CollisionLayer.AVATAR_BODY |
-        CollisionLayer.AVATAR_SENSOR |
         CollisionLayer.WORLD_STATIC |
         CollisionLayer.ITEM_SOLID |
-        CollisionLayer.ITEM_SENSOR,
+        CollisionLayer.ITEM_SENSOR |
+        CollisionLayer.REGION_SENSOR,
     },
     {
       id: "kick",
@@ -46,9 +46,10 @@ export const beachBallDefinition: ItemDefinition = {
   behaviorType: "kickable",
   defaultConfig: {
     ...defaultKickableConfig,
-    kickStrength: 1.25,
-    minImpulse: 2.5,
-    maxImpulse: 18,
+    kickStrength: 3.2,
+    minImpulse: 9,
+    maxImpulse: 42,
+    cooldownSeconds: 0.18,
   },
   persistence: {
     transform: true,
@@ -81,7 +82,7 @@ export const loungeAvatarDefinition: ItemDefinition = {
 export const beachBallPropDefinition: ItemDefinition = {
   ...beachBallDefinition,
   definitionId: propDefinitionID("beach-ball"),
-  version: 1,
+  version: 2,
   displayName: "Beach ball prop",
   visual: {
     size: { width: 9, height: 9 },
@@ -91,10 +92,10 @@ export const beachBallPropDefinition: ItemDefinition = {
   },
   defaultConfig: {
     sensorId: "kick",
-    kickStrength: 1.25,
-    minImpulse: 2.5,
-    maxImpulse: 18,
-    cooldownSeconds: 0.25,
+    kickStrength: 3.2,
+    minImpulse: 9,
+    maxImpulse: 42,
+    cooldownSeconds: 0.18,
   },
 };
 
@@ -107,7 +108,7 @@ export const beachBoardwalkDefinitions: ItemDefinition[] = [
 
 export const beachBoardwalkCanvas: CanvasDefinition = {
   id: "zoomigo-beach-boardwalk",
-  version: 4,
+  version: 5,
   size: { width: 100, height: 150 },
   orientation: "topDown",
   backgroundAssetId: "lounge.background",

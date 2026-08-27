@@ -92,14 +92,14 @@ func TestWeeklyRoomIdentityRoundTrips(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if roomID != "team:team-one:lounge:2026-08-24:v4" {
+	if roomID != "team:team-one:lounge:2026-08-24:v5" {
 		t.Fatalf("room id = %q", roomID)
 	}
 	teamID, weekKey, err := ParseWeeklyRoomID(roomID)
 	if err != nil || teamID != "team-one" || weekKey != "2026-08-24" {
 		t.Fatalf("parsed = %q, %q, %v", teamID, weekKey, err)
 	}
-	for _, invalid := range []string{"", "team:other", "team:team/one:lounge:2026-08-24:v4", "team:team-one:lounge:today:v4", "team:team-one:lounge:2026-08-25:v4", "team:team-one:lounge:2026-08-24", "team:team-one:lounge:2026-08-24:v2"} {
+	for _, invalid := range []string{"", "team:other", "team:team/one:lounge:2026-08-24:v5", "team:team-one:lounge:today:v5", "team:team-one:lounge:2026-08-25:v5", "team:team-one:lounge:2026-08-24", "team:team-one:lounge:2026-08-24:v4"} {
 		if _, _, err := ParseWeeklyRoomID(invalid); err == nil {
 			t.Fatalf("accepted invalid room id %q", invalid)
 		}
@@ -134,7 +134,7 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 	if canvas.CanvasID != BeachBoardwalkCanvasID || canvas.Version != BeachBoardwalkCanvasVersion || !json.Valid(canvas.DefinitionRaw) {
 		t.Fatalf("canvas record = %#v", canvas)
 	}
-	if canvas.Version != 4 {
+	if canvas.Version != 5 {
 		t.Fatalf("canvas version = %d", canvas.Version)
 	}
 	var shape struct {
@@ -157,6 +157,22 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 	if shape.Limits.MaxAvatars != 24 || shape.Limits.MaxItems != 1+24*7 {
 		t.Fatalf("weekly placement capacity = %#v", shape.Limits)
 	}
+	var ball struct {
+		Version uint32 `json:"version"`
+		Visual  struct {
+			SpriteID string `json:"spriteId"`
+		} `json:"visual"`
+		Colliders []struct {
+			ID            string `json:"id"`
+			CollisionMask uint32 `json:"collisionMask"`
+		} `json:"colliders"`
+	}
+	if err := json.Unmarshal(catalog.Items[0].DefinitionRaw, &ball); err != nil {
+		t.Fatal(err)
+	}
+	if ball.Version != 3 || ball.Visual.SpriteID != "lounge.ball" || len(ball.Colliders) < 1 || ball.Colliders[0].CollisionMask != 60 {
+		t.Fatalf("beach ball definition = %#v", ball)
+	}
 	var avatar struct {
 		Visual struct {
 			SpriteID string `json:"spriteId"`
@@ -169,7 +185,7 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 		t.Fatalf("avatar sprite = %q", avatar.Visual.SpriteID)
 	}
 	prop := catalog.Items[len(catalog.Items)-1]
-	if prop.DefinitionID != PropDefinitionID("beach-ball") || prop.Version != 1 || !json.Valid(prop.DefinitionRaw) {
+	if prop.DefinitionID != PropDefinitionID("beach-ball") || prop.Version != 2 || !json.Valid(prop.DefinitionRaw) {
 		t.Fatalf("beach ball prop record = %#v", prop)
 	}
 	var stamp struct {

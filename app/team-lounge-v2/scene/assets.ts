@@ -3,7 +3,7 @@ import type { AssetManifest } from "@canvas-physics/client";
 export const beachBoardwalkAssets: AssetManifest = {
   schemaVersion: 1,
   id: "zoomigo-beach-boardwalk",
-  revision: "2026-08-26.1",
+  revision: "2026-08-27.1",
   sources: [
     {
       id: "lounge-background-source",
@@ -15,6 +15,11 @@ export const beachBoardwalkAssets: AssetManifest = {
       src: "/team-lounge-v2/transparent.svg",
       required: true,
     },
+    {
+      id: "lounge-ball-source",
+      src: "/team-lounge-v2/beach-ball.svg",
+      required: true,
+    },
   ],
   textures: [
     {
@@ -24,6 +29,10 @@ export const beachBoardwalkAssets: AssetManifest = {
     {
       id: "lounge.stamp.transparent",
       sourceId: "lounge-transparent-source",
+    },
+    {
+      id: "lounge.ball",
+      sourceId: "lounge-ball-source",
     },
   ],
 };

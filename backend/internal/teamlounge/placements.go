@@ -110,7 +110,7 @@ func placementConfig(kind domain.UnlockItemKind, day string) (json.RawMessage, e
 			MinImpulse     float64 `json:"minImpulse"`
 			MaxImpulse     float64 `json:"maxImpulse"`
 			CooldownSecond float64 `json:"cooldownSeconds"`
-		}{day, "kick", 1.25, 2.5, 18, 0.25})
+		}{day, "kick", 3.2, 9, 42, 0.18})
 	}
 	return json.Marshal(struct {
 		PlacementDay string `json:"placementDay"`
@@ -178,7 +178,7 @@ func stampDefinitionRecords() []roomsdk.ItemDefinitionRecord {
 
 func propDefinitionRecords() []roomsdk.ItemDefinitionRecord {
 	return []roomsdk.ItemDefinitionRecord{{
-		DefinitionID: PropDefinitionID("beach-ball"), Version: 1,
+		DefinitionID: PropDefinitionID("beach-ball"), Version: 2,
 		Complexity:    roomsdk.ItemComplexitySimple,
 		ConfigSchema:  json.RawMessage(propPlacementConfigSchemaJSON),
 		DefinitionRaw: propDefinitionJSON(),
@@ -187,11 +187,11 @@ func propDefinitionRecords() []roomsdk.ItemDefinitionRecord {
 
 func propDefinitionJSON() json.RawMessage {
 	return json.RawMessage(`{
-  "definitionId":"zoomigo-prop-beach-ball","version":1,"displayName":"Beach ball prop",
+  "definitionId":"zoomigo-prop-beach-ball","version":2,"displayName":"Beach ball prop",
   "visual":{"size":{"width":9,"height":9},"spriteId":"lounge.stamp.transparent","placeholder":{"shape":"circle","color":16765757},"zIndex":8},
-  "body":{"mode":"dynamic","mass":0.35,"gravityScale":0,"linearDamping":0.4,"angularDamping":0.55,"canSleep":true},
-  "colliders":[{"id":"solid","role":"itemSolid","shape":{"type":"circle","radius":4.5},"restitution":0.82,"friction":0.18,"collisionMask":31},{"id":"kick","role":"itemSensor","shape":{"type":"circle","radius":5.8}}],
-  "behaviorType":"kickable","defaultConfig":{"sensorId":"kick","kickStrength":1.25,"minImpulse":2.5,"maxImpulse":18,"cooldownSeconds":0.25},
+  "body":{"mode":"dynamic","mass":0.5,"gravityScale":0,"linearDamping":0.35,"angularDamping":0.2,"canSleep":true},
+  "colliders":[{"id":"solid","role":"itemSolid","shape":{"type":"circle","radius":4.5},"restitution":0.82,"friction":0.18,"collisionMask":60},{"id":"kick","role":"itemSensor","shape":{"type":"circle","radius":5.8}}],
+  "behaviorType":"kickable","defaultConfig":{"sensorId":"kick","kickStrength":3.2,"minImpulse":9,"maxImpulse":42,"cooldownSeconds":0.18},
   "persistence":{"transform":true,"behaviorState":true,"onRoomSleep":"pause"},"complexity":"simple"
 }`)
 }

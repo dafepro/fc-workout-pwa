@@ -1202,8 +1202,12 @@ Momentum Alpha needs independent PWA install/offline behavior.
   its physical scale and rotation are authored and cannot be customized.
   Any avatar may kick it, and Canvas persists its shared transform. A minimum
   contact impulse is required because direct-drag avatar input can report zero
-  closing velocity at sensor contact. V4 also corrects the system ball's avatar
-  collision mask rather than silently changing an existing room generation.
+  closing velocity at sensor contact.
+- Corrected 2026-08-27: V4 did not fully integrate the room-owned ball with the
+  Canvas reference contract. Beach Boardwalk V5 registers required ball art,
+  removes avatar layers from the solid collider, retains the avatar sensor for
+  `kickable`, and raises the example-derived impulse tuning. V5 is a fresh room
+  generation so existing snapshots cannot preserve the incomplete V4 item.
 - Decided: every lounge ticket includes a server-owned theme ID, version, and
   display name tied to the exact immutable Canvas template binding. The browser
   fails closed on unsupported metadata. Beach Boardwalk V1 remains the only

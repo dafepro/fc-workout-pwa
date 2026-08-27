@@ -38,7 +38,7 @@ func TestStampPlacementAuthorizerUsesOwnedInventoryOpenBoundsAndWeeklyCredits(t 
 	store, now := placementFixture(t)
 	authorizer := NewStampPlacementAuthorizer(store, func() time.Time { return now })
 	request := roomsdk.DurableAuthorizationRequest{
-		RoomID: "team:team-one:lounge:2026-08-24:v4", UserID: "player-one",
+		RoomID: "team:team-one:lounge:2026-08-24:v5", UserID: "player-one",
 		Operation: roomsdk.DurableSpawn, DefinitionID: StampDefinitionID("target"),
 		Position: roomsdk.DurablePosition{X: 10, Y: 10},
 	}
@@ -84,7 +84,7 @@ func TestStampPlacementAuthorizerCanRaiseOnlyTheDevelopmentTestBudget(t *testing
 	store, now := placementFixture(t)
 	authorizer := NewStampPlacementAuthorizer(store, func() time.Time { return now }, 99)
 	request := roomsdk.DurableAuthorizationRequest{
-		RoomID: "team:team-one:lounge:2026-08-24:v4", UserID: "player-one",
+		RoomID: "team:team-one:lounge:2026-08-24:v5", UserID: "player-one",
 		Operation: roomsdk.DurableSpawn, DefinitionID: StampDefinitionID("bolt"),
 		Position: roomsdk.DurablePosition{X: 10, Y: 10},
 	}
@@ -119,7 +119,7 @@ func TestStampPlacementAuthorizerLetsOwnersEditOnlyTodaysPlacements(t *testing.T
 		ResolvedConfig: json.RawMessage(`{"placementDay":"2026-08-25"}`),
 	}
 	base := roomsdk.DurableAuthorizationRequest{
-		RoomID: "team:team-one:lounge:2026-08-24:v4", UserID: "player-one",
+		RoomID: "team:team-one:lounge:2026-08-24:v5", UserID: "player-one",
 		EntityID: today.EntityID, ExistingItems: []roomsdk.DurableAuthorizationItem{today, yesterday},
 	}
 
@@ -206,7 +206,7 @@ func TestPlacementAuthorizerSharesBudgetWithOwnedBeachBallProp(t *testing.T) {
 	}
 	authorizer := NewStampPlacementAuthorizer(store, func() time.Time { return now })
 	request := roomsdk.DurableAuthorizationRequest{
-		RoomID: "team:team-one:lounge:2026-08-24:v4", UserID: "player-one", Operation: roomsdk.DurableSpawn,
+		RoomID: "team:team-one:lounge:2026-08-24:v5", UserID: "player-one", Operation: roomsdk.DurableSpawn,
 		DefinitionID: PropDefinitionID("beach-ball"), Position: roomsdk.DurablePosition{X: 45, Y: 70},
 		ExistingItems: []roomsdk.DurableAuthorizationItem{{
 			EntityID: "stamp-one", DefinitionID: StampDefinitionID("bolt"), OwnerUserID: "player-one",
@@ -215,7 +215,7 @@ func TestPlacementAuthorizerSharesBudgetWithOwnedBeachBallProp(t *testing.T) {
 	}
 	result := authorizer.AuthorizeDurable(t.Context(), request)
 	if !result.Allowed || !strings.Contains(string(result.CanonicalConfig), `"placementDay":"2026-08-26"`) ||
-		!strings.Contains(string(result.CanonicalConfig), `"kickStrength":1.25`) {
+		!strings.Contains(string(result.CanonicalConfig), `"kickStrength":3.2`) {
 		t.Fatalf("beach ball placement = %+v", result)
 	}
 	request.ExistingItems = append(request.ExistingItems, roomsdk.DurableAuthorizationItem{

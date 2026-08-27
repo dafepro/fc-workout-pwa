@@ -1,14 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  CollisionLayer,
   validateCanvasDefinition,
   validateItemDefinition,
 } from "@canvas-physics/core";
 import {
-  beachBallDefinition,
   beachBoardwalkCanvas,
   beachBoardwalkDefinitions,
   loungeAvatarDefinition,
 } from "./beach-boardwalk";
+import { beachBoardwalkAssets } from "./assets";
 
 describe("Beach Boardwalk Canvas scene", () => {
   it("is a valid versioned room with one immutable kickable attraction", () => {
@@ -34,15 +35,26 @@ describe("Beach Boardwalk Canvas scene", () => {
     ).toEqual(
       expect.objectContaining({
         behaviorType: "kickable",
+        visual: expect.objectContaining({ spriteId: "lounge.ball" }),
         colliders: expect.arrayContaining([
-          expect.objectContaining({ id: "solid", collisionMask: 31 }),
+          expect.objectContaining({
+            id: "solid",
+            collisionMask:
+              CollisionLayer.WORLD_STATIC |
+              CollisionLayer.ITEM_SOLID |
+              CollisionLayer.ITEM_SENSOR |
+              CollisionLayer.REGION_SENSOR,
+          }),
         ]),
       }),
     );
+    expect(
+      beachBoardwalkAssets.textures.some(({ id }) => id === "lounge.ball"),
+    ).toBe(true);
   });
 
   it("reserves one non-complex item slot per avatar-day plus the ball", () => {
-    expect(beachBoardwalkCanvas.version).toBe(4);
+    expect(beachBoardwalkCanvas.version).toBe(5);
     expect(beachBoardwalkCanvas.limits).toEqual({
       maxAvatars: 24,
       maxItems: 169,
@@ -83,7 +95,7 @@ describe("Beach Boardwalk Canvas scene", () => {
     );
   });
 
-  it("moves the beach ball when an avatar runs into it", async () => {
+  it("moves the beach ball when avatar-drag crosses it", async () => {
     const getContext = vi
       .spyOn(HTMLCanvasElement.prototype, "getContext")
       .mockReturnValue({
@@ -99,14 +111,11 @@ describe("Beach Boardwalk Canvas scene", () => {
       beachBoardwalkDefinitions,
       createSimulationBehaviorRegistry(),
     );
+    const ball = beachBoardwalkCanvas.systemItems[0];
     simulation.addItem({
-      entityId: "test-beach-ball",
+      ...ball,
       canvasId: beachBoardwalkCanvas.id,
-      definitionId: beachBallDefinition.definitionId,
-      definitionVersion: beachBallDefinition.version,
       ownerUserId: "system",
-      transform: { x: 62, y: 98, rotation: 0 },
-      resolvedConfig: beachBallDefinition.defaultConfig,
       createdAt: "2026-08-26T00:00:00Z",
       sceneRevision: 1,
     });
@@ -122,29 +131,37 @@ describe("Beach Boardwalk Canvas scene", () => {
         beachBoardwalkCanvas.avatarController?.flickDeceleration,
     });
 
-    for (let step = 0; step < 30; step += 1) {
+    let kicked = false;
+    let kickedSpeed = 0;
+    for (let step = 0; step < 120; step += 1) {
       simulation.world.setAvatarInput(
         "test-avatar",
         { x: 1, y: 0 },
         1,
         step + 1,
         true,
-        { x: 56, y: 98 },
+        { x: 80, y: 98 },
       );
       simulation.step();
+      const state = simulation.behaviors.slot(ball.entityId)?.state as
+        | { kickCount?: number }
+        | undefined;
+      kicked ||= (state?.kickCount ?? 0) > 0;
+      if (kicked) {
+        const velocity = simulation.world.registry.require(ball.entityId)
+          .rigidBody?.velocity;
+        kickedSpeed = Math.max(
+          kickedSpeed,
+          Math.hypot(velocity?.x ?? 0, velocity?.y ?? 0),
+        );
+      }
     }
-    simulation.world.setAvatarInput(
-      "test-avatar",
-      { x: 0, y: 0 },
-      0,
-      31,
-      false,
-    );
-    for (let step = 0; step < 30; step += 1) simulation.step();
 
-    expect(simulation.world.transform("test-beach-ball")?.x).toBeGreaterThan(
-      64,
-    );
+    expect(kicked).toBe(true);
+    expect(kickedSpeed).toBeGreaterThan(10);
+    expect(
+      Math.abs((simulation.world.transform(ball.entityId)?.x ?? 62) - 62),
+    ).toBeGreaterThan(5);
     simulation.free();
   }, 15_000);
 });

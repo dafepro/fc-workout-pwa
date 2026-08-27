@@ -189,7 +189,7 @@ not include scoring in the first release.
 - The server stamps each accepted placement with canonical `placementDay`
   metadata. All of the owner's current-day placements remain editable; prior-
   day placements are immutable. Canvas cannot author or increase either value.
-- Room generation V4 reserves one simple item slot for each of seven daily
+- Room generation V5 reserves one simple item slot for each of seven daily
   credits across all 24 allowed avatars, plus the system ball. Increasing this
   ceiling does not pre-create or simulate empty items; device-budget testing
   must still cover a deliberately full room before production cutover.
@@ -204,6 +204,11 @@ not include scoring in the first release.
   placement credits but keeps authored scale and rotation. The owner may move
   or delete today's placement; every avatar may move it through physics. Both
   manual and physical transforms remain visible to all viewers and persist.
+- The room-owned attraction uses a required `lounge.ball` texture and Canvas's
+  built-in sensor-driven `kickable` behavior. Its solid collider excludes
+  avatar layers, matching the Canvas reference room: the avatar passes through
+  while sensor contact applies the visible impulse. V5 prevents earlier room
+  snapshots and item definitions from retaining the incomplete integration.
 
 ## Failure behavior
 

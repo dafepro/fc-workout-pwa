@@ -254,6 +254,40 @@ test("two players keep separate stamps through reconnect, day rollover, and week
   await Promise.all([masonContext.close(), avaContext.close()]);
 });
 
+test("shared lounge loads the V5 system beach ball art", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    viewport: { width: 393, height: 852 },
+  });
+  await enableV2(context);
+  const page = await context.newPage();
+  await loginAsMason(page);
+  const beachBallAsset = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname.endsWith(
+        "/team-lounge-v2/beach-ball.svg",
+      ) && response.ok(),
+  );
+
+  await openSharedLounge(page);
+  await beachBallAsset;
+  await expect(sharedLounge(page)).toBeVisible();
+
+  const api = await request.newContext({ baseURL: apiBaseURL });
+  const access = await api.get(
+    "/v1/teams/team-hill-striders/lounge-v2/access",
+    { headers: masonHeaders },
+  );
+  expect(access.status()).toBe(200);
+  const accessBody = await access.json();
+  expect(accessBody).toMatchObject({
+    roomId: expect.stringMatching(/:v5$/),
+  });
+  await api.dispose();
+  await context.close();
+});
+
 test("V2 stamp drags own the touch gesture and repeated trash drops settle cleanly", async ({
   browser,
 }) => {

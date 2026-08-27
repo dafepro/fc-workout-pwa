@@ -215,7 +215,7 @@ vi.mock("@canvas-physics/client", () => ({
 
 vi.mock("./data/lounge-gateway", () => ({
   prepareTeamLoungeJoin: vi.fn().mockResolvedValue({
-    roomID: "team:team-one:lounge:2026-08-24:v4",
+    roomID: "team:team-one:lounge:2026-08-24:v5",
     serverURL: "wss://example.test/canvas",
     credentialProvider: vi.fn(),
     visitorIDs: ["player-two"],
@@ -270,7 +270,7 @@ describe("SharedLoungeCanvas", () => {
     runtime.transformed = [];
     gateway.refresh.mockReset();
     gateway.refresh.mockResolvedValue({
-      roomID: "team:team-one:lounge:2026-08-24:v4",
+      roomID: "team:team-one:lounge:2026-08-24:v5",
       placementCredits: 2,
       placementDay: "2026-08-26",
       placeableStamps: [
