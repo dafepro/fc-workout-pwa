@@ -100,13 +100,15 @@ retention, and child-safety decision.
 
 ## Latest dev delivery
 
-- Deployed application revision: `330f2d7d3ffd81b563f9de020916bacc5b85d26a`.
+- Deployed application revision: `66125e142ff78e8520ccee8acc46ef1863795ad5`.
 - Included Canvas revision: `238d317a69f931560c60aa217465572098a270a6`.
-- GitHub Actions dev update `33033893020` completed successfully on 2026-08-26.
+- GitHub Actions dev update `33036488838` completed successfully on 2026-08-26.
 - CI resolved and published the exact application revision, then reported the
-  dev API and Caddy containers healthy. The randomized mobile regression
-  rotated and moved six stamps without a rotation rejection or snap-back, while
-  retaining the drag-to-trash, scroll ownership, and no-overlap checks.
+  dev API and Caddy containers healthy. An independent password-gated smoke
+  returned `200` for the directory, home shell, all 17 referenced assets, and
+  API readiness. The Docker browser proof used separate Mason and Ava sessions
+  to verify live presence, emote expiry, independent stamp ownership, durable
+  transforms, reconnect traces, and next-team-local-day locks and credits.
 - The service worker is self-disabling on dev as a defense against stale app
   shells. Worker-first gating for static assets is also implemented in this
   branch, but becomes the trusted deployment control only after mainline
