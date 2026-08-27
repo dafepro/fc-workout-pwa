@@ -5,8 +5,10 @@ import { PlayerAvatar } from "../components/PlayerAvatar";
 import { ProgressBar } from "../components/ProgressBar";
 import { ReactionPicker } from "../components/ReactionPicker";
 import { TeamChallengeCard } from "../components/TeamChallengeCard";
+import { TeamRewardCard } from "../components/TeamRewardCard";
 import { copy } from "../content/copy";
 import { createSocialGateway } from "../data/social-gateway";
+import { createTeamRewardGateway } from "../data/team-reward-gateway";
 import type {
   Player,
   ReactionContext,
@@ -14,6 +16,7 @@ import type {
   TeamActivityProjection,
   TeamGoalStatus,
   TeamMemberProjection,
+  TeamRewardProjection,
 } from "../domain/types";
 import { entriesWithinDays } from "../domain/rules";
 import { useTraining } from "../state/training-context";
@@ -27,12 +30,22 @@ export default function TeamPage() {
     () => createSocialGateway(connected, teamID),
     [connected, teamID],
   );
+  const rewardGateway = useMemo(
+    () => createTeamRewardGateway(connected, teamID),
+    [connected, teamID],
+  );
   const [projection, setProjection] = useState<TeamActivityProjection | null>(
     null,
   );
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
     "loading",
   );
+  const [teamReward, setTeamReward] = useState<TeamRewardProjection | null>(
+    null,
+  );
+  const [rewardStatus, setRewardStatus] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
   const [cheerSelection, setCheerSelection] = useState<{
     player: Player;
     context: ReactionContext;
@@ -50,6 +63,16 @@ export default function TeamPage() {
     }
   }, [gateway]);
 
+  const loadReward = useCallback(async () => {
+    setRewardStatus("loading");
+    try {
+      setTeamReward(await rewardGateway.current());
+      setRewardStatus("ready");
+    } catch {
+      setRewardStatus("error");
+    }
+  }, [rewardGateway]);
+
   useEffect(() => {
     let active = true;
     void gateway.teamActivity().then(
@@ -64,6 +87,25 @@ export default function TeamPage() {
       active = false;
     };
   }, [gateway]);
+
+  useEffect(() => {
+    let active = true;
+    void rewardGateway.current().then(
+      (result) => {
+        if (!active) return;
+        setTeamReward(result);
+        setRewardStatus("ready");
+      },
+      () => {
+        if (!active) return;
+        setTeamReward(null);
+        setRewardStatus("error");
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [rewardGateway]);
 
   const displayedProjection = useMemo(() => {
     if (!projection || connected) return projection;
@@ -181,6 +223,21 @@ export default function TeamPage() {
 
       {displayedProjection ? (
         <>
+          {rewardStatus === "error" ? (
+            <section
+              className="notice notice--error team-reward-error"
+              role="alert"
+            >
+              <strong>{copy.teamReward.loadFailed}</strong>
+              <button type="button" onClick={() => void loadReward()}>
+                {copy.teamReward.retry}
+              </button>
+            </section>
+          ) : null}
+          {teamReward?.teamId === teamID ? (
+            <TeamRewardCard reward={teamReward} />
+          ) : null}
+
           <TeamChallengeCard
             challenge={displayedProjection.currentChallenge}
             members={displayedProjection.members}

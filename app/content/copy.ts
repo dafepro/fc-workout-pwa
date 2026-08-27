@@ -106,6 +106,16 @@ export const copy = {
     listLabel: "Recent team activity",
     action: "Team activity",
   },
+  teamReward: {
+    eyebrow: "Team reward",
+    progress: (current: number, target: number) =>
+      `${current} of ${target} team days`,
+    achieved: "Unlocked together!",
+    through: (date: string) => `Through ${date}`,
+    progressLabel: "Team reward progress",
+    loadFailed: "Team reward progress could not be loaded.",
+    retry: "Try reward again",
+  },
   momentum: {
     eyebrow: "Your momentum",
     states: {

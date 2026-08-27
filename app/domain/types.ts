@@ -195,6 +195,43 @@ export interface TeamActivityProjection {
   members: TeamMemberProjection[];
 }
 
+export interface TeamRewardDayProgress {
+  date: string;
+  activePlayers: number;
+  qualifyingPlayers: number;
+  requiredPlayers: number;
+  qualifies: boolean;
+}
+
+export interface TeamRewardProjection {
+  id: string;
+  teamId: string;
+  definitionId: string;
+  definitionVersion: number;
+  title: string;
+  description: string;
+  artworkId: string;
+  status: "active" | "achieved";
+  startsOn: string;
+  endsOn: string;
+  timeZone: string;
+  rule: {
+    version: 1;
+    requiredDays: number;
+    minimumRosterPercent: number;
+  };
+  progress: {
+    current: number;
+    target: number;
+    percent: number;
+    achieved: boolean;
+    days: TeamRewardDayProgress[];
+  };
+  achievedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface LeaderboardItem extends Player {
   rank: number;
   value: number;

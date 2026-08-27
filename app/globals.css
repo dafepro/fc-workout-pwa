@@ -2210,6 +2210,78 @@ h2 {
   text-align: center;
 }
 
+.team-reward-card {
+  display: grid;
+  min-width: 0;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1.1rem;
+  border: 2px solid #d9d2ff;
+  background: linear-gradient(145deg, #f5f2ff, white 72%);
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+}
+
+.team-reward-card.is-achieved {
+  border-color: #a8cf35;
+  background: linear-gradient(145deg, #f2ffd0, white 72%);
+}
+
+.team-reward-card__art {
+  display: grid;
+  width: 4.5rem;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 1.25rem;
+  background: linear-gradient(145deg, #4e3fd1, #7865ee);
+  box-shadow: 0 0.6rem 1.2rem rgb(78 63 209 / 24%);
+  color: white;
+  font-size: 1.15rem;
+  letter-spacing: 0.05em;
+}
+
+.team-reward-card.is-achieved .team-reward-card__art {
+  background: linear-gradient(145deg, #658f00, #a9d61b);
+}
+
+.team-reward-card__body {
+  min-width: 0;
+}
+
+.team-reward-card h2,
+.team-reward-card p {
+  margin: 0;
+}
+
+.team-reward-card h2 {
+  margin-top: 0.12rem;
+  font-size: clamp(1.35rem, 6vw, 1.85rem);
+}
+
+.team-reward-card__body > p:not(.eyebrow) {
+  margin-top: 0.3rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.team-reward-card__progress-copy {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.25rem 0.8rem;
+  margin: 0.8rem 0 0.45rem;
+  font-size: 0.76rem;
+}
+
+.team-reward-card__progress-copy span {
+  color: var(--muted);
+}
+
+.team-reward-error {
+  justify-content: space-between;
+}
+
 .challenge-card {
   display: grid;
   align-items: end;

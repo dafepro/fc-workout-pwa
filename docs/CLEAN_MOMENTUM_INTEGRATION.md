@@ -88,3 +88,5 @@ Each step is test-first and small enough to review independently.
   migration 000016 stores bounded aggregate progress authority and events, with logical-backup and reset coverage.
 - Team Reward authority: added idempotent, team-authorized dev publication/cancellation and production-safe reads;
   progress counts distinct active players through accepted plan work or planned rest and exposes aggregates only.
+- Player Team Reward: added one optional card to the canonical Team view with predefined art, copy, and team-day progress;
+  absent rewards render no placeholder, achieved rewards celebrate in place, and no contributor or performance details appear.
