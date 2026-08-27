@@ -1,6 +1,7 @@
 import vinext from "vinext";
 import { defineConfig } from "vite";
 import hostingConfig from "./.openai/hosting.json";
+import { resolveBuildProfile } from "./build/build-profile";
 import { sites } from "./build/sites-vite-plugin";
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
@@ -42,6 +43,8 @@ const bindingConfig = () => ({
 });
 
 export default defineConfig(async () => {
+  const buildProfile = resolveBuildProfile(process.env.ZOOMIGO_BUILD_PROFILE);
+
   // Keep Wrangler and Miniflare state project-local. These are non-secret tool
   // settings; application environment belongs in ignored `.env*` files.
   process.env.WRANGLER_WRITE_LOGS ??= "false";
@@ -52,6 +55,11 @@ export default defineConfig(async () => {
   const { cloudflare } = await import("@cloudflare/vite-plugin");
 
   return {
+    define: {
+      __ZOOMIGO_DEVELOPMENT_BUILD__: JSON.stringify(
+        buildProfile === "development",
+      ),
+    },
     server: isCodexSeatbeltSandbox
       ? { watch: { useFsEvents: false, usePolling: true } }
       : undefined,
