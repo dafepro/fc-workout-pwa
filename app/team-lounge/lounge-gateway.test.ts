@@ -7,7 +7,7 @@ import {
 
 const response = {
   ticket: "a".repeat(43),
-  roomId: "team:team-one:lounge:2026-08-24:v6",
+  roomId: "team:team-one:lounge:2026-08-24:v7",
   serverUrl: "https://api.example.test",
   visitorIds: ["player-two"],
 };

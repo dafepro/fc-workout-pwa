@@ -73,46 +73,51 @@ export const beachBoardwalkDefinitions = [
 
 export const beachBoardwalkCanvas: CanvasDefinition = {
   id: "zoomigo-beach-boardwalk",
-  version: 6,
+  version: 7,
   size: { width: 100, height: 150 },
   orientation: "topDown",
   backgroundAssetId: "lounge.background",
-  edges: { top: "solid", right: "solid", bottom: "solid", left: "solid" },
+  edges: {
+    top: "respawn",
+    right: "respawn",
+    bottom: "respawn",
+    left: "respawn",
+  },
   staticGeometry: [
     {
       id: "lifeguard-hut",
       shape: { type: "rect", width: 38, height: 42 },
       position: { x: 79, y: 27 },
       rotation: 0,
-      blocks: { avatars: true, items: true },
+      blocks: { avatars: true, items: false },
     },
     {
       id: "umbrella-table",
       shape: { type: "circle", radius: 14 },
       position: { x: 18, y: 36 },
       rotation: 0,
-      blocks: { avatars: true, items: true },
+      blocks: { avatars: true, items: false },
     },
     {
       id: "boardwalk-bench",
       shape: { type: "rect", width: 31, height: 21 },
       position: { x: 16, y: 108 },
       rotation: -0.12,
-      blocks: { avatars: true, items: true },
+      blocks: { avatars: true, items: false },
     },
     {
       id: "snack-cart",
       shape: { type: "rect", width: 28, height: 49 },
       position: { x: 88, y: 116.5 },
       rotation: 0.02,
-      blocks: { avatars: true, items: true },
+      blocks: { avatars: true, items: false },
     },
     {
       id: "lower-pool-edge",
       shape: { type: "rect", width: 76, height: 16 },
       position: { x: 25, y: 141 },
       rotation: 0.29,
-      blocks: { avatars: true, items: true },
+      blocks: { avatars: true, items: false },
     },
   ],
   regions: [],
@@ -125,7 +130,16 @@ export const beachBoardwalkCanvas: CanvasDefinition = {
       surfaceFrictionMultiplier: 1,
     },
   },
-  spawnPoints: [{ id: "arrival", position: { x: 43, y: 92 } }],
+  spawnPoints: [
+    // Canvas 0.4.1 edge respawns use the first point even when the policy names one.
+    { id: "ball-return", position: { x: 50, y: 75 } },
+    { id: "arrival", position: { x: 43, y: 92 } },
+  ],
+  respawn: {
+    delaySeconds: 0.35,
+    spawnPointId: "ball-return",
+    applyToQuarantine: true,
+  },
   systemItems: [
     {
       entityId: "boardwalk-beach-ball",

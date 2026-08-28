@@ -72,9 +72,7 @@ describe("canonical Team Lounge", () => {
         name: "Mason's interactive lounge canvas",
       }),
     );
-    expect(
-      screen.getByText("Press your player, then drag to move."),
-    ).toBeVisible();
+    expect(screen.queryByText(/drag to move/i)).not.toBeInTheDocument();
   });
 
   it("explains how to unlock the Lounge without mounting an empty canvas", () => {
@@ -112,9 +110,7 @@ describe("canonical Team Lounge", () => {
       screen.getByRole("button", { name: "Shared weekly lounge" }),
     );
     expect(screen.getByText("2 here")).toBeVisible();
-    expect(
-      screen.getByText("Press your player, then drag to move."),
-    ).toBeVisible();
+    expect(screen.queryByText(/drag to move/i)).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", {
         name: "Mason's interactive lounge canvas",

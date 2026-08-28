@@ -24,6 +24,11 @@ export function startLocalBeachBoardwalkSimulation({
 }) {
   const generation = 1;
   const avatarID = `avatar:${playerID}`;
+  const arrival = beachBoardwalkCanvas.spawnPoints.find(
+    ({ id }) => id === "arrival",
+  );
+  if (!arrival)
+    throw new Error("Beach Boardwalk is missing its arrival point.");
   let inputSequence = 0;
   let stopped = false;
   let settleReady: (() => void) | undefined;
@@ -63,7 +68,7 @@ export function startLocalBeachBoardwalkSimulation({
       entityId: avatarID,
       clientId: "zoomigo-local-lounge",
       userId: playerID,
-      position: beachBoardwalkCanvas.spawnPoints[0].position,
+      position: arrival.position,
       ...beachBoardwalkCanvas.avatarController,
     },
   });

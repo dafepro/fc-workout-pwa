@@ -10,6 +10,7 @@ import type {
 import { PlayerAvatar } from "../components/PlayerAvatar";
 import type { Player } from "../domain/types";
 import type { LoungeCanvasState } from "./LocalLoungeCanvas";
+import { loungeBallEntityID, publishLoungeBallPosition } from "./ball-position";
 import { prepareTeamLoungeJoin } from "./lounge-gateway";
 import { beachBoardwalkAssets } from "./scene/assets";
 import { beachBoardwalkDefinitions } from "./scene/beach-boardwalk";
@@ -54,6 +55,19 @@ export function SharedLoungeCanvas({
 
     const publishOverlays = () => {
       if (disposed) return;
+      const localParticipant = participants.find(
+        ({ userId }) => userId === playerID,
+      );
+      const localProjection = projections.find(
+        ({ entityId }) => entityId === localParticipant?.avatarEntityId,
+      );
+      if (localProjection) {
+        mount.dataset.playerX = localProjection.world.x.toFixed(3);
+        mount.dataset.playerY = localProjection.world.y.toFixed(3);
+      } else {
+        delete mount.dataset.playerX;
+        delete mount.dataset.playerY;
+      }
       setOverlays(
         participants.flatMap((participant) => {
           if (participant.status === "disconnected") return [];
@@ -92,6 +106,7 @@ export function SharedLoungeCanvas({
           background: 0x63c9dc,
           resolution: Math.min(devicePixelRatio, 2),
         },
+        spawnPointId: "arrival",
         pointer: {
           mode: "avatarDrag",
           deadZonePx: 2,
@@ -114,9 +129,14 @@ export function SharedLoungeCanvas({
       unsubscribeProjection = runtime.subscribeOverlayProjection(
         ({ entities }) => {
           projections = entities;
+          publishLoungeBallPosition(
+            mount,
+            entities.find(({ entityId }) => entityId === loungeBallEntityID)
+              ?.world,
+          );
           publishOverlays();
         },
-        { kinds: ["avatar"], maxEntities: 24, maxHz: 30 },
+        { kinds: ["avatar", "item"], maxEntities: 25, maxHz: 30 },
       );
       unsubscribeLifecycle = runtime.subscribeLifecycle(({ state }) => {
         if (state === "reconnecting") onStateChange("loading");

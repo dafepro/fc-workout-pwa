@@ -21,6 +21,10 @@ the Team Lounge.
 
 ## P2 — deliberate cleanup and product decisions
 
+- **Remove the Canvas 0.4.1 spawn-order compatibility shim after upgrading.**
+  The beach scene currently lists the ball-return point first because 0.4.1 edge
+  recovery ignores the named policy point; player runtimes explicitly request
+  `arrival`. Recheck the upstream behavior before simplifying that ordering.
 - **Decide production training-plan authoring authority.** The curated weekly
   planner now replaces legacy assignment creation in development builds. Keep
   production on the existing assignment console until the plan mutation routes

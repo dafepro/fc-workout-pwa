@@ -92,14 +92,14 @@ func TestWeeklyRoomIdentityRoundTrips(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if roomID != "team:team-one:lounge:2026-08-24:v6" {
+	if roomID != "team:team-one:lounge:2026-08-24:v7" {
 		t.Fatalf("room id = %q", roomID)
 	}
 	teamID, weekKey, err := ParseWeeklyRoomID(roomID)
 	if err != nil || teamID != "team-one" || weekKey != "2026-08-24" {
 		t.Fatalf("parsed = %q, %q, %v", teamID, weekKey, err)
 	}
-	for _, invalid := range []string{"", "team:other", "team:team/one:lounge:2026-08-24:v6", "team:team-one:lounge:today:v6", "team:team-one:lounge:2026-08-25:v6", "team:team-one:lounge:2026-08-24", "team:team-one:lounge:2026-08-24:v5"} {
+	for _, invalid := range []string{"", "team:other", "team:team/one:lounge:2026-08-24:v7", "team:team-one:lounge:today:v7", "team:team-one:lounge:2026-08-25:v7", "team:team-one:lounge:2026-08-24", "team:team-one:lounge:2026-08-24:v6"} {
 		if _, _, err := ParseWeeklyRoomID(invalid); err == nil {
 			t.Fatalf("accepted invalid room id %q", invalid)
 		}
@@ -134,13 +134,28 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 	if canvas.CanvasID != BeachBoardwalkCanvasID || canvas.Version != BeachBoardwalkCanvasVersion || !json.Valid(canvas.DefinitionRaw) {
 		t.Fatalf("canvas record = %#v", canvas)
 	}
-	if canvas.Version != 6 {
+	if canvas.Version != 7 {
 		t.Fatalf("canvas version = %d", canvas.Version)
 	}
 	var shape struct {
-		ID      string `json:"id"`
-		Version uint32 `json:"version"`
-		Limits  struct {
+		ID             string            `json:"id"`
+		Version        uint32            `json:"version"`
+		Edges          map[string]string `json:"edges"`
+		StaticGeometry []struct {
+			Blocks struct {
+				Avatars bool `json:"avatars"`
+				Items   bool `json:"items"`
+			} `json:"blocks"`
+		} `json:"staticGeometry"`
+		SpawnPoints []struct {
+			ID string `json:"id"`
+		} `json:"spawnPoints"`
+		Respawn struct {
+			DelaySeconds      float64 `json:"delaySeconds"`
+			SpawnPointID      string  `json:"spawnPointId"`
+			ApplyToQuarantine bool    `json:"applyToQuarantine"`
+		} `json:"respawn"`
+		Limits struct {
 			MaxAvatars int `json:"maxAvatars"`
 			MaxItems   int `json:"maxItems"`
 		} `json:"limits"`
@@ -156,6 +171,22 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 	}
 	if shape.ID != canvas.CanvasID || shape.Version != canvas.Version || len(shape.SystemItems) != 1 || shape.SystemItems[0].DefinitionID != "beach-ball" {
 		t.Fatalf("canvas shape = %#v", shape)
+	}
+	for _, edge := range []string{"top", "right", "bottom", "left"} {
+		if shape.Edges[edge] != "respawn" {
+			t.Fatalf("canvas edge %s = %q", edge, shape.Edges[edge])
+		}
+	}
+	for _, geometry := range shape.StaticGeometry {
+		if !geometry.Blocks.Avatars || geometry.Blocks.Items {
+			t.Fatalf("unsafe ball-blocking geometry = %#v", geometry.Blocks)
+		}
+	}
+	if len(shape.SpawnPoints) < 2 || shape.SpawnPoints[0].ID != "ball-return" || shape.SpawnPoints[1].ID != "arrival" {
+		t.Fatalf("canvas spawn points = %#v", shape.SpawnPoints)
+	}
+	if shape.Respawn.SpawnPointID != "ball-return" || shape.Respawn.DelaySeconds <= 0 || !shape.Respawn.ApplyToQuarantine {
+		t.Fatalf("canvas respawn policy = %#v", shape.Respawn)
 	}
 	if shape.SystemItems[0].Transform.Scale != 1 {
 		t.Fatalf("beach ball scale = %v", shape.SystemItems[0].Transform.Scale)

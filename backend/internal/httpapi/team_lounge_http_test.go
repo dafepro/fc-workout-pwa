@@ -90,7 +90,7 @@ func TestCanonicalTeamLoungeRequiresTodayCheckInAndJoinsCanvasRoom(t *testing.T)
 	if err := json.NewDecoder(ticketResponse.Body).Decode(&credential); err != nil {
 		t.Fatal(err)
 	}
-	if len(credential.Ticket) != 43 || credential.RoomID != "team:team-one:lounge:2026-08-24:v6" ||
+	if len(credential.Ticket) != 43 || credential.RoomID != "team:team-one:lounge:2026-08-24:v7" ||
 		credential.WeekKey != "2026-08-24" || credential.DayKey != "2026-08-26" ||
 		credential.Theme != "Beach Boardwalk" || credential.Presence != 0 {
 		t.Fatalf("credential = %#v", credential)

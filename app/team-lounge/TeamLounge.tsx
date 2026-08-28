@@ -77,13 +77,11 @@ export function TeamLounge({
           <p className="team-lounge__status" role="alert">
             {copy.teamLounge.unavailable}
           </p>
-        ) : unlocked ? (
+        ) : unlocked && state !== "ready" ? (
           <p className="team-lounge__status" aria-live="polite">
             {state === "loading"
               ? copy.teamLounge.loading
-              : state === "static"
-                ? copy.teamLounge.static
-                : copy.teamLounge.ready}
+              : copy.teamLounge.static}
           </p>
         ) : null}
       </div>

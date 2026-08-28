@@ -47,32 +47,92 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   const stage = lounge.getByLabel("Interactive lounge canvas");
   await expect(stage).toBeVisible();
   await expect(stage.locator("canvas")).toBeVisible({ timeout: 15_000 });
-  await expect(
-    lounge.getByText("Press your player, then drag to move."),
-  ).toBeVisible();
+  await expect(lounge.getByText(/drag to move/i)).toHaveCount(0);
   await expect(lounge.getByLabel("Mason C., you")).toBeVisible();
+  await expect
+    .poll(async () => Number(await stage.getAttribute("data-ball-x")))
+    .toBeGreaterThan(0);
+  const startingBallX = Number(await stage.getAttribute("data-ball-x"));
+  await stage.evaluate((element) => {
+    let previous = Number(element.dataset.ballX);
+    element.dataset.e2eBallMinX = String(previous);
+    element.dataset.e2eBallMaxX = String(previous);
+    element.dataset.e2eBallReturned = "false";
+    new MutationObserver(() => {
+      const current = Number(element.dataset.ballX);
+      const maximum = Math.max(Number(element.dataset.e2eBallMaxX), current);
+      element.dataset.e2eBallMinX = String(
+        Math.min(Number(element.dataset.e2eBallMinX), current),
+      );
+      element.dataset.e2eBallMaxX = String(maximum);
+      if (maximum > 95 && previous > 90 && current < 60) {
+        element.dataset.e2eBallReturned = "true";
+      }
+      previous = current;
+    }).observe(element, {
+      attributes: true,
+      attributeFilter: ["data-ball-x"],
+    });
+  });
 
   const playerName = lounge.getByText("You", { exact: true });
   await expect(playerName).toBeVisible();
-  const startingPlayer = await playerName.boundingBox();
-  expect(startingPlayer).not.toBeNull();
+  await expect
+    .poll(async () => Number(await stage.getAttribute("data-player-x")))
+    .toBeGreaterThan(0);
   const canvas = stage.locator("canvas");
   const canvasBox = await canvas.boundingBox();
   expect(canvasBox).not.toBeNull();
-  await page.mouse.move(
-    startingPlayer!.x + startingPlayer!.width / 2,
-    startingPlayer!.y + 30,
-  );
-  await page.mouse.down();
-  await page.mouse.move(
-    Math.min(startingPlayer!.x + 55, canvasBox!.x + canvasBox!.width - 8),
-    startingPlayer!.y + 30,
-    { steps: 8 },
-  );
-  await page.mouse.up();
+  const dragSelfToWorld = async (x: number, y: number) => {
+    const current = await playerName.boundingBox();
+    expect(current).not.toBeNull();
+    await page.mouse.move(current!.x + current!.width / 2, current!.y + 30);
+    await page.mouse.down();
+    await page.mouse.move(
+      canvasBox!.x + canvasBox!.width * (x / 100),
+      canvasBox!.y + canvasBox!.height * (y / 150),
+      { steps: 24 },
+    );
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+  };
+
+  await dragSelfToWorld(45, 98);
   await expect
-    .poll(async () => (await playerName.boundingBox())?.x ?? startingPlayer!.x)
-    .toBeGreaterThan(startingPlayer!.x + 3);
+    .poll(async () => Number(await stage.getAttribute("data-player-x")))
+    .toBeCloseTo(45, 0);
+  await expect
+    .poll(async () => Number(await stage.getAttribute("data-player-y")))
+    .toBeCloseTo(98, 0);
+  await dragSelfToWorld(55, 98);
+  await expect
+    .poll(async () => Number(await stage.getAttribute("data-e2e-ball-max-x")))
+    .toBeGreaterThan(startingBallX + 1);
+
+  await dragSelfToWorld(96, 98);
+  await expect
+    .poll(() => stage.getAttribute("data-e2e-ball-returned"), {
+      timeout: 15_000,
+    })
+    .toBe("true");
+  await expect
+    .poll(async () => Number(await stage.getAttribute("data-ball-x")))
+    .toBeCloseTo(50, 0);
+  await expect
+    .poll(async () => Number(await stage.getAttribute("data-ball-y")))
+    .toBeCloseTo(75, 0);
+
+  await dragSelfToWorld(35, 98);
+  await dragSelfToWorld(35, 75);
+  await stage.evaluate((element) => {
+    const current = Number(element.dataset.ballX);
+    element.dataset.e2eBallMinX = String(current);
+    element.dataset.e2eBallMaxX = String(current);
+  });
+  await dragSelfToWorld(45, 75);
+  await expect
+    .poll(async () => Number(await stage.getAttribute("data-e2e-ball-max-x")))
+    .toBeGreaterThan(52);
 
   await expect(lounge.getByRole("combobox")).toHaveCount(0);
   await expect(lounge).not.toContainText(/\bV[12]\b|alternative|preview/i);

@@ -4205,6 +4205,11 @@ h2 {
   transform: translate(-50%, -50%);
 }
 
+.team-lounge__avatar-fallback .avatar__self-marker,
+.team-lounge__shared-avatar .avatar__self-marker {
+  display: none;
+}
+
 .team-lounge__shared-avatar span {
   position: absolute;
   bottom: 1.65rem;

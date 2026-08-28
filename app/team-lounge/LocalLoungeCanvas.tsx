@@ -5,6 +5,7 @@ import type { AvatarPointerIntent, RenderEntity } from "@canvas-physics/client";
 
 import { PlayerAvatar } from "../components/PlayerAvatar";
 import type { Player } from "../domain/types";
+import { loungeBallEntityID, publishLoungeBallPosition } from "./ball-position";
 import { startLocalBeachBoardwalkSimulation } from "./local-simulation";
 import { beachBoardwalkAssets } from "./scene/assets";
 import {
@@ -89,6 +90,11 @@ export function LocalLoungeCanvas({
         driver,
         onRender(next) {
           entities = next;
+          const ball = next.find(({ id }) => id === loungeBallEntityID);
+          publishLoungeBallPosition(
+            mount,
+            ball ? { x: ball.x, y: ball.y } : undefined,
+          );
         },
         onError() {
           if (!disposed) onStateChange("error");
