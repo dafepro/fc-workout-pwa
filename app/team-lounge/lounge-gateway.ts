@@ -79,3 +79,70 @@ export async function prepareTeamLoungeJoin(teamID: string) {
     },
   };
 }
+
+export async function reserveTeamLoungePlacement(
+  teamID: string,
+  roomID: string,
+  definitionID: string,
+  position: { x: number; y: number },
+  idempotencyKey: string,
+): Promise<{ placementID: string; remaining: number }> {
+  const response = await fetch(
+    `/api/zoomigo/v1/teams/${encodeURIComponent(teamID)}/lounge/placements`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": idempotencyKey,
+      },
+      body: JSON.stringify({
+        roomId: roomID,
+        definitionId: definitionID,
+        position,
+      }),
+    },
+  );
+  if (!response.ok) throw await placementError(response);
+  const body = (await response.json()) as Record<string, unknown>;
+  const placementID = body.placementId;
+  const remaining = body.remainingPlacements;
+  if (
+    typeof placementID !== "string" ||
+    !/^lounge-placement-[a-f0-9]{32}$/u.test(placementID) ||
+    !Number.isInteger(remaining) ||
+    (remaining as number) < 0
+  ) {
+    throw new Error("That Lounge item could not be placed.");
+  }
+  return { placementID, remaining: remaining as number };
+}
+
+export async function commitTeamLoungePlacement(
+  teamID: string,
+  roomID: string,
+  placementID: string,
+  entityID: string,
+): Promise<void> {
+  const response = await fetch(
+    `/api/zoomigo/v1/teams/${encodeURIComponent(teamID)}/lounge/placements/${encodeURIComponent(placementID)}/commit`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ roomId: roomID, entityId: entityID }),
+    },
+  );
+  if (!response.ok) throw await placementError(response);
+}
+
+async function placementError(response: Response): Promise<Error> {
+  let message = "That Lounge item could not be placed.";
+  try {
+    const body = (await response.json()) as {
+      error?: { message?: string };
+    };
+    message = body.error?.message ?? message;
+  } catch {
+    // The fixed fallback is safe when an intermediary returns a non-JSON error.
+  }
+  return new Error(message);
+}

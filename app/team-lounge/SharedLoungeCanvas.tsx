@@ -19,7 +19,11 @@ import {
   type LoungeEmote,
 } from "./lounge-emotes";
 import { loungeDevelopment, type LoungeItemChoice } from "#lounge-development";
-import { prepareTeamLoungeJoin } from "./lounge-gateway";
+import {
+  commitTeamLoungePlacement,
+  prepareTeamLoungeJoin,
+  reserveTeamLoungePlacement,
+} from "./lounge-gateway";
 import { beachBoardwalkAssets } from "./scene/assets";
 import { beachBoardwalkDefinitions } from "./scene/beach-boardwalk";
 
@@ -57,6 +61,7 @@ export function SharedLoungeCanvas({
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const runtimeRef = useRef<CanvasRuntime | null>(null);
+  const roomIDRef = useRef("");
   const rosterRef = useRef(roster);
   const [overlays, setOverlays] = useState<AvatarOverlay[]>([]);
   const [itemOverlays, setItemOverlays] = useState<ItemOverlay[]>([]);
@@ -67,8 +72,7 @@ export function SharedLoungeCanvas({
   const [selectedItem, setSelectedItem] = useState<LoungeItemChoice | null>(
     null,
   );
-  const [placementCredits, setPlacementCredits] = useState(0);
-  const [usedPlacements, setUsedPlacements] = useState(0);
+  const [remainingPlacements, setRemainingPlacements] = useState(0);
   const [placing, setPlacing] = useState(false);
   const [actionMessage, setActionMessage] = useState("");
   const [emote, setEmote] = useState<LoungeEmote | null>(null);
@@ -98,7 +102,6 @@ export function SharedLoungeCanvas({
     let unsubscribePresence: () => void = () => undefined;
     let unsubscribeProjection: () => void = () => undefined;
     let unsubscribeLifecycle: () => void = () => undefined;
-    let unsubscribeCanonical: () => void = () => undefined;
 
     const publishOverlays = () => {
       if (disposed) return;
@@ -140,7 +143,8 @@ export function SharedLoungeCanvas({
     void (async () => {
       const join = await prepareTeamLoungeJoin(teamID);
       if (disposed) return;
-      setPlacementCredits(join.placementCredits);
+      roomIDRef.current = join.roomID;
+      setRemainingPlacements(join.placementCredits);
       setVisitorIDs(join.visitorIDs);
       let definitions = beachBoardwalkDefinitions;
       if (loungeDevelopment.enabled) {
@@ -188,15 +192,6 @@ export function SharedLoungeCanvas({
         onError: () => !disposed && onStateChange("error"),
       });
       runtimeRef.current = runtime;
-      unsubscribeCanonical = runtime.subscribeCanonicalState(({ entities }) => {
-        const canonicalUsed = entities.filter(
-          ({ kind, ownerUserId, definitionId }) =>
-            kind === "item" &&
-            ownerUserId === playerID &&
-            Boolean(loungeDevelopment.itemForDefinition(definitionId)),
-        ).length;
-        setUsedPlacements((current) => Math.max(current, canonicalUsed));
-      });
       unsubscribePresence = runtime.subscribePresence(
         ({ participants: nextParticipants }) => {
           participants = nextParticipants;
@@ -251,18 +246,19 @@ export function SharedLoungeCanvas({
       unsubscribePresence();
       unsubscribeProjection();
       unsubscribeLifecycle();
-      unsubscribeCanonical();
       const active = runtime;
       runtime = undefined;
       runtimeRef.current = null;
+      roomIDRef.current = "";
       if (active) void active.stopGracefully(500).catch(() => active.stop());
     };
   }, [onPresenceChange, onStateChange, playerID, teamID]);
 
   const placeItem = async (event: MouseEvent<HTMLButtonElement>) => {
     const runtime = runtimeRef.current;
+    const roomID = roomIDRef.current;
     const mount = mountRef.current;
-    if (!runtime || !mount || !selectedItem || placing) return;
+    if (!runtime || !roomID || !mount || !selectedItem || placing) return;
     const bounds = mount.getBoundingClientRect();
     const point = {
       x: Math.max(
@@ -275,15 +271,37 @@ export function SharedLoungeCanvas({
       ),
     };
     setPlacing(true);
-    const outcome = await runtime.spawnItem(selectedItem.definitionId, point)
-      .settled;
-    setPlacing(false);
-    if (outcome.status === "accepted") {
-      setUsedPlacements((current) => Math.max(current, usedPlacements + 1));
-      setActionMessage(`${selectedItem.label} placed.`);
-      setSelectedItem(null);
-    } else {
-      setActionMessage("That item could not be placed.");
+    try {
+      const reservation = await reserveTeamLoungePlacement(
+        teamID,
+        roomID,
+        selectedItem.definitionId,
+        point,
+        crypto.randomUUID(),
+      );
+      setRemainingPlacements(reservation.remaining);
+      const outcome = await runtime.spawnItem(selectedItem.definitionId, point)
+        .settled;
+      if (outcome.status === "accepted" && outcome.item?.entityId) {
+        await commitTeamLoungePlacement(
+          teamID,
+          roomID,
+          reservation.placementID,
+          outcome.item.entityId,
+        );
+        setActionMessage(`${selectedItem.label} placed.`);
+        setSelectedItem(null);
+      } else {
+        setActionMessage("That item could not be placed.");
+      }
+    } catch (error) {
+      setActionMessage(
+        error instanceof Error
+          ? error.message
+          : "That item could not be placed.",
+      );
+    } finally {
+      setPlacing(false);
     }
   };
 
@@ -304,7 +322,7 @@ export function SharedLoungeCanvas({
     );
   };
 
-  const remaining = Math.max(0, placementCredits - usedPlacements);
+  const remaining = remainingPlacements;
 
   return (
     <>

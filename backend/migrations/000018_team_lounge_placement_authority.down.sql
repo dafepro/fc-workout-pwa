@@ -1,0 +1,12 @@
+DROP INDEX IF EXISTS team_lounge_placement_reservation_ids;
+DROP INDEX IF EXISTS team_lounge_placement_reservations;
+ALTER TABLE team_lounge_placement_credits DROP COLUMN placed_at;
+ALTER TABLE team_lounge_placement_credits DROP COLUMN reserved_at;
+ALTER TABLE team_lounge_placement_credits DROP COLUMN entity_id;
+ALTER TABLE team_lounge_placement_credits DROP COLUMN placement_state;
+ALTER TABLE team_lounge_placement_credits DROP COLUMN position_y;
+ALTER TABLE team_lounge_placement_credits DROP COLUMN position_x;
+ALTER TABLE team_lounge_placement_credits DROP COLUMN definition_id;
+ALTER TABLE team_lounge_placement_credits DROP COLUMN request_hash;
+ALTER TABLE team_lounge_placement_credits DROP COLUMN idempotency_key_hash;
+ALTER TABLE team_lounge_placement_credits DROP COLUMN reservation_id;

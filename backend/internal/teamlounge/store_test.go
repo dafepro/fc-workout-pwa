@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -83,6 +84,126 @@ func TestPlacementBudgetBackfillsCurrentWeekCheckInsAndUsesTeamTime(t *testing.T
 	}
 	if budget.DayKey != "2026-08-26" || budget.WeekKey != "2026-08-24" || budget.Earned != 2 {
 		t.Fatalf("placement budget = %+v", budget)
+	}
+}
+
+func TestReservePlacementConsumesOneCreditIdempotently(t *testing.T) {
+	db := openMigratedDatabase(t)
+	seedTeam(t, db)
+	for _, statement := range []string{
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-one', 'club-one', 'One', 'P', '{}', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-one', 'player-one', '2026-01-01')`,
+		`INSERT INTO training_entries (id, player_id, team_id, activity_definition_id, occurred_at, result_value, result_unit, effort_level, exhaustion_level, created_at, delete_eligible_until)
+		 VALUES ('entry-one', 'player-one', 'team-one', 'hill-sprints', '2026-08-26T17:00:00Z', 8, 'reps', 3, 3, '2026-08-26T17:00:00Z', '2026-08-27T17:00:00Z')`,
+	} {
+		if _, err := db.ExecContext(t.Context(), statement); err != nil {
+			t.Fatal(err)
+		}
+	}
+	store := NewSQLiteStore(db, BeachBoardwalkDevelopmentCatalog())
+	now := time.Date(2026, time.August, 26, 18, 0, 0, 0, time.UTC)
+	request := PlacementRequest{DefinitionID: "zoomigo-stamp-bolt", X: 40, Y: 70}
+	if _, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:2026-08-24:v8", "player-one", "unbound-room", request, now); !errors.Is(err, ErrPlacementUnavailable) {
+		t.Fatalf("unbound room reservation error = %v", err)
+	}
+	bindPlacementRoom(t, store)
+	first, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:2026-08-24:v8", "player-one", "one-request", request, now)
+	if err != nil || first.Replayed || first.Remaining != 0 || first.ID == "" {
+		t.Fatalf("first reservation = %+v, %v", first, err)
+	}
+	replay, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:2026-08-24:v8", "player-one", "one-request", request, now)
+	if err != nil || !replay.Replayed || replay.ID != first.ID {
+		t.Fatalf("replayed reservation = %+v, %v", replay, err)
+	}
+	if err := store.CommitPlacement(t.Context(), "team:team-one:lounge:2026-08-24:v8", "player-one", first.ID, "canvas-entity-one", now); err != nil {
+		t.Fatalf("commit reservation: %v", err)
+	}
+	if err := store.CommitPlacement(t.Context(), "team:team-one:lounge:2026-08-24:v8", "player-one", first.ID, "canvas-entity-one", now); err != nil {
+		t.Fatalf("replay reservation commit: %v", err)
+	}
+	if err := store.CommitPlacement(t.Context(), "team:team-one:lounge:2026-08-24:v8", "player-one", first.ID, "different-entity", now); !errors.Is(err, ErrPlacementUnavailable) {
+		t.Fatalf("conflicting reservation commit error = %v", err)
+	}
+	_, err = store.ReservePlacement(t.Context(), "team:team-one:lounge:2026-08-24:v8", "player-one", "another-request", request, now)
+	if !errors.Is(err, ErrPlacementCreditsExhausted) {
+		t.Fatalf("second reservation error = %v", err)
+	}
+}
+
+func TestReservePlacementRequiresOwnedEarnedItem(t *testing.T) {
+	db := openMigratedDatabase(t)
+	seedTeam(t, db)
+	for _, statement := range []string{
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-one', 'club-one', 'One', 'P', '{}', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-one', 'player-one', '2026-01-01')`,
+		`INSERT INTO training_entries (id, player_id, team_id, activity_definition_id, occurred_at, result_value, result_unit, effort_level, exhaustion_level, created_at, delete_eligible_until)
+		 VALUES ('entry-one', 'player-one', 'team-one', 'hill-sprints', '2026-08-26T17:00:00Z', 8, 'reps', 3, 3, '2026-08-26T17:00:00Z', '2026-08-27T17:00:00Z')`,
+	} {
+		if _, err := db.ExecContext(t.Context(), statement); err != nil {
+			t.Fatal(err)
+		}
+	}
+	store := NewSQLiteStore(db, BeachBoardwalkDevelopmentCatalog())
+	bindPlacementRoom(t, store)
+	now := time.Date(2026, time.August, 26, 18, 0, 0, 0, time.UTC)
+	request := PlacementRequest{DefinitionID: "zoomigo-stamp-shield", X: 40, Y: 70}
+	if _, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:2026-08-24:v8", "player-one", "locked-item", request, now); !errors.Is(err, ErrPlacementItemUnavailable) {
+		t.Fatalf("unowned reservation error = %v", err)
+	}
+	if _, err := db.ExecContext(t.Context(), `INSERT INTO player_unlocks (player_id, item_kind, item_id, source, unlocked_at) VALUES ('player-one', 'lounge_stamp', 'lounge-stamp-shield', 'daily_check_in', '2026-08-26T17:30:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:2026-08-24:v8", "player-one", "owned-item", request, now); err != nil {
+		t.Fatalf("owned reservation: %v", err)
+	}
+}
+
+func TestReservePlacementSerializesConcurrentCreditClaims(t *testing.T) {
+	db := openMigratedDatabase(t)
+	seedTeam(t, db)
+	for _, statement := range []string{
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-one', 'club-one', 'One', 'P', '{}', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-one', 'player-one', '2026-01-01')`,
+		`INSERT INTO training_entries (id, player_id, team_id, activity_definition_id, occurred_at, result_value, result_unit, effort_level, exhaustion_level, created_at, delete_eligible_until)
+		 VALUES ('entry-one', 'player-one', 'team-one', 'hill-sprints', '2026-08-26T17:00:00Z', 8, 'reps', 3, 3, '2026-08-26T17:00:00Z', '2026-08-27T17:00:00Z')`,
+	} {
+		if _, err := db.ExecContext(t.Context(), statement); err != nil {
+			t.Fatal(err)
+		}
+	}
+	store := NewSQLiteStore(db, BeachBoardwalkDevelopmentCatalog())
+	bindPlacementRoom(t, store)
+	now := time.Date(2026, time.August, 26, 18, 0, 0, 0, time.UTC)
+	request := PlacementRequest{DefinitionID: "zoomigo-stamp-bolt", X: 40, Y: 70}
+	start := make(chan struct{})
+	errorsSeen := make(chan error, 8)
+	var wait sync.WaitGroup
+	for index := range 8 {
+		wait.Add(1)
+		go func() {
+			defer wait.Done()
+			<-start
+			_, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:2026-08-24:v8", "player-one", fmt.Sprintf("claim-%d", index), request, now)
+			errorsSeen <- err
+		}()
+	}
+	close(start)
+	wait.Wait()
+	close(errorsSeen)
+	succeeded := 0
+	exhausted := 0
+	for err := range errorsSeen {
+		switch {
+		case err == nil:
+			succeeded++
+		case errors.Is(err, ErrPlacementCreditsExhausted):
+			exhausted++
+		default:
+			t.Errorf("concurrent reservation error = %v", err)
+		}
+	}
+	if succeeded != 1 || exhausted != 7 {
+		t.Fatalf("concurrent reservations succeeded=%d exhausted=%d", succeeded, exhausted)
 	}
 }
 
@@ -293,6 +414,19 @@ func openMigratedDatabase(t *testing.T) *sql.DB {
 		t.Fatal(err)
 	}
 	return db
+}
+
+func bindPlacementRoom(t *testing.T, store *SQLiteStore) {
+	t.Helper()
+	if _, err := store.BindRoom(
+		t.Context(),
+		"team:team-one:lounge:2026-08-24:v8",
+		"team-one",
+		"2026-08-24",
+		roomsdk.RoomTemplate{CanvasID: "beach-boardwalk", CanvasVersion: 8},
+	); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func seedTeam(t *testing.T, db *sql.DB) {

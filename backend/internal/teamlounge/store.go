@@ -1,14 +1,27 @@
 package teamlounge
 
 import (
+	"bytes"
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/dafepro/canvas/server/pkg/roomsdk"
+	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
+)
+
+var (
+	ErrPlacementCreditsExhausted = errors.New("lounge placement credits exhausted")
+	ErrPlacementItemUnavailable  = errors.New("lounge placement item unavailable")
+	ErrPlacementIdempotency      = errors.New("lounge placement idempotency conflict")
+	ErrPlacementUnavailable      = errors.New("lounge placement unavailable")
 )
 
 type Catalog struct {
@@ -32,10 +45,27 @@ type VisitTrace struct {
 }
 
 type PlacementBudget struct {
-	TeamID  string
-	WeekKey string
-	DayKey  string
-	Earned  int
+	TeamID    string
+	WeekKey   string
+	DayKey    string
+	Earned    int
+	Used      int
+	Remaining int
+}
+
+type PlacementRequest struct {
+	DefinitionID string
+	X            float64
+	Y            float64
+}
+
+type PlacementReservation struct {
+	ID           string
+	DefinitionID string
+	X            float64
+	Y            float64
+	Remaining    int
+	Replayed     bool
 }
 
 type RoomBindingResult struct {
@@ -388,10 +418,180 @@ func (store *SQLiteStore) PlacementBudget(
 		WHERE team_id = ? AND player_id = ? AND week_key = ?`, teamID, playerID, weekKey).Scan(&earned); err != nil {
 		return PlacementBudget{}, fmt.Errorf("count lounge placement credits: %w", err)
 	}
+	var used int
+	if err = tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM team_lounge_placement_credits
+		WHERE team_id = ? AND player_id = ? AND week_key = ? AND placement_state IN ('reserved', 'placed')`,
+		teamID, playerID, weekKey).Scan(&used); err != nil {
+		return PlacementBudget{}, fmt.Errorf("count lounge placements: %w", err)
+	}
 	if err = tx.Commit(); err != nil {
 		return PlacementBudget{}, fmt.Errorf("commit lounge placement reconciliation: %w", err)
 	}
-	return PlacementBudget{TeamID: teamID, WeekKey: weekKey, DayKey: week.DayKey, Earned: earned}, nil
+	return PlacementBudget{
+		TeamID: teamID, WeekKey: weekKey, DayKey: week.DayKey,
+		Earned: earned, Used: used, Remaining: max(0, earned-used),
+	}, nil
+}
+
+func (store *SQLiteStore) ReservePlacement(
+	ctx context.Context,
+	roomID, playerID, idempotencyKey string,
+	request PlacementRequest,
+	now time.Time,
+) (PlacementReservation, error) {
+	if playerID == "" || len(idempotencyKey) < 1 || len(idempotencyKey) > 128 ||
+		request.DefinitionID == "" || math.IsNaN(request.X) || math.IsNaN(request.Y) ||
+		math.IsInf(request.X, 0) || math.IsInf(request.Y, 0) ||
+		request.X < 0 || request.X > 100 || request.Y < 0 || request.Y > 150 {
+		return PlacementReservation{}, ErrPlacementUnavailable
+	}
+	if _, err := store.ResolveRoomTemplate(ctx, roomID); err != nil {
+		return PlacementReservation{}, ErrPlacementUnavailable
+	}
+	budget, err := store.PlacementBudget(ctx, roomID, playerID, now)
+	if err != nil {
+		return PlacementReservation{}, err
+	}
+	if _, ok := store.definitions[catalogKey{request.DefinitionID, 1}]; !ok {
+		return PlacementReservation{}, ErrPlacementItemUnavailable
+	}
+	itemID, included := loungePlacementItem(request.DefinitionID)
+	if itemID == "" {
+		return PlacementReservation{}, ErrPlacementItemUnavailable
+	}
+	if !included {
+		var owned int
+		if err := store.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM player_unlocks
+			WHERE player_id = ? AND item_id = ?`, playerID, itemID).Scan(&owned); err != nil {
+			return PlacementReservation{}, fmt.Errorf("authorize lounge placement inventory: %w", err)
+		}
+		if owned != 1 {
+			return PlacementReservation{}, ErrPlacementItemUnavailable
+		}
+	}
+	keyHash := sha256.Sum256([]byte(idempotencyKey))
+	requestHash := sha256.Sum256([]byte(fmt.Sprintf("%s\x00%.6f\x00%.6f", request.DefinitionID, request.X, request.Y)))
+	connection, err := store.db.Conn(ctx)
+	if err != nil {
+		return PlacementReservation{}, fmt.Errorf("open lounge placement transaction: %w", err)
+	}
+	defer connection.Close()
+	if _, err = connection.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
+		return PlacementReservation{}, fmt.Errorf("begin lounge placement transaction: %w", err)
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_, _ = connection.ExecContext(context.Background(), "ROLLBACK")
+		}
+	}()
+
+	var replay PlacementReservation
+	var storedHash []byte
+	err = connection.QueryRowContext(ctx, `SELECT reservation_id, request_hash, definition_id,
+		position_x, position_y FROM team_lounge_placement_credits
+		WHERE player_id = ? AND idempotency_key_hash = ?`, playerID, keyHash[:]).Scan(
+		&replay.ID, &storedHash, &replay.DefinitionID, &replay.X, &replay.Y,
+	)
+	if err == nil {
+		if !bytes.Equal(storedHash, requestHash[:]) {
+			return PlacementReservation{}, ErrPlacementIdempotency
+		}
+		replay.Replayed = true
+		replay.Remaining = budget.Remaining
+		if _, err = connection.ExecContext(ctx, "COMMIT"); err != nil {
+			return PlacementReservation{}, fmt.Errorf("commit lounge placement replay: %w", err)
+		}
+		committed = true
+		return replay, nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return PlacementReservation{}, fmt.Errorf("load lounge placement replay: %w", err)
+	}
+	var used int
+	if err = connection.QueryRowContext(ctx, `SELECT COUNT(*) FROM team_lounge_placement_credits
+		WHERE team_id = ? AND player_id = ? AND week_key = ? AND placement_state IN ('reserved', 'placed')`,
+		budget.TeamID, playerID, budget.WeekKey).Scan(&used); err != nil {
+		return PlacementReservation{}, fmt.Errorf("count reserved lounge placements: %w", err)
+	}
+	if used >= budget.Earned {
+		return PlacementReservation{}, ErrPlacementCreditsExhausted
+	}
+	reservationID, err := newPlacementReservationID()
+	if err != nil {
+		return PlacementReservation{}, fmt.Errorf("create lounge placement reservation: %w", err)
+	}
+	result, err := connection.ExecContext(ctx, `UPDATE team_lounge_placement_credits SET
+		reservation_id = ?, idempotency_key_hash = ?, request_hash = ?, definition_id = ?,
+		position_x = ?, position_y = ?, placement_state = 'reserved', reserved_at = ?
+		WHERE rowid = (SELECT rowid FROM team_lounge_placement_credits
+			WHERE team_id = ? AND player_id = ? AND week_key = ? AND placement_state IS NULL
+			ORDER BY day_key LIMIT 1)`, reservationID, keyHash[:], requestHash[:], request.DefinitionID,
+		request.X, request.Y, now.UTC().Format(time.RFC3339Nano), budget.TeamID, playerID, budget.WeekKey)
+	if err != nil {
+		return PlacementReservation{}, fmt.Errorf("reserve lounge placement: %w", err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil || rows != 1 {
+		return PlacementReservation{}, ErrPlacementCreditsExhausted
+	}
+	if _, err = connection.ExecContext(ctx, "COMMIT"); err != nil {
+		return PlacementReservation{}, fmt.Errorf("commit lounge placement: %w", err)
+	}
+	committed = true
+	return PlacementReservation{
+		ID: reservationID, DefinitionID: request.DefinitionID, X: request.X, Y: request.Y,
+		Remaining: max(0, budget.Earned-used-1),
+	}, nil
+}
+
+func (store *SQLiteStore) CommitPlacement(
+	ctx context.Context,
+	roomID, playerID, reservationID, entityID string,
+	now time.Time,
+) error {
+	teamID, weekKey, err := ParseWeeklyRoomID(roomID)
+	if err != nil || playerID == "" || reservationID == "" || entityID == "" || len(entityID) > 128 {
+		return ErrPlacementUnavailable
+	}
+	result, err := store.db.ExecContext(ctx, `UPDATE team_lounge_placement_credits
+		SET placement_state = 'placed', entity_id = ?, placed_at = ?
+		WHERE team_id = ? AND player_id = ? AND week_key = ? AND reservation_id = ?
+		AND (placement_state = 'reserved' OR (placement_state = 'placed' AND entity_id = ?))`,
+		entityID, now.UTC().Format(time.RFC3339Nano), teamID, playerID, weekKey, reservationID, entityID)
+	if err != nil {
+		return fmt.Errorf("commit lounge placement: %w", err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil || rows != 1 {
+		return ErrPlacementUnavailable
+	}
+	return nil
+}
+
+func loungePlacementItem(definitionID string) (string, bool) {
+	switch definitionID {
+	case "zoomigo-stamp-bolt", "zoomigo-stamp-fire", "zoomigo-stamp-star", "zoomigo-stamp-soccer":
+		return definitionID, true
+	case "zoomigo-prop-beach-ball":
+		return "lounge-prop-beach-ball", false
+	}
+	const prefix = "zoomigo-stamp-"
+	if len(definitionID) > len(prefix) && definitionID[:len(prefix)] == prefix {
+		itemID := "lounge-stamp-" + definitionID[len(prefix):]
+		if item, ok := domain.PrizeCatalogItem(itemID); ok && item.Kind == domain.PrizeLoungeStamp {
+			return itemID, false
+		}
+	}
+	return "", false
+}
+
+func newPlacementReservationID() (string, error) {
+	random := make([]byte, 16)
+	if _, err := rand.Read(random); err != nil {
+		return "", err
+	}
+	return "lounge-placement-" + hex.EncodeToString(random), nil
 }
 
 func (store *SQLiteStore) PlacementDay(ctx context.Context, roomID string, now time.Time) (string, error) {

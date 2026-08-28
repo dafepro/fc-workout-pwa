@@ -174,6 +174,8 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	mux.HandleFunc("GET /v1/teams/{teamId}/leaderboards", service.getLeaderboard)
 	mux.HandleFunc("GET /v1/teams/{teamId}/team-reward", service.getPlayerTeamReward)
 	mux.HandleFunc("POST /v1/teams/{teamId}/lounge/socket-ticket", service.createTeamLoungeSocketTicket)
+	mux.HandleFunc("POST /v1/teams/{teamId}/lounge/placements", service.reserveTeamLoungePlacement)
+	mux.HandleFunc("POST /v1/teams/{teamId}/lounge/placements/{placementId}/commit", service.commitTeamLoungePlacement)
 	if service.teamLoungeRooms != nil {
 		mux.Handle("GET /v1/realtime/rooms/{id}", service.teamLoungeRooms)
 	}

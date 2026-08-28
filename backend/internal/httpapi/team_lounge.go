@@ -153,15 +153,119 @@ func (service *service) createTeamLoungeSocketTicket(w http.ResponseWriter, r *h
 		writeError(w, r, http.StatusInternalServerError, "internal_error", "Live team updates could not be started.")
 		return
 	}
-	placementCredits := budget.Earned
-	if service.cfg.EnableDevAccess {
-		placementCredits = max(placementCredits, 99)
-	}
 	writeJSON(w, http.StatusCreated, teamLoungeCredential{
 		Ticket: ticket, RoomID: roomID, WeekKey: team.WeekStart, DayKey: budget.DayKey,
-		Theme: theme.Name, VisitorIDs: visitorIDs, RecentVisitors: len(visitorIDs), PlacementCredits: placementCredits,
+		Theme: theme.Name, VisitorIDs: visitorIDs, RecentVisitors: len(visitorIDs), PlacementCredits: budget.Remaining,
 		ExpiresIn: int(teamLoungeSocketTicketTTL.Seconds()),
 	})
+}
+
+type teamLoungePlacementRequest struct {
+	RoomID       string `json:"roomId"`
+	DefinitionID string `json:"definitionId"`
+	Position     struct {
+		X float64 `json:"x"`
+		Y float64 `json:"y"`
+	} `json:"position"`
+}
+
+type teamLoungePlacementResponse struct {
+	PlacementID         string  `json:"placementId"`
+	DefinitionID        string  `json:"definitionId"`
+	X                   float64 `json:"x"`
+	Y                   float64 `json:"y"`
+	RemainingPlacements int     `json:"remainingPlacements"`
+}
+
+func (service *service) reserveTeamLoungePlacement(w http.ResponseWriter, r *http.Request) {
+	actor, ok := service.authenticate(w, r)
+	if !ok {
+		return
+	}
+	if actor.Role != domain.RolePlayer || actor.PlayerID == "" || service.store == nil || service.teamLoungeStore == nil {
+		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
+		return
+	}
+	teamID := r.PathValue("teamId")
+	dashboard, err := service.store.TrainingDashboard(r.Context(), actor, teamID, service.now().UTC())
+	if err != nil {
+		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
+		return
+	}
+	if !dashboard.TeamPulse.Unlocked {
+		writeError(w, r, http.StatusLocked, "team_lounge_locked", "Complete or check in for today's plan to use the Team Lounge.")
+		return
+	}
+	key := strings.TrimSpace(r.Header.Get("Idempotency-Key"))
+	var request teamLoungePlacementRequest
+	if len(key) < 1 || len(key) > 128 || decodeStrictJSON(w, r, &request) != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid_request", "That Lounge placement request is invalid.")
+		return
+	}
+	requestTeamID, _, err := teamlounge.ParseWeeklyRoomID(request.RoomID)
+	if err != nil || requestTeamID != teamID {
+		writeError(w, r, http.StatusUnprocessableEntity, "placement_room_unavailable", "That Team Lounge is unavailable.")
+		return
+	}
+	reservation, err := service.teamLoungeStore.ReservePlacement(
+		r.Context(), request.RoomID, actor.PlayerID, key,
+		teamlounge.PlacementRequest{DefinitionID: request.DefinitionID, X: request.Position.X, Y: request.Position.Y},
+		service.now().UTC(),
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, teamlounge.ErrPlacementCreditsExhausted):
+			writeError(w, r, http.StatusConflict, "placement_credits_exhausted", "Complete another training day to place another item.")
+		case errors.Is(err, teamlounge.ErrPlacementItemUnavailable):
+			writeError(w, r, http.StatusUnprocessableEntity, "placement_item_unavailable", "That Lounge item is not in your collection.")
+		case errors.Is(err, teamlounge.ErrPlacementIdempotency):
+			writeError(w, r, http.StatusConflict, "idempotency_conflict", "That placement request was already used.")
+		case errors.Is(err, teamlounge.ErrPlacementUnavailable):
+			writeError(w, r, http.StatusBadRequest, "invalid_request", "That Lounge placement request is invalid.")
+		default:
+			writeError(w, r, http.StatusInternalServerError, "internal_error", "That Lounge item could not be placed.")
+		}
+		return
+	}
+	status := http.StatusCreated
+	if reservation.Replayed {
+		status = http.StatusOK
+	}
+	writeJSON(w, status, teamLoungePlacementResponse{
+		PlacementID: reservation.ID, DefinitionID: reservation.DefinitionID,
+		X: reservation.X, Y: reservation.Y, RemainingPlacements: reservation.Remaining,
+	})
+}
+
+func (service *service) commitTeamLoungePlacement(w http.ResponseWriter, r *http.Request) {
+	actor, ok := service.authenticate(w, r)
+	if !ok {
+		return
+	}
+	if actor.Role != domain.RolePlayer || actor.PlayerID == "" || service.teamLoungeStore == nil {
+		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
+		return
+	}
+	var request struct {
+		RoomID   string `json:"roomId"`
+		EntityID string `json:"entityId"`
+	}
+	if decodeStrictJSON(w, r, &request) != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid_request", "That Lounge placement confirmation is invalid.")
+		return
+	}
+	requestTeamID, _, err := teamlounge.ParseWeeklyRoomID(request.RoomID)
+	if err != nil || requestTeamID != r.PathValue("teamId") {
+		writeError(w, r, http.StatusUnprocessableEntity, "placement_room_unavailable", "That Team Lounge is unavailable.")
+		return
+	}
+	if err := service.teamLoungeStore.CommitPlacement(
+		r.Context(), request.RoomID, actor.PlayerID, r.PathValue("placementId"), request.EntityID, service.now().UTC(),
+	); err != nil {
+		writeError(w, r, http.StatusConflict, "placement_confirmation_failed", "That Lounge placement could not be confirmed.")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (service *service) buildTeamLoungeRoomHandler() http.Handler {

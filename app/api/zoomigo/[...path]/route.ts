@@ -30,6 +30,11 @@ const allowed = [
   { method: "GET", pattern: /^v1\/teams\/[^/]+\/leaderboards$/ },
   { method: "GET", pattern: /^v1\/teams\/[^/]+\/team-reward$/ },
   { method: "POST", pattern: /^v1\/teams\/[^/]+\/lounge\/socket-ticket$/ },
+  { method: "POST", pattern: /^v1\/teams\/[^/]+\/lounge\/placements$/ },
+  {
+    method: "POST",
+    pattern: /^v1\/teams\/[^/]+\/lounge\/placements\/[^/]+\/commit$/,
+  },
 ];
 
 export async function GET(request: Request) {

@@ -6,12 +6,16 @@ the Team Lounge.
 
 ## P1 — before broadening the release shape
 
-- **Authorize shared Lounge collectibles.** Canvas 0.4.1 no longer exposes the
-  application-level durable-mutation authorization hook used by the prototype.
-  Development builds may exercise the predefined durable item path, but keep
-  production definitions and controls excluded until Canvas adds a safe policy
-  extension or placement is mediated by a ZoomiGo-owned endpoint. Do not trust
-  client item IDs or client-side placement-credit counts.
+- **Enforce Lounge placement permits inside Canvas.** ZoomiGo now owns durable,
+  idempotent placement reservations and validates the current room/week,
+  predefined item, earned inventory, and remaining credits atomically. Canvas
+  0.4.1 still has no application mutation-policy hook, so a handcrafted socket
+  mutation can bypass the reservation endpoint. Keep production definitions and
+  controls excluded until Canvas validates a ZoomiGo permit at mutation time.
+- **Reconcile reserved placements that Canvas cannot confirm.** The safe-first
+  reservation consumes its credit before the Canvas mutation. Add a bounded,
+  server-verifiable release path for a rejected mutation or interrupted client;
+  never let a client unilaterally refund a successfully spawned item.
 - **Add a current-Canvas shared emote transport.** Canvas 0.4.1 removed the
   prototype participant-signal API. Development builds currently prove the
   predefined reaction controls, cooldown, and sender presentation only; relay

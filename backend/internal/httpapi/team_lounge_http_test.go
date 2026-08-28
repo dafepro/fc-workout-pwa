@@ -1,6 +1,7 @@
 package httpapi_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -44,7 +45,7 @@ func TestCanonicalTeamLoungeRequiresTodayCheckInAndJoinsCanvasRoom(t *testing.T)
 		}
 	}
 	repository := store.New(db, time.UTC)
-	loungeStore := teamlounge.NewSQLiteStore(db, teamlounge.BeachBoardwalkCatalog())
+	loungeStore := teamlounge.NewSQLiteStore(db, teamlounge.BeachBoardwalkDevelopmentCatalog())
 	handler := httpapi.NewHandler(
 		config.Config{AllowedOrigin: "http://example.test"},
 		httpapi.WithStore(repository),
@@ -95,6 +96,37 @@ func TestCanonicalTeamLoungeRequiresTodayCheckInAndJoinsCanvasRoom(t *testing.T)
 		credential.WeekKey != "2026-08-24" || credential.DayKey != "2026-08-26" ||
 		credential.Theme != "Beach Boardwalk" || credential.Presence != 0 || credential.Credits != 1 {
 		t.Fatalf("credential = %#v", credential)
+	}
+
+	placementBody := []byte(`{"roomId":"team:team-one:lounge:2026-08-24:v8","definitionId":"zoomigo-stamp-bolt","position":{"x":40,"y":70}}`)
+	reservePlacement := func(key string) *httptest.ResponseRecorder {
+		request := httptest.NewRequest(http.MethodPost, "/v1/teams/team-one/lounge/placements", bytes.NewReader(placementBody))
+		request.Header.Set("Authorization", "Bearer test-session")
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("Idempotency-Key", key)
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+		return response
+	}
+	firstPlacement := reservePlacement("placement-one")
+	if firstPlacement.Code != http.StatusCreated {
+		t.Fatalf("placement status = %d: %s", firstPlacement.Code, firstPlacement.Body.String())
+	}
+	var placement struct {
+		ID        string `json:"placementId"`
+		Remaining int    `json:"remainingPlacements"`
+	}
+	if err := json.NewDecoder(firstPlacement.Body).Decode(&placement); err != nil {
+		t.Fatal(err)
+	}
+	if placement.ID == "" || placement.Remaining != 0 {
+		t.Fatalf("placement = %#v", placement)
+	}
+	if replay := reservePlacement("placement-one"); replay.Code != http.StatusOK {
+		t.Fatalf("placement replay status = %d: %s", replay.Code, replay.Body.String())
+	}
+	if exhausted := reservePlacement("placement-two"); exhausted.Code != http.StatusConflict {
+		t.Fatalf("placement exhaustion status = %d: %s", exhausted.Code, exhausted.Body.String())
 	}
 
 	server := httptest.NewServer(handler)

@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  commitTeamLoungePlacement,
   prepareTeamLoungeJoin,
+  reserveTeamLoungePlacement,
   requestTeamLoungeCredential,
 } from "./lounge-gateway";
 
@@ -56,5 +58,51 @@ describe("canonical Team Lounge gateway", () => {
       `ticket.${response.ticket}`,
     );
     expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it("reserves and confirms a placement through ZoomiGo authority", async () => {
+    const placementID = `lounge-placement-${"a".repeat(32)}`;
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            placementId: placementID,
+            definitionId: "zoomigo-stamp-bolt",
+            x: 40,
+            y: 70,
+            remainingPlacements: 0,
+          }),
+          { status: 201 },
+        ),
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetcher);
+
+    await expect(
+      reserveTeamLoungePlacement(
+        "team-one",
+        response.roomId,
+        "zoomigo-stamp-bolt",
+        { x: 40, y: 70 },
+        "placement-key",
+      ),
+    ).resolves.toEqual({
+      placementID,
+      remaining: 0,
+    });
+    await expect(
+      commitTeamLoungePlacement("team-one", response.roomId, placementID, "i2"),
+    ).resolves.toBeUndefined();
+    expect(fetcher).toHaveBeenNthCalledWith(
+      1,
+      "/api/zoomigo/v1/teams/team-one/lounge/placements",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          "Idempotency-Key": "placement-key",
+        }),
+      }),
+    );
   });
 });

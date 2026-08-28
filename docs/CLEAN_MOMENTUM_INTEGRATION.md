@@ -166,3 +166,6 @@ Each step is test-first and small enough to review independently.
 - Development builds restore predefined durable Lounge stamps from included and earned Zoomigo inventory, plus the five cooldown-limited V2 reactions; production receives neither definitions nor controls.
 - Weekly visitor traces suppress players already live in the room, and a one-tap runtime retry restores useful V2 affordances without reviving alternate Lounge routes or old data contracts.
 - Focused behavior, local-simulation, gateway, catalog, UI, Go room, and 320px Docker coverage now proves the v8 bounce/spin plus real WebSocket stamp placement and reaction controls.
+- Lounge placement authority now reserves one reconciled activity-day credit through ZoomiGo before Canvas receives a mutation, validating current room/week, predefined inventory, and idempotency under a serialized SQLite transaction.
+- Development controls use the authoritative remaining count and confirm accepted Canvas entity IDs back to the ledger; the production item catalog remains disabled while Canvas lacks a permit-policy hook.
+- Store, HTTP, gateway, exact PWA proxy allowlisting, migration/backup, concurrent-claim, and Docker Lounge coverage protect the new migration-18 end state.

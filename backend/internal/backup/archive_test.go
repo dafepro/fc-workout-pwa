@@ -16,7 +16,7 @@ import (
 	"github.com/dafepro/fc-workout-pwa/backend/migrations"
 )
 
-const currentSchemaMigrationCount = 17
+const currentSchemaMigrationCount = 18
 
 func TestEncryptedArchiveRequiresTheOperatorIdentityToVerifyAndRestore(t *testing.T) {
 	ctx := context.Background()
