@@ -134,3 +134,5 @@ Each step is test-first and small enough to review independently.
 - Dead-shell cleanup removed the unused pre-consolidation sidebar and bottom-navigation CSS instead of retaining a second theme implementation.
 - Lounge durability cleanup added all four final Lounge tables to exact logical backup/import and fixture reset coverage; migration-count assertions now track schema 17.
 - Socket-ticket replay is rejected in the HTTP/websocket integration test; remaining product-wide work is prioritized in `docs/FOLLOW_UPS.md`.
+- Midnight-safe Lounge proof now creates an explicit same-day qualifying check-in, so the test exercises the unlocked shared room without weakening the decisive server lock.
+- E2E-only setup may publish a temporary coach plan while production authoring remains absent; the connected Today card now uses the canonical activity name and prescribed duration.

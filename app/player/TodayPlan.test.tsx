@@ -26,7 +26,7 @@ describe("canonical Today plan", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "Hill sprints" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Hill Sprints" })).toBeVisible();
     expect(screen.getByText("20 min")).toBeVisible();
     expect(screen.getByText("Steady")).toBeVisible();
     expect(screen.getByText(/Day 2 of 7/)).toBeVisible();

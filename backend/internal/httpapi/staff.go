@@ -98,7 +98,7 @@ func (service *service) registerStaffRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/staff/training-plan-templates", service.listTrainingPlanTemplates)
 	mux.HandleFunc("GET /v1/staff/teams/{teamId}/training-plans", service.listTrainingPlans)
 	mux.HandleFunc("GET /v1/staff/teams/{teamId}/team-reward", service.getStaffTeamReward)
-	if service.cfg.EnableDevAccess {
+	if service.cfg.EnableDevAccess || service.cfg.EnableE2EFixtures {
 		mux.HandleFunc("POST /v1/staff/teams/{teamId}/training-plans", service.publishTrainingPlan)
 		mux.HandleFunc("POST /v1/staff/teams/{teamId}/training-plans/{planId}/cancel", service.cancelTrainingPlan)
 		mux.HandleFunc("POST /v1/staff/teams/{teamId}/training-plans/{planId}/reschedule", service.rescheduleTrainingPlan)

@@ -17,6 +17,26 @@ test.beforeEach(async () => {
 test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels", async ({
   page,
 }) => {
+  const api = await request.newContext({ baseURL: apiBaseURL });
+  const completion = await api.post("/v1/me/training-entries", {
+    headers: {
+      Authorization: "Bearer e2e-player-mason",
+      "Idempotency-Key": "browser-lounge-today-qualification",
+    },
+    data: {
+      teamId: "team-hill-striders",
+      activityDefinitionId: "hill-sprints",
+      assignmentId: "assignment-hill-sprints",
+      occurredAt: new Date(Date.now() - 60_000).toISOString(),
+      result: { kind: "repetitions", value: 8, unit: "reps" },
+      effortLevel: 4,
+      exhaustionLevel: 3,
+      completionOutcome: "as_listed",
+    },
+  });
+  expect(completion.status()).toBe(201);
+  await api.dispose();
+
   await page.setViewportSize({ width: 320, height: 720 });
   await openReadyPage(page, "/team");
 

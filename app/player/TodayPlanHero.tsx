@@ -32,8 +32,13 @@ export function TodayPlanHero({
     activities.some(
       (activity) => activity.id === nextBlock.activityDefinitionId,
     );
+  const plannedActivity = activities.find(
+    (activity) => activity.id === nextBlock?.activityDefinitionId,
+  );
   const title =
-    day.kind === "rest" ? "Planned rest" : (nextBlock?.label ?? "Today’s plan");
+    day.kind === "rest"
+      ? "Planned rest"
+      : (plannedActivity?.name ?? nextBlock?.label ?? "Today’s plan");
   const complete = day.completed || restSaved;
 
   async function saveRest() {

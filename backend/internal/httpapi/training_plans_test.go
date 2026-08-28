@@ -65,6 +65,16 @@ func TestTrainingPlanAuthoringRoutesAreAbsentOutsideDevelopment(t *testing.T) {
 	}
 }
 
+func TestTrainingPlanAuthoringRoutesSupportIsolatedE2ESetup(t *testing.T) {
+	handler := trainingPlanHandler(t, config.Config{EnableE2EFixtures: true})
+	response := trainingPlanRequest(t, handler, http.MethodPost,
+		"/v1/staff/teams/team-one/training-plans",
+		bytes.NewBufferString(`{"templateId":"quick-check-in-v1","startsOn":"2026-08-24"}`))
+	if response.Code != http.StatusCreated {
+		t.Fatalf("e2e publish status=%d body=%s", response.Code, response.Body.String())
+	}
+}
+
 func TestTrainingPlanRoutesRescheduleAndCancelFuturePlans(t *testing.T) {
 	handler := trainingPlanHandler(t, config.Config{EnableDevAccess: true})
 	published := trainingPlanRequest(t, handler, http.MethodPost, "/v1/staff/teams/team-one/training-plans",
