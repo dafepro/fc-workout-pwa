@@ -143,3 +143,5 @@ Each step is test-first and small enough to review independently.
 - Regression coverage now proves the gate renders from non-U.S. and non-Midwest edge locations; deployment config no longer publishes a dead region allowlist.
 - Dev gate release: [run 33160369341](https://github.com/dafepro/fc-workout-pwa/actions/runs/33160369341) updated the existing preview to exact main SHA `c906d0f33e9a31b7f7404b942105cb6df512e4e3`; live checks proved gate, signed session, staff directory, and four QR entries.
 - Two-player Lounge proof: E2E-only Mason and Ava credentials now support two independent browser sessions; focused Docker coverage passes shared presence and remote avatar movement, with shared-ball motion still tracked separately.
+- Dev bare-login recovery: an authorized preview visitor without a QR fragment now opens the credential directory, while credential-bearing links still reach the PIN form and can replace an existing player session.
+- Focused login component and server-page tests cover dev directory routing, QR preservation, and normal signed-in redirects.
