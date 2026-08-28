@@ -106,3 +106,5 @@ Each step is test-first and small enough to review independently.
   migration 000016 startup, final fixture seeding, API health/readiness, and the password-gated PWA passed; the authenticated final-flow smoke awaits this reviewed workflow change landing on trusted `main`.
 - Canvas 0.4.0 replacement: replaced all three 0.1.0 archives/pins, adopted revisioned item instances with no legacy-room or stamp compatibility path, and recorded exact source provenance;
   package, Lounge simulation, production-build, and Docker browser tests prove the canonical 320px Lounge starts and accepts a real direct drag against the new library.
+- Canvas 0.4.1 patch: repinned the complete package set to the tagged compatibility release and removed every 0.4.0 archive;
+  package, simulation, type, production-build, and Docker direct-drag proofs remain green without a ZoomiGo integration shim.

@@ -5,5 +5,5 @@ allowBuilds:
   workerd: true
 
 overrides:
-  "@canvas-physics/core": "file:vendor/canvas/canvas-physics-core-0.4.0.tgz"
-  "@canvas-physics/protocol": "file:vendor/canvas/canvas-physics-protocol-0.4.0.tgz"
+  "@canvas-physics/core": "file:vendor/canvas/canvas-physics-core-0.4.1.tgz"
+  "@canvas-physics/protocol": "file:vendor/canvas/canvas-physics-protocol-0.4.1.tgz"

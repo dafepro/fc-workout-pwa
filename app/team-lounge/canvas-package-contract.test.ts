@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 const packages = ["client", "core", "protocol"] as const;
 
 describe("Canvas package contract", () => {
-  it("pins only the complete Canvas 0.4.0 package set", async () => {
+  it("pins only the complete Canvas 0.4.1 package set", async () => {
     const root = process.cwd();
     const packageDocument = JSON.parse(
       await readFile(resolve(root, "package.json"), "utf8"),
@@ -16,7 +16,7 @@ describe("Canvas package contract", () => {
     );
 
     for (const packageName of packages) {
-      const archive = `canvas-physics-${packageName}-0.4.0.tgz`;
+      const archive = `canvas-physics-${packageName}-0.4.1.tgz`;
       expect(
         packageDocument.dependencies[`@canvas-physics/${packageName}`],
       ).toBe(`file:vendor/canvas/${archive}`);
@@ -32,26 +32,26 @@ describe("Canvas package contract", () => {
           "utf8",
         ),
       ) as { version: string };
-      expect(installed.version).toBe("0.4.0");
+      expect(installed.version).toBe("0.4.1");
       await expect(
         access(
           resolve(
             root,
             "vendor/canvas",
-            `canvas-physics-${packageName}-0.1.0.tgz`,
+            `canvas-physics-${packageName}-0.4.0.tgz`,
           ),
         ),
       ).rejects.toThrow();
     }
 
     expect(workspace).toMatch(
-      /@canvas-physics\/core.*canvas-physics-core-0\.4\.0\.tgz/,
+      /@canvas-physics\/core.*canvas-physics-core-0\.4\.1\.tgz/,
     );
     expect(workspace).toMatch(
-      /@canvas-physics\/protocol.*canvas-physics-protocol-0\.4\.0\.tgz/,
+      /@canvas-physics\/protocol.*canvas-physics-protocol-0\.4\.1\.tgz/,
     );
     expect(`${JSON.stringify(packageDocument)}\n${workspace}`).not.toMatch(
-      /canvas-physics-(?:client|core|protocol)-0\.1\.0\.tgz/,
+      /canvas-physics-(?:client|core|protocol)-0\.4\.0\.tgz/,
     );
   });
 });

@@ -20,9 +20,9 @@
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern work --ignore-pattern outputs"
   },
   "dependencies": {
-    "@canvas-physics/client": "file:vendor/canvas/canvas-physics-client-0.4.0.tgz",
-    "@canvas-physics/core": "file:vendor/canvas/canvas-physics-core-0.4.0.tgz",
-    "@canvas-physics/protocol": "file:vendor/canvas/canvas-physics-protocol-0.4.0.tgz",
+    "@canvas-physics/client": "file:vendor/canvas/canvas-physics-client-0.4.1.tgz",
+    "@canvas-physics/core": "file:vendor/canvas/canvas-physics-core-0.4.1.tgz",
+    "@canvas-physics/protocol": "file:vendor/canvas/canvas-physics-protocol-0.4.1.tgz",
     "next": "16.2.6",
     "react": "19.2.6",
     "react-dom": "19.2.6"
