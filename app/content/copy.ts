@@ -158,6 +158,24 @@ export const copy = {
     static: "The room is ready. Movement needs a supported browser.",
     unavailable: "The boardwalk could not open.",
     retry: "Try the boardwalk again",
+    actions: {
+      navigation: "Lounge actions",
+      emotes: "Emotes",
+      chooseEmote: "Choose an emote",
+      sendEmote: (label: string) => `Send ${label} emote`,
+      stamps: "Stamps",
+      items: "Items",
+      chooseItem: "Choose a Lounge item",
+      closeItems: "Close item picker",
+      included: "Included",
+      earned: "Earned",
+      choosePlacement: (label: string, kind: "stamp" | "item") =>
+        `Choose ${label} ${kind}`,
+      placementsLeft: (remaining: number) =>
+        `${remaining} ${remaining === 1 ? "placement" : "placements"} left this week`,
+      exhausted: "Complete another training day to place another item.",
+      placeHint: (label: string) => `Tap the boardwalk to place ${label}.`,
+    },
   },
   momentum: {
     eyebrow: "Your momentum",

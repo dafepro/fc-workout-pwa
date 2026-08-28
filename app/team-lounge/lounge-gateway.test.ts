@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
-  commitTeamLoungePlacement,
   prepareTeamLoungeJoin,
   reserveTeamLoungePlacement,
   requestTeamLoungeCredential,
@@ -9,7 +8,7 @@ import {
 
 const response = {
   ticket: "a".repeat(43),
-  roomId: "team:team-one:lounge:2026-08-24:v9",
+  roomId: "team:team-one:lounge:2026-08-24:v10",
   serverUrl: "https://api.example.test",
   visitorIds: ["player-two"],
   placementCredits: 2,
@@ -60,7 +59,7 @@ describe("canonical Team Lounge gateway", () => {
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
-  it("reserves and confirms a placement through ZoomiGo authority", async () => {
+  it("reserves a Canvas-authorized placement permit through ZoomiGo", async () => {
     const placementID = `lounge-placement-${"a".repeat(32)}`;
     const fetcher = vi
       .fn()
@@ -69,6 +68,8 @@ describe("canonical Team Lounge gateway", () => {
           JSON.stringify({
             placementId: placementID,
             definitionId: "zoomigo-stamp-bolt",
+            definitionVersion: 1,
+            permit: "p".repeat(43),
             x: 40,
             y: 70,
             remainingPlacements: 0,
@@ -84,16 +85,17 @@ describe("canonical Team Lounge gateway", () => {
         "team-one",
         response.roomId,
         "zoomigo-stamp-bolt",
+        1,
         { x: 40, y: 70 },
         "placement-key",
       ),
     ).resolves.toEqual({
       placementID,
+      permit: "p".repeat(43),
+      definitionVersion: 1,
+      position: { x: 40, y: 70 },
       remaining: 0,
     });
-    await expect(
-      commitTeamLoungePlacement("team-one", response.roomId, placementID, "i2"),
-    ).resolves.toBeUndefined();
     expect(fetcher).toHaveBeenNthCalledWith(
       1,
       "/api/zoomigo/v1/teams/team-one/lounge/placements",
@@ -104,5 +106,6 @@ describe("canonical Team Lounge gateway", () => {
         }),
       }),
     );
+    expect(fetcher).toHaveBeenCalledTimes(1);
   });
 });

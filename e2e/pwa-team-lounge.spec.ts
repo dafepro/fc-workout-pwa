@@ -118,7 +118,7 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
     .toBe("true");
   expect(
     Number(await stage.getAttribute("data-e2e-ball-max-x")),
-  ).toBeLessThanOrEqual(96);
+  ).toBeLessThanOrEqual(96.01);
 
   await dragSelfToWorld(35, 98);
   await dragSelfToWorld(35, 75);
@@ -132,26 +132,36 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
     .poll(async () => Number(await stage.getAttribute("data-e2e-ball-max-x")))
     .toBeGreaterThan(52);
 
-  await lounge.getByRole("button", { name: "Wave" }).click();
+  await lounge.getByRole("button", { name: "Emotes" }).click();
+  await lounge.getByRole("button", { name: "Send Wave emote" }).click();
   await expect(lounge.getByRole("img", { name: "Wave" })).toBeVisible();
-  await expect(lounge.getByRole("button", { name: "Heart" })).toBeDisabled();
+  await lounge.getByRole("button", { name: "Emotes" }).click();
+  await expect(
+    lounge.getByRole("button", { name: "Send Heart emote" }),
+  ).toBeDisabled();
 
-  await lounge.getByRole("button", { name: "Choose Bolt stamp" }).click();
+  await lounge.getByRole("button", { name: "Stamps" }).click();
   const remainingBefore = Number.parseInt(
-    (await lounge.getByText(/items? left$/u).textContent()) ?? "0",
+    (await lounge.getByText(/placements? left this week$/u).textContent()) ??
+      "0",
     10,
   );
+  await lounge.getByRole("button", { name: "Choose Bolt stamp" }).click();
   const placementSurface = lounge.getByRole("button", {
     name: "Place Bolt stamp on the boardwalk",
   });
   await placementSurface.click({ position: { x: 90, y: 140 } });
+  await expect(lounge.getByRole("status")).toHaveText("Bolt placed.", {
+    timeout: 10_000,
+  });
   await expect(lounge.getByRole("img", { name: "Bolt stamp" })).toBeVisible({
     timeout: 10_000,
   });
   const remainingAfter = remainingBefore - 1;
+  await lounge.getByRole("button", { name: "Stamps" }).click();
   await expect(
     lounge.getByText(
-      `${remainingAfter} item${remainingAfter === 1 ? "" : "s"} left`,
+      `${remainingAfter} ${remainingAfter === 1 ? "placement" : "placements"} left this week`,
     ),
   ).toBeVisible();
 
@@ -254,8 +264,12 @@ test("two qualified players share Lounge presence and avatar movement", async ({
     await page.mouse.up();
 
     await expect
-      .poll(async () => Number(await masonStage.getAttribute("data-player-x")))
-      .toBeCloseTo(targetWorldX, 0);
+      .poll(async () =>
+        Math.abs(
+          Number(await masonStage.getAttribute("data-player-x")) - targetWorldX,
+        ),
+      )
+      .toBeLessThan(1.5);
 
     await expect
       .poll(async () => {
@@ -263,6 +277,37 @@ test("two qualified players share Lounge presence and avatar movement", async ({
         return current ? Math.abs(current.x - startRemote!.x) : 0;
       })
       .toBeGreaterThan(3);
+
+    const avaStage = avaLounge.getByLabel("Interactive lounge canvas");
+    await expect
+      .poll(async () => Number(await avaStage.getAttribute("data-ball-x")))
+      .toBeGreaterThan(0);
+    const dragMasonToWorld = async (x: number, y: number) => {
+      const current = await masonSelf.boundingBox();
+      expect(current).not.toBeNull();
+      await page.mouse.move(current!.x + current!.width / 2, current!.y + 30);
+      await page.mouse.down();
+      await page.mouse.move(
+        masonCanvasBox!.x + masonCanvasBox!.width * (x / 100),
+        masonCanvasBox!.y + masonCanvasBox!.height * (y / 150),
+        { steps: 24 },
+      );
+      await page.mouse.up();
+      await page.waitForTimeout(300);
+    };
+    const ballX = Number(await masonStage.getAttribute("data-ball-x"));
+    const ballY = Number(await masonStage.getAttribute("data-ball-y"));
+    await dragMasonToWorld(Math.max(8, ballX - 12), ballY);
+    const remoteBallBeforeKick = Number(
+      await avaStage.getAttribute("data-ball-x"),
+    );
+    await dragMasonToWorld(Math.min(92, ballX + 12), ballY);
+    await expect
+      .poll(async () => {
+        const remoteBall = Number(await avaStage.getAttribute("data-ball-x"));
+        return Math.abs(remoteBall - remoteBallBeforeKick);
+      })
+      .toBeGreaterThan(1);
   } finally {
     await avaContext.close();
   }

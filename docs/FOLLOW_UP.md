@@ -19,11 +19,15 @@ experiments.
 
 ## Team Lounge
 
-- Connect the canonical canvas to a team-authorized shared room with durable ball, presence, and predefined item placement using one final migration and the current exact-version Canvas contract; do not import legacy room, Lounge, or stamp payloads.
-- Project owned Lounge stamps/props from Prize Box inventory once shared-room authorization exists; keep local authoring and uploads prohibited.
+- Schedule the read-only `lounge-placement-holds` report and alert on nonzero
+  stale Canvas outcomes; the operator review procedure is now in the production
+  runbook and still never infers a release from age or browser state.
 - Record physical iOS Safari and Android Chrome performance budgets.
-- Select and prove a shared room coordinator before allowing multiple API
-  replicas.
+- Prove two real API processes, the deployment proxy, and the intended shared
+  database through ownership handoff and graceful drain before scaling replicas.
+- Extend the one-use Canvas authority model to owner-bound move, rotate, scale,
+  and delete permits before restoring the momentum V2 stamp editor and trash
+  target; never expose those controls against unauthenticated durable mutations.
 - Design a second approved theme before adding theme scheduling or rollback UI.
 - Review any future predefined quick phrases separately; typed chat remains out
   of scope.

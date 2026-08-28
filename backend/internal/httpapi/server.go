@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dafepro/canvas/server/pkg/roomsdk"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/authn"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/config"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
@@ -52,7 +53,7 @@ type service struct {
 	devAccess       DevAccessManager
 	teamLoungeStore *teamlounge.SQLiteStore
 	teamLoungeRooms http.Handler
-	loungeTickets   *teamLoungeSocketTickets
+	teamLoungeSDK   *roomsdk.Server
 	authFixtures    func(context.Context) error
 	throttles       []*loginThrottle
 	middleware      func(http.Handler) http.Handler
@@ -122,7 +123,9 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	for _, option := range options {
 		option(service)
 	}
-	service.loungeTickets = newTeamLoungeSocketTickets(service.now)
+	if service.teamLoungeStore != nil {
+		service.teamLoungeStore.SetClock(service.now)
+	}
 	service.teamLoungeRooms = service.buildTeamLoungeRoomHandler()
 
 	mux := http.NewServeMux()
@@ -176,7 +179,6 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	mux.HandleFunc("GET /v1/teams/{teamId}/team-reward", service.getPlayerTeamReward)
 	mux.HandleFunc("POST /v1/teams/{teamId}/lounge/socket-ticket", service.createTeamLoungeSocketTicket)
 	mux.HandleFunc("POST /v1/teams/{teamId}/lounge/placements", service.reserveTeamLoungePlacement)
-	mux.HandleFunc("POST /v1/teams/{teamId}/lounge/placements/{placementId}/commit", service.commitTeamLoungePlacement)
 	if service.teamLoungeRooms != nil {
 		mux.Handle("GET /v1/realtime/rooms/{id}", service.teamLoungeRooms)
 	}
@@ -196,7 +198,27 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	if service.middleware != nil {
 		handler = service.middleware(handler)
 	}
-	return requestID(handler)
+	return &drainingHandler{Handler: requestID(handler), lounge: service.teamLoungeSDK}
+}
+
+type drainingHandler struct {
+	http.Handler
+	lounge *roomsdk.Server
+}
+
+func (handler *drainingHandler) Drain(ctx context.Context) error {
+	if handler.lounge == nil {
+		return nil
+	}
+	return handler.lounge.Drain(ctx)
+}
+
+func Drain(ctx context.Context, handler http.Handler) error {
+	drainer, ok := handler.(interface{ Drain(context.Context) error })
+	if !ok {
+		return nil
+	}
+	return drainer.Drain(ctx)
 }
 
 func devGateway(cfg config.Config, next http.Handler) http.Handler {

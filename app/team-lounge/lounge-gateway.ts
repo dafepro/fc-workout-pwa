@@ -84,9 +84,16 @@ export async function reserveTeamLoungePlacement(
   teamID: string,
   roomID: string,
   definitionID: string,
+  definitionVersion: number,
   position: { x: number; y: number },
   idempotencyKey: string,
-): Promise<{ placementID: string; remaining: number }> {
+): Promise<{
+  placementID: string;
+  permit: string;
+  definitionVersion: number;
+  position: { x: number; y: number };
+  remaining: number;
+}> {
   const response = await fetch(
     `/api/zoomigo/v1/teams/${encodeURIComponent(teamID)}/lounge/placements`,
     {
@@ -98,6 +105,7 @@ export async function reserveTeamLoungePlacement(
       body: JSON.stringify({
         roomId: roomID,
         definitionId: definitionID,
+        definitionVersion,
         position,
       }),
     },
@@ -105,33 +113,33 @@ export async function reserveTeamLoungePlacement(
   if (!response.ok) throw await placementError(response);
   const body = (await response.json()) as Record<string, unknown>;
   const placementID = body.placementId;
+  const permit = body.permit;
+  const reservedDefinitionVersion = body.definitionVersion;
+  const x = body.x;
+  const y = body.y;
   const remaining = body.remainingPlacements;
   if (
     typeof placementID !== "string" ||
     !/^lounge-placement-[a-f0-9]{32}$/u.test(placementID) ||
+    typeof permit !== "string" ||
+    !/^[a-zA-Z0-9_-]{43}$/u.test(permit) ||
+    reservedDefinitionVersion !== definitionVersion ||
+    typeof x !== "number" ||
+    !Number.isFinite(x) ||
+    typeof y !== "number" ||
+    !Number.isFinite(y) ||
     !Number.isInteger(remaining) ||
     (remaining as number) < 0
   ) {
     throw new Error("That Lounge item could not be placed.");
   }
-  return { placementID, remaining: remaining as number };
-}
-
-export async function commitTeamLoungePlacement(
-  teamID: string,
-  roomID: string,
-  placementID: string,
-  entityID: string,
-): Promise<void> {
-  const response = await fetch(
-    `/api/zoomigo/v1/teams/${encodeURIComponent(teamID)}/lounge/placements/${encodeURIComponent(placementID)}/commit`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ roomId: roomID, entityId: entityID }),
-    },
-  );
-  if (!response.ok) throw await placementError(response);
+  return {
+    placementID,
+    permit,
+    definitionVersion: reservedDefinitionVersion as number,
+    position: { x, y },
+    remaining: remaining as number,
+  };
 }
 
 async function placementError(response: Response): Promise<Error> {

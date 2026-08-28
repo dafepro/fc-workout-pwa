@@ -33,6 +33,7 @@ type SQLiteStore struct {
 	db          *sql.DB
 	canvases    map[catalogKey]roomsdk.CanvasRecord
 	definitions map[catalogKey]roomsdk.ItemDefinitionRecord
+	now         func() time.Time
 }
 
 type catalogKey struct {
@@ -54,18 +55,21 @@ type PlacementBudget struct {
 }
 
 type PlacementRequest struct {
-	DefinitionID string
-	X            float64
-	Y            float64
+	DefinitionID      string
+	DefinitionVersion uint32
+	X                 float64
+	Y                 float64
 }
 
 type PlacementReservation struct {
-	ID           string
-	DefinitionID string
-	X            float64
-	Y            float64
-	Remaining    int
-	Replayed     bool
+	ID                string
+	DefinitionID      string
+	DefinitionVersion uint32
+	X                 float64
+	Y                 float64
+	Permit            string
+	Remaining         int
+	Replayed          bool
 }
 
 type RoomBindingResult struct {
@@ -123,7 +127,17 @@ func NewSQLiteStore(db *sql.DB, catalog Catalog) *SQLiteStore {
 	for _, record := range catalog.Items {
 		definitions[catalogKey{record.DefinitionID, record.Version}] = record
 	}
-	return &SQLiteStore{db: db, canvases: canvases, definitions: definitions}
+	return &SQLiteStore{db: db, canvases: canvases, definitions: definitions, now: time.Now}
+}
+
+func (store *SQLiteStore) SetClock(now func() time.Time) {
+	if now != nil {
+		store.now = now
+	}
+}
+
+func (store *SQLiteStore) RoomCoordinator() *SQLiteRoomCoordinator {
+	return NewSQLiteRoomCoordinator(store.db, store.now)
 }
 
 func (store *SQLiteStore) LoadCanvas(_ context.Context, canvasID string, version uint32) (roomsdk.CanvasRecord, error) {
@@ -144,15 +158,17 @@ func (store *SQLiteStore) LoadItemDefinition(_ context.Context, definitionID str
 
 func (store *SQLiteStore) LoadSnapshot(ctx context.Context, roomID string) (roomsdk.SnapshotRecord, error) {
 	var record roomsdk.SnapshotRecord
-	var capturedAt, raw, receipts, highWater string
+	var capturedAt, raw, receipts, highWater, outcomes string
 	var normalized int
 	err := store.db.QueryRowContext(ctx, `SELECT room_id, canvas_id, canvas_version,
 		scene_revision, checkpoint_revision, host_epoch, tick, normalized, captured_at,
-		snapshot_json, mutation_receipts_json, mutation_high_water_json
+		snapshot_json, mutation_receipts_json, mutation_high_water_json,
+		room_ownership_generation, mutation_outcome_revision, mutation_outcomes_json
 		FROM team_lounge_snapshots WHERE room_id = ?`, roomID).Scan(
 		&record.RoomID, &record.CanvasID, &record.CanvasVersion, &record.SceneRevision,
 		&record.CheckpointRevision, &record.HostEpoch, &record.Tick, &normalized, &capturedAt,
-		&raw, &receipts, &highWater,
+		&raw, &receipts, &highWater, &record.RoomOwnershipGeneration,
+		&record.MutationOutcomeRevision, &outcomes,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return roomsdk.SnapshotRecord{}, roomsdk.ErrNotFound
@@ -162,7 +178,8 @@ func (store *SQLiteStore) LoadSnapshot(ctx context.Context, roomID string) (room
 	}
 	record.CapturedAt, err = time.Parse(time.RFC3339Nano, capturedAt)
 	if err != nil || !json.Valid([]byte(raw)) || json.Unmarshal([]byte(receipts), &record.MutationReceipts) != nil ||
-		json.Unmarshal([]byte(highWater), &record.MutationHighWater) != nil {
+		json.Unmarshal([]byte(highWater), &record.MutationHighWater) != nil ||
+		json.Unmarshal([]byte(outcomes), &record.MutationOutcomes) != nil {
 		return roomsdk.SnapshotRecord{}, errors.New("load lounge snapshot: invalid durable record")
 	}
 	record.Normalized = normalized == 1
@@ -187,11 +204,16 @@ func (store *SQLiteStore) SaveSnapshot(ctx context.Context, snapshot roomsdk.Sna
 	if err != nil {
 		return fmt.Errorf("save lounge mutation high water: %w", err)
 	}
-	_, err = store.db.ExecContext(ctx, `INSERT INTO team_lounge_snapshots (
+	outcomes, err := json.Marshal(snapshot.MutationOutcomes)
+	if err != nil {
+		return fmt.Errorf("save lounge mutation outcomes: %w", err)
+	}
+	result, err := store.db.ExecContext(ctx, `INSERT INTO team_lounge_snapshots (
 		room_id, canvas_id, canvas_version, scene_revision, checkpoint_revision,
 		host_epoch, tick, normalized, captured_at, snapshot_json,
-		mutation_receipts_json, mutation_high_water_json
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		mutation_receipts_json, mutation_high_water_json, room_ownership_generation,
+		mutation_outcome_revision, mutation_outcomes_json
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	ON CONFLICT(room_id) DO UPDATE SET
 		canvas_id = excluded.canvas_id,
 		canvas_version = excluded.canvas_version,
@@ -203,15 +225,41 @@ func (store *SQLiteStore) SaveSnapshot(ctx context.Context, snapshot roomsdk.Sna
 		captured_at = excluded.captured_at,
 		snapshot_json = excluded.snapshot_json,
 		mutation_receipts_json = excluded.mutation_receipts_json,
-		mutation_high_water_json = excluded.mutation_high_water_json
-	WHERE excluded.checkpoint_revision >= team_lounge_snapshots.checkpoint_revision`,
+		mutation_high_water_json = excluded.mutation_high_water_json,
+		room_ownership_generation = excluded.room_ownership_generation,
+		mutation_outcome_revision = excluded.mutation_outcome_revision,
+		mutation_outcomes_json = excluded.mutation_outcomes_json
+	WHERE excluded.room_ownership_generation > team_lounge_snapshots.room_ownership_generation
+		OR (excluded.room_ownership_generation = team_lounge_snapshots.room_ownership_generation
+			AND (excluded.checkpoint_revision > team_lounge_snapshots.checkpoint_revision
+				OR (excluded.checkpoint_revision = team_lounge_snapshots.checkpoint_revision
+					AND (excluded.scene_revision > team_lounge_snapshots.scene_revision
+						OR (excluded.scene_revision = team_lounge_snapshots.scene_revision
+							AND (excluded.mutation_outcome_revision > team_lounge_snapshots.mutation_outcome_revision
+								OR (excluded.mutation_outcome_revision = team_lounge_snapshots.mutation_outcome_revision
+									AND excluded.host_epoch >= team_lounge_snapshots.host_epoch)))))))`,
 		snapshot.RoomID, snapshot.CanvasID, snapshot.CanvasVersion, snapshot.SceneRevision,
 		snapshot.CheckpointRevision, snapshot.HostEpoch, snapshot.Tick, normalized,
 		snapshot.CapturedAt.UTC().Format(time.RFC3339Nano), string(snapshot.SnapshotRaw),
-		string(receipts), string(highWater),
+		string(receipts), string(highWater), snapshot.RoomOwnershipGeneration,
+		snapshot.MutationOutcomeRevision, string(outcomes),
 	)
 	if err != nil {
 		return fmt.Errorf("save lounge snapshot: %w", err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("read lounge snapshot save result: %w", err)
+	}
+	if rows == 0 {
+		var generation uint64
+		if err := store.db.QueryRowContext(ctx, `SELECT room_ownership_generation
+			FROM team_lounge_snapshots WHERE room_id = ?`, snapshot.RoomID).Scan(&generation); err != nil {
+			return fmt.Errorf("read lounge snapshot generation: %w", err)
+		}
+		if snapshot.RoomOwnershipGeneration < generation {
+			return roomsdk.ErrRoomOwnershipFenced
+		}
 	}
 	return nil
 }
@@ -419,8 +467,8 @@ func (store *SQLiteStore) PlacementBudget(
 		return PlacementBudget{}, fmt.Errorf("count lounge placement credits: %w", err)
 	}
 	var used int
-	if err = tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM team_lounge_placement_credits
-		WHERE team_id = ? AND player_id = ? AND week_key = ? AND placement_state IN ('reserved', 'placed')`,
+	if err = tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM team_lounge_placement_reservations
+		WHERE team_id = ? AND player_id = ? AND week_key = ? AND state IN ('held', 'committed')`,
 		teamID, playerID, weekKey).Scan(&used); err != nil {
 		return PlacementBudget{}, fmt.Errorf("count lounge placements: %w", err)
 	}
@@ -440,20 +488,29 @@ func (store *SQLiteStore) ReservePlacement(
 	now time.Time,
 ) (PlacementReservation, error) {
 	if playerID == "" || len(idempotencyKey) < 1 || len(idempotencyKey) > 128 ||
-		request.DefinitionID == "" || math.IsNaN(request.X) || math.IsNaN(request.Y) ||
+		request.DefinitionID == "" || request.DefinitionVersion == 0 ||
+		math.IsNaN(request.X) || math.IsNaN(request.Y) ||
 		math.IsInf(request.X, 0) || math.IsInf(request.Y, 0) ||
 		request.X < 0 || request.X > 100 || request.Y < 0 || request.Y > 150 {
 		return PlacementReservation{}, ErrPlacementUnavailable
 	}
-	if _, err := store.ResolveRoomTemplate(ctx, roomID); err != nil {
+	request.X = float64(float32(request.X))
+	request.Y = float64(float32(request.Y))
+	template, err := store.ResolveRoomTemplate(ctx, roomID)
+	if err != nil {
 		return PlacementReservation{}, ErrPlacementUnavailable
 	}
 	budget, err := store.PlacementBudget(ctx, roomID, playerID, now)
 	if err != nil {
 		return PlacementReservation{}, err
 	}
-	if _, ok := store.definitions[catalogKey{request.DefinitionID, 1}]; !ok {
+	definition, ok := store.definitions[catalogKey{request.DefinitionID, request.DefinitionVersion}]
+	if !ok {
 		return PlacementReservation{}, ErrPlacementItemUnavailable
+	}
+	config, err := placementDefaultConfig(definition.DefinitionRaw)
+	if err != nil {
+		return PlacementReservation{}, fmt.Errorf("load lounge placement definition: %w", err)
 	}
 	itemID, included := loungePlacementItem(request.DefinitionID)
 	if itemID == "" {
@@ -470,7 +527,8 @@ func (store *SQLiteStore) ReservePlacement(
 		}
 	}
 	keyHash := sha256.Sum256([]byte(idempotencyKey))
-	requestHash := sha256.Sum256([]byte(fmt.Sprintf("%s\x00%.6f\x00%.6f", request.DefinitionID, request.X, request.Y)))
+	requestHash := sha256.Sum256([]byte(fmt.Sprintf("%s\x00%d\x00%.6f\x00%.6f\x000\x001\x00%s",
+		request.DefinitionID, request.DefinitionVersion, request.X, request.Y, config)))
 	connection, err := store.db.Conn(ctx)
 	if err != nil {
 		return PlacementReservation{}, fmt.Errorf("open lounge placement transaction: %w", err)
@@ -488,10 +546,14 @@ func (store *SQLiteStore) ReservePlacement(
 
 	var replay PlacementReservation
 	var storedHash []byte
+	var replayState string
+	var replayMutationKey sql.NullString
 	err = connection.QueryRowContext(ctx, `SELECT reservation_id, request_hash, definition_id,
-		position_x, position_y FROM team_lounge_placement_credits
+		definition_version, position_x, position_y, state, mutation_key
+		FROM team_lounge_placement_reservations
 		WHERE player_id = ? AND idempotency_key_hash = ?`, playerID, keyHash[:]).Scan(
-		&replay.ID, &storedHash, &replay.DefinitionID, &replay.X, &replay.Y,
+		&replay.ID, &storedHash, &replay.DefinitionID, &replay.DefinitionVersion,
+		&replay.X, &replay.Y, &replayState, &replayMutationKey,
 	)
 	if err == nil {
 		if !bytes.Equal(storedHash, requestHash[:]) {
@@ -499,6 +561,18 @@ func (store *SQLiteStore) ReservePlacement(
 		}
 		replay.Replayed = true
 		replay.Remaining = budget.Remaining
+		if replayState == "held" && !replayMutationKey.Valid {
+			permit, permitHash, permitErr := newPlacementPermit()
+			if permitErr != nil {
+				return PlacementReservation{}, fmt.Errorf("renew lounge placement permit: %w", permitErr)
+			}
+			replay.Permit = permit
+			if _, err = connection.ExecContext(ctx, `UPDATE team_lounge_placement_reservations
+				SET permit_hash = ?, permit_expires_at = ? WHERE reservation_id = ?`,
+				permitHash, now.Add(2*time.Minute).UTC().Format(time.RFC3339Nano), replay.ID); err != nil {
+				return PlacementReservation{}, fmt.Errorf("renew lounge placement permit: %w", err)
+			}
+		}
 		if _, err = connection.ExecContext(ctx, "COMMIT"); err != nil {
 			return PlacementReservation{}, fmt.Errorf("commit lounge placement replay: %w", err)
 		}
@@ -509,8 +583,8 @@ func (store *SQLiteStore) ReservePlacement(
 		return PlacementReservation{}, fmt.Errorf("load lounge placement replay: %w", err)
 	}
 	var used int
-	if err = connection.QueryRowContext(ctx, `SELECT COUNT(*) FROM team_lounge_placement_credits
-		WHERE team_id = ? AND player_id = ? AND week_key = ? AND placement_state IN ('reserved', 'placed')`,
+	if err = connection.QueryRowContext(ctx, `SELECT COUNT(*) FROM team_lounge_placement_reservations
+		WHERE team_id = ? AND player_id = ? AND week_key = ? AND state IN ('held', 'committed')`,
 		budget.TeamID, playerID, budget.WeekKey).Scan(&used); err != nil {
 		return PlacementReservation{}, fmt.Errorf("count reserved lounge placements: %w", err)
 	}
@@ -521,13 +595,33 @@ func (store *SQLiteStore) ReservePlacement(
 	if err != nil {
 		return PlacementReservation{}, fmt.Errorf("create lounge placement reservation: %w", err)
 	}
-	result, err := connection.ExecContext(ctx, `UPDATE team_lounge_placement_credits SET
-		reservation_id = ?, idempotency_key_hash = ?, request_hash = ?, definition_id = ?,
-		position_x = ?, position_y = ?, placement_state = 'reserved', reserved_at = ?
-		WHERE rowid = (SELECT rowid FROM team_lounge_placement_credits
-			WHERE team_id = ? AND player_id = ? AND week_key = ? AND placement_state IS NULL
-			ORDER BY day_key LIMIT 1)`, reservationID, keyHash[:], requestHash[:], request.DefinitionID,
-		request.X, request.Y, now.UTC().Format(time.RFC3339Nano), budget.TeamID, playerID, budget.WeekKey)
+	permit, permitHash, err := newPlacementPermit()
+	if err != nil {
+		return PlacementReservation{}, fmt.Errorf("create lounge placement permit: %w", err)
+	}
+	var creditDay string
+	err = connection.QueryRowContext(ctx, `SELECT day_key FROM team_lounge_placement_credits AS credit
+		WHERE team_id = ? AND player_id = ? AND week_key = ?
+		AND NOT EXISTS (SELECT 1 FROM team_lounge_placement_reservations AS reservation
+			WHERE reservation.team_id = credit.team_id AND reservation.player_id = credit.player_id
+			AND reservation.week_key = credit.week_key AND reservation.day_key = credit.day_key
+			AND reservation.state IN ('held', 'committed'))
+		ORDER BY day_key LIMIT 1`, budget.TeamID, playerID, budget.WeekKey).Scan(&creditDay)
+	if errors.Is(err, sql.ErrNoRows) {
+		return PlacementReservation{}, ErrPlacementCreditsExhausted
+	}
+	if err != nil {
+		return PlacementReservation{}, fmt.Errorf("select lounge placement credit: %w", err)
+	}
+	result, err := connection.ExecContext(ctx, `INSERT INTO team_lounge_placement_reservations (
+		reservation_id, team_id, player_id, week_key, day_key, room_id, canvas_id, canvas_version,
+		definition_id, definition_version, position_x, position_y, rotation, scale, config_json,
+		idempotency_key_hash, request_hash, permit_hash, permit_expires_at, state, held_at
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, ?, ?, ?, ?, ?, 'held', ?)`,
+		reservationID, budget.TeamID, playerID, budget.WeekKey, creditDay, roomID,
+		template.CanvasID, template.CanvasVersion, request.DefinitionID, request.DefinitionVersion,
+		request.X, request.Y, string(config), keyHash[:], requestHash[:], permitHash,
+		now.Add(2*time.Minute).UTC().Format(time.RFC3339Nano), now.UTC().Format(time.RFC3339Nano))
 	if err != nil {
 		return PlacementReservation{}, fmt.Errorf("reserve lounge placement: %w", err)
 	}
@@ -540,33 +634,10 @@ func (store *SQLiteStore) ReservePlacement(
 	}
 	committed = true
 	return PlacementReservation{
-		ID: reservationID, DefinitionID: request.DefinitionID, X: request.X, Y: request.Y,
+		ID: reservationID, DefinitionID: request.DefinitionID, DefinitionVersion: request.DefinitionVersion,
+		X: request.X, Y: request.Y, Permit: permit,
 		Remaining: max(0, budget.Earned-used-1),
 	}, nil
-}
-
-func (store *SQLiteStore) CommitPlacement(
-	ctx context.Context,
-	roomID, playerID, reservationID, entityID string,
-	now time.Time,
-) error {
-	teamID, weekKey, err := ParseWeeklyRoomID(roomID)
-	if err != nil || playerID == "" || reservationID == "" || entityID == "" || len(entityID) > 128 {
-		return ErrPlacementUnavailable
-	}
-	result, err := store.db.ExecContext(ctx, `UPDATE team_lounge_placement_credits
-		SET placement_state = 'placed', entity_id = ?, placed_at = ?
-		WHERE team_id = ? AND player_id = ? AND week_key = ? AND reservation_id = ?
-		AND (placement_state = 'reserved' OR (placement_state = 'placed' AND entity_id = ?))`,
-		entityID, now.UTC().Format(time.RFC3339Nano), teamID, playerID, weekKey, reservationID, entityID)
-	if err != nil {
-		return fmt.Errorf("commit lounge placement: %w", err)
-	}
-	rows, err := result.RowsAffected()
-	if err != nil || rows != 1 {
-		return ErrPlacementUnavailable
-	}
-	return nil
 }
 
 func loungePlacementItem(definitionID string) (string, bool) {

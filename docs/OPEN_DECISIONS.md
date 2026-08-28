@@ -396,3 +396,20 @@ to resolve, not the implementing agent's.
 - In dense lists, the current player's avatar is slightly larger and gets a
   lime-and-white ring plus a small sparkle marker. This avoids another visible
   `You` label while preserving an accessible `, you` name.
+
+## Canvas 0.6 Lounge authority (2026-08-28)
+
+- Canvas generation 10 is a clean cutover: ZoomiGo does not import pre-0.6
+  rooms, item data, permits, or intermediate placement reservations.
+- Production may expose only the predefined Lounge items now that every spawn
+  consumes a short-lived ZoomiGo permit bound to the participant, room/week,
+  canvas and definition generations, transform, configuration, and mutation.
+- Only a trusted Canvas `accepted` or `rejected` outcome finalizes a consumed
+  hold. `unknown` and `expired` remain held for operator review; browser claims
+  and timeouts never release earned inventory.
+- Socket tickets, room leases, ownership generations, and emote cooldowns use
+  the application database as their atomic authority. A future replica topology
+  must share that authority and pass the recorded multi-process deployment proof.
+- Lounge reactions remain the five predefined emotes. Canvas derives sender
+  identity and sequence; ZoomiGo validates membership, payload, and cooldown,
+  while the effect is transient and never joins durable player history.

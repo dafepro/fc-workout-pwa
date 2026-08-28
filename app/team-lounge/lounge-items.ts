@@ -8,6 +8,7 @@ export interface LoungeItemChoice {
   label: string;
   glyph: string;
   definitionId: string;
+  definitionVersion: number;
   source: "included" | "earned";
   kind: "lounge_stamp" | "lounge_prop";
 }
@@ -33,6 +34,7 @@ const stampChoice = (
   label,
   glyph,
   definitionId: `zoomigo-stamp-${id}`,
+  definitionVersion: 1,
   source,
   kind: "lounge_stamp",
 });
@@ -42,6 +44,7 @@ const beachBallProp: LoungeItemChoice = {
   label: "Beach ball",
   glyph: "⚽",
   definitionId: "zoomigo-prop-beach-ball",
+  definitionVersion: 2,
   source: "earned",
   kind: "lounge_prop",
 };

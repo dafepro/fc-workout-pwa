@@ -6,27 +6,15 @@ the Team Lounge.
 
 ## P1 — before broadening the release shape
 
-- **Enforce Lounge placement permits inside Canvas.** ZoomiGo now owns durable,
-  idempotent placement reservations and validates the current room/week,
-  predefined item, earned inventory, and remaining credits atomically. Canvas
-  0.4.1 still has no application mutation-policy hook, so a handcrafted socket
-  mutation can bypass the reservation endpoint. Keep production definitions and
-  controls excluded until Canvas validates a ZoomiGo permit at mutation time.
-- **Reconcile reserved placements that Canvas cannot confirm.** The safe-first
-  reservation consumes its credit before the Canvas mutation. Add a bounded,
-  server-verifiable release path for a rejected mutation or interrupted client;
-  never let a client unilaterally refund a successfully spawned item.
-- **Add a current-Canvas shared emote transport.** Canvas 0.4.1 removed the
-  prototype participant-signal API. Development builds currently prove the
-  predefined reaction controls, cooldown, and sender presentation only; relay
-  the same closed set to teammates once a supported transient channel exists.
-- **Finish two-player live-room behavior.** A connected Docker browser test now
-  proves two qualified players share presence and avatar movement across two
-  authenticated sessions. Extend that proof to cross-session beach-ball motion.
-- **Choose the multi-replica room strategy before scaling the API.** One-use
-  socket tickets and live Canvas coordinators are process-local. The current
-  single-replica VM is supported; multiple replicas require sticky room routing
-  or shared ticket/coordinator authority.
+- **Automate stale placement-outcome alerts.** The read-only operator report and
+  runbook now separate expired permits, pending receipts, and consumed holds
+  older than Canvas retention. Schedule it and alert on nonzero stale outcomes;
+  never introduce a browser-controlled or timer-only refund.
+- **Prove the production multi-process topology before scaling the API.** Canvas
+  0.6 room leases and ZoomiGo ticket nonces are now atomic in the application
+  database. Exercise two real API processes against the intended shared database
+  and proxy, including ownership handoff and graceful drain, before raising the
+  deployed replica count.
 
 ## P2 — deliberate cleanup and product decisions
 

@@ -87,7 +87,7 @@ func TestMigrateUpgradesAnExistingFoundationDatabase(t *testing.T) {
 	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM schema_migrations`).Scan(&migrationCount); err != nil {
 		t.Fatal(err)
 	}
-	if migrationCount != 18 {
-		t.Fatalf("migration count = %d, want 18", migrationCount)
+	if migrationCount != 19 {
+		t.Fatalf("migration count = %d, want 19", migrationCount)
 	}
 }

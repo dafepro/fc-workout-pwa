@@ -45,7 +45,7 @@ func TestCanonicalTeamLoungeRequiresTodayCheckInAndJoinsCanvasRoom(t *testing.T)
 		}
 	}
 	repository := store.New(db, time.UTC)
-	loungeStore := teamlounge.NewSQLiteStore(db, teamlounge.BeachBoardwalkDevelopmentCatalog())
+	loungeStore := teamlounge.NewSQLiteStore(db, teamlounge.BeachBoardwalkLoungeCatalog())
 	handler := httpapi.NewHandler(
 		config.Config{AllowedOrigin: "http://example.test"},
 		httpapi.WithStore(repository),
@@ -92,13 +92,13 @@ func TestCanonicalTeamLoungeRequiresTodayCheckInAndJoinsCanvasRoom(t *testing.T)
 	if err := json.NewDecoder(ticketResponse.Body).Decode(&credential); err != nil {
 		t.Fatal(err)
 	}
-	if len(credential.Ticket) != 43 || credential.RoomID != "team:team-one:lounge:2026-08-24:v9" ||
+	if len(credential.Ticket) != 43 || credential.RoomID != "team:team-one:lounge:2026-08-24:v10" ||
 		credential.WeekKey != "2026-08-24" || credential.DayKey != "2026-08-26" ||
 		credential.Theme != "Beach Boardwalk" || credential.Presence != 0 || credential.Credits != 1 {
 		t.Fatalf("credential = %#v", credential)
 	}
 
-	placementBody := []byte(`{"roomId":"team:team-one:lounge:2026-08-24:v9","definitionId":"zoomigo-stamp-bolt","position":{"x":40,"y":70}}`)
+	placementBody := []byte(`{"roomId":"team:team-one:lounge:2026-08-24:v10","definitionId":"zoomigo-stamp-bolt","definitionVersion":1,"position":{"x":40,"y":70}}`)
 	reservePlacement := func(key string) *httptest.ResponseRecorder {
 		request := httptest.NewRequest(http.MethodPost, "/v1/teams/team-one/lounge/placements", bytes.NewReader(placementBody))
 		request.Header.Set("Authorization", "Bearer test-session")
@@ -113,13 +113,15 @@ func TestCanonicalTeamLoungeRequiresTodayCheckInAndJoinsCanvasRoom(t *testing.T)
 		t.Fatalf("placement status = %d: %s", firstPlacement.Code, firstPlacement.Body.String())
 	}
 	var placement struct {
-		ID        string `json:"placementId"`
-		Remaining int    `json:"remainingPlacements"`
+		ID                string `json:"placementId"`
+		Permit            string `json:"permit"`
+		DefinitionVersion uint32 `json:"definitionVersion"`
+		Remaining         int    `json:"remainingPlacements"`
 	}
 	if err := json.NewDecoder(firstPlacement.Body).Decode(&placement); err != nil {
 		t.Fatal(err)
 	}
-	if placement.ID == "" || placement.Remaining != 0 {
+	if placement.ID == "" || len(placement.Permit) != 43 || placement.DefinitionVersion != 1 || placement.Remaining != 0 {
 		t.Fatalf("placement = %#v", placement)
 	}
 	if replay := reservePlacement("placement-one"); replay.Code != http.StatusOK {
@@ -127,6 +129,14 @@ func TestCanonicalTeamLoungeRequiresTodayCheckInAndJoinsCanvasRoom(t *testing.T)
 	}
 	if exhausted := reservePlacement("placement-two"); exhausted.Code != http.StatusConflict {
 		t.Fatalf("placement exhaustion status = %d: %s", exhausted.Code, exhausted.Body.String())
+	}
+	legacyCommit := httptest.NewRequest(http.MethodPost,
+		"/v1/teams/team-one/lounge/placements/"+placement.ID+"/commit", bytes.NewReader([]byte(`{}`)))
+	legacyCommit.Header.Set("Authorization", "Bearer test-session")
+	legacyCommitResponse := httptest.NewRecorder()
+	handler.ServeHTTP(legacyCommitResponse, legacyCommit)
+	if legacyCommitResponse.Code != http.StatusNotFound {
+		t.Fatalf("legacy browser commit status = %d", legacyCommitResponse.Code)
 	}
 
 	server := httptest.NewServer(handler)

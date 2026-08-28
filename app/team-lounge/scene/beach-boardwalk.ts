@@ -57,14 +57,31 @@ export const loungeAvatarDefinition: ItemDefinition = {
   complexity: "simple",
 };
 
+export const loungeActionRouterDefinition: ItemDefinition = {
+  definitionId: "zoomigo-lounge-action-router",
+  version: 1,
+  displayName: "Lounge action router",
+  visual: {
+    size: { width: 0.1, height: 0.1 },
+    spriteId: "lounge.stamp.transparent",
+    zIndex: 0,
+  },
+  colliders: [],
+  behaviorType: "zoomigoLoungeActions",
+  defaultConfig: {},
+  persistence: { transform: false, behaviorState: false, onRoomSleep: "pause" },
+  complexity: "simple",
+};
+
 export const beachBoardwalkDefinitions = [
   beachBallDefinition,
   loungeAvatarDefinition,
+  loungeActionRouterDefinition,
 ];
 
 export const beachBoardwalkCanvas: CanvasDefinition = {
   id: "zoomigo-beach-boardwalk",
-  version: 9,
+  version: 10,
   size: { width: 100, height: 150 },
   orientation: "topDown",
   backgroundAssetId: "lounge.background",
@@ -93,6 +110,13 @@ export const beachBoardwalkCanvas: CanvasDefinition = {
       definitionVersion: beachBallDefinition.version,
       transform: { x: 62, y: 98, rotation: 0, scale: 1 },
       resolvedConfig: beachBallDefinition.defaultConfig,
+    },
+    {
+      entityId: "lounge-action-router",
+      definitionId: loungeActionRouterDefinition.definitionId,
+      definitionVersion: loungeActionRouterDefinition.version,
+      transform: { x: 0, y: 0, rotation: 0, scale: 1 },
+      resolvedConfig: {},
     },
   ],
   limits: { maxAvatars: 24, maxItems: 169, maxComplexPhysicsItems: 4 },

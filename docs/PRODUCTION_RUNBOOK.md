@@ -323,6 +323,24 @@ health, then revoke the old token. Rotate the read token by updating
 `GRAFANA_READ_TOKEN`, dispatching one safe query, and only then revoking the old
 token. A failed rotation should disable Alloy, not weaken API availability.
 
+## Reviewing unresolved Lounge placement holds
+
+Canvas is the only authority that may commit or release a consumed placement
+hold. The operator command is therefore deliberately read-only: it separates
+expired, never-consumed permits from holds awaiting a Canvas receipt and flags
+consumed holds older than the requested reconciliation window.
+
+```sh
+cd /opt/app/deploy/vm
+sudo -n docker compose --env-file .env --profile operations run --rm --no-TTY admin \
+  lounge-placement-holds --stale-after 24h
+```
+
+Any nonzero `staleCanvasOutcomes` count needs investigation against Canvas room
+logs and retained mutation receipts. Never release a hold merely because it is
+old or because a browser reports a timeout. `expiredPermits` are likewise
+reported, not automatically refunded.
+
 ## Creating the first operator account
 
 The console cannot create the account that signs into it, so the first

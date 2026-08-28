@@ -93,14 +93,14 @@ func TestWeeklyRoomIdentityRoundTrips(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if roomID != "team:team-one:lounge:2026-08-24:v9" {
+	if roomID != "team:team-one:lounge:2026-08-24:v10" {
 		t.Fatalf("room id = %q", roomID)
 	}
 	teamID, weekKey, err := ParseWeeklyRoomID(roomID)
 	if err != nil || teamID != "team-one" || weekKey != "2026-08-24" {
 		t.Fatalf("parsed = %q, %q, %v", teamID, weekKey, err)
 	}
-	for _, invalid := range []string{"", "team:other", "team:team/one:lounge:2026-08-24:v9", "team:team-one:lounge:today:v9", "team:team-one:lounge:2026-08-25:v9", "team:team-one:lounge:2026-08-24", "team:team-one:lounge:2026-08-24:v8"} {
+	for _, invalid := range []string{"", "team:other", "team:team/one:lounge:2026-08-24:v10", "team:team-one:lounge:today:v10", "team:team-one:lounge:2026-08-25:v10", "team:team-one:lounge:2026-08-24", "team:team-one:lounge:2026-08-24:v8"} {
 		if _, _, err := ParseWeeklyRoomID(invalid); err == nil {
 			t.Fatalf("accepted invalid room id %q", invalid)
 		}
@@ -128,14 +128,14 @@ func TestWeeklyThemeManifestOwnsTheImmutableCanvasBinding(t *testing.T) {
 
 func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 	catalog := BeachBoardwalkCatalog()
-	if len(catalog.Canvases) != 1 || len(catalog.Items) != 2 {
+	if len(catalog.Canvases) != 1 || len(catalog.Items) != 3 {
 		t.Fatalf("catalog sizes = %d canvases, %d items", len(catalog.Canvases), len(catalog.Items))
 	}
 	canvas := catalog.Canvases[0]
 	if canvas.CanvasID != BeachBoardwalkCanvasID || canvas.Version != BeachBoardwalkCanvasVersion || !json.Valid(canvas.DefinitionRaw) {
 		t.Fatalf("canvas record = %#v", canvas)
 	}
-	if canvas.Version != 9 {
+	if canvas.Version != 10 {
 		t.Fatalf("canvas version = %d", canvas.Version)
 	}
 	var shape struct {
@@ -170,7 +170,9 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 	if err := json.Unmarshal(canvas.DefinitionRaw, &shape); err != nil {
 		t.Fatal(err)
 	}
-	if shape.ID != canvas.CanvasID || shape.Version != canvas.Version || len(shape.SystemItems) != 1 || shape.SystemItems[0].DefinitionID != "beach-ball" {
+	if shape.ID != canvas.CanvasID || shape.Version != canvas.Version || len(shape.SystemItems) != 2 ||
+		shape.SystemItems[0].DefinitionID != "beach-ball" ||
+		shape.SystemItems[1].DefinitionID != "zoomigo-lounge-action-router" {
 		t.Fatalf("canvas shape = %#v", shape)
 	}
 	for _, edge := range []string{"top", "right", "bottom", "left"} {
@@ -220,16 +222,16 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 }
 
 func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
-	catalog := BeachBoardwalkDevelopmentCatalog()
-	if len(catalog.Items) != 13 {
+	catalog := BeachBoardwalkLoungeCatalog()
+	if len(catalog.Items) != 14 {
 		t.Fatalf("development item count = %d", len(catalog.Items))
 	}
-	for _, item := range catalog.Items[2:12] {
+	for _, item := range catalog.Items[3:13] {
 		if !strings.HasPrefix(item.DefinitionID, "zoomigo-stamp-") || item.Version != 1 {
 			t.Fatalf("development item = %#v", item)
 		}
 	}
-	if item := catalog.Items[12]; item.DefinitionID != "zoomigo-prop-beach-ball" || item.Version != 2 {
+	if item := catalog.Items[13]; item.DefinitionID != "zoomigo-prop-beach-ball" || item.Version != 2 {
 		t.Fatalf("development prop = %#v", item)
 	}
 }

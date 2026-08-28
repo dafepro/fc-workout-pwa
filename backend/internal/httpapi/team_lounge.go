@@ -2,12 +2,10 @@ package httpapi
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/dafepro/canvas/server/pkg/roomsdk"
@@ -17,55 +15,6 @@ import (
 )
 
 const teamLoungeSocketTicketTTL = 30 * time.Second
-
-type teamLoungeSocketClaim struct {
-	Actor   domain.Actor
-	RoomID  string
-	Expires time.Time
-}
-
-type teamLoungeSocketTickets struct {
-	mu     sync.Mutex
-	claims map[string]teamLoungeSocketClaim
-	now    func() time.Time
-}
-
-func newTeamLoungeSocketTickets(now func() time.Time) *teamLoungeSocketTickets {
-	return &teamLoungeSocketTickets{claims: make(map[string]teamLoungeSocketClaim), now: now}
-}
-
-func (tickets *teamLoungeSocketTickets) issue(actor domain.Actor, roomID string) (string, error) {
-	random := make([]byte, 32)
-	if _, err := rand.Read(random); err != nil {
-		return "", err
-	}
-	ticket := base64.RawURLEncoding.EncodeToString(random)
-	now := tickets.now().UTC()
-	tickets.mu.Lock()
-	defer tickets.mu.Unlock()
-	for key, claim := range tickets.claims {
-		if !claim.Expires.After(now) {
-			delete(tickets.claims, key)
-		}
-	}
-	tickets.claims[ticket] = teamLoungeSocketClaim{Actor: actor, RoomID: roomID, Expires: now.Add(teamLoungeSocketTicketTTL)}
-	return ticket, nil
-}
-
-func (tickets *teamLoungeSocketTickets) consume(ticket, roomID string) (teamLoungeSocketClaim, bool) {
-	now := tickets.now().UTC()
-	tickets.mu.Lock()
-	defer tickets.mu.Unlock()
-	claim, ok := tickets.claims[ticket]
-	if !ok || !claim.Expires.After(now) || claim.RoomID != roomID {
-		if ok && !claim.Expires.After(now) {
-			delete(tickets.claims, ticket)
-		}
-		return teamLoungeSocketClaim{}, false
-	}
-	delete(tickets.claims, ticket)
-	return claim, true
-}
 
 type teamLoungeCredential struct {
 	Ticket           string   `json:"ticket"`
@@ -125,6 +74,10 @@ func (service *service) createTeamLoungeSocketTicket(w http.ResponseWriter, r *h
 		writeError(w, r, http.StatusConflict, "room_template_conflict", "This week's lounge could not be opened.")
 		return
 	}
+	if err := service.reconcileTeamLoungePlacements(r.Context(), roomID, actor.PlayerID); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "internal_error", "This week's Lounge placements could not be reconciled.")
+		return
+	}
 	budget, err := service.teamLoungeStore.PlacementBudget(r.Context(), roomID, actor.PlayerID, service.now().UTC())
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "internal_error", "This week's lounge could not be opened.")
@@ -148,7 +101,9 @@ func (service *service) createTeamLoungeSocketTicket(w http.ResponseWriter, r *h
 			}
 		}
 	}
-	ticket, err := service.loungeTickets.issue(actor, roomID)
+	ticket, err := service.teamLoungeStore.IssueSocketTicket(
+		r.Context(), roomID, actor.PlayerID, service.now().UTC(), teamLoungeSocketTicketTTL,
+	)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "internal_error", "Live team updates could not be started.")
 		return
@@ -160,10 +115,33 @@ func (service *service) createTeamLoungeSocketTicket(w http.ResponseWriter, r *h
 	})
 }
 
+func (service *service) reconcileTeamLoungePlacements(ctx context.Context, roomID, playerID string) error {
+	if service.teamLoungeSDK == nil {
+		return nil
+	}
+	correlations, err := service.teamLoungeStore.PendingPlacementCorrelations(ctx, roomID, playerID)
+	if err != nil {
+		return err
+	}
+	for _, correlation := range correlations {
+		outcome, err := service.teamLoungeSDK.ReconcileMutation(ctx, roomID, correlation)
+		if err != nil {
+			return err
+		}
+		if outcome.Status == roomsdk.MutationOutcomeAccepted || outcome.Status == roomsdk.MutationOutcomeRejected {
+			if err := service.teamLoungeStore.NotifyMutationOutcome(ctx, outcome); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 type teamLoungePlacementRequest struct {
-	RoomID       string `json:"roomId"`
-	DefinitionID string `json:"definitionId"`
-	Position     struct {
+	RoomID            string `json:"roomId"`
+	DefinitionID      string `json:"definitionId"`
+	DefinitionVersion uint32 `json:"definitionVersion"`
+	Position          struct {
 		X float64 `json:"x"`
 		Y float64 `json:"y"`
 	} `json:"position"`
@@ -172,6 +150,8 @@ type teamLoungePlacementRequest struct {
 type teamLoungePlacementResponse struct {
 	PlacementID         string  `json:"placementId"`
 	DefinitionID        string  `json:"definitionId"`
+	DefinitionVersion   uint32  `json:"definitionVersion"`
+	Permit              string  `json:"permit"`
 	X                   float64 `json:"x"`
 	Y                   float64 `json:"y"`
 	RemainingPlacements int     `json:"remainingPlacements"`
@@ -209,7 +189,8 @@ func (service *service) reserveTeamLoungePlacement(w http.ResponseWriter, r *htt
 	}
 	reservation, err := service.teamLoungeStore.ReservePlacement(
 		r.Context(), request.RoomID, actor.PlayerID, key,
-		teamlounge.PlacementRequest{DefinitionID: request.DefinitionID, X: request.Position.X, Y: request.Position.Y},
+		teamlounge.PlacementRequest{DefinitionID: request.DefinitionID, DefinitionVersion: request.DefinitionVersion,
+			X: request.Position.X, Y: request.Position.Y},
 		service.now().UTC(),
 	)
 	if err != nil {
@@ -233,58 +214,45 @@ func (service *service) reserveTeamLoungePlacement(w http.ResponseWriter, r *htt
 	}
 	writeJSON(w, status, teamLoungePlacementResponse{
 		PlacementID: reservation.ID, DefinitionID: reservation.DefinitionID,
+		DefinitionVersion: reservation.DefinitionVersion, Permit: reservation.Permit,
 		X: reservation.X, Y: reservation.Y, RemainingPlacements: reservation.Remaining,
 	})
 }
 
-func (service *service) commitTeamLoungePlacement(w http.ResponseWriter, r *http.Request) {
-	actor, ok := service.authenticate(w, r)
-	if !ok {
-		return
-	}
-	if actor.Role != domain.RolePlayer || actor.PlayerID == "" || service.teamLoungeStore == nil {
-		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
-		return
-	}
-	var request struct {
-		RoomID   string `json:"roomId"`
-		EntityID string `json:"entityId"`
-	}
-	if decodeStrictJSON(w, r, &request) != nil {
-		writeError(w, r, http.StatusBadRequest, "invalid_request", "That Lounge placement confirmation is invalid.")
-		return
-	}
-	requestTeamID, _, err := teamlounge.ParseWeeklyRoomID(request.RoomID)
-	if err != nil || requestTeamID != r.PathValue("teamId") {
-		writeError(w, r, http.StatusUnprocessableEntity, "placement_room_unavailable", "That Team Lounge is unavailable.")
-		return
-	}
-	if err := service.teamLoungeStore.CommitPlacement(
-		r.Context(), request.RoomID, actor.PlayerID, r.PathValue("placementId"), request.EntityID, service.now().UTC(),
-	); err != nil {
-		writeError(w, r, http.StatusConflict, "placement_confirmation_failed", "That Lounge placement could not be confirmed.")
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
-}
-
 func (service *service) buildTeamLoungeRoomHandler() http.Handler {
-	if service.teamLoungeStore == nil || service.loungeTickets == nil {
+	if service.teamLoungeStore == nil {
 		return nil
 	}
 	server, err := roomsdk.New(roomsdk.Config{
-		Store:         teamlounge.NewBoundRoomStore(service.teamLoungeStore, nil),
-		RoomTemplates: service.teamLoungeStore,
+		Store:           teamlounge.NewBoundRoomStore(service.teamLoungeStore, nil),
+		RoomTemplates:   service.teamLoungeStore,
+		RoomCoordinator: service.teamLoungeStore.RoomCoordinator(),
+		MutationAuthorizer: roomsdk.MutationAuthorizerFunc(func(
+			ctx context.Context,
+			request roomsdk.MutationAuthorizationRequest,
+		) (roomsdk.MutationAuthorizationDecision, error) {
+			decision, err := service.teamLoungeStore.AuthorizeMutation(ctx, request)
+			if err == nil && !decision.Authorized {
+				slog.Warn("Lounge placement denied", "room_id", request.RoomID,
+					"correlation_id", request.ApplicationCorrelationID, "reason", decision.Reason)
+			}
+			return decision, err
+		}),
+		MutationOutcomeSink: service.teamLoungeStore,
+		TransientActions:    service.teamLoungeStore,
+		Now:                 service.now,
 		Auth: roomsdk.AuthenticatorFunc(func(ctx context.Context, r *http.Request) (roomsdk.Identity, error) {
 			roomID := r.PathValue("id")
-			claim, ok := service.loungeTickets.consume(teamLoungeSocketTicket(r), roomID)
-			if !ok || claim.Actor.PlayerID == "" {
+			playerID, ok := service.teamLoungeStore.ConsumeSocketTicket(
+				ctx, teamLoungeSocketTicket(r), roomID, service.now().UTC(),
+			)
+			if !ok || playerID == "" {
 				return roomsdk.Identity{}, roomsdk.ErrUnauthorized
 			}
-			if err := service.teamLoungeStore.RecordVisit(ctx, roomID, claim.Actor.PlayerID, service.now().UTC()); err != nil {
+			if err := service.teamLoungeStore.RecordVisit(ctx, roomID, playerID, service.now().UTC()); err != nil {
 				return roomsdk.Identity{}, roomsdk.ErrUnauthorized
 			}
-			return roomsdk.Identity{UserID: claim.Actor.PlayerID, DisplayName: "Player"}, nil
+			return roomsdk.Identity{UserID: playerID, DisplayName: "Player"}, nil
 		}),
 		AllowedOrigins:  teamLoungeAllowedOrigins(service.cfg.AllowedOrigin),
 		ProtocolVersion: 8,
@@ -292,6 +260,7 @@ func (service *service) buildTeamLoungeRoomHandler() http.Handler {
 	if err != nil {
 		return nil
 	}
+	service.teamLoungeSDK = server
 	return server.Handler()
 }
 

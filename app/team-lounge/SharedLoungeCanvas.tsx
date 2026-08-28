@@ -6,11 +6,14 @@ import type {
   OverlayEntityProjection,
   ParticipantPresence,
 } from "@canvas-physics/client";
+import { TransientActionRejectCode } from "@canvas-physics/protocol";
 
 import { PlayerAvatar } from "../components/PlayerAvatar";
+import { copy } from "../content/copy";
 import { createPrizeBoxGateway } from "../data/prize-box-gateway";
 import type { Player } from "../domain/types";
 import type { LoungeCanvasState } from "./LocalLoungeCanvas";
+import { LoungeActionDock } from "./LoungeActionDock";
 import { loungeBallEntityID, publishLoungeBallPosition } from "./ball-position";
 import {
   LOUNGE_EMOTE_COOLDOWN_MS,
@@ -18,9 +21,14 @@ import {
   loungeEmotes,
   type LoungeEmote,
 } from "./lounge-emotes";
-import { loungeDevelopment, type LoungeItemChoice } from "#lounge-development";
 import {
-  commitTeamLoungePlacement,
+  includedLoungeItems,
+  loungeItemChoices,
+  loungeItemDefinitions,
+  loungeItemForDefinition,
+  type LoungeItemChoice,
+} from "./lounge-items";
+import {
   prepareTeamLoungeJoin,
   reserveTeamLoungePlacement,
 } from "./lounge-gateway";
@@ -65,9 +73,8 @@ export function SharedLoungeCanvas({
   const rosterRef = useRef(roster);
   const [overlays, setOverlays] = useState<AvatarOverlay[]>([]);
   const [itemOverlays, setItemOverlays] = useState<ItemOverlay[]>([]);
-  const [choices, setChoices] = useState<LoungeItemChoice[]>(
-    loungeDevelopment.initialChoices,
-  );
+  const [choices, setChoices] =
+    useState<LoungeItemChoice[]>(includedLoungeItems);
   const [visitorIDs, setVisitorIDs] = useState<readonly string[]>([]);
   const [selectedItem, setSelectedItem] = useState<LoungeItemChoice | null>(
     null,
@@ -75,7 +82,10 @@ export function SharedLoungeCanvas({
   const [remainingPlacements, setRemainingPlacements] = useState(0);
   const [placing, setPlacing] = useState(false);
   const [actionMessage, setActionMessage] = useState("");
-  const [emote, setEmote] = useState<LoungeEmote | null>(null);
+  const [activeEmote, setActiveEmote] = useState<{
+    playerID: string;
+    emote: LoungeEmote;
+  } | null>(null);
   const [emoteLocked, setEmoteLocked] = useState(false);
   const emoteTimerRef = useRef<number | undefined>(undefined);
   const emoteCooldownTimerRef = useRef<number | undefined>(undefined);
@@ -102,6 +112,7 @@ export function SharedLoungeCanvas({
     let unsubscribePresence: () => void = () => undefined;
     let unsubscribeProjection: () => void = () => undefined;
     let unsubscribeLifecycle: () => void = () => undefined;
+    let unsubscribeEffects: () => void = () => undefined;
 
     const publishOverlays = () => {
       if (disposed) return;
@@ -146,18 +157,16 @@ export function SharedLoungeCanvas({
       roomIDRef.current = join.roomID;
       setRemainingPlacements(join.placementCredits);
       setVisitorIDs(join.visitorIDs);
-      let definitions = beachBoardwalkDefinitions;
-      if (loungeDevelopment.enabled) {
-        definitions = [...definitions, ...loungeDevelopment.itemDefinitions];
-        void createPrizeBoxGateway(true)
-          .inventory(["lounge_stamp", "lounge_prop"])
-          .then((inventory) => {
-            if (!disposed) {
-              setChoices(loungeDevelopment.itemChoices(inventory));
-            }
-          })
-          .catch(() => undefined);
-      }
+      const definitions = [
+        ...beachBoardwalkDefinitions,
+        ...loungeItemDefinitions,
+      ];
+      void createPrizeBoxGateway(true)
+        .inventory(["lounge_stamp", "lounge_prop"])
+        .then((inventory) => {
+          if (!disposed) setChoices(loungeItemChoices(inventory));
+        })
+        .catch(() => undefined);
       const { CanvasRuntime: Runtime, SimulationDriver } = await import(
         "@canvas-physics/client"
       );
@@ -215,9 +224,7 @@ export function SharedLoungeCanvas({
           publishOverlays();
           setItemOverlays(
             entities.flatMap((entity) => {
-              const item = loungeDevelopment.itemForDefinition(
-                entity.definitionId,
-              );
+              const item = loungeItemForDefinition(entity.definitionId);
               return item?.glyph && entity.inViewport
                 ? [
                     {
@@ -237,6 +244,19 @@ export function SharedLoungeCanvas({
         if (state === "reconnecting") onStateChange("loading");
         if (state === "failed") onStateChange("error");
       });
+      unsubscribeEffects = runtime.subscribeEffects((effect) => {
+        if (effect.effect !== "zoomigo.emote") return;
+        const emotePlayerID = effect.params?.playerId;
+        const emoteID = effect.params?.emote;
+        const received = loungeEmotes.find(({ id }) => id === emoteID);
+        if (typeof emotePlayerID !== "string" || !received) return;
+        setActiveEmote({ playerID: emotePlayerID, emote: received });
+        window.clearTimeout(emoteTimerRef.current);
+        emoteTimerRef.current = window.setTimeout(
+          () => setActiveEmote(null),
+          LOUNGE_EMOTE_DURATION_MS,
+        );
+      });
       await runtime.start({ until: "presented" });
       if (!disposed) onStateChange("ready");
     })().catch(() => !disposed && onStateChange("error"));
@@ -246,6 +266,7 @@ export function SharedLoungeCanvas({
       unsubscribePresence();
       unsubscribeProjection();
       unsubscribeLifecycle();
+      unsubscribeEffects();
       const active = runtime;
       runtime = undefined;
       runtimeRef.current = null;
@@ -276,23 +297,30 @@ export function SharedLoungeCanvas({
         teamID,
         roomID,
         selectedItem.definitionId,
+        selectedItem.definitionVersion,
         point,
         crypto.randomUUID(),
       );
       setRemainingPlacements(reservation.remaining);
-      const outcome = await runtime.spawnItem(selectedItem.definitionId, point)
-        .settled;
+      const outcome = await runtime.spawnItem(
+        selectedItem.definitionId,
+        reservation.position,
+        0,
+        1,
+        {
+          authorizationEvidence: new TextEncoder().encode(reservation.permit),
+          applicationCorrelationId: reservation.placementID,
+        },
+      ).settled;
       if (outcome.status === "accepted" && outcome.item?.entityId) {
-        await commitTeamLoungePlacement(
-          teamID,
-          roomID,
-          reservation.placementID,
-          outcome.item.entityId,
-        );
         setActionMessage(`${selectedItem.label} placed.`);
         setSelectedItem(null);
       } else {
-        setActionMessage("That item could not be placed.");
+        setActionMessage(
+          outcome.status === "rejected"
+            ? placementRejectionMessage(outcome.code)
+            : "That item could not be placed.",
+        );
       }
     } catch (error) {
       setActionMessage(
@@ -305,21 +333,29 @@ export function SharedLoungeCanvas({
     }
   };
 
-  const showEmote = (next: LoungeEmote) => {
-    if (emoteLocked) return;
-    setEmote(next);
+  const showEmote = async (next: LoungeEmote) => {
+    const runtime = runtimeRef.current;
+    if (!runtime || emoteLocked) return;
     setEmoteLocked(true);
-    setActionMessage(`${next.label} sent.`);
-    window.clearTimeout(emoteTimerRef.current);
     window.clearTimeout(emoteCooldownTimerRef.current);
-    emoteTimerRef.current = window.setTimeout(
-      () => setEmote(null),
-      LOUNGE_EMOTE_DURATION_MS,
-    );
     emoteCooldownTimerRef.current = window.setTimeout(
       () => setEmoteLocked(false),
       LOUNGE_EMOTE_COOLDOWN_MS,
     );
+    try {
+      const result = await runtime.submitTransientAction({
+        action: "zoomigo.emote",
+        target: "room",
+        payload: { emote: next.id },
+      }).result;
+      setActionMessage(
+        result.accepted
+          ? `${next.label} sent.`
+          : transientActionRejectionMessage(result.rejectCode),
+      );
+    } catch {
+      setActionMessage("That reaction could not be sent.");
+    }
   };
 
   const remaining = remainingPlacements;
@@ -342,13 +378,13 @@ export function SharedLoungeCanvas({
         >
           <PlayerAvatar player={player} size="medium" />
           <span>{current ? "You" : player.firstName}</span>
-          {current && emote ? (
+          {activeEmote?.playerID === player.id ? (
             <b
               className="team-lounge__avatar-emote"
               role="img"
-              aria-label={emote.label}
+              aria-label={activeEmote.emote.label}
             >
-              {emote.symbol}
+              {activeEmote.emote.symbol}
             </b>
           ) : null}
         </div>
@@ -383,7 +419,7 @@ export function SharedLoungeCanvas({
           []
         );
       })}
-      {loungeDevelopment.enabled && selectedItem ? (
+      {selectedItem ? (
         <button
           type="button"
           className="team-lounge__placement-surface"
@@ -391,53 +427,51 @@ export function SharedLoungeCanvas({
           disabled={placing || remaining === 0}
           onClick={placeItem}
         >
-          Tap where you want it
+          <span>{copy.teamLounge.actions.placeHint(selectedItem.label)}</span>
+          <b aria-hidden="true">{selectedItem.glyph}</b>
         </button>
       ) : null}
-      {loungeDevelopment.enabled ? (
-        <div className="team-lounge__actions" data-canvas-pointer-ignore="true">
-          <div className="team-lounge__action-row" aria-label="Quick reactions">
-            {loungeEmotes.map((choice) => (
-              <button
-                key={choice.label}
-                type="button"
-                aria-label={choice.label}
-                disabled={emoteLocked}
-                onClick={() => showEmote(choice)}
-              >
-                {choice.symbol}
-              </button>
-            ))}
-          </div>
-          <div
-            className="team-lounge__action-row"
-            aria-label={`Place a stamp, ${remaining} remaining`}
-          >
-            {choices.map((choice) => (
-              <button
-                key={choice.id}
-                type="button"
-                aria-label={`Choose ${choice.label} stamp`}
-                aria-pressed={selectedItem?.id === choice.id}
-                disabled={placing || remaining === 0}
-                onClick={() =>
-                  setSelectedItem((selected) =>
-                    selected?.id === choice.id ? null : choice,
-                  )
-                }
-              >
-                {choice.glyph}
-              </button>
-            ))}
-          </div>
-          <span className="team-lounge__action-count">
-            {remaining} item{remaining === 1 ? "" : "s"} left
-          </span>
-          <span className="visually-hidden" role="status">
-            {actionMessage}
-          </span>
-        </div>
-      ) : null}
+      <LoungeActionDock
+        choices={choices}
+        selectedItem={selectedItem}
+        remaining={remaining}
+        placing={placing}
+        emoteLocked={emoteLocked}
+        onSelectItem={setSelectedItem}
+        onSendEmote={showEmote}
+      />
+      <span className="visually-hidden" role="status">
+        {actionMessage}
+      </span>
     </>
   );
+}
+
+function placementRejectionMessage(rejectCode: string): string {
+  switch (rejectCode) {
+    case "outside_canvas":
+      return "Place that item farther inside the Lounge.";
+    case "application_policy":
+    case "application_correlation_conflict":
+      return "That placement permit is no longer available.";
+    case "application_unavailable":
+      return "Placement is temporarily unavailable. Try again.";
+    default:
+      return "That item could not be placed.";
+  }
+}
+
+function transientActionRejectionMessage(
+  rejectCode: TransientActionRejectCode,
+): string {
+  switch (rejectCode) {
+    case TransientActionRejectCode.TRANSIENT_ACTION_REJECT_UNAUTHORIZED:
+    case TransientActionRejectCode.TRANSIENT_ACTION_REJECT_RATE_LIMITED:
+      return "Wait a moment before sending another reaction.";
+    case TransientActionRejectCode.TRANSIENT_ACTION_REJECT_UNAVAILABLE:
+    case TransientActionRejectCode.TRANSIENT_ACTION_REJECT_INTERNAL:
+      return "Reactions are temporarily unavailable.";
+    default:
+      return "That reaction could not be sent.";
+  }
 }

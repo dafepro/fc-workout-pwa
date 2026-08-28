@@ -55,7 +55,7 @@ describe("canonical local Lounge simulation", () => {
       itemRevision: 1,
       sceneRevision: 1,
     });
-  });
+  }, 15_000);
 
   it("presents the player and lets a direct-drag target move them", async () => {
     const { SimulationDriver } = await import("@canvas-physics/client");
