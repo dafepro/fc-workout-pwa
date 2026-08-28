@@ -4,7 +4,9 @@ import { useEffect, useRef, useState, type MouseEvent } from "react";
 import type {
   CanvasRuntime,
   OverlayEntityProjection,
+  OverlayProjectionSnapshot,
   ParticipantPresence,
+  RenderEntity,
 } from "@canvas-physics/client";
 import { TransientActionRejectCode } from "@canvas-physics/protocol";
 
@@ -14,13 +16,16 @@ import { createPrizeBoxGateway } from "../data/prize-box-gateway";
 import type { Player } from "../domain/types";
 import type { LoungeCanvasState } from "./LocalLoungeCanvas";
 import { LoungeActionDock } from "./LoungeActionDock";
+import { LoungeItemEditor, type LoungeEditableItem } from "./LoungeItemEditor";
 import { loungeBallEntityID, publishLoungeBallPosition } from "./ball-position";
+import { loungeWorldPoint } from "./lounge-editor-geometry";
 import {
   LOUNGE_EMOTE_COOLDOWN_MS,
   LOUNGE_EMOTE_DURATION_MS,
   loungeEmotes,
   type LoungeEmote,
 } from "./lounge-emotes";
+import { performLoungeItemMutation } from "./lounge-item-mutations";
 import {
   includedLoungeItems,
   loungeItemChoices,
@@ -30,7 +35,10 @@ import {
 } from "./lounge-items";
 import {
   prepareTeamLoungeJoin,
+  requestTeamLoungeItemMutationPermit,
   reserveTeamLoungePlacement,
+  type TeamLoungeItemMutationKind,
+  type TeamLoungeItemTransform,
 } from "./lounge-gateway";
 import { beachBoardwalkAssets } from "./scene/assets";
 import { beachBoardwalkDefinitions } from "./scene/beach-boardwalk";
@@ -39,13 +47,6 @@ interface AvatarOverlay {
   player: Player;
   position: { x: number; y: number };
   current: boolean;
-}
-
-interface ItemOverlay {
-  entityID: string;
-  item: LoungeItemChoice;
-  position: { x: number; y: number };
-  rotation: number;
 }
 
 const visitorAnchors = [
@@ -71,16 +72,27 @@ export function SharedLoungeCanvas({
   const runtimeRef = useRef<CanvasRuntime | null>(null);
   const roomIDRef = useRef("");
   const rosterRef = useRef(roster);
+  const editableItemIDsRef = useRef(new Set<string>());
+  const projectionFrameRef = useRef<
+    Pick<OverlayProjectionSnapshot, "canvasSize" | "viewport"> | undefined
+  >(undefined);
+  const trashTargetRef = useRef<HTMLDivElement>(null);
   const [overlays, setOverlays] = useState<AvatarOverlay[]>([]);
-  const [itemOverlays, setItemOverlays] = useState<ItemOverlay[]>([]);
+  const [itemOverlays, setItemOverlays] = useState<LoungeEditableItem[]>([]);
   const [choices, setChoices] =
     useState<LoungeItemChoice[]>(includedLoungeItems);
   const [visitorIDs, setVisitorIDs] = useState<readonly string[]>([]);
   const [selectedItem, setSelectedItem] = useState<LoungeItemChoice | null>(
     null,
   );
+  const [selectedEntityID, setSelectedEntityID] = useState<string | null>(null);
   const [remainingPlacements, setRemainingPlacements] = useState(0);
   const [placing, setPlacing] = useState(false);
+  const [mutationPending, setMutationPending] = useState(false);
+  const [dragState, setDragState] = useState<{
+    entityID: string;
+    overTrash: boolean;
+  } | null>(null);
   const [actionMessage, setActionMessage] = useState("");
   const [activeEmote, setActiveEmote] = useState<{
     playerID: string;
@@ -109,8 +121,10 @@ export function SharedLoungeCanvas({
     let runtime: CanvasRuntime | undefined;
     let participants: readonly ParticipantPresence[] = [];
     let projections: readonly OverlayEntityProjection[] = [];
+    let canonicalEntities: readonly Readonly<RenderEntity>[] = [];
     let unsubscribePresence: () => void = () => undefined;
     let unsubscribeProjection: () => void = () => undefined;
+    let unsubscribeCanonical: () => void = () => undefined;
     let unsubscribeLifecycle: () => void = () => undefined;
     let unsubscribeEffects: () => void = () => undefined;
 
@@ -148,6 +162,43 @@ export function SharedLoungeCanvas({
           ];
         }),
       );
+      setItemOverlays(
+        projections.flatMap((projection) => {
+          const item = loungeItemForDefinition(projection.definitionId);
+          const canonical = canonicalEntities.find(
+            ({ id }) => id === projection.entityId,
+          );
+          if (
+            !item?.glyph ||
+            !projection.inViewport ||
+            canonical?.kind !== "item" ||
+            !canonical.itemRevision
+          ) {
+            return [];
+          }
+          const currentOwner = canonical.ownerUserId === playerID;
+          return [
+            {
+              entityID: projection.entityId,
+              label: item.label,
+              glyph: item.glyph,
+              category: item.kind === "lounge_prop" ? "item" : "stamp",
+              editable:
+                currentOwner &&
+                editableItemIDsRef.current.has(projection.entityId),
+              owner: currentOwner ? "current" : "teammate",
+              itemRevision: canonical.itemRevision,
+              screen: projection.screen,
+              transform: {
+                x: canonical.x,
+                y: canonical.y,
+                rotation: canonical.rotation,
+                scale: canonical.scale ?? 1,
+              },
+            },
+          ];
+        }),
+      );
     };
 
     onStateChange("loading");
@@ -155,6 +206,7 @@ export function SharedLoungeCanvas({
       const join = await prepareTeamLoungeJoin(teamID);
       if (disposed) return;
       roomIDRef.current = join.roomID;
+      editableItemIDsRef.current = new Set(join.editableItemIDs);
       setRemainingPlacements(join.placementCredits);
       setVisitorIDs(join.visitorIDs);
       const definitions = [
@@ -211,10 +263,18 @@ export function SharedLoungeCanvas({
           publishOverlays();
         },
       );
+      unsubscribeCanonical = runtime.subscribeCanonicalState(({ entities }) => {
+        canonicalEntities = entities;
+        publishOverlays();
+      });
       unsubscribeProjection = runtime.subscribeOverlayProjection(
-        ({ entities }) => {
-          projections = entities;
-          const ball = entities.find(
+        (snapshot) => {
+          projections = snapshot.entities;
+          projectionFrameRef.current = {
+            canvasSize: snapshot.canvasSize,
+            viewport: snapshot.viewport,
+          };
+          const ball = snapshot.entities.find(
             ({ entityId }) => entityId === loungeBallEntityID,
           );
           publishLoungeBallPosition(
@@ -222,21 +282,6 @@ export function SharedLoungeCanvas({
             ball ? { ...ball.world, rotation: ball.rotation } : undefined,
           );
           publishOverlays();
-          setItemOverlays(
-            entities.flatMap((entity) => {
-              const item = loungeItemForDefinition(entity.definitionId);
-              return item?.glyph && entity.inViewport
-                ? [
-                    {
-                      entityID: entity.entityId,
-                      item,
-                      position: entity.screen,
-                      rotation: entity.rotation,
-                    },
-                  ]
-                : [];
-            }),
-          );
         },
         { kinds: ["avatar", "item"], maxEntities: 25, maxHz: 30 },
       );
@@ -265,12 +310,14 @@ export function SharedLoungeCanvas({
       disposed = true;
       unsubscribePresence();
       unsubscribeProjection();
+      unsubscribeCanonical();
       unsubscribeLifecycle();
       unsubscribeEffects();
       const active = runtime;
       runtime = undefined;
       runtimeRef.current = null;
       roomIDRef.current = "";
+      projectionFrameRef.current = undefined;
       if (active) void active.stopGracefully(500).catch(() => active.stop());
     };
   }, [onPresenceChange, onStateChange, playerID, teamID]);
@@ -313,6 +360,14 @@ export function SharedLoungeCanvas({
         },
       ).settled;
       if (outcome.status === "accepted" && outcome.item?.entityId) {
+        editableItemIDsRef.current.add(outcome.item.entityId);
+        setItemOverlays((current) =>
+          current.map((item) =>
+            item.entityID === outcome.item?.entityId
+              ? { ...item, editable: true }
+              : item,
+          ),
+        );
         setActionMessage(`${selectedItem.label} placed.`);
         setSelectedItem(null);
       } else {
@@ -330,6 +385,64 @@ export function SharedLoungeCanvas({
       );
     } finally {
       setPlacing(false);
+    }
+  };
+
+  const mutateItem = async (
+    item: LoungeEditableItem,
+    kind: TeamLoungeItemMutationKind,
+    transform: TeamLoungeItemTransform | null,
+  ) => {
+    const runtime = runtimeRef.current;
+    const roomID = roomIDRef.current;
+    if (!runtime || !roomID || mutationPending) return;
+    setMutationPending(true);
+    try {
+      const outcome = await performLoungeItemMutation({
+        runtime,
+        requestPermit: requestTeamLoungeItemMutationPermit,
+        teamID,
+        roomID,
+        item,
+        kind,
+        transform,
+        idempotencyKey: crypto.randomUUID(),
+      });
+      if (outcome.status === "accepted") {
+        if (kind === "delete") {
+          editableItemIDsRef.current.delete(item.entityID);
+          setItemOverlays((current) =>
+            current.filter(({ entityID }) => entityID !== item.entityID),
+          );
+          setRemainingPlacements((current) => current + 1);
+          setSelectedEntityID(null);
+          setActionMessage(`${item.label} removed.`);
+        } else {
+          setItemOverlays((current) =>
+            current.map((currentItem) =>
+              currentItem.entityID === item.entityID
+                ? {
+                    ...currentItem,
+                    itemRevision: outcome.itemRevision,
+                    transform: transform ?? currentItem.transform,
+                  }
+                : currentItem,
+            ),
+          );
+          setActionMessage(`${item.label} updated.`);
+        }
+      } else {
+        setActionMessage(itemMutationRejectionMessage(outcome.status));
+      }
+    } catch (error) {
+      setActionMessage(
+        error instanceof Error
+          ? error.message
+          : "That Lounge item could not be changed.",
+      );
+    } finally {
+      setMutationPending(false);
+      setDragState(null);
     }
   };
 
@@ -358,88 +471,147 @@ export function SharedLoungeCanvas({
     }
   };
 
-  const remaining = remainingPlacements;
+  const selectedEditableEntityID = itemOverlays.some(
+    ({ entityID }) => entityID === selectedEntityID,
+  )
+    ? selectedEntityID
+    : null;
 
   return (
     <>
-      <div
-        ref={mountRef}
-        className="team-lounge__stage"
-        aria-label="Interactive lounge canvas"
-        tabIndex={0}
-      />
-      {overlays.map(({ player, position, current }) => (
+      <div className="team-lounge__playfield">
         <div
-          className="team-lounge__shared-avatar"
-          key={player.id}
-          style={{
-            transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
-          }}
-        >
-          <PlayerAvatar player={player} size="medium" />
-          <span>{current ? "You" : player.firstName}</span>
-          {activeEmote?.playerID === player.id ? (
-            <b
-              className="team-lounge__avatar-emote"
-              role="img"
-              aria-label={activeEmote.emote.label}
-            >
-              {activeEmote.emote.symbol}
-            </b>
-          ) : null}
-        </div>
-      ))}
-      {itemOverlays.map(({ entityID, item, position, rotation }) => (
-        <span
-          key={entityID}
-          className="team-lounge__placed-item"
-          role="img"
-          aria-label={`${item.label} stamp`}
-          style={{
-            transform: `translate3d(${position.x}px, ${position.y}px, 0) translate(-50%, -50%) rotate(${rotation}rad)`,
-          }}
-        >
-          {item.glyph}
-        </span>
-      ))}
-      {visitorIDs.flatMap((visitorID, index) => {
-        if (overlays.some(({ player }) => player.id === visitorID)) return [];
-        const visitor = roster.find(({ id }) => id === visitorID);
-        const anchor = visitorAnchors[index];
-        return visitor && anchor ? (
+          ref={mountRef}
+          className="team-lounge__stage"
+          aria-label="Interactive lounge canvas"
+          tabIndex={0}
+        />
+        {overlays.map(({ player, position, current }) => (
           <div
-            key={`visitor:${visitorID}`}
-            className="team-lounge__visitor-trace"
-            aria-label={`${visitor.firstName} visited this week`}
-            style={{ left: `${anchor.x}%`, top: `${(anchor.y / 150) * 100}%` }}
+            className="team-lounge__shared-avatar"
+            key={player.id}
+            style={{
+              transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
+            }}
           >
-            <PlayerAvatar player={visitor} size="small" />
+            <PlayerAvatar player={player} size="medium" />
+            <span>{current ? "You" : player.firstName}</span>
+            {activeEmote?.playerID === player.id ? (
+              <b
+                className="team-lounge__avatar-emote"
+                role="img"
+                aria-label={activeEmote.emote.label}
+              >
+                {activeEmote.emote.symbol}
+              </b>
+            ) : null}
           </div>
-        ) : (
-          []
-        );
-      })}
-      {selectedItem ? (
-        <button
-          type="button"
-          className="team-lounge__placement-surface"
-          aria-label={`Place ${selectedItem.label} stamp on the boardwalk`}
-          disabled={placing || remaining === 0}
-          onClick={placeItem}
+        ))}
+        <LoungeItemEditor
+          items={itemOverlays}
+          selectedEntityID={selectedEditableEntityID}
+          pending={mutationPending}
+          dragging={dragState}
+          trashTargetRef={trashTargetRef}
+          onSelect={(item) => {
+            setSelectedItem(null);
+            setSelectedEntityID(item.entityID);
+          }}
+          onMove={(item, screen) => {
+            const mount = mountRef.current;
+            const frame = projectionFrameRef.current;
+            if (!mount || !frame) return;
+            const bounds = mount.getBoundingClientRect();
+            const target = loungeWorldPoint(
+              { x: screen.x - bounds.left, y: screen.y - bounds.top },
+              frame.viewport,
+              frame.canvasSize,
+            );
+            if (!target) {
+              setActionMessage("Keep that item inside the Lounge.");
+              return;
+            }
+            void mutateItem(item, "transform", {
+              ...item.transform,
+              ...target,
+            });
+          }}
+          onRotate={(item, rotation) =>
+            void mutateItem(item, "rotation", {
+              ...item.transform,
+              rotation,
+            })
+          }
+          onScale={(item, scale) =>
+            void mutateItem(item, "scale", { ...item.transform, scale })
+          }
+          onDelete={(item) => void mutateItem(item, "delete", null)}
+          onFinish={() => setSelectedEntityID(null)}
+          onDragStateChange={setDragState}
+        />
+        {visitorIDs.flatMap((visitorID, index) => {
+          if (overlays.some(({ player }) => player.id === visitorID)) return [];
+          const visitor = roster.find(({ id }) => id === visitorID);
+          const anchor = visitorAnchors[index];
+          return visitor && anchor ? (
+            <div
+              key={`visitor:${visitorID}`}
+              className="team-lounge__visitor-trace"
+              aria-label={`${visitor.firstName} visited this week`}
+              style={{
+                left: `${anchor.x}%`,
+                top: `${(anchor.y / 150) * 100}%`,
+              }}
+            >
+              <PlayerAvatar player={visitor} size="small" />
+            </div>
+          ) : (
+            []
+          );
+        })}
+        {selectedItem ? (
+          <button
+            type="button"
+            className="team-lounge__placement-surface"
+            aria-label={`Place ${selectedItem.label} stamp on the boardwalk`}
+            disabled={placing || remainingPlacements === 0}
+            onClick={placeItem}
+          >
+            <span>{copy.teamLounge.actions.placeHint(selectedItem.label)}</span>
+            <b aria-hidden="true">{selectedItem.glyph}</b>
+          </button>
+        ) : null}
+      </div>
+      {dragState ? (
+        <div
+          ref={trashTargetRef}
+          className="team-lounge__trash-target"
+          data-active={dragState.overTrash || undefined}
+          aria-label={copy.teamLounge.actions.deleteItem}
+          role="status"
         >
-          <span>{copy.teamLounge.actions.placeHint(selectedItem.label)}</span>
-          <b aria-hidden="true">{selectedItem.glyph}</b>
-        </button>
-      ) : null}
-      <LoungeActionDock
-        choices={choices}
-        selectedItem={selectedItem}
-        remaining={remaining}
-        placing={placing}
-        emoteLocked={emoteLocked}
-        onSelectItem={setSelectedItem}
-        onSendEmote={showEmote}
-      />
+          <span aria-hidden="true">⌫</span>
+          <strong>
+            {dragState.overTrash
+              ? copy.teamLounge.actions.releaseToDelete
+              : copy.teamLounge.actions.dropToDelete}
+          </strong>
+          <small>{copy.teamLounge.actions.deleteHint}</small>
+        </div>
+      ) : (
+        <LoungeActionDock
+          choices={choices}
+          selectedItem={selectedItem}
+          remaining={remainingPlacements}
+          placing={placing}
+          emoteLocked={emoteLocked}
+          onSelectItem={(item) => {
+            setSelectedEntityID(null);
+            setSelectedItem(item);
+          }}
+          onSendEmote={showEmote}
+        />
+      )}
       <span className="visually-hidden" role="status">
         {actionMessage}
       </span>
@@ -459,6 +631,12 @@ function placementRejectionMessage(rejectCode: string): string {
     default:
       return "That item could not be placed.";
   }
+}
+
+function itemMutationRejectionMessage(status: string): string {
+  return status === "rejected"
+    ? "That item changed before your edit. Try it again."
+    : "That Lounge item could not be changed.";
 }
 
 function transientActionRejectionMessage(

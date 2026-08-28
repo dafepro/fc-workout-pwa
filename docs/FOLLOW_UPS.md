@@ -6,11 +6,6 @@ the Team Lounge.
 
 ## P1 — before broadening the release shape
 
-- **Restore secured Lounge editing and its playable viewport.** Port the
-  reference branch's tap/drag move, bounded rotate/scale editor, and trash
-  target through the owner-bound mutation-permit API. Keep Canvas projection
-  above the dock and sheets so moving balls and items never disappear behind
-  controls.
 - **Automate stale placement-outcome alerts.** The read-only operator report and
   runbook now separate expired permits, pending receipts, and consumed holds
   older than Canvas retention. Schedule it and alert on nonzero stale outcomes;

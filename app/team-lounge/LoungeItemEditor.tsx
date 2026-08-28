@@ -1,0 +1,259 @@
+"use client";
+
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type RefObject,
+} from "react";
+
+import type { TeamLoungeItemTransform } from "./lounge-gateway";
+import {
+  clampLoungeItemScale,
+  nextLoungeItemRotation,
+} from "./lounge-editor-geometry";
+
+export interface LoungeEditableItem {
+  entityID: string;
+  label: string;
+  glyph: string;
+  category: "stamp" | "item";
+  editable: boolean;
+  owner: "current" | "teammate";
+  itemRevision: number;
+  screen: Readonly<{ x: number; y: number }>;
+  transform: TeamLoungeItemTransform;
+}
+
+interface DragState {
+  item: LoungeEditableItem;
+  pointerID: number;
+  start: { x: number; y: number };
+  current: { x: number; y: number };
+  moved: boolean;
+  overTrash: boolean;
+}
+
+export function LoungeItemEditor({
+  items,
+  selectedEntityID,
+  pending,
+  dragging,
+  trashTargetRef,
+  onSelect,
+  onMove,
+  onRotate,
+  onScale,
+  onDelete,
+  onFinish,
+  onDragStateChange,
+}: {
+  items: readonly LoungeEditableItem[];
+  selectedEntityID: string | null;
+  pending: boolean;
+  dragging: { entityID: string; overTrash: boolean } | null;
+  trashTargetRef?: RefObject<HTMLElement | null>;
+  onSelect(item: LoungeEditableItem): void;
+  onMove(
+    item: LoungeEditableItem,
+    screen: Readonly<{ x: number; y: number }>,
+  ): void;
+  onRotate(item: LoungeEditableItem, rotation: number): void;
+  onScale(item: LoungeEditableItem, scale: number): void;
+  onDelete(item: LoungeEditableItem): void;
+  onFinish(): void;
+  onDragStateChange(
+    state: { entityID: string; overTrash: boolean } | null,
+  ): void;
+}) {
+  const dragRef = useRef<DragState | null>(null);
+  const [preview, setPreview] = useState<DragState | null>(null);
+  const selected = items.find(({ entityID }) => entityID === selectedEntityID);
+
+  useEffect(() => {
+    const overTrash = (event: PointerEvent) => {
+      const target = trashTargetRef?.current;
+      if (!target) return false;
+      const bounds = target.getBoundingClientRect();
+      return (
+        event.clientX >= bounds.left &&
+        event.clientX <= bounds.right &&
+        event.clientY >= bounds.top &&
+        event.clientY <= bounds.bottom
+      );
+    };
+    const move = (event: PointerEvent) => {
+      const active = dragRef.current;
+      if (!active || active.pointerID !== event.pointerId) return;
+      active.current = { x: event.clientX, y: event.clientY };
+      active.moved ||=
+        Math.hypot(
+          event.clientX - active.start.x,
+          event.clientY - active.start.y,
+        ) >= 3;
+      active.overTrash = overTrash(event);
+      setPreview({ ...active });
+      onDragStateChange({
+        entityID: active.item.entityID,
+        overTrash: active.overTrash,
+      });
+    };
+    const finish = (event: PointerEvent) => {
+      const active = dragRef.current;
+      if (!active || active.pointerID !== event.pointerId) return;
+      const droppingOnTrash = overTrash(event);
+      dragRef.current = null;
+      setPreview(null);
+      onDragStateChange(null);
+      if (event.type === "pointercancel" || !active.moved) return;
+      if (droppingOnTrash) {
+        onDelete(active.item);
+      } else {
+        onMove(active.item, { x: event.clientX, y: event.clientY });
+      }
+    };
+    document.addEventListener("pointermove", move, true);
+    document.addEventListener("pointerup", finish, true);
+    document.addEventListener("pointercancel", finish, true);
+    return () => {
+      document.removeEventListener("pointermove", move, true);
+      document.removeEventListener("pointerup", finish, true);
+      document.removeEventListener("pointercancel", finish, true);
+    };
+  }, [onDelete, onDragStateChange, onMove, trashTargetRef]);
+
+  return (
+    <div className="team-lounge__item-overlays" aria-live="polite">
+      {items.map((item) => {
+        const active =
+          preview?.item.entityID === item.entityID ? preview : null;
+        const screen = active
+          ? {
+              x: item.screen.x + active.current.x - active.start.x,
+              y: item.screen.y + active.current.y - active.start.y,
+            }
+          : item.screen;
+        const selectedItem = item.entityID === selectedEntityID;
+        const style = {
+          transform: `translate3d(${screen.x}px, ${screen.y}px, 0) translate(-50%, -50%) rotate(${item.transform.rotation}rad) scale(${item.transform.scale})`,
+        } as CSSProperties;
+        const label = item.editable
+          ? `${item.label} ${item.category}, yours; tap or drag to move`
+          : item.owner === "current"
+            ? `${item.label} ${item.category}, yours; locked from an earlier day`
+            : `${item.label} ${item.category} placed by a teammate`;
+        return item.editable ? (
+          <button
+            key={item.entityID}
+            type="button"
+            className={`team-lounge__placed-item team-lounge__placed-item--editable${selectedItem ? " team-lounge__placed-item--selected" : ""}`}
+            style={style}
+            aria-label={label}
+            aria-pressed={selectedItem}
+            disabled={pending}
+            onClick={() => onSelect(item)}
+            onPointerDown={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onSelect(item);
+              const next: DragState = {
+                item,
+                pointerID: event.pointerId,
+                start: { x: event.clientX, y: event.clientY },
+                current: { x: event.clientX, y: event.clientY },
+                moved: false,
+                overTrash: false,
+              };
+              dragRef.current = next;
+              setPreview(next);
+              onDragStateChange({ entityID: item.entityID, overTrash: false });
+            }}
+          >
+            {item.glyph}
+          </button>
+        ) : (
+          <span
+            key={item.entityID}
+            className="team-lounge__placed-item"
+            style={style}
+            role="img"
+            aria-label={label}
+          >
+            {item.glyph}
+          </span>
+        );
+      })}
+      {selected && !dragging ? (
+        <div
+          className="team-lounge__item-editor"
+          role="group"
+          aria-label={`Edit selected ${selected.category}`}
+          data-canvas-pointer-ignore="true"
+        >
+          <div role="group" aria-label={`${titleCase(selected.category)} size`}>
+            <button
+              type="button"
+              aria-label={`Make ${selected.category} smaller`}
+              disabled={pending || selected.transform.scale <= 0.75}
+              onClick={() =>
+                onScale(
+                  selected,
+                  clampLoungeItemScale(selected.transform.scale - 0.1),
+                )
+              }
+            >
+              −
+            </button>
+            <button
+              type="button"
+              aria-label={`Make ${selected.category} larger`}
+              disabled={pending || selected.transform.scale >= 1.4}
+              onClick={() =>
+                onScale(
+                  selected,
+                  clampLoungeItemScale(selected.transform.scale + 0.1),
+                )
+              }
+            >
+              +
+            </button>
+          </div>
+          <button
+            type="button"
+            aria-label={`Rotate ${selected.category} left 15 degrees`}
+            disabled={pending}
+            onClick={() =>
+              onRotate(
+                selected,
+                nextLoungeItemRotation(selected.transform.rotation, -1),
+              )
+            }
+          >
+            ↺
+          </button>
+          <button
+            type="button"
+            aria-label={`Rotate ${selected.category} right 15 degrees`}
+            disabled={pending}
+            onClick={() =>
+              onRotate(
+                selected,
+                nextLoungeItemRotation(selected.transform.rotation, 1),
+              )
+            }
+          >
+            ↻
+          </button>
+          <button type="button" disabled={pending} onClick={onFinish}>
+            Finish editing
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function titleCase(value: string): string {
+  return `${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
+}

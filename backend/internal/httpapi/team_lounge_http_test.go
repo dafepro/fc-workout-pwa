@@ -101,6 +101,22 @@ func TestTeamLoungeIssuesOwnerBoundItemMutationPermit(t *testing.T) {
 		httpapi.WithAuthenticator(socialAuthenticator{actor: domain.Actor{
 			Role: domain.RolePlayer, PlayerID: "player-one", ClubID: "club-one"}}),
 		httpapi.WithClock(func() time.Time { return now }))
+	ticketRequest := httptest.NewRequest(http.MethodPost, "/v1/teams/team-one/lounge/socket-ticket", nil)
+	ticketRequest.Header.Set("Authorization", "Bearer test-session")
+	ticketResponse := httptest.NewRecorder()
+	handler.ServeHTTP(ticketResponse, ticketRequest)
+	if ticketResponse.Code != http.StatusCreated {
+		t.Fatalf("editable item ticket status = %d: %s", ticketResponse.Code, ticketResponse.Body.String())
+	}
+	var ticket struct {
+		EditableItemIDs []string `json:"editableItemIds"`
+	}
+	if err := json.NewDecoder(ticketResponse.Body).Decode(&ticket); err != nil {
+		t.Fatal(err)
+	}
+	if len(ticket.EditableItemIDs) != 1 || ticket.EditableItemIDs[0] != item.EntityID {
+		t.Fatalf("editable item ticket = %#v", ticket)
+	}
 	body := []byte(`{"roomId":"team:team-one:lounge:2026-08-24:v10","itemRevision":2,"kind":"rotation","transform":{"x":20,"y":70,"rotation":0.5,"scale":1}}`)
 	request := httptest.NewRequest(http.MethodPost,
 		"/v1/teams/team-one/lounge/items/canvas-item-editable/mutation-permits", bytes.NewReader(body))
@@ -187,20 +203,22 @@ func TestCanonicalTeamLoungeRequiresTodayCheckInAndJoinsCanvasRoom(t *testing.T)
 		t.Fatalf("ticket status = %d: %s", ticketResponse.Code, ticketResponse.Body.String())
 	}
 	var credential struct {
-		Ticket   string `json:"ticket"`
-		RoomID   string `json:"roomId"`
-		WeekKey  string `json:"weekKey"`
-		DayKey   string `json:"dayKey"`
-		Theme    string `json:"theme"`
-		Presence int    `json:"recentVisitors"`
-		Credits  int    `json:"placementCredits"`
+		Ticket   string   `json:"ticket"`
+		RoomID   string   `json:"roomId"`
+		WeekKey  string   `json:"weekKey"`
+		DayKey   string   `json:"dayKey"`
+		Theme    string   `json:"theme"`
+		Presence int      `json:"recentVisitors"`
+		Credits  int      `json:"placementCredits"`
+		Editable []string `json:"editableItemIds"`
 	}
 	if err := json.NewDecoder(ticketResponse.Body).Decode(&credential); err != nil {
 		t.Fatal(err)
 	}
 	if len(credential.Ticket) != 43 || credential.RoomID != "team:team-one:lounge:2026-08-24:v10" ||
 		credential.WeekKey != "2026-08-24" || credential.DayKey != "2026-08-26" ||
-		credential.Theme != "Beach Boardwalk" || credential.Presence != 0 || credential.Credits != 1 {
+		credential.Theme != "Beach Boardwalk" || credential.Presence != 0 || credential.Credits != 1 ||
+		credential.Editable == nil {
 		t.Fatalf("credential = %#v", credential)
 	}
 

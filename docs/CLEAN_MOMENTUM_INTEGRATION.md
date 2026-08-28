@@ -192,7 +192,12 @@ Each step is test-first and small enough to review independently.
 - Trusted outcomes finalize edit permits, only accepted delete returns the
   placement credit, and pending edit receipts join reconnect reconciliation,
   logical backup/reset coverage, and the read-only stale-outcome report.
-- Next Lounge UI chunk: restore the reference branch's tap/drag editor and trash
-  controls through this permit gateway, while keeping the playable Canvas above
-  overlays. Its disabled Map placeholder remains a later camera-navigation
-  decision rather than a missing implementation.
+- The secured Lounge editor restores tap selection, direct drag, bounded scale
+  and rotation, finish editing, and trash through an exact one-use permit for
+  every team-local current-day owner mutation; live revision state follows the
+  trusted placement and mutation ledger rather than a lagging sleep snapshot.
+- The 320px Docker Lounge proof keeps the qualified player's avatar, shared
+  ball, and editable items inside a playfield above the dock, trash, and sheets;
+  it also proves an accepted predefined reaction renders for that player.
+- The disabled Map placeholder remains absent, production stays at one API
+  replica, and any camera navigation or topology change remains deliberate.

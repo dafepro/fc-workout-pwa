@@ -63,11 +63,13 @@ export function TeamLounge({
               onPresenceChange={setPresence}
             />
           ) : (
-            <LocalLoungeCanvas
-              key={canvasKey}
-              player={player}
-              onStateChange={updateState}
-            />
+            <div className="team-lounge__playfield">
+              <LocalLoungeCanvas
+                key={canvasKey}
+                player={player}
+                onStateChange={updateState}
+              />
+            </div>
           )
         ) : (
           <div className="team-lounge__lock">

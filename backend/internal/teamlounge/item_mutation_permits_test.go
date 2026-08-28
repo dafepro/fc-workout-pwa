@@ -43,6 +43,61 @@ func TestItemMutationPermitBindsOwnerRoomGenerationRevisionOperationAndTarget(t 
 	}
 }
 
+func TestItemMutationPermitUsesCommittedLineageAheadOfSleepingSnapshot(t *testing.T) {
+	store, now := placementAuthorityStore(t, 2)
+	reservation := reserveAuthorityPlacement(t, store, "live-editable-item", 20, now)
+	decision, err := store.AuthorizeMutation(t.Context(), authorizationRequest(
+		reservation, "player-one", loungeRoomID, "spawn-live-editable-item"))
+	if err != nil || !decision.Authorized {
+		t.Fatalf("authorize live item placement = %+v, %v", decision, err)
+	}
+	item := roomsdk.SnapshotItem{EntityID: "canvas-item-live",
+		DefinitionID: reservation.DefinitionID, DefinitionVersion: reservation.DefinitionVersion,
+		OwnerUserID: "player-one", ItemRevision: 1,
+		Transform:      roomsdk.Transform{X: reservation.X, Y: reservation.Y, Scale: 1},
+		ResolvedConfig: json.RawMessage(`{}`)}
+	if err := store.NotifyMutationOutcome(t.Context(), roomsdk.MutationOutcome{
+		Status: roomsdk.MutationOutcomeAccepted, CorrelationID: reservation.ID,
+		RoomID: loungeRoomID, ParticipantID: "player-one", Kind: roomsdk.MutationKindSpawn,
+		EntityID: item.EntityID, DefinitionID: item.DefinitionID,
+		DefinitionVersion: item.DefinitionVersion, ItemRevision: item.ItemRevision,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	moveTarget := item.Transform
+	moveTarget.X = 28
+	move, err := store.IssueItemMutationPermit(t.Context(), loungeRoomID, "player-one", "live-move",
+		ItemMutationPermitRequest{EntityID: item.EntityID, ItemRevision: item.ItemRevision,
+			Kind: roomsdk.MutationKindTransform, Transform: &moveTarget}, now)
+	if err != nil {
+		t.Fatalf("issue live move before snapshot sleep = %v", err)
+	}
+	decision, err = store.AuthorizeMutation(t.Context(), itemMutationAuthorizationRequest(
+		move, item, *move.Transform, "player-one", loungeRoomID, "mutation-live-move"))
+	if err != nil || !decision.Authorized {
+		t.Fatalf("authorize live move = %+v, %v", decision, err)
+	}
+	if err := store.NotifyMutationOutcome(t.Context(), roomsdk.MutationOutcome{
+		Status: roomsdk.MutationOutcomeAccepted, CorrelationID: move.ID,
+		RoomID: loungeRoomID, ParticipantID: "player-one", Kind: roomsdk.MutationKindTransform,
+		EntityID: item.EntityID, DefinitionID: item.DefinitionID,
+		DefinitionVersion: item.DefinitionVersion, ItemRevision: 2,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	item.ItemRevision = 2
+	item.Transform = *move.Transform
+	scaleTarget := item.Transform
+	scaleTarget.Scale = 1.2
+	if _, err := store.IssueItemMutationPermit(t.Context(), loungeRoomID, "player-one", "live-scale",
+		ItemMutationPermitRequest{EntityID: item.EntityID, ItemRevision: item.ItemRevision,
+			Kind: roomsdk.MutationKindScale, Transform: &scaleTarget}, now); err != nil {
+		t.Fatalf("issue chained live scale before snapshot sleep = %v", err)
+	}
+}
+
 func TestExpiredItemMutationPermitIsRejectedBeforeConsumption(t *testing.T) {
 	store, item, now := editableItemAuthorityStore(t)
 	target := item.Transform
@@ -122,6 +177,45 @@ func TestItemMutationPermitRejectsWrongOwnerLockedDayAndChangedMutation(t *testi
 	decision, err := store.AuthorizeMutation(t.Context(), authorization)
 	if err != nil || decision.Authorized {
 		t.Fatalf("changed-target authorization = %+v, %v", decision, err)
+	}
+}
+
+func TestEditableItemIDsReturnsOnlyCurrentDayCommittedOwnership(t *testing.T) {
+	store, item, now := editableItemAuthorityStore(t)
+	if _, err := store.db.ExecContext(t.Context(), `INSERT INTO team_lounge_placement_credits (
+		team_id, player_id, week_key, day_key, source_kind, source_id, granted_at
+	) VALUES ('team-one', 'player-one', '2026-08-24', '2026-08-25',
+		'training_entry', 'older-editable-source', ?)`, now.Add(-24*time.Hour).Format(time.RFC3339Nano)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.db.ExecContext(t.Context(), `INSERT INTO team_lounge_placement_reservations (
+		reservation_id, team_id, player_id, week_key, room_id, canvas_id, canvas_version,
+		definition_id, definition_version, day_key, position_x, position_y, rotation,
+		scale, config_json, idempotency_key_hash, request_hash, permit_hash,
+		permit_expires_at, mutation_key, state, entity_id, held_at, finalized_at
+	) SELECT 'lounge-placement-older', team_id, player_id, week_key, room_id, canvas_id,
+		canvas_version, definition_id, definition_version, '2026-08-25', position_x,
+		position_y, rotation, scale, config_json, randomblob(32), randomblob(32),
+		randomblob(32), permit_expires_at, '0000000000000000000000000000000000000000000000000000000000000000', 'committed',
+		'canvas-item-older', held_at, finalized_at
+		FROM team_lounge_placement_reservations WHERE entity_id = ?`, item.EntityID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.db.ExecContext(t.Context(), `UPDATE team_lounge_placement_reservations
+		SET finalized_at = ? WHERE entity_id = 'canvas-item-older'`,
+		now.Add(-24*time.Hour).Format(time.RFC3339Nano)); err != nil {
+		t.Fatal(err)
+	}
+
+	ids, err := store.EditableItemIDs(t.Context(), loungeRoomID, "player-one", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ids) != 1 || ids[0] != item.EntityID {
+		t.Fatalf("editable item IDs = %v", ids)
+	}
+	if other, err := store.EditableItemIDs(t.Context(), loungeRoomID, "player-two", now); err != nil || len(other) != 0 {
+		t.Fatalf("other player editable item IDs = %v, %v", other, err)
 	}
 }
 

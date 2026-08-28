@@ -25,6 +25,7 @@ type teamLoungeCredential struct {
 	VisitorIDs       []string `json:"visitorIds"`
 	RecentVisitors   int      `json:"recentVisitors"`
 	PlacementCredits int      `json:"placementCredits"`
+	EditableItemIDs  []string `json:"editableItemIds"`
 	ExpiresIn        int      `json:"expiresInSeconds"`
 }
 
@@ -83,6 +84,11 @@ func (service *service) createTeamLoungeSocketTicket(w http.ResponseWriter, r *h
 		writeError(w, r, http.StatusInternalServerError, "internal_error", "This week's lounge could not be opened.")
 		return
 	}
+	editableItemIDs, err := service.teamLoungeStore.EditableItemIDs(r.Context(), roomID, actor.PlayerID, service.now().UTC())
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "internal_error", "This week's Lounge items could not be opened.")
+		return
+	}
 	active := make(map[string]struct{}, len(team.Members))
 	for _, member := range team.Members {
 		active[member.PlayerID] = struct{}{}
@@ -111,7 +117,8 @@ func (service *service) createTeamLoungeSocketTicket(w http.ResponseWriter, r *h
 	writeJSON(w, http.StatusCreated, teamLoungeCredential{
 		Ticket: ticket, RoomID: roomID, WeekKey: team.WeekStart, DayKey: budget.DayKey,
 		Theme: theme.Name, VisitorIDs: visitorIDs, RecentVisitors: len(visitorIDs), PlacementCredits: budget.Remaining,
-		ExpiresIn: int(teamLoungeSocketTicketTTL.Seconds()),
+		EditableItemIDs: editableItemIDs,
+		ExpiresIn:       int(teamLoungeSocketTicketTTL.Seconds()),
 	})
 }
 

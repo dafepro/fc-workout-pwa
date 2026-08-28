@@ -48,8 +48,27 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   await expect(stage).toBeVisible();
   await stage.scrollIntoViewIfNeeded();
   await expect(stage.locator("canvas")).toBeVisible({ timeout: 15_000 });
+  const playfieldBox = await lounge
+    .locator(".team-lounge__playfield")
+    .boundingBox();
+  const dockBox = await lounge
+    .getByRole("navigation", { name: "Lounge actions" })
+    .boundingBox();
+  expect(playfieldBox).not.toBeNull();
+  expect(dockBox).not.toBeNull();
+  expect(playfieldBox!.y + playfieldBox!.height).toBeLessThanOrEqual(
+    dockBox!.y,
+  );
   await expect(lounge.getByText(/drag to move/i)).toHaveCount(0);
   await expect(lounge.getByLabel("Mason C., you")).toBeVisible();
+  const qualifiedAvatarBox = await lounge
+    .getByLabel("Mason C., you")
+    .boundingBox();
+  expect(qualifiedAvatarBox).not.toBeNull();
+  expect(qualifiedAvatarBox!.y).toBeGreaterThanOrEqual(playfieldBox!.y);
+  expect(
+    qualifiedAvatarBox!.y + qualifiedAvatarBox!.height,
+  ).toBeLessThanOrEqual(playfieldBox!.y + playfieldBox!.height);
   await expect
     .poll(async () => Number(await stage.getAttribute("data-ball-x")))
     .toBeGreaterThan(0);
@@ -134,6 +153,7 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
 
   await lounge.getByRole("button", { name: "Emotes" }).click();
   await lounge.getByRole("button", { name: "Send Wave emote" }).click();
+  await expect(lounge.getByRole("status")).toHaveText("Wave sent.");
   await expect(lounge.getByRole("img", { name: "Wave" })).toBeVisible();
   await lounge.getByRole("button", { name: "Emotes" }).click();
   await expect(
@@ -154,16 +174,89 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   await expect(lounge.getByRole("status")).toHaveText("Bolt placed.", {
     timeout: 10_000,
   });
-  await expect(lounge.getByRole("img", { name: "Bolt stamp" })).toBeVisible({
+  const editableBolt = lounge.getByRole("button", {
+    name: "Bolt stamp, yours; tap or drag to move",
+  });
+  await expect(editableBolt).toBeVisible({ timeout: 10_000 });
+  await editableBolt.click();
+  await expect(
+    lounge.getByRole("group", { name: "Edit selected stamp" }),
+  ).toBeVisible();
+  await lounge.getByRole("button", { name: "Make stamp larger" }).click();
+  await lounge
+    .getByRole("button", { name: "Rotate stamp right 15 degrees" })
+    .click();
+  await lounge.getByRole("button", { name: "Finish editing" }).click();
+  await expect(
+    lounge.getByRole("group", { name: "Edit selected stamp" }),
+  ).toHaveCount(0);
+  const movePlayfieldBox = await lounge
+    .locator(".team-lounge__playfield")
+    .boundingBox();
+  const boltBeforeMove = await editableBolt.boundingBox();
+  expect(movePlayfieldBox).not.toBeNull();
+  expect(boltBeforeMove).not.toBeNull();
+  await page.mouse.move(
+    boltBeforeMove!.x + boltBeforeMove!.width / 2,
+    boltBeforeMove!.y + boltBeforeMove!.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    boltBeforeMove!.x + boltBeforeMove!.width / 2 + 24,
+    boltBeforeMove!.y + boltBeforeMove!.height / 2 + 24,
+    { steps: 8 },
+  );
+  await page.mouse.up();
+  await expect(lounge.getByRole("status")).toHaveText("Bolt updated.", {
     timeout: 10_000,
   });
-  const remainingAfter = remainingBefore - 1;
+  const boltAfterMove = await editableBolt.boundingBox();
+  expect(boltAfterMove).not.toBeNull();
+  expect(boltAfterMove!.y).toBeGreaterThanOrEqual(movePlayfieldBox!.y);
+  expect(boltAfterMove!.y + boltAfterMove!.height).toBeLessThanOrEqual(
+    movePlayfieldBox!.y + movePlayfieldBox!.height,
+  );
+
+  await page.mouse.move(
+    boltAfterMove!.x + boltAfterMove!.width / 2,
+    boltAfterMove!.y + boltAfterMove!.height / 2,
+  );
+  await page.mouse.down();
+  await expect(lounge.getByLabel("Drop to remove item")).toBeVisible();
+  const trashBox = await lounge.getByLabel("Drop to remove item").boundingBox();
+  expect(trashBox).not.toBeNull();
+  expect(movePlayfieldBox!.y + movePlayfieldBox!.height).toBeLessThanOrEqual(
+    trashBox!.y,
+  );
+  await page.mouse.move(
+    trashBox!.x + trashBox!.width / 2,
+    trashBox!.y + trashBox!.height / 2,
+    { steps: 8 },
+  );
+  await page.mouse.up();
+  await expect(lounge.getByRole("status")).toHaveText("Bolt removed.", {
+    timeout: 10_000,
+  });
+  await expect(editableBolt).toHaveCount(0);
   await lounge.getByRole("button", { name: "Stamps" }).click();
+  const itemSheetBox = await lounge
+    .getByRole("dialog", { name: "Choose a Lounge item" })
+    .boundingBox();
+  const playfieldAboveSheetBox = await lounge
+    .getByLabel("Interactive lounge canvas")
+    .locator("..")
+    .boundingBox();
+  expect(itemSheetBox).not.toBeNull();
+  expect(playfieldAboveSheetBox).not.toBeNull();
+  expect(
+    playfieldAboveSheetBox!.y + playfieldAboveSheetBox!.height,
+  ).toBeLessThanOrEqual(itemSheetBox!.y);
   await expect(
     lounge.getByText(
-      `${remainingAfter} ${remainingAfter === 1 ? "placement" : "placements"} left this week`,
+      `${remainingBefore} ${remainingBefore === 1 ? "placement" : "placements"} left this week`,
     ),
   ).toBeVisible();
+  await lounge.getByRole("button", { name: "Close item picker" }).click();
 
   await expect(lounge.getByRole("combobox")).toHaveCount(0);
   await expect(lounge).not.toContainText(/\bV[12]\b|alternative|preview/i);

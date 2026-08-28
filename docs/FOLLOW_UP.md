@@ -23,10 +23,6 @@ experiments.
   stale Canvas outcomes; the operator review procedure is now in the production
   runbook and still never infers a release from age or browser state.
 - Record physical iOS Safari and Android Chrome performance budgets.
-- Restore the momentum V2 tap/drag editor, bounded size/rotation controls, and
-  trash target against the completed owner-bound permit gateway. Keep the
-  playable Canvas viewport above the action dock and item/emote sheets so the
-  ball and editable items cannot disappear behind product chrome.
 - Decide whether the historical disabled Map placeholder should become real
   camera navigation after the secured editor lands. The reference branch's
   button had no map behavior and only said that the room fit on one screen.

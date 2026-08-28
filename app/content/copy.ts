@@ -175,6 +175,11 @@ export const copy = {
         `${remaining} ${remaining === 1 ? "placement" : "placements"} left this week`,
       exhausted: "Complete another training day to place another item.",
       placeHint: (label: string) => `Tap the boardwalk to place ${label}.`,
+      deleteItem: "Drop to remove item",
+      dropToDelete: "Drop here to remove",
+      releaseToDelete: "Release to remove",
+      deleteHint:
+        "Your placement becomes available again after Canvas accepts.",
     },
   },
   momentum: {

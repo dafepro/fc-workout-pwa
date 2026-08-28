@@ -13,6 +13,7 @@ const response = {
   serverUrl: "https://api.example.test",
   visitorIds: ["player-two"],
   placementCredits: 2,
+  editableItemIds: ["canvas-item-one"],
 };
 
 afterEach(() => vi.unstubAllGlobals());
@@ -33,6 +34,7 @@ describe("canonical Team Lounge gateway", () => {
       serverURL: response.serverUrl,
       visitorIDs: ["player-two"],
       placementCredits: 2,
+      editableItemIDs: ["canvas-item-one"],
     });
     expect(fetcher).toHaveBeenCalledWith(
       "/api/zoomigo/v1/teams/team-one/lounge/socket-ticket",

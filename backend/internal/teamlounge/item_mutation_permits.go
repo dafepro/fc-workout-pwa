@@ -33,6 +33,45 @@ type ItemMutationPermit struct {
 	Replayed     bool
 }
 
+func (store *SQLiteStore) EditableItemIDs(
+	ctx context.Context,
+	roomID, playerID string,
+	now time.Time,
+) ([]string, error) {
+	budget, err := store.PlacementBudget(ctx, roomID, playerID, now)
+	if err != nil {
+		return nil, err
+	}
+	location, err := store.loungeItemLocation(ctx, budget.TeamID)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := store.db.QueryContext(ctx, `SELECT entity_id, finalized_at
+		FROM team_lounge_placement_reservations
+		WHERE room_id = ? AND player_id = ? AND state = 'committed'
+		AND entity_id IS NOT NULL AND finalized_at IS NOT NULL
+		ORDER BY finalized_at, reservation_id`, roomID, playerID)
+	if err != nil {
+		return nil, fmt.Errorf("list editable Lounge items: %w", err)
+	}
+	defer rows.Close()
+	ids := []string{}
+	for rows.Next() {
+		var id, finalizedAt string
+		if err := rows.Scan(&id, &finalizedAt); err != nil {
+			return nil, fmt.Errorf("scan editable Lounge item: %w", err)
+		}
+		committedAt, err := time.Parse(time.RFC3339Nano, finalizedAt)
+		if err != nil {
+			return nil, fmt.Errorf("parse editable Lounge item time: %w", err)
+		}
+		if committedAt.In(location).Format(time.DateOnly) == budget.DayKey {
+			ids = append(ids, id)
+		}
+	}
+	return ids, rows.Err()
+}
+
 func (store *SQLiteStore) IssueItemMutationPermit(
 	ctx context.Context,
 	roomID, playerID, idempotencyKey string,
@@ -55,45 +94,11 @@ func (store *SQLiteStore) IssueItemMutationPermit(
 	if err != nil {
 		return ItemMutationPermit{}, ErrItemMutationUnavailable
 	}
-	record, err := store.LoadSnapshot(ctx, roomID)
+	location, err := store.loungeItemLocation(ctx, budget.TeamID)
 	if err != nil {
-		return ItemMutationPermit{}, ErrItemMutationNotEditable
-	}
-	var snapshot roomsdk.CanvasSnapshot
-	if json.Unmarshal(record.SnapshotRaw, &snapshot) != nil || snapshot.CanvasID != record.CanvasID ||
-		snapshot.CanvasVersion != record.CanvasVersion {
 		return ItemMutationPermit{}, ErrItemMutationUnavailable
-	}
-	var item *roomsdk.SnapshotItem
-	for index := range snapshot.Items {
-		if snapshot.Items[index].EntityID == request.EntityID {
-			item = &snapshot.Items[index]
-			break
-		}
-	}
-	if item == nil || item.OwnerUserID != playerID || item.ItemRevision != request.ItemRevision {
-		return ItemMutationPermit{}, ErrItemMutationNotEditable
-	}
-	request.Transform = normalizedMutationTarget(request.Kind, item.Transform, request.Transform)
-	if request.Kind != roomsdk.MutationKindDelete && !mutationTargetMatchesKind(request.Kind, item.Transform, *request.Transform) {
-		return ItemMutationPermit{}, ErrItemMutationUnavailable
-	}
-
-	requestJSON, err := json.Marshal(struct {
-		RoomID     string               `json:"roomId"`
-		EntityID   string               `json:"entityId"`
-		Revision   uint64               `json:"revision"`
-		Kind       roomsdk.MutationKind `json:"kind"`
-		Transform  *roomsdk.Transform   `json:"transform,omitempty"`
-		Definition string               `json:"definition"`
-		DefVersion uint32               `json:"definitionVersion"`
-	}{roomID, request.EntityID, request.ItemRevision, request.Kind, request.Transform,
-		item.DefinitionID, item.DefinitionVersion})
-	if err != nil {
-		return ItemMutationPermit{}, fmt.Errorf("encode Lounge item mutation request: %w", err)
 	}
 	keyHash := sha256.Sum256([]byte(idempotencyKey))
-	requestHash := sha256.Sum256(requestJSON)
 	connection, err := store.db.Conn(ctx)
 	if err != nil {
 		return ItemMutationPermit{}, fmt.Errorf("open Lounge item mutation permit: %w", err)
@@ -108,6 +113,66 @@ func (store *SQLiteStore) IssueItemMutationPermit(
 			_, _ = connection.ExecContext(context.Background(), "ROLLBACK")
 		}
 	}()
+
+	var reservationID, teamID, finalizedAt, canvasID, definitionID string
+	var boundTeamID, boundCanvasID string
+	var canvasVersion, definitionVersion uint32
+	var boundCanvasVersion uint32
+	var initial roomsdk.Transform
+	err = connection.QueryRowContext(ctx, `SELECT placement.reservation_id, placement.team_id,
+		placement.finalized_at, placement.canvas_id, placement.canvas_version, placement.definition_id,
+		placement.definition_version, placement.position_x, placement.position_y,
+		placement.rotation, placement.scale, room.team_id, room.canvas_id, room.canvas_version
+		FROM team_lounge_placement_reservations AS placement
+		JOIN team_lounge_rooms AS room ON room.room_id = placement.room_id
+		WHERE placement.room_id = ? AND placement.player_id = ? AND placement.entity_id = ?
+		AND placement.state = 'committed'`, roomID, playerID, request.EntityID).Scan(
+		&reservationID, &teamID, &finalizedAt, &canvasID, &canvasVersion, &definitionID,
+		&definitionVersion, &initial.X, &initial.Y, &initial.Rotation, &initial.Scale,
+		&boundTeamID, &boundCanvasID, &boundCanvasVersion)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ItemMutationPermit{}, ErrItemMutationNotEditable
+	}
+	if err != nil {
+		return ItemMutationPermit{}, fmt.Errorf("authorize Lounge item ownership: %w", err)
+	}
+	committedAt, err := time.Parse(time.RFC3339Nano, finalizedAt)
+	if err != nil {
+		return ItemMutationPermit{}, ErrItemMutationUnavailable
+	}
+	if committedAt.In(location).Format(time.DateOnly) != budget.DayKey ||
+		teamID != budget.TeamID || teamID != boundTeamID ||
+		canvasID != boundCanvasID || canvasVersion != boundCanvasVersion {
+		return ItemMutationPermit{}, ErrItemMutationNotEditable
+	}
+	current, currentRevision, err := itemMutationCurrentState(ctx, connection, roomID,
+		reservationID, playerID, request.EntityID, canvasID, canvasVersion, definitionID,
+		definitionVersion, initial)
+	if err != nil {
+		return ItemMutationPermit{}, err
+	}
+	if currentRevision != request.ItemRevision {
+		return ItemMutationPermit{}, ErrItemMutationNotEditable
+	}
+	request.Transform = normalizedMutationTarget(request.Kind, current, request.Transform)
+	if request.Kind != roomsdk.MutationKindDelete &&
+		!mutationTargetMatchesKind(request.Kind, current, *request.Transform) {
+		return ItemMutationPermit{}, ErrItemMutationUnavailable
+	}
+	requestJSON, err := json.Marshal(struct {
+		RoomID     string               `json:"roomId"`
+		EntityID   string               `json:"entityId"`
+		Revision   uint64               `json:"revision"`
+		Kind       roomsdk.MutationKind `json:"kind"`
+		Transform  *roomsdk.Transform   `json:"transform,omitempty"`
+		Definition string               `json:"definition"`
+		DefVersion uint32               `json:"definitionVersion"`
+	}{roomID, request.EntityID, request.ItemRevision, request.Kind, request.Transform,
+		definitionID, definitionVersion})
+	if err != nil {
+		return ItemMutationPermit{}, fmt.Errorf("encode Lounge item mutation request: %w", err)
+	}
+	requestHash := sha256.Sum256(requestJSON)
 
 	var replay ItemMutationPermit
 	var storedHash []byte
@@ -149,26 +214,6 @@ func (store *SQLiteStore) IssueItemMutationPermit(
 	if !errors.Is(err, sql.ErrNoRows) {
 		return ItemMutationPermit{}, fmt.Errorf("load Lounge item mutation replay: %w", err)
 	}
-
-	var reservationID, teamID, dayKey, canvasID, definitionID string
-	var canvasVersion, definitionVersion uint32
-	err = connection.QueryRowContext(ctx, `SELECT reservation_id, team_id, day_key, canvas_id,
-		canvas_version, definition_id, definition_version
-		FROM team_lounge_placement_reservations
-		WHERE room_id = ? AND player_id = ? AND entity_id = ? AND state = 'committed'`,
-		roomID, playerID, request.EntityID).Scan(&reservationID, &teamID, &dayKey, &canvasID,
-		&canvasVersion, &definitionID, &definitionVersion)
-	if errors.Is(err, sql.ErrNoRows) {
-		return ItemMutationPermit{}, ErrItemMutationNotEditable
-	}
-	if err != nil {
-		return ItemMutationPermit{}, fmt.Errorf("authorize Lounge item ownership: %w", err)
-	}
-	if dayKey != budget.DayKey || teamID != budget.TeamID || canvasID != record.CanvasID ||
-		canvasVersion != record.CanvasVersion || definitionID != item.DefinitionID ||
-		definitionVersion != item.DefinitionVersion {
-		return ItemMutationPermit{}, ErrItemMutationNotEditable
-	}
 	permitID, err := newItemMutationPermitID()
 	if err != nil {
 		return ItemMutationPermit{}, fmt.Errorf("create Lounge item mutation permit ID: %w", err)
@@ -201,6 +246,93 @@ func (store *SQLiteStore) IssueItemMutationPermit(
 	committed = true
 	return ItemMutationPermit{ID: permitID, EntityID: request.EntityID,
 		ItemRevision: request.ItemRevision, Kind: request.Kind, Transform: request.Transform, Permit: permit}, nil
+}
+
+func itemMutationCurrentState(
+	ctx context.Context,
+	connection *sql.Conn,
+	roomID, reservationID, playerID, entityID, canvasID string,
+	canvasVersion uint32,
+	definitionID string,
+	definitionVersion uint32,
+	initial roomsdk.Transform,
+) (roomsdk.Transform, uint64, error) {
+	current := normalizedItemTransform(initial)
+	currentRevision := uint64(1)
+	rows, err := connection.QueryContext(ctx, `SELECT item_revision, mutation_kind,
+		position_x, position_y, rotation, scale
+		FROM team_lounge_item_mutation_permits
+		WHERE reservation_id = ? AND state = 'accepted'
+		ORDER BY item_revision, issued_at, permit_id`, reservationID)
+	if err != nil {
+		return roomsdk.Transform{}, 0, fmt.Errorf("load accepted Lounge item mutations: %w", err)
+	}
+	for rows.Next() {
+		var revision uint64
+		var kind roomsdk.MutationKind
+		var x, y, rotation, scale sql.NullFloat64
+		if err := rows.Scan(&revision, &kind, &x, &y, &rotation, &scale); err != nil {
+			rows.Close()
+			return roomsdk.Transform{}, 0, fmt.Errorf("scan accepted Lounge item mutation: %w", err)
+		}
+		target := transformFromNullable(x, y, rotation, scale)
+		if revision != currentRevision || kind == roomsdk.MutationKindDelete || target == nil {
+			rows.Close()
+			return roomsdk.Transform{}, 0, ErrItemMutationUnavailable
+		}
+		current = *target
+		currentRevision++
+	}
+	if err := rows.Close(); err != nil {
+		return roomsdk.Transform{}, 0, fmt.Errorf("close accepted Lounge item mutations: %w", err)
+	}
+	if err := rows.Err(); err != nil {
+		return roomsdk.Transform{}, 0, fmt.Errorf("iterate accepted Lounge item mutations: %w", err)
+	}
+
+	var snapshotCanvasID, snapshotJSON string
+	var snapshotCanvasVersion uint32
+	err = connection.QueryRowContext(ctx, `SELECT canvas_id, canvas_version, snapshot_json
+		FROM team_lounge_snapshots WHERE room_id = ?`, roomID).Scan(
+		&snapshotCanvasID, &snapshotCanvasVersion, &snapshotJSON)
+	if errors.Is(err, sql.ErrNoRows) {
+		return current, currentRevision, nil
+	}
+	if err != nil {
+		return roomsdk.Transform{}, 0, fmt.Errorf("load Lounge item snapshot authority: %w", err)
+	}
+	var snapshot roomsdk.CanvasSnapshot
+	if snapshotCanvasID != canvasID || snapshotCanvasVersion != canvasVersion ||
+		json.Unmarshal([]byte(snapshotJSON), &snapshot) != nil || snapshot.CanvasID != canvasID ||
+		snapshot.CanvasVersion != canvasVersion {
+		return roomsdk.Transform{}, 0, ErrItemMutationUnavailable
+	}
+	for _, item := range snapshot.Items {
+		if item.EntityID != entityID {
+			continue
+		}
+		if item.OwnerUserID != playerID || item.DefinitionID != definitionID ||
+			item.DefinitionVersion != definitionVersion {
+			return roomsdk.Transform{}, 0, ErrItemMutationNotEditable
+		}
+		if item.ItemRevision >= currentRevision {
+			return item.Transform, item.ItemRevision, nil
+		}
+		break
+	}
+	return current, currentRevision, nil
+}
+
+func (store *SQLiteStore) loungeItemLocation(ctx context.Context, teamID string) (*time.Location, error) {
+	var timeZone string
+	if err := store.db.QueryRowContext(ctx, `SELECT time_zone FROM teams WHERE id = ?`, teamID).Scan(&timeZone); err != nil {
+		return nil, fmt.Errorf("load Lounge item timezone: %w", err)
+	}
+	location, err := time.LoadLocation(timeZone)
+	if err != nil {
+		return nil, fmt.Errorf("load Lounge item location: %w", err)
+	}
+	return location, nil
 }
 
 func (store *SQLiteStore) authorizeItemMutation(
@@ -447,6 +579,14 @@ func normalizedMutationTarget(
 		normalized.Scale = float64(float32(target.Scale))
 	}
 	return &normalized
+}
+
+func normalizedItemTransform(transform roomsdk.Transform) roomsdk.Transform {
+	transform.X = float64(float32(transform.X))
+	transform.Y = float64(float32(transform.Y))
+	transform.Rotation = float64(float32(transform.Rotation))
+	transform.Scale = float64(float32(transform.Scale))
+	return transform
 }
 
 func mutationTargetMatchesKind(kind roomsdk.MutationKind, current, target roomsdk.Transform) bool {
