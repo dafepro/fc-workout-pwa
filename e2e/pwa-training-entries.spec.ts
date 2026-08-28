@@ -20,6 +20,7 @@ test("a player can save, reopen, and delete a private session", async ({
   await page.getByRole("button", { name: "Save" }).click();
 
   await expect(page.getByRole("status")).toContainText("Training saved");
+  await page.getByRole("link", { name: "Me", exact: true }).click();
 
   const newestSession = page
     .getByRole("link", {

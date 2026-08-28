@@ -158,3 +158,7 @@ Each step is test-first and small enough to review independently.
 - Local cart/edge/re-kick tests and the 320px shared Docker proof cover authoritative ball recovery plus two-player presence and movement.
 - Removed the drag instruction and Lounge-only redundant self sparkle; the accessible current-player identity and selection ring remain.
 - Added `pnpm deploy:dev`, which validates a clean, pushed exact SHA, dispatches the trusted dev workflow, prints its URL, and exits without waiting.
+- Restored the discoverable development Team Reward section for coach and operator staff portals against the predefined clean reward contract.
+- Today again owns one primary plan plus four consolidated destinations; private session history remains only in Me, and `/progress` restores the Momentum detail destination.
+- Team Pulse is back above the canonical Lounge with its avatars, three-to-five expansion, safe recency, and a real Docker-proven private predefined cheer.
+- The parity audit retains the V2 Lounge and structured reward authority while leaving alternate shells, uploads, free text, and legacy reward rules dropped.

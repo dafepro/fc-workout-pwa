@@ -22,6 +22,7 @@ import { entriesWithinDays } from "../domain/rules";
 import { useTraining } from "../state/training-context";
 import { useAuth } from "../state/auth-context";
 import { TeamLounge } from "../team-lounge/TeamLounge";
+import { TeamPulse } from "../player/TeamPulse";
 import { teamProgressGroups } from "./team-progress-groups";
 
 export default function TeamPage() {
@@ -224,6 +225,16 @@ export default function TeamPage() {
           ) : null}
           {teamReward?.teamId === teamID ? (
             <TeamRewardCard reward={teamReward} />
+          ) : null}
+
+          {dashboard ? (
+            <TeamPulse
+              activeThisWeek={dashboard.teamPulse.activeThisWeek}
+              activities={dashboard.teamPulse.recentActivities}
+              teamId={teamID}
+              unlocked={dashboard.teamPulse.unlocked}
+              onSendReaction={sendReaction}
+            />
           ) : null}
 
           <TeamLounge

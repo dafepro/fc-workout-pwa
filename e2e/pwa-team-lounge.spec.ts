@@ -46,6 +46,7 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   await expect(lounge).toBeVisible();
   const stage = lounge.getByLabel("Interactive lounge canvas");
   await expect(stage).toBeVisible();
+  await stage.scrollIntoViewIfNeeded();
   await expect(stage.locator("canvas")).toBeVisible({ timeout: 15_000 });
   await expect(lounge.getByText(/drag to move/i)).toHaveCount(0);
   await expect(lounge.getByLabel("Mason C., you")).toBeVisible();
@@ -204,6 +205,17 @@ test("two qualified players share Lounge presence and avatar movement", async ({
     const masonOnAvaPage = avaLounge
       .locator(".team-lounge__shared-avatar")
       .filter({ hasText: "Mason" });
+    await masonSelf.scrollIntoViewIfNeeded();
+    await masonOnAvaPage.scrollIntoViewIfNeeded();
+    const masonStage = masonLounge.getByLabel("Interactive lounge canvas");
+    await masonStage.scrollIntoViewIfNeeded();
+    const masonCanvas = masonStage.locator("canvas");
+    await expect(masonCanvas).toBeVisible();
+    const masonCanvasBox = await masonCanvas.boundingBox();
+    expect(masonCanvasBox).not.toBeNull();
+    const startWorldX = Number(await masonStage.getAttribute("data-player-x"));
+    const startWorldY = Number(await masonStage.getAttribute("data-player-y"));
+    const targetWorldX = Math.max(20, startWorldX - 15);
     const startSelf = await masonSelf.boundingBox();
     const startRemote = await masonOnAvaPage.boundingBox();
     expect(startSelf).not.toBeNull();
@@ -214,8 +226,16 @@ test("two qualified players share Lounge presence and avatar movement", async ({
       startSelf!.y + 30,
     );
     await page.mouse.down();
-    await page.mouse.move(startSelf!.x + 45, startSelf!.y + 30, { steps: 8 });
+    await page.mouse.move(
+      masonCanvasBox!.x + masonCanvasBox!.width * (targetWorldX / 100),
+      masonCanvasBox!.y + masonCanvasBox!.height * (startWorldY / 150),
+      { steps: 18 },
+    );
     await page.mouse.up();
+
+    await expect
+      .poll(async () => Number(await masonStage.getAttribute("data-player-x")))
+      .toBeCloseTo(targetWorldX, 0);
 
     await expect
       .poll(async () => {

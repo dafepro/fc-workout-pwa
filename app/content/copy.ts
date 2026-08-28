@@ -41,11 +41,18 @@ export const copy = {
     ],
   },
   today: {
-    moreForToday: "More for today",
+    moreForToday: "Other things you can do",
+    teamLounge: "Team lounge",
+    teamLoungeDetail: "Cheer the team or visit the boardwalk.",
+    teamLoungeLocked: "Complete today’s plan to enter.",
     logAnother: "Log another activity",
-    logAnotherDetail: "Record something outside today’s completed workout.",
-    prizeBoxes: "Prize boxes",
-    prizeBoxesDetail: "Claim today’s sealed box or open one you earned.",
+    logAnotherDetail: "Record something outside the planned workout.",
+    prizeBoxes: "View prize boxes",
+    prizeBoxesDetail: "See available, earned, or unopened rewards.",
+    prizeBoxesUnopened: (count: number) => `${count} unopened`,
+    prizeBoxEarned: "Prize box earned! Saved to Prize boxes.",
+    yourMomentum: "Your momentum",
+    yourMomentumDetail: "View your check-in streak and progress.",
     weekTitle: "Your plan",
     planDay: (day: number, count: number) => `Day ${day} of ${count}`,
     fullPlan: "View full plan",
@@ -107,6 +114,7 @@ export const copy = {
   },
   teamPulse: {
     eyebrow: "Team pulse",
+    title: "Latest from your team",
     lockedTitle: "Check in to open Team pulse",
     lockedDetail:
       "Finish today’s workout or check in for planned rest to see recent team activity.",
@@ -115,7 +123,15 @@ export const copy = {
     encouragement: "Your crew is building momentum together.",
     empty: "Your team’s next check-in will show here.",
     listLabel: "Recent team activity",
-    action: "Team activity",
+    cheer: "Cheer",
+    cheering: "Sending…",
+    cheered: "Cheered",
+    showMore: "Show more",
+    showLess: "Show less",
+    showMoreLabel: "Show more team activity",
+    showLessLabel: "Show less team activity",
+    privateDetail: "Cheers arrive privately.",
+    failed: "That cheer could not be sent. Try again.",
   },
   teamReward: {
     eyebrow: "Team reward",
@@ -155,6 +171,16 @@ export const copy = {
     gauge: (score: number) => `Momentum: ${score} out of 100`,
     infoAction: "What Momentum means",
     info: "Regular check-ins matter most. A second and third activity add smaller boosts, and planned rest counts without stacking.",
+    gaugeLabel: "Momentum",
+    guidanceLabel: "This week",
+    firstCheckIn:
+      "Your first check-in starts this week’s team target. Planned rest counts too.",
+    weeklyProgress: (checkIns: number, remaining: number) =>
+      `${checkIns} ${checkIns === 1 ? "check-in" : "check-ins"} this week. ${remaining} more ${remaining === 1 ? "reaches" : "reach"} your team’s target.`,
+    weeklyComplete: (goal: number) =>
+      `You reached your team’s ${goal}-check-in target this week. Nice consistency.`,
+    improvementTip:
+      "Show up on different days for the biggest lift. A second and third activity add smaller boosts; planned rest counts too.",
   },
   log: {
     overMax: (max: number, unit: string) => `Max is ${max} ${unit}`,

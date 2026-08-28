@@ -82,6 +82,13 @@ test("a coach works through the console at 320 pixels", async ({ page }) => {
   await expect(
     page.getByRole("navigation", { name: "Team sections" }),
   ).toBeVisible();
+  await page.getByRole("link", { name: "Team Reward" }).click();
+  await expect(page).toHaveURL(/\/rewards$/);
+  await expect(
+    page.getByRole("heading", { name: "Team Reward" }),
+  ).toBeVisible();
+  await expect(page.getByText("Team celebration")).toBeVisible();
+  await expectNoOverflow(page);
 
   await page.getByRole("link", { name: "Progress" }).click();
   await expect(page).toHaveURL(/\/progress$/);

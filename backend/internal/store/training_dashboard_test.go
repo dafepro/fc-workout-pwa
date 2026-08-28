@@ -38,14 +38,14 @@ func TestTrainingDashboardReturnsOwnedCatalogAssignmentAndSafeSummary(t *testing
 	if !projection.TeamPulse.Unlocked || projection.TeamPulse.ActiveThisWeek != 2 || len(projection.TeamPulse.RecentActivities) == 0 {
 		t.Fatalf("accepted check-in did not unlock safe team pulse: %+v", projection.TeamPulse)
 	}
-	if projection.TeamPulse.RecentActivities[0].FirstName != "Ava" || projection.TeamPulse.RecentActivities[0].Recency != "Today" {
+	if projection.TeamPulse.RecentActivities[0].PlayerID != "player-ava" || projection.TeamPulse.RecentActivities[0].FirstName != "Ava" || projection.TeamPulse.RecentActivities[0].Recency != "Today" {
 		t.Fatalf("unexpected safe team activity: %+v", projection.TeamPulse.RecentActivities)
 	}
 	encodedPulse, err := json.Marshal(projection.TeamPulse)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, privateField := range []string{"player-ava", "occurredAt", "effortLevel", "completionOutcome"} {
+	for _, privateField := range []string{"occurredAt", "effortLevel", "completionOutcome"} {
 		if strings.Contains(string(encodedPulse), privateField) {
 			t.Fatalf("unlocked team pulse leaked %q: %s", privateField, encodedPulse)
 		}
@@ -79,7 +79,7 @@ func TestTrainingDashboardReturnsOwnedCatalogAssignmentAndSafeSummary(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, requiredField := range []string{`"momentumScore":4`, `"currentCheckInStreak":1`} {
+	for _, requiredField := range []string{`"weeklyMomentumCredits":1`, `"momentumScore":4`, `"currentCheckInStreak":1`} {
 		if !strings.Contains(string(encoded), requiredField) {
 			t.Fatalf("dashboard missing %q: %s", requiredField, encoded)
 		}
@@ -128,6 +128,9 @@ func TestTrainingDashboardPlannedRestUnlocksSafeTeamPulse(t *testing.T) {
 	}
 	if !projection.TeamPulse.Unlocked || projection.TeamPulse.ActiveThisWeek != 2 {
 		t.Fatalf("planned rest did not unlock and count team participation: %+v", projection.TeamPulse)
+	}
+	if projection.Summary.WeeklyMomentumCredits != 1 {
+		t.Fatalf("workout and rest on one day should be one Momentum credit: %+v", projection.Summary)
 	}
 	if len(projection.TeamPulse.RecentActivities) != 1 || projection.TeamPulse.RecentActivities[0].ActivityName != "Planned rest" {
 		t.Fatalf("planned rest was not projected as safe team activity: %+v", projection.TeamPulse.RecentActivities)

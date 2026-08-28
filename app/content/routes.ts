@@ -21,6 +21,8 @@ export const routes = {
     `/staff/admin/teams/${teamId}/progress`,
   staffAdminTeamRoster: (teamId: string) =>
     `/staff/admin/teams/${teamId}/roster`,
+  staffAdminTeamRewards: (teamId: string) =>
+    `/staff/admin/teams/${teamId}/rewards`,
   // The bases are here because a server component may not hand a function to a
   // client one: `playerHref={routes.staffPlayer}` crashed the page it was on.
   staffAdminPlayers: "/staff/admin/players",
@@ -28,6 +30,7 @@ export const routes = {
   staffTeam: (teamId: string) => `/staff/teams/${teamId}`,
   staffTeamProgress: (teamId: string) => `/staff/teams/${teamId}/progress`,
   staffTeamRoster: (teamId: string) => `/staff/teams/${teamId}/roster`,
+  staffTeamRewards: (teamId: string) => `/staff/teams/${teamId}/rewards`,
   staffPlayers: "/staff/players",
   staffPlayer: (playerId: string) => `/staff/players/${playerId}`,
 } as const;
