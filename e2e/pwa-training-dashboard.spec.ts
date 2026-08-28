@@ -165,12 +165,16 @@ test("connected Today and activity logging use the server assignment", async ({
 
   await page.getByRole("link", { name: "Today" }).click();
   await page.getByRole("link", { name: /Log another activity/i }).click();
+  await page
+    .getByRole("button", { name: "Choose an activity", exact: true })
+    .click();
+  await page.getByRole("radio", { name: /^Distance Run/i }).click();
   const secondCreateResponse = page.waitForResponse(
     (response) =>
       response.url().includes("/api/zoomigo/v1/me/training-entries") &&
       response.request().method() === "POST",
   );
-  await page.getByRole("button", { name: "Save" }).click();
+  await page.getByRole("button", { name: /^Save / }).click();
   expect((await secondCreateResponse).ok()).toBe(true);
 
   await expect(

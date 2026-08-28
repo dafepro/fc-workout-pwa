@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ActivitySpecificFields } from "../components/ActivityFields";
 import { WorkoutSelect } from "../components/WorkoutSelect";
@@ -50,8 +50,10 @@ export default function LogPage() {
     useTraining();
   const activities = useMemo(() => dashboard?.activities ?? [], [dashboard]);
   const assignment = dashboard?.currentAssignment ?? null;
-  const [activityId, setActivityId] = useState<ActivityId | "">("");
-  const [value, setValue] = useState(8);
+  const [selection, setSelection] = useState<{
+    activityId: ActivityId;
+    value: number;
+  } | null>(null);
   const clock = useLocalSessionClock();
   const [effort, setEffort] = useState(4);
   const [exhaustion, setExhaustion] = useState(4);
@@ -59,8 +61,6 @@ export default function LogPage() {
     useState<CompletionOutcome>("as_listed");
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const initialized = useRef(false);
-  const selectedActivity = activities.find((item) => item.id === activityId);
   const planDay = dashboard?.currentPlanDay ?? null;
   const requestedPlanBlock = useMemo(() => {
     if (!planDay || searchParameters.get("planId") !== planDay.planId) {
@@ -86,38 +86,34 @@ export default function LogPage() {
       ) ?? null
     );
   }, [planDay, searchParameters]);
-
-  useEffect(() => {
-    if (initialized.current || activities.length === 0) return;
-    if (additionalMode) {
-      initialized.current = true;
-      return;
-    }
-    const selected =
-      activities.find(
+  const suggestedActivity = additionalMode
+    ? undefined
+    : (activities.find(
         (item) => item.id === requestedPlanBlock?.activityDefinitionId,
       ) ??
       activities.find((item) => item.id === assignment?.activityDefinitionId) ??
-      activities[0];
-    initialized.current = true;
-    setActivityId(selected.id);
-    setValue(
-      requestedPlanBlock?.activityDefinitionId === selected.id
-        ? plannedActivityTarget(selected, requestedPlanBlock)
-        : assignment?.activityDefinitionId === selected.id
+      activities[0]);
+  const activityId = selection?.activityId ?? suggestedActivity?.id ?? "";
+  const value =
+    selection?.value ??
+    (suggestedActivity
+      ? requestedPlanBlock?.activityDefinitionId === suggestedActivity.id
+        ? plannedActivityTarget(suggestedActivity, requestedPlanBlock)
+        : assignment?.activityDefinitionId === suggestedActivity.id
           ? assignment.targetValue
-          : selected.defaultValue,
-    );
-  }, [activities, additionalMode, assignment, requestedPlanBlock]);
+          : suggestedActivity.defaultValue
+      : 1);
+  const selectedActivity = activities.find((item) => item.id === activityId);
 
   function chooseActivity(next: ActivityId) {
-    setActivityId(next);
     const nextActivity = activities.find((item) => item.id === next);
-    setValue(
-      assignment?.activityDefinitionId === next
-        ? assignment.targetValue
-        : (nextActivity?.defaultValue ?? 1),
-    );
+    setSelection({
+      activityId: next,
+      value:
+        assignment?.activityDefinitionId === next
+          ? assignment.targetValue
+          : (nextActivity?.defaultValue ?? 1),
+    });
     setMessage(null);
     analytics.track("training_activity_selected", {
       activity: next,
@@ -263,7 +259,12 @@ export default function LogPage() {
             <ActivitySpecificFields
               activityId={selectedActivity.id}
               value={value}
-              onChange={setValue}
+              onChange={(nextValue) =>
+                setSelection({
+                  activityId: selectedActivity.id,
+                  value: nextValue,
+                })
+              }
               activities={activities}
             />
             <WorkoutOutcomeChoices

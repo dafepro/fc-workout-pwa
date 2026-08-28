@@ -152,3 +152,5 @@ Each step is test-first and small enough to review independently.
 - Existing assignments remain read-only in a collapsed history; production keeps its current assignment console until training-plan authoring is deliberately enabled there.
 - Consolidated plan navigation: Today’s week strip now opens a read-only full-plan timeline and day detail, with future work visible but decisively non-startable.
 - The parity audit retained the final Canvas 0.4.1 Lounge and current prize authority, and rejected alternate shells, old Canvas/Lounge routes, free-text notes, prototype reward gateways, and migration churn; remaining prize presentation work is tracked separately.
+- Consolidated parity release gate: lint, typecheck, 321 frontend tests, production and development builds, and the migrated Docker API suite pass.
+- All 26 Docker browser workflows pass, including intentional additional-activity selection, the 320px Lounge, staff access, Prize Boxes, and training persistence.
