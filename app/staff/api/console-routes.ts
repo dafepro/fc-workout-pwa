@@ -45,6 +45,14 @@ export const STAFF_ROUTES: ConsoleRoute[] = [
     pattern: /^v1\/staff\/teams\/[^/]+\/team-reward\/[^/]+\/cancel$/,
   },
   { method: "GET", pattern: /^v1\/staff\/assignment-catalog$/ },
+  { method: "GET", pattern: /^v1\/staff\/training-plan-templates$/ },
+  { method: "GET", pattern: /^v1\/staff\/teams\/[^/]+\/training-plans$/ },
+  { method: "POST", pattern: /^v1\/staff\/teams\/[^/]+\/training-plans$/ },
+  {
+    method: "POST",
+    pattern:
+      /^v1\/staff\/teams\/[^/]+\/training-plans\/[^/]+\/(cancel|reschedule)$/,
+  },
   { method: "GET", pattern: /^v1\/staff\/teams\/[^/]+\/assignments$/ },
   { method: "POST", pattern: /^v1\/staff\/teams\/[^/]+\/assignments$/ },
   { method: "PATCH", pattern: /^v1\/staff\/teams\/[^/]+\/assignments\/[^/]+$/ },

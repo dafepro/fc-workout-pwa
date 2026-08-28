@@ -1,5 +1,8 @@
 import { requireOperator } from "../../guard";
+import { devAccessEnabled } from "../../../../api/backend";
 import { AssignmentPanel } from "../../../console/team/AssignmentPanel";
+import { LegacyAssignmentHistory } from "../../../console/team/LegacyAssignmentHistory";
+import { TrainingPlanBuilder } from "../../../console/team/training-plans/TrainingPlanBuilder";
 
 export default async function OperatorTeamTrainingPage({
   params,
@@ -8,5 +11,11 @@ export default async function OperatorTeamTrainingPage({
 }) {
   await requireOperator();
   const { teamId } = await params;
-  return <AssignmentPanel teamId={teamId} />;
+  if (!devAccessEnabled()) return <AssignmentPanel teamId={teamId} />;
+  return (
+    <>
+      <TrainingPlanBuilder teamId={teamId} />
+      <LegacyAssignmentHistory teamId={teamId} />
+    </>
+  );
 }

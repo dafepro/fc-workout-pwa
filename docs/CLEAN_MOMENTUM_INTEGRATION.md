@@ -148,3 +148,5 @@ Each step is test-first and small enough to review independently.
 - Consolidated recorder parity: planned workouts retain exact plan provenance and outcomes, while “Log another activity” gets a deliberate no-default picker, descriptive save action, and hydration-safe local timestamp.
 - The player flow keeps structured values and predefined outcomes only; the momentum branch’s free-text workout note remains intentionally excluded.
 - Workout feedback artwork: restored only the final Almost, Did it, and Extra Zoomi PNGs and verified the three structured outcome controls resolve to those production assets.
+- Dev staff planning: replaced the duplicate assignment-authoring form with the curated seven-day plan builder, dated preview, bounded day customization, immutable rescheduling, and confirmed cancellation.
+- Existing assignments remain read-only in a collapsed history; production keeps its current assignment console until training-plan authoring is deliberately enabled there.

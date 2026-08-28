@@ -4318,3 +4318,313 @@ h2 {
   text-align: center;
   pointer-events: none;
 }
+
+.training-plan {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.training-plan__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.training-plan__heading .eyebrow,
+.training-plan__heading .console-card__title {
+  margin-bottom: 0.2rem;
+}
+
+.training-plan__heading > span {
+  padding: 0.3rem 0.5rem;
+  border-radius: 999px;
+  background: #fff3d3;
+  color: #765617;
+  font-size: 0.7rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.training-plan__templates {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.training-plan__templates legend,
+.training-plan__start {
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.training-plan__templates label {
+  display: grid;
+  min-height: 3.4rem;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 0.7rem;
+  background: #fafbff;
+  cursor: pointer;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.training-plan__templates label:has(input:checked) {
+  border-color: #6a57dd;
+  background: #f2efff;
+  box-shadow: 0 0 0 2px rgb(106 87 221 / 12%);
+}
+
+.training-plan__templates input {
+  width: 1.15rem;
+  height: 1.15rem;
+  accent-color: #5a48c9;
+}
+
+.training-plan__templates span,
+.training-plan__history li > span,
+.training-plan__legacy li > span {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.training-plan__templates small,
+.training-plan__summary p,
+.training-plan__schedule span,
+.training-plan__schedule small,
+.training-plan__history small,
+.training-plan__legacy small {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.training-plan__start {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.training-plan__start input {
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.6rem 0.65rem;
+  border: 1px solid #cfd4e4;
+  border-radius: 0.6rem;
+  background: #f9faff;
+  color: var(--ink);
+  font: inherit;
+}
+
+.training-plan__summary h3,
+.training-plan__summary p,
+.training-plan__history h3,
+.training-plan__history ul {
+  margin: 0;
+}
+
+.training-plan__schedule,
+.training-plan__history ul,
+.training-plan__legacy > ul {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.training-plan__schedule li {
+  display: grid;
+  gap: 0.18rem 0.65rem;
+  padding: 0.65rem;
+  border-left: 0.35rem solid #6654d9;
+  border-radius: 0.65rem;
+  background: #f7f5ff;
+  grid-template-columns: 4.8rem minmax(0, 1fr);
+}
+
+.training-plan__schedule li.is-recovery {
+  border-left-color: #2b9c80;
+  background: #effaf6;
+}
+
+.training-plan__schedule li.is-rest {
+  border-left-color: #9aa39f;
+  background: #f4f6f5;
+}
+
+.training-plan__date {
+  align-self: center;
+  font-weight: 850;
+  grid-row: span 2;
+}
+
+.training-plan__schedule li > div {
+  display: grid;
+  gap: 0.08rem;
+}
+
+.training-plan__schedule li > small {
+  grid-column: 2;
+}
+
+.training-plan__editor {
+  margin-top: 0.35rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid rgb(16 51 64 / 12%);
+  grid-column: 1 / -1;
+}
+
+.training-plan__editor summary {
+  width: fit-content;
+  cursor: pointer;
+  color: #315369;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.training-plan__editor > p,
+.training-plan__editor > div {
+  margin: 0.45rem 0 0;
+}
+
+.training-plan__editor > p {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.training-plan__editor > div {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.training-plan__editor label {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+  color: #314653;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.training-plan__editor select,
+.training-plan__editor input {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.45rem;
+}
+
+.training-plan__policy {
+  margin: 0;
+  padding: 0.7rem;
+  border-radius: 0.65rem;
+  background: #eef4ff;
+  color: #27426f;
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.training-plan__actions {
+  margin-top: 0;
+}
+
+.training-plan__history {
+  display: grid;
+  gap: 0.45rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--line);
+}
+
+.training-plan__history li,
+.training-plan__legacy li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem;
+  border-radius: 0.65rem;
+  background: #f7f8fc;
+}
+
+.training-plan__history-actions {
+  justify-items: end;
+}
+
+.training-plan__history-actions button {
+  min-height: 2rem;
+  border: 1px solid #cad4da;
+  border-radius: 999px;
+  background: white;
+  color: #244150;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.training-plan__history-actions > span {
+  display: grid;
+  max-width: 14rem;
+  gap: 0.35rem;
+  justify-items: end;
+}
+
+.training-plan__legacy {
+  padding: 0;
+}
+
+.training-plan__legacy > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 1rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.training-plan__legacy > summary::-webkit-details-marker {
+  display: none;
+}
+
+.training-plan__legacy > summary > span:first-child {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.training-plan__legacy > summary > span:last-child {
+  display: grid;
+  min-width: 1.8rem;
+  min-height: 1.8rem;
+  place-items: center;
+  border-radius: 999px;
+  background: #eef1f6;
+  font-weight: 900;
+}
+
+.training-plan__legacy > p,
+.training-plan__legacy > ul {
+  margin-inline: 1rem;
+}
+
+.training-plan__legacy > ul {
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 390px) {
+  .training-plan__editor > div {
+    grid-template-columns: 1fr;
+  }
+
+  .training-plan__history li {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .training-plan__history-actions {
+    width: 100%;
+    justify-items: start;
+  }
+}

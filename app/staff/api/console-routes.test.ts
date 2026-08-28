@@ -127,6 +127,19 @@ describe("console gateway routing", () => {
     expect(gatewayFor("POST", "v1/staff/teams/team-1/assignments")).toBe(
       STAFF_GATEWAY,
     );
+    expect(gatewayFor("GET", "v1/staff/training-plan-templates")).toBe(
+      STAFF_GATEWAY,
+    );
+    expect(gatewayFor("POST", "v1/staff/teams/team-1/training-plans")).toBe(
+      STAFF_GATEWAY,
+    );
+    expect(
+      allows(
+        STAFF_ROUTES,
+        "POST",
+        "v1/staff/teams/team-1/training-plans/plan-1/reschedule",
+      ),
+    ).toBe(true);
     expect(
       allows(STAFF_ROUTES, "GET", "v1/staff/team-reward-definitions"),
     ).toBe(true);
