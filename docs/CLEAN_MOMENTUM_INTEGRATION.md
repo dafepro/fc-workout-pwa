@@ -183,3 +183,4 @@ Each step is test-first and small enough to review independently.
 - Operators now have a tested read-only `lounge-placement-holds` report and runbook that distinguish expired unconsumed permits, pending Canvas receipts, and stale consumed holds without granting any timer- or browser-driven release path.
 - The two-session Docker Lounge proof now follows a real kick through Canvas authority to the second browser, covering shared ball projection as well as authenticated presence and avatar movement.
 - Next Canvas chunk: prove two real API processes through fenced ownership handoff and graceful drain, then add owner-bound edit/delete permits before restoring the remaining momentum V2 stamp-editor controls.
+- [Dev run 33186493834](https://github.com/dafepro/fc-workout-pwa/actions/runs/33186493834) deployed exact app SHA `42f75977c312f695684b6aa930de45bb6e9ddf5c`; verification, packaging, image publication, and the public exact-container smoke all passed.
