@@ -70,6 +70,9 @@ jobs:
           pnpm typecheck
           pnpm build
 
+      - name: Enforce the dev Worker delivery budget
+        run: pnpm verify:worker-upload
+
       - name: Test the API in production and development build modes
         run: |
           go -C backend test ./...

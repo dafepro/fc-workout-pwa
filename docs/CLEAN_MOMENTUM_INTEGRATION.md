@@ -172,3 +172,4 @@ Each step is test-first and small enough to review independently.
 - Dev CD now reports each verification gate separately, retries only idempotent infrastructure, SSH/SCP, fixture, and Worker operations, and bounds remote connections and cloud-init waits.
 - Every create/update proves the exact requested release SHA is serving from the healthy dev API container; the deeper mutating product smoke remains scoped to newly seeded previews.
 - The stale backup-fixture count that blocked run 33172357905 now matches the three-entry canonical fixture, restoring the full Go gate without suppressing failures.
+- Failed run 33175103074 proved the API container update but exposed a Cloudflare size rejection; builds now remove only unreferenced duplicate browser-worker modules and enforce a 2800 KiB compressed budget before infrastructure changes.
