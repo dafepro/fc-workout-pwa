@@ -31,7 +31,7 @@ experiments.
 
 ## Release quality
 
-- Run the canonical Lounge browser proof against the recreated dev PWA from an allowed Midwest network; the outer geographic gate intentionally keeps hosted CI from bypassing that check.
+- Run the canonical Lounge browser proof against the recreated dev PWA through the outer shared-password gate; hosted CI still validates the local Docker workflow separately.
 - Upgrade the GitHub Actions that still target the deprecated Node.js 20 runtime before GitHub stops force-running them on Node.js 24.
 - Complete installed-PWA, offline/update, keyboard, screen-reader, and
   reduced-motion reviews on physical devices.

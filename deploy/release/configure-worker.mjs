@@ -70,9 +70,6 @@ export function configureWorker(
       ...(deployment.devAccessEnabled
         ? {
             DEV_ACCESS_ENABLED: "true",
-            DEV_ALLOWED_REGION_CODES: requireRegionCodes(
-              deployment.allowedRegionCodes,
-            ),
           }
         : {}),
     },
@@ -112,17 +109,6 @@ function requireDevBuildConfig(generated) {
     assets: { directory: "../client" },
     observability: { enabled: true },
   };
-}
-
-function requireRegionCodes(value) {
-  if (
-    !Array.isArray(value) ||
-    value.length === 0 ||
-    value.some((region) => !/^[A-Z]{2}$/.test(region))
-  ) {
-    throw new Error("allowedRegionCodes must contain two-letter region codes");
-  }
-  return value.join(",");
 }
 
 async function main() {

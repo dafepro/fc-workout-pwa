@@ -8,18 +8,11 @@ provider, or an email allowlist. A shared outer password is the invitation.
 
 Every PWA request reaches the custom Worker gate before application routing,
 static assets, player sign-in, staff sign-in, or the credential directory. The
-gate requires both:
-
-1. Cloudflare geolocates the source IP to the United States and one of the
-   twelve U.S. Census Midwest state codes configured in `deploy/dev.json`.
-2. The visitor enters `DEV_ACCESS_PASSWORD`, which creates an eight-hour,
-   signed, Secure, HttpOnly, SameSite=Strict cookie.
-
-Cloudflare documents `request.cf.regionCode` as available to Workers on all
-plans, so this does not require Business or Enterprise. IP geolocation is an
-abuse-reduction signal, not identity: a VPN can appear to be in an allowed
-state, a mobile connection can be located incorrectly, and anyone can forward
-the shared password. The password remains the actual access credential.
+visitor enters `DEV_ACCESS_PASSWORD`, which creates an eight-hour, signed,
+Secure, HttpOnly, SameSite=Strict cookie. The gate is intentionally independent
+of IP geolocation so invited testers are not silently rejected by a VPN, mobile
+carrier, or inaccurate edge location. Anyone can forward the shared password,
+so this remains suitable only for invented preview data.
 
 The dev Worker replaces the PWA service worker with an unregister-and-clear
 script. This prevents an offline app-shell cache from rendering a previously
@@ -142,8 +135,8 @@ The create smoke uses `scripts/dev-deploy-smoke.mjs` with
 `DEV_SMOKE_API_BASE_URL` and `DEV_API_GATEWAY_TOKEN`. It proves dev player and
 staff sign-in, plan publication and planned rest, Prize Box claim/open and
 inventory, and Team Reward publication plus the privacy-safe player projection.
-It intentionally does not bypass the Worker's Midwest gate; canonical Lounge
-canvas startup remains a browser proof and is covered by Docker E2E.
+It intentionally does not bypass the Worker's shared-password gate; canonical
+Lounge canvas startup remains a browser proof and is covered by Docker E2E.
 
 There is no automatic time-to-live. Destroy the environment when a review ends;
 DigitalOcean continues hourly billing while the Droplet exists.

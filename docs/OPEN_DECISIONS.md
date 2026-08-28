@@ -53,12 +53,11 @@ to resolve, not the implementing agent's.
 
 - Decided: the preview is a separate ephemeral environment, not a mode on the
   production Droplet and not a copy of production authentication or data.
-- Decided: preview invitations use one shared outer password rather than
-  Cloudflare Access membership or an email list. The Worker admits only source
-  IPs Cloudflare locates in the twelve U.S. Census Midwest states, then issues a
-  signed eight-hour cookie. Geolocation and a shared password reduce exposure
-  but do not identify a person; passwords can be forwarded and VPNs can move an
-  apparent location.
+- Decided 2026-08-28: preview invitations use one shared outer password rather
+  than Cloudflare Access membership, an email list, or an IP geofence. The
+  Worker issues a signed eight-hour cookie from any network because edge
+  geolocation prevented invited testers from reliably reaching the gate.
+  Passwords can be forwarded, so preview data must remain invented.
 - Decided: the gated directory shows four invented player QR codes, all with PIN
   `1111`, plus a preset preview administrator email and runtime-supplied
   password. These shortcuts exist only in the dev-tagged API. Production keeps

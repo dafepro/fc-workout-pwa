@@ -2,7 +2,6 @@ export interface DevGateEnv {
   DEV_ACCESS_ENABLED?: string;
   DEV_ACCESS_PASSWORD?: string;
   DEV_ACCESS_SESSION_KEY?: string;
-  DEV_ALLOWED_REGION_CODES?: string;
 }
 
 const cookieName = "zoomigo_dev_access";
@@ -31,25 +30,6 @@ export function devServiceWorkerResponse(
   );
 }
 
-type CloudflareRequest = Request & {
-  cf?: { country?: string; regionCode?: string };
-};
-
-const censusMidwestRegions = new Set([
-  "IL",
-  "IN",
-  "IA",
-  "KS",
-  "MI",
-  "MN",
-  "MO",
-  "NE",
-  "ND",
-  "OH",
-  "SD",
-  "WI",
-]);
-
 export async function gateDevRequest(
   request: Request,
   env: DevGateEnv,
@@ -62,22 +42,6 @@ export async function gateDevRequest(
     env.DEV_ACCESS_SESSION_KEY.length < 32
   ) {
     return lockedResponse(503, "Preview unavailable");
-  }
-
-  const cf = (request as CloudflareRequest).cf;
-  const allowedRegions = env.DEV_ALLOWED_REGION_CODES
-    ? new Set(
-        env.DEV_ALLOWED_REGION_CODES.split(",")
-          .map((region) => region.trim().toUpperCase())
-          .filter(Boolean),
-      )
-    : censusMidwestRegions;
-  if (
-    cf?.country !== "US" ||
-    !cf.regionCode ||
-    !allowedRegions.has(cf.regionCode)
-  ) {
-    return lockedResponse(403, "Unavailable");
   }
 
   const url = new URL(request.url);

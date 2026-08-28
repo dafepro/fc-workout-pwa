@@ -97,7 +97,7 @@ test("rejects a mismatched public API origin", () => {
   );
 });
 
-test("configures the disposable Worker with its Midwest gate", () => {
+test("configures the disposable Worker with its shared password gate", () => {
   const configured = configureWorker(
     {
       main: "index.js",
@@ -123,13 +123,12 @@ test("configures the disposable Worker with its Midwest gate", () => {
       pwaHostname: "dev.zoomigo.quicktrack.cc",
       workerName: "zoomigo-training-dev",
       devAccessEnabled: true,
-      allowedRegionCodes: ["IL", "WI"],
     },
     "https://api-dev.zoomigo.quicktrack.cc",
   );
 
   assert.equal(configured.vars.DEV_ACCESS_ENABLED, "true");
-  assert.equal(configured.vars.DEV_ALLOWED_REGION_CODES, "IL,WI");
+  assert.equal(configured.vars.DEV_ALLOWED_REGION_CODES, undefined);
   assert.equal(configured.vars.UNTRUSTED_BRANCH_VALUE, undefined);
   assert.equal(configured.d1_databases, undefined);
   assert.equal(configured.kv_namespaces, undefined);

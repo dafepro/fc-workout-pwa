@@ -32,20 +32,21 @@ describe("gateDevRequest", () => {
     expect(response).toBeNull();
   });
 
-  it("refuses requests outside the United States before rendering a login", async () => {
+  it("renders the shared password gate outside the United States", async () => {
     const response = await gateDevRequest(request("/_dev-gate", "CA"), env);
 
-    expect(response?.status).toBe(403);
-    expect(await response?.text()).not.toContain("password");
+    expect(response?.status).toBe(200);
+    expect(await response?.text()).toContain("shared preview password");
   });
 
-  it("refuses US requests outside the configured Midwest states", async () => {
+  it("renders the shared password gate outside the former Midwest allowlist", async () => {
     const response = await gateDevRequest(
       request("/_dev-gate", "US", undefined, "TX"),
       env,
     );
 
-    expect(response?.status).toBe(403);
+    expect(response?.status).toBe(200);
+    expect(await response?.text()).toContain("shared preview password");
   });
 
   it("redirects an unauthenticated US request to the outer gate", async () => {
