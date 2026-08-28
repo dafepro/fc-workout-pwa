@@ -161,23 +161,6 @@ h2 {
   font-size: clamp(1.25rem, 3.2vw, 2rem);
 }
 
-.app-shell {
-  min-height: 100vh;
-}
-
-.sidebar {
-  display: none;
-}
-
-.main-content {
-  min-width: 0;
-  padding-bottom: 6.4rem;
-}
-
-.app-shell--focused .main-content {
-  padding-bottom: 0;
-}
-
 .page {
   width: min(100%, 74rem);
   margin: 0 auto;
@@ -220,76 +203,6 @@ h2 {
 .brand small {
   color: var(--muted);
   font-size: 0.72rem;
-}
-
-.bottom-nav {
-  position: fixed;
-  z-index: 20;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  padding: 0.45rem max(0.4rem, env(safe-area-inset-right))
-    calc(0.45rem + env(safe-area-inset-bottom))
-    max(0.4rem, env(safe-area-inset-left));
-  border-top: 1px solid var(--line);
-  background: rgb(255 255 255 / 94%);
-  box-shadow: 0 -8px 30px rgb(11 18 61 / 8%);
-  backdrop-filter: blur(18px);
-}
-
-.bottom-nav a {
-  position: relative;
-  display: flex;
-  min-width: 0;
-  min-height: 3.7rem;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 0.05rem;
-  border-radius: 0.85rem;
-  color: var(--muted);
-}
-
-.bottom-nav a > span {
-  font-size: 1.3rem;
-  font-weight: 900;
-  line-height: 1;
-}
-
-/* Only a sizing box now: the circle, border, and shadow come from .avatar. */
-.nav-user-avatar {
-  display: inline-grid !important;
-  place-items: center;
-}
-
-.nav-user-avatar .avatar {
-  width: 1.85rem;
-  height: 1.85rem;
-  border-width: 2px;
-  box-shadow: 0 2px 8px rgb(11 18 61 / 18%);
-  font-size: 0.55rem;
-}
-
-.bottom-nav a small {
-  font-size: 0.68rem;
-  font-weight: 750;
-}
-
-.bottom-nav a.is-active {
-  background: rgb(200 245 42 / 19%);
-  color: var(--ink);
-}
-
-.bottom-nav a.is-active::before {
-  position: absolute;
-  top: -0.45rem;
-  width: 2rem;
-  height: 0.22rem;
-  border-radius: 10rem;
-  background: var(--lime);
-  content: "";
 }
 
 .toast-overlay {
@@ -3388,68 +3301,6 @@ h2 {
 }
 
 @media (min-width: 960px) {
-  .app-shell {
-    display: grid;
-    grid-template-columns: 15.5rem minmax(0, 1fr);
-  }
-  .sidebar {
-    position: sticky;
-    top: 0;
-    display: flex;
-    height: 100vh;
-    padding: 2rem 1.1rem;
-    border-right: 1px solid var(--line);
-    background: rgb(255 255 255 / 92%);
-    flex-direction: column;
-  }
-  .navigation {
-    display: grid;
-    gap: 0.4rem;
-    margin-top: 2.5rem;
-  }
-  .navigation a {
-    display: flex;
-    min-height: 3.25rem;
-    align-items: center;
-    gap: 0.8rem;
-    padding: 0.7rem 0.9rem;
-    border-radius: 0.9rem;
-    color: var(--muted);
-    font-weight: 800;
-  }
-  .navigation a > span:first-child {
-    display: grid;
-    width: 1.6rem;
-    place-items: center;
-    font-size: 1.15rem;
-  }
-  .navigation a.is-active {
-    background: rgb(200 245 42 / 22%);
-    color: var(--ink);
-  }
-  .sidebar__safe-note {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.6rem;
-    margin-top: auto;
-    padding: 0.8rem;
-    border-radius: 0.9rem;
-    background: #f0efff;
-    color: var(--muted);
-  }
-  .sidebar__safe-note span {
-    color: var(--purple);
-  }
-  .sidebar__safe-note p {
-    margin: 0;
-    font-size: 0.68rem;
-  }
-  .bottom-nav {
-    display: none;
-  }
-  .main-content {
-    padding-bottom: 0;
-  }
   .hero-card {
     min-height: 22rem;
   }

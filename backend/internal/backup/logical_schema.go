@@ -88,6 +88,58 @@ var logicalTables = []logicalTable{
 		},
 	},
 	{
+		Name:    "team_lounge_rooms",
+		OrderBy: []string{"room_id"},
+		Fields: []logicalField{
+			textField("room_id"),
+			textField("team_id"),
+			textField("week_key"),
+			textField("canvas_id"),
+			integerField("canvas_version"),
+			textField("created_at"),
+		},
+	},
+	{
+		Name:    "team_lounge_snapshots",
+		OrderBy: []string{"room_id"},
+		Fields: []logicalField{
+			textField("room_id"),
+			textField("canvas_id"),
+			integerField("canvas_version"),
+			integerField("scene_revision"),
+			integerField("checkpoint_revision"),
+			integerField("host_epoch"),
+			integerField("tick"),
+			integerField("normalized"),
+			textField("captured_at"),
+			textField("snapshot_json"),
+			withDefault(textField("mutation_receipts_json"), "[]"),
+			withDefault(textField("mutation_high_water_json"), "[]"),
+		},
+	},
+	{
+		Name:    "team_lounge_visits",
+		OrderBy: []string{"room_id", "player_id"},
+		Fields: []logicalField{
+			textField("room_id"),
+			textField("player_id"),
+			textField("last_visited_at"),
+		},
+	},
+	{
+		Name:    "team_lounge_placement_credits",
+		OrderBy: []string{"team_id", "player_id", "week_key", "day_key"},
+		Fields: []logicalField{
+			textField("team_id"),
+			textField("player_id"),
+			textField("week_key"),
+			textField("day_key"),
+			textField("source_kind"),
+			textField("source_id"),
+			textField("granted_at"),
+		},
+	},
+	{
 		Name:    "accounts",
 		OrderBy: []string{"id"},
 		Fields: []logicalField{

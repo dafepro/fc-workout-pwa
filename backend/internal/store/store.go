@@ -292,6 +292,10 @@ func (store *Store) ResetE2EFixtures(ctx context.Context, now time.Time) error {
 	}
 	defer tx.Rollback()
 	statements := []string{
+		"DELETE FROM team_lounge_placement_credits",
+		"DELETE FROM team_lounge_visits",
+		"DELETE FROM team_lounge_snapshots",
+		"DELETE FROM team_lounge_rooms",
 		"DELETE FROM team_reward_events",
 		"DELETE FROM team_rewards",
 		"DELETE FROM reactions",

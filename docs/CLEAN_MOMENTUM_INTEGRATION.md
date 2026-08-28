@@ -130,3 +130,7 @@ Each step is test-first and small enough to review independently.
 - Canvas's storage conformance suite plus focused week, visit, placement-credit, and binding tests pass; legacy Lounge table names and interim migration history were not restored.
 - Canonical shared Lounge: connected players now enter the single weekly Canvas 0.4.1 room through one-use tickets, while today's qualifying workout/rest rule remains the decisive server-side lock.
 - A 320px Docker browser proof joins, renders the configured ZoomiGo avatar, and direct-drags it; the same pass restored the accidentally omitted Team Reward proxy read.
+- Consolidated visual audit: live 320px Today and Team screens match the forest/lime/off-white hierarchy, keep Record this workout first, use exactly three 4.75rem tabs, and have no horizontal overflow.
+- Dead-shell cleanup removed the unused pre-consolidation sidebar and bottom-navigation CSS instead of retaining a second theme implementation.
+- Lounge durability cleanup added all four final Lounge tables to exact logical backup/import and fixture reset coverage; migration-count assertions now track schema 17.
+- Socket-ticket replay is rejected in the HTTP/websocket integration test; remaining product-wide work is prioritized in `docs/FOLLOW_UPS.md`.

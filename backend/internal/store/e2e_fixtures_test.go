@@ -160,3 +160,58 @@ func TestResetE2EFixturesClearsTeamRewards(t *testing.T) {
 		}
 	}
 }
+
+func TestResetE2EFixturesClearsCanonicalTeamLoungeState(t *testing.T) {
+	ctx := context.Background()
+	now := time.Date(2026, time.August, 26, 18, 0, 0, 0, time.UTC)
+	databaseURL := "file:" + filepath.ToSlash(filepath.Join(t.TempDir(), "lounge-fixtures.db"))
+	db, err := database.Open(ctx, databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if err = database.Migrate(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	repository := store.New(db, time.UTC)
+	if err = repository.ResetE2EFixtures(ctx, now); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, statement := range []string{
+		`INSERT INTO team_lounge_rooms (
+			room_id, team_id, week_key, canvas_id, canvas_version, created_at
+		) VALUES ('room-reset', 'team-hill-striders', '2026-08-24', 'canvas-reset', 1, '2026-08-26T18:00:00Z')`,
+		`INSERT INTO team_lounge_snapshots (
+			room_id, canvas_id, canvas_version, scene_revision, checkpoint_revision,
+			host_epoch, tick, normalized, captured_at, snapshot_json
+		) VALUES ('room-reset', 'canvas-reset', 1, 0, 0, 0, 0, 1, '2026-08-26T18:00:00Z', '{}')`,
+		`INSERT INTO team_lounge_visits (room_id, player_id, last_visited_at)
+		 VALUES ('room-reset', 'player-mason', '2026-08-26T18:00:00Z')`,
+		`INSERT INTO team_lounge_placement_credits (
+			team_id, player_id, week_key, day_key, source_kind, source_id, granted_at
+		) VALUES (
+			'team-hill-striders', 'player-mason', '2026-08-24', '2026-08-26',
+			'training_entry', 'entry-mason-recent', '2026-08-26T18:00:00Z'
+		)`,
+	} {
+		if _, err := db.ExecContext(ctx, statement); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err := repository.ResetE2EFixtures(ctx, now); err != nil {
+		t.Fatal(err)
+	}
+	for _, table := range []string{
+		"team_lounge_rooms", "team_lounge_snapshots", "team_lounge_visits", "team_lounge_placement_credits",
+	} {
+		var count int
+		if err := db.QueryRowContext(ctx, "SELECT COUNT(*) FROM "+table).Scan(&count); err != nil {
+			t.Fatal(err)
+		}
+		if count != 0 {
+			t.Fatalf("%s contains %d rows after reset", table, count)
+		}
+	}
+}

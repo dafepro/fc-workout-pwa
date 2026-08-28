@@ -29,6 +29,10 @@ var exportedTables = []string{
 	"clubs",
 	"teams",
 	"players",
+	"team_lounge_rooms",
+	"team_lounge_snapshots",
+	"team_lounge_visits",
+	"team_lounge_placement_credits",
 	"accounts",
 	"team_memberships",
 	"coach_team_assignments",
@@ -390,6 +394,30 @@ func fullyPopulatedDatabase(t *testing.T, ctx context.Context) string {
 	databaseURL := seededDatabase(t, ctx)
 	db := openDatabase(t, ctx, databaseURL)
 	statements := []string{
+		`INSERT INTO team_lounge_rooms (
+			room_id, team_id, week_key, canvas_id, canvas_version, created_at
+		) VALUES (
+			'team:team-hill-striders:lounge:2026-08-03:v6', 'team-hill-striders',
+			'2026-08-03', 'zoomigo.team-lounge.beach-boardwalk', 6, '2026-08-03T12:00:00Z'
+		)`,
+		`INSERT INTO team_lounge_snapshots (
+			room_id, canvas_id, canvas_version, scene_revision, checkpoint_revision,
+			host_epoch, tick, normalized, captured_at, snapshot_json,
+			mutation_receipts_json, mutation_high_water_json
+		) VALUES (
+			'team:team-hill-striders:lounge:2026-08-03:v6',
+			'zoomigo.team-lounge.beach-boardwalk', 6, 4, 3, 2, 120, 1,
+			'2026-08-03T12:05:00Z', '{}', '[{"mutationId":"mutation-1"}]',
+			'[{"clientId":"client-1","sequence":1}]'
+		)`,
+		`INSERT INTO team_lounge_visits (room_id, player_id, last_visited_at)
+		 VALUES ('team:team-hill-striders:lounge:2026-08-03:v6', 'player-mason', '2026-08-03T12:06:00Z')`,
+		`INSERT INTO team_lounge_placement_credits (
+			team_id, player_id, week_key, day_key, source_kind, source_id, granted_at
+		) VALUES (
+			'team-hill-striders', 'player-mason', '2026-08-03', '2026-08-03',
+			'training_entry', 'entry-mason-recent', '2026-08-03T12:07:00Z'
+		)`,
 		`INSERT INTO accounts (id, club_id, player_id, role, status, created_at)
 		 VALUES ('account-coach', 'club-zoomigo', NULL, 'coach', 'active', '2026-01-02T00:00:00Z')`,
 		`INSERT INTO coach_team_assignments (team_id, account_id, active_from, active_to)

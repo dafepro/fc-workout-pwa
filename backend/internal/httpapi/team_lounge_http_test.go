@@ -135,4 +135,17 @@ func TestCanonicalTeamLoungeRequiresTodayCheckInAndJoinsCanvasRoom(t *testing.T)
 		accepted.GetCanvasId() != teamlounge.BeachBoardwalkCanvasID || accepted.GetTickRate() != 60 {
 		t.Fatalf("join accepted = %#v", accepted)
 	}
+
+	replayed, replayResponse, replayErr := websocket.Dial(ctx, socketURL, &websocket.DialOptions{
+		Subprotocols: []string{"canvas-realtime", "ticket." + credential.Ticket},
+	})
+	if replayed != nil {
+		_ = replayed.CloseNow()
+	}
+	if replayResponse != nil {
+		defer replayResponse.Body.Close()
+	}
+	if replayErr == nil || replayResponse == nil || replayResponse.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("replayed ticket response = %#v, err = %v", replayResponse, replayErr)
+	}
 }
