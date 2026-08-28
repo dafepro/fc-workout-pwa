@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	BeachBoardwalkCanvasID      = "zoomigo-beach-boardwalk"
-	BeachBoardwalkCanvasVersion = uint32(10)
+	BeachBoardwalkCanvasID       = "zoomigo-beach-boardwalk"
+	BeachBoardwalkCanvasVersion  = uint32(10)
+	BeachBoardwalkRoomGeneration = uint32(11)
 )
 
 type ThemeManifest struct {
@@ -32,7 +33,7 @@ type ThemeScheduleEntry struct {
 var platformThemeSchedule = []ThemeScheduleEntry{{
 	StartsOn: "0001-01-01",
 	Theme: ThemeManifest{
-		ID: "beach-boardwalk", Version: 1, Name: "Beach Boardwalk", RoomGeneration: BeachBoardwalkCanvasVersion,
+		ID: "beach-boardwalk", Version: 1, Name: "Beach Boardwalk", RoomGeneration: BeachBoardwalkRoomGeneration,
 		Template: roomsdk.RoomTemplate{
 			CanvasID: BeachBoardwalkCanvasID, CanvasVersion: BeachBoardwalkCanvasVersion,
 		},

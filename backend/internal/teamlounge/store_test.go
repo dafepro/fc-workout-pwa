@@ -78,7 +78,7 @@ func TestPlacementBudgetBackfillsCurrentWeekCheckInsAndUsesTeamTime(t *testing.T
 	}
 	store := NewSQLiteStore(db, Catalog{})
 	now := time.Date(2026, time.August, 26, 18, 0, 0, 0, time.UTC)
-	budget, err := store.PlacementBudget(t.Context(), "team:team-one:lounge:2026-08-24:v10", "player-one", now)
+	budget, err := store.PlacementBudget(t.Context(), "team:team-one:lounge:2026-08-24:v11", "player-one", now)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,27 +103,27 @@ func TestReservePlacementConsumesOneCreditIdempotently(t *testing.T) {
 	store := NewSQLiteStore(db, BeachBoardwalkLoungeCatalog())
 	now := time.Date(2026, time.August, 26, 18, 0, 0, 0, time.UTC)
 	request := PlacementRequest{DefinitionID: "zoomigo-stamp-bolt", DefinitionVersion: 1, X: 40, Y: 70}
-	if _, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:2026-08-24:v10", "player-one", "unbound-room", request, now); !errors.Is(err, ErrPlacementUnavailable) {
+	if _, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:2026-08-24:v11", "player-one", "unbound-room", request, now); !errors.Is(err, ErrPlacementUnavailable) {
 		t.Fatalf("unbound room reservation error = %v", err)
 	}
 	bindPlacementRoom(t, store)
-	first, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:2026-08-24:v10", "player-one", "one-request", request, now)
+	first, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:2026-08-24:v11", "player-one", "one-request", request, now)
 	if err != nil || first.Replayed || first.Remaining != 0 || first.ID == "" {
 		t.Fatalf("first reservation = %+v, %v", first, err)
 	}
-	replay, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:2026-08-24:v10", "player-one", "one-request", request, now)
+	replay, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:2026-08-24:v11", "player-one", "one-request", request, now)
 	if err != nil || !replay.Replayed || replay.ID != first.ID {
 		t.Fatalf("replayed reservation = %+v, %v", replay, err)
 	}
 	store.now = func() time.Time { return now }
-	authorization := authorizationRequest(replay, "player-one", "team:team-one:lounge:2026-08-24:v10", "mutation-one")
+	authorization := authorizationRequest(replay, "player-one", "team:team-one:lounge:2026-08-24:v11", "mutation-one")
 	decision, err := store.AuthorizeMutation(t.Context(), authorization)
 	if err != nil || !decision.Authorized {
 		t.Fatalf("authorize reservation = %+v, %v", decision, err)
 	}
 	outcome := roomsdk.MutationOutcome{
 		Status: roomsdk.MutationOutcomeAccepted, CorrelationID: first.ID,
-		RoomID: "team:team-one:lounge:2026-08-24:v10", ParticipantID: "player-one",
+		RoomID: "team:team-one:lounge:2026-08-24:v11", ParticipantID: "player-one",
 		Kind: roomsdk.MutationKindSpawn, EntityID: "canvas-entity-one",
 		DefinitionID: replay.DefinitionID, DefinitionVersion: replay.DefinitionVersion,
 	}
@@ -133,7 +133,7 @@ func TestReservePlacementConsumesOneCreditIdempotently(t *testing.T) {
 	if err := store.NotifyMutationOutcome(t.Context(), outcome); err != nil {
 		t.Fatalf("replay Canvas outcome: %v", err)
 	}
-	_, err = store.ReservePlacement(t.Context(), "team:team-one:lounge:2026-08-24:v10", "player-one", "another-request", request, now)
+	_, err = store.ReservePlacement(t.Context(), "team:team-one:lounge:2026-08-24:v11", "player-one", "another-request", request, now)
 	if !errors.Is(err, ErrPlacementCreditsExhausted) {
 		t.Fatalf("second reservation error = %v", err)
 	}
@@ -156,13 +156,13 @@ func TestReservePlacementRequiresOwnedEarnedItem(t *testing.T) {
 	bindPlacementRoom(t, store)
 	now := time.Date(2026, time.August, 26, 18, 0, 0, 0, time.UTC)
 	request := PlacementRequest{DefinitionID: "zoomigo-stamp-shield", DefinitionVersion: 1, X: 40, Y: 70}
-	if _, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:2026-08-24:v10", "player-one", "locked-item", request, now); !errors.Is(err, ErrPlacementItemUnavailable) {
+	if _, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:2026-08-24:v11", "player-one", "locked-item", request, now); !errors.Is(err, ErrPlacementItemUnavailable) {
 		t.Fatalf("unowned reservation error = %v", err)
 	}
 	if _, err := db.ExecContext(t.Context(), `INSERT INTO player_unlocks (player_id, item_kind, item_id, source, unlocked_at) VALUES ('player-one', 'lounge_stamp', 'lounge-stamp-shield', 'daily_check_in', '2026-08-26T17:30:00Z')`); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:2026-08-24:v10", "player-one", "owned-item", request, now); err != nil {
+	if _, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:2026-08-24:v11", "player-one", "owned-item", request, now); err != nil {
 		t.Fatalf("owned reservation: %v", err)
 	}
 }
@@ -192,7 +192,7 @@ func TestReservePlacementSerializesConcurrentCreditClaims(t *testing.T) {
 		go func() {
 			defer wait.Done()
 			<-start
-			_, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:2026-08-24:v10", "player-one", fmt.Sprintf("claim-%d", index), request, now)
+			_, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:2026-08-24:v11", "player-one", fmt.Sprintf("claim-%d", index), request, now)
 			errorsSeen <- err
 		}()
 	}
@@ -429,7 +429,7 @@ func bindPlacementRoom(t *testing.T, store *SQLiteStore) {
 	t.Helper()
 	if _, err := store.BindRoom(
 		t.Context(),
-		"team:team-one:lounge:2026-08-24:v10",
+		"team:team-one:lounge:2026-08-24:v11",
 		"team-one",
 		"2026-08-24",
 		roomsdk.RoomTemplate{CanvasID: BeachBoardwalkCanvasID, CanvasVersion: BeachBoardwalkCanvasVersion},
