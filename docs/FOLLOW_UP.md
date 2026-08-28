@@ -31,8 +31,8 @@ experiments.
 
 ## Release quality
 
-- After this branch lands on trusted `main`, repeat the disposable destroy/create once so the new authenticated final-flow smoke runs without exposing control-plane secrets to feature-branch workflow code.
 - Run the canonical Lounge browser proof against the recreated dev PWA from an allowed Midwest network; the outer geographic gate intentionally keeps hosted CI from bypassing that check.
+- Upgrade the GitHub Actions that still target the deprecated Node.js 20 runtime before GitHub stops force-running them on Node.js 24.
 - Complete installed-PWA, offline/update, keyboard, screen-reader, and
   reduced-motion reviews on physical devices.
 - Rehearse the production Team Lounge rollout and exact-revision rollback.
