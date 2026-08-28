@@ -222,7 +222,7 @@ async function readBody(request) {
 }
 
 test("updates prove the exact container and new infrastructure proves final flows", async () => {
-  const [workflow, deploy, retry] = await Promise.all([
+  const [workflowSource, deploy, retry] = await Promise.all([
     readFile(
       resolve(import.meta.dirname, "../.github/workflows/dev.yml"),
       "utf8",
@@ -236,6 +236,7 @@ test("updates prove the exact container and new infrastructure proves final flow
       "utf8",
     ),
   ]);
+  const workflow = workflowSource.replaceAll("\r\n", "\n");
   const readOnlySmoke = workflow.indexOf(
     "node scripts/dev-deploy-smoke.mjs --read-only",
   );
