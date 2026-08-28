@@ -33,6 +33,7 @@ export function WorkoutSelect({
   onSelect,
   name = "activity",
   uniform = false,
+  placeholder,
 }: {
   /** The eyebrow over the current choice: "Workout" for a player, "Activity"
    * for a coach setting the team's assignment. */
@@ -44,10 +45,12 @@ export function WorkoutSelect({
   /** Every card the same size. The athlete's picker promotes its first card to
    * full width; a list of presets has no first among equals. */
   uniform?: boolean;
+  /** Keeps an additional-workout entry from silently choosing an activity. */
+  placeholder?: string;
 }) {
   const [open, setOpen] = useState(false);
   const selected = choices.find((choice) => choice.key === selectedKey);
-  if (!selected) return null;
+  if (!selected && !placeholder) return null;
 
   function choose(key: string) {
     onSelect(key);
@@ -58,19 +61,23 @@ export function WorkoutSelect({
     <>
       <button
         type="button"
-        className={`selected-activity selected-activity--${selected.accent ?? selected.key} ${open ? "is-open" : ""}`}
-        aria-label={`Selected ${label.toLowerCase()}: ${selected.name}. ${open ? "Close activity choices" : "Choose another activity"}`}
+        className={`selected-activity selected-activity--${selected ? (selected.accent ?? selected.key) : "unselected"} ${open ? "is-open" : ""}`}
+        aria-label={
+          selected
+            ? `Selected ${label.toLowerCase()}: ${selected.name}. ${open ? "Close activity choices" : "Choose another activity"}`
+            : placeholder
+        }
         aria-expanded={open}
         aria-controls="activity-options"
         onClick={() => setOpen((visible) => !visible)}
       >
         <span className="selected-activity__icon" aria-hidden="true">
-          {selected.icon}
+          {selected?.icon ?? "+"}
         </span>
         <span className="selected-activity__copy">
           <small>{label}</small>
-          <strong>{selected.name}</strong>
-          <small>{selected.description}</small>
+          <strong>{selected?.name ?? placeholder}</strong>
+          <small>{selected?.description ?? "Nothing selected yet"}</small>
         </span>
         <span className="selected-activity__chevron" aria-hidden="true">
           {open ? "⌃" : "⌄"}

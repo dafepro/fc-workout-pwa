@@ -145,3 +145,5 @@ Each step is test-first and small enough to review independently.
 - Two-player Lounge proof: E2E-only Mason and Ava credentials now support two independent browser sessions; focused Docker coverage passes shared presence and remote avatar movement, with shared-ball motion still tracked separately.
 - Dev bare-login recovery: an authorized preview visitor without a QR fragment now opens the credential directory, while credential-bearing links still reach the PIN form and can replace an existing player session.
 - Focused login component and server-page tests cover dev directory routing, QR preservation, and normal signed-in redirects.
+- Consolidated recorder parity: planned workouts retain exact plan provenance and outcomes, while “Log another activity” gets a deliberate no-default picker, descriptive save action, and hydration-safe local timestamp.
+- The player flow keeps structured values and predefined outcomes only; the momentum branch’s free-text workout note remains intentionally excluded.

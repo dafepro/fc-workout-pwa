@@ -15,7 +15,7 @@ describe("TodayAdditionalAction", () => {
     const action = screen.getByRole("link", {
       name: /Log another activity/i,
     });
-    expect(action).toHaveAttribute("href", "/log");
+    expect(action).toHaveAttribute("href", "/log/additional");
     expect(action).toHaveTextContent(
       "Record something outside today’s completed workout.",
     );
@@ -24,7 +24,7 @@ describe("TodayAdditionalAction", () => {
     fireEvent.click(action);
     expect(track).toHaveBeenCalledWith("training_entry_started", {
       source: "navigation",
-      defaulted_activity: true,
+      defaulted_activity: false,
     });
   });
 

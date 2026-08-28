@@ -34,11 +34,11 @@ export function TodayAdditionalAction({
         {showAdditionalWorkout ? (
           <li>
             <Link
-              href="/log"
+              href="/log/additional"
               onClick={() =>
                 analytics.track("training_entry_started", {
                   source: "navigation",
-                  defaulted_activity: true,
+                  defaulted_activity: false,
                 })
               }
             >

@@ -1579,6 +1579,17 @@ h2 {
   margin: 0;
 }
 
+.log-safety-note {
+  margin: -0.35rem 0 1rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid #d8dfca;
+  border-radius: 0.9rem;
+  background: #f5f8ee;
+  color: #385047;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
 .selected-activity {
   display: grid;
   width: 100%;
@@ -1615,6 +1626,12 @@ h2 {
 .selected-activity--recovery-walk-jog {
   --selected-accent: #b06311;
   --selected-soft: #fff1dc;
+}
+
+.selected-activity--unselected {
+  --selected-accent: #4e3fd1;
+  --selected-soft: #eeedff;
+  border-style: dashed;
 }
 
 .selected-activity__icon {

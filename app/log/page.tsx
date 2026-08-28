@@ -1,14 +1,13 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ActivitySpecificFields } from "../components/ActivityFields";
 import { WorkoutSelect } from "../components/WorkoutSelect";
 import { WorkoutOutcomeChoices } from "../components/WorkoutOutcomeChoices";
 import { IntensityControls } from "../components/IntensityScale";
 import { copy } from "../content/copy";
 import {
-  earliestAllowedDate,
   isBackdateAllowed,
   plannedActivityTarget,
   toDateInput,
@@ -20,10 +19,7 @@ import type {
 } from "../domain/types";
 import { useTraining } from "../state/training-context";
 import { useAnalytics } from "../../lib/analytics/AnalyticsProvider";
-
-function currentTimeInput(): string {
-  return new Date().toTimeString().slice(0, 5);
-}
+import { useLocalSessionClock } from "./useLocalSessionClock";
 
 function compactDateLabel(dateValue: string): string {
   const today = toDateInput(new Date());
@@ -46,16 +42,17 @@ function compactTimeLabel(timeValue: string): string {
 
 export default function LogPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParameters = useSearchParams();
+  const additionalMode = pathname === "/log/additional";
   const analytics = useAnalytics();
   const { addEntry, dashboard, dashboardStatus, refreshDashboard } =
     useTraining();
   const activities = useMemo(() => dashboard?.activities ?? [], [dashboard]);
   const assignment = dashboard?.currentAssignment ?? null;
-  const [activityId, setActivityId] = useState<ActivityId>("hill-sprints");
+  const [activityId, setActivityId] = useState<ActivityId | "">("");
   const [value, setValue] = useState(8);
-  const [date, setDate] = useState(toDateInput(new Date()));
-  const [time, setTime] = useState(currentTimeInput());
+  const clock = useLocalSessionClock();
   const [effort, setEffort] = useState(4);
   const [exhaustion, setExhaustion] = useState(4);
   const [completionOutcome, setCompletionOutcome] =
@@ -92,6 +89,10 @@ export default function LogPage() {
 
   useEffect(() => {
     if (initialized.current || activities.length === 0) return;
+    if (additionalMode) {
+      initialized.current = true;
+      return;
+    }
     const selected =
       activities.find(
         (item) => item.id === requestedPlanBlock?.activityDefinitionId,
@@ -107,7 +108,7 @@ export default function LogPage() {
           ? assignment.targetValue
           : selected.defaultValue,
     );
-  }, [activities, assignment, requestedPlanBlock]);
+  }, [activities, additionalMode, assignment, requestedPlanBlock]);
 
   function chooseActivity(next: ActivityId) {
     setActivityId(next);
@@ -126,30 +127,34 @@ export default function LogPage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (saving) return;
-    if (!isBackdateAllowed(date)) {
+    if (saving || !clock.ready) return;
+    if (!isBackdateAllowed(clock.date)) {
       setMessage("Choose today or one of the previous seven days.");
       return;
     }
-    const activity = activities.find((item) => item.id === activityId)!;
+    const activity = activities.find((item) => item.id === activityId);
+    if (!activity) {
+      setMessage(copy.log.chooseBeforeSaving);
+      return;
+    }
     if (value < activity.min || value > activity.max) {
       setMessage(
         `Enter a value from ${activity.min} to ${activity.max} ${activity.unit}.`,
       );
       return;
     }
-    const occurredAt = new Date(`${date}T${time}:00`);
+    const occurredAt = new Date(`${clock.date}T${clock.time}:00`);
     const assignmentId =
       !requestedPlanBlock &&
       assignment?.activityDefinitionId === activityId &&
-      date >= assignment.startsOn &&
-      date <= assignment.dueOn
+      clock.date >= assignment.startsOn &&
+      clock.date <= assignment.dueOn
         ? assignment.id
         : undefined;
     const plan: TrainingPlanProvenance | undefined =
       requestedPlanBlock &&
       planDay &&
-      date === planDay.occursOn &&
+      clock.date === planDay.occursOn &&
       requestedPlanBlock.activityDefinitionId === activityId
         ? {
             planId: planDay.planId,
@@ -172,7 +177,7 @@ export default function LogPage() {
     setMessage(null);
     try {
       await addEntry({
-        activityId,
+        activityId: activity.id,
         inputKind: activity.inputKind,
         assignmentId,
         plan,
@@ -198,7 +203,7 @@ export default function LogPage() {
     return <main className="auth-state">Loading approved activities…</main>;
   }
 
-  if (dashboardStatus === "error" || !dashboard || !selectedActivity) {
+  if (dashboardStatus === "error" || !dashboard) {
     return (
       <main className="auth-state" role="alert">
         <h1>Approved activities could not be loaded</h1>
@@ -219,9 +224,15 @@ export default function LogPage() {
           ↗
         </span>
         <div>
-          <h1>Record Training</h1>
+          <h1>
+            {additionalMode ? copy.log.additionalTitle : "Record Training"}
+          </h1>
         </div>
       </header>
+
+      {additionalMode ? (
+        <p className="log-safety-note">{copy.log.additionalIntro}</p>
+      ) : null}
 
       {message ? (
         <div className="notice notice--error" role="status">
@@ -234,6 +245,7 @@ export default function LogPage() {
         <WorkoutSelect
           label="Workout"
           selectedKey={activityId}
+          placeholder={additionalMode ? copy.log.chooseActivity : undefined}
           onSelect={(key) => chooseActivity(key as ActivityId)}
           choices={activities.map((activity) => ({
             key: activity.id,
@@ -246,40 +258,56 @@ export default function LogPage() {
               activity.id === assignment?.activityDefinitionId,
           }))}
         />
-        <ActivitySpecificFields
-          activityId={activityId}
-          value={value}
-          onChange={setValue}
-          activities={activities}
-        />
-        <WorkoutOutcomeChoices
-          value={completionOutcome}
-          onChange={setCompletionOutcome}
-        />
-        <IntensityControls
-          effort={effort}
-          exhaustion={exhaustion}
-          onEffortChange={setEffort}
-          onExhaustionChange={setExhaustion}
-        />
-        {exhaustion >= 6 ? (
-          <aside className="recovery-note">
-            <span aria-hidden="true">💧</span>
-            <p>{copy.recoveryNote}</p>
-          </aside>
+        {selectedActivity ? (
+          <>
+            <ActivitySpecificFields
+              activityId={selectedActivity.id}
+              value={value}
+              onChange={setValue}
+              activities={activities}
+            />
+            <WorkoutOutcomeChoices
+              value={completionOutcome}
+              onChange={setCompletionOutcome}
+            />
+            <IntensityControls
+              effort={effort}
+              exhaustion={exhaustion}
+              onEffortChange={setEffort}
+              onExhaustionChange={setExhaustion}
+            />
+            {exhaustion >= 6 ? (
+              <aside className="recovery-note">
+                <span aria-hidden="true">💧</span>
+                <p>{copy.recoveryNote}</p>
+              </aside>
+            ) : null}
+          </>
         ) : null}
         <button
           className="button button--lime button--wide"
           type="submit"
-          disabled={saving}
+          disabled={saving || !clock.ready || !selectedActivity}
         >
-          {saving ? "Saving…" : "Save"}
+          {saving
+            ? "Saving…"
+            : selectedActivity && additionalMode
+              ? copy.log.saveActivity(
+                  value,
+                  selectedActivity.unit,
+                  selectedActivity.name,
+                )
+              : selectedActivity
+                ? "Save"
+                : copy.log.chooseBeforeSaving}
         </button>
         <details className="when-details">
           <summary>
             <span aria-hidden="true">◷</span>
             <strong>
-              {compactDateLabel(date)} · {compactTimeLabel(time)}
+              {clock.ready
+                ? `${compactDateLabel(clock.date)} · ${compactTimeLabel(clock.time)}`
+                : "Setting local date and time…"}
             </strong>
             <span>Change</span>
           </summary>
@@ -289,10 +317,10 @@ export default function LogPage() {
               <input
                 id="session-date"
                 type="date"
-                min={earliestAllowedDate()}
-                max={toDateInput(new Date())}
-                value={date}
-                onChange={(event) => setDate(event.target.value)}
+                min={clock.earliestDate || undefined}
+                max={clock.today || undefined}
+                value={clock.date}
+                onChange={(event) => clock.setDate(event.target.value)}
                 required
               />
             </label>
@@ -301,8 +329,8 @@ export default function LogPage() {
               <input
                 id="session-time"
                 type="time"
-                value={time}
-                onChange={(event) => setTime(event.target.value)}
+                value={clock.time}
+                onChange={(event) => clock.setTime(event.target.value)}
                 required
               />
             </label>
