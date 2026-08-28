@@ -116,3 +116,5 @@ Each step is test-first and small enough to review independently.
 - Clean dev proof: [destroy run 33134458227](https://github.com/dafepro/fc-workout-pwa/actions/runs/33134458227) removed the disposable environment; [create run 33134530464](https://github.com/dafepro/fc-workout-pwa/actions/runs/33134530464) recreated it from exact main SHA `1c8f9b84c102865657fc2b26c492e162d8b36406` and passed seeding plus authenticated final-flow smoke.
 - Production release: [run 33134925871](https://github.com/dafepro/fc-workout-pwa/actions/runs/33134925871) deployed that verified image through the backup/migration path and passed the host production checks;
   independent requests then returned `200` from both `https://api.quicktrack.cc/readyz` and `https://zoomigo.quicktrack.cc/`.
+- Dev preview entry repair: added an accessible show/hide control to the outer password gate and sends non-QR gate entries to the credential directory;
+  the directory now leads with listed staff credentials and direct sign-in before four named player QR codes, links, and their shared PIN.

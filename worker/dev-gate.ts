@@ -221,7 +221,44 @@ function gatePage(next: string, status = 200, failed = false) {
     ? '<p role="alert">That password did not match.</p>'
     : "";
   return new Response(
-    `<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Zoomigo preview</title><style>body{font-family:system-ui;background:#f4f1e8;color:#17211b;margin:0}main{max-width:26rem;margin:12vh auto;padding:2rem}form{display:grid;gap:1rem}input,button{font:inherit;padding:.8rem;border-radius:.5rem}button{background:#173f35;color:white;border:0}</style><main><h1>Zoomigo preview</h1><p>Enter the shared preview password.</p>${error}<form method="post" action="/_dev-gate"><input id="preview-next" type="hidden" name="next" value="${escapedNext}"><label>Password <input name="password" type="password" required autocomplete="current-password"></label><button type="submit">Continue</button></form></main><script nonce="${nonce}">const next=document.getElementById("preview-next");if(location.hash&&next.value.startsWith("/login")){next.value+=location.hash}</script></html>`,
+    `<!doctype html>
+<html lang="en">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Zoomigo preview</title>
+<style>
+body{font-family:system-ui;background:#f4f1e8;color:#17211b;margin:0}
+main{max-width:26rem;margin:12vh auto;padding:2rem}
+form,.password-field{display:grid;gap:1rem}
+.password-row{display:flex;gap:.5rem}
+input,button{font:inherit;padding:.8rem;border-radius:.5rem}
+input{min-width:0;flex:1}
+button{background:#173f35;color:white;border:0}
+.password-toggle{background:transparent;color:#173f35;border:1px solid #173f35;white-space:nowrap}
+</style>
+<main>
+<h1>Zoomigo preview</h1>
+<p>Enter the shared preview password.</p>
+${error}
+<form method="post" action="/_dev-gate">
+<input id="preview-next" type="hidden" name="next" value="${escapedNext}">
+<div class="password-field">
+<label for="preview-password">Password</label>
+<span class="password-row">
+<input id="preview-password" name="password" type="password" required autocomplete="current-password">
+<button id="preview-password-toggle" class="password-toggle" type="button" aria-controls="preview-password" aria-pressed="false">Show password</button>
+</span>
+</div>
+<button type="submit">Continue</button>
+</form>
+</main>
+<script nonce="${nonce}">
+const next=document.getElementById("preview-next");
+if(location.hash&&next.value.startsWith("/login")){next.value+=location.hash}else{next.value="/dev-access"}
+const password=document.getElementById("preview-password");
+const toggle=document.getElementById("preview-password-toggle");
+toggle.addEventListener("click",()=>{const showing=password.type==="text";if(showing){password.type="password";toggle.textContent="Show password"}else{password.type="text";toggle.textContent="Hide password"}toggle.setAttribute("aria-pressed",String(!showing))});
+</script>
+</html>`,
     {
       status,
       headers: {
