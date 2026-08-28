@@ -143,3 +143,7 @@ Each step is test-first and small enough to review independently.
 - Regression coverage now proves the gate renders from non-U.S. and non-Midwest edge locations; deployment config no longer publishes a dead region allowlist.
 - Dev gate release: [run 33160369341](https://github.com/dafepro/fc-workout-pwa/actions/runs/33160369341) updated the existing preview to exact main SHA `c906d0f33e9a31b7f7404b942105cb6df512e4e3`; live checks proved gate, signed session, staff directory, and four QR entries.
 - Two-player Lounge proof: E2E-only Mason and Ava credentials now support two independent browser sessions; focused Docker coverage passes shared presence and remote avatar movement, with shared-ball motion still tracked separately.
+- Dev CD now reports each verification gate separately, retries only idempotent infrastructure, SSH/SCP, fixture, and Worker operations, and bounds remote connections and cloud-init waits.
+- Every create/update proves the exact requested release SHA is serving from the healthy dev API container; the deeper mutating product smoke remains scoped to newly seeded previews.
+- The stale backup-fixture count that blocked run 33172357905 now matches the three-entry canonical fixture, restoring the full Go gate without suppressing failures.
+- Failed run 33175103074 proved the API container update but exposed a Cloudflare size rejection; builds now remove only unreferenced duplicate browser-worker modules and enforce a 2800 KiB compressed budget before infrastructure changes.

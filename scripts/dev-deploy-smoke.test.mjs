@@ -263,6 +263,11 @@ test("updates prove the exact container and new infrastructure proves final flow
 
   assert.match(workflow, /retry-command\.sh 3 10 tofu init/);
   assert.match(workflow, /retry-command\.sh 3 15 tofu apply/);
+  assert.match(workflow, /pnpm verify:worker-upload/);
+  assert.ok(
+    workflow.indexOf("pnpm verify:worker-upload") <
+      workflow.indexOf("actions\/upload-artifact@v4"),
+  );
   assert.match(deploy, /ConnectTimeout=10/);
   assert.match(deploy, /ServerAliveInterval=15/);
   assert.match(deploy, /retry_command.*wrangler deploy/);
