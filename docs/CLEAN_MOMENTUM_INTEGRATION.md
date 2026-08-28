@@ -126,3 +126,5 @@ Each step is test-first and small enough to review independently.
   live checks proved four QR/sign-in entries, Mason's completed-rest/incomplete-assignment state with Lounge access, and Ava's decisive locked-Lounge state.
 - Canonical correctness cleanup: planned duration workouts now open and save the coach's prescribed minutes, and player Team groups state the exact weekly-session rule without the retired ambiguous labels.
 - Development cache boundary: the dev-host service worker clears its caches and unregisters while production retains its offline shell; focused unit and browser coverage guard both modes.
+- Shared Lounge persistence foundation: added one canonical end-state migration and the Canvas 0.4.1 Go rooms adapter with exact catalog-version lookup, durable mutation receipts, and immutable weekly room bindings.
+- Canvas's storage conformance suite plus focused week, visit, placement-credit, and binding tests pass; legacy Lounge table names and interim migration history were not restored.

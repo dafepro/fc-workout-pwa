@@ -67,8 +67,8 @@ func TestFinalFeatureMigrationsUpgradePopulatedMainSchema(t *testing.T) {
 	if err = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM schema_migrations`).Scan(&migrationsApplied); err != nil {
 		t.Fatal(err)
 	}
-	if entries != 1 || migrationsApplied != 16 {
-		t.Fatalf("entries=%d migrations=%d, want 1 and 16", entries, migrationsApplied)
+	if entries != 1 || migrationsApplied != 17 {
+		t.Fatalf("entries=%d migrations=%d, want 1 and 17", entries, migrationsApplied)
 	}
 
 	for _, table := range []string{
@@ -80,6 +80,10 @@ func TestFinalFeatureMigrationsUpgradePopulatedMainSchema(t *testing.T) {
 		"player_unlocks",
 		"team_rewards",
 		"team_reward_events",
+		"team_lounge_rooms",
+		"team_lounge_snapshots",
+		"team_lounge_visits",
+		"team_lounge_placement_credits",
 	} {
 		var found int
 		if err = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = ?`, table).Scan(&found); err != nil {
