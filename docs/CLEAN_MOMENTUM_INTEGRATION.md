@@ -147,3 +147,4 @@ Each step is test-first and small enough to review independently.
 - Focused login component and server-page tests cover dev directory routing, QR preservation, and normal signed-in redirects.
 - Consolidated recorder parity: planned workouts retain exact plan provenance and outcomes, while “Log another activity” gets a deliberate no-default picker, descriptive save action, and hydration-safe local timestamp.
 - The player flow keeps structured values and predefined outcomes only; the momentum branch’s free-text workout note remains intentionally excluded.
+- Workout feedback artwork: restored only the final Almost, Did it, and Extra Zoomi PNGs and verified the three structured outcome controls resolve to those production assets.

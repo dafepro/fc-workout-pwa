@@ -21,6 +21,15 @@ describe("WorkoutOutcomeChoices", () => {
       "Extra!",
     ]);
     expect(choices[1]).toHaveAttribute("aria-pressed", "true");
+    expect(
+      Array.from(group.querySelectorAll("img"), (image) =>
+        image.getAttribute("src"),
+      ),
+    ).toEqual([
+      "/workouts/zoomi-almost.png",
+      "/workouts/zoomi-did-it.png",
+      "/workouts/zoomi-extra.png",
+    ]);
 
     fireEvent.click(choices[0]);
     expect(choices[0]).toHaveAttribute("aria-pressed", "true");
