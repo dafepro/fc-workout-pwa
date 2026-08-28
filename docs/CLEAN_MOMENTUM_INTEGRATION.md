@@ -207,3 +207,6 @@ Each step is test-first and small enough to review independently.
   permit round trip, and requires exactly one permit for each committed edit.
 - A bounded Canvas edit-lease proposal is tracked for later traffic reduction;
   exact one-use authority remains until Canvas can enforce the full lease.
+- Long-lived Lounge rooms now observe the V2-sized 200-entity projection set,
+  and a stable current-player/canonical-arrival fallback prevents the signed-in avatar from disappearing during projection truncation or reconnect rebuilds.
+- The V2 overlay geometry is restored without its retired shell: emotes and item sheets layer over the fixed playfield, while normal actions and trash keep one constant dock footprint at 320px.

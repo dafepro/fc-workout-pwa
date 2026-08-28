@@ -57,7 +57,7 @@ export function TeamLounge({
             <SharedLoungeCanvas
               key={canvasKey}
               teamID={teamID}
-              playerID={player.id}
+              player={player}
               roster={roster}
               onStateChange={updateState}
               onPresenceChange={setPresence}

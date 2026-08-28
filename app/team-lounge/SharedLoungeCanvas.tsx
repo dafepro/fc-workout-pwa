@@ -34,6 +34,10 @@ import {
   type LoungeItemChoice,
 } from "./lounge-items";
 import {
+  resolveLoungeAvatarOverlays,
+  type LoungeAvatarOverlay,
+} from "./lounge-presence";
+import {
   prepareTeamLoungeJoin,
   requestTeamLoungeItemMutationPermit,
   reserveTeamLoungePlacement,
@@ -41,13 +45,10 @@ import {
   type TeamLoungeItemTransform,
 } from "./lounge-gateway";
 import { beachBoardwalkAssets } from "./scene/assets";
-import { beachBoardwalkDefinitions } from "./scene/beach-boardwalk";
-
-interface AvatarOverlay {
-  player: Player;
-  position: { x: number; y: number };
-  current: boolean;
-}
+import {
+  beachBoardwalkCanvas,
+  beachBoardwalkDefinitions,
+} from "./scene/beach-boardwalk";
 
 const visitorAnchors = [
   { x: 8, y: 74 },
@@ -57,18 +58,20 @@ const visitorAnchors = [
 
 export function SharedLoungeCanvas({
   teamID,
-  playerID,
+  player,
   roster,
   onStateChange,
   onPresenceChange,
 }: {
   teamID: string;
-  playerID: string;
+  player: Player;
   roster: readonly Player[];
   onStateChange(state: LoungeCanvasState): void;
   onPresenceChange(count: number): void;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
+  const playerID = player.id;
+  const playerRef = useRef(player);
   const runtimeRef = useRef<CanvasRuntime | null>(null);
   const roomIDRef = useRef("");
   const rosterRef = useRef(roster);
@@ -77,7 +80,7 @@ export function SharedLoungeCanvas({
     Pick<OverlayProjectionSnapshot, "canvasSize" | "viewport"> | undefined
   >(undefined);
   const trashTargetRef = useRef<HTMLDivElement>(null);
-  const [overlays, setOverlays] = useState<AvatarOverlay[]>([]);
+  const [overlays, setOverlays] = useState<LoungeAvatarOverlay[]>([]);
   const [itemOverlays, setItemOverlays] = useState<LoungeEditableItem[]>([]);
   const [choices, setChoices] =
     useState<LoungeItemChoice[]>(includedLoungeItems);
@@ -106,6 +109,10 @@ export function SharedLoungeCanvas({
     rosterRef.current = roster;
   }, [roster]);
 
+  useEffect(() => {
+    playerRef.current = player;
+  }, [player]);
+
   useEffect(
     () => () => {
       window.clearTimeout(emoteTimerRef.current);
@@ -122,6 +129,7 @@ export function SharedLoungeCanvas({
     let participants: readonly ParticipantPresence[] = [];
     let projections: readonly OverlayEntityProjection[] = [];
     let canonicalEntities: readonly Readonly<RenderEntity>[] = [];
+    let presented = false;
     let unsubscribePresence: () => void = () => undefined;
     let unsubscribeProjection: () => void = () => undefined;
     let unsubscribeCanonical: () => void = () => undefined;
@@ -130,36 +138,58 @@ export function SharedLoungeCanvas({
 
     const publishOverlays = () => {
       if (disposed) return;
-      const localParticipant = participants.find(
-        ({ userId }) => userId === playerID,
-      );
+      const localAvatarEntityID = `avatar:${playerID}`;
       const localProjection = projections.find(
-        ({ entityId }) => entityId === localParticipant?.avatarEntityId,
+        ({ entityId }) => entityId === localAvatarEntityID,
       );
+      const localCanonical = canonicalEntities.find(
+        ({ id, kind, userId }) =>
+          id === localAvatarEntityID ||
+          (kind === "avatar" && userId === playerID),
+      );
+      const canonicalProjection =
+        !localProjection && localCanonical
+          ? runtime?.projectWorldPoint(localCanonical)
+          : undefined;
+      const arrival = beachBoardwalkCanvas.spawnPoints.find(
+        ({ id }) => id === "arrival",
+      )?.position;
+      const arrivalProjection =
+        presented && !localProjection && !canonicalProjection && arrival
+          ? runtime?.projectWorldPoint(arrival)
+          : undefined;
       if (localProjection) {
         mount.dataset.playerX = localProjection.world.x.toFixed(3);
         mount.dataset.playerY = localProjection.world.y.toFixed(3);
+      } else if (localCanonical) {
+        mount.dataset.playerX = localCanonical.x.toFixed(3);
+        mount.dataset.playerY = localCanonical.y.toFixed(3);
+      } else if (arrivalProjection && arrival) {
+        mount.dataset.playerX = arrival.x.toFixed(3);
+        mount.dataset.playerY = arrival.y.toFixed(3);
       } else {
         delete mount.dataset.playerX;
         delete mount.dataset.playerY;
       }
       setOverlays(
-        participants.flatMap((participant) => {
-          if (participant.status === "disconnected") return [];
-          const projection = projections.find(
-            ({ entityId }) => entityId === participant.avatarEntityId,
-          );
-          const player = rosterRef.current.find(
-            ({ id }) => id === participant.userId,
-          );
-          if (!projection?.inViewport || !player) return [];
-          return [
-            {
-              player,
-              position: projection.screen,
-              current: participant.userId === playerID,
-            },
-          ];
+        resolveLoungeAvatarOverlays({
+          currentPlayer: playerRef.current,
+          roster: rosterRef.current,
+          participants,
+          projections,
+          currentAvatarProjection:
+            localProjection ??
+            (canonicalProjection
+              ? {
+                  screen: canonicalProjection.screen,
+                  inViewport: canonicalProjection.inViewport,
+                }
+              : arrivalProjection
+                ? {
+                    screen: arrivalProjection.screen,
+                    inViewport: arrivalProjection.inViewport,
+                  }
+                : undefined),
         }),
       );
       setItemOverlays(
@@ -283,7 +313,7 @@ export function SharedLoungeCanvas({
           );
           publishOverlays();
         },
-        { kinds: ["avatar", "item"], maxEntities: 25, maxHz: 30 },
+        { kinds: ["avatar", "item"], maxEntities: 200, maxHz: 30 },
       );
       unsubscribeLifecycle = runtime.subscribeLifecycle(({ state }) => {
         if (state === "reconnecting") onStateChange("loading");
@@ -303,7 +333,11 @@ export function SharedLoungeCanvas({
         );
       });
       await runtime.start({ until: "presented" });
-      if (!disposed) onStateChange("ready");
+      if (!disposed) {
+        presented = true;
+        publishOverlays();
+        onStateChange("ready");
+      }
     })().catch(() => !disposed && onStateChange("error"));
 
     return () => {

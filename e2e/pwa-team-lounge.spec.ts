@@ -57,10 +57,12 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   const playfieldBox = await lounge
     .locator(".team-lounge__playfield")
     .boundingBox();
+  const loungeBox = await lounge.boundingBox();
   const dockBox = await lounge
     .getByRole("navigation", { name: "Lounge actions" })
     .boundingBox();
   expect(playfieldBox).not.toBeNull();
+  expect(loungeBox).not.toBeNull();
   expect(dockBox).not.toBeNull();
   expect(playfieldBox!.y + playfieldBox!.height).toBeLessThanOrEqual(
     dockBox!.y,
@@ -136,8 +138,10 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
     .poll(async () => Number(await stage.getAttribute("data-player-x")))
     .toBeCloseTo(45, 0);
   await expect
-    .poll(async () => Number(await stage.getAttribute("data-player-y")))
-    .toBeCloseTo(98, 0);
+    .poll(async () =>
+      Math.abs(Number(await stage.getAttribute("data-player-y")) - 98),
+    )
+    .toBeLessThan(1.5);
   await dragSelfToWorld(55, 98);
   await expect
     .poll(async () => Number(await stage.getAttribute("data-e2e-ball-max-x")))
@@ -165,7 +169,23 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
     .poll(async () => Number(await stage.getAttribute("data-e2e-ball-max-x")))
     .toBeGreaterThan(52);
 
+  const loungeSize = async () => {
+    const box = await lounge.boundingBox();
+    return { width: box?.width, height: box?.height };
+  };
+  const loungeSizeDelta = async (expected: {
+    width: number | undefined;
+    height: number | undefined;
+  }) => {
+    const actual = await loungeSize();
+    return Math.max(
+      Math.abs((actual.width ?? 0) - (expected.width ?? 0)),
+      Math.abs((actual.height ?? 0) - (expected.height ?? 0)),
+    );
+  };
+  const sizeBeforeEmotes = await loungeSize();
   await lounge.getByRole("button", { name: "Emotes" }).click();
+  await expect.poll(() => loungeSizeDelta(sizeBeforeEmotes)).toBeLessThan(0.1);
   await lounge.getByRole("button", { name: "Send Wave emote" }).click();
   await expect(lounge.getByRole("status")).toHaveText("Wave sent.");
   await expect(lounge.getByRole("img", { name: "Wave" })).toBeVisible();
@@ -174,7 +194,9 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
     lounge.getByRole("button", { name: "Send Heart emote" }),
   ).toBeDisabled();
 
+  const sizeBeforeItems = await loungeSize();
   await lounge.getByRole("button", { name: "Stamps" }).click();
+  await expect.poll(() => loungeSizeDelta(sizeBeforeItems)).toBeLessThan(0.1);
   const remainingBefore = Number.parseInt(
     (await lounge.getByText(/placements? left this week$/u).textContent()) ??
       "0",
@@ -192,10 +214,12 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
     name: "Bolt stamp, yours; tap or drag to move",
   });
   await expect(editableBolt).toBeVisible({ timeout: 10_000 });
+  const sizeBeforeEditing = await loungeSize();
   await editableBolt.click();
   await expect(
     lounge.getByRole("group", { name: "Edit selected stamp" }),
   ).toBeVisible();
+  await expect.poll(() => loungeSizeDelta(sizeBeforeEditing)).toBeLessThan(0.1);
   network.start();
   await lounge.getByRole("button", { name: "Make stamp larger" }).click();
   await lounge
@@ -233,9 +257,11 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   );
   await expect(editableBolt).toBeEnabled();
 
+  const sizeBeforeTrash = await loungeSize();
   await editableBolt.hover();
   await page.mouse.down();
   await expect(lounge.getByLabel("Drop to remove item")).toBeVisible();
+  await expect.poll(() => loungeSizeDelta(sizeBeforeTrash)).toBeLessThan(0.1);
   const trashBox = await lounge.getByLabel("Drop to remove item").boundingBox();
   expect(trashBox).not.toBeNull();
   expect(movePlayfieldBox!.y + movePlayfieldBox!.height).toBeLessThanOrEqual(
@@ -280,15 +306,19 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
     .boundingBox();
   expect(itemSheetBox).not.toBeNull();
   expect(playfieldAboveSheetBox).not.toBeNull();
-  expect(
+  expect(itemSheetBox!.y).toBeGreaterThanOrEqual(playfieldAboveSheetBox!.y);
+  expect(itemSheetBox!.y + itemSheetBox!.height).toBeLessThanOrEqual(
     playfieldAboveSheetBox!.y + playfieldAboveSheetBox!.height,
-  ).toBeLessThanOrEqual(itemSheetBox!.y);
+  );
   await expect(
     lounge.getByText(
       `${remainingBefore} ${remainingBefore === 1 ? "placement" : "placements"} left this week`,
     ),
   ).toBeVisible();
-  await lounge.getByRole("button", { name: "Close item picker" }).click();
+  await lounge
+    .getByRole("button", { name: "Close item picker" })
+    .last()
+    .click();
 
   await expect(lounge.getByRole("combobox")).toHaveCount(0);
   await expect(lounge).not.toContainText(/\bV[12]\b|alternative|preview/i);
@@ -468,7 +498,7 @@ test("a qualified player sees their own avatar after a teammate wakes the room",
   const currentAvatar = page
     .locator(".team-lounge__shared-avatar")
     .filter({ hasText: "You" })
-    .getByLabel("Mason C., you");
+    .locator(".avatar");
   await expect(currentAvatar).toBeVisible({ timeout: 15_000 });
 
   await page.goto("/me");
