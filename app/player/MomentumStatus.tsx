@@ -1,7 +1,9 @@
 "use client";
 
-import { useId, useState, type CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
+import { PlayerAvatar } from "../components/PlayerAvatar";
 import { copy } from "../content/copy";
+import { useOptionalAuth } from "../state/auth-context";
 import { momentumProgress } from "./momentum-progress";
 
 type MomentumStatusProps = {
@@ -14,56 +16,69 @@ export function MomentumStatus({
   checkInStreak,
 }: MomentumStatusProps) {
   const [showExplanation, setShowExplanation] = useState(false);
-  const titleId = useId();
-  const explanationId = useId();
+  const auth = useOptionalAuth();
   const progress = momentumProgress(momentumScore);
   const streak = Math.max(0, Math.floor(checkInStreak));
   const gaugeStyle = {
-    "--momentum-progress": `${progress.percentage * 3.6}deg`,
+    "--player-momentum-progress": `${progress.percentage * 3.6}deg`,
   } as CSSProperties;
 
   return (
-    <section
-      className={`momentum-status momentum-status--${progress.state}`}
-      aria-labelledby={titleId}
-    >
-      <div
-        className="momentum-status__gauge"
-        role="progressbar"
-        aria-label={copy.momentum.gauge(progress.score)}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={progress.score}
-        style={gaugeStyle}
-      >
-        <span aria-hidden="true">{progress.score}</span>
-      </div>
-      <div className="momentum-status__content">
-        <p className="eyebrow">{copy.momentum.eyebrow}</p>
-        <h2 id={titleId}>{copy.momentum.states[progress.state]}</h2>
-        <p className="momentum-status__summary">
-          <strong>{copy.momentum.metric(progress.score)}</strong>
-          <span>{copy.momentum.streak(streak)}</span>
-        </p>
+    <section className="player-status" aria-label={copy.momentum.eyebrow}>
+      <header className="player-status-row">
+        {auth ? (
+          <PlayerAvatar
+            player={auth.currentPlayer}
+            size="small"
+            emphasizeSelf={false}
+          />
+        ) : (
+          <span className="player-status-row__avatar" aria-hidden="true">
+            Z
+          </span>
+        )}
+        <div className="player-status-row__summary">
+          <span
+            className="player-status-row__gauge"
+            role="progressbar"
+            aria-label={copy.momentum.gauge(progress.score)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={progress.score}
+            style={gaugeStyle}
+          >
+            <span aria-hidden="true" />
+          </span>
+          <span className="player-status-row__metric">
+            <small>Momentum</small>
+            <strong>{progress.score}</strong>
+          </span>
+          <span className="player-status-row__streak">
+            <span aria-hidden="true">🔥</span>
+            <strong>{streak}</strong>
+            <small>day streak</small>
+          </span>
+          <span className="sr-only">
+            {copy.momentum.metric(progress.score)}
+          </span>
+          <span className="sr-only">{copy.momentum.streak(streak)}</span>
+          <h2 className="sr-only">{copy.momentum.states[progress.state]}</h2>
+        </div>
         <button
           type="button"
-          className="momentum-status__info"
+          className="player-status-row__info"
           aria-expanded={showExplanation}
-          aria-controls={explanationId}
           onClick={() => setShowExplanation((visible) => !visible)}
         >
-          {copy.momentum.infoAction}
+          <span aria-hidden="true">i</span>
+          <span className="sr-only">{copy.momentum.infoAction}</span>
         </button>
-        {showExplanation ? (
-          <p
-            className="momentum-status__explanation"
-            id={explanationId}
-            role="status"
-          >
-            {copy.momentum.info}
-          </p>
-        ) : null}
-      </div>
+      </header>
+      {showExplanation ? (
+        <p className="player-status__info" role="status">
+          {copy.momentum.info}
+        </p>
+      ) : null}
     </section>
   );
 }

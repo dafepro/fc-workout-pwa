@@ -24,8 +24,8 @@ import { useAuth } from "../state/auth-context";
 import { TeamLounge } from "../team-lounge/TeamLounge";
 
 export default function TeamPage() {
-  const { entries, sendReaction } = useTraining();
-  const { connected, currentPlayerID, session } = useAuth();
+  const { dashboard, entries, sendReaction } = useTraining();
+  const { connected, currentPlayer, currentPlayerID, session } = useAuth();
   const teamID = session?.player?.teams[0]?.id ?? "team-hill-striders";
   const gateway = useMemo(
     () => createSocialGateway(connected, teamID),
@@ -198,7 +198,7 @@ export default function TeamPage() {
     : [];
 
   return (
-    <div className="page page--team">
+    <div className="page player-page player-page--team page--team">
       <header className="page-title-header">
         <h1>Team</h1>
         <p>
@@ -239,7 +239,10 @@ export default function TeamPage() {
             <TeamRewardCard reward={teamReward} />
           ) : null}
 
-          <TeamLounge playerID={currentPlayerID} />
+          <TeamLounge
+            player={currentPlayer}
+            unlocked={dashboard?.teamPulse.unlocked ?? false}
+          />
 
           <TeamChallengeCard
             challenge={displayedProjection.currentChallenge}

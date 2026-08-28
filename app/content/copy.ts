@@ -122,6 +122,11 @@ export const copy = {
     period: "This week",
     theme: "Beach Boardwalk",
     here: "1 here",
+    locked: "Locked",
+    lockedTitle: "Finish today’s workout",
+    lockedDetail:
+      "Check in for today’s workout or planned rest to bring your avatar into the Team Lounge.",
+    lockedAction: "Go to Today",
     loading: "Setting up the boardwalk…",
     ready: "Press your player, then drag to move.",
     static: "The room is ready. Movement needs a supported browser.",

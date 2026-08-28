@@ -120,3 +120,5 @@ Each step is test-first and small enough to review independently.
   the directory now leads with listed staff credentials and direct sign-in before four named player QR codes, links, and their shared PIN.
 - Dev preview entry release: [run 33137369126](https://github.com/dafepro/fc-workout-pwa/actions/runs/33137369126) updated the existing droplet to exact main SHA `cfcb1cff8c88d0eb701d8e3fbeaecfc55d0f982e` without resetting fixtures;
   live browser and authenticated HTTP checks proved password reveal/hide, directory redirect, staff-first credentials, PIN `1111`, and exactly four rendered QR codes plus four credential-bearing player links.
+- Consolidated-view parity: ported the momentum branch’s off-white/forest/lime shell, compact status row, primary Today card, supporting cards, and 4.75rem three-tab navigation without restoring alternate views.
+- Today and Lounge correction: the next actionable workout now outranks completed rest, the V2 canvas renders and moves the configured ZoomiGo avatar, and locked players get one blurred, instructional gate instead of an empty room.

@@ -176,6 +176,10 @@ export function useAuth(): AuthState {
   return value;
 }
 
+export function useOptionalAuth(): AuthState | null {
+  return useContext(AuthContext);
+}
+
 /** The sign-in page and the staff console both authenticate for themselves, and
  * neither may be wrapped in the player shell. */
 function outsideThePlayerApp(pathname: string): boolean {

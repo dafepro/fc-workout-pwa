@@ -51,7 +51,7 @@ export function PlayerShell({ children }: { children: React.ReactNode }) {
   function navigationIcon(item: (typeof navigation)[number]) {
     if (item.href === "/me") {
       return (
-        <span className="nav-user-avatar" aria-hidden="true">
+        <span className="player-nav__avatar" aria-hidden="true">
           <PlayerAvatar player={player} size="small" emphasizeSelf={false} />
         </span>
       );
@@ -68,35 +68,29 @@ export function PlayerShell({ children }: { children: React.ReactNode }) {
         className={active ? "is-active" : ""}
         aria-current={active ? "page" : undefined}
       >
-        {navigationIcon(item)}
+        <span className="player-nav__icon">{navigationIcon(item)}</span>
         <span>{item.label}</span>
       </Link>
     );
   });
 
   return (
-    <div className={`app-shell ${focused ? "app-shell--focused" : ""}`}>
-      <aside className="sidebar">
-        <Link className="brand" href="/" aria-label={`${copy.brand} Today`}>
-          <span className="brand__mark" aria-hidden="true">
-            Z
-          </span>
-          <span>
-            <strong>{copy.brand}</strong>
-            <small>{copy.tagline}</small>
-          </span>
+    <div className={`player-shell ${focused ? "player-shell--focused" : ""}`}>
+      <aside className="player-sidebar">
+        <Link
+          className="player-brand"
+          href="/"
+          aria-label={`${copy.brand} Today`}
+        >
+          <span aria-hidden="true">Z</span>
+          <strong>{copy.brand}</strong>
         </Link>
-        <nav className="navigation" aria-label="Primary navigation">
-          {links}
-        </nav>
-        <div className="sidebar__safe-note">
-          <span aria-hidden="true">◆</span>
-          <p>{copy.safeSocial}</p>
-        </div>
+        <nav aria-label="Primary navigation">{links}</nav>
+        <p className="player-sidebar__note">{copy.safeSocial}</p>
       </aside>
-      <main className="main-content">{children}</main>
+      <main className="player-main">{children}</main>
       {!focused ? (
-        <nav className="bottom-nav" aria-label="Primary navigation">
+        <nav className="player-bottom-nav" aria-label="Primary navigation">
           {links}
         </nav>
       ) : null}
