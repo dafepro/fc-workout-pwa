@@ -118,3 +118,5 @@ Each step is test-first and small enough to review independently.
   independent requests then returned `200` from both `https://api.quicktrack.cc/readyz` and `https://zoomigo.quicktrack.cc/`.
 - Dev preview entry repair: added an accessible show/hide control to the outer password gate and sends non-QR gate entries to the credential directory;
   the directory now leads with listed staff credentials and direct sign-in before four named player QR codes, links, and their shared PIN.
+- Dev preview entry release: [run 33137369126](https://github.com/dafepro/fc-workout-pwa/actions/runs/33137369126) updated the existing droplet to exact main SHA `cfcb1cff8c88d0eb701d8e3fbeaecfc55d0f982e` without resetting fixtures;
+  live browser and authenticated HTTP checks proved password reveal/hide, directory redirect, staff-first credentials, PIN `1111`, and exactly four rendered QR codes plus four credential-bearing player links.
