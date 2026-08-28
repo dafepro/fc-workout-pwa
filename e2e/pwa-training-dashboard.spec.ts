@@ -34,7 +34,7 @@ test.beforeEach(async () => {
   await api.dispose();
 });
 
-test("connected Home and Record Training use the server assignment", async ({
+test("connected Today and activity logging use the server assignment", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 320, height: 700 });
@@ -42,17 +42,19 @@ test("connected Home and Record Training use the server assignment", async ({
   await expect(
     page.getByRole("heading", { name: "Hill Sprints" }),
   ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Started" })).toBeVisible();
+  await expect(page.getByText("8 Momentum", { exact: true })).toBeVisible();
   await expect(
-    page.locator(".goal-card").getByRole("heading", { name: "2 of 3" }),
+    page.getByText("2-day check-in streak", { exact: true }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("progressbar", { name: "Momentum: 8 out of 100" }),
+  ).toHaveAttribute("aria-valuenow", "8");
 
   await page.getByRole("link", { name: /Log session/i }).click();
-  await expect(page.getByRole("link", { name: "Record training" })).toHaveCount(
-    0,
-  );
   await expect(
     page.getByRole("link", { name: "Close training entry" }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expect(
     page
       .locator(".selected-activity")
@@ -75,6 +77,10 @@ test("connected Home and Record Training use the server assignment", async ({
   });
   await expect(effort).toHaveValue("4");
   await expect(tiredness).toHaveValue("4");
+  const outcome = page.getByRole("group", { name: "Did you finish?" });
+  await expect(
+    outcome.getByRole("button", { name: "Did it!" }),
+  ).toHaveAttribute("aria-pressed", "true");
   await effort.focus();
   await page.keyboard.press("ArrowRight");
   await tiredness.focus();
@@ -101,9 +107,6 @@ test("connected Home and Record Training use the server assignment", async ({
     page.getByRole("link", { name: "See team progress" }),
   ).toBeVisible();
   await expect(page.locator(".hero-card.is-celebrating")).toBeVisible();
-  await expect(
-    page.locator(".goal-card").getByRole("heading", { name: "3 of 3" }),
-  ).toBeVisible();
 
   await page.getByRole("link", { name: "See team progress" }).click();
   const challenge = page.getByRole("region", { name: "Hill Sprints" });
@@ -130,7 +133,8 @@ test("connected Home and Record Training use the server assignment", async ({
 
   const firstEffort = await playerEffort(api);
 
-  await page.getByRole("link", { name: "Record training" }).click();
+  await page.getByRole("link", { name: "Today" }).click();
+  await page.getByRole("link", { name: /Log another activity/i }).click();
   const secondCreateResponse = page.waitForResponse(
     (response) =>
       response.url().includes("/api/zoomigo/v1/me/training-entries") &&
@@ -143,9 +147,6 @@ test("connected Home and Record Training use the server assignment", async ({
     page.getByRole("heading", { name: "Done for today!" }),
   ).toBeVisible();
   await expect(page.locator(".hero-card.is-celebrating")).toHaveCount(0);
-  await expect(
-    page.locator(".goal-card").getByRole("heading", { name: "3 of 3" }),
-  ).toBeVisible();
 
   const secondEffort = await playerEffort(api);
   expect(secondEffort).toBe(firstEffort);
@@ -157,7 +158,6 @@ test("connected Home and Record Training use the server assignment", async ({
     ".hero-card.is-celebrating",
     ".completion-check",
     ".completion-burst i",
-    ".goal-card--celebrating .progress__fill",
   ]) {
     await expect
       .poll(() =>

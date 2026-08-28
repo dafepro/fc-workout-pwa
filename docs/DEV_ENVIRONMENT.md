@@ -122,7 +122,8 @@ cron triggers, service bindings, storage bindings, and variables.
 Run the **Operate disposable ZoomiGo dev** workflow from GitHub Actions:
 
 - `create` with a branch or SHA verifies the revision, publishes a dev-tagged
-  image, applies OpenTofu, deploys the API and Worker, and seeds the fixtures.
+  image, applies OpenTofu, deploys the API and Worker, seeds the fixtures, and
+  runs the final-flow API smoke against the deployed host.
 - `update` repeats verification and deployment but preserves the dev database.
 - `reset` reseeds fixtures without rebuilding or changing infrastructure.
 - `destroy` removes the Worker and disposable infrastructure.
@@ -136,6 +137,13 @@ The first SSH connection pins the key returned by `ssh-keyscan` for that
 workflow run. It then uses strict host-key checking for every command. This is a
 trust-on-first-use limitation inherent in fully automatic creation; production
 continues to use its reviewed, repository-pinned host key.
+
+The create smoke uses `scripts/dev-deploy-smoke.mjs` with
+`DEV_SMOKE_API_BASE_URL` and `DEV_API_GATEWAY_TOKEN`. It proves dev player and
+staff sign-in, plan publication and planned rest, Prize Box claim/open and
+inventory, and Team Reward publication plus the privacy-safe player projection.
+It intentionally does not bypass the Worker's Midwest gate; canonical Lounge
+canvas startup remains a browser proof and is covered by Docker E2E.
 
 There is no automatic time-to-live. Destroy the environment when a review ends;
 DigitalOcean continues hourly billing while the Droplet exists.

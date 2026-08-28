@@ -7,13 +7,16 @@ const resetKey = process.env.E2E_RESET_KEY ?? "local-e2e-reset-only";
 test.beforeEach(async () => {
   const api = await request.newContext({ baseURL: apiBaseURL });
   const response = await api.post("/__e2e/reset", {
-    headers: { "X-E2E-Reset-Key": resetKey },
+    headers: {
+      "X-E2E-Reset-Key": resetKey,
+      "X-E2E-Unlock-Item": "avatar-head-dog",
+    },
   });
   expect(response.status()).toBe(204);
   await api.dispose();
 });
 
-test("a player builds a v4 look with independent Gear sublayers", async ({
+test("a player equips an owned Prize Box part in a v4 look", async ({
   page,
 }) => {
   await openReadyPage(page, "/me");
@@ -27,9 +30,9 @@ test("a player builds a v4 look with independent Gear sublayers", async ({
   );
 
   await expect(
-    page.getByRole("radio", { name: /Rover the dog.*locked/i }),
-  ).toBeDisabled();
-  await page.getByRole("radio", { name: "Tall person" }).check();
+    page.getByRole("radio", { name: "Rover the dog" }),
+  ).toBeEnabled();
+  await page.getByRole("radio", { name: "Rover the dog" }).check();
   await page.getByRole("button", { name: "Person color" }).click();
   await page.getByRole("button", { name: "Aqua" }).click();
   await expect(
@@ -81,15 +84,11 @@ test("a player builds a v4 look with independent Gear sublayers", async ({
     page.locator(".player-progress .avatar--self .avatar-art"),
   ).toBeVisible();
 
-  await page.goto("/leaders");
-  await expect(page.locator(".avatar--self .avatar-art").first()).toBeVisible();
-  await expect(page.locator(".avatar--self").first()).toHaveAttribute(
-    "aria-label",
-    /, you$/,
-  );
-
   await page.goto("/me");
   await page.getByRole("link", { name: "Customize avatar" }).click();
+  await expect(
+    page.getByRole("radio", { name: "Rover the dog" }),
+  ).toBeChecked();
   await page.getByRole("button", { name: "Gear" }).click();
   await expect(page.getByRole("radio", { name: "Cap" })).toBeChecked();
   await expect(

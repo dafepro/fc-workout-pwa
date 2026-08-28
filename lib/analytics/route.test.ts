@@ -6,7 +6,6 @@ describe("canonicalRoute", () => {
     ["/", "home"],
     ["/log", "log"],
     ["/team", "team"],
-    ["/leaders", "leaders"],
     ["/me", "me"],
     ["/me/avatar", "avatar_builder"],
     ["/sessions/entry-secret", "session_detail"],
@@ -22,5 +21,6 @@ describe("canonicalRoute", () => {
     expect(canonicalRoute("/staff/admin/players/player-secret")).toBe(
       "unknown",
     );
+    expect(canonicalRoute("/leaders")).toBe("unknown");
   });
 });

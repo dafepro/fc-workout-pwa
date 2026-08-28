@@ -78,6 +78,10 @@ type fixtureResetter interface {
 	ResetE2EFixtures(context.Context, time.Time) error
 }
 
+type fixturePrizeSeeder interface {
+	SeedE2EPlayerUnlock(context.Context, string, string, time.Time) error
+}
+
 type Option func(*service)
 
 func WithStore(repository Repository) Option {
@@ -143,11 +147,18 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	mux.HandleFunc("GET /v1/me/training-entries", service.listTrainingEntries)
 	mux.HandleFunc("GET /v1/me/training-dashboard", service.getTrainingDashboard)
 	mux.HandleFunc("POST /v1/me/training-entries", service.createTrainingEntry)
+	mux.HandleFunc("POST /v1/me/planned-rest-check-ins", service.createPlannedRestCheckIn)
+	mux.HandleFunc("GET /v1/me/prize-boxes", service.getPrizeBoxes)
+	mux.HandleFunc("POST /v1/me/prize-boxes/claim-daily", service.claimDailyPrizeBox)
+	mux.HandleFunc("POST /v1/me/prize-boxes/{boxId}/open", service.openPrizeBox)
+	mux.HandleFunc("GET /v1/me/unlocks", service.listPlayerUnlocks)
+	mux.HandleFunc("POST /v1/me/unlocks/{itemId}/viewed", service.markPlayerUnlockViewed)
 	mux.HandleFunc("PUT /v1/me/avatar", service.updateAvatar)
 	mux.HandleFunc("GET /v1/training-entries/{entryId}", service.getTrainingEntry)
 	mux.HandleFunc("DELETE /v1/training-entries/{entryId}", service.deleteTrainingEntry)
 	mux.HandleFunc("GET /v1/teams/{teamId}/activity", service.getTeamActivity)
 	mux.HandleFunc("GET /v1/teams/{teamId}/leaderboards", service.getLeaderboard)
+	mux.HandleFunc("GET /v1/teams/{teamId}/team-reward", service.getPlayerTeamReward)
 	if _, ok := service.store.(fixtureResetter); cfg.EnableE2EFixtures && ok {
 		mux.HandleFunc("POST /__e2e/reset", service.resetE2EFixtures)
 	}
@@ -297,6 +308,10 @@ func (service *service) createTrainingEntry(w http.ResponseWriter, r *http.Reque
 			writeError(w, r, http.StatusUnprocessableEntity, "entry_assignment_unavailable", "That assignment is unavailable.")
 		case errors.Is(err, store.ErrEntryLevelsNotAllowed):
 			writeError(w, r, http.StatusUnprocessableEntity, "entry_feelings_not_allowed", "Effort and exhaustion must use the seven-step scale.")
+		case errors.Is(err, store.ErrEntryOutcomeNotAllowed):
+			writeError(w, r, http.StatusUnprocessableEntity, "entry_outcome_not_allowed", "Choose one of the approved workout outcomes.")
+		case errors.Is(err, store.ErrEntryPlanUnavailable):
+			writeError(w, r, http.StatusUnprocessableEntity, "entry_plan_unavailable", "That planned workout is unavailable.")
 		default:
 			writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")
 		}
@@ -564,6 +579,17 @@ func (service *service) resetE2EFixtures(w http.ResponseWriter, r *http.Request)
 	if err := resetter.ResetE2EFixtures(r.Context(), service.now().UTC()); err != nil {
 		writeError(w, r, http.StatusInternalServerError, "internal_error", "The fixture could not be reset.")
 		return
+	}
+	if itemID := strings.TrimSpace(r.Header.Get("X-E2E-Unlock-Item")); itemID != "" {
+		seeder, ready := service.store.(fixturePrizeSeeder)
+		if _, found := domain.PrizeCatalogItem(itemID); !ready || !found {
+			writeError(w, r, http.StatusBadRequest, "invalid_e2e_fixture", "The requested fixture is unavailable.")
+			return
+		}
+		if err := seeder.SeedE2EPlayerUnlock(r.Context(), "player-mason", itemID, service.now().UTC()); err != nil {
+			writeError(w, r, http.StatusInternalServerError, "internal_error", "The fixture could not be prepared.")
+			return
+		}
 	}
 	if service.authFixtures != nil {
 		if err := service.authFixtures(r.Context()); err != nil {

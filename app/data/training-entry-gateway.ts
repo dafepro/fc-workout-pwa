@@ -1,8 +1,10 @@
 import { createDeleteDeadline } from "../domain/rules";
 import type {
   ActivityId,
+  CompletionOutcome,
   TrainingEntry,
   TrainingEntryInput,
+  TrainingPlanProvenance,
 } from "../domain/types";
 import { CURRENT_PLAYER_ID, initialEntries } from "./mockData";
 
@@ -28,6 +30,7 @@ interface APITrainingEntry {
   teamId: string;
   activityDefinitionId: ActivityId;
   assignmentId: string | null;
+  plan: TrainingPlanProvenance | null;
   occurredAt: string;
   result: {
     kind: "repetitions" | "duration" | "distance";
@@ -36,6 +39,7 @@ interface APITrainingEntry {
   };
   effortLevel: number;
   exhaustionLevel: number;
+  completionOutcome?: CompletionOutcome;
   createdAt: string;
   deleteEligibleUntil: string;
 }
@@ -71,6 +75,7 @@ class HTTPTrainingEntryGateway implements TrainingEntryGateway {
         teamId: this.teamID,
         activityDefinitionId: input.activityId,
         assignmentId: input.assignmentId,
+        plan: input.plan,
         occurredAt: input.occurredAt,
         result: {
           kind: input.inputKind,
@@ -79,6 +84,7 @@ class HTTPTrainingEntryGateway implements TrainingEntryGateway {
         },
         effortLevel: input.effortLevel,
         exhaustionLevel: input.exhaustionLevel,
+        completionOutcome: input.completionOutcome,
       }),
     });
     await throwForError(response);
@@ -122,7 +128,9 @@ class LocalTrainingEntryGateway implements TrainingEntryGateway {
       unit: input.unit,
       effortLevel: input.effortLevel,
       exhaustionLevel: input.exhaustionLevel,
+      completionOutcome: input.completionOutcome,
       assignmentId: input.assignmentId,
+      plan: input.plan,
       createdAt: now.toISOString(),
       deleteEligibleUntil: createDeleteDeadline(now),
     };
@@ -172,9 +180,11 @@ function fromAPIEntry(entry: APITrainingEntry): TrainingEntry {
     unit: entry.result.unit,
     effortLevel: entry.effortLevel,
     exhaustionLevel: entry.exhaustionLevel,
+    completionOutcome: entry.completionOutcome,
     createdAt: entry.createdAt,
     deleteEligibleUntil: entry.deleteEligibleUntil,
     assignmentId: entry.assignmentId ?? undefined,
+    plan: entry.plan ?? undefined,
   };
 }
 

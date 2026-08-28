@@ -156,6 +156,18 @@ func TestCurrentAssignmentCompletionGroupsByProgress(t *testing.T) {
 	if len(completion.KeepGoing) != 1 || completion.KeepGoing[0].PlayerID != "player-not-started" {
 		t.Fatalf("unexpected keep-going group: %+v", completion.KeepGoing)
 	}
+
+	if _, err = db.ExecContext(ctx, `UPDATE training_entries SET completion_outcome = 'partial'
+		WHERE id = 'entry-met'`); err != nil {
+		t.Fatal(err)
+	}
+	completion, err = staff.CurrentAssignmentCompletion(ctx, teamID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(completion.Completed) != 0 || len(completion.OneAway) != 2 {
+		t.Fatalf("explicit partial outcome grouping: %+v", completion)
+	}
 }
 
 // REQ-513: a coach who typed the wrong target or the wrong week can amend the

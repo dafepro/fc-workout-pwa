@@ -67,16 +67,45 @@ Creates one entry for the authenticated player. `Idempotency-Key` is required. T
   "teamId": "team_opaque",
   "activityDefinitionId": "hill-sprints",
   "assignmentId": "assignment_opaque",
+  "plan": { "planId": "plan_opaque", "dayIndex": 0, "blockIndex": 0 },
   "occurredAt": "2026-08-05T22:15:00Z",
   "result": { "kind": "repetitions", "value": 8, "unit": "reps" },
   "effortLevel": 4,
-  "exhaustionLevel": 3
+  "exhaustionLevel": 3,
+  "completionOutcome": "as_listed"
 }
 ```
 
-Activity kind, unit, range, backdating, and assignment eligibility are validated against server-owned definitions.
+`completionOutcome` is optional for older clients and, when present, must be
+`as_listed`, `partial`, or `extra`. Activity kind, unit, range, backdating, and
+assignment eligibility are validated against server-owned definitions. An
+explicit `partial` outcome does not complete an assignment even when its numeric
+result reaches the target, and it likewise leaves a linked plan block incomplete.
+When `plan` is present, the server requires that exact published team/day/block
+and predefined activity on the entry's team-local date. `plan` and
+`assignmentId` are mutually exclusive provenance.
 
 A new entry returns `201`; an idempotent replay returns `200`. Future timestamps and dates earlier than seven team-local calendar days before today return `422 entry_date_not_allowed`.
+
+### `POST /v1/me/planned-rest-check-ins`
+
+Records today’s rest only when the authenticated player is an active member and
+the supplied published plan day is a rest day on the team’s local calendar.
+`Idempotency-Key` is required. A planned-rest check-in contributes one daily
+Momentum credit without creating a training entry or accepting effort,
+exhaustion, performance, or free text.
+
+### `GET /v1/me/training-dashboard`
+
+Returns the authenticated player’s canonical Today projection. Its Team pulse
+includes a weekly count of active teammates with accepted workout completions
+or planned-rest check-ins. Recent teammate activity stays empty until the
+player completes today’s workout or checks in for today’s planned rest. Once
+unlocked, each teammate appears at most once with only a first name, last
+initial, predefined activity name (including `Planned rest`), and `Today`,
+`Yesterday`, or `Recently`; player IDs, measurements, effort, exhaustion,
+outcomes, and exact timestamps are excluded. An explicit `partial` workout
+neither unlocks Team pulse nor counts as completed weekly participation.
 
 ### `GET /v1/training-entries/{entryId}`
 
@@ -93,6 +122,43 @@ Unauthorized callers receive `404` to avoid confirming that the entry exists.
 Soft-deletes an entry only when the authenticated player owns it and the trusted server time is before `deleteEligibleUntil`. Coach/admin removal uses a separate future audited moderation flow.
 
 An owner outside the window receives `422 entry_delete_window_closed`. Other callers receive concealed `404` responses.
+
+## Prize boxes and inventory
+
+### `GET /v1/me/prize-boxes`
+
+Returns today’s daily-claim state, unopened boxes, aggregate earned/opened
+counts, and at most three recently opened items for the authenticated player.
+Unopened boxes expose only their opaque ID, predefined source, and earned time;
+they never reveal the item or rarity before opening.
+
+### `POST /v1/me/prize-boxes/claim-daily`
+
+Requires `Idempotency-Key`. Creates or replays one sealed box for the configured
+local calendar day without creating a workout or changing Momentum. A claim
+never chooses or returns an item.
+
+### `POST /v1/me/prize-boxes/{boxId}/open`
+
+Requires a separate `Idempotency-Key`. The box must belong to the authenticated
+player. Item selection, opening, and inventory insertion are one transaction;
+an identical retry returns the original item and never rerolls. Selection uses
+only enabled predefined items the player does not own. A completed collection
+opens to a predefined no-item result without currency or duplicates.
+
+Completing three distinct proven days of one seven-day plan earns one sealed
+box; completing all seven earns one more. A training day counts only when every
+predefined block has an accepted, non-deleted check-in. Planned rest counts
+through its standalone check-in. Extra rows and partial outcomes cannot
+accelerate a tier, and a granted box is never revoked by later deletion or plan
+cancellation.
+
+### `GET /v1/me/unlocks?kind=avatar_part|lounge_stamp|lounge_prop`
+
+Returns only the authenticated player’s matching predefined inventory items,
+including safe asset metadata, rarity, destination, source, unlock time, and
+optional viewed time. `POST /v1/me/unlocks/{itemId}/viewed` idempotently records
+that the owner deliberately viewed an earned item.
 
 ## Avatar
 
@@ -121,6 +187,18 @@ Validation is shape only, not membership: the option catalog lives in the client
 ```
 
 Reading rides on `GET /v1/auth/session`; there is no separate avatar `GET`.
+
+## Staff training plans
+
+`GET /v1/staff/training-plan-templates` and
+`GET /v1/staff/teams/{teamId}/training-plans` expose the curated templates and
+immutable plan history to authorized staff. Published plans snapshot every day
+and predefined activity block; cancelled and replaced plans remain readable.
+
+Publishing, cancelling, and rescheduling use the corresponding `POST`
+endpoints below `/v1/staff/teams/{teamId}/training-plans`. Those write routes
+are registered only when development access is enabled. Production returns
+`404` until the provisional workload bounds receive product approval.
 
 ## Safe Team and leaderboard projections
 

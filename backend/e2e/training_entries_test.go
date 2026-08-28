@@ -24,6 +24,7 @@ type trainingEntryResponse struct {
 	OccurredAt           string `json:"occurredAt"`
 	EffortLevel          int    `json:"effortLevel"`
 	ExhaustionLevel      int    `json:"exhaustionLevel"`
+	CompletionOutcome    string `json:"completionOutcome"`
 	CreatedAt            string `json:"createdAt"`
 	DeleteEligibleUntil  string `json:"deleteEligibleUntil"`
 	Result               struct {
@@ -47,6 +48,9 @@ func TestTrainingEntryLifecycleIsIdempotentAndPrivate(t *testing.T) {
 	}
 	if created.Result.Kind != "repetitions" || created.Result.Unit != "reps" || created.Result.Value != 8 {
 		t.Fatalf("unexpected structured result: %+v", created.Result)
+	}
+	if created.CompletionOutcome != "as_listed" {
+		t.Fatalf("completion outcome = %q, want as_listed", created.CompletionOutcome)
 	}
 
 	replayResponse := api.do(t, http.MethodPost, "/v1/me/training-entries", masonToken, "entry-create-1", payload)
@@ -136,6 +140,16 @@ func TestTrainingEntryRejectsUnsafeOrInvalidStructuredInput(t *testing.T) {
 	if mismatchError.Error.Code != "entry_result_not_allowed" {
 		t.Fatalf("mismatched result error = %q", mismatchError.Error.Code)
 	}
+
+	invalidOutcome := validTrainingEntryPayload(time.Now().UTC().Add(-time.Hour))
+	invalidOutcome["completionOutcome"] = "maximized"
+	invalidOutcomeResponse := api.do(t, http.MethodPost, "/v1/me/training-entries", masonToken, "invalid-outcome", invalidOutcome)
+	assertStatus(t, invalidOutcomeResponse, http.StatusUnprocessableEntity)
+	var outcomeError apiError
+	decodeJSON(t, invalidOutcomeResponse, &outcomeError)
+	if outcomeError.Error.Code != "entry_outcome_not_allowed" {
+		t.Fatalf("invalid outcome error = %q", outcomeError.Error.Code)
+	}
 }
 
 func TestPlayerDeletionWindowUsesTrustedServerTime(t *testing.T) {
@@ -165,7 +179,8 @@ func validTrainingEntryPayload(occurredAt time.Time) map[string]any {
 			"value": 8,
 			"unit":  "reps",
 		},
-		"effortLevel":     4,
-		"exhaustionLevel": 3,
+		"effortLevel":       4,
+		"exhaustionLevel":   3,
+		"completionOutcome": "as_listed",
 	}
 }

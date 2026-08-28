@@ -1,10 +1,10 @@
-const CACHE_NAME = "zoomigo-shell-v4";
+const CACHE_NAME = "zoomigo-shell-v5";
 const APP_SHELL = [
   "/",
   "/log",
   "/team",
-  "/leaders",
   "/me",
+  "/prizes",
   "/login",
   "/manifest.webmanifest",
 ];

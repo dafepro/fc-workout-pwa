@@ -168,3 +168,27 @@ export interface TeamProgress {
   currentChallenge: { activityName: string; completedCount: number } | null;
   members: TeamProgressMember[];
 }
+
+export interface TeamRewardDefinition {
+  id: string;
+  version: number;
+  title: string;
+  description: string;
+  artworkId: string;
+}
+
+export interface StaffTeamReward {
+  id: string;
+  title: string;
+  description: string;
+  status: "active" | "achieved" | "cancelled";
+  startsOn: string;
+  endsOn: string;
+  rule: { requiredDays: number; minimumRosterPercent: number };
+  progress: {
+    current: number;
+    target: number;
+    percent: number;
+    achieved: boolean;
+  };
+}

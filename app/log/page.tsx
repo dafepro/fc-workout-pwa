@@ -1,9 +1,10 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ActivitySpecificFields } from "../components/ActivityFields";
 import { WorkoutSelect } from "../components/WorkoutSelect";
+import { WorkoutOutcomeChoices } from "../components/WorkoutOutcomeChoices";
 import { IntensityControls } from "../components/IntensityScale";
 import { copy } from "../content/copy";
 import {
@@ -11,7 +12,11 @@ import {
   isBackdateAllowed,
   toDateInput,
 } from "../domain/rules";
-import type { ActivityId } from "../domain/types";
+import type {
+  ActivityId,
+  CompletionOutcome,
+  TrainingPlanProvenance,
+} from "../domain/types";
 import { useTraining } from "../state/training-context";
 import { useAnalytics } from "../../lib/analytics/AnalyticsProvider";
 
@@ -40,6 +45,7 @@ function compactTimeLabel(timeValue: string): string {
 
 export default function LogPage() {
   const router = useRouter();
+  const searchParameters = useSearchParams();
   const analytics = useAnalytics();
   const { addEntry, dashboard, dashboardStatus, refreshDashboard } =
     useTraining();
@@ -51,24 +57,56 @@ export default function LogPage() {
   const [time, setTime] = useState(currentTimeInput());
   const [effort, setEffort] = useState(4);
   const [exhaustion, setExhaustion] = useState(4);
+  const [completionOutcome, setCompletionOutcome] =
+    useState<CompletionOutcome>("as_listed");
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const initialized = useRef(false);
   const selectedActivity = activities.find((item) => item.id === activityId);
+  const planDay = dashboard?.currentPlanDay ?? null;
+  const requestedPlanBlock = useMemo(() => {
+    if (!planDay || searchParameters.get("planId") !== planDay.planId) {
+      return null;
+    }
+    const rawDayIndex = searchParameters.get("dayIndex");
+    const rawBlockIndex = searchParameters.get("blockIndex");
+    const activity = searchParameters.get("activityId");
+    if (
+      !rawDayIndex?.match(/^\d+$/) ||
+      !rawBlockIndex?.match(/^\d+$/) ||
+      Number(rawDayIndex) !== planDay.dayIndex
+    ) {
+      return null;
+    }
+    const blockIndex = Number(rawBlockIndex);
+    return (
+      planDay.blocks.find(
+        (block) =>
+          block.blockIndex === blockIndex &&
+          block.activityDefinitionId === activity &&
+          !block.completed,
+      ) ?? null
+    );
+  }, [planDay, searchParameters]);
 
   useEffect(() => {
     if (initialized.current || activities.length === 0) return;
     const selected =
+      activities.find(
+        (item) => item.id === requestedPlanBlock?.activityDefinitionId,
+      ) ??
       activities.find((item) => item.id === assignment?.activityDefinitionId) ??
       activities[0];
     initialized.current = true;
     setActivityId(selected.id);
     setValue(
-      assignment?.activityDefinitionId === selected.id
-        ? assignment.targetValue
-        : selected.defaultValue,
+      requestedPlanBlock?.activityDefinitionId === selected.id
+        ? selected.defaultValue
+        : assignment?.activityDefinitionId === selected.id
+          ? assignment.targetValue
+          : selected.defaultValue,
     );
-  }, [activities, assignment]);
+  }, [activities, assignment, requestedPlanBlock]);
 
   function chooseActivity(next: ActivityId) {
     setActivityId(next);
@@ -101,17 +139,33 @@ export default function LogPage() {
     }
     const occurredAt = new Date(`${date}T${time}:00`);
     const assignmentId =
+      !requestedPlanBlock &&
       assignment?.activityDefinitionId === activityId &&
       date >= assignment.startsOn &&
       date <= assignment.dueOn
         ? assignment.id
         : undefined;
-    const completesAssignment = Boolean(
-      assignmentId &&
-        assignment &&
-        !assignment.completed &&
-        activity.unit === assignment.targetUnit &&
-        value >= assignment.targetValue,
+    const plan: TrainingPlanProvenance | undefined =
+      requestedPlanBlock &&
+      planDay &&
+      date === planDay.occursOn &&
+      requestedPlanBlock.activityDefinitionId === activityId
+        ? {
+            planId: planDay.planId,
+            dayIndex: planDay.dayIndex,
+            blockIndex: requestedPlanBlock.blockIndex,
+          }
+        : undefined;
+    const completesPrimary = Boolean(
+      plan
+        ? completionOutcome !== "partial" &&
+            planDay?.blocks.filter((block) => !block.completed).length === 1
+        : assignmentId &&
+            assignment &&
+            !assignment.completed &&
+            completionOutcome !== "partial" &&
+            activity.unit === assignment.targetUnit &&
+            value >= assignment.targetValue,
     );
     setSaving(true);
     setMessage(null);
@@ -120,13 +174,15 @@ export default function LogPage() {
         activityId,
         inputKind: activity.inputKind,
         assignmentId,
+        plan,
         occurredAt: occurredAt.toISOString(),
         value,
         unit: activity.unit,
         effortLevel: effort,
         exhaustionLevel: exhaustion,
+        completionOutcome,
       });
-      router.push(`/?saved=1${completesAssignment ? "&completed=1" : ""}`);
+      router.push(`/?saved=1${completesPrimary ? "&completed=1" : ""}`);
     } catch (cause) {
       setMessage(
         cause instanceof Error
@@ -184,7 +240,9 @@ export default function LogPage() {
             description: activity.description,
             icon: activity.icon,
             instructions: activity.instructions,
-            recommended: activity.id === assignment?.activityDefinitionId,
+            recommended:
+              activity.id === requestedPlanBlock?.activityDefinitionId ||
+              activity.id === assignment?.activityDefinitionId,
           }))}
         />
         <ActivitySpecificFields
@@ -192,6 +250,10 @@ export default function LogPage() {
           value={value}
           onChange={setValue}
           activities={activities}
+        />
+        <WorkoutOutcomeChoices
+          value={completionOutcome}
+          onChange={setCompletionOutcome}
         />
         <IntensityControls
           effort={effort}

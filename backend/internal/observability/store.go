@@ -27,6 +27,12 @@ func (observed *ObservedStore) CreateTrainingEntry(ctx context.Context, input st
 	})
 }
 
+func (observed *ObservedStore) CreatePlannedRestCheckIn(ctx context.Context, input store.CreatePlannedRestCheckInInput) (store.PlannedRestCheckIn, error) {
+	return observeValue(observed.metrics, "planned_rest_create", func() (store.PlannedRestCheckIn, error) {
+		return observed.Store.CreatePlannedRestCheckIn(ctx, input)
+	})
+}
+
 func (observed *ObservedStore) ListTrainingEntries(ctx context.Context, playerID string, limit int) ([]store.TrainingEntry, error) {
 	return observeValue(observed.metrics, "training_entries_read", func() ([]store.TrainingEntry, error) {
 		return observed.Store.ListTrainingEntries(ctx, playerID, limit)

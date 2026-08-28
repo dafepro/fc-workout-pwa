@@ -17,7 +17,7 @@ func TestTrainingDashboardOwnsAssignmentCatalogAndCompletion(t *testing.T) {
 	assertStatus(t, initial, http.StatusOK)
 	body := readBody(initial)
 	_ = initial.Body.Close()
-	for _, expected := range []string{`"weeklyGoal":3`, `"activityDefinitionId":"hill-sprints"`, `"catalogKey":"hill_sprints_8x6"`, `"completed":false`, `"streakComparison"`} {
+	for _, expected := range []string{`"weeklyGoal":3`, `"momentumScore":8`, `"currentCheckInStreak":2`, `"activityDefinitionId":"hill-sprints"`, `"catalogKey":"hill_sprints_8x6"`, `"completed":false`, `"streakComparison"`} {
 		if !strings.Contains(body, expected) {
 			t.Fatalf("dashboard missing %s: %s", expected, body)
 		}
@@ -30,7 +30,7 @@ func TestTrainingDashboardOwnsAssignmentCatalogAndCompletion(t *testing.T) {
 
 	partial := validTrainingEntryPayload(time.Now().UTC().Add(-time.Hour))
 	partial["assignmentId"] = "assignment-hill-sprints"
-	partial["result"] = map[string]any{"kind": "repetitions", "value": 4, "unit": "reps"}
+	partial["completionOutcome"] = "partial"
 	partialResponse := api.do(t, http.MethodPost, "/v1/me/training-entries", masonToken, "assignment-partial", partial)
 	assertStatus(t, partialResponse, http.StatusCreated)
 	_ = partialResponse.Body.Close()

@@ -25,6 +25,7 @@ interface RequestOptions {
   method?: string;
   body?: unknown;
   query?: Record<string, string | undefined>;
+  idempotencyKey?: string;
 }
 
 /**
@@ -57,10 +58,7 @@ async function send<T>(url: string, options: RequestOptions): Promise<T> {
     response = await fetch(url, {
       method: options.method ?? "GET",
       cache: "no-store",
-      headers:
-        options.body === undefined
-          ? undefined
-          : { "Content-Type": "application/json" },
+      headers: requestHeaders(options),
       body:
         options.body === undefined ? undefined : JSON.stringify(options.body),
     });
@@ -86,6 +84,15 @@ async function send<T>(url: string, options: RequestOptions): Promise<T> {
     );
   }
   return parsed as T;
+}
+
+function requestHeaders(options: RequestOptions): HeadersInit | undefined {
+  const headers: Record<string, string> = {};
+  if (options.body !== undefined) headers["Content-Type"] = "application/json";
+  if (options.idempotencyKey) {
+    headers["Idempotency-Key"] = options.idempotencyKey;
+  }
+  return Object.keys(headers).length ? headers : undefined;
 }
 
 function queryString(query: RequestOptions["query"]): string {

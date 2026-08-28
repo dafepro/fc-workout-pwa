@@ -5,6 +5,7 @@ export type ActivityId =
   | "recovery-walk-jog";
 
 export type InputKind = "repetitions" | "duration" | "distance";
+export type CompletionOutcome = "as_listed" | "partial" | "extra";
 
 export interface ActivityDefinition {
   id: ActivityId;
@@ -33,9 +34,17 @@ export interface TrainingEntry {
   unit: string;
   effortLevel: number;
   exhaustionLevel: number;
+  completionOutcome?: CompletionOutcome;
   createdAt: string;
   deleteEligibleUntil: string;
   assignmentId?: string;
+  plan?: TrainingPlanProvenance;
+}
+
+export interface TrainingPlanProvenance {
+  planId: string;
+  dayIndex: number;
+  blockIndex: number;
 }
 
 export type TrainingEntryInput = Pick<
@@ -49,6 +58,8 @@ export type TrainingEntryInput = Pick<
 > & {
   inputKind: InputKind;
   assignmentId?: string;
+  plan?: TrainingPlanProvenance;
+  completionOutcome: CompletionOutcome;
 };
 
 export interface ActivityDay {
@@ -72,24 +83,69 @@ export interface TrainingAssignment {
   completed: boolean;
 }
 
+export interface CurrentTrainingPlanDay {
+  planId: string;
+  dayIndex: number;
+  templateName: string;
+  occursOn: string;
+  kind: "training" | "recovery" | "rest";
+  focus: "speed" | "endurance" | "recovery";
+  durationMinutes: number;
+  intensity: "easy" | "steady" | "hard";
+  completed: boolean;
+  blocks: {
+    blockIndex: number;
+    activityDefinitionId: ActivityId;
+    label: string;
+    durationMinutes: number;
+    completed: boolean;
+  }[];
+}
+
+export interface TrainingPlanWindow {
+  planId: string;
+  templateName: string;
+  dayNumber: number;
+  dayCount: number;
+  yesterday: CurrentTrainingPlanDay | null;
+  today: CurrentTrainingPlanDay;
+  tomorrow: CurrentTrainingPlanDay | null;
+  days: CurrentTrainingPlanDay[];
+}
+
 export interface TrainingDashboard {
   team: SocialTeam;
   activities: ActivityDefinition[];
   currentAssignment: TrainingAssignment | null;
+  currentPlanDay: CurrentTrainingPlanDay | null;
+  currentPlan: TrainingPlanWindow | null;
   summary: {
     weeklySessions: number;
     rolling30Sessions: number;
+    momentumScore: number;
+    currentCheckInStreak: number;
     currentStreak: number;
     longestStreak: number;
     effortPoints: number;
     activityDays: ActivityDay[];
   };
-  teamPulse: { activeThisWeek: number };
+  teamPulse: {
+    activeThisWeek: number;
+    unlocked: boolean;
+    recentActivities: TeamPulseActivity[];
+  };
   streakComparison: {
     templateKey: string;
     value: string;
     message: string;
   };
+}
+
+export interface TeamPulseActivity {
+  firstName: string;
+  lastInitial: string;
+  activityName: string;
+  recency: "Today" | "Yesterday" | "Recently";
 }
 
 export interface Player {
@@ -137,6 +193,43 @@ export interface TeamActivityProjection {
   membersMeetingGoal: number;
   currentChallenge: TeamChallengeProjection | null;
   members: TeamMemberProjection[];
+}
+
+export interface TeamRewardDayProgress {
+  date: string;
+  activePlayers: number;
+  qualifyingPlayers: number;
+  requiredPlayers: number;
+  qualifies: boolean;
+}
+
+export interface TeamRewardProjection {
+  id: string;
+  teamId: string;
+  definitionId: string;
+  definitionVersion: number;
+  title: string;
+  description: string;
+  artworkId: string;
+  status: "active" | "achieved";
+  startsOn: string;
+  endsOn: string;
+  timeZone: string;
+  rule: {
+    version: 1;
+    requiredDays: number;
+    minimumRosterPercent: number;
+  };
+  progress: {
+    current: number;
+    target: number;
+    percent: number;
+    achieved: boolean;
+    days: TeamRewardDayProgress[];
+  };
+  achievedAt?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface LeaderboardItem extends Player {

@@ -22,9 +22,11 @@ type SaveStatus = "idle" | "saving" | "error";
 
 export function AvatarBuilder({
   config,
+  unlockedOptionIDs = EMPTY_UNLOCKS,
   onSave,
 }: {
   config: AvatarConfiguration;
+  unlockedOptionIDs?: ReadonlySet<string>;
   onSave(config: AvatarConfiguration): Promise<void>;
 }) {
   const startingConfig = isAvatarConfiguration(config)
@@ -35,6 +37,7 @@ export function AvatarBuilder({
     <AvatarBuilderEditor
       key={configurationKey(startingConfig)}
       startingConfig={startingConfig}
+      unlockedOptionIDs={unlockedOptionIDs}
       onSave={onSave}
     />
   );
@@ -42,9 +45,11 @@ export function AvatarBuilder({
 
 function AvatarBuilderEditor({
   startingConfig,
+  unlockedOptionIDs,
   onSave,
 }: {
   startingConfig: AvatarConfiguration;
+  unlockedOptionIDs: ReadonlySet<string>;
   onSave(config: AvatarConfiguration): Promise<void>;
 }) {
   const [draft, setDraft] = useState<AvatarConfiguration>(startingConfig);
@@ -118,6 +123,7 @@ function AvatarBuilderEditor({
                 key={kind}
                 layer={layer}
                 draft={draft}
+                unlockedOptionIDs={unlockedOptionIDs}
                 showLegend={activeCategory === "gear"}
                 onChange={update}
                 onChoose={(optionID) => update(kind, optionID)}
@@ -150,12 +156,14 @@ function AvatarBuilderEditor({
 function LayerPicker({
   layer,
   draft,
+  unlockedOptionIDs,
   showLegend,
   onChange,
   onChoose,
 }: {
   layer: AvatarLayerDefinition;
   draft: AvatarConfiguration;
+  unlockedOptionIDs: ReadonlySet<string>;
   showLegend: boolean;
   onChange(key: string, value: string): void;
   onChoose(optionID: string): void;
@@ -177,6 +185,7 @@ function LayerPicker({
             layer={layer}
             option={option}
             draft={draft}
+            unlocked={unlockedOptionIDs.has(option.id)}
             onChoose={() => onChoose(option.id)}
           />
         ))}
@@ -241,6 +250,7 @@ function BackgroundControls({
       <LayerPicker
         layer={effect}
         draft={draft}
+        unlockedOptionIDs={EMPTY_UNLOCKS}
         showLegend
         onChange={onChange}
         onChoose={(optionID) => onChange("effect", optionID)}
@@ -344,15 +354,17 @@ function Choice({
   layer,
   option,
   draft,
+  unlocked,
   onChoose,
 }: {
   layer: AvatarLayerDefinition;
   option: AvatarOption;
   draft: AvatarConfiguration;
+  unlocked: boolean;
   onChoose(): void;
 }) {
   const selected = draft[layer.kind] === option.id;
-  const locked = option.unlock === "advancement";
+  const locked = option.unlock === "advancement" && !unlocked;
   const accessibleName = locked
     ? `${option.label}, ${copy.avatar.locked}`
     : option.label;
@@ -383,6 +395,8 @@ function Choice({
     </div>
   );
 }
+
+const EMPTY_UNLOCKS = new Set<string>();
 
 function paletteName(key: AvatarPaletteKey): string {
   const names = copy.avatar.palette;

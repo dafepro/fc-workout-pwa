@@ -73,6 +73,8 @@ to resolve, not the implementing agent's.
 
 ## Goals and workload
 
+- Approve the provisional training-plan duration, intensity, and spacing bounds;
+  plan publication remains development-only until then.
 - Default weekly goal calculation.
 - Whether players can select a goal from approved options.
 - Coach override rules.
@@ -287,8 +289,20 @@ to resolve, not the implementing agent's.
 - Avatars are rendered on the player's own surfaces only — the builder, the `/me`
   hero, and the nav. Team and leaderboard rows keep initials, so no teammate's
   chosen look can appear in a row that is not theirs.
-- Unlocks and currency remain out of scope. Catalog entries are object-shaped so
-  an `unlock` field is additive.
+- Decided 2026-08-27: Prize Boxes own a versioned, server-authorized inventory
+  for optional Avatar parts and Team Lounge items. Included basics require no
+  per-player row. Currency, purchases, trades, rerolls, and crafting remain out
+  of scope.
+- Integration assumption 2026-08-27: one free sealed daily box is independent
+  of training and does not change Momentum. Opening later chooses the item, so
+  claiming cannot reveal or reroll a reward.
+- Integration assumption 2026-08-27: Team Rewards begin as one predefined,
+  versioned celebration with bundled artwork and immutable display snapshots.
+  Progress uses only qualifying team-local days at a bounded roster percentage;
+  authored copy, uploads, alternate rules, and player-level results stay out.
+- A player qualifies for a reward day only through an accepted workout linked
+  to that day's plan or its planned-rest check-in. Each active roster member
+  counts once per team-local day; partial work remains safe but does not count.
 
 ## Coach console UX, issue #9 (2026-08-12)
 

@@ -128,6 +128,7 @@ func (store *Store) CreateReaction(ctx context.Context, input CreateReactionInpu
 			WHERE a.id = ? AND a.team_id = ? AND e.player_id = ?
 			  AND e.deleted_at IS NULL AND e.result_unit = a.target_unit
 			  AND e.result_value >= a.target_value
+			  AND (e.completion_outcome IS NULL OR e.completion_outcome <> 'partial')
 		)`, input.Request.Context.AssignmentID, input.Request.Context.TeamID,
 			input.Request.RecipientPlayerID).Scan(&completed)
 		if err != nil {
@@ -291,8 +292,16 @@ func (store *Store) ResetE2EFixtures(ctx context.Context, now time.Time) error {
 	}
 	defer tx.Rollback()
 	statements := []string{
+		"DELETE FROM team_reward_events",
+		"DELETE FROM team_rewards",
 		"DELETE FROM reactions",
+		"DELETE FROM player_unlocks",
+		"DELETE FROM prize_boxes",
+		"DELETE FROM planned_rest_check_ins",
 		"DELETE FROM training_entries",
+		"DELETE FROM training_plan_blocks",
+		"DELETE FROM training_plan_days",
+		"DELETE FROM training_plans",
 		"DELETE FROM assignments",
 		// Staff state as well, or a second run of the console suite collides with
 		// the operator the first run created. The order is foreign-key order:
