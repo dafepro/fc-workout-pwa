@@ -3,6 +3,8 @@
 import { useEffect, useRef } from "react";
 import type { AvatarPointerIntent, RenderEntity } from "@canvas-physics/client";
 
+import { PlayerAvatar } from "../components/PlayerAvatar";
+import type { Player } from "../domain/types";
 import { startLocalBeachBoardwalkSimulation } from "./local-simulation";
 import { beachBoardwalkAssets } from "./scene/assets";
 import {
@@ -13,14 +15,16 @@ import {
 export type LoungeCanvasState = "loading" | "ready" | "static" | "error";
 
 export function LocalLoungeCanvas({
-  playerID,
+  player,
   onStateChange,
 }: {
-  playerID: string;
+  player: Player;
   onStateChange(state: LoungeCanvasState): void;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
+  const avatarRef = useRef<HTMLDivElement>(null);
   const playerNameRef = useRef<HTMLParagraphElement>(null);
+  const playerID = player.id;
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -116,7 +120,11 @@ export function LocalLoungeCanvas({
           lastIntent = serialized;
           simulation.move(intent);
         }
-        positionName(scene, entities, playerID, playerNameRef.current);
+        positionPlayer(
+          avatarCssPosition(scene, entities, playerID, mount),
+          avatarRef.current,
+          playerNameRef.current,
+        );
         frame = requestAnimationFrame(draw);
       };
       frame = requestAnimationFrame(draw);
@@ -146,8 +154,8 @@ export function LocalLoungeCanvas({
         aria-label="Interactive lounge canvas"
         tabIndex={0}
       />
-      <div className="team-lounge__avatar-fallback" aria-hidden="true">
-        <span>{playerID.slice(0, 1).toUpperCase()}</span>
+      <div ref={avatarRef} className="team-lounge__avatar-fallback">
+        <PlayerAvatar player={player} size="medium" />
       </div>
       <p ref={playerNameRef} className="team-lounge__player-name">
         You
@@ -222,20 +230,21 @@ function avatarCssPosition(
   };
 }
 
-function positionName(
-  scene: {
-    camera: {
-      toScreenX(value: number): number;
-      toScreenY(value: number): number;
-    };
-  },
-  entities: RenderEntity[],
-  playerID: string,
+function positionPlayer(
+  position: { x: number; y: number } | undefined,
+  avatar: HTMLDivElement | null,
   label: HTMLParagraphElement | null,
 ) {
-  if (!label) return;
-  const avatar = entities.find(({ id }) => id === `avatar:${playerID}`);
-  label.hidden = !avatar;
-  if (avatar)
-    label.style.transform = `translate3d(${scene.camera.toScreenX(avatar.x)}px, ${scene.camera.toScreenY(avatar.y) - 30}px, 0) translateX(-50%)`;
+  if (avatar) {
+    avatar.hidden = !position;
+    if (position) {
+      avatar.style.transform = `translate3d(${position.x}px, ${position.y}px, 0) translate(-50%, -50%)`;
+    }
+  }
+  if (label) {
+    label.hidden = !position;
+    if (position) {
+      label.style.transform = `translate3d(${position.x}px, ${position.y - 32}px, 0) translateX(-50%)`;
+    }
+  }
 }

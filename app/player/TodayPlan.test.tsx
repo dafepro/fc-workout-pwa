@@ -27,10 +27,11 @@ describe("canonical Today plan", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Hill sprints" })).toBeVisible();
-    expect(screen.getByText("20 min · Steady")).toBeVisible();
+    expect(screen.getByText("20 min")).toBeVisible();
+    expect(screen.getByText("Steady")).toBeVisible();
     expect(screen.getByText(/Day 2 of 7/)).toBeVisible();
     expect(
-      screen.getByRole("link", { name: /Log this workout/i }),
+      screen.getByRole("link", { name: /Record this workout/i }),
     ).toHaveAttribute(
       "href",
       "/log?planId=plan-one&dayIndex=1&blockIndex=0&activityId=hill-sprints",

@@ -56,80 +56,85 @@ export function TodayPlanHero({
 
   return (
     <section
-      className={`hero-card ${complete ? "hero-card--complete" : ""} ${celebrating ? "is-celebrating" : ""}`}
+      className={`today-plan-hero${day.kind === "rest" ? " today-plan-hero--rest" : ""}${complete ? " today-plan-hero--complete" : ""}${celebrating ? " is-celebrating" : ""}`}
       aria-labelledby="plan-day-title"
       aria-live={complete ? "polite" : undefined}
     >
-      <div className="hero-card__content">
-        <p className="eyebrow eyebrow--lime">
-          {complete ? "Today complete" : "Coach plan"}
-        </p>
-        <h1 id="plan-day-title">{title}</h1>
-        <p className="hero-card__detail">
+      <header className="today-plan-hero__header">
+        <div>
+          <span className="today-plan-hero__today">Today</span>
+          <small>{complete ? "Complete" : "Coach plan"}</small>
+        </div>
+        {complete ? (
+          <span className="today-plan-hero__complete-mark" aria-hidden="true">
+            ✓
+          </span>
+        ) : null}
+      </header>
+      <h1 id="plan-day-title">{title}</h1>
+      <div className="today-plan-hero__metadata">
+        <span>
           {day.kind === "rest"
-            ? "Recovery is part of the plan"
-            : `${day.durationMinutes} min · ${capitalize(day.intensity)}`}
-        </p>
-        <p className="hero-card__support">
-          {complete
-            ? day.kind === "rest"
-              ? "Your planned-rest check-in is saved."
-              : "Your planned workout is checked in."
-            : `Day ${dayNumber} of ${dayCount} · ${capitalize(day.focus)}`}
-        </p>
-        {!complete && day.kind === "rest" ? (
-          <button
-            className="button button--lime"
-            type="button"
-            disabled={savingRest}
-            onClick={() => void saveRest()}
-          >
-            {savingRest ? "Saving…" : "Check in for planned rest"}
-          </button>
-        ) : null}
-        {!complete && day.kind !== "rest" && nextBlock && activityAvailable ? (
-          <Link
-            className="button button--lime"
-            href={planLogHref(
-              day,
-              nextBlock.blockIndex,
-              nextBlock.activityDefinitionId,
-            )}
-          >
-            Log this workout <span aria-hidden="true">→</span>
-          </Link>
-        ) : null}
-        {!complete && day.kind !== "rest" && !activityAvailable ? (
-          <p className="hero-card__warning" role="alert">
-            This planned activity needs an update from your coach.
-          </p>
-        ) : null}
-        {error ? (
-          <p className="hero-card__warning" role="alert">
-            {error}
-          </p>
-        ) : null}
-        {day.blocks.length > 1 ? (
-          <ul className="hero-card__blocks" aria-label="Today’s workout blocks">
-            {day.blocks.map((block) => (
-              <li key={block.blockIndex}>
-                <span aria-hidden="true">{block.completed ? "✓" : "○"}</span>
-                {block.label}
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </div>
-      <div
-        className={`hill-art ${complete ? "hill-art--complete" : ""}`}
-        aria-hidden="true"
-      >
-        <span className="hill-art__sun">✦</span>
-        {complete ? <span className="completion-check">✓</span> : null}
-        <span className="hill-art__runner">
-          {day.kind === "rest" ? "☁️" : "🏃"}
+            ? "Planned recovery"
+            : `${day.durationMinutes} min`}
+        </span>
+        <span>{capitalize(day.intensity)}</span>
+        <span>
+          Day {dayNumber} of {dayCount}
         </span>
       </div>
+      <p className="today-plan-hero__goal">
+        {complete
+          ? day.kind === "rest"
+            ? "Your planned-rest check-in is saved."
+            : "Your planned workout is checked in."
+          : capitalize(day.focus)}
+      </p>
+      {!complete && day.kind === "rest" ? (
+        <button
+          className="today-plan-hero__primary"
+          type="button"
+          disabled={savingRest}
+          onClick={() => void saveRest()}
+        >
+          {savingRest ? "Saving…" : "Check in for planned rest"}
+        </button>
+      ) : null}
+      {!complete && day.kind !== "rest" && nextBlock && activityAvailable ? (
+        <Link
+          className="today-plan-hero__primary"
+          href={planLogHref(
+            day,
+            nextBlock.blockIndex,
+            nextBlock.activityDefinitionId,
+          )}
+        >
+          Record this workout <span aria-hidden="true">→</span>
+        </Link>
+      ) : null}
+      {!complete && day.kind !== "rest" && !activityAvailable ? (
+        <p className="today-plan-hero__error" role="alert">
+          This planned activity needs an update from your coach.
+        </p>
+      ) : null}
+      {error ? (
+        <p className="today-plan-hero__error" role="alert">
+          {error}
+        </p>
+      ) : null}
+      {day.blocks.length > 1 ? (
+        <ul
+          className="today-plan-hero__details"
+          aria-label="Today’s workout blocks"
+        >
+          {day.blocks.map((block) => (
+            <li key={block.blockIndex}>
+              <span aria-hidden="true">{block.completed ? "✓" : "○"}</span>
+              {block.label}
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </section>
   );
 }

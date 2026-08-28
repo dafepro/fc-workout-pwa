@@ -4299,19 +4299,91 @@ h2 {
   position: absolute;
   top: 61%;
   left: 43%;
-  z-index: 1;
-  display: grid;
-  width: 2.5rem;
-  aspect-ratio: 1;
-  place-items: center;
-  border: 0.2rem solid #fff;
-  border-radius: 50%;
-  background: #6e56cf;
-  font-weight: 900;
+  z-index: 4;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
 }
 
 .team-lounge__world[data-canvas-state="ready"] .team-lounge__avatar-fallback {
-  display: none;
+  top: 0;
+  left: 0;
+}
+
+.team-lounge__avatar-fallback .avatar {
+  width: 2.85rem;
+  height: 2.85rem;
+  border: 0.18rem solid white;
+  box-shadow: 0 0.35rem 0.9rem rgb(7 28 37 / 34%);
+}
+
+.team-lounge__world--locked::before {
+  position: absolute;
+  z-index: 1;
+  background: inherit;
+  content: "";
+  filter: blur(6px) saturate(0.7);
+  inset: -0.75rem;
+  transform: scale(1.04);
+}
+
+.team-lounge__world--locked::after {
+  position: absolute;
+  z-index: 2;
+  background: rgb(4 30 31 / 52%);
+  content: "";
+  inset: 0;
+}
+
+.team-lounge__lock {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 0.7rem;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.team-lounge__lock-mark {
+  display: grid;
+  width: 3.4rem;
+  height: 3.4rem;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 30%);
+  border-radius: 999px;
+  background: rgb(7 49 40 / 90%);
+  color: var(--lime);
+  font-size: 1.25rem;
+}
+
+.team-lounge__lock h3,
+.team-lounge__lock p {
+  margin: 0;
+}
+
+.team-lounge__lock h3 {
+  color: white;
+  font-size: clamp(1.35rem, 6vw, 1.8rem);
+}
+
+.team-lounge__lock p {
+  max-width: 19rem;
+  color: rgb(255 255 255 / 82%);
+  font-size: 0.86rem;
+}
+
+.team-lounge__lock a {
+  min-height: 2.8rem;
+  display: inline-grid;
+  place-items: center;
+  padding: 0.55rem 1rem;
+  border-radius: 0.75rem;
+  background: var(--lime);
+  box-shadow: 0 0.24rem 0 #80a614;
+  color: #153622;
+  font-weight: 950;
 }
 
 .team-lounge__player-name {

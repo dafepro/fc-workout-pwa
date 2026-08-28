@@ -51,7 +51,7 @@ test("connected Today and activity logging use the server assignment", async ({
     page.getByRole("progressbar", { name: "Momentum: 8 out of 100" }),
   ).toHaveAttribute("aria-valuenow", "8");
 
-  await page.getByRole("link", { name: /Log session/i }).click();
+  await page.getByRole("link", { name: /Record this workout/i }).click();
   await expect(
     page.getByRole("link", { name: "Close training entry" }),
   ).toHaveCount(0);
@@ -106,7 +106,7 @@ test("connected Today and activity logging use the server assignment", async ({
   await expect(
     page.getByRole("link", { name: "See team progress" }),
   ).toBeVisible();
-  await expect(page.locator(".hero-card.is-celebrating")).toBeVisible();
+  await expect(page.locator(".today-plan-hero.is-celebrating")).toBeVisible();
 
   await page.getByRole("link", { name: "See team progress" }).click();
   const challenge = page.getByRole("region", { name: "Hill Sprints" });
@@ -146,27 +146,21 @@ test("connected Today and activity logging use the server assignment", async ({
   await expect(
     page.getByRole("heading", { name: "Done for today!" }),
   ).toBeVisible();
-  await expect(page.locator(".hero-card.is-celebrating")).toHaveCount(0);
+  await expect(page.locator(".today-plan-hero.is-celebrating")).toHaveCount(0);
 
   const secondEffort = await playerEffort(api);
   expect(secondEffort).toBe(firstEffort);
 
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/?saved=1&completed=1");
-  await expect(page.locator(".hero-card.is-celebrating")).toBeVisible();
-  for (const selector of [
-    ".hero-card.is-celebrating",
-    ".completion-check",
-    ".completion-burst i",
-  ]) {
-    await expect
-      .poll(() =>
-        page
-          .locator(selector)
-          .first()
-          .evaluate((element) => getComputedStyle(element).animationName),
-      )
-      .toBe("none");
-  }
+  const completionHero = page.locator(".today-plan-hero.is-celebrating");
+  await expect(completionHero).toBeVisible();
+  await expect
+    .poll(() =>
+      completionHero.evaluate(
+        (element) => getComputedStyle(element).animationName,
+      ),
+    )
+    .toBe("none");
   await api.dispose();
 });

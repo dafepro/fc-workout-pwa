@@ -30,6 +30,7 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   await expect(
     lounge.getByText("Press your player, then drag to move."),
   ).toBeVisible();
+  await expect(lounge.getByLabel("Mason C., you")).toBeVisible();
 
   const playerName = lounge.getByText("You", { exact: true });
   await expect(playerName).toBeVisible();
