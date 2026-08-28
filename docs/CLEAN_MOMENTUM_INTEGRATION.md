@@ -154,3 +154,7 @@ Each step is test-first and small enough to review independently.
 - The parity audit retained the final Canvas 0.4.1 Lounge and current prize authority, and rejected alternate shells, old Canvas/Lounge routes, free-text notes, prototype reward gateways, and migration churn; remaining prize presentation work is tracked separately.
 - Consolidated parity release gate: lint, typecheck, 321 frontend tests, production and development builds, and the migrated Docker API suite pass.
 - All 26 Docker browser workflows pass, including intentional additional-activity selection, the 320px Lounge, staff access, Prize Boxes, and training persistence.
+- Lounge Canvas v7 keeps scenery solid for players but lets the beach ball clear traps, and returns over-hit balls to a safe central point for immediate reuse.
+- Local cart/edge/re-kick tests and the 320px shared Docker proof cover authoritative ball recovery plus two-player presence and movement.
+- Removed the drag instruction and Lounge-only redundant self sparkle; the accessible current-player identity and selection ring remain.
+- Added `pnpm deploy:dev`, which validates a clean, pushed exact SHA, dispatches the trusted dev workflow, prints its URL, and exits without waiting.

@@ -13,6 +13,7 @@
     "test:e2e": "./scripts/e2e.sh",
     "test:browser": "playwright test",
     "test:vm": "./scripts/vm-smoke.sh",
+    "deploy:dev": "node scripts/deploy-dev.mjs",
     "verify": "./scripts/verify.sh",
     "typecheck": "tsc --noEmit",
     "format": "prettier --check .",

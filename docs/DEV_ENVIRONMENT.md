@@ -121,6 +121,11 @@ Run the **Operate disposable ZoomiGo dev** workflow from GitHub Actions:
 - `reset` reseeds fixtures without rebuilding or changing infrastructure.
 - `destroy` removes the Worker and disposable infrastructure.
 
+For the normal update path, commit and push the branch, then run
+`pnpm deploy:dev`. The command verifies that the worktree is clean and the exact
+current commit is the pushed branch head, dispatches that SHA through the
+trusted `main` workflow, prints the run URL, and exits without waiting.
+
 The workflow is serialized, so two operations cannot mutate the environment at
 once. Infrastructure state is separate from production. No resource has
 `prevent_destroy`, no Reserved IP is allocated, and no backup or alert email
