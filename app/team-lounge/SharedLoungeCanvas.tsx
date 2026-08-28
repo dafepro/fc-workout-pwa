@@ -249,7 +249,7 @@ export function SharedLoungeCanvas({
           grabRadiusPx: 36,
           flick: false,
         },
-        hideDisabledAvatars: true,
+        hideDisabledAvatars: false,
         onError: () => !disposed && onStateChange("error"),
       });
       runtimeRef.current = runtime;

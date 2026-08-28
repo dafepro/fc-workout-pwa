@@ -31,17 +31,27 @@ describe("Lounge action dock", () => {
       />,
     );
 
-    expect(screen.getByRole("navigation", { name: "Lounge actions" })).toBeVisible();
+    expect(
+      screen.getByRole("navigation", { name: "Lounge actions" }),
+    ).toBeVisible();
     expect(screen.queryByRole("dialog")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Stamps" }));
-    expect(screen.getByRole("dialog", { name: "Choose a Lounge item" })).toBeVisible();
+    expect(
+      screen.getByRole("dialog", { name: "Choose a Lounge item" }),
+    ).toBeVisible();
     expect(screen.getByText("2 placements left this week")).toBeVisible();
-    expect(screen.getByRole("button", { name: "Choose Bolt stamp" })).toBeVisible();
-    expect(screen.queryByRole("button", { name: "Choose Beach ball item" })).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Choose Bolt stamp" }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: "Choose Beach ball item" }),
+    ).toBeNull();
 
     fireEvent.click(screen.getByRole("tab", { name: "Items" }));
-    const beachBall = screen.getByRole("button", { name: "Choose Beach ball item" });
+    const beachBall = screen.getByRole("button", {
+      name: "Choose Beach ball item",
+    });
     expect(beachBall).toBeVisible();
     expect(screen.getByText("Earned")).toBeVisible();
     fireEvent.click(beachBall);
@@ -67,7 +77,11 @@ describe("Lounge action dock", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Stamps" }));
-    expect(screen.getByText("Complete another training day to place another item.")).toBeVisible();
-    expect(screen.getByRole("button", { name: "Choose Bolt stamp" })).toBeDisabled();
+    expect(
+      screen.getByText("Complete another training day to place another item."),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Choose Bolt stamp" }),
+    ).toBeDisabled();
   });
 });

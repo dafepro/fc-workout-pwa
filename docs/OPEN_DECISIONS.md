@@ -426,3 +426,15 @@ to resolve, not the implementing agent's.
 - Lounge reactions remain the five predefined emotes. Canvas derives sender
   identity and sequence; ZoomiGo validates membership, payload, and cooldown,
   while the effect is transient and never joins durable player history.
+- Item dragging is optimistic in the browser and sends no mutation while the
+  pointer moves. Releasing a move, or choosing rotate, scale, or delete, adds
+  one ZoomiGo permit round trip followed by one Canvas mutation.
+- The Docker browser gate budgets each permit round trip at 4 KiB, an idle
+  Lounge at 8 KiB/s of total WebSocket traffic, and the four-operation edit
+  sequence at 32 KiB of total WebSocket traffic. It also rejects more or fewer
+  than one permit for each committed operation.
+- Do not replace exact permits with an unbounded validation-only client stream.
+  A future Canvas capability lease may amortize move, rotate, and scale only if
+  it is short-lived and owner/entity/revision scoped, enforces transform bounds,
+  rate and sequence limits at mutation acceptance, and returns canonical state
+  for rollback after rejection. Delete remains separately authorized.

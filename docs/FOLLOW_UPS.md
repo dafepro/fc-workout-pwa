@@ -17,6 +17,12 @@ the Team Lounge.
   button was disabled and only stated that the room fit on one screen; do not
   restore a dead control. Define camera navigation first if the secured room
   grows beyond one viewport.
+- **Propose bounded edit leases to Canvas.** Ask for a short-lived capability
+  that lets ZoomiGo validate one owner/entity/revision edit session, then lets
+  Canvas accept rate- and sequence-limited move, rotate, and scale targets
+  inside product bounds with canonical rollback on rejection. Keep delete on a
+  separate exact authorization and retain the current one-use permits until the
+  library can enforce the complete contract.
 - **Decide production training-plan authoring authority.** The curated weekly
   planner now replaces legacy assignment creation in development builds. Keep
   production on the existing assignment console until the plan mutation routes

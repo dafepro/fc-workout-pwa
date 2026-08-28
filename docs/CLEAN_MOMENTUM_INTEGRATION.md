@@ -201,3 +201,9 @@ Each step is test-first and small enough to review independently.
   it also proves an accepted predefined reaction renders for that player.
 - The disabled Map placeholder remains absent, production stays at one API
   replica, and any camera navigation or topology change remains deliberate.
+- Disabled Canvas avatars remain projected as idle, so a qualified current
+  player stays visible through room sleep, teammate-first wake, and rejoin.
+- The 320px Docker gate now budgets idle and edit WebSocket bytes, caps each
+  permit round trip, and requires exactly one permit for each committed edit.
+- A bounded Canvas edit-lease proposal is tracked for later traffic reduction;
+  exact one-use authority remains until Canvas can enforce the full lease.

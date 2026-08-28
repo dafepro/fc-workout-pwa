@@ -1,6 +1,10 @@
 import { expect, request, test } from "@playwright/test";
 
 import { loginAsAva, openReadyPage } from "./app-ready";
+import {
+  loungeNetworkBudget,
+  observeLoungeNetwork,
+} from "./lounge-network-budget";
 
 const apiBaseURL = process.env.E2E_API_BASE_URL ?? "http://api:8080";
 const resetKey = process.env.E2E_RESET_KEY ?? "local-e2e-reset-only";
@@ -17,6 +21,8 @@ test.beforeEach(async () => {
 test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels", async ({
   page,
 }) => {
+  const network = observeLoungeNetwork(page);
+  const idleNetwork = observeLoungeNetwork(page);
   const api = await request.newContext({ baseURL: apiBaseURL });
   const completion = await api.post("/v1/me/training-entries", {
     headers: {
@@ -100,6 +106,14 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   await expect
     .poll(async () => Number(await stage.getAttribute("data-player-x")))
     .toBeGreaterThan(0);
+  const idleWindowSeconds = 3;
+  idleNetwork.start();
+  await page.waitForTimeout(idleWindowSeconds * 1_000);
+  const idleNetworkUsage = await idleNetwork.finish();
+  expect(idleNetworkUsage.permitRequests).toBe(0);
+  expect(idleNetworkUsage.webSocketBytes).toBeLessThanOrEqual(
+    loungeNetworkBudget.maxIdleWebSocketBytesPerSecond * idleWindowSeconds,
+  );
   const canvas = stage.locator("canvas");
   const canvasBox = await canvas.boundingBox();
   expect(canvasBox).not.toBeNull();
@@ -182,6 +196,7 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   await expect(
     lounge.getByRole("group", { name: "Edit selected stamp" }),
   ).toBeVisible();
+  network.start();
   await lounge.getByRole("button", { name: "Make stamp larger" }).click();
   await lounge
     .getByRole("button", { name: "Rotate stamp right 15 degrees" })
@@ -216,11 +231,9 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   expect(boltAfterMove!.y + boltAfterMove!.height).toBeLessThanOrEqual(
     movePlayfieldBox!.y + movePlayfieldBox!.height,
   );
+  await expect(editableBolt).toBeEnabled();
 
-  await page.mouse.move(
-    boltAfterMove!.x + boltAfterMove!.width / 2,
-    boltAfterMove!.y + boltAfterMove!.height / 2,
-  );
+  await editableBolt.hover();
   await page.mouse.down();
   await expect(lounge.getByLabel("Drop to remove item")).toBeVisible();
   const trashBox = await lounge.getByLabel("Drop to remove item").boundingBox();
@@ -238,6 +251,25 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
     timeout: 10_000,
   });
   await expect(editableBolt).toHaveCount(0);
+  const networkUsage = await network.finish();
+  const committedMutations = 4;
+  expect(networkUsage.permitRequests).toBe(
+    committedMutations * loungeNetworkBudget.permitRequestsPerCommittedMutation,
+  );
+  expect(networkUsage.permitKinds).toEqual([
+    "scale",
+    "rotation",
+    "transform",
+    "delete",
+  ]);
+  for (const bytes of networkUsage.permitRoundTripBytes) {
+    expect(bytes).toBeLessThanOrEqual(
+      loungeNetworkBudget.maxPermitRoundTripBytes,
+    );
+  }
+  expect(networkUsage.webSocketBytes).toBeLessThanOrEqual(
+    loungeNetworkBudget.maxEditSequenceWebSocketBytes,
+  );
   await lounge.getByRole("button", { name: "Stamps" }).click();
   const itemSheetBox = await lounge
     .getByRole("dialog", { name: "Choose a Lounge item" })
@@ -401,6 +433,81 @@ test("two qualified players share Lounge presence and avatar movement", async ({
         return Math.abs(remoteBall - remoteBallBeforeKick);
       })
       .toBeGreaterThan(1);
+  } finally {
+    await avaContext.close();
+  }
+});
+
+test("a qualified player sees their own avatar after a teammate wakes the room", async ({
+  browser,
+  page,
+}) => {
+  const api = await request.newContext({ baseURL: apiBaseURL });
+  for (const player of ["mason", "ava"]) {
+    const completion = await api.post("/v1/me/training-entries", {
+      headers: {
+        Authorization: `Bearer e2e-player-${player}`,
+        "Idempotency-Key": `browser-lounge-wake-rejoin-${player}`,
+      },
+      data: {
+        teamId: "team-hill-striders",
+        activityDefinitionId: "hill-sprints",
+        assignmentId: "assignment-hill-sprints",
+        occurredAt: new Date(Date.now() - 60_000).toISOString(),
+        result: { kind: "repetitions", value: 8, unit: "reps" },
+        effortLevel: 4,
+        exhaustionLevel: 3,
+        completionOutcome: "as_listed",
+      },
+    });
+    expect(completion.status()).toBe(201);
+  }
+  await api.dispose();
+
+  await openReadyPage(page, "/team");
+  const currentAvatar = page
+    .locator(".team-lounge__shared-avatar")
+    .filter({ hasText: "You" })
+    .getByLabel("Mason C., you");
+  await expect(currentAvatar).toBeVisible({ timeout: 15_000 });
+
+  await page.goto("/me");
+  await page.locator("html[data-app-ready='true']").waitFor();
+  await page.waitForTimeout(4_000);
+
+  const avaContext = await browser.newContext({
+    baseURL: process.env.E2E_PWA_BASE_URL ?? "http://pwa:3000",
+  });
+  const avaPage = await avaContext.newPage();
+  try {
+    await loginAsAva(avaPage);
+    await avaPage.goto("/team");
+    await avaPage.locator("html[data-app-ready='true']").waitFor();
+    await expect(avaPage.getByLabel("Mason visited this week")).toBeVisible({
+      timeout: 15_000,
+    });
+
+    await page.goto("/team");
+    await page.locator("html[data-app-ready='true']").waitFor();
+    const stage = page.getByLabel("Interactive lounge canvas");
+    await expect(stage.locator("canvas")).toBeVisible({ timeout: 15_000 });
+    await expect(currentAvatar).toBeVisible({ timeout: 15_000 });
+    await expect
+      .poll(async () => Number(await stage.getAttribute("data-player-x")))
+      .toBeGreaterThan(0);
+
+    await page.keyboard.press("p");
+    await page.waitForTimeout(1_500);
+    await expect(currentAvatar).toBeVisible();
+
+    await page.keyboard.press("p");
+    await page.waitForTimeout(500);
+    const masonLounge = page.getByRole("region", {
+      name: "Beach Boardwalk Team Lounge",
+    });
+    await masonLounge.getByRole("button", { name: "Emotes" }).click();
+    await masonLounge.getByRole("button", { name: "Send Wave emote" }).click();
+    await expect(masonLounge.getByRole("status")).toHaveText("Wave sent.");
   } finally {
     await avaContext.close();
   }
