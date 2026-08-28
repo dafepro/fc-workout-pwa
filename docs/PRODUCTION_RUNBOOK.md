@@ -335,6 +335,14 @@ hold. The operator command is therefore deliberately read-only: it separates
 expired, never-consumed permits from holds awaiting a Canvas receipt and flags
 consumed holds older than the requested reconciliation window.
 
+The `Monitor stale Lounge outcomes` GitHub workflow runs this report every six
+hours and may also be dispatched manually. It fails the run, emits a GitHub
+error annotation, and uses the repository's normal Actions-failure notification
+path when either stale outcome count is nonzero or when the report is malformed.
+The workflow never releases a hold, changes a permit, or writes to the database.
+Treat a failed scheduled run as an operator alert and follow the investigation
+steps below.
+
 ```sh
 cd /opt/app/deploy/vm
 sudo -n docker compose --env-file .env --profile operations run --rm --no-TTY admin \

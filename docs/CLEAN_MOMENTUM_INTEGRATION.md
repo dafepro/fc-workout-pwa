@@ -210,3 +210,7 @@ Each step is test-first and small enough to review independently.
 - Long-lived Lounge rooms now observe the V2-sized 200-entity projection set,
   and a stable current-player/canonical-arrival fallback prevents the signed-in avatar from disappearing during projection truncation or reconnect rebuilds.
 - The V2 overlay geometry is restored without its retired shell: emotes and item sheets layer over the fixed playfield, while normal actions and trash keep one constant dock footprint at 320px.
+- Live dev diagnosis traced the missing self-avatar past projection and CSS to a failed immutable Canvas v10 room; Canvas v11 now performs the clean room-and-template cutover while retaining the same 100-by-150 Lounge geometry.
+- [Dev run 33217941292](https://github.com/dafepro/fc-workout-pwa/actions/runs/33217941292) deployed the recovery; signed-in Mason visibly renders as “You” on desktop and at 320px, inside the playfield above the constant action dock with no horizontal overflow.
+- The trusted dev release workflow now gates every create/update on that same completed-training player, visible own-avatar, live Canvas, and 320px playfield/dock geometry proof.
+- A six-hour, manually dispatchable production monitor now runs the read-only Lounge hold report and alerts on malformed data or nonzero stale placement/edit outcomes without refunding, releasing, or otherwise mutating authority state.

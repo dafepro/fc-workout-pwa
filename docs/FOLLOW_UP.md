@@ -19,9 +19,6 @@ experiments.
 
 ## Team Lounge
 
-- Schedule the read-only `lounge-placement-holds` report and alert on nonzero
-  stale Canvas outcomes; the operator review procedure is now in the production
-  runbook and still never infers a release from age or browser state.
 - Record physical iOS Safari and Android Chrome performance budgets.
 - Decide whether the historical disabled Map placeholder should become real
   camera navigation after the secured editor lands. The reference branch's
@@ -32,7 +29,6 @@ experiments.
 
 ## Release quality
 
-- Run the canonical Lounge browser proof against the recreated dev PWA through the outer shared-password gate; hosted CI still validates the local Docker workflow separately.
 - Upgrade the GitHub Actions that still target the deprecated Node.js 20 runtime before GitHub stops force-running them on Node.js 24.
 - Complete installed-PWA, offline/update, keyboard, screen-reader, and
   reduced-motion reviews on physical devices.

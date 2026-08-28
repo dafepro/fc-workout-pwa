@@ -279,6 +279,20 @@ jobs:
           DEV_SMOKE_EXPECTED_RELEASE: ${{ needs.build.outputs.revision }}
         run: node scripts/dev-deploy-smoke.mjs --read-only
 
+      - name: Install the deployed-dev release browser
+        if: inputs.operation == 'create' || inputs.operation == 'update'
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Prove a qualified player's visible Lounge avatar
+        if: inputs.operation == 'create' || inputs.operation == 'update'
+        env:
+          DEV_LOUNGE_RELEASE_GATE: "true"
+          DEV_SMOKE_API_BASE_URL: https://api-dev.zoomigo.quicktrack.cc
+          DEV_API_GATEWAY_TOKEN: ${{ secrets.DEV_API_GATEWAY_TOKEN }}
+          DEV_ACCESS_PASSWORD: ${{ secrets.DEV_ACCESS_PASSWORD }}
+          E2E_PWA_BASE_URL: https://dev.zoomigo.quicktrack.cc
+        run: pnpm exec playwright test e2e/dev-lounge-release-gate.spec.ts
+
       - name: Prove final disposable-dev flows
         if: inputs.operation == 'create' || steps.infra.outputs.created == 'true'
         env:

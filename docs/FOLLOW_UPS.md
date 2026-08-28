@@ -6,10 +6,8 @@ the Team Lounge.
 
 ## P1 — before broadening the release shape
 
-- **Automate stale placement-outcome alerts.** The read-only operator report and
-  runbook now separate expired permits, pending receipts, and consumed holds
-  older than Canvas retention. Schedule it and alert on nonzero stale outcomes;
-  never introduce a browser-controlled or timer-only refund.
+- No queued P1 implementation work. Product, safety, and physical-device gates
+  remain in `docs/FOLLOW_UP.md` and `docs/OPEN_DECISIONS.md`.
 
 ## P2 — deliberate cleanup and product decisions
 

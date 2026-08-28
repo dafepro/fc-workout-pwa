@@ -262,6 +262,19 @@ test("updates prove the exact container and new infrastructure proves final flow
   assert.doesNotMatch(fullSmokeStep, /inputs\.operation == 'update'/);
   assert.match(fullSmokeStep, /DEV_SMOKE_EXPECTED_RELEASE/);
 
+  const loungeAvatarGate = workflow.indexOf(
+    "pnpm exec playwright test e2e/dev-lounge-release-gate.spec.ts",
+  );
+  assert.ok(loungeAvatarGate > readOnlySmoke);
+  const loungeAvatarStep = workflow.slice(
+    workflow.lastIndexOf("- name:", loungeAvatarGate),
+    loungeAvatarGate,
+  );
+  assert.match(loungeAvatarStep, /DEV_ACCESS_PASSWORD/);
+  assert.match(loungeAvatarStep, /DEV_API_GATEWAY_TOKEN/);
+  assert.match(loungeAvatarStep, /DEV_LOUNGE_RELEASE_GATE/);
+  assert.match(loungeAvatarStep, /E2E_PWA_BASE_URL/);
+
   assert.match(workflow, /retry-command\.sh 3 10 tofu init/);
   assert.match(workflow, /retry-command\.sh 3 15 tofu apply/);
   assert.match(workflow, /pnpm verify:worker-upload/);
