@@ -22,6 +22,7 @@ import { entriesWithinDays } from "../domain/rules";
 import { useTraining } from "../state/training-context";
 import { useAuth } from "../state/auth-context";
 import { TeamLounge } from "../team-lounge/TeamLounge";
+import { teamProgressGroups } from "./team-progress-groups";
 
 export default function TeamPage() {
   const { dashboard, entries, sendReaction } = useTraining();
@@ -172,29 +173,15 @@ export default function TeamPage() {
   }
 
   const groups = displayedProjection
-    ? [
+    ? teamProgressGroups(displayedProjection.team.weeklyGoal).map((group) =>
         teamGroup(
-          "completed",
-          "Completed",
-          "Goal met!",
-          "lime",
+          group.status,
+          group.title,
+          group.rule,
+          group.tone,
           displayedProjection,
         ),
-        teamGroup(
-          "one_away",
-          "One Away",
-          "Almost there!",
-          "gold",
-          displayedProjection,
-        ),
-        teamGroup(
-          "keep_going",
-          "Keep Going",
-          "You’ve got this!",
-          "blue",
-          displayedProjection,
-        ),
-      ]
+      )
     : [];
 
   return (

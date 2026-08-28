@@ -10,6 +10,7 @@ import { copy } from "../content/copy";
 import {
   earliestAllowedDate,
   isBackdateAllowed,
+  plannedActivityTarget,
   toDateInput,
 } from "../domain/rules";
 import type {
@@ -101,7 +102,7 @@ export default function LogPage() {
     setActivityId(selected.id);
     setValue(
       requestedPlanBlock?.activityDefinitionId === selected.id
-        ? selected.defaultValue
+        ? plannedActivityTarget(selected, requestedPlanBlock)
         : assignment?.activityDefinitionId === selected.id
           ? assignment.targetValue
           : selected.defaultValue,

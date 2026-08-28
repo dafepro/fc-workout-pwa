@@ -34,6 +34,36 @@ test.beforeEach(async () => {
   await api.dispose();
 });
 
+test("Today logs the coach-plan duration instead of the catalog default", async ({
+  page,
+}) => {
+  await publishPlan("quick-check-in-v1", teamDate(0));
+  await page.setViewportSize({ width: 320, height: 700 });
+  await openReadyPage(page, "/");
+
+  await expect(
+    page.getByRole("heading", { name: "Timed Run / Walk" }),
+  ).toBeVisible();
+  await expect(page.getByText("15 min", { exact: true })).toBeVisible();
+  await page.getByRole("link", { name: /Record this workout/i }).click();
+  await expect(
+    page.getByRole("spinbutton", { name: "Elapsed minutes" }),
+  ).toHaveValue("15");
+
+  const created = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/zoomigo/v1/me/training-entries") &&
+      response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Save" }).click();
+  const response = await created;
+  expect(response.status()).toBe(201);
+  expect(await response.json()).toMatchObject({
+    result: { kind: "duration", value: 15, unit: "minutes" },
+    plan: { dayIndex: 0, blockIndex: 0 },
+  });
+});
+
 test("connected Today and activity logging use the server assignment", async ({
   page,
 }) => {
@@ -164,3 +194,30 @@ test("connected Today and activity logging use the server assignment", async ({
     .toBe("none");
   await api.dispose();
 });
+
+async function publishPlan(templateId: string, startsOn: string) {
+  const api = await request.newContext({ baseURL: apiBaseURL });
+  const response = await api.post(
+    "/v1/staff/teams/team-hill-striders/training-plans",
+    {
+      headers: { Authorization: "Bearer e2e-coach-hill" },
+      data: { templateId, startsOn },
+    },
+  );
+  expect(response.status()).toBe(201);
+  await api.dispose();
+}
+
+function teamDate(offsetDays: number): string {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + offsetDays);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Chicago",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((candidate) => candidate.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}

@@ -1,6 +1,7 @@
 import type {
   ActivityDay,
   ActivityDefinition,
+  CurrentTrainingPlanDay,
   SocialEntryProjection,
   TrainingEntry,
 } from "./types";
@@ -68,6 +69,21 @@ export function getActivityInput(
   activityId: string,
 ): ActivityDefinition | undefined {
   return definitions.find((activity) => activity.id === activityId);
+}
+
+export function plannedActivityTarget(
+  activity: ActivityDefinition,
+  block?: CurrentTrainingPlanDay["blocks"][number],
+): number {
+  if (
+    block &&
+    activity.inputKind === "duration" &&
+    activity.unit === "minutes" &&
+    block.durationMinutes > 0
+  ) {
+    return block.durationMinutes;
+  }
+  return activity.defaultValue;
 }
 
 export function entriesWithinDays(

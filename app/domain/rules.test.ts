@@ -6,6 +6,7 @@ import {
   createDeleteDeadline,
   getActivityInput,
   isBackdateAllowed,
+  plannedActivityTarget,
   streakQuipValue,
   toSocialEntry,
 } from "./rules";
@@ -43,6 +44,30 @@ describe("activity-specific input model", () => {
     expect(getActivityInput(activities, "recovery-walk-jog")?.inputKind).toBe(
       "duration",
     );
+  });
+
+  it("uses a coach-plan duration instead of the catalog default", () => {
+    const durationActivity = activities.find(
+      (activity) => activity.id === "timed-run-walk",
+    )!;
+    const repetitionsActivity = activities.find(
+      (activity) => activity.id === "hill-sprints",
+    )!;
+    const block = {
+      blockIndex: 0,
+      activityDefinitionId: durationActivity.id,
+      label: durationActivity.name,
+      durationMinutes: 15,
+      completed: false,
+    };
+
+    expect(plannedActivityTarget(durationActivity, block)).toBe(15);
+    expect(
+      plannedActivityTarget(repetitionsActivity, {
+        ...block,
+        activityDefinitionId: repetitionsActivity.id,
+      }),
+    ).toBe(repetitionsActivity.defaultValue);
   });
 });
 

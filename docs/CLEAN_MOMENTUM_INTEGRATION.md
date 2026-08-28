@@ -124,3 +124,5 @@ Each step is test-first and small enough to review independently.
 - Today and Lounge correction: the next actionable workout now outranks completed rest, the V2 canvas renders and moves the configured ZoomiGo avatar, and locked players get one blurred, instructional gate instead of an empty room.
 - Consolidated-view dev release: [run 33140677844](https://github.com/dafepro/fc-workout-pwa/actions/runs/33140677844) updated the existing droplet to exact main SHA `f464c5b2a1d65fd7b8262327890cffc97bbda817` without resetting fixtures;
   live checks proved four QR/sign-in entries, Mason's completed-rest/incomplete-assignment state with Lounge access, and Ava's decisive locked-Lounge state.
+- Canonical correctness cleanup: planned duration workouts now open and save the coach's prescribed minutes, and player Team groups state the exact weekly-session rule without the retired ambiguous labels.
+- Development cache boundary: the dev-host service worker clears its caches and unregisters while production retains its offline shell; focused unit and browser coverage guard both modes.

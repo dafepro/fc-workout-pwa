@@ -7,6 +7,7 @@ export default defineConfig({
     include: [
       "app/**/*.test.{ts,tsx}",
       "lib/**/*.test.{ts,tsx}",
+      "tests/**/*.test.{ts,tsx}",
       "worker/**/*.test.{ts,tsx}",
     ],
   },
