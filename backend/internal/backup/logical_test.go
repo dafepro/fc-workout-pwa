@@ -34,6 +34,7 @@ var exportedTables = []string{
 	"team_lounge_visits",
 	"team_lounge_placement_credits",
 	"team_lounge_placement_reservations",
+	"team_lounge_item_mutation_permits",
 	"accounts",
 	"team_memberships",
 	"coach_team_assignments",
@@ -432,6 +433,19 @@ func fullyPopulatedDatabase(t *testing.T, ctx context.Context) string {
 			0, 1, '{}', zeroblob(32), randomblob(32), randomblob(32),
 			'2026-08-03T12:09:00Z', printf('%064d', 1), 'committed', 'canvas-item-1', NULL,
 			'2026-08-03T12:07:00Z', '2026-08-03T12:08:00Z'
+		)`,
+		`INSERT INTO team_lounge_item_mutation_permits (
+			permit_id, reservation_id, team_id, player_id, room_id, canvas_id, canvas_version,
+			entity_id, definition_id, definition_version, item_revision, mutation_kind,
+			position_x, position_y, rotation, scale, idempotency_key_hash, request_hash,
+			permit_hash, permit_expires_at, mutation_key, state, rejection_code, issued_at, finalized_at
+		) VALUES (
+			'lounge-mutation-logical', 'lounge-placement-logical', 'team-hill-striders',
+			'player-mason', 'team:team-hill-striders:lounge:2026-08-03:v6',
+			'zoomigo.team-lounge.beach-boardwalk', 6, 'canvas-item-1', 'zoomigo-stamp-bolt',
+			1, 3, 'rotation', 40, 70, 0.5, 1, randomblob(32), randomblob(32),
+			randomblob(32), '2026-08-03T12:10:00Z', printf('%064d', 2), 'accepted', NULL,
+			'2026-08-03T12:08:00Z', '2026-08-03T12:09:00Z'
 		)`,
 		`INSERT INTO accounts (id, club_id, player_id, role, status, created_at)
 		 VALUES ('account-coach', 'club-zoomigo', NULL, 'coach', 'active', '2026-01-02T00:00:00Z')`,

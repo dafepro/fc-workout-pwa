@@ -22,6 +22,9 @@ var (
 	ErrPlacementItemUnavailable  = errors.New("lounge placement item unavailable")
 	ErrPlacementIdempotency      = errors.New("lounge placement idempotency conflict")
 	ErrPlacementUnavailable      = errors.New("lounge placement unavailable")
+	ErrItemMutationNotEditable   = errors.New("lounge item is not editable")
+	ErrItemMutationIdempotency   = errors.New("lounge item mutation idempotency conflict")
+	ErrItemMutationUnavailable   = errors.New("lounge item mutation unavailable")
 )
 
 type Catalog struct {

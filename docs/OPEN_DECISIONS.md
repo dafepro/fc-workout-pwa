@@ -408,8 +408,21 @@ to resolve, not the implementing agent's.
   hold. `unknown` and `expired` remain held for operator review; browser claims
   and timeouts never release earned inventory.
 - Socket tickets, room leases, ownership generations, and emote cooldowns use
-  the application database as their atomic authority. A future replica topology
-  must share that authority and pass the recorded multi-process deployment proof.
+  the application database as their atomic authority.
+- Proven 2026-08-28: two real API processes sharing that SQLite database pass
+  atomic ticket consumption, fenced ownership handoff, stale-owner rejection,
+  graceful drain, and room-stable Caddy routing. Production remains at one API
+  replica until an intentional deployment-capacity change.
+- Move, rotate, scale, and delete each require a short-lived, one-use ZoomiGo
+  permit bound to the owner, current weekly room, Canvas and definition
+  generations, entity revision, one operation, and its exact target. Only the
+  player's own committed item from the current team-local day is editable.
+- A trusted accepted delete releases its placement credit; rejected, unknown,
+  and expired outcomes do not. Pending edit outcomes join the existing
+  reconnect reconciliation and read-only operator report.
+- The reference branch's Map action was a disabled placeholder, not working
+  parity. It remains absent unless camera navigation becomes an explicit
+  requirement after the secured editor and unobscured viewport are restored.
 - Lounge reactions remain the five predefined emotes. Canvas derives sender
   identity and sequence; ZoomiGo validates membership, payload, and cooldown,
   while the effect is transient and never joins durable player history.

@@ -23,11 +23,13 @@ experiments.
   stale Canvas outcomes; the operator review procedure is now in the production
   runbook and still never infers a release from age or browser state.
 - Record physical iOS Safari and Android Chrome performance budgets.
-- Prove two real API processes, the deployment proxy, and the intended shared
-  database through ownership handoff and graceful drain before scaling replicas.
-- Extend the one-use Canvas authority model to owner-bound move, rotate, scale,
-  and delete permits before restoring the momentum V2 stamp editor and trash
-  target; never expose those controls against unauthenticated durable mutations.
+- Restore the momentum V2 tap/drag editor, bounded size/rotation controls, and
+  trash target against the completed owner-bound permit gateway. Keep the
+  playable Canvas viewport above the action dock and item/emote sheets so the
+  ball and editable items cannot disappear behind product chrome.
+- Decide whether the historical disabled Map placeholder should become real
+  camera navigation after the secured editor lands. The reference branch's
+  button had no map behavior and only said that the room fit on one screen.
 - Design a second approved theme before adding theme scheduling or rollback UI.
 - Review any future predefined quick phrases separately; typed chat remains out
   of scope.

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   prepareTeamLoungeJoin,
+  requestTeamLoungeItemMutationPermit,
   reserveTeamLoungePlacement,
   requestTeamLoungeCredential,
 } from "./lounge-gateway";
@@ -107,5 +108,58 @@ describe("canonical Team Lounge gateway", () => {
       }),
     );
     expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("requests an exact owner-bound rotation permit before Canvas mutates", async () => {
+    const mutationPermitID = `lounge-mutation-${"b".repeat(32)}`;
+    const transform = { x: 20, y: 70, rotation: 0.5, scale: 1 };
+    const fetcher = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          mutationPermitId: mutationPermitID,
+          entityId: "canvas-item-one",
+          itemRevision: 3,
+          kind: "rotation",
+          transform,
+          permit: "m".repeat(43),
+        }),
+        { status: 201 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetcher);
+
+    await expect(
+      requestTeamLoungeItemMutationPermit(
+        "team-one",
+        response.roomId,
+        "canvas-item-one",
+        3,
+        "rotation",
+        transform,
+        "rotate-item-one",
+      ),
+    ).resolves.toEqual({
+      mutationPermitID,
+      entityID: "canvas-item-one",
+      itemRevision: 3,
+      kind: "rotation",
+      transform,
+      permit: "m".repeat(43),
+    });
+    expect(fetcher).toHaveBeenCalledWith(
+      "/api/zoomigo/v1/teams/team-one/lounge/items/canvas-item-one/mutation-permits",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          "Idempotency-Key": "rotate-item-one",
+        }),
+        body: JSON.stringify({
+          roomId: response.roomId,
+          itemRevision: 3,
+          kind: "rotation",
+          transform,
+        }),
+      }),
+    );
   });
 });

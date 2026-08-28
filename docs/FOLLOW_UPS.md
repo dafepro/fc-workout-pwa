@@ -6,18 +6,22 @@ the Team Lounge.
 
 ## P1 — before broadening the release shape
 
+- **Restore secured Lounge editing and its playable viewport.** Port the
+  reference branch's tap/drag move, bounded rotate/scale editor, and trash
+  target through the owner-bound mutation-permit API. Keep Canvas projection
+  above the dock and sheets so moving balls and items never disappear behind
+  controls.
 - **Automate stale placement-outcome alerts.** The read-only operator report and
   runbook now separate expired permits, pending receipts, and consumed holds
   older than Canvas retention. Schedule it and alert on nonzero stale outcomes;
   never introduce a browser-controlled or timer-only refund.
-- **Prove the production multi-process topology before scaling the API.** Canvas
-  0.6 room leases and ZoomiGo ticket nonces are now atomic in the application
-  database. Exercise two real API processes against the intended shared database
-  and proxy, including ownership handoff and graceful drain, before raising the
-  deployed replica count.
 
 ## P2 — deliberate cleanup and product decisions
 
+- **Decide whether the Lounge needs a real Map action.** The historical Map
+  button was disabled and only stated that the room fit on one screen; do not
+  restore a dead control. Define camera navigation first if the secured room
+  grows beyond one viewport.
 - **Decide production training-plan authoring authority.** The curated weekly
   planner now replaces legacy assignment creation in development builds. Keep
   production on the existing assignment console until the plan mutation routes

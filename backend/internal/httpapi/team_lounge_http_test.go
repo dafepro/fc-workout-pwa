@@ -13,6 +13,7 @@ import (
 
 	"github.com/coder/websocket"
 	pb "github.com/dafepro/canvas/server/gen/canvasphysicsv1"
+	"github.com/dafepro/canvas/server/pkg/roomsdk"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/config"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
@@ -21,6 +22,111 @@ import (
 	"github.com/dafepro/fc-workout-pwa/backend/internal/teamlounge"
 	"google.golang.org/protobuf/proto"
 )
+
+func TestTeamLoungeIssuesOwnerBoundItemMutationPermit(t *testing.T) {
+	ctx := context.Background()
+	now := time.Date(2026, time.August, 26, 18, 0, 0, 0, time.UTC)
+	databaseURL := "file:" + filepath.ToSlash(filepath.Join(t.TempDir(), "team-lounge-mutation-http.db"))
+	db, err := database.Open(ctx, databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if err := database.Migrate(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	for _, statement := range []string{
+		`INSERT INTO clubs (id, name, created_at) VALUES ('club-one', 'Zoomigo Club', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO teams (id, club_id, name, season_id, weekly_default_goal, time_zone, created_at) VALUES ('team-one', 'club-one', 'Trailblazers', 'season-2026', 3, 'America/Chicago', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-one', 'club-one', 'Mason', 'C', '{}', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-one', 'player-one', '2026-01-01')`,
+		`INSERT INTO training_entries (id, player_id, team_id, activity_definition_id, occurred_at, result_value, result_unit, effort_level, exhaustion_level, created_at, delete_eligible_until)
+		 VALUES ('entry-one', 'player-one', 'team-one', 'hill-sprints', '2026-08-26T17:00:00Z', 8, 'reps', 2, 2, '2026-08-26T17:00:00Z', '2026-08-27T17:00:00Z')`,
+	} {
+		if _, err := db.ExecContext(ctx, statement); err != nil {
+			t.Fatal(err)
+		}
+	}
+	loungeStore := teamlounge.NewSQLiteStore(db, teamlounge.BeachBoardwalkLoungeCatalog())
+	loungeStore.SetClock(func() time.Time { return now })
+	roomID := "team:team-one:lounge:2026-08-24:v10"
+	if _, err := loungeStore.BindRoom(ctx, roomID, "team-one", "2026-08-24",
+		roomsdk.RoomTemplate{CanvasID: teamlounge.BeachBoardwalkCanvasID,
+			CanvasVersion: teamlounge.BeachBoardwalkCanvasVersion}); err != nil {
+		t.Fatal(err)
+	}
+	reservation, err := loungeStore.ReservePlacement(ctx, roomID, "player-one", "place-editable",
+		teamlounge.PlacementRequest{DefinitionID: "zoomigo-stamp-bolt", DefinitionVersion: 1, X: 20, Y: 70}, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	item := roomsdk.SnapshotItem{EntityID: "canvas-item-editable", DefinitionID: reservation.DefinitionID,
+		DefinitionVersion: reservation.DefinitionVersion, OwnerUserID: "player-one", ItemRevision: 2,
+		Transform: roomsdk.Transform{X: reservation.X, Y: reservation.Y, Scale: 1}, ResolvedConfig: json.RawMessage(`{}`)}
+	decision, err := loungeStore.AuthorizeMutation(ctx, roomsdk.MutationAuthorizationRequest{
+		Participant: roomsdk.Identity{UserID: "player-one"}, RoomID: roomID,
+		CanvasID: teamlounge.BeachBoardwalkCanvasID, CanvasVersion: teamlounge.BeachBoardwalkCanvasVersion,
+		Kind: roomsdk.MutationKindSpawn, DefinitionID: reservation.DefinitionID,
+		DefinitionVersion: reservation.DefinitionVersion,
+		ProposedItem: &roomsdk.SnapshotItem{DefinitionID: reservation.DefinitionID,
+			DefinitionVersion: reservation.DefinitionVersion, OwnerUserID: "player-one",
+			Transform: roomsdk.Transform{X: reservation.X, Y: reservation.Y, Scale: 1}, ResolvedConfig: json.RawMessage(`{}`)},
+		Idempotency:           roomsdk.MutationIdempotencyIdentity{Key: "spawn-editable"},
+		AuthorizationEvidence: []byte(reservation.Permit), ApplicationCorrelationID: reservation.ID,
+	})
+	if err != nil || !decision.Authorized {
+		t.Fatalf("authorize seed placement = %+v, %v", decision, err)
+	}
+	if err := loungeStore.NotifyMutationOutcome(ctx, roomsdk.MutationOutcome{Status: roomsdk.MutationOutcomeAccepted,
+		CorrelationID: reservation.ID, RoomID: roomID, ParticipantID: "player-one",
+		Kind: roomsdk.MutationKindSpawn, EntityID: item.EntityID, DefinitionID: item.DefinitionID,
+		DefinitionVersion: item.DefinitionVersion, ItemRevision: 1}); err != nil {
+		t.Fatal(err)
+	}
+	rawSnapshot, err := json.Marshal(roomsdk.CanvasSnapshot{SchemaVersion: 1,
+		CanvasID: teamlounge.BeachBoardwalkCanvasID, CanvasVersion: teamlounge.BeachBoardwalkCanvasVersion,
+		SceneRevision: 2, CapturedAt: now.Format(time.RFC3339Nano), Normalized: true,
+		Items: []roomsdk.SnapshotItem{item}, Avatars: []roomsdk.SnapshotAvatar{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := loungeStore.SaveSnapshot(ctx, roomsdk.SnapshotRecord{RoomID: roomID,
+		CanvasID: teamlounge.BeachBoardwalkCanvasID, CanvasVersion: teamlounge.BeachBoardwalkCanvasVersion,
+		SceneRevision: 2, CapturedAt: now, Normalized: true, SnapshotRaw: rawSnapshot}); err != nil {
+		t.Fatal(err)
+	}
+
+	handler := httpapi.NewHandler(config.Config{AllowedOrigin: "http://example.test"},
+		httpapi.WithStore(store.New(db, time.UTC)), httpapi.WithTeamLoungeStore(loungeStore),
+		httpapi.WithAuthenticator(socialAuthenticator{actor: domain.Actor{
+			Role: domain.RolePlayer, PlayerID: "player-one", ClubID: "club-one"}}),
+		httpapi.WithClock(func() time.Time { return now }))
+	body := []byte(`{"roomId":"team:team-one:lounge:2026-08-24:v10","itemRevision":2,"kind":"rotation","transform":{"x":20,"y":70,"rotation":0.5,"scale":1}}`)
+	request := httptest.NewRequest(http.MethodPost,
+		"/v1/teams/team-one/lounge/items/canvas-item-editable/mutation-permits", bytes.NewReader(body))
+	request.Header.Set("Authorization", "Bearer test-session")
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Idempotency-Key", "rotate-editable")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusCreated {
+		t.Fatalf("mutation permit status = %d: %s", response.Code, response.Body.String())
+	}
+	var permit struct {
+		ID           string `json:"mutationPermitId"`
+		Permit       string `json:"permit"`
+		EntityID     string `json:"entityId"`
+		ItemRevision uint64 `json:"itemRevision"`
+		Kind         string `json:"kind"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&permit); err != nil {
+		t.Fatal(err)
+	}
+	if permit.ID == "" || len(permit.Permit) != 43 || permit.EntityID != item.EntityID ||
+		permit.ItemRevision != item.ItemRevision || permit.Kind != "rotation" {
+		t.Fatalf("mutation permit = %#v", permit)
+	}
+}
 
 func TestCanonicalTeamLoungeRequiresTodayCheckInAndJoinsCanvasRoom(t *testing.T) {
 	ctx := context.Background()

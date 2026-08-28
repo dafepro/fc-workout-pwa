@@ -14,7 +14,6 @@ Before planning or editing, read:
 - `docs/SCREEN_SPECS.md`
 - `docs/DOMAIN_MODEL.md`
 - `docs/OPEN_DECISIONS.md`
-- all images in `docs/mockups/`
 
 ## Working rules
 

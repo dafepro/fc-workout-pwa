@@ -142,6 +142,115 @@ export async function reserveTeamLoungePlacement(
   };
 }
 
+export type TeamLoungeItemMutationKind =
+  | "transform"
+  | "rotation"
+  | "scale"
+  | "delete";
+
+export interface TeamLoungeItemTransform {
+  x: number;
+  y: number;
+  rotation: number;
+  scale: number;
+}
+
+export async function requestTeamLoungeItemMutationPermit(
+  teamID: string,
+  roomID: string,
+  entityID: string,
+  itemRevision: number,
+  kind: TeamLoungeItemMutationKind,
+  transform: TeamLoungeItemTransform | null,
+  idempotencyKey: string,
+): Promise<{
+  mutationPermitID: string;
+  permit: string;
+  entityID: string;
+  itemRevision: number;
+  kind: TeamLoungeItemMutationKind;
+  transform: TeamLoungeItemTransform | null;
+}> {
+  const validID = /^[a-zA-Z0-9_-]{1,128}$/u;
+  if (
+    !validID.test(teamID) ||
+    !validID.test(entityID) ||
+    !roomID.startsWith(`team:${teamID}:lounge:`) ||
+    !Number.isSafeInteger(itemRevision) ||
+    itemRevision < 1 ||
+    !["transform", "rotation", "scale", "delete"].includes(kind) ||
+    (kind === "delete" ? transform !== null : !validTransform(transform))
+  ) {
+    throw new Error("That Lounge item could not be changed.");
+  }
+  const response = await fetch(
+    `/api/zoomigo/v1/teams/${encodeURIComponent(teamID)}/lounge/items/${encodeURIComponent(entityID)}/mutation-permits`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": idempotencyKey,
+      },
+      body: JSON.stringify({
+        roomId: roomID,
+        itemRevision,
+        kind,
+        ...(transform ? { transform } : {}),
+      }),
+    },
+  );
+  if (!response.ok) throw await placementError(response);
+  const body = (await response.json()) as Record<string, unknown>;
+  const mutationPermitID = body.mutationPermitId;
+  const permit = body.permit;
+  const returnedEntityID = body.entityId;
+  const returnedRevision = body.itemRevision;
+  const returnedKind = body.kind;
+  const returnedTransform = body.transform ?? null;
+  if (
+    typeof mutationPermitID !== "string" ||
+    !/^lounge-mutation-[a-f0-9]{32}$/u.test(mutationPermitID) ||
+    typeof permit !== "string" ||
+    !/^[a-zA-Z0-9_-]{43}$/u.test(permit) ||
+    returnedEntityID !== entityID ||
+    returnedRevision !== itemRevision ||
+    returnedKind !== kind ||
+    (kind === "delete"
+      ? returnedTransform !== null
+      : !validTransform(returnedTransform))
+  ) {
+    throw new Error("That Lounge item could not be changed.");
+  }
+  return {
+    mutationPermitID,
+    permit,
+    entityID,
+    itemRevision,
+    kind,
+    transform:
+      kind === "delete"
+        ? null
+        : (returnedTransform as unknown as TeamLoungeItemTransform),
+  };
+}
+
+function validTransform(value: unknown): value is TeamLoungeItemTransform {
+  if (!value || typeof value !== "object") return false;
+  const transform = value as Record<string, unknown>;
+  return (
+    typeof transform.x === "number" &&
+    Number.isFinite(transform.x) &&
+    typeof transform.y === "number" &&
+    Number.isFinite(transform.y) &&
+    typeof transform.rotation === "number" &&
+    Number.isFinite(transform.rotation) &&
+    typeof transform.scale === "number" &&
+    Number.isFinite(transform.scale) &&
+    transform.scale >= 0.75 &&
+    transform.scale <= 1.4
+  );
+}
+
 async function placementError(response: Response): Promise<Error> {
   let message = "That Lounge item could not be placed.";
   try {

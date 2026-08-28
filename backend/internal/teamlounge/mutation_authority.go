@@ -47,6 +47,9 @@ func (store *SQLiteStore) AuthorizeMutation(
 	ctx context.Context,
 	request roomsdk.MutationAuthorizationRequest,
 ) (roomsdk.MutationAuthorizationDecision, error) {
+	if request.Kind != roomsdk.MutationKindSpawn {
+		return store.authorizeItemMutation(ctx, request)
+	}
 	deny := func(reason string) (roomsdk.MutationAuthorizationDecision, error) {
 		return roomsdk.MutationAuthorizationDecision{Reason: reason}, nil
 	}
@@ -145,7 +148,7 @@ func (store *SQLiteStore) NotifyMutationOutcome(ctx context.Context, outcome roo
 		return nil
 	}
 	if outcome.Kind != roomsdk.MutationKindSpawn {
-		return ErrPlacementUnavailable
+		return store.notifyItemMutationOutcome(ctx, outcome)
 	}
 	state := "released"
 	entityID := ""
@@ -211,11 +214,16 @@ func (store *SQLiteStore) PlacementStates(ctx context.Context, reservationIDs ..
 }
 
 type PlacementHoldReport struct {
-	TotalHeld           int        `json:"totalHeld"`
-	ExpiredPermits      int        `json:"expiredPermits"`
-	AwaitingCanvas      int        `json:"awaitingCanvas"`
-	StaleCanvasOutcomes int        `json:"staleCanvasOutcomes"`
-	OldestHeldAt        *time.Time `json:"oldestHeldAt,omitempty"`
+	TotalHeld            int        `json:"totalHeld"`
+	ExpiredPermits       int        `json:"expiredPermits"`
+	AwaitingCanvas       int        `json:"awaitingCanvas"`
+	StaleCanvasOutcomes  int        `json:"staleCanvasOutcomes"`
+	OldestHeldAt         *time.Time `json:"oldestHeldAt,omitempty"`
+	TotalItemMutations   int        `json:"totalItemMutations"`
+	ExpiredItemPermits   int        `json:"expiredItemPermits"`
+	AwaitingItemOutcomes int        `json:"awaitingItemOutcomes"`
+	StaleItemOutcomes    int        `json:"staleItemOutcomes"`
+	OldestItemMutationAt *time.Time `json:"oldestItemMutationAt,omitempty"`
 }
 
 func (store *SQLiteStore) PlacementHoldReport(
@@ -253,6 +261,33 @@ func (store *SQLiteStore) PlacementHoldReport(
 			return PlacementHoldReport{}, fmt.Errorf("parse oldest Lounge placement hold: %w", err)
 		}
 		report.OldestHeldAt = &parsed
+	}
+	oldest = sql.NullString{}
+	err = store.db.QueryRowContext(ctx, `SELECT
+		COUNT(*),
+		COALESCE(SUM(CASE WHEN mutation_key IS NULL AND permit_expires_at <= ? THEN 1 ELSE 0 END), 0),
+		COALESCE(SUM(CASE WHEN mutation_key IS NOT NULL THEN 1 ELSE 0 END), 0),
+		COALESCE(SUM(CASE WHEN mutation_key IS NOT NULL AND issued_at <= ? THEN 1 ELSE 0 END), 0),
+		MIN(issued_at)
+		FROM team_lounge_item_mutation_permits WHERE state = 'issued'`,
+		now.UTC().Format(time.RFC3339Nano),
+		now.Add(-staleAfter).UTC().Format(time.RFC3339Nano),
+	).Scan(
+		&report.TotalItemMutations,
+		&report.ExpiredItemPermits,
+		&report.AwaitingItemOutcomes,
+		&report.StaleItemOutcomes,
+		&oldest,
+	)
+	if err != nil {
+		return PlacementHoldReport{}, fmt.Errorf("report Lounge item mutation holds: %w", err)
+	}
+	if oldest.Valid {
+		parsed, err := time.Parse(time.RFC3339Nano, oldest.String)
+		if err != nil {
+			return PlacementHoldReport{}, fmt.Errorf("parse oldest Lounge item mutation hold: %w", err)
+		}
+		report.OldestItemMutationAt = &parsed
 	}
 	return report, nil
 }

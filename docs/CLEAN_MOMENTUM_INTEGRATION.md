@@ -182,5 +182,17 @@ Each step is test-first and small enough to review independently.
 - Momentum V2 interface parity replaces the crowded in-canvas rows with a three-action dock, authenticated emote popover, categorized item sheet, source labels, weekly placement state, and a visible placement ghost while retaining the Canvas 0.6 authority path.
 - Operators now have a tested read-only `lounge-placement-holds` report and runbook that distinguish expired unconsumed permits, pending Canvas receipts, and stale consumed holds without granting any timer- or browser-driven release path.
 - The two-session Docker Lounge proof now follows a real kick through Canvas authority to the second browser, covering shared ball projection as well as authenticated presence and avatar movement.
-- Next Canvas chunk: prove two real API processes through fenced ownership handoff and graceful drain, then add owner-bound edit/delete permits before restoring the remaining momentum V2 stamp-editor controls.
 - [Dev run 33186493834](https://github.com/dafepro/fc-workout-pwa/actions/runs/33186493834) deployed exact app SHA `42f75977c312f695684b6aa930de45bb6e9ddf5c`; verification, packaging, image publication, and the public exact-container smoke all passed.
+- Two-process Canvas topology proof runs two real API binaries against one SQLite database behind the pinned deployment Caddy proxy; room-stable WebSocket routing, fenced ownership handoff, stale-owner rejection, graceful drain, and shared atomic ticket consumption pass together.
+- Production remains at one API replica; the proof adds no deployed replica and keeps any later scale change deliberate.
+- Retired the four initial visual mockups and removed their automatic context-loading requirement; current specifications, recorded decisions, and the consolidated application are the product authority.
+- Owner-bound Canvas edit authority now issues atomic one-use move, rotate,
+  scale, and delete permits bound to the current-day owner, room/canvas and
+  definition generations, entity revision, operation, and exact wire target.
+- Trusted outcomes finalize edit permits, only accepted delete returns the
+  placement credit, and pending edit receipts join reconnect reconciliation,
+  logical backup/reset coverage, and the read-only stale-outcome report.
+- Next Lounge UI chunk: restore the reference branch's tap/drag editor and trash
+  controls through this permit gateway, while keeping the playable Canvas above
+  overlays. Its disabled Map placeholder remains a later camera-navigation
+  decision rather than a missing implementation.

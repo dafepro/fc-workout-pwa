@@ -123,6 +123,11 @@ func (service *service) reconcileTeamLoungePlacements(ctx context.Context, roomI
 	if err != nil {
 		return err
 	}
+	itemCorrelations, err := service.teamLoungeStore.PendingItemMutationCorrelations(ctx, roomID, playerID)
+	if err != nil {
+		return err
+	}
+	correlations = append(correlations, itemCorrelations...)
 	for _, correlation := range correlations {
 		outcome, err := service.teamLoungeSDK.ReconcileMutation(ctx, roomID, correlation)
 		if err != nil {
@@ -135,6 +140,96 @@ func (service *service) reconcileTeamLoungePlacements(ctx context.Context, roomI
 		}
 	}
 	return nil
+}
+
+type teamLoungeItemMutationPermitRequest struct {
+	RoomID       string                   `json:"roomId"`
+	ItemRevision uint64                   `json:"itemRevision"`
+	Kind         roomsdk.MutationKind     `json:"kind"`
+	Transform    *teamLoungeItemTransform `json:"transform,omitempty"`
+}
+
+type teamLoungeItemTransform struct {
+	X        float64 `json:"x"`
+	Y        float64 `json:"y"`
+	Rotation float64 `json:"rotation"`
+	Scale    float64 `json:"scale"`
+}
+
+type teamLoungeItemMutationPermitResponse struct {
+	MutationPermitID string                   `json:"mutationPermitId"`
+	Permit           string                   `json:"permit"`
+	EntityID         string                   `json:"entityId"`
+	ItemRevision     uint64                   `json:"itemRevision"`
+	Kind             roomsdk.MutationKind     `json:"kind"`
+	Transform        *teamLoungeItemTransform `json:"transform,omitempty"`
+}
+
+func (service *service) issueTeamLoungeItemMutationPermit(w http.ResponseWriter, r *http.Request) {
+	actor, ok := service.authenticate(w, r)
+	if !ok {
+		return
+	}
+	if actor.Role != domain.RolePlayer || actor.PlayerID == "" || service.store == nil || service.teamLoungeStore == nil {
+		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
+		return
+	}
+	teamID := r.PathValue("teamId")
+	dashboard, err := service.store.TrainingDashboard(r.Context(), actor, teamID, service.now().UTC())
+	if err != nil {
+		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
+		return
+	}
+	if !dashboard.TeamPulse.Unlocked {
+		writeError(w, r, http.StatusLocked, "team_lounge_locked", "Complete or check in for today's plan to use the Team Lounge.")
+		return
+	}
+	key := strings.TrimSpace(r.Header.Get("Idempotency-Key"))
+	entityID := r.PathValue("entityId")
+	var request teamLoungeItemMutationPermitRequest
+	if len(key) < 1 || len(key) > 128 || entityID == "" || decodeStrictJSON(w, r, &request) != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid_request", "That Lounge edit request is invalid.")
+		return
+	}
+	requestTeamID, _, err := teamlounge.ParseWeeklyRoomID(request.RoomID)
+	if err != nil || requestTeamID != teamID {
+		writeError(w, r, http.StatusUnprocessableEntity, "item_room_unavailable", "That Team Lounge is unavailable.")
+		return
+	}
+	permitRequest := teamlounge.ItemMutationPermitRequest{EntityID: entityID,
+		ItemRevision: request.ItemRevision, Kind: request.Kind}
+	if request.Transform != nil {
+		permitRequest.Transform = &roomsdk.Transform{X: request.Transform.X, Y: request.Transform.Y,
+			Rotation: request.Transform.Rotation, Scale: request.Transform.Scale}
+	}
+	permit, err := service.teamLoungeStore.IssueItemMutationPermit(r.Context(), request.RoomID,
+		actor.PlayerID, key, permitRequest, service.now().UTC())
+	if err != nil {
+		switch {
+		case errors.Is(err, teamlounge.ErrItemMutationNotEditable):
+			writeError(w, r, http.StatusUnprocessableEntity, "item_not_editable", "Only your own items placed today can be changed.")
+		case errors.Is(err, teamlounge.ErrItemMutationIdempotency):
+			writeError(w, r, http.StatusConflict, "idempotency_conflict", "That edit request was already used.")
+		case errors.Is(err, teamlounge.ErrItemMutationUnavailable):
+			writeError(w, r, http.StatusBadRequest, "invalid_request", "That Lounge edit request is invalid.")
+		default:
+			writeError(w, r, http.StatusInternalServerError, "internal_error", "That Lounge item could not be changed.")
+		}
+		return
+	}
+	status := http.StatusCreated
+	if permit.Replayed {
+		status = http.StatusOK
+	}
+	var transform *teamLoungeItemTransform
+	if permit.Transform != nil {
+		transform = &teamLoungeItemTransform{X: permit.Transform.X, Y: permit.Transform.Y,
+			Rotation: permit.Transform.Rotation, Scale: permit.Transform.Scale}
+	}
+	writeJSON(w, status, teamLoungeItemMutationPermitResponse{
+		MutationPermitID: permit.ID, Permit: permit.Permit, EntityID: permit.EntityID,
+		ItemRevision: permit.ItemRevision, Kind: permit.Kind, Transform: transform,
+	})
 }
 
 type teamLoungePlacementRequest struct {
@@ -227,13 +322,14 @@ func (service *service) buildTeamLoungeRoomHandler() http.Handler {
 		Store:           teamlounge.NewBoundRoomStore(service.teamLoungeStore, nil),
 		RoomTemplates:   service.teamLoungeStore,
 		RoomCoordinator: service.teamLoungeStore.RoomCoordinator(),
+		ReplicaID:       service.cfg.CanvasReplicaID,
 		MutationAuthorizer: roomsdk.MutationAuthorizerFunc(func(
 			ctx context.Context,
 			request roomsdk.MutationAuthorizationRequest,
 		) (roomsdk.MutationAuthorizationDecision, error) {
 			decision, err := service.teamLoungeStore.AuthorizeMutation(ctx, request)
 			if err == nil && !decision.Authorized {
-				slog.Warn("Lounge placement denied", "room_id", request.RoomID,
+				slog.Warn("Lounge mutation denied", "room_id", request.RoomID,
 					"correlation_id", request.ApplicationCorrelationID, "reason", decision.Reason)
 			}
 			return decision, err

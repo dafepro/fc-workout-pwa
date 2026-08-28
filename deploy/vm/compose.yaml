@@ -26,6 +26,7 @@ services:
       METRICS_PORT: "9090"
       PORT: "8080"
       RELEASE_SHA: ${APP_VERSION:-manual}
+      CANVAS_REPLICA_ID: ${CANVAS_REPLICA_ID:-}
       SHUTDOWN_TIMEOUT: 15s
       TEAM_TIME_ZONE: ${TEAM_TIME_ZONE:-America/Chicago}
       # Absent, staff sign-in refuses rather than running without a second

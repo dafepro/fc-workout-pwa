@@ -244,6 +244,11 @@ entire daily write allowance.
 
 ## 5. Enable normal CI/CD
 
+Production still runs one API replica. The Caddy upstream defaults to that one
+`api:8080` service; only the Docker topology proof supplies two upstreams. Do
+not scale the deployed service or override `CADDY_UPSTREAMS` as an incidental
+release change.
+
 Set repository variable `PRODUCTION_DEPLOY_ENABLED=true`. It must be
 repository-scoped, not environment-scoped: a job-level `if` is evaluated before
 the environment is resolved, so an environment variable is not visible there.
@@ -336,10 +341,12 @@ sudo -n docker compose --env-file .env --profile operations run --rm --no-TTY ad
   lounge-placement-holds --stale-after 24h
 ```
 
-Any nonzero `staleCanvasOutcomes` count needs investigation against Canvas room
-logs and retained mutation receipts. Never release a hold merely because it is
-old or because a browser reports a timeout. `expiredPermits` are likewise
-reported, not automatically refunded.
+Any nonzero `staleCanvasOutcomes` or `staleItemOutcomes` count needs
+investigation against Canvas room logs and retained mutation receipts. The item
+fields separately report `totalItemMutations`, `expiredItemPermits`,
+`awaitingItemOutcomes`, and the oldest pending edit. Never release a hold or
+finalize an edit merely because it is old or because a browser reports a
+timeout. Expired permits are likewise reported, not automatically acted on.
 
 ## Creating the first operator account
 

@@ -102,6 +102,7 @@ func TestLoungePlacementHoldsReportsOperationalCountsWithoutMutation(t *testing.
 	result := adminRun(t, databaseURL, "lounge-placement-holds", "--stale-after", "24h")
 	for _, field := range []string{
 		"totalHeld", "expiredPermits", "awaitingCanvas", "staleCanvasOutcomes",
+		"totalItemMutations", "expiredItemPermits", "awaitingItemOutcomes", "staleItemOutcomes",
 	} {
 		if result[field] != float64(0) {
 			t.Fatalf("%s = %v, want 0 in empty database", field, result[field])
