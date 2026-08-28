@@ -136,6 +136,12 @@ export function SharedLoungeCanvas({
     let unsubscribeLifecycle: () => void = () => undefined;
     let unsubscribeEffects: () => void = () => undefined;
 
+    const failCanvas = (cause: unknown) => {
+      if (disposed) return;
+      console.error("The Lounge Canvas failed.", cause);
+      onStateChange("error");
+    };
+
     const publishOverlays = () => {
       if (disposed) return;
       const localAvatarEntityID = `avatar:${playerID}`;
@@ -280,7 +286,7 @@ export function SharedLoungeCanvas({
           flick: false,
         },
         hideDisabledAvatars: false,
-        onError: () => !disposed && onStateChange("error"),
+        onError: failCanvas,
       });
       runtimeRef.current = runtime;
       unsubscribePresence = runtime.subscribePresence(
@@ -338,7 +344,7 @@ export function SharedLoungeCanvas({
         publishOverlays();
         onStateChange("ready");
       }
-    })().catch(() => !disposed && onStateChange("error"));
+    })().catch(failCanvas);
 
     return () => {
       disposed = true;
