@@ -13,8 +13,8 @@ import (
 
 const (
 	BeachBoardwalkCanvasID       = "zoomigo-beach-boardwalk"
-	BeachBoardwalkCanvasVersion  = uint32(10)
-	BeachBoardwalkRoomGeneration = uint32(11)
+	BeachBoardwalkCanvasVersion  = uint32(11)
+	BeachBoardwalkRoomGeneration = BeachBoardwalkCanvasVersion
 )
 
 type ThemeManifest struct {
@@ -184,7 +184,7 @@ func loungeStampDefinitionJSON(assetID string) json.RawMessage {
 }
 
 const beachBoardwalkCanvasJSON = `{
-  "id":"zoomigo-beach-boardwalk","version":10,
+  "id":"zoomigo-beach-boardwalk","version":11,
   "size":{"width":100,"height":150},"orientation":"topDown",
   "backgroundAssetId":"lounge.background",
   "edges":{"top":"solid","right":"solid","bottom":"solid","left":"solid"},

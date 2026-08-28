@@ -138,7 +138,7 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 	if canvas.CanvasID != BeachBoardwalkCanvasID || canvas.Version != BeachBoardwalkCanvasVersion || !json.Valid(canvas.DefinitionRaw) {
 		t.Fatalf("canvas record = %#v", canvas)
 	}
-	if canvas.Version != 10 {
+	if canvas.Version != 11 {
 		t.Fatalf("canvas version = %d", canvas.Version)
 	}
 	var shape struct {
