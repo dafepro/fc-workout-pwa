@@ -27,8 +27,18 @@ const (
 func configuredAuthenticator(cfg config.Config, sessions *authn.Service, staff *staffauth.Service) (authn.Authenticator, func(context.Context) error) {
 	if cfg.EnableE2EFixtures {
 		reset := func(ctx context.Context) error {
-			if err := sessions.ResetE2ECredential(ctx, "account-mason", "2468",
-				"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"); err != nil {
+			if err := sessions.ResetE2ECredentials(ctx,
+				authn.E2ECredential{
+					AccountID: "account-mason",
+					PIN:       "2468",
+					Token:     "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+				},
+				authn.E2ECredential{
+					AccountID: "account-ava",
+					PIN:       "1357",
+					Token:     "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+				},
+			); err != nil {
 				return err
 			}
 			if !staff.Configured() {

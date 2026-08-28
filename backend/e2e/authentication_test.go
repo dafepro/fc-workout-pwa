@@ -10,6 +10,8 @@ import (
 const (
 	e2eLoginCredential = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 	e2eLoginPIN        = "2468"
+	e2eAvaCredential   = "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+	e2eAvaPIN          = "1357"
 )
 
 func TestQRAndPINSessionLifecycleAndLockout(t *testing.T) {

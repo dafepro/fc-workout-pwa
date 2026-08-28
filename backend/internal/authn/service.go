@@ -369,7 +369,13 @@ func (service *Service) IssueCredentialWithToken(ctx context.Context, accountID,
 	return service.issueCredential(ctx, accountID, pin, token)
 }
 
-func (service *Service) ResetE2ECredential(ctx context.Context, accountID, pin, token string) error {
+type E2ECredential struct {
+	AccountID string
+	PIN       string
+	Token     string
+}
+
+func (service *Service) ResetE2ECredentials(ctx context.Context, fixtures ...E2ECredential) error {
 	tx, err := service.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -383,8 +389,12 @@ func (service *Service) ResetE2ECredential(ctx context.Context, accountID, pin, 
 	if err := tx.Commit(); err != nil {
 		return err
 	}
-	_, err = service.IssueCredentialWithToken(ctx, accountID, pin, token)
-	return err
+	for _, fixture := range fixtures {
+		if _, err = service.IssueCredentialWithToken(ctx, fixture.AccountID, fixture.PIN, fixture.Token); err != nil {
+			return fmt.Errorf("issue e2e credential for %s: %w", fixture.AccountID, err)
+		}
+	}
+	return nil
 }
 
 func (service *Service) issueCredential(ctx context.Context, accountID, pin, token string) (Credential, error) {

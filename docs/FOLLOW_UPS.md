@@ -11,10 +11,9 @@ the Team Lounge.
   Keep earned Lounge stamps and props in ZoomiGo inventory but do not make them
   placeable in the shared room until Canvas adds a safe policy extension or the
   placement is mediated by a ZoomiGo-owned endpoint. Do not trust client item IDs.
-- **Prove two-player live-room behavior.** Add one connected Docker browser test
-  with two qualified players that verifies presence, avatar movement, and the
-  shared ball across two sessions. The current release proof exercises the real
-  websocket, persisted room, configured avatar, and drag path with one player.
+- **Finish two-player live-room behavior.** A connected Docker browser test now
+  proves two qualified players share presence and avatar movement across two
+  authenticated sessions. Extend that proof to cross-session beach-ball motion.
 - **Choose the multi-replica room strategy before scaling the API.** One-use
   socket tickets and live Canvas coordinators are process-local. The current
   single-replica VM is supported; multiple replicas require sticky room routing

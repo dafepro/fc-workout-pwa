@@ -109,7 +109,10 @@ func startLocalAPI(t *testing.T) string {
 		httpapi.WithStaffAccountManager(staff),
 		httpapi.WithCredentialManager(sessions),
 		httpapi.WithAuthFixtureReset(func(ctx context.Context) error {
-			return sessions.ResetE2ECredential(ctx, "account-mason", e2eLoginPIN, e2eLoginCredential)
+			return sessions.ResetE2ECredentials(ctx,
+				authn.E2ECredential{AccountID: "account-mason", PIN: e2eLoginPIN, Token: e2eLoginCredential},
+				authn.E2ECredential{AccountID: "account-ava", PIN: e2eAvaPIN, Token: e2eAvaCredential},
+			)
 		}),
 	))
 	t.Cleanup(server.Close)

@@ -1,6 +1,6 @@
 import { expect, request, test } from "@playwright/test";
 
-import { openReadyPage } from "./app-ready";
+import { loginAsAva, openReadyPage } from "./app-ready";
 
 const apiBaseURL = process.env.E2E_API_BASE_URL ?? "http://api:8080";
 const resetKey = process.env.E2E_RESET_KEY ?? "local-e2e-reset-only";
@@ -81,4 +81,89 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
       () => document.documentElement.scrollWidth <= window.innerWidth + 1,
     ),
   ).toBe(true);
+});
+
+test("two qualified players share Lounge presence and avatar movement", async ({
+  browser,
+  page,
+}) => {
+  const api = await request.newContext({ baseURL: apiBaseURL });
+  for (const player of ["mason", "ava"]) {
+    const completion = await api.post("/v1/me/training-entries", {
+      headers: {
+        Authorization: `Bearer e2e-player-${player}`,
+        "Idempotency-Key": `browser-lounge-two-player-${player}`,
+      },
+      data: {
+        teamId: "team-hill-striders",
+        activityDefinitionId: "hill-sprints",
+        assignmentId: "assignment-hill-sprints",
+        occurredAt: new Date(Date.now() - 60_000).toISOString(),
+        result: { kind: "repetitions", value: 8, unit: "reps" },
+        effortLevel: 4,
+        exhaustionLevel: 3,
+        completionOutcome: "as_listed",
+      },
+    });
+    expect(completion.status()).toBe(201);
+  }
+  await api.dispose();
+
+  const avaContext = await browser.newContext({
+    baseURL: process.env.E2E_PWA_BASE_URL ?? "http://pwa:3000",
+  });
+  const avaPage = await avaContext.newPage();
+  try {
+    await Promise.all([
+      page.setViewportSize({ width: 320, height: 720 }),
+      avaPage.setViewportSize({ width: 320, height: 720 }),
+    ]);
+    await openReadyPage(page, "/team");
+    await loginAsAva(avaPage);
+    await avaPage.goto("/team");
+    await avaPage.locator("html[data-app-ready='true']").waitFor();
+
+    const masonLounge = page.getByRole("region", {
+      name: "Beach Boardwalk Team Lounge",
+    });
+    const avaLounge = avaPage.getByRole("region", {
+      name: "Beach Boardwalk Team Lounge",
+    });
+    await expect(masonLounge.getByText("2 here")).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(avaLounge.getByText("2 here")).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(masonLounge.getByLabel("Ava R.")).toBeVisible();
+    await expect(avaLounge.getByLabel("Mason C.")).toBeVisible();
+
+    const masonSelf = masonLounge
+      .locator(".team-lounge__shared-avatar")
+      .filter({ hasText: "You" });
+    const masonOnAvaPage = avaLounge
+      .locator(".team-lounge__shared-avatar")
+      .filter({ hasText: "Mason" });
+    const startSelf = await masonSelf.boundingBox();
+    const startRemote = await masonOnAvaPage.boundingBox();
+    expect(startSelf).not.toBeNull();
+    expect(startRemote).not.toBeNull();
+
+    await page.mouse.move(
+      startSelf!.x + startSelf!.width / 2,
+      startSelf!.y + 30,
+    );
+    await page.mouse.down();
+    await page.mouse.move(startSelf!.x + 45, startSelf!.y + 30, { steps: 8 });
+    await page.mouse.up();
+
+    await expect
+      .poll(async () => {
+        const current = await masonOnAvaPage.boundingBox();
+        return current ? Math.abs(current.x - startRemote!.x) : 0;
+      })
+      .toBeGreaterThan(3);
+  } finally {
+    await avaContext.close();
+  }
 });
