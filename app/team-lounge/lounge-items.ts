@@ -73,7 +73,7 @@ export const loungeItemDefinitions: ItemDefinition[] = itemCatalog.map(
 );
 loungeItemDefinitions.push({
   definitionId: beachBallProp.definitionId,
-  version: 1,
+  version: 2,
   displayName: "Beach ball prop",
   visual: {
     size: { width: 9, height: 9 },
@@ -96,11 +96,7 @@ loungeItemDefinitions.push({
       shape: { type: "circle", radius: 4.5 },
       restitution: 0.82,
       friction: 0.18,
-      collisionMask:
-        CollisionLayer.WORLD_STATIC |
-        CollisionLayer.ITEM_SOLID |
-        CollisionLayer.ITEM_SENSOR |
-        CollisionLayer.REGION_SENSOR,
+      collisionMask: CollisionLayer.WORLD_STATIC,
     },
     { id: "kick", role: "itemSensor", shape: { type: "circle", radius: 5.8 } },
   ],

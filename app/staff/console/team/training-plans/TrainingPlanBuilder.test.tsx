@@ -29,6 +29,9 @@ describe("TrainingPlanBuilder", () => {
       name: "Training plan builder",
     });
     expect(region).toHaveTextContent("Whole team");
+    expect(region).toHaveTextContent(
+      "5–20 minutes per active day · up to 5 active days · up to 2 hard days · at least 1 full rest day",
+    );
     expect(
       within(screen.getByRole("list", { name: "Plan schedule" })).getAllByRole(
         "listitem",

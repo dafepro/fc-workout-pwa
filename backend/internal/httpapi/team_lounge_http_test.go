@@ -92,13 +92,13 @@ func TestCanonicalTeamLoungeRequiresTodayCheckInAndJoinsCanvasRoom(t *testing.T)
 	if err := json.NewDecoder(ticketResponse.Body).Decode(&credential); err != nil {
 		t.Fatal(err)
 	}
-	if len(credential.Ticket) != 43 || credential.RoomID != "team:team-one:lounge:2026-08-24:v8" ||
+	if len(credential.Ticket) != 43 || credential.RoomID != "team:team-one:lounge:2026-08-24:v9" ||
 		credential.WeekKey != "2026-08-24" || credential.DayKey != "2026-08-26" ||
 		credential.Theme != "Beach Boardwalk" || credential.Presence != 0 || credential.Credits != 1 {
 		t.Fatalf("credential = %#v", credential)
 	}
 
-	placementBody := []byte(`{"roomId":"team:team-one:lounge:2026-08-24:v8","definitionId":"zoomigo-stamp-bolt","position":{"x":40,"y":70}}`)
+	placementBody := []byte(`{"roomId":"team:team-one:lounge:2026-08-24:v9","definitionId":"zoomigo-stamp-bolt","position":{"x":40,"y":70}}`)
 	reservePlacement := func(key string) *httptest.ResponseRecorder {
 		request := httptest.NewRequest(http.MethodPost, "/v1/teams/team-one/lounge/placements", bytes.NewReader(placementBody))
 		request.Header.Set("Authorization", "Bearer test-session")
@@ -144,7 +144,7 @@ func TestCanonicalTeamLoungeRequiresTodayCheckInAndJoinsCanvasRoom(t *testing.T)
 		Payload: &pb.RoomEnvelope_Join{Join: &pb.Join{
 			RoomId: credential.RoomID, ProtocolVersion: 8,
 			Definitions: []*pb.DefinitionVersion{
-				{DefinitionId: "beach-ball", Version: 4},
+				{DefinitionId: "beach-ball", Version: 5},
 				{DefinitionId: "avatar", Version: 1},
 			},
 		}},

@@ -105,6 +105,9 @@ func TrainingPlanTemplateByID(id string) (TrainingPlanTemplate, bool) {
 
 func ValidateTrainingPlanTemplate(template TrainingPlanTemplate) []string {
 	errors := []string{}
+	if len(template.Days) > 7 {
+		errors = append(errors, "Plans may contain at most seven consecutive days.")
+	}
 	validActivities := map[string]bool{
 		"hill-sprints": true, "timed-run-walk": true,
 		"distance-run": true, "recovery-walk-jog": true,
@@ -151,16 +154,29 @@ func ValidateTrainingPlanTemplate(template TrainingPlanTemplate) []string {
 			errors = appendPlanError(errors, "Hard days must not be consecutive.")
 		}
 	}
-	if len(template.Days) >= 7 {
-		hasRecovery := false
+	if len(template.Days) == 7 {
+		activeDays := 0
+		hardDays := 0
+		restDays := 0
 		for _, day := range template.Days {
-			if day.Kind == TrainingPlanRecovery || day.Kind == TrainingPlanRest {
-				hasRecovery = true
-				break
+			if day.Kind != TrainingPlanRest {
+				activeDays++
+			}
+			if day.Intensity == TrainingPlanHard {
+				hardDays++
+			}
+			if day.Kind == TrainingPlanRest {
+				restDays++
 			}
 		}
-		if !hasRecovery {
-			errors = append(errors, "Include at least one recovery or rest day.")
+		if activeDays > 5 {
+			errors = append(errors, "Seven-day plans may contain at most five active days.")
+		}
+		if hardDays > 2 {
+			errors = append(errors, "Seven-day plans may contain at most two hard days.")
+		}
+		if restDays == 0 {
+			errors = append(errors, "Seven-day plans must include at least one full rest day.")
 		}
 	}
 	return errors

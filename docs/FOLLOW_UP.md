@@ -7,7 +7,6 @@ experiments.
 
 ## Product and safety
 
-- Approve numeric workload bounds for coach training plans.
 - Approve the initial Prize Box catalog, rarity labels, and destination balance.
 - Approve the initial Team Reward catalog, artwork, and fulfillment language.
 - Decide whether an incomplete Team Reward auto-closes at its end date or waits

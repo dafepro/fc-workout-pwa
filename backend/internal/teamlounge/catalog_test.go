@@ -93,14 +93,14 @@ func TestWeeklyRoomIdentityRoundTrips(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if roomID != "team:team-one:lounge:2026-08-24:v8" {
+	if roomID != "team:team-one:lounge:2026-08-24:v9" {
 		t.Fatalf("room id = %q", roomID)
 	}
 	teamID, weekKey, err := ParseWeeklyRoomID(roomID)
 	if err != nil || teamID != "team-one" || weekKey != "2026-08-24" {
 		t.Fatalf("parsed = %q, %q, %v", teamID, weekKey, err)
 	}
-	for _, invalid := range []string{"", "team:other", "team:team/one:lounge:2026-08-24:v8", "team:team-one:lounge:today:v8", "team:team-one:lounge:2026-08-25:v8", "team:team-one:lounge:2026-08-24", "team:team-one:lounge:2026-08-24:v7"} {
+	for _, invalid := range []string{"", "team:other", "team:team/one:lounge:2026-08-24:v9", "team:team-one:lounge:today:v9", "team:team-one:lounge:2026-08-25:v9", "team:team-one:lounge:2026-08-24", "team:team-one:lounge:2026-08-24:v8"} {
 		if _, _, err := ParseWeeklyRoomID(invalid); err == nil {
 			t.Fatalf("accepted invalid room id %q", invalid)
 		}
@@ -135,7 +135,7 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 	if canvas.CanvasID != BeachBoardwalkCanvasID || canvas.Version != BeachBoardwalkCanvasVersion || !json.Valid(canvas.DefinitionRaw) {
 		t.Fatalf("canvas record = %#v", canvas)
 	}
-	if canvas.Version != 8 {
+	if canvas.Version != 9 {
 		t.Fatalf("canvas version = %d", canvas.Version)
 	}
 	var shape struct {
@@ -178,10 +178,8 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 			t.Fatalf("canvas edge %s = %q", edge, shape.Edges[edge])
 		}
 	}
-	for _, geometry := range shape.StaticGeometry {
-		if !geometry.Blocks.Avatars || geometry.Blocks.Items {
-			t.Fatalf("unsafe ball-blocking geometry = %#v", geometry.Blocks)
-		}
+	if len(shape.StaticGeometry) != 0 {
+		t.Fatalf("boardwalk scenery must not block players or balls: %#v", shape.StaticGeometry)
 	}
 	if len(shape.SpawnPoints) != 1 || shape.SpawnPoints[0].ID != "arrival" {
 		t.Fatalf("canvas spawn points = %#v", shape.SpawnPoints)
@@ -205,7 +203,7 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 	if err := json.Unmarshal(catalog.Items[0].DefinitionRaw, &ball); err != nil {
 		t.Fatal(err)
 	}
-	if ball.Version != 4 || ball.Visual.SpriteID != "lounge.ball" || len(ball.Colliders) < 1 || ball.Colliders[0].CollisionMask != 60 {
+	if ball.Version != 5 || ball.Visual.SpriteID != "lounge.ball" || len(ball.Colliders) < 1 || ball.Colliders[0].CollisionMask != 4 {
 		t.Fatalf("beach ball definition = %#v", ball)
 	}
 	var avatar struct {
@@ -231,7 +229,7 @@ func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 			t.Fatalf("development item = %#v", item)
 		}
 	}
-	if item := catalog.Items[12]; item.DefinitionID != "zoomigo-prop-beach-ball" || item.Version != 1 {
+	if item := catalog.Items[12]; item.DefinitionID != "zoomigo-prop-beach-ball" || item.Version != 2 {
 		t.Fatalf("development prop = %#v", item)
 	}
 }

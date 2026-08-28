@@ -13,7 +13,7 @@ import (
 
 const (
 	BeachBoardwalkCanvasID      = "zoomigo-beach-boardwalk"
-	BeachBoardwalkCanvasVersion = uint32(8)
+	BeachBoardwalkCanvasVersion = uint32(9)
 )
 
 type ThemeManifest struct {
@@ -125,7 +125,7 @@ func BeachBoardwalkCatalog() Catalog {
 		}},
 		Items: []roomsdk.ItemDefinitionRecord{
 			{
-				DefinitionID: "beach-ball", Version: 4, Complexity: roomsdk.ItemComplexitySimple,
+				DefinitionID: "beach-ball", Version: 5, Complexity: roomsdk.ItemComplexitySimple,
 				ConfigSchema:  json.RawMessage(loungeBallConfigSchemaJSON),
 				DefinitionRaw: json.RawMessage(beachBallDefinitionJSON),
 			},
@@ -151,7 +151,7 @@ func BeachBoardwalkDevelopmentCatalog() Catalog {
 		})
 	}
 	catalog.Items = append(catalog.Items, roomsdk.ItemDefinitionRecord{
-		DefinitionID: "zoomigo-prop-beach-ball", Version: 1,
+		DefinitionID: "zoomigo-prop-beach-ball", Version: 2,
 		Complexity: roomsdk.ItemComplexitySimple, ConfigSchema: json.RawMessage(loungeBallConfigSchemaJSON),
 		DefinitionRaw: json.RawMessage(beachBallPropDefinitionJSON),
 	})
@@ -178,32 +178,26 @@ func loungeStampDefinitionJSON(assetID string) json.RawMessage {
 }
 
 const beachBoardwalkCanvasJSON = `{
-  "id":"zoomigo-beach-boardwalk","version":8,
+  "id":"zoomigo-beach-boardwalk","version":9,
   "size":{"width":100,"height":150},"orientation":"topDown",
   "backgroundAssetId":"lounge.background",
   "edges":{"top":"solid","right":"solid","bottom":"solid","left":"solid"},
-  "staticGeometry":[
-    {"id":"lifeguard-hut","shape":{"type":"rect","width":38,"height":42},"position":{"x":79,"y":27},"rotation":0,"blocks":{"avatars":true,"items":false}},
-    {"id":"umbrella-table","shape":{"type":"circle","radius":14},"position":{"x":18,"y":36},"blocks":{"avatars":true,"items":false}},
-    {"id":"boardwalk-bench","shape":{"type":"rect","width":31,"height":21},"position":{"x":16,"y":108},"rotation":-0.12,"blocks":{"avatars":true,"items":false}},
-    {"id":"snack-cart","shape":{"type":"rect","width":28,"height":49},"position":{"x":88,"y":116.5},"rotation":0.02,"blocks":{"avatars":true,"items":false}},
-    {"id":"lower-pool-edge","shape":{"type":"rect","width":76,"height":16},"position":{"x":25,"y":141},"rotation":0.29,"blocks":{"avatars":true,"items":false}}
-  ],
+  "staticGeometry":[],
   "regions":[],
   "environment":{"base":{"gravityXY":{"x":0,"y":0},"linearDrag":0.07,"angularDrag":0.1,"softSpeedLimit":40,"surfaceFrictionMultiplier":1}},
   "spawnPoints":[{"id":"arrival","position":{"x":43,"y":92}}],
-  "systemItems":[{"entityId":"boardwalk-beach-ball","definitionId":"beach-ball","definitionVersion":4,"transform":{"x":62,"y":98,"rotation":0,"scale":1},"resolvedConfig":{"sensorId":"kick","kickStrength":3.8,"pinchStrength":2.8,"maxImpulse":54,"tangentialStrength":0.48,"maxTangentialImpulse":8,"spinTransfer":1,"spinRadius":4.5,"maxAngularSpeed":15,"cooldownSeconds":0.16}}],
+  "systemItems":[{"entityId":"boardwalk-beach-ball","definitionId":"beach-ball","definitionVersion":5,"transform":{"x":62,"y":98,"rotation":0,"scale":1},"resolvedConfig":{"sensorId":"kick","kickStrength":3.8,"pinchStrength":2.8,"maxImpulse":54,"tangentialStrength":0.48,"maxTangentialImpulse":8,"spinTransfer":1,"spinRadius":4.5,"maxAngularSpeed":15,"cooldownSeconds":0.16}}],
   "limits":{"maxAvatars":24,"maxItems":169,"maxComplexPhysicsItems":4},
   "avatarController":{"radius":4,"maxSpeed":26,"acceleration":125,"flickDeceleration":42,"maxTurnSpeed":9,"facing":"fixed","directInteractionMaxSpeed":32},
   "terrainDefaults":{"avatars":true,"items":true}
 }`
 
 const beachBallPropDefinitionJSON = `{
-  "definitionId":"zoomigo-prop-beach-ball","version":1,"displayName":"Beach ball prop",
+  "definitionId":"zoomigo-prop-beach-ball","version":2,"displayName":"Beach ball prop",
   "visual":{"size":{"width":9,"height":9},"spriteId":"lounge.stamp.transparent","placeholder":{"shape":"circle","color":16765757},"zIndex":8},
   "body":{"mode":"dynamic","mass":0.5,"gravityScale":0,"linearDamping":0.12,"angularDamping":0.12,"canSleep":true},
   "colliders":[
-    {"id":"solid","role":"itemSolid","shape":{"type":"circle","radius":4.5},"restitution":0.82,"friction":0.18,"collisionMask":60},
+    {"id":"solid","role":"itemSolid","shape":{"type":"circle","radius":4.5},"restitution":0.82,"friction":0.18,"collisionMask":4},
     {"id":"kick","role":"itemSensor","shape":{"type":"circle","radius":5.8}}
   ],
   "behaviorType":"zoomigoLoungeBall","defaultConfig":{"sensorId":"kick","kickStrength":3.8,"pinchStrength":2.8,"maxImpulse":54,"tangentialStrength":0.48,"maxTangentialImpulse":8,"spinTransfer":1,"spinRadius":4.5,"maxAngularSpeed":15,"cooldownSeconds":0.16},
@@ -211,11 +205,11 @@ const beachBallPropDefinitionJSON = `{
 }`
 
 const beachBallDefinitionJSON = `{
-  "definitionId":"beach-ball","version":4,"displayName":"Beach ball",
+  "definitionId":"beach-ball","version":5,"displayName":"Beach ball",
   "visual":{"size":{"width":9,"height":9},"spriteId":"lounge.ball","placeholder":{"shape":"circle","color":16765757},"zIndex":8},
   "body":{"mode":"dynamic","mass":0.5,"gravityScale":0,"linearDamping":0.12,"angularDamping":0.12,"canSleep":true},
   "colliders":[
-    {"id":"solid","role":"itemSolid","shape":{"type":"circle","radius":4.5},"restitution":0.82,"friction":0.18,"collisionMask":60},
+    {"id":"solid","role":"itemSolid","shape":{"type":"circle","radius":4.5},"restitution":0.82,"friction":0.18,"collisionMask":4},
     {"id":"kick","role":"itemSensor","shape":{"type":"circle","radius":5.8}}
   ],
   "behaviorType":"zoomigoLoungeBall","defaultConfig":{"sensorId":"kick","kickStrength":3.8,"pinchStrength":2.8,"maxImpulse":54,"tangentialStrength":0.48,"maxTangentialImpulse":8,"spinTransfer":1,"spinRadius":4.5,"maxAngularSpeed":15,"cooldownSeconds":0.16},

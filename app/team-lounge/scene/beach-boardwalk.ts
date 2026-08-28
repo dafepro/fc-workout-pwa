@@ -8,7 +8,7 @@ import { defaultLoungeBallConfig } from "../lounge-ball-behavior";
 
 export const beachBallDefinition: ItemDefinition = {
   definitionId: "beach-ball",
-  version: 4,
+  version: 5,
   displayName: "Beach ball",
   visual: {
     size: { width: 9, height: 9 },
@@ -31,11 +31,7 @@ export const beachBallDefinition: ItemDefinition = {
       shape: { type: "circle", radius: 4.5 },
       restitution: 0.82,
       friction: 0.18,
-      collisionMask:
-        CollisionLayer.WORLD_STATIC |
-        CollisionLayer.ITEM_SOLID |
-        CollisionLayer.ITEM_SENSOR |
-        CollisionLayer.REGION_SENSOR,
+      collisionMask: CollisionLayer.WORLD_STATIC,
     },
     { id: "kick", role: "itemSensor", shape: { type: "circle", radius: 5.8 } },
   ],
@@ -68,7 +64,7 @@ export const beachBoardwalkDefinitions = [
 
 export const beachBoardwalkCanvas: CanvasDefinition = {
   id: "zoomigo-beach-boardwalk",
-  version: 8,
+  version: 9,
   size: { width: 100, height: 150 },
   orientation: "topDown",
   backgroundAssetId: "lounge.background",
@@ -78,43 +74,7 @@ export const beachBoardwalkCanvas: CanvasDefinition = {
     bottom: "solid",
     left: "solid",
   },
-  staticGeometry: [
-    {
-      id: "lifeguard-hut",
-      shape: { type: "rect", width: 38, height: 42 },
-      position: { x: 79, y: 27 },
-      rotation: 0,
-      blocks: { avatars: true, items: false },
-    },
-    {
-      id: "umbrella-table",
-      shape: { type: "circle", radius: 14 },
-      position: { x: 18, y: 36 },
-      rotation: 0,
-      blocks: { avatars: true, items: false },
-    },
-    {
-      id: "boardwalk-bench",
-      shape: { type: "rect", width: 31, height: 21 },
-      position: { x: 16, y: 108 },
-      rotation: -0.12,
-      blocks: { avatars: true, items: false },
-    },
-    {
-      id: "snack-cart",
-      shape: { type: "rect", width: 28, height: 49 },
-      position: { x: 88, y: 116.5 },
-      rotation: 0.02,
-      blocks: { avatars: true, items: false },
-    },
-    {
-      id: "lower-pool-edge",
-      shape: { type: "rect", width: 76, height: 16 },
-      position: { x: 25, y: 141 },
-      rotation: 0.29,
-      blocks: { avatars: true, items: false },
-    },
-  ],
+  staticGeometry: [],
   regions: [],
   environment: {
     base: {

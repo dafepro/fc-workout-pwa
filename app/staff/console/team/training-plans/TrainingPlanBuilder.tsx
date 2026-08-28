@@ -137,6 +137,7 @@ export function TrainingPlanBuilder({ teamId }: { teamId: string }) {
         <span>{copy.scope}</span>
       </header>
       <p className="console-hint">{copy.intro}</p>
+      <p className="console-hint">{copy.workloadBounds}</p>
       {actionError ? <ConsoleNotice message={actionError} /> : null}
 
       <fieldset className="training-plan__templates">

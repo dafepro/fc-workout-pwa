@@ -367,6 +367,8 @@ export const consoleCopy = {
     scope: "Whole team",
     intro:
       "Choose a curated sequence, preview its dates, then publish one shared plan for the team.",
+    workloadBounds:
+      "5–20 minutes per active day · up to 5 active days · up to 2 hard days · at least 1 full rest day",
     loading: "Loading training plans…",
     catalogLoadFailed: "The training-plan catalog could not be loaded.",
     choose: "Plan template",

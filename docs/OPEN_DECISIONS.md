@@ -72,8 +72,12 @@ to resolve, not the implementing agent's.
 
 ## Goals and workload
 
-- Approve the provisional training-plan duration, intensity, and spacing bounds;
-  plan publication remains development-only until then.
+- Decided 2026-08-28: a plan has at most seven consecutive days; an active day
+  is 5–20 minutes; a seven-day plan has at most five active days, at most two
+  non-consecutive hard days, and at least one full rest day. These are
+  conservative bounds for the app's supplemental work, not a complete physical
+  activity prescription. Production authoring remains behind its separate
+  explicit-capability decision.
 - Default weekly goal calculation.
 - Whether players can select a goal from approved options.
 - Coach override rules.

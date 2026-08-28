@@ -134,6 +134,33 @@ describe("canonical local Lounge simulation", () => {
     );
   });
 
+  it("lets the player reach scenery areas where the ball can travel", async () => {
+    const { SimulationDriver } = await import("@canvas-physics/client");
+    let entities: RenderEntity[] = [];
+    const simulation = startLocalBeachBoardwalkSimulation({
+      playerID: "mason",
+      driver: SimulationDriver.local([LoungeBallBehavior]),
+      onRender(next) {
+        entities = next;
+      },
+    });
+    stop = simulation.stop;
+
+    await simulation.ready;
+    await until(() => entities.some(({ id }) => id === "avatar:mason"));
+    simulation.move({
+      direction: { x: 0, y: 0 },
+      intensity: 0,
+      held: true,
+      target: { x: 88, y: 116.5 },
+    });
+
+    await until(() => {
+      const avatar = entities.find(({ id }) => id === "avatar:mason");
+      return (avatar?.x ?? 0) > 84 && (avatar?.y ?? 0) > 112;
+    }, 4_000);
+  });
+
   it("turns an off-centre player contact into ball spin", async () => {
     const { SimulationDriver } = await import("@canvas-physics/client");
     let entities: RenderEntity[] = [];
