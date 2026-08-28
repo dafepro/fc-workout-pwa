@@ -136,3 +136,6 @@ Each step is test-first and small enough to review independently.
 - Socket-ticket replay is rejected in the HTTP/websocket integration test; remaining product-wide work is prioritized in `docs/FOLLOW_UPS.md`.
 - Midnight-safe Lounge proof now creates an explicit same-day qualifying check-in, so the test exercises the unlocked shared room without weakening the decisive server lock.
 - E2E-only setup may publish a temporary coach plan while production authoring remains absent; the connected Today card now uses the canonical activity name and prescribed duration.
+- Final main gate: [run 33144154650](https://github.com/dafepro/fc-workout-pwa/actions/runs/33144154650) verified and published exact SHA `bb007443a41ad88bac67fb7890d5cff3cf94ffba` after 309 frontend tests and the complete local 25-workflow Docker browser pass.
+- Fresh dev proof: [destroy run 33144386728](https://github.com/dafepro/fc-workout-pwa/actions/runs/33144386728) removed the previous preview, then [create run 33144461836](https://github.com/dafepro/fc-workout-pwa/actions/runs/33144461836) rebuilt it from that exact SHA and passed first-start seed plus authenticated final-flow smoke.
+- Independent live gate verification returned 200, exposed the password reveal control, accepted the preview password into `/dev-access`, and rendered staff access plus four named player QR entries.
