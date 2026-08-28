@@ -108,3 +108,5 @@ Each step is test-first and small enough to review independently.
   package, Lounge simulation, production-build, and Docker browser tests prove the canonical 320px Lounge starts and accepts a real direct drag against the new library.
 - Canvas 0.4.1 patch: repinned the complete package set to the tagged compatibility release and removed every 0.4.0 archive;
   package, simulation, type, production-build, and Docker direct-drag proofs remain green without a ZoomiGo integration shim.
+- Canvas 0.4.1 release gate: all 295 frontend tests, lint, type/build, deployment contracts, the migrated Linux API suite, and all 24 Docker browser workflows passed;
+  Windows-only line-ending and Unix-mode checks remain delegated to the required Linux CI gate, while the canonical Lounge direct-drag workflow is included in the complete browser pass.
