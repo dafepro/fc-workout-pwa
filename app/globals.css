@@ -4316,6 +4316,41 @@ h2 {
   box-shadow: 0 0.35rem 0.9rem rgb(7 28 37 / 34%);
 }
 
+.team-lounge__shared-avatar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 4;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.team-lounge__shared-avatar .avatar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2.85rem;
+  height: 2.85rem;
+  border: 0.18rem solid white;
+  box-shadow: 0 0.35rem 0.9rem rgb(7 28 37 / 34%);
+  transform: translate(-50%, -50%);
+}
+
+.team-lounge__shared-avatar span {
+  position: absolute;
+  bottom: 1.65rem;
+  left: 0;
+  padding: 0.15rem 0.4rem;
+  border-radius: 999px;
+  background: rgb(7 28 37 / 82%);
+  color: white;
+  font-size: 0.68rem;
+  font-weight: 800;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
 .team-lounge__world--locked::before {
   position: absolute;
   z-index: 1;

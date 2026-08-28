@@ -17,6 +17,26 @@ vi.mock("./LocalLoungeCanvas", () => ({
   ),
 }));
 
+vi.mock("./SharedLoungeCanvas", () => ({
+  SharedLoungeCanvas: ({
+    onStateChange,
+    onPresenceChange,
+  }: {
+    onStateChange(state: string): void;
+    onPresenceChange(count: number): void;
+  }) => (
+    <button
+      type="button"
+      onClick={() => {
+        onPresenceChange(2);
+        onStateChange("ready");
+      }}
+    >
+      Shared weekly lounge
+    </button>
+  ),
+}));
+
 const mason = {
   id: "player-one",
   firstName: "Mason",
@@ -70,6 +90,31 @@ describe("canonical Team Lounge", () => {
       "href",
       "/",
     );
+    expect(
+      screen.queryByRole("button", {
+        name: "Mason's interactive lounge canvas",
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("uses the shared weekly room for a connected player", () => {
+    render(
+      <TeamLounge
+        player={mason}
+        unlocked
+        connected
+        teamID="team-one"
+        roster={[mason]}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Shared weekly lounge" }),
+    );
+    expect(screen.getByText("2 here")).toBeVisible();
+    expect(
+      screen.getByText("Press your player, then drag to move."),
+    ).toBeVisible();
     expect(
       screen.queryByRole("button", {
         name: "Mason's interactive lounge canvas",

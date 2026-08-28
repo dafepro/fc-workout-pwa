@@ -18,6 +18,7 @@ import (
 	"github.com/dafepro/fc-workout-pwa/backend/internal/config"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/store"
+	"github.com/dafepro/fc-workout-pwa/backend/internal/teamlounge"
 )
 
 type contextKey string
@@ -39,19 +40,22 @@ type errorBody struct {
 }
 
 type service struct {
-	cfg           config.Config
-	store         Repository
-	authenticator authn.Authenticator
-	sessions      SessionManager
-	staff         StaffSessionManager
-	staffStore    StaffRepository
-	staffAccounts StaffAccountManager
-	credentials   CredentialManager
-	devAccess     DevAccessManager
-	authFixtures  func(context.Context) error
-	throttles     []*loginThrottle
-	middleware    func(http.Handler) http.Handler
-	now           func() time.Time
+	cfg             config.Config
+	store           Repository
+	authenticator   authn.Authenticator
+	sessions        SessionManager
+	staff           StaffSessionManager
+	staffStore      StaffRepository
+	staffAccounts   StaffAccountManager
+	credentials     CredentialManager
+	devAccess       DevAccessManager
+	teamLoungeStore *teamlounge.SQLiteStore
+	teamLoungeRooms http.Handler
+	loungeTickets   *teamLoungeSocketTickets
+	authFixtures    func(context.Context) error
+	throttles       []*loginThrottle
+	middleware      func(http.Handler) http.Handler
+	now             func() time.Time
 }
 
 type SessionManager interface {
@@ -104,11 +108,21 @@ func WithMiddleware(middleware func(http.Handler) http.Handler) Option {
 	return func(service *service) { service.middleware = middleware }
 }
 
+func WithClock(now func() time.Time) Option {
+	return func(service *service) { service.now = now }
+}
+
+func WithTeamLoungeStore(loungeStore *teamlounge.SQLiteStore) Option {
+	return func(service *service) { service.teamLoungeStore = loungeStore }
+}
+
 func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	service := &service{cfg: cfg, authenticator: authn.Disabled{}, now: time.Now}
 	for _, option := range options {
 		option(service)
 	}
+	service.loungeTickets = newTeamLoungeSocketTickets(service.now)
+	service.teamLoungeRooms = service.buildTeamLoungeRoomHandler()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -159,6 +173,10 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	mux.HandleFunc("GET /v1/teams/{teamId}/activity", service.getTeamActivity)
 	mux.HandleFunc("GET /v1/teams/{teamId}/leaderboards", service.getLeaderboard)
 	mux.HandleFunc("GET /v1/teams/{teamId}/team-reward", service.getPlayerTeamReward)
+	mux.HandleFunc("POST /v1/teams/{teamId}/lounge/socket-ticket", service.createTeamLoungeSocketTicket)
+	if service.teamLoungeRooms != nil {
+		mux.Handle("GET /v1/realtime/rooms/{id}", service.teamLoungeRooms)
+	}
 	if _, ok := service.store.(fixtureResetter); cfg.EnableE2EFixtures && ok {
 		mux.HandleFunc("POST /__e2e/reset", service.resetE2EFixtures)
 	}
@@ -183,7 +201,7 @@ func devGateway(cfg config.Config, next http.Handler) http.Handler {
 		return next
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/healthz" || r.URL.Path == "/readyz" {
+		if r.URL.Path == "/healthz" || r.URL.Path == "/readyz" || isTicketedTeamLoungeSocketUpgrade(r) {
 			next.ServeHTTP(w, r)
 			return
 		}

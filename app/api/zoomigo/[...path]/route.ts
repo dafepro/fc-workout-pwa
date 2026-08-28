@@ -28,6 +28,8 @@ const allowed = [
   { method: "DELETE", pattern: /^v1\/training-entries\/[^/]+$/ },
   { method: "GET", pattern: /^v1\/teams\/[^/]+\/activity$/ },
   { method: "GET", pattern: /^v1\/teams\/[^/]+\/leaderboards$/ },
+  { method: "GET", pattern: /^v1\/teams\/[^/]+\/team-reward$/ },
+  { method: "POST", pattern: /^v1\/teams\/[^/]+\/lounge\/socket-ticket$/ },
 ];
 
 export async function GET(request: Request) {
@@ -98,7 +100,21 @@ async function proxy(request: Request) {
       "ZoomiGo is temporarily unavailable.",
     );
   }
-  const responseBody = await response.text();
+  let responseBody = await response.text();
+  if (response.ok && /\/lounge\/socket-ticket$/u.test(path)) {
+    try {
+      responseBody = JSON.stringify({
+        ...(JSON.parse(responseBody) as Record<string, unknown>),
+        serverUrl: baseURL,
+      });
+    } catch {
+      return jsonError(
+        502,
+        "invalid_backend_response",
+        "The Team Lounge is temporarily unavailable.",
+      );
+    }
+  }
   await recordServerEventsForRequest(
     request,
     proxyEvents(

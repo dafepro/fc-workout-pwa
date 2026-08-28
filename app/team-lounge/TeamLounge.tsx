@@ -6,15 +6,23 @@ import Link from "next/link";
 import { copy } from "../content/copy";
 import type { Player } from "../domain/types";
 import { LocalLoungeCanvas, type LoungeCanvasState } from "./LocalLoungeCanvas";
+import { SharedLoungeCanvas } from "./SharedLoungeCanvas";
 
 export function TeamLounge({
   player,
   unlocked,
+  connected = false,
+  teamID = "team-hill-striders",
+  roster = [player],
 }: {
   player: Player;
   unlocked: boolean;
+  connected?: boolean;
+  teamID?: string;
+  roster?: readonly Player[];
 }) {
   const [state, setState] = useState<LoungeCanvasState>("loading");
+  const [presence, setPresence] = useState(1);
   const updateState = useCallback(
     (next: LoungeCanvasState) => setState(next),
     [],
@@ -36,7 +44,7 @@ export function TeamLounge({
         </div>
         <span className="team-lounge__presence">
           <span aria-hidden="true" />
-          {unlocked ? copy.teamLounge.here : copy.teamLounge.locked}
+          {unlocked ? `${presence} here` : copy.teamLounge.locked}
         </span>
       </header>
       <div
@@ -44,7 +52,17 @@ export function TeamLounge({
         data-canvas-state={unlocked ? state : "locked"}
       >
         {unlocked ? (
-          <LocalLoungeCanvas player={player} onStateChange={updateState} />
+          connected ? (
+            <SharedLoungeCanvas
+              teamID={teamID}
+              playerID={player.id}
+              roster={roster}
+              onStateChange={updateState}
+              onPresenceChange={setPresence}
+            />
+          ) : (
+            <LocalLoungeCanvas player={player} onStateChange={updateState} />
+          )
         ) : (
           <div className="team-lounge__lock">
             <span className="team-lounge__lock-mark" aria-hidden="true">

@@ -229,6 +229,9 @@ export default function TeamPage() {
           <TeamLounge
             player={currentPlayer}
             unlocked={dashboard?.teamPulse.unlocked ?? false}
+            connected={connected}
+            teamID={teamID}
+            roster={displayedProjection.members}
           />
 
           <TeamChallengeCard

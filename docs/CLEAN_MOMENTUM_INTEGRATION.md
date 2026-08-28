@@ -128,3 +128,5 @@ Each step is test-first and small enough to review independently.
 - Development cache boundary: the dev-host service worker clears its caches and unregisters while production retains its offline shell; focused unit and browser coverage guard both modes.
 - Shared Lounge persistence foundation: added one canonical end-state migration and the Canvas 0.4.1 Go rooms adapter with exact catalog-version lookup, durable mutation receipts, and immutable weekly room bindings.
 - Canvas's storage conformance suite plus focused week, visit, placement-credit, and binding tests pass; legacy Lounge table names and interim migration history were not restored.
+- Canonical shared Lounge: connected players now enter the single weekly Canvas 0.4.1 room through one-use tickets, while today's qualifying workout/rest rule remains the decisive server-side lock.
+- A 320px Docker browser proof joins, renders the configured ZoomiGo avatar, and direct-drags it; the same pass restored the accidentally omitted Team Reward proxy read.
