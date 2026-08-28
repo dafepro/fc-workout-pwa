@@ -27,6 +27,9 @@ export function PlanWeekStrip({ plan }: { plan: TrainingPlanWindow }) {
           />
         ))}
       </ol>
+      <Link className="plan-week-strip__link" href="/plan">
+        View full {plan.dayCount}-day plan <span aria-hidden="true">→</span>
+      </Link>
     </section>
   );
 }
@@ -49,13 +52,23 @@ function PlanDay({
           : day.kind === "rest"
             ? "Rest"
             : "Missed";
+  const className =
+    relation === 0
+      ? "is-today"
+      : relation > 0
+        ? "is-locked"
+        : day.completed
+          ? "is-complete"
+          : day.kind === "rest"
+            ? "is-rest"
+            : "is-missed";
+  const label = formatWeekday(day.occursOn, "short");
   return (
     <li
-      className={
-        relation === 0 ? "is-today" : day.completed ? "is-complete" : ""
-      }
+      className={className}
+      aria-label={relation > 0 ? `Locked ${label}` : undefined}
     >
-      <small>{weekday(day.occursOn)}</small>
+      <small>{label}</small>
       <span aria-hidden="true">
         {day.kind === "rest" ? "–" : day.completed ? "✓" : "●"}
       </span>
@@ -64,9 +77,10 @@ function PlanDay({
   );
 }
 
-function weekday(day: string) {
+export function formatWeekday(day: string, length: "short" | "long") {
   return new Intl.DateTimeFormat("en-US", {
-    weekday: "short",
+    weekday: length,
     timeZone: "UTC",
   }).format(new Date(`${day}T00:00:00Z`));
 }
+import Link from "next/link";

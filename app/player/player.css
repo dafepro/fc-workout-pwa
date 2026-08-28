@@ -431,6 +431,171 @@
   color: #28713a;
 }
 
+.plan-week-strip li.is-missed {
+  background: #efe5f1;
+  color: #7b4d79;
+}
+
+.plan-week-strip li.is-rest {
+  background: #e9eeec;
+  color: #576761;
+}
+
+.plan-week-strip li.is-locked {
+  opacity: 0.52;
+}
+
+.plan-week-strip__link {
+  display: flex;
+  min-height: 2.5rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.6rem;
+  color: #245c49;
+  font-size: 0.83rem;
+  font-weight: 900;
+}
+
+.plan-page,
+.plan-detail {
+  display: grid;
+  gap: 1rem;
+}
+
+.plan-page--empty {
+  padding: 1.2rem;
+  border: 1px solid #dfe4dc;
+  border-radius: 1rem;
+  background: white;
+}
+
+.plan-overview {
+  display: grid;
+  gap: 1rem;
+}
+
+.plan-overview > header h1,
+.plan-detail h1 {
+  margin: 0;
+  color: #183c31;
+}
+
+.plan-overview > header p:last-child {
+  margin: 0.25rem 0 0;
+  color: #66736d;
+  font-weight: 800;
+}
+
+.plan-overview__days {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.plan-overview__day {
+  overflow: hidden;
+  border: 1px solid #dfe4dc;
+  border-radius: 1rem;
+  background: white;
+}
+
+.plan-overview__day a {
+  display: grid;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.9rem;
+  color: #193b31;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.plan-overview__day h2 {
+  margin: 0.12rem 0;
+  font-size: 1rem;
+}
+
+.plan-overview__day p,
+.plan-overview__day small {
+  margin: 0;
+  color: #68736e;
+  font-size: 0.72rem;
+}
+
+.plan-overview__status {
+  padding: 0.32rem 0.5rem;
+  border-radius: 999px;
+  background: #eef1ee;
+  color: #5b6761;
+  font-size: 0.65rem;
+  font-weight: 900;
+}
+
+.plan-overview__day--today {
+  border-color: #a6cc36;
+  background: #f7fde8;
+}
+
+.plan-overview__day--completed .plan-overview__status {
+  background: #def3df;
+  color: #24713a;
+}
+
+.plan-overview__day--missed .plan-overview__status {
+  background: #efe5f1;
+  color: #7b4d79;
+}
+
+.plan-overview__day--upcoming {
+  opacity: 0.68;
+}
+
+.plan-overview__back,
+.plan-detail__back {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 2.35rem;
+  align-items: center;
+  padding: 0.42rem 0.68rem;
+  border: 1px solid #d8e0db;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 84%);
+  color: #315e4f;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.plan-detail > header,
+.plan-detail > section {
+  padding: 1rem;
+  border: 1px solid #dfe4dc;
+  border-radius: 1rem;
+  background: white;
+}
+
+.plan-detail > header {
+  color: #173c30;
+  background: linear-gradient(145deg, #eff8d5, white);
+}
+
+.plan-detail > header > div {
+  display: flex;
+  justify-content: space-between;
+  color: #3f695a;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.plan-detail h2 {
+  margin-top: 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.plan-detail__locked {
+  background: #eef1ef !important;
+  color: #53615b;
+}
+
 .today-secondary-actions h2 {
   margin: 0 0 0.65rem;
   color: #203d34;

@@ -21,6 +21,16 @@ the Team Lounge.
 
 ## P2 — deliberate cleanup and product decisions
 
+- **Decide production training-plan authoring authority.** The curated weekly
+  planner now replaces legacy assignment creation in development builds. Keep
+  production on the existing assignment console until the plan mutation routes
+  and an explicit staff capability are intentionally enabled there.
+- **Finish Prize Boxes presentation parity.** The current connected flow is
+  correct and tested, but the momentum branch's later Zoomi-led header, help
+  overlay, grouped sealed boxes, and collection browser target a divergent data
+  contract. Port that presentation against the final prize API rather than
+  restoring the obsolete prototype gateway wholesale.
+
 - **Retire the unlinked leaderboard API and reaction context.** The consolidated
   player UI exposes only participation groups, but the older aggregate endpoint
   and leaderboard reaction wording remain as internal API surface. Remove them

@@ -150,3 +150,5 @@ Each step is test-first and small enough to review independently.
 - Workout feedback artwork: restored only the final Almost, Did it, and Extra Zoomi PNGs and verified the three structured outcome controls resolve to those production assets.
 - Dev staff planning: replaced the duplicate assignment-authoring form with the curated seven-day plan builder, dated preview, bounded day customization, immutable rescheduling, and confirmed cancellation.
 - Existing assignments remain read-only in a collapsed history; production keeps its current assignment console until training-plan authoring is deliberately enabled there.
+- Consolidated plan navigation: Today’s week strip now opens a read-only full-plan timeline and day detail, with future work visible but decisively non-startable.
+- The parity audit retained the final Canvas 0.4.1 Lounge and current prize authority, and rejected alternate shells, old Canvas/Lounge routes, free-text notes, prototype reward gateways, and migration churn; remaining prize presentation work is tracked separately.

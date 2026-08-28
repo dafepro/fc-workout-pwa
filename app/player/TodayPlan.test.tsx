@@ -63,7 +63,7 @@ describe("canonical Today plan", () => {
     expect(screen.queryByText(/tired/i)).not.toBeInTheDocument();
   });
 
-  it("keeps the full plan summary inside Today instead of linking to another view", () => {
+  it("keeps the plan summary on Today and links to the safe read-only overview", () => {
     const plan: TrainingPlanWindow = {
       planId: "plan-one",
       templateName: "Speed and recovery",
@@ -92,7 +92,9 @@ describe("canonical Today plan", () => {
     const region = screen.getByRole("region", { name: "Your 7-day plan" });
     expect(within(region).getAllByRole("listitem")).toHaveLength(7);
     expect(within(region).getByText("Today")).toBeVisible();
-    expect(within(region).queryByRole("link")).not.toBeInTheDocument();
+    expect(
+      within(region).getByRole("link", { name: "View full 7-day plan" }),
+    ).toHaveAttribute("href", "/plan");
   });
 });
 
