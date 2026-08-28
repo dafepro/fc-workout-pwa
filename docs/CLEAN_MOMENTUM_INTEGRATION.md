@@ -169,3 +169,6 @@ Each step is test-first and small enough to review independently.
 - Lounge placement authority now reserves one reconciled activity-day credit through ZoomiGo before Canvas receives a mutation, validating current room/week, predefined inventory, and idempotency under a serialized SQLite transaction.
 - Development controls use the authoritative remaining count and confirm accepted Canvas entity IDs back to the ledger; the production item catalog remains disabled while Canvas lacks a permit-policy hook.
 - Store, HTTP, gateway, exact PWA proxy allowlisting, migration/backup, concurrent-claim, and Docker Lounge coverage protect the new migration-18 end state.
+- Dev CD now reports each verification gate separately, retries only idempotent infrastructure, SSH/SCP, fixture, and Worker operations, and bounds remote connections and cloud-init waits.
+- Every create/update proves the exact requested release SHA is serving from the healthy dev API container; the deeper mutating product smoke remains scoped to newly seeded previews.
+- The stale backup-fixture count that blocked run 33172357905 now matches the three-entry canonical fixture, restoring the full Go gate without suppressing failures.
