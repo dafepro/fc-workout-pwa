@@ -39,30 +39,6 @@ export default async function DevAccessPage() {
         <h1 id="dev-access-title">{devAccessCopy.title}</h1>
         <p>{devAccessCopy.intro}</p>
 
-        <h2>{devAccessCopy.playersTitle}</h2>
-        <p className="dev-access-pin">
-          {devAccessCopy.pinLabel}: <strong>{access.pin}</strong>
-        </p>
-        <ul className="dev-player-list">
-          {access.players.map((player) => (
-            <li key={player.name}>
-              <h3>{player.name}</h3>
-              {player.qrPngBase64 ? (
-                <Image
-                  src={`data:image/png;base64,${player.qrPngBase64}`}
-                  alt={`QR sign-in code for ${player.name}`}
-                  width="192"
-                  height="192"
-                  unoptimized
-                />
-              ) : null}
-              <a className="button button--outline" href={player.loginUrl}>
-                {devAccessCopy.openPlayer}
-              </a>
-            </li>
-          ))}
-        </ul>
-
         <div className="dev-admin-card">
           <h2>{devAccessCopy.adminTitle}</h2>
           <p>{devAccessCopy.adminIntro}</p>
@@ -81,6 +57,30 @@ export default async function DevAccessPage() {
             password={access.adminPassword}
           />
         </div>
+
+        <h2>{devAccessCopy.playersTitle}</h2>
+        <p className="dev-access-pin">
+          {devAccessCopy.pinLabel}: <strong>{access.pin}</strong>
+        </p>
+        <ul className="dev-player-list">
+          {access.players.map((player) => (
+            <li key={player.name}>
+              <h3>{player.name}</h3>
+              {player.qrPngBase64 ? (
+                <Image
+                  src={`data:image/png;base64,${player.qrPngBase64}`}
+                  alt={`QR sign-in code for ${player.name}`}
+                  width="192"
+                  height="192"
+                  unoptimized
+                />
+              ) : null}
+              <a className="button button--outline" href={player.loginUrl}>
+                {devAccessCopy.openPlayer(player.name)}
+              </a>
+            </li>
+          ))}
+        </ul>
       </section>
     </main>
   );

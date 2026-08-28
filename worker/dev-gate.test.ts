@@ -66,6 +66,31 @@ describe("gateDevRequest", () => {
     );
   });
 
+  it("lets a visitor reveal and hide the shared password", async () => {
+    const response = await gateDevRequest(
+      request("/_dev-gate?next=%2Fdev-access", "US"),
+      env,
+    );
+    const html = await response!.text();
+    const document = new DOMParser().parseFromString(html, "text/html");
+    const password =
+      document.querySelector<HTMLInputElement>("#preview-password");
+
+    expect(password?.type).toBe("password");
+    expect(html).toMatch(
+      /<button id="preview-password-toggle"[^>]*type="button"[^>]*aria-controls="preview-password"[^>]*aria-pressed="false"[^>]*>Show password<\/button>/,
+    );
+    expect(document.querySelector("script")?.textContent).toContain(
+      'password.type="text"',
+    );
+    expect(document.querySelector("script")?.textContent).toContain(
+      'password.type="password"',
+    );
+    expect(document.querySelector("script")?.textContent).toContain(
+      'else{next.value="/dev-access"}',
+    );
+  });
+
   it("creates a secure signed session for the shared password", async () => {
     const response = await gateDevRequest(
       request("/_dev-gate", "US", {
