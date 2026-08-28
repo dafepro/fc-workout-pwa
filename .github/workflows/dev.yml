@@ -59,12 +59,19 @@ jobs:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
 
-      - name: Verify the selected revision
+      - name: Install the selected revision
+        run: pnpm install --frozen-lockfile
+
+      - name: Test the player application
+        run: pnpm test
+
+      - name: Type-check and build the development application
         run: |
-          pnpm install --frozen-lockfile
-          pnpm test
           pnpm typecheck
           pnpm build
+
+      - name: Test the API in production and development build modes
+        run: |
           go -C backend test ./...
           go -C backend test -tags=dev ./...
 
@@ -147,7 +154,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}
         working-directory: infra/dev
         run: |
-          tofu init -input=false \
+          ../../deploy/release/retry-command.sh 3 10 tofu init -input=false \
             -backend-config="bucket=${{ vars.DEV_TF_STATE_BUCKET }}" \
             -backend-config="key=infra/dev/terraform.tfstate" \
             -backend-config="endpoint=${{ vars.DEV_TF_STATE_ENDPOINT }}" \
@@ -184,7 +191,8 @@ jobs:
           else
             echo "created=true" >>"$GITHUB_OUTPUT"
           fi
-          tofu apply -input=false -auto-approve
+          ../../deploy/release/retry-command.sh 3 15 tofu apply \
+            -input=false -auto-approve -lock-timeout=5m
           tofu output -raw deploy_host >"$RUNNER_TEMP/dev-host"
 
       - name: Pin the new host key for this run
@@ -242,7 +250,7 @@ jobs:
           DEV_API_GATEWAY_TOKEN: ${{ secrets.DEV_API_GATEWAY_TOKEN }}
           DEV_RESET_KEY: ${{ secrets.DEV_RESET_KEY }}
         run: |
-          curl --fail --silent --show-error \
+          ./deploy/release/retry-command.sh 3 10 curl --fail --silent --show-error \
             -X POST \
             -H "X-Zoomigo-Dev-Gateway: $DEV_API_GATEWAY_TOKEN" \
             -H "X-Zoomigo-Dev-Reset: $DEV_RESET_KEY" \
@@ -254,17 +262,26 @@ jobs:
           DEV_API_GATEWAY_TOKEN: ${{ secrets.DEV_API_GATEWAY_TOKEN }}
           DEV_RESET_KEY: ${{ secrets.DEV_RESET_KEY }}
         run: |
-          curl --fail --silent --show-error \
+          ./deploy/release/retry-command.sh 3 10 curl --fail --silent --show-error \
             -X POST \
             -H "X-Zoomigo-Dev-Gateway: $DEV_API_GATEWAY_TOKEN" \
             -H "X-Zoomigo-Dev-Reset: $DEV_RESET_KEY" \
             https://api-dev.zoomigo.quicktrack.cc/__dev/reset
+
+      - name: Prove the exact dev container is serving
+        if: inputs.operation == 'create' || inputs.operation == 'update'
+        env:
+          DEV_SMOKE_API_BASE_URL: https://api-dev.zoomigo.quicktrack.cc
+          DEV_API_GATEWAY_TOKEN: ${{ secrets.DEV_API_GATEWAY_TOKEN }}
+          DEV_SMOKE_EXPECTED_RELEASE: ${{ needs.build.outputs.revision }}
+        run: node scripts/dev-deploy-smoke.mjs --read-only
 
       - name: Prove final disposable-dev flows
         if: inputs.operation == 'create' || steps.infra.outputs.created == 'true'
         env:
           DEV_SMOKE_API_BASE_URL: https://api-dev.zoomigo.quicktrack.cc
           DEV_API_GATEWAY_TOKEN: ${{ secrets.DEV_API_GATEWAY_TOKEN }}
+          DEV_SMOKE_EXPECTED_RELEASE: ${{ needs.build.outputs.revision }}
         run: node scripts/dev-deploy-smoke.mjs
 
       - name: Remove Worker

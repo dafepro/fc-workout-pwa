@@ -41,6 +41,24 @@ func TestHealthAndSecurityHeaders(t *testing.T) {
 	}
 }
 
+func TestReadinessIdentifiesTheRunningRelease(t *testing.T) {
+	handler := NewHandler(config.Config{ReleaseSHA: "0123456789abcdef"})
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/readyz", nil))
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", response.Code)
+	}
+	var body healthResponse
+	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if body.Status != "ready" || body.Release != "0123456789abcdef" {
+		t.Fatalf("readiness body = %+v", body)
+	}
+}
+
 func TestObserverSeesRequestIDRouteTemplateAndStructuredError(t *testing.T) {
 	var output bytes.Buffer
 	logger := observability.NewLogger(&output, observability.Metadata{Service: "api", Environment: "test", Release: "test"})

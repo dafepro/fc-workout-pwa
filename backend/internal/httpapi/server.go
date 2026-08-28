@@ -26,7 +26,8 @@ type contextKey string
 const requestIDKey contextKey = "request-id"
 
 type healthResponse struct {
-	Status string `json:"status"`
+	Status  string `json:"status"`
+	Release string `json:"release,omitempty"`
 }
 
 type errorEnvelope struct {
@@ -133,7 +134,7 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 			writeError(w, r, http.StatusServiceUnavailable, "not_ready", "The service is not ready.")
 			return
 		}
-		writeJSON(w, http.StatusOK, healthResponse{Status: "ready"})
+		writeJSON(w, http.StatusOK, healthResponse{Status: "ready", Release: cfg.ReleaseSHA})
 	})
 	throttle := newLoginThrottle(cfg.LoginAttemptsPerMinute, cfg.GlobalLoginAttemptsPerMinute, service.now)
 	mux.Handle("POST /v1/auth/sessions", throttle.guard(http.HandlerFunc(service.createSession)))

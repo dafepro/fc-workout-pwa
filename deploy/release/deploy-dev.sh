@@ -7,6 +7,8 @@ REPOSITORY_ROOT=$(CDPATH='' cd -- "$SCRIPT_DIRECTORY/../.." && pwd)
 control_sha=${1:?usage: deploy-dev.sh CONTROL_SHA APP_SHA SOURCE_ROOT}
 app_sha=${2:?usage: deploy-dev.sh CONTROL_SHA APP_SHA SOURCE_ROOT}
 source_root=${3:?usage: deploy-dev.sh CONTROL_SHA APP_SHA SOURCE_ROOT}
+retry_command="$SCRIPT_DIRECTORY/retry-command.sh"
+[ -x "$retry_command" ] || { printf '%s\n' "error: retry-command.sh is not executable" >&2; exit 1; }
 
 : "${DEPLOY_HOST:?DEPLOY_HOST is required}"
 : "${DEV_DEPLOY_SSH_KEY_FILE:?DEV_DEPLOY_SSH_KEY_FILE is required}"
@@ -84,22 +86,48 @@ EOF
 
 ssh_target="${DEPLOY_USER:-zoomigo}@${DEPLOY_HOST}"
 run_ssh() {
-	ssh -i "$DEV_DEPLOY_SSH_KEY_FILE" \
+	"$retry_command" 3 5 ssh -i "$DEV_DEPLOY_SSH_KEY_FILE" \
 		-o BatchMode=yes \
+		-o ConnectTimeout=10 \
 		-o IdentitiesOnly=yes \
+		-o ServerAliveCountMax=3 \
+		-o ServerAliveInterval=15 \
 		-o StrictHostKeyChecking=yes \
 		-o "UserKnownHostsFile=$DEV_KNOWN_HOSTS_FILE" \
 		"$ssh_target" "$@"
 }
 
-run_ssh "sudo -n cloud-init status --wait"
+run_scp() {
+	"$retry_command" 3 5 scp \
+		-i "$DEV_DEPLOY_SSH_KEY_FILE" \
+		-o BatchMode=yes \
+		-o ConnectTimeout=10 \
+		-o IdentitiesOnly=yes \
+		-o ServerAliveCountMax=3 \
+		-o ServerAliveInterval=15 \
+		-o StrictHostKeyChecking=yes \
+		-o "UserKnownHostsFile=$DEV_KNOWN_HOSTS_FILE" \
+		"$@"
+}
+
+run_ssh "timeout 20m sudo -n cloud-init status --wait"
 run_ssh "set -eu; cd /opt/app; test -z \"\$(git status --porcelain --untracked-files=no)\"; git fetch --depth=1 origin '$control_sha'; git checkout --detach '$control_sha'"
-run_ssh "umask 077; cat > /opt/app/deploy/vm/.env" <"$environment_file"
+run_scp "$environment_file" "$ssh_target:/opt/app/deploy/vm/.env.next"
+run_ssh "umask 077; chmod 0600 /opt/app/deploy/vm/.env.next; mv /opt/app/deploy/vm/.env.next /opt/app/deploy/vm/.env"
 run_ssh "set -eu; cd /opt/app/deploy/vm; sudo -n ./scripts/prepare-host.sh .env; ./scripts/preflight.sh .env; ./scripts/deploy.sh .env"
 
-pnpm exec wrangler deploy --config "$worker_config"
-printf '%s' "$DEV_ACCESS_PASSWORD" | pnpm exec wrangler secret put DEV_ACCESS_PASSWORD --config "$worker_config"
-printf '%s' "$DEV_ACCESS_SESSION_KEY" | pnpm exec wrangler secret put DEV_ACCESS_SESSION_KEY --config "$worker_config"
-printf '%s' "$DEV_API_GATEWAY_TOKEN" | pnpm exec wrangler secret put ZOOMIGO_API_GATEWAY_TOKEN --config "$worker_config"
+"$retry_command" 3 10 pnpm exec wrangler deploy --config "$worker_config"
+
+put_worker_secret() {
+	secret_name=$1
+	secret_value=$2
+	secret_file="$private_root/$secret_name"
+	printf '%s' "$secret_value" >"$secret_file"
+	"$retry_command" 3 10 sh -c 'pnpm exec wrangler secret put "$1" --config "$2" <"$3"' \
+		sh "$secret_name" "$worker_config" "$secret_file"
+}
+put_worker_secret DEV_ACCESS_PASSWORD "$DEV_ACCESS_PASSWORD"
+put_worker_secret DEV_ACCESS_SESSION_KEY "$DEV_ACCESS_SESSION_KEY"
+put_worker_secret ZOOMIGO_API_GATEWAY_TOKEN "$DEV_API_GATEWAY_TOKEN"
 
 printf '%s\n' "Deployed dev.zoomigo.quicktrack.cc application $app_sha with trusted controls $control_sha."

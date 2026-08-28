@@ -24,7 +24,7 @@ test("disposable dev smoke proves final player and staff flows", async (t) => {
 
     const route = `${request.method} ${request.url}`;
     const fixtures = {
-      "GET /readyz": [200, { status: "ready" }],
+      "GET /readyz": [200, { status: "ready", release: "0123456789abcdef" }],
       "GET /__dev/access": [
         200,
         {
@@ -135,6 +135,7 @@ test("disposable dev smoke proves final player and staff flows", async (t) => {
       ...process.env,
       DEV_SMOKE_API_BASE_URL: `http://127.0.0.1:${address.port}`,
       DEV_API_GATEWAY_TOKEN: "gateway-secret",
+      DEV_SMOKE_EXPECTED_RELEASE: "0123456789abcdef",
     },
   });
 
@@ -175,26 +176,96 @@ test("disposable dev smoke proves final player and staff flows", async (t) => {
   assert.ok(rewardRequest.idempotencyKey);
 });
 
+test("update smoke proves the exact container without mutating fixtures", async (t) => {
+  const requests = [];
+  const server = createServer((request, response) => {
+    requests.push(`${request.method} ${request.url}`);
+    const body =
+      request.url === "/readyz"
+        ? { status: "ready", release: "fedcba9876543210" }
+        : {
+            players: [{ name: "Mason C." }],
+            pin: "1111",
+            adminEmail: "admin@dev.invalid",
+            adminPassword: "staff-secret",
+          };
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end(JSON.stringify(body));
+  });
+  await new Promise((resolveListen) =>
+    server.listen(0, "127.0.0.1", resolveListen),
+  );
+  t.after(() => server.close());
+
+  const address = server.address();
+  const { stdout } = await execFileAsync(
+    process.execPath,
+    [script, "--read-only"],
+    {
+      env: {
+        ...process.env,
+        DEV_SMOKE_API_BASE_URL: `http://127.0.0.1:${address.port}`,
+        DEV_API_GATEWAY_TOKEN: "gateway-secret",
+        DEV_SMOKE_EXPECTED_RELEASE: "fedcba9876543210",
+      },
+    },
+  );
+
+  assert.match(stdout, /exact dev container is serving/);
+  assert.deepEqual(requests, ["GET /readyz", "GET /__dev/access"]);
+});
+
 async function readBody(request) {
   const chunks = [];
   for await (const chunk of request) chunks.push(chunk);
   return Buffer.concat(chunks).toString("utf8");
 }
 
-test("new infrastructure runs the deploy smoke after fixture seeding", async () => {
-  const workflow = await readFile(
-    resolve(import.meta.dirname, "../.github/workflows/dev.yml"),
-    "utf8",
+test("updates prove the exact container and new infrastructure proves final flows", async () => {
+  const [workflow, deploy, retry] = await Promise.all([
+    readFile(
+      resolve(import.meta.dirname, "../.github/workflows/dev.yml"),
+      "utf8",
+    ),
+    readFile(
+      resolve(import.meta.dirname, "../deploy/release/deploy-dev.sh"),
+      "utf8",
+    ),
+    readFile(
+      resolve(import.meta.dirname, "../deploy/release/retry-command.sh"),
+      "utf8",
+    ),
+  ]);
+  const readOnlySmoke = workflow.indexOf(
+    "node scripts/dev-deploy-smoke.mjs --read-only",
   );
-  const smoke = workflow.indexOf("node scripts/dev-deploy-smoke.mjs");
-  assert.ok(smoke > workflow.indexOf("name: Reset preview fixtures"));
-  const smokeStep = workflow.slice(
-    workflow.lastIndexOf("- name:", smoke),
-    smoke,
+  assert.ok(readOnlySmoke > workflow.indexOf("name: Reset preview fixtures"));
+  const readOnlyStep = workflow.slice(
+    workflow.lastIndexOf("- name:", readOnlySmoke),
+    readOnlySmoke,
   );
-  assert.match(smokeStep, /inputs\.operation == 'create'/);
-  assert.match(smokeStep, /steps\.infra\.outputs\.created == 'true'/);
-  assert.doesNotMatch(smokeStep, /inputs\.operation == 'reset'/);
-  assert.match(workflow.slice(smoke - 400, smoke), /DEV_SMOKE_API_BASE_URL/);
-  assert.match(workflow.slice(smoke - 400, smoke), /DEV_API_GATEWAY_TOKEN/);
+  assert.match(readOnlyStep, /inputs\.operation == 'create'/);
+  assert.match(readOnlyStep, /inputs\.operation == 'update'/);
+  assert.match(readOnlyStep, /DEV_SMOKE_EXPECTED_RELEASE/);
+
+  const fullSmoke = workflow.indexOf(
+    "run: node scripts/dev-deploy-smoke.mjs\n",
+    readOnlySmoke,
+  );
+  const fullSmokeStep = workflow.slice(
+    workflow.lastIndexOf("- name:", fullSmoke),
+    fullSmoke,
+  );
+  assert.match(fullSmokeStep, /inputs\.operation == 'create'/);
+  assert.match(fullSmokeStep, /steps\.infra\.outputs\.created == 'true'/);
+  assert.doesNotMatch(fullSmokeStep, /inputs\.operation == 'update'/);
+  assert.match(fullSmokeStep, /DEV_SMOKE_EXPECTED_RELEASE/);
+
+  assert.match(workflow, /retry-command\.sh 3 10 tofu init/);
+  assert.match(workflow, /retry-command\.sh 3 15 tofu apply/);
+  assert.match(deploy, /ConnectTimeout=10/);
+  assert.match(deploy, /ServerAliveInterval=15/);
+  assert.match(deploy, /retry_command.*wrangler deploy/);
+  assert.match(retry, /failed after \$attempt attempts/);
+  assert.doesNotMatch(retry, /eval/);
 });
