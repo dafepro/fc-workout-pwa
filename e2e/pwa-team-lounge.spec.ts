@@ -58,7 +58,7 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
     let previous = Number(element.dataset.ballX);
     element.dataset.e2eBallMinX = String(previous);
     element.dataset.e2eBallMaxX = String(previous);
-    element.dataset.e2eBallReturned = "false";
+    element.dataset.e2eBallBounced = "false";
     new MutationObserver(() => {
       const current = Number(element.dataset.ballX);
       const maximum = Math.max(Number(element.dataset.e2eBallMaxX), current);
@@ -66,8 +66,8 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
         Math.min(Number(element.dataset.e2eBallMinX), current),
       );
       element.dataset.e2eBallMaxX = String(maximum);
-      if (maximum > 95 && previous > 90 && current < 60) {
-        element.dataset.e2eBallReturned = "true";
+      if (maximum > 90 && previous > current + 0.1) {
+        element.dataset.e2eBallBounced = "true";
       }
       previous = current;
     }).observe(element, {
@@ -112,16 +112,13 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
 
   await dragSelfToWorld(96, 98);
   await expect
-    .poll(() => stage.getAttribute("data-e2e-ball-returned"), {
+    .poll(() => stage.getAttribute("data-e2e-ball-bounced"), {
       timeout: 15_000,
     })
     .toBe("true");
-  await expect
-    .poll(async () => Number(await stage.getAttribute("data-ball-x")))
-    .toBeCloseTo(50, 0);
-  await expect
-    .poll(async () => Number(await stage.getAttribute("data-ball-y")))
-    .toBeCloseTo(75, 0);
+  expect(
+    Number(await stage.getAttribute("data-e2e-ball-max-x")),
+  ).toBeLessThanOrEqual(96);
 
   await dragSelfToWorld(35, 98);
   await dragSelfToWorld(35, 75);
@@ -134,6 +131,29 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   await expect
     .poll(async () => Number(await stage.getAttribute("data-e2e-ball-max-x")))
     .toBeGreaterThan(52);
+
+  await lounge.getByRole("button", { name: "Wave" }).click();
+  await expect(lounge.getByRole("img", { name: "Wave" })).toBeVisible();
+  await expect(lounge.getByRole("button", { name: "Heart" })).toBeDisabled();
+
+  await lounge.getByRole("button", { name: "Choose Bolt stamp" }).click();
+  const remainingBefore = Number.parseInt(
+    (await lounge.getByText(/items? left$/u).textContent()) ?? "0",
+    10,
+  );
+  const placementSurface = lounge.getByRole("button", {
+    name: "Place Bolt stamp on the boardwalk",
+  });
+  await placementSurface.click({ position: { x: 90, y: 140 } });
+  await expect(lounge.getByRole("img", { name: "Bolt stamp" })).toBeVisible({
+    timeout: 10_000,
+  });
+  const remainingAfter = remainingBefore - 1;
+  await expect(
+    lounge.getByText(
+      `${remainingAfter} item${remainingAfter === 1 ? "" : "s"} left`,
+    ),
+  ).toBeVisible();
 
   await expect(lounge.getByRole("combobox")).toHaveCount(0);
   await expect(lounge).not.toContainText(/\bV[12]\b|alternative|preview/i);

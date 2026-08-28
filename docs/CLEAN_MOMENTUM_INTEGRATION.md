@@ -162,3 +162,7 @@ Each step is test-first and small enough to review independently.
 - Today again owns one primary plan plus four consolidated destinations; private session history remains only in Me, and `/progress` restores the Momentum detail destination.
 - Team Pulse is back above the canonical Lounge with its avatars, three-to-five expansion, safe recency, and a real Docker-proven private predefined cheer.
 - The parity audit retains the V2 Lounge and structured reward authority while leaving alternate shells, uploads, free text, and legacy reward rules dropped.
+- Lounge Canvas v8 replaces edge respawns with four solid boardwalk boundaries; a Canvas 0.4.1 consumer behavior adds faster normal kicks, slower drag, and tangential spin while scenery remains ball-permeable.
+- Development builds restore predefined durable Lounge stamps from included and earned Zoomigo inventory, plus the five cooldown-limited V2 reactions; production receives neither definitions nor controls.
+- Weekly visitor traces suppress players already live in the room, and a one-tap runtime retry restores useful V2 affordances without reviving alternate Lounge routes or old data contracts.
+- Focused behavior, local-simulation, gateway, catalog, UI, Go room, and 320px Docker coverage now proves the v8 bounce/spin plus real WebSocket stamp placement and reaction controls.

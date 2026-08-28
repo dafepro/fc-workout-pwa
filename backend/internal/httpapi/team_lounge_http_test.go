@@ -86,13 +86,14 @@ func TestCanonicalTeamLoungeRequiresTodayCheckInAndJoinsCanvasRoom(t *testing.T)
 		DayKey   string `json:"dayKey"`
 		Theme    string `json:"theme"`
 		Presence int    `json:"recentVisitors"`
+		Credits  int    `json:"placementCredits"`
 	}
 	if err := json.NewDecoder(ticketResponse.Body).Decode(&credential); err != nil {
 		t.Fatal(err)
 	}
-	if len(credential.Ticket) != 43 || credential.RoomID != "team:team-one:lounge:2026-08-24:v7" ||
+	if len(credential.Ticket) != 43 || credential.RoomID != "team:team-one:lounge:2026-08-24:v8" ||
 		credential.WeekKey != "2026-08-24" || credential.DayKey != "2026-08-26" ||
-		credential.Theme != "Beach Boardwalk" || credential.Presence != 0 {
+		credential.Theme != "Beach Boardwalk" || credential.Presence != 0 || credential.Credits != 1 {
 		t.Fatalf("credential = %#v", credential)
 	}
 
@@ -111,7 +112,7 @@ func TestCanonicalTeamLoungeRequiresTodayCheckInAndJoinsCanvasRoom(t *testing.T)
 		Payload: &pb.RoomEnvelope_Join{Join: &pb.Join{
 			RoomId: credential.RoomID, ProtocolVersion: 8,
 			Definitions: []*pb.DefinitionVersion{
-				{DefinitionId: "beach-ball", Version: 3},
+				{DefinitionId: "beach-ball", Version: 4},
 				{DefinitionId: "avatar", Version: 1},
 			},
 		}},

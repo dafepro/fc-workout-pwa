@@ -9,6 +9,7 @@ import {
 } from "vitest";
 import type { RenderEntity } from "@canvas-physics/client";
 
+import { LoungeBallBehavior } from "./lounge-ball-behavior";
 import { startLocalBeachBoardwalkSimulation } from "./local-simulation";
 
 let stop: (() => void) | undefined;
@@ -61,7 +62,7 @@ describe("canonical local Lounge simulation", () => {
     let entities: RenderEntity[] = [];
     const simulation = startLocalBeachBoardwalkSimulation({
       playerID: "mason",
-      driver: SimulationDriver.local(),
+      driver: SimulationDriver.local([LoungeBallBehavior]),
       onRender(next) {
         entities = next;
       },
@@ -92,7 +93,7 @@ describe("canonical local Lounge simulation", () => {
     let entities: RenderEntity[] = [];
     const simulation = startLocalBeachBoardwalkSimulation({
       playerID: "mason",
-      driver: SimulationDriver.local(),
+      driver: SimulationDriver.local([LoungeBallBehavior]),
       onRender(next) {
         entities = next;
       },
@@ -133,19 +134,60 @@ describe("canonical local Lounge simulation", () => {
     );
   });
 
-  it("respawns a ball kicked beyond the playable edge", async () => {
+  it("turns an off-centre player contact into ball spin", async () => {
+    const { SimulationDriver } = await import("@canvas-physics/client");
+    let entities: RenderEntity[] = [];
+    const simulation = startLocalBeachBoardwalkSimulation({
+      playerID: "mason",
+      driver: SimulationDriver.local([LoungeBallBehavior]),
+      onRender(next) {
+        entities = next;
+      },
+    });
+    stop = simulation.stop;
+
+    await simulation.ready;
+    await until(() => entities.some(({ id }) => id === "boardwalk-beach-ball"));
+    simulation.move({
+      direction: { x: 0, y: 0 },
+      intensity: 0,
+      held: true,
+      target: { x: 50, y: 93 },
+    });
+    await until(
+      () => (entities.find(({ id }) => id === "avatar:mason")?.x ?? 0) > 48,
+    );
+    simulation.move({
+      direction: { x: 0, y: 0 },
+      intensity: 0,
+      held: true,
+      target: { x: 59, y: 96 },
+    });
+
+    await until(
+      () =>
+        Math.abs(
+          entities.find(({ id }) => id === "boardwalk-beach-ball")
+            ?.angularVelocity ?? 0,
+        ) > 0.1,
+    );
+  });
+
+  it("keeps the ball on the boardwalk and bounces it off the right edge", async () => {
     const { SimulationDriver } = await import("@canvas-physics/client");
     let entities: RenderEntity[] = [];
     let maxBallX = 0;
-    let sawBallRespawn = false;
+    let sawRightwardMotion = false;
+    let sawLeftwardBounce = false;
     const simulation = startLocalBeachBoardwalkSimulation({
       playerID: "mason",
-      driver: SimulationDriver.local(),
+      driver: SimulationDriver.local([LoungeBallBehavior]),
       onRender(next) {
         entities = next;
         const ball = next.find(({ id }) => id === "boardwalk-beach-ball");
         maxBallX = Math.max(maxBallX, ball?.x ?? 0);
-        sawBallRespawn ||= ball?.respawning === true;
+        sawRightwardMotion ||= (ball?.vx ?? 0) > 1;
+        sawLeftwardBounce ||= sawRightwardMotion && (ball?.vx ?? 0) < -1;
       },
     });
     stop = simulation.stop;
@@ -179,45 +221,12 @@ describe("canonical local Lounge simulation", () => {
 
     await until(() => {
       const ball = entities.find(({ id }) => id === "boardwalk-beach-ball");
-      return (
-        maxBallX > 95 &&
-        sawBallRespawn &&
-        Math.abs((ball?.x ?? 0) - 50) < 1 &&
-        Math.abs((ball?.y ?? 0) - 75) < 1
-      );
+      return maxBallX > 90 && sawLeftwardBounce && (ball?.x ?? 100) < 94;
     }, 7_000);
-    const returned = entities.find(({ id }) => id === "boardwalk-beach-ball")!;
-    expect(returned.x).toBeCloseTo(50, 0);
-    expect(returned.y).toBeCloseTo(75, 0);
-
-    simulation.move({
-      direction: { x: 0, y: 0 },
-      intensity: 0,
-      held: true,
-      target: { x: 35, y: 98 },
-    });
-    await until(
-      () => (entities.find(({ id }) => id === "avatar:mason")?.x ?? 100) < 37,
-    );
-    simulation.move({
-      direction: { x: 0, y: 0 },
-      intensity: 0,
-      held: true,
-      target: { x: 35, y: 75 },
-    });
-    await until(
-      () => (entities.find(({ id }) => id === "avatar:mason")?.y ?? 150) < 77,
-    );
-    simulation.move({
-      direction: { x: 0, y: 0 },
-      intensity: 0,
-      held: true,
-      target: { x: 45, y: 75 },
-    });
-    await until(
-      () =>
-        (entities.find(({ id }) => id === "boardwalk-beach-ball")?.x ?? 0) > 52,
-    );
+    expect(maxBallX).toBeLessThanOrEqual(96);
+    expect(
+      entities.find(({ id }) => id === "boardwalk-beach-ball")?.respawning,
+    ).not.toBe(true);
   }, 10_000);
 });
 

@@ -1,5 +1,6 @@
 import vinext from "vinext";
 import { defineConfig } from "vite";
+import { fileURLToPath } from "node:url";
 import hostingConfig from "./.openai/hosting.json";
 import { resolveBuildProfile } from "./build/build-profile";
 import { sites } from "./build/sites-vite-plugin";
@@ -44,6 +45,14 @@ const bindingConfig = () => ({
 
 export default defineConfig(async () => {
   const buildProfile = resolveBuildProfile(process.env.ZOOMIGO_BUILD_PROFILE);
+  const loungeDevelopmentModule = fileURLToPath(
+    new URL(
+      buildProfile === "development"
+        ? "./app/team-lounge/lounge-development.development.ts"
+        : "./app/team-lounge/lounge-development.production.ts",
+      import.meta.url,
+    ),
+  );
 
   // Keep Wrangler and Miniflare state project-local. These are non-secret tool
   // settings; application environment belongs in ignored `.env*` files.
@@ -55,6 +64,14 @@ export default defineConfig(async () => {
   const { cloudflare } = await import("@cloudflare/vite-plugin");
 
   return {
+    resolve: {
+      alias: [
+        {
+          find: "#lounge-development",
+          replacement: loungeDevelopmentModule,
+        },
+      ],
+    },
     define: {
       __ZOOMIGO_DEVELOPMENT_BUILD__: JSON.stringify(
         buildProfile === "development",

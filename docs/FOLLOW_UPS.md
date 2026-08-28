@@ -8,9 +8,14 @@ the Team Lounge.
 
 - **Authorize shared Lounge collectibles.** Canvas 0.4.1 no longer exposes the
   application-level durable-mutation authorization hook used by the prototype.
-  Keep earned Lounge stamps and props in ZoomiGo inventory but do not make them
-  placeable in the shared room until Canvas adds a safe policy extension or the
-  placement is mediated by a ZoomiGo-owned endpoint. Do not trust client item IDs.
+  Development builds may exercise the predefined durable item path, but keep
+  production definitions and controls excluded until Canvas adds a safe policy
+  extension or placement is mediated by a ZoomiGo-owned endpoint. Do not trust
+  client item IDs or client-side placement-credit counts.
+- **Add a current-Canvas shared emote transport.** Canvas 0.4.1 removed the
+  prototype participant-signal API. Development builds currently prove the
+  predefined reaction controls, cooldown, and sender presentation only; relay
+  the same closed set to teammates once a supported transient channel exists.
 - **Finish two-player live-room behavior.** A connected Docker browser test now
   proves two qualified players share presence and avatar movement across two
   authenticated sessions. Extend that proof to cross-session beach-ball motion.
@@ -21,10 +26,6 @@ the Team Lounge.
 
 ## P2 — deliberate cleanup and product decisions
 
-- **Remove the Canvas 0.4.1 spawn-order compatibility shim after upgrading.**
-  The beach scene currently lists the ball-return point first because 0.4.1 edge
-  recovery ignores the named policy point; player runtimes explicitly request
-  `arrival`. Recheck the upstream behavior before simplifying that ordering.
 - **Decide production training-plan authoring authority.** The curated weekly
   planner now replaces legacy assignment creation in development builds. Keep
   production on the existing assignment console until the plan mutation routes

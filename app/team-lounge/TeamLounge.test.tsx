@@ -11,7 +11,7 @@ vi.mock("./LocalLoungeCanvas", () => ({
     player: { firstName: string };
     onStateChange(state: string): void;
   }) => (
-    <button type="button" onClick={() => onStateChange("ready")}>
+    <button type="button" onClick={() => onStateChange("error")}>
       {player.firstName}&apos;s interactive lounge canvas
     </button>
   ),
@@ -116,5 +116,22 @@ describe("canonical Team Lounge", () => {
         name: "Mason's interactive lounge canvas",
       }),
     ).not.toBeInTheDocument();
+  });
+
+  it("remounts a Lounge that reports an error", () => {
+    render(<TeamLounge player={mason} unlocked />);
+    const canvas = screen.getByRole("button", {
+      name: "Mason's interactive lounge canvas",
+    });
+    fireEvent.click(canvas);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Try the boardwalk again" }),
+    );
+
+    expect(
+      screen.getByRole("button", {
+        name: "Mason's interactive lounge canvas",
+      }),
+    ).not.toBe(canvas);
   });
 });

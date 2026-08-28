@@ -81,7 +81,14 @@ export function LocalLoungeCanvas({
         strategies: [movement],
       });
       const keyboard = new KeyboardController(window);
-      const driver = SimulationDriver.spawn();
+      const worker = new Worker(
+        new URL("./canvas.worker.ts", import.meta.url),
+        {
+          type: "module",
+          name: "zoomigo-lounge-simulation",
+        },
+      );
+      const driver = new SimulationDriver(worker);
       let lastFrameAt = performance.now();
       let lastIntent = "";
       let frame = 0;
@@ -93,7 +100,9 @@ export function LocalLoungeCanvas({
           const ball = next.find(({ id }) => id === loungeBallEntityID);
           publishLoungeBallPosition(
             mount,
-            ball ? { x: ball.x, y: ball.y } : undefined,
+            ball
+              ? { x: ball.x, y: ball.y, rotation: ball.rotation }
+              : undefined,
           );
         },
         onError() {

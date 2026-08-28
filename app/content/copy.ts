@@ -157,6 +157,7 @@ export const copy = {
     loading: "Setting up the boardwalk…",
     static: "The room is ready. Movement needs a supported browser.",
     unavailable: "The boardwalk could not open.",
+    retry: "Try the boardwalk again",
   },
   momentum: {
     eyebrow: "Your momentum",

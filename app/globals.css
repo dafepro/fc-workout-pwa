@@ -4224,6 +4224,107 @@ h2 {
   white-space: nowrap;
 }
 
+.team-lounge__avatar-emote {
+  position: absolute;
+  bottom: 3.1rem;
+  left: 0;
+  display: grid;
+  width: 2.3rem;
+  height: 2.3rem;
+  place-items: center;
+  border-radius: 999px;
+  background: white;
+  box-shadow: 0 0.25rem 0.8rem rgb(7 28 37 / 28%);
+  font-size: 1.3rem;
+  transform: translateX(-50%);
+}
+
+.team-lounge__placed-item {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  font-size: clamp(1.8rem, 9vw, 2.8rem);
+  line-height: 1;
+  pointer-events: none;
+}
+
+.team-lounge__visitor-trace {
+  position: absolute;
+  z-index: 3;
+  opacity: 0.36;
+  filter: saturate(0.7);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.team-lounge__visitor-trace .avatar {
+  width: 2rem;
+  height: 2rem;
+  border: 0.12rem solid rgb(255 255 255 / 75%);
+}
+
+.team-lounge__placement-surface {
+  position: absolute;
+  z-index: 5;
+  border: 0;
+  background: rgb(7 28 37 / 18%);
+  color: white;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 900;
+  inset: 0 0 7.7rem;
+}
+
+.team-lounge__actions {
+  position: absolute;
+  right: 0.45rem;
+  bottom: 0.45rem;
+  left: 0.45rem;
+  z-index: 6;
+  display: grid;
+  gap: 0.32rem;
+  padding: 0.45rem;
+  border: 1px solid rgb(255 255 255 / 22%);
+  border-radius: 0.9rem;
+  background: rgb(7 28 37 / 88%);
+  backdrop-filter: blur(8px);
+}
+
+.team-lounge__action-row {
+  display: flex;
+  gap: 0.28rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.team-lounge__action-row button {
+  flex: 0 0 2.25rem;
+  width: 2.25rem;
+  min-height: 2.25rem;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 20%);
+  border-radius: 0.65rem;
+  background: rgb(255 255 255 / 12%);
+  font-size: 1.25rem;
+}
+
+.team-lounge__action-row button[aria-pressed="true"] {
+  border-color: var(--lime);
+  background: rgb(201 243 29 / 26%);
+}
+
+.team-lounge__action-row button:disabled {
+  opacity: 0.45;
+}
+
+.team-lounge__action-count {
+  color: rgb(255 255 255 / 72%);
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-align: right;
+}
+
 .team-lounge__world--locked::before {
   position: absolute;
   z-index: 1;
@@ -4322,6 +4423,22 @@ h2 {
   font-weight: 750;
   text-align: center;
   pointer-events: none;
+}
+
+.team-lounge__status p {
+  margin: 0;
+}
+
+.team-lounge__status button {
+  margin-top: 0.45rem;
+  padding: 0.35rem 0.65rem;
+  border: 0;
+  border-radius: 0.55rem;
+  background: var(--lime);
+  color: #153622;
+  font: inherit;
+  font-weight: 900;
+  pointer-events: auto;
 }
 
 .training-plan {

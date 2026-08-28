@@ -1,13 +1,14 @@
 import {
   CollisionLayer,
-  defaultKickableConfig,
   type CanvasDefinition,
   type ItemDefinition,
 } from "@canvas-physics/core";
 
+import { defaultLoungeBallConfig } from "../lounge-ball-behavior";
+
 export const beachBallDefinition: ItemDefinition = {
   definitionId: "beach-ball",
-  version: 3,
+  version: 4,
   displayName: "Beach ball",
   visual: {
     size: { width: 9, height: 9 },
@@ -19,8 +20,8 @@ export const beachBallDefinition: ItemDefinition = {
     mode: "dynamic",
     mass: 0.5,
     gravityScale: 0,
-    linearDamping: 0.35,
-    angularDamping: 0.2,
+    linearDamping: 0.12,
+    angularDamping: 0.12,
     canSleep: true,
   },
   colliders: [
@@ -38,14 +39,8 @@ export const beachBallDefinition: ItemDefinition = {
     },
     { id: "kick", role: "itemSensor", shape: { type: "circle", radius: 5.8 } },
   ],
-  behaviorType: "kickable",
-  defaultConfig: {
-    ...defaultKickableConfig,
-    kickStrength: 3.2,
-    minImpulse: 9,
-    maxImpulse: 42,
-    cooldownSeconds: 0.18,
-  },
+  behaviorType: "zoomigoLoungeBall",
+  defaultConfig: defaultLoungeBallConfig,
   persistence: { transform: true, behaviorState: true, onRoomSleep: "pause" },
   complexity: "simple",
 };
@@ -73,15 +68,15 @@ export const beachBoardwalkDefinitions = [
 
 export const beachBoardwalkCanvas: CanvasDefinition = {
   id: "zoomigo-beach-boardwalk",
-  version: 7,
+  version: 8,
   size: { width: 100, height: 150 },
   orientation: "topDown",
   backgroundAssetId: "lounge.background",
   edges: {
-    top: "respawn",
-    right: "respawn",
-    bottom: "respawn",
-    left: "respawn",
+    top: "solid",
+    right: "solid",
+    bottom: "solid",
+    left: "solid",
   },
   staticGeometry: [
     {
@@ -124,22 +119,13 @@ export const beachBoardwalkCanvas: CanvasDefinition = {
   environment: {
     base: {
       gravityXY: { x: 0, y: 0 },
-      linearDrag: 0.2,
-      angularDrag: 0.2,
-      softSpeedLimit: 28,
+      linearDrag: 0.07,
+      angularDrag: 0.1,
+      softSpeedLimit: 40,
       surfaceFrictionMultiplier: 1,
     },
   },
-  spawnPoints: [
-    // Canvas 0.4.1 edge respawns use the first point even when the policy names one.
-    { id: "ball-return", position: { x: 50, y: 75 } },
-    { id: "arrival", position: { x: 43, y: 92 } },
-  ],
-  respawn: {
-    delaySeconds: 0.35,
-    spawnPointId: "ball-return",
-    applyToQuarantine: true,
-  },
+  spawnPoints: [{ id: "arrival", position: { x: 43, y: 92 } }],
   systemItems: [
     {
       entityId: "boardwalk-beach-ball",

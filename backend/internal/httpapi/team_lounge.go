@@ -68,14 +68,15 @@ func (tickets *teamLoungeSocketTickets) consume(ticket, roomID string) (teamLoun
 }
 
 type teamLoungeCredential struct {
-	Ticket         string   `json:"ticket"`
-	RoomID         string   `json:"roomId"`
-	WeekKey        string   `json:"weekKey"`
-	DayKey         string   `json:"dayKey"`
-	Theme          string   `json:"theme"`
-	VisitorIDs     []string `json:"visitorIds"`
-	RecentVisitors int      `json:"recentVisitors"`
-	ExpiresIn      int      `json:"expiresInSeconds"`
+	Ticket           string   `json:"ticket"`
+	RoomID           string   `json:"roomId"`
+	WeekKey          string   `json:"weekKey"`
+	DayKey           string   `json:"dayKey"`
+	Theme            string   `json:"theme"`
+	VisitorIDs       []string `json:"visitorIds"`
+	RecentVisitors   int      `json:"recentVisitors"`
+	PlacementCredits int      `json:"placementCredits"`
+	ExpiresIn        int      `json:"expiresInSeconds"`
 }
 
 func (service *service) createTeamLoungeSocketTicket(w http.ResponseWriter, r *http.Request) {
@@ -152,9 +153,13 @@ func (service *service) createTeamLoungeSocketTicket(w http.ResponseWriter, r *h
 		writeError(w, r, http.StatusInternalServerError, "internal_error", "Live team updates could not be started.")
 		return
 	}
+	placementCredits := budget.Earned
+	if service.cfg.EnableDevAccess {
+		placementCredits = max(placementCredits, 99)
+	}
 	writeJSON(w, http.StatusCreated, teamLoungeCredential{
 		Ticket: ticket, RoomID: roomID, WeekKey: team.WeekStart, DayKey: budget.DayKey,
-		Theme: theme.Name, VisitorIDs: visitorIDs, RecentVisitors: len(visitorIDs),
+		Theme: theme.Name, VisitorIDs: visitorIDs, RecentVisitors: len(visitorIDs), PlacementCredits: placementCredits,
 		ExpiresIn: int(teamLoungeSocketTicketTTL.Seconds()),
 	})
 }

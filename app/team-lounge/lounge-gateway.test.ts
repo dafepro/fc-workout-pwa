@@ -7,9 +7,10 @@ import {
 
 const response = {
   ticket: "a".repeat(43),
-  roomId: "team:team-one:lounge:2026-08-24:v7",
+  roomId: "team:team-one:lounge:2026-08-24:v8",
   serverUrl: "https://api.example.test",
   visitorIds: ["player-two"],
+  placementCredits: 2,
 };
 
 afterEach(() => vi.unstubAllGlobals());
@@ -29,6 +30,7 @@ describe("canonical Team Lounge gateway", () => {
       roomID: response.roomId,
       serverURL: response.serverUrl,
       visitorIDs: ["player-two"],
+      placementCredits: 2,
     });
     expect(fetcher).toHaveBeenCalledWith(
       "/api/zoomigo/v1/teams/team-one/lounge/socket-ticket",

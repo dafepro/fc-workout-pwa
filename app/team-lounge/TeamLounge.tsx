@@ -23,6 +23,7 @@ export function TeamLounge({
 }) {
   const [state, setState] = useState<LoungeCanvasState>("loading");
   const [presence, setPresence] = useState(1);
+  const [canvasKey, setCanvasKey] = useState(0);
   const updateState = useCallback(
     (next: LoungeCanvasState) => setState(next),
     [],
@@ -54,6 +55,7 @@ export function TeamLounge({
         {unlocked ? (
           connected ? (
             <SharedLoungeCanvas
+              key={canvasKey}
               teamID={teamID}
               playerID={player.id}
               roster={roster}
@@ -61,7 +63,11 @@ export function TeamLounge({
               onPresenceChange={setPresence}
             />
           ) : (
-            <LocalLoungeCanvas player={player} onStateChange={updateState} />
+            <LocalLoungeCanvas
+              key={canvasKey}
+              player={player}
+              onStateChange={updateState}
+            />
           )
         ) : (
           <div className="team-lounge__lock">
@@ -74,9 +80,18 @@ export function TeamLounge({
           </div>
         )}
         {unlocked && state === "error" ? (
-          <p className="team-lounge__status" role="alert">
-            {copy.teamLounge.unavailable}
-          </p>
+          <div className="team-lounge__status" role="alert">
+            <p>{copy.teamLounge.unavailable}</p>
+            <button
+              type="button"
+              onClick={() => {
+                setState("loading");
+                setCanvasKey((key) => key + 1);
+              }}
+            >
+              {copy.teamLounge.retry}
+            </button>
+          </div>
         ) : unlocked && state !== "ready" ? (
           <p className="team-lounge__status" aria-live="polite">
             {state === "loading"

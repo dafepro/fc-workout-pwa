@@ -3,6 +3,7 @@ export interface TeamLoungeCredential {
   roomID: string;
   serverURL: string;
   visitorIDs: string[];
+  placementCredits: number;
 }
 
 export async function requestTeamLoungeCredential(
@@ -26,6 +27,7 @@ export async function requestTeamLoungeCredential(
   const roomID = typeof body.roomId === "string" ? body.roomId : "";
   const serverURL = typeof body.serverUrl === "string" ? body.serverUrl : "";
   const visitorIDs = Array.isArray(body.visitorIds) ? body.visitorIds : [];
+  const placementCredits = body.placementCredits;
   let parsedServer: URL;
   try {
     parsedServer = new URL(serverURL);
@@ -41,7 +43,10 @@ export async function requestTeamLoungeCredential(
       (playerID) =>
         typeof playerID !== "string" ||
         !/^[a-zA-Z0-9_-]{1,128}$/u.test(playerID),
-    )
+    ) ||
+    !Number.isInteger(placementCredits) ||
+    (placementCredits as number) < 0 ||
+    (placementCredits as number) > 99
   ) {
     throw new Error("The Team Lounge is unavailable.");
   }
@@ -50,6 +55,7 @@ export async function requestTeamLoungeCredential(
     roomID,
     serverURL: parsedServer.toString().replace(/\/$/u, ""),
     visitorIDs: visitorIDs as string[],
+    placementCredits: placementCredits as number,
   };
 }
 
@@ -62,6 +68,7 @@ export async function prepareTeamLoungeJoin(teamID: string) {
     roomID,
     serverURL,
     visitorIDs: queued.visitorIDs,
+    placementCredits: queued.placementCredits,
     async credentialProvider() {
       const credential = queued ?? (await requestTeamLoungeCredential(teamID));
       queued = null;

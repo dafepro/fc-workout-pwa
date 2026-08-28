@@ -61,9 +61,13 @@ func run() error {
 	}
 	authenticator, resetAuthFixtures := configuredAuthenticator(cfg, sessions, staff)
 
+	loungeCatalog := teamlounge.BeachBoardwalkCatalog()
+	if cfg.EnableDevAccess || cfg.EnableE2EFixtures {
+		loungeCatalog = teamlounge.BeachBoardwalkDevelopmentCatalog()
+	}
 	handlerOptions := []httpapi.Option{
 		httpapi.WithStore(observedRepository),
-		httpapi.WithTeamLoungeStore(teamlounge.NewSQLiteStore(db, teamlounge.BeachBoardwalkCatalog())),
+		httpapi.WithTeamLoungeStore(teamlounge.NewSQLiteStore(db, loungeCatalog)),
 		// A staff bearer token resolves through the same interface as a player
 		// one, so authorization stays the single place that decides anything.
 		httpapi.WithAuthenticator(authn.Fallback{Primary: authenticator, Secondary: staff}),

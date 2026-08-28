@@ -77,7 +77,7 @@ func TestPlacementBudgetBackfillsCurrentWeekCheckInsAndUsesTeamTime(t *testing.T
 	}
 	store := NewSQLiteStore(db, Catalog{})
 	now := time.Date(2026, time.August, 26, 18, 0, 0, 0, time.UTC)
-	budget, err := store.PlacementBudget(t.Context(), "team:team-one:lounge:2026-08-24:v7", "player-one", now)
+	budget, err := store.PlacementBudget(t.Context(), "team:team-one:lounge:2026-08-24:v8", "player-one", now)
 	if err != nil {
 		t.Fatal(err)
 	}
