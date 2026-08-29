@@ -167,7 +167,7 @@ func TestPlacementHoldReportSeparatesExpiredPermitsAndStaleCanvasOutcomes(t *tes
 	}
 }
 
-const loungeRoomID = "team:team-one:lounge:2026-08-24:v11"
+const loungeRoomID = "team:team-one:lounge:2026-08-24:v12"
 
 func placementAuthorityStore(t *testing.T, credits int) (*SQLiteStore, time.Time) {
 	t.Helper()
@@ -207,11 +207,11 @@ func reserveAuthorityPlacement(
 ) PlacementReservation {
 	t.Helper()
 	reservation, err := store.ReservePlacement(t.Context(), loungeRoomID, "player-one", idempotencyKey,
-		PlacementRequest{DefinitionID: "zoomigo-stamp-bolt", DefinitionVersion: 1, X: x, Y: 70}, now)
+		PlacementRequest{DefinitionID: "zoomigo-stamp-bolt", DefinitionVersion: 2, X: x, Y: 70}, now)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if reservation.Permit == "" || reservation.DefinitionVersion != 1 {
+	if reservation.Permit == "" || reservation.DefinitionVersion != 2 {
 		t.Fatalf("reservation lacks exact permit binding: %+v", reservation)
 	}
 	return reservation

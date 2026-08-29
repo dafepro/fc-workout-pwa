@@ -1,4 +1,10 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { loungeEmotes } from "./lounge-emotes";
@@ -11,13 +17,13 @@ const earnedProp: LoungeItemChoice = {
   label: "Beach ball",
   glyph: "⚽",
   definitionId: "zoomigo-prop-beach-ball",
-  definitionVersion: 2,
+  definitionVersion: 3,
   source: "earned",
   kind: "lounge_prop",
 };
 
 describe("Lounge action dock", () => {
-  it("uses the consolidated V2 action bar and categorized item sheet", () => {
+  it("uses the consolidated V2 action bar and categorized item sheet", async () => {
     const onSelectItem = vi.fn();
     const onSendEmote = vi.fn();
     const onSendQuickPhrase = vi.fn();
@@ -49,8 +55,8 @@ describe("Lounge action dock", () => {
           .querySelectorAll(":scope > button"),
         (button) => button.textContent?.trim(),
       ),
-    ).toEqual(["✦Stamps", "▣Items", "▤Quick messages", "☺Emotes"]);
-    expect(screen.queryByRole("dialog")).toBeNull();
+    ).toEqual(["✦Stamps", "▣Items", "▤Chat", "☺React"]);
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 
     fireEvent.click(screen.getByRole("button", { name: "Stamps" }));
     expect(
@@ -76,18 +82,66 @@ describe("Lounge action dock", () => {
     expect(screen.getByText("Earned")).toBeVisible();
     fireEvent.click(beachBall);
     expect(onSelectItem).toHaveBeenCalledWith(earnedProp);
-    expect(screen.queryByRole("dialog")).toBeNull();
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 
-    fireEvent.click(screen.getByRole("button", { name: "Emotes" }));
+    fireEvent.click(screen.getByRole("button", { name: "React" }));
+    expect(
+      screen.getByRole("dialog", { name: "Choose a reaction" }),
+    ).toHaveAttribute("data-anchor", "react");
     fireEvent.click(screen.getByRole("button", { name: "Send Wave emote" }));
     expect(onSendEmote).toHaveBeenCalledWith(loungeEmotes[0]);
 
-    fireEvent.click(screen.getByRole("button", { name: "Quick messages" }));
-    expect(screen.queryByRole("tab", { name: "Quick messages" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Chat" }));
+    const chatSets = screen.getByRole("dialog", { name: "Choose a chat set" });
+    expect(chatSets).toHaveAttribute("data-anchor", "chat");
+    expect(screen.getByRole("button", { name: "Standard" })).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Set 2, locked" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Set 3, locked" }),
+    ).toBeDisabled();
+    expect(
+      screen.queryByRole("button", { name: "Send Nice! quick message" }),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Standard" }));
+    expect(
+      screen.getByRole("dialog", { name: "Choose a Standard message" }),
+    ).toBeVisible();
+    expect(
+      screen.getAllByRole("button", { name: / quick message$/u }),
+    ).toHaveLength(10);
     fireEvent.click(
-      screen.getByRole("button", { name: "Send Nice! quick message" }),
+      screen.getByRole("button", { name: "Send Hi! quick message" }),
     );
     expect(onSendQuickPhrase).toHaveBeenCalledWith(loungeQuickPhrases[0]);
+  });
+
+  it("slides an open tray down before removing it", () => {
+    vi.useFakeTimers();
+    render(
+      <LoungeActionDock
+        choices={includedLoungeItems}
+        selectedItem={null}
+        remaining={2}
+        placing={false}
+        reactionLocked={false}
+        onSelectItem={vi.fn()}
+        onSendEmote={vi.fn()}
+        onSendQuickPhrase={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "React" }));
+    const tray = screen.getByRole("dialog", { name: "Choose a reaction" });
+    expect(tray).toHaveAttribute("data-state", "open");
+    fireEvent.click(screen.getByRole("button", { name: "React" }));
+    expect(tray).toHaveAttribute("data-state", "closing");
+    act(() => vi.advanceTimersByTime(200));
+    expect(
+      screen.queryByRole("dialog", { name: "Choose a reaction" }),
+    ).toBeNull();
+    vi.useRealTimers();
   });
 
   it("keeps exhausted placement controls visible but disabled", () => {

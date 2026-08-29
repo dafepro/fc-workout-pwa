@@ -22,7 +22,7 @@ func TestTransientReactionsRequireMembershipClosedPayloadAndSharedCooldown(t *te
 	reopened.SetClock(func() time.Time { return now })
 	quickPhrase := roomsdk.TransientActionContext{
 		RoomID: loungeRoomID, ParticipantID: "player-one", Action: "zoomigo.quickPhrase",
-		Target: roomsdk.TransientActionTargetRoom, Payload: []byte(`{"phrase":"nice"}`),
+		Target: roomsdk.TransientActionTargetRoom, Payload: []byte(`{"phrase":"thanks-bromigo"}`),
 	}
 	if _, err := reopened.ResolveTransientAction(t.Context(), quickPhrase); !errors.Is(err, roomsdk.ErrTransientActionUnauthorized) {
 		t.Fatalf("shared cooldown error = %v", err)

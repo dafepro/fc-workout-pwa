@@ -13,7 +13,7 @@ import (
 
 const (
 	BeachBoardwalkCanvasID       = "zoomigo-beach-boardwalk"
-	BeachBoardwalkCanvasVersion  = uint32(11)
+	BeachBoardwalkCanvasVersion  = uint32(12)
 	BeachBoardwalkRoomGeneration = BeachBoardwalkCanvasVersion
 )
 
@@ -126,7 +126,7 @@ func BeachBoardwalkCatalog() Catalog {
 		}},
 		Items: []roomsdk.ItemDefinitionRecord{
 			{
-				DefinitionID: "beach-ball", Version: 5, Complexity: roomsdk.ItemComplexitySimple,
+				DefinitionID: "beach-ball", Version: 6, Complexity: roomsdk.ItemComplexitySimple,
 				ConfigSchema:  json.RawMessage(loungeBallConfigSchemaJSON),
 				DefinitionRaw: json.RawMessage(beachBallDefinitionJSON),
 			},
@@ -150,7 +150,7 @@ func BeachBoardwalkLoungeCatalog() Catalog {
 	for _, assetID := range []string{"bolt", "fire", "star", "soccer", "shield", "target", "rainbow", "lion", "rocket", "sparkles"} {
 		catalog.Items = append(catalog.Items, roomsdk.ItemDefinitionRecord{
 			DefinitionID:  "zoomigo-stamp-" + assetID,
-			Version:       1,
+			Version:       2,
 			Complexity:    roomsdk.ItemComplexitySimple,
 			ConfigSchema:  json.RawMessage(emptyConfigSchemaJSON),
 			DefinitionRaw: loungeStampDefinitionJSON(assetID),
@@ -159,14 +159,14 @@ func BeachBoardwalkLoungeCatalog() Catalog {
 	for _, assetID := range []string{"camp-lantern", "pennant-flag", "water-cooler", "training-cone"} {
 		catalog.Items = append(catalog.Items, roomsdk.ItemDefinitionRecord{
 			DefinitionID:  "zoomigo-prop-starlight-" + assetID,
-			Version:       1,
+			Version:       2,
 			Complexity:    roomsdk.ItemComplexitySimple,
 			ConfigSchema:  json.RawMessage(emptyConfigSchemaJSON),
 			DefinitionRaw: loungeStaticPropDefinitionJSON(assetID),
 		})
 	}
 	catalog.Items = append(catalog.Items, roomsdk.ItemDefinitionRecord{
-		DefinitionID: "zoomigo-prop-beach-ball", Version: 2,
+		DefinitionID: "zoomigo-prop-beach-ball", Version: 3,
 		Complexity: roomsdk.ItemComplexitySimple, ConfigSchema: json.RawMessage(loungeBallConfigSchemaJSON),
 		DefinitionRaw: json.RawMessage(beachBallPropDefinitionJSON),
 	})
@@ -176,11 +176,10 @@ func BeachBoardwalkLoungeCatalog() Catalog {
 func loungeStaticPropDefinitionJSON(assetID string) json.RawMessage {
 	raw, err := json.Marshal(map[string]any{
 		"definitionId": "zoomigo-prop-starlight-" + assetID,
-		"version":      1,
+		"version":      2,
 		"displayName":  strings.ReplaceAll(assetID, "-", " "),
 		"visual": map[string]any{
-			"size": map[string]float64{"width": 10, "height": 10}, "spriteId": "lounge.stamp.transparent",
-			"placeholder": map[string]any{"shape": "circle", "color": 13234973}, "zIndex": 9,
+			"size": map[string]float64{"width": 10, "height": 10}, "spriteId": "lounge.stamp.transparent", "zIndex": 9,
 		},
 		"colliders": []any{}, "defaultConfig": map[string]any{},
 		"persistence": map[string]any{"transform": true, "behaviorState": false, "onRoomSleep": "pause"},
@@ -195,11 +194,10 @@ func loungeStaticPropDefinitionJSON(assetID string) json.RawMessage {
 func loungeStampDefinitionJSON(assetID string) json.RawMessage {
 	raw, err := json.Marshal(map[string]any{
 		"definitionId": "zoomigo-stamp-" + assetID,
-		"version":      1,
+		"version":      2,
 		"displayName":  assetID + " stamp",
 		"visual": map[string]any{
-			"size": map[string]float64{"width": 10, "height": 10}, "spriteId": "lounge.stamp.transparent",
-			"placeholder": map[string]any{"shape": "circle", "color": 13234973}, "zIndex": 9,
+			"size": map[string]float64{"width": 10, "height": 10}, "spriteId": "lounge.stamp.transparent", "zIndex": 9,
 		},
 		"colliders": []any{}, "defaultConfig": map[string]any{},
 		"persistence": map[string]any{"transform": true, "behaviorState": false, "onRoomSleep": "pause"},
@@ -212,41 +210,46 @@ func loungeStampDefinitionJSON(assetID string) json.RawMessage {
 }
 
 const beachBoardwalkCanvasJSON = `{
-  "id":"zoomigo-beach-boardwalk","version":11,
+  "id":"zoomigo-beach-boardwalk","version":12,
   "size":{"width":100,"height":150},"orientation":"topDown",
   "backgroundAssetId":"lounge.background",
-  "edges":{"top":"solid","right":"solid","bottom":"solid","left":"solid"},
-  "staticGeometry":[],
+  "edges":{"top":"open","right":"open","bottom":"open","left":"open"},
+  "staticGeometry":[
+    {"id":"elastic-edge-top","shape":{"type":"rect","width":104,"height":2},"position":{"x":50,"y":-1},"restitution":1,"friction":0,"tags":["elastic-edge"],"blocks":{"avatars":true,"items":true}},
+    {"id":"elastic-edge-right","shape":{"type":"rect","width":2,"height":154},"position":{"x":101,"y":75},"restitution":1,"friction":0,"tags":["elastic-edge"],"blocks":{"avatars":true,"items":true}},
+    {"id":"elastic-edge-bottom","shape":{"type":"rect","width":104,"height":2},"position":{"x":50,"y":151},"restitution":1,"friction":0,"tags":["elastic-edge"],"blocks":{"avatars":true,"items":true}},
+    {"id":"elastic-edge-left","shape":{"type":"rect","width":2,"height":154},"position":{"x":-1,"y":75},"restitution":1,"friction":0,"tags":["elastic-edge"],"blocks":{"avatars":true,"items":true}}
+  ],
   "regions":[],
-  "environment":{"base":{"gravityXY":{"x":0,"y":0},"linearDrag":0.07,"angularDrag":0.1,"softSpeedLimit":40,"surfaceFrictionMultiplier":1}},
+  "environment":{"base":{"gravityXY":{"x":0,"y":0},"linearDrag":0.03,"angularDrag":0.06,"softSpeedLimit":40,"surfaceFrictionMultiplier":1}},
   "spawnPoints":[{"id":"arrival","position":{"x":43,"y":92}}],
-  "systemItems":[{"entityId":"boardwalk-beach-ball","definitionId":"beach-ball","definitionVersion":5,"transform":{"x":62,"y":98,"rotation":0,"scale":1},"resolvedConfig":{"sensorId":"kick","kickStrength":3.8,"pinchStrength":2.8,"maxImpulse":54,"tangentialStrength":0.48,"maxTangentialImpulse":8,"spinTransfer":1,"spinRadius":4.5,"maxAngularSpeed":15,"cooldownSeconds":0.16}},{"entityId":"lounge-action-router","definitionId":"zoomigo-lounge-action-router","definitionVersion":1,"transform":{"x":0,"y":0,"rotation":0,"scale":1},"resolvedConfig":{}}],
+  "systemItems":[{"entityId":"boardwalk-beach-ball","definitionId":"beach-ball","definitionVersion":6,"transform":{"x":62,"y":98,"rotation":0,"scale":1},"resolvedConfig":{"sensorId":"kick","minKickSpeed":2.5,"kickExponent":1.35,"kickStrength":3,"pinchStrength":2.8,"maxImpulse":48,"tangentialStrength":0.48,"maxTangentialImpulse":8,"spinTransfer":1,"spinRadius":4.5,"maxAngularSpeed":15,"cooldownSeconds":0.16}},{"entityId":"lounge-action-router","definitionId":"zoomigo-lounge-action-router","definitionVersion":1,"transform":{"x":0,"y":0,"rotation":0,"scale":1},"resolvedConfig":{}}],
   "limits":{"maxAvatars":24,"maxItems":169,"maxComplexPhysicsItems":4},
   "avatarController":{"radius":4,"maxSpeed":26,"acceleration":125,"flickDeceleration":42,"maxTurnSpeed":9,"facing":"fixed","directInteractionMaxSpeed":32},
   "terrainDefaults":{"avatars":true,"items":true}
 }`
 
 const beachBallPropDefinitionJSON = `{
-  "definitionId":"zoomigo-prop-beach-ball","version":2,"displayName":"Beach ball prop",
+  "definitionId":"zoomigo-prop-beach-ball","version":3,"displayName":"Beach ball prop",
   "visual":{"size":{"width":9,"height":9},"spriteId":"lounge.stamp.transparent","placeholder":{"shape":"circle","color":16765757},"zIndex":8},
-  "body":{"mode":"dynamic","mass":0.5,"gravityScale":0,"linearDamping":0.12,"angularDamping":0.12,"canSleep":true},
+  "body":{"mode":"dynamic","mass":0.5,"gravityScale":0,"linearDamping":0.05,"angularDamping":0.08,"canSleep":true},
   "colliders":[
-    {"id":"solid","role":"itemSolid","shape":{"type":"circle","radius":4.5},"restitution":0.82,"friction":0.18,"collisionMask":4},
+    {"id":"solid","role":"itemSolid","shape":{"type":"circle","radius":4.5},"restitution":0.95,"friction":0.05,"collisionMask":4},
     {"id":"kick","role":"itemSensor","shape":{"type":"circle","radius":5.8}}
   ],
-  "behaviorType":"zoomigoLoungeBall","defaultConfig":{"sensorId":"kick","kickStrength":3.8,"pinchStrength":2.8,"maxImpulse":54,"tangentialStrength":0.48,"maxTangentialImpulse":8,"spinTransfer":1,"spinRadius":4.5,"maxAngularSpeed":15,"cooldownSeconds":0.16},
+  "behaviorType":"zoomigoLoungeBall","defaultConfig":{"sensorId":"kick","minKickSpeed":2.5,"kickExponent":1.35,"kickStrength":3,"pinchStrength":2.8,"maxImpulse":48,"tangentialStrength":0.48,"maxTangentialImpulse":8,"spinTransfer":1,"spinRadius":4.5,"maxAngularSpeed":15,"cooldownSeconds":0.16},
   "persistence":{"transform":true,"behaviorState":true,"onRoomSleep":"pause"},"complexity":"simple"
 }`
 
 const beachBallDefinitionJSON = `{
-  "definitionId":"beach-ball","version":5,"displayName":"Beach ball",
+  "definitionId":"beach-ball","version":6,"displayName":"Beach ball",
   "visual":{"size":{"width":9,"height":9},"spriteId":"lounge.ball","placeholder":{"shape":"circle","color":16765757},"zIndex":8},
-  "body":{"mode":"dynamic","mass":0.5,"gravityScale":0,"linearDamping":0.12,"angularDamping":0.12,"canSleep":true},
+  "body":{"mode":"dynamic","mass":0.5,"gravityScale":0,"linearDamping":0.05,"angularDamping":0.08,"canSleep":true},
   "colliders":[
-    {"id":"solid","role":"itemSolid","shape":{"type":"circle","radius":4.5},"restitution":0.82,"friction":0.18,"collisionMask":4},
+    {"id":"solid","role":"itemSolid","shape":{"type":"circle","radius":4.5},"restitution":0.95,"friction":0.05,"collisionMask":4},
     {"id":"kick","role":"itemSensor","shape":{"type":"circle","radius":5.8}}
   ],
-  "behaviorType":"zoomigoLoungeBall","defaultConfig":{"sensorId":"kick","kickStrength":3.8,"pinchStrength":2.8,"maxImpulse":54,"tangentialStrength":0.48,"maxTangentialImpulse":8,"spinTransfer":1,"spinRadius":4.5,"maxAngularSpeed":15,"cooldownSeconds":0.16},
+  "behaviorType":"zoomigoLoungeBall","defaultConfig":{"sensorId":"kick","minKickSpeed":2.5,"kickExponent":1.35,"kickStrength":3,"pinchStrength":2.8,"maxImpulse":48,"tangentialStrength":0.48,"maxTangentialImpulse":8,"spinTransfer":1,"spinRadius":4.5,"maxAngularSpeed":15,"cooldownSeconds":0.16},
   "persistence":{"transform":true,"behaviorState":true,"onRoomSleep":"pause"},"complexity":"simple"
 }`
 
@@ -266,8 +269,8 @@ const loungeActionRouterDefinitionJSON = `{
 
 const loungeBallConfigSchemaJSON = `{
   "type":"object",
-  "properties":{"sensorId":{"type":"string"},"kickStrength":{"type":"number"},"pinchStrength":{"type":"number"},"maxImpulse":{"type":"number"},"tangentialStrength":{"type":"number"},"maxTangentialImpulse":{"type":"number"},"spinTransfer":{"type":"number"},"spinRadius":{"type":"number"},"maxAngularSpeed":{"type":"number"},"cooldownSeconds":{"type":"number"}},
-  "required":["sensorId","kickStrength","pinchStrength","maxImpulse","tangentialStrength","maxTangentialImpulse","spinTransfer","spinRadius","maxAngularSpeed","cooldownSeconds"],
+  "properties":{"sensorId":{"type":"string"},"minKickSpeed":{"type":"number"},"kickExponent":{"type":"number"},"kickStrength":{"type":"number"},"pinchStrength":{"type":"number"},"maxImpulse":{"type":"number"},"tangentialStrength":{"type":"number"},"maxTangentialImpulse":{"type":"number"},"spinTransfer":{"type":"number"},"spinRadius":{"type":"number"},"maxAngularSpeed":{"type":"number"},"cooldownSeconds":{"type":"number"}},
+  "required":["sensorId","minKickSpeed","kickExponent","kickStrength","pinchStrength","maxImpulse","tangentialStrength","maxTangentialImpulse","spinTransfer","spinRadius","maxAngularSpeed","cooldownSeconds"],
   "additionalProperties":false
 }`
 

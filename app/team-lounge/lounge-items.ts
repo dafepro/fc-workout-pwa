@@ -35,7 +35,7 @@ const stampChoice = (
   label,
   glyph,
   definitionId: `zoomigo-stamp-${id}`,
-  definitionVersion: 1,
+  definitionVersion: 2,
   source,
   kind: "lounge_stamp",
 });
@@ -45,7 +45,7 @@ const beachBallProp: LoungeItemChoice = {
   label: "Beach ball",
   glyph: "⚽",
   definitionId: "zoomigo-prop-beach-ball",
-  definitionVersion: 2,
+  definitionVersion: 3,
   source: "earned",
   kind: "lounge_prop",
 };
@@ -61,7 +61,7 @@ const starlightProps: LoungeItemChoice[] = [
   glyph,
   imageSrc: `/team-lounge/items/${id}-v1.png`,
   definitionId: `zoomigo-prop-starlight-${id}`,
-  definitionVersion: 1,
+  definitionVersion: 2,
   source: "included",
   kind: "lounge_prop",
 }));
@@ -74,12 +74,11 @@ export const includedLoungeItems = itemCatalog
 export const loungeItemDefinitions: ItemDefinition[] = itemCatalog.map(
   (item) => ({
     definitionId: `zoomigo-stamp-${item[0]}`,
-    version: 1,
+    version: 2,
     displayName: `${item[1]} stamp`,
     visual: {
       size: { width: 10, height: 10 },
       spriteId: "lounge.stamp.transparent",
-      placeholder: { shape: "circle", color: 0xc9f31d },
       zIndex: 9,
     },
     colliders: [],
@@ -94,7 +93,7 @@ export const loungeItemDefinitions: ItemDefinition[] = itemCatalog.map(
 );
 loungeItemDefinitions.push({
   definitionId: beachBallProp.definitionId,
-  version: 2,
+  version: 3,
   displayName: "Beach ball prop",
   visual: {
     size: { width: 9, height: 9 },
@@ -106,8 +105,8 @@ loungeItemDefinitions.push({
     mode: "dynamic",
     mass: 0.5,
     gravityScale: 0,
-    linearDamping: 0.12,
-    angularDamping: 0.12,
+    linearDamping: 0.05,
+    angularDamping: 0.08,
     canSleep: true,
   },
   colliders: [
@@ -115,8 +114,8 @@ loungeItemDefinitions.push({
       id: "solid",
       role: "itemSolid",
       shape: { type: "circle", radius: 4.5 },
-      restitution: 0.82,
-      friction: 0.18,
+      restitution: 0.95,
+      friction: 0.05,
       collisionMask: CollisionLayer.WORLD_STATIC,
     },
     { id: "kick", role: "itemSensor", shape: { type: "circle", radius: 5.8 } },
@@ -134,7 +133,6 @@ for (const item of starlightProps) {
     visual: {
       size: { width: 10, height: 10 },
       spriteId: "lounge.stamp.transparent",
-      placeholder: { shape: "circle", color: 0xc9f31d },
       zIndex: 9,
     },
     colliders: [],

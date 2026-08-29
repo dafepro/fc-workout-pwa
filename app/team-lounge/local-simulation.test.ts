@@ -206,6 +206,8 @@ describe("canonical local Lounge simulation", () => {
     let maxBallX = 0;
     let sawRightwardMotion = false;
     let sawLeftwardBounce = false;
+    let peakRightwardSpeed = 0;
+    let peakLeftwardBounceSpeed = 0;
     const simulation = startLocalBeachBoardwalkSimulation({
       playerID: "mason",
       driver: SimulationDriver.local([LoungeBallBehavior]),
@@ -215,6 +217,13 @@ describe("canonical local Lounge simulation", () => {
         maxBallX = Math.max(maxBallX, ball?.x ?? 0);
         sawRightwardMotion ||= (ball?.vx ?? 0) > 1;
         sawLeftwardBounce ||= sawRightwardMotion && (ball?.vx ?? 0) < -1;
+        peakRightwardSpeed = Math.max(peakRightwardSpeed, ball?.vx ?? 0);
+        if (sawRightwardMotion) {
+          peakLeftwardBounceSpeed = Math.max(
+            peakLeftwardBounceSpeed,
+            -(ball?.vx ?? 0),
+          );
+        }
       },
     });
     stop = simulation.stop;
@@ -251,6 +260,7 @@ describe("canonical local Lounge simulation", () => {
       return maxBallX > 90 && sawLeftwardBounce && (ball?.x ?? 100) < 94;
     }, 7_000);
     expect(maxBallX).toBeLessThanOrEqual(96);
+    expect(peakLeftwardBounceSpeed).toBeGreaterThan(peakRightwardSpeed * 0.65);
     expect(
       entities.find(({ id }) => id === "boardwalk-beach-ball")?.respawning,
     ).not.toBe(true);

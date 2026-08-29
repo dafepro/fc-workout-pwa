@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { copy } from "../content/copy";
 import { loungeEmotes, type LoungeEmote } from "./lounge-emotes";
@@ -12,6 +12,9 @@ import type { LoungeItemChoice } from "./lounge-items";
 import { LoungeItemArt } from "./LoungeItemArt";
 
 type Tray = "emotes" | "quick-phrases" | "stamps" | "items" | null;
+type ChatLayer = "sets" | "standard";
+
+const menuTransitionMs = 160;
 
 export function LoungeActionDock({
   choices,
@@ -33,14 +36,37 @@ export function LoungeActionDock({
   onSendQuickPhrase(phrase: LoungeQuickPhrase): void;
 }) {
   const [tray, setTray] = useState<Tray>(null);
+  const [chatLayer, setChatLayer] = useState<ChatLayer>("sets");
+  const [closing, setClosing] = useState(false);
+  const closeTimerRef = useRef<number | undefined>(undefined);
   const actions = copy.teamLounge.actions;
   const openInventory = tray === "stamps" || tray === "items";
   const filteredChoices = choices.filter(({ kind }) =>
     tray === "items" ? kind === "lounge_prop" : kind === "lounge_stamp",
   );
 
+  useEffect(() => () => window.clearTimeout(closeTimerRef.current), []);
+
+  const closeTray = () => {
+    if (!tray || closing) return;
+    setClosing(true);
+    window.clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = window.setTimeout(() => {
+      setTray(null);
+      setClosing(false);
+      setChatLayer("sets");
+    }, menuTransitionMs);
+  };
+
   const toggle = (next: Exclude<Tray, null>) => {
-    setTray((current) => (current === next ? null : next));
+    if (tray === next && !closing) {
+      closeTray();
+      return;
+    }
+    window.clearTimeout(closeTimerRef.current);
+    setClosing(false);
+    setTray(next);
+    if (next === "quick-phrases") setChatLayer("sets");
   };
 
   return (
@@ -48,25 +74,27 @@ export function LoungeActionDock({
       {openInventory ? (
         <div
           className="team-lounge__menu-overlay"
+          data-state={closing ? "closing" : "open"}
           data-canvas-pointer-ignore="true"
         >
           <button
             type="button"
             className="team-lounge__menu-backdrop"
             aria-label={actions.closeItems}
-            onClick={() => setTray(null)}
+            onClick={closeTray}
           />
           <section
             className="team-lounge__menu-sheet"
             role="dialog"
             aria-label={actions.chooseItem}
+            data-state={closing ? "closing" : "open"}
           >
             <header>
               <strong>{actions.chooseItem}</strong>
               <button
                 type="button"
                 aria-label={actions.closeItems}
-                onClick={() => setTray(null)}
+                onClick={closeTray}
               >
                 ×
               </button>
@@ -102,7 +130,7 @@ export function LoungeActionDock({
                   disabled={placing || remaining === 0}
                   onClick={() => {
                     onSelectItem(choice);
-                    setTray(null);
+                    closeTray();
                   }}
                 >
                   <LoungeItemArt item={choice} />
@@ -127,31 +155,68 @@ export function LoungeActionDock({
         {tray === "emotes" || tray === "quick-phrases" ? (
           <div
             className="team-lounge__reaction-popover"
+            role="dialog"
             aria-label={
               tray === "emotes"
                 ? actions.chooseEmote
-                : actions.chooseQuickMessage
+                : chatLayer === "sets"
+                  ? actions.chooseQuickMessage
+                  : actions.chooseStandardChat
             }
+            data-anchor={tray === "emotes" ? "react" : "chat"}
+            data-state={closing ? "closing" : "open"}
           >
-            <div
-              className={`team-lounge__reaction-options team-lounge__reaction-options--${tray}`}
-            >
-              {tray === "emotes"
-                ? loungeEmotes.map((emote) => (
-                    <button
-                      key={emote.id}
-                      type="button"
-                      aria-label={actions.sendEmote(emote.label)}
-                      disabled={reactionLocked}
-                      onClick={() => {
-                        onSendEmote(emote);
-                        setTray(null);
-                      }}
-                    >
-                      {emote.symbol}
-                    </button>
-                  ))
-                : loungeQuickPhrases.map((phrase) => (
+            {tray === "emotes" ? (
+              <div className="team-lounge__reaction-options team-lounge__reaction-options--emotes">
+                {loungeEmotes.map((emote) => (
+                  <button
+                    key={emote.id}
+                    type="button"
+                    aria-label={actions.sendEmote(emote.label)}
+                    disabled={reactionLocked}
+                    onClick={() => {
+                      onSendEmote(emote);
+                      closeTray();
+                    }}
+                  >
+                    {emote.symbol}
+                  </button>
+                ))}
+              </div>
+            ) : chatLayer === "sets" ? (
+              <div className="team-lounge__chat-sets">
+                <button
+                  type="button"
+                  aria-label={actions.standardChats}
+                  onClick={() => setChatLayer("standard")}
+                >
+                  <strong>{actions.standardChats}</strong>
+                  <small>10 messages</small>
+                </button>
+                {[2, 3].map((set) => (
+                  <button
+                    key={set}
+                    type="button"
+                    aria-label={actions.lockedChatSet(set)}
+                    disabled
+                  >
+                    <strong>Set {set}</strong>
+                    <small>Locked</small>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="team-lounge__chat-back"
+                  aria-label={actions.backToChatSets}
+                  onClick={() => setChatLayer("sets")}
+                >
+                  ‹ {actions.standardChats}
+                </button>
+                <div className="team-lounge__reaction-options team-lounge__reaction-options--quick-phrases">
+                  {loungeQuickPhrases.map((phrase) => (
                     <button
                       key={phrase.id}
                       type="button"
@@ -159,13 +224,15 @@ export function LoungeActionDock({
                       disabled={reactionLocked}
                       onClick={() => {
                         onSendQuickPhrase(phrase);
-                        setTray(null);
+                        closeTray();
                       }}
                     >
                       {phrase.text}
                     </button>
                   ))}
-            </div>
+                </div>
+              </>
+            )}
           </div>
         ) : null}
         <button

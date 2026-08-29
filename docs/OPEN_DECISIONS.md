@@ -491,14 +491,26 @@ to resolve, not the implementing agent's.
 - Unselected current-day owned items have a faint lime dashed boundary. The
   boundary becomes solid while selected; vertical gestures beginning on the
   playfield or an unselected item remain available for page scrolling.
-- The initial quick-phrase catalog is `Nice!`, `Let’s go!`, `Great work!`,
-  `You’ve got this!`, and `Team time!`. These are room-wide transient reactions,
-  not conversation content, and use the same authenticated membership check,
-  sender binding, two-second cooldown, and 2.4-second display window as emotes.
-- Stamps, Items, Quick messages, and Emotes are four separate dock actions in
-  that order. Emotes and quick messages share the original 2.4-second rise,
-  hold, and fade animation, with animation disabled under reduced motion.
+- The player-facing action names and order are Stamps, Items, Chat, and React.
+  React opens an anchored emote tray. Chat opens an anchored set picker;
+  Standard is enabled and Set 2 and Set 3 remain visibly locked without invented
+  themes or unlock rules. Every tray uses the same quick slide-up and slide-down
+  transition, disabled under reduced motion.
+- Standard contains exactly ten predefined messages in a two-column common
+  panel: `Hi!`, `Bye!`, `Let's Go!`, `Nice!`, `OK`, `Oops`, `No`, `Yep`,
+  `Huh?`, and `Thanks Bromigo`. Sending therefore takes three deliberate taps:
+  Chat, Standard, then the final message. These remain room-wide transient
+  reactions, not conversation content, and use the same authenticated
+  membership check, sender binding, two-second cooldown, and 2.4-second
+  rise-hold-fade window as emotes.
 - The phrase action accepts only `{phrase: <allowlisted-id>}`. Open text, extra
   payload fields, unknown IDs, item targets, and inactive members are rejected.
   Nothing is persisted and no compatibility, Map, or extra API-replica path is
   introduced.
+- Canvas v12 replaces the implicit solid-edge material with four explicit,
+  invisible, frictionless elastic boundary colliders. Dynamic balls use lower
+  drag and damping, a low-speed kick dead zone, nonlinear speed-to-power growth,
+  and a hard impulse cap. Unlocks do not alter kick power in this revision; any
+  future progression tuning needs a separate explicit product and authority
+  decision. The clean cutover creates generation-12 rooms rather than importing
+  v11 state, while owner-bound one-use mutation permits remain unchanged.

@@ -21,7 +21,8 @@ var loungeEmoteIDs = map[string]struct{}{
 }
 
 var loungeQuickPhraseIDs = map[string]struct{}{
-	"nice": {}, "lets-go": {}, "great-work": {}, "you-got-this": {}, "team-time": {},
+	"hi": {}, "bye": {}, "lets-go": {}, "nice": {}, "ok": {}, "oops": {},
+	"no": {}, "yep": {}, "huh": {}, "thanks-bromigo": {},
 }
 
 func (store *SQLiteStore) ResolveTransientAction(

@@ -11,6 +11,8 @@ import {
 
 export interface LoungeBallConfig {
   sensorId: string;
+  minKickSpeed: number;
+  kickExponent: number;
   kickStrength: number;
   pinchStrength: number;
   maxImpulse: number;
@@ -29,9 +31,11 @@ export interface LoungeBallState {
 
 export const defaultLoungeBallConfig: LoungeBallConfig = {
   sensorId: "kick",
-  kickStrength: 3.8,
+  minKickSpeed: 2.5,
+  kickExponent: 1.35,
+  kickStrength: 3,
   pinchStrength: 2.8,
-  maxImpulse: 54,
+  maxImpulse: 48,
   tangentialStrength: 0.48,
   maxTangentialImpulse: 8,
   spinTransfer: 1,
@@ -78,8 +82,10 @@ export const LoungeBallBehavior: ItemBehavior<
     const avatarVelocity = ctx.velocity(event.other.entityId) ?? { x: 0, y: 0 };
     const ballVelocity = ctx.velocity() ?? { x: 0, y: 0 };
     const relativeVelocity = sub(avatarVelocity, ballVelocity);
+    const closingSpeed = Math.max(0, dot(avatarVelocity, normal));
+    const kickSpeed = Math.max(0, closingSpeed - config.minKickSpeed);
     const magnitude = clamp(
-      config.kickStrength * Math.max(0, dot(avatarVelocity, normal)) +
+      config.kickStrength * Math.pow(kickSpeed, config.kickExponent) +
         config.pinchStrength * Math.max(0, -dot(ballVelocity, normal)),
       0,
       config.maxImpulse,

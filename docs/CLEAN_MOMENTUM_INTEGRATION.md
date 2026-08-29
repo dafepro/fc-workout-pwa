@@ -179,7 +179,7 @@ Each step is test-first and small enough to review independently.
 - Canvas 0.6.0 clean cutover pins all TypeScript packages and the Go SDK to release commit `11ebf12`; migration 19 adds fenced ownership, shared atomic tickets, durable mutation outcomes, and exact one-use placement permits without importing the superseded reservation shape.
 - Canvas generation 10 routes the five predefined emotes through authenticated transient actions and enables safe predefined production placement; only stable trusted Canvas receipts commit or release a hold, and reconnects reconcile interrupted acknowledgements.
 - Canvas conformance, coordinator, ticket, mutation-authority, transient-action, persistence, gateway, behavior, simulation, and Docker tests cover the new integration, including exact wire coordinates and two-player presence; expired or unavailable trusted outcomes remain an operator follow-up.
-- Momentum V2 interface parity replaces the crowded in-canvas rows with a four-action Stamps, Items, Quick messages, and Emotes dock, authenticated reaction popovers, categorized item sheet, source labels, weekly placement state, and a visible placement ghost while retaining the Canvas 0.6 authority path.
+- Momentum V2 interface parity replaces the crowded in-canvas rows with a four-action Stamps, Items, Chat, and React dock, authenticated anchored reaction popovers, categorized item sheet, source labels, weekly placement state, and a visible placement ghost while retaining the Canvas 0.6 authority path.
 - Operators now have a tested read-only `lounge-placement-holds` report and runbook that distinguish expired unconsumed permits, pending Canvas receipts, and stale consumed holds without granting any timer- or browser-driven release path.
 - The two-session Docker Lounge proof now follows a real kick through Canvas authority to the second browser, covering shared ball projection as well as authenticated presence and avatar movement.
 - [Dev run 33186493834](https://github.com/dafepro/fc-workout-pwa/actions/runs/33186493834) deployed exact app SHA `42f75977c312f695684b6aa930de45bb6e9ddf5c`; verification, packaging, image publication, and the public exact-container smoke all passed.
@@ -236,3 +236,12 @@ Each step is test-first and small enough to review independently.
   authenticated transient reaction path. They share the emote cooldown and
   sender binding plus the original rise-and-fade motion, leave no history, and
   add no typing, recipient, persistence, Map, compatibility, or replica path.
+- Canvas v12 clean-cuts weekly rooms to explicit frictionless elastic boundary
+  colliders, reduced ball drag, and a capped nonlinear avatar-kick response with
+  a low-speed dead zone. The Standard Chat set replaces the interim five phrases
+  with ten allowlisted choices behind Chat → Standard → message; Set 2 and Set 3
+  stay locked. React and Chat trays point to their dock buttons, every menu gains
+  a reduced-motion-safe slide transition, stamp art rotates around its visual
+  center, and owned editable items retain a larger faint dashed lime outline.
+  Owner-bound one-use permits, one API replica, no Map, and no compatibility
+  import remain unchanged.

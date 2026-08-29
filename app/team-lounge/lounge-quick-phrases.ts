@@ -1,9 +1,14 @@
 export const loungeQuickPhrases = [
+  { id: "hi", text: "Hi!" },
+  { id: "bye", text: "Bye!" },
+  { id: "lets-go", text: "Let's Go!" },
   { id: "nice", text: "Nice!" },
-  { id: "lets-go", text: "Let’s go!" },
-  { id: "great-work", text: "Great work!" },
-  { id: "you-got-this", text: "You’ve got this!" },
-  { id: "team-time", text: "Team time!" },
+  { id: "ok", text: "OK" },
+  { id: "oops", text: "Oops" },
+  { id: "no", text: "No" },
+  { id: "yep", text: "Yep" },
+  { id: "huh", text: "Huh?" },
+  { id: "thanks-bromigo", text: "Thanks Bromigo" },
 ] as const;
 
 export type LoungeQuickPhrase = (typeof loungeQuickPhrases)[number];

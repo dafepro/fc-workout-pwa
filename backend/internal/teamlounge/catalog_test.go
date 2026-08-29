@@ -93,7 +93,7 @@ func TestWeeklyRoomIdentityRoundTrips(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if roomID != "team:team-one:lounge:2026-08-24:v11" {
+	if roomID != "team:team-one:lounge:2026-08-24:v12" {
 		t.Fatalf("room id = %q", roomID)
 	}
 	teamID, weekKey, err := ParseWeeklyRoomID(roomID)
@@ -118,8 +118,8 @@ func TestWeeklyThemeManifestOwnsTheImmutableCanvasBinding(t *testing.T) {
 	if theme.RoomGeneration != BeachBoardwalkRoomGeneration {
 		t.Fatalf("room generation = %d", theme.RoomGeneration)
 	}
-	if theme.RoomGeneration != 11 {
-		t.Fatalf("room generation = %d, want clean-cutover generation 11", theme.RoomGeneration)
+	if theme.RoomGeneration != 12 {
+		t.Fatalf("room generation = %d, want clean-cutover generation 12", theme.RoomGeneration)
 	}
 	if theme.Template.CanvasID != BeachBoardwalkCanvasID || theme.Template.CanvasVersion != BeachBoardwalkCanvasVersion {
 		t.Fatalf("theme template = %#v", theme.Template)
@@ -138,7 +138,7 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 	if canvas.CanvasID != BeachBoardwalkCanvasID || canvas.Version != BeachBoardwalkCanvasVersion || !json.Valid(canvas.DefinitionRaw) {
 		t.Fatalf("canvas record = %#v", canvas)
 	}
-	if canvas.Version != 11 {
+	if canvas.Version != 12 {
 		t.Fatalf("canvas version = %d", canvas.Version)
 	}
 	var shape struct {
@@ -146,7 +146,11 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 		Version        uint32            `json:"version"`
 		Edges          map[string]string `json:"edges"`
 		StaticGeometry []struct {
-			Blocks struct {
+			ID          string   `json:"id"`
+			Restitution float64  `json:"restitution"`
+			Friction    float64  `json:"friction"`
+			Tags        []string `json:"tags"`
+			Blocks      struct {
 				Avatars bool `json:"avatars"`
 				Items   bool `json:"items"`
 			} `json:"blocks"`
@@ -179,12 +183,18 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 		t.Fatalf("canvas shape = %#v", shape)
 	}
 	for _, edge := range []string{"top", "right", "bottom", "left"} {
-		if shape.Edges[edge] != "solid" {
+		if shape.Edges[edge] != "open" {
 			t.Fatalf("canvas edge %s = %q", edge, shape.Edges[edge])
 		}
 	}
-	if len(shape.StaticGeometry) != 0 {
-		t.Fatalf("boardwalk scenery must not block players or balls: %#v", shape.StaticGeometry)
+	if len(shape.StaticGeometry) != 4 {
+		t.Fatalf("elastic boundary count = %d", len(shape.StaticGeometry))
+	}
+	for _, boundary := range shape.StaticGeometry {
+		if boundary.Restitution != 1 || boundary.Friction != 0 || len(boundary.Tags) != 1 || boundary.Tags[0] != "elastic-edge" ||
+			!boundary.Blocks.Avatars || !boundary.Blocks.Items {
+			t.Fatalf("elastic boundary = %#v", boundary)
+		}
 	}
 	if len(shape.SpawnPoints) != 1 || shape.SpawnPoints[0].ID != "arrival" {
 		t.Fatalf("canvas spawn points = %#v", shape.SpawnPoints)
@@ -201,14 +211,15 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 			SpriteID string `json:"spriteId"`
 		} `json:"visual"`
 		Colliders []struct {
-			ID            string `json:"id"`
-			CollisionMask uint32 `json:"collisionMask"`
+			ID            string  `json:"id"`
+			CollisionMask uint32  `json:"collisionMask"`
+			Restitution   float64 `json:"restitution"`
 		} `json:"colliders"`
 	}
 	if err := json.Unmarshal(catalog.Items[0].DefinitionRaw, &ball); err != nil {
 		t.Fatal(err)
 	}
-	if ball.Version != 5 || ball.Visual.SpriteID != "lounge.ball" || len(ball.Colliders) < 1 || ball.Colliders[0].CollisionMask != 4 {
+	if ball.Version != 6 || ball.Visual.SpriteID != "lounge.ball" || len(ball.Colliders) < 1 || ball.Colliders[0].CollisionMask != 4 || ball.Colliders[0].Restitution != 0.95 {
 		t.Fatalf("beach ball definition = %#v", ball)
 	}
 	var avatar struct {
@@ -230,16 +241,16 @@ func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 		t.Fatalf("development item count = %d", len(catalog.Items))
 	}
 	for _, item := range catalog.Items[3:13] {
-		if !strings.HasPrefix(item.DefinitionID, "zoomigo-stamp-") || item.Version != 1 {
+		if !strings.HasPrefix(item.DefinitionID, "zoomigo-stamp-") || item.Version != 2 {
 			t.Fatalf("development item = %#v", item)
 		}
 	}
 	for _, item := range catalog.Items[13:17] {
-		if !strings.HasPrefix(item.DefinitionID, "zoomigo-prop-starlight-") || item.Version != 1 {
+		if !strings.HasPrefix(item.DefinitionID, "zoomigo-prop-starlight-") || item.Version != 2 {
 			t.Fatalf("included Starlight item = %#v", item)
 		}
 	}
-	if item := catalog.Items[17]; item.DefinitionID != "zoomigo-prop-beach-ball" || item.Version != 2 {
+	if item := catalog.Items[17]; item.DefinitionID != "zoomigo-prop-beach-ball" || item.Version != 3 {
 		t.Fatalf("development prop = %#v", item)
 	}
 }
