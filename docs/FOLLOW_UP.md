@@ -19,7 +19,9 @@ experiments.
 
 ## Team Lounge
 
-- Record physical iOS Safari and Android Chrome performance budgets.
+- The physical iOS Safari and Android Chrome acceptance budgets are recorded in
+  `TEAM_LOUNGE_PERFORMANCE_BUDGET.md`; execution remains part of the broader
+  physical-device release gate below.
 - Decide whether the historical disabled Map placeholder should become real
   camera navigation after the secured editor lands. The reference branch's
   button had no map behavior and only said that the room fit on one screen.

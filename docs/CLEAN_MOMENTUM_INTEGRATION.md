@@ -214,3 +214,10 @@ Each step is test-first and small enough to review independently.
 - [Dev run 33217941292](https://github.com/dafepro/fc-workout-pwa/actions/runs/33217941292) deployed the recovery; signed-in Mason visibly renders as “You” on desktop and at 320px, inside the playfield above the constant action dock with no horizontal overflow.
 - The trusted dev release workflow now gates every create/update on that same completed-training player, visible own-avatar, live Canvas, and 320px playfield/dock geometry proof.
 - A six-hour, manually dispatchable production monitor now runs the read-only Lounge hold report and alerts on malformed data or nonzero stale placement/edit outcomes without refunding, releasing, or otherwise mutating authority state.
+- Team Lounge physical acceptance budgets now define 320px geometry, Canvas
+  load/reconnect p95, CPU, memory, cold/reconnect/session network ceilings, and
+  exact reference device/browser versions without claiming unrun measurements.
+- The machine-readable contract and focused tests reuse the existing one-use
+  permit and WebSocket limits; Map and compatibility paths remain absent,
+  production remains one API replica, and optimistic poor-connection work stays
+  in issue #5.

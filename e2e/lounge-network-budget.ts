@@ -1,11 +1,8 @@
 import type { Page } from "@playwright/test";
 
-export const loungeNetworkBudget = {
-  permitRequestsPerCommittedMutation: 1,
-  maxPermitRoundTripBytes: 4 * 1024,
-  maxEditSequenceWebSocketBytes: 32 * 1024,
-  maxIdleWebSocketBytesPerSecond: 8 * 1024,
-} as const;
+import { loungePerformanceBudget } from "./lounge-performance-budget";
+
+export const loungeNetworkBudget = loungePerformanceBudget.network;
 
 export function observeLoungeNetwork(page: Page) {
   let active = false;

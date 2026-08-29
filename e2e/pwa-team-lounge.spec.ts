@@ -5,6 +5,7 @@ import {
   loungeNetworkBudget,
   observeLoungeNetwork,
 } from "./lounge-network-budget";
+import { loungePerformanceBudget } from "./lounge-performance-budget";
 
 const apiBaseURL = process.env.E2E_API_BASE_URL ?? "http://api:8080";
 const resetKey = process.env.E2E_RESET_KEY ?? "local-e2e-reset-only";
@@ -43,7 +44,11 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   expect(completion.status()).toBe(201);
   await api.dispose();
 
-  await page.setViewportSize({ width: 320, height: 720 });
+  await page.setViewportSize({
+    width: loungePerformanceBudget.layout.viewportWidthCssPx,
+    height: 720,
+  });
+  const canvasLoadStartedAt = Date.now();
   await openReadyPage(page, "/team");
 
   const lounge = page.getByRole("region", {
@@ -53,7 +58,16 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   const stage = lounge.getByLabel("Interactive lounge canvas");
   await expect(stage).toBeVisible();
   await stage.scrollIntoViewIfNeeded();
-  await expect(stage.locator("canvas")).toBeVisible({ timeout: 15_000 });
+  await expect(stage.locator("canvas")).toBeVisible({
+    timeout: loungePerformanceBudget.latency.automatedReadyCeilingMs,
+  });
+  await expect(lounge.locator(".team-lounge__world")).toHaveAttribute(
+    "data-canvas-state",
+    "ready",
+  );
+  expect(Date.now() - canvasLoadStartedAt).toBeLessThanOrEqual(
+    loungePerformanceBudget.latency.automatedReadyCeilingMs,
+  );
   const playfieldBox = await lounge
     .locator(".team-lounge__playfield")
     .boundingBox();
@@ -67,6 +81,16 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   expect(playfieldBox!.y + playfieldBox!.height).toBeLessThanOrEqual(
     dockBox!.y,
   );
+  for (const button of await lounge
+    .getByRole("navigation", { name: "Lounge actions" })
+    .getByRole("button")
+    .all()) {
+    const box = await button.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.height).toBeGreaterThanOrEqual(
+      loungePerformanceBudget.layout.minInteractiveTargetCssPx,
+    );
+  }
   await expect(lounge.getByText(/drag to move/i)).toHaveCount(0);
   await expect(lounge.getByLabel("Mason C., you")).toBeVisible();
   const qualifiedAvatarBox = await lounge
@@ -324,7 +348,9 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   await expect(lounge).not.toContainText(/\bV[12]\b|alternative|preview/i);
   expect(
     await page.evaluate(
-      () => document.documentElement.scrollWidth <= window.innerWidth + 1,
+      (maxOverflow) =>
+        document.documentElement.scrollWidth <= window.innerWidth + maxOverflow,
+      loungePerformanceBudget.layout.maxHorizontalOverflowCssPx,
     ),
   ).toBe(true);
 });

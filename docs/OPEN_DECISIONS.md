@@ -438,3 +438,24 @@ to resolve, not the implementing agent's.
   it is short-lived and owner/entity/revision scoped, enforces transform bounds,
   rate and sequence limits at mutation acceptance, and returns canonical state
   for rollback after rejection. Delete remains separately authorized.
+
+## Team Lounge physical performance budget (2026-08-28)
+
+- Adopted physical acceptance thresholds are recorded in
+  `TEAM_LOUNGE_PERFORMANCE_BUDGET.md` for an iPhone SE (2nd generation) on iOS
+  26.6.1 Safari and a Pixel 6a on Android 16 Chrome 152.0.7977.42. Later stable
+  patch releases are allowed only when the exact tested build is recorded.
+- The canonical 320 CSS-pixel floor allows at most 1 CSS pixel of horizontal
+  overflow, no playfield/dock overlap, no overlay-driven Lounge resize beyond
+  1 CSS pixel, and 44 CSS-pixel primary dock targets.
+- Physical p95 Canvas ready and reconnect budgets are 5 seconds and 3 seconds.
+  The 15-minute device session caps single-core CPU at 25% average and 50% p95,
+  resident memory at 180 MiB with no more than 20 MiB growth, cold load at 4
+  MiB, reconnect at 384 KiB, and total session traffic at 12 MiB.
+- The existing exact one-use edit-permit and WebSocket budgets remain part of
+  the same gate. Production remains one API replica; no Map, compatibility
+  path, or optimistic poor-connection behavior is introduced. The last item
+  remains tracked in issue #5.
+- This decision records budgets, not invented physical measurements. Both
+  reference devices must populate the qualification record before a broad
+  Lounge release; desktop automation protects only the deterministic subset.
