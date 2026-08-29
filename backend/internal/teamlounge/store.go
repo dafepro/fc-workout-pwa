@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/dafepro/canvas/server/pkg/roomsdk"
@@ -295,7 +296,7 @@ func (store *SQLiteStore) BindRoom(
 	if err != nil {
 		return RoomBindingResult{}, fmt.Errorf("read lounge room binding: %w", err)
 	}
-	if storedTeam != teamID || storedWeek != weekKey || stored != template {
+	if storedTeam != teamID || stored != template {
 		return RoomBindingResult{}, roomsdk.ErrRoomTemplateConflict
 	}
 	created := rowsAffected == 1
@@ -381,7 +382,7 @@ func (store *SQLiteStore) PlacementBudget(
 	roomID, playerID string,
 	now time.Time,
 ) (PlacementBudget, error) {
-	teamID, weekKey, err := ParseWeeklyRoomID(roomID)
+	teamID, err := ParseRoomID(roomID)
 	if err != nil || playerID == "" {
 		return PlacementBudget{}, errors.New("load lounge placement budget: invalid request")
 	}
@@ -397,9 +398,7 @@ func (store *SQLiteStore) PlacementBudget(
 	if err != nil {
 		return PlacementBudget{}, fmt.Errorf("load lounge placement week: %w", err)
 	}
-	if week.Key != weekKey {
-		return PlacementBudget{}, errors.New("load lounge placement budget: room is not current")
-	}
+	weekKey := week.Key
 	tx, err := store.db.BeginTx(ctx, nil)
 	if err != nil {
 		return PlacementBudget{}, fmt.Errorf("begin lounge placement reconciliation: %w", err)
@@ -650,6 +649,9 @@ func loungePlacementItem(definitionID string) (string, bool) {
 	case "zoomigo-prop-beach-ball":
 		return "lounge-prop-beach-ball", false
 	}
+	if strings.HasPrefix(definitionID, "zoomigo-prop-starlight-") {
+		return definitionID, true
+	}
 	const prefix = "zoomigo-stamp-"
 	if len(definitionID) > len(prefix) && definitionID[:len(prefix)] == prefix {
 		itemID := "lounge-stamp-" + definitionID[len(prefix):]
@@ -669,7 +671,7 @@ func newPlacementReservationID() (string, error) {
 }
 
 func (store *SQLiteStore) PlacementDay(ctx context.Context, roomID string, now time.Time) (string, error) {
-	teamID, weekKey, err := ParseWeeklyRoomID(roomID)
+	teamID, err := ParseRoomID(roomID)
 	if err != nil {
 		return "", errors.New("load lounge placement day: invalid room")
 	}
@@ -684,9 +686,6 @@ func (store *SQLiteStore) PlacementDay(ctx context.Context, roomID string, now t
 	week, err := TeamWeek(now, location)
 	if err != nil {
 		return "", fmt.Errorf("load lounge placement week: %w", err)
-	}
-	if week.Key != weekKey {
-		return "", errors.New("load lounge placement day: room is not current")
 	}
 	return week.DayKey, nil
 }

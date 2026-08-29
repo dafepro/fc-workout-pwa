@@ -13,7 +13,7 @@ import (
 
 const (
 	BeachBoardwalkCanvasID       = "zoomigo-beach-boardwalk"
-	BeachBoardwalkCanvasVersion  = uint32(12)
+	BeachBoardwalkCanvasVersion  = uint32(13)
 	BeachBoardwalkRoomGeneration = BeachBoardwalkCanvasVersion
 )
 
@@ -70,7 +70,7 @@ func validTheme(theme ThemeManifest) bool {
 		theme.RoomGeneration > 0 && theme.Template.CanvasID != "" && theme.Template.CanvasVersion > 0
 }
 
-func WeeklyRoomID(teamID, weekKey string) (string, error) {
+func DurableRoomID(teamID, weekKey string) (string, error) {
 	if !validTeamID(teamID) || !validWeekKey(weekKey) {
 		return "", errors.New("invalid weekly lounge identity")
 	}
@@ -78,27 +78,22 @@ func WeeklyRoomID(teamID, weekKey string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return "team:" + teamID + ":lounge:" + weekKey + ":v" + strconv.FormatUint(uint64(theme.RoomGeneration), 10), nil
+	return "team:" + teamID + ":lounge:v" + strconv.FormatUint(uint64(theme.RoomGeneration), 10), nil
 }
 
-func ParseWeeklyRoomID(roomID string) (string, string, error) {
+func ParseRoomID(roomID string) (string, error) {
 	remainder, ok := strings.CutPrefix(roomID, "team:")
 	if !ok {
-		return "", "", errors.New("invalid weekly lounge room")
+		return "", errors.New("invalid lounge room")
 	}
-	teamID, versionedWeek, ok := strings.Cut(remainder, ":lounge:")
+	teamID, version, ok := strings.Cut(remainder, ":lounge:v")
 	if !ok {
-		return "", "", errors.New("invalid weekly lounge room")
+		return "", errors.New("invalid lounge room")
 	}
-	weekKey, version, ok := strings.Cut(versionedWeek, ":v")
-	if !ok || !validTeamID(teamID) || !validWeekKey(weekKey) {
-		return "", "", errors.New("invalid weekly lounge room")
+	if !validTeamID(teamID) || version != strconv.FormatUint(uint64(BeachBoardwalkRoomGeneration), 10) {
+		return "", errors.New("invalid lounge room")
 	}
-	theme, err := WeeklyTheme(weekKey)
-	if err != nil || version != strconv.FormatUint(uint64(theme.RoomGeneration), 10) {
-		return "", "", errors.New("invalid weekly lounge room")
-	}
-	return teamID, weekKey, nil
+	return teamID, nil
 }
 
 func validTeamID(value string) bool {
@@ -210,7 +205,7 @@ func loungeStampDefinitionJSON(assetID string) json.RawMessage {
 }
 
 const beachBoardwalkCanvasJSON = `{
-  "id":"zoomigo-beach-boardwalk","version":12,
+  "id":"zoomigo-beach-boardwalk","version":13,
   "size":{"width":100,"height":150},"orientation":"topDown",
   "backgroundAssetId":"lounge.background",
   "edges":{"top":"open","right":"open","bottom":"open","left":"open"},

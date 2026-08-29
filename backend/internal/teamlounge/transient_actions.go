@@ -44,7 +44,7 @@ func (store *SQLiteStore) ResolveTransientAction(
 	if !validLoungeReactionPayload(action.Action, payload) {
 		return roomsdk.TransientActionRoute{}, roomsdk.ErrTransientActionPayload
 	}
-	teamID, _, err := ParseWeeklyRoomID(action.RoomID)
+	teamID, err := ParseRoomID(action.RoomID)
 	if err != nil || action.ParticipantID == "" {
 		return roomsdk.TransientActionRoute{}, roomsdk.ErrTransientActionUnauthorized
 	}

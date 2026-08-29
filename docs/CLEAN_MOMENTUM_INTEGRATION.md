@@ -236,7 +236,7 @@ Each step is test-first and small enough to review independently.
   authenticated transient reaction path. They share the emote cooldown and
   sender binding plus the original rise-and-fade motion, leave no history, and
   add no typing, recipient, persistence, Map, compatibility, or replica path.
-- Canvas v12 clean-cuts weekly rooms to explicit frictionless elastic boundary
+- Canvas v13 clean-cuts the final weekly room identity to explicit frictionless elastic boundary
   colliders, reduced ball drag, and a capped nonlinear avatar-kick response with
   a low-speed dead zone. The Standard Chat set replaces the interim five phrases
   with ten allowlisted choices behind Chat → Standard → message; Set 2 and Set 3
@@ -245,3 +245,11 @@ Each step is test-first and small enough to review independently.
   center, and owned editable items retain a larger faint dashed lime outline.
   Owner-bound one-use permits, one API replica, no Map, and no compatibility
   import remain unchanged.
+- Generation-13 room identity is now durable across team-local day and Monday
+  boundaries, so accepted placements remain on the Canvas while weekly credits
+  and same-day editing roll independently. The Chat picker uses a centered
+  vertical set spine with five equal-size message wings on each side, React and
+  Chat popovers clamp around their own dock-button centers, and avatar dragging
+  outranks the lower-priority background page-scroll gesture. Development builds
+  add a temporary Beach/Starlight preview and current-player predefined Lounge
+  unlock control; production gains no staff shortcut or broader mutation path.

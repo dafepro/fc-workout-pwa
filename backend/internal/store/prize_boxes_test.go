@@ -85,6 +85,31 @@ func TestPrizeBoxesClaimSealedAndOpenWithoutRerolling(t *testing.T) {
 	}
 }
 
+func TestDevelopmentLoungeUnlockGrantIsPredefinedAndIdempotent(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	now := time.Date(2026, time.August, 29, 12, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+
+	granted, err := repository.GrantDevelopmentLoungeUnlocks(t.Context(), "player-mason", now)
+	if err != nil || granted != 7 {
+		t.Fatalf("first development grant = %d, %v", granted, err)
+	}
+	granted, err = repository.GrantDevelopmentLoungeUnlocks(t.Context(), "player-mason", now.Add(time.Minute))
+	if err != nil || granted != 0 {
+		t.Fatalf("replayed development grant = %d, %v", granted, err)
+	}
+	var lounge, avatar int
+	if err = db.QueryRow(`SELECT
+		SUM(CASE WHEN item_kind IN ('lounge_stamp', 'lounge_prop') THEN 1 ELSE 0 END),
+		SUM(CASE WHEN item_kind = 'avatar_part' THEN 1 ELSE 0 END)
+		FROM player_unlocks WHERE player_id = 'player-mason'`).Scan(&lounge, &avatar); err != nil {
+		t.Fatal(err)
+	}
+	if lounge != 7 || avatar != 0 {
+		t.Fatalf("granted Lounge=%d avatar=%d", lounge, avatar)
+	}
+}
+
 func TestPrizeBoxesGrantPlanParticipationOnceFromProvenCompletion(t *testing.T) {
 	repository, db := socialProjectionStore(t)
 	now := time.Date(2026, time.August, 27, 12, 0, 0, 0, time.UTC)

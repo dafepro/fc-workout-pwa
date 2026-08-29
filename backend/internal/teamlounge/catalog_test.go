@@ -88,20 +88,24 @@ func TestPlatformThemeScheduleIsAppendOnlyAndDeterministic(t *testing.T) {
 	}
 }
 
-func TestWeeklyRoomIdentityRoundTrips(t *testing.T) {
-	roomID, err := WeeklyRoomID("team-one", "2026-08-24")
+func TestDurableRoomIdentityPersistsAcrossWeekRollover(t *testing.T) {
+	roomID, err := DurableRoomID("team-one", "2026-08-24")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if roomID != "team:team-one:lounge:2026-08-24:v12" {
+	if roomID != "team:team-one:lounge:v13" {
 		t.Fatalf("room id = %q", roomID)
 	}
-	teamID, weekKey, err := ParseWeeklyRoomID(roomID)
-	if err != nil || teamID != "team-one" || weekKey != "2026-08-24" {
-		t.Fatalf("parsed = %q, %q, %v", teamID, weekKey, err)
+	nextWeek, err := DurableRoomID("team-one", "2026-08-31")
+	if err != nil || nextWeek != roomID {
+		t.Fatalf("next week room = %q, %v; want %q", nextWeek, err, roomID)
 	}
-	for _, invalid := range []string{"", "team:other", "team:team/one:lounge:2026-08-24:v10", "team:team-one:lounge:today:v10", "team:team-one:lounge:2026-08-25:v10", "team:team-one:lounge:2026-08-24", "team:team-one:lounge:2026-08-24:v8"} {
-		if _, _, err := ParseWeeklyRoomID(invalid); err == nil {
+	teamID, err := ParseRoomID(roomID)
+	if err != nil || teamID != "team-one" {
+		t.Fatalf("parsed = %q, %v", teamID, err)
+	}
+	for _, invalid := range []string{"", "team:other", "team:team/one:lounge:v13", "team:team-one:lounge:today", "team:team-one:lounge", "team:team-one:lounge:v12"} {
+		if _, err := ParseRoomID(invalid); err == nil {
 			t.Fatalf("accepted invalid room id %q", invalid)
 		}
 	}
@@ -118,8 +122,8 @@ func TestWeeklyThemeManifestOwnsTheImmutableCanvasBinding(t *testing.T) {
 	if theme.RoomGeneration != BeachBoardwalkRoomGeneration {
 		t.Fatalf("room generation = %d", theme.RoomGeneration)
 	}
-	if theme.RoomGeneration != 12 {
-		t.Fatalf("room generation = %d, want clean-cutover generation 12", theme.RoomGeneration)
+	if theme.RoomGeneration != 13 {
+		t.Fatalf("room generation = %d, want clean-cutover generation 13", theme.RoomGeneration)
 	}
 	if theme.Template.CanvasID != BeachBoardwalkCanvasID || theme.Template.CanvasVersion != BeachBoardwalkCanvasVersion {
 		t.Fatalf("theme template = %#v", theme.Template)
@@ -138,7 +142,7 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 	if canvas.CanvasID != BeachBoardwalkCanvasID || canvas.Version != BeachBoardwalkCanvasVersion || !json.Valid(canvas.DefinitionRaw) {
 		t.Fatalf("canvas record = %#v", canvas)
 	}
-	if canvas.Version != 12 {
+	if canvas.Version != 13 {
 		t.Fatalf("canvas version = %d", canvas.Version)
 	}
 	var shape struct {

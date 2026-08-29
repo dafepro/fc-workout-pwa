@@ -85,6 +85,31 @@ type PlayerUnlock struct {
 	ViewedAt   *string          `json:"viewedAt,omitempty"`
 }
 
+func (store *Store) GrantDevelopmentLoungeUnlocks(ctx context.Context, playerID string, now time.Time) (int, error) {
+	if playerID == "" || now.IsZero() {
+		return 0, ErrPlayerUnlockNotFound
+	}
+	granted := 0
+	for _, item := range domain.PrizeCatalogItems() {
+		if item.Destination != domain.PrizeDestinationTeamLounge {
+			continue
+		}
+		result, err := store.db.ExecContext(ctx, `INSERT INTO player_unlocks (
+			player_id, item_kind, item_id, source, unlocked_at
+		) VALUES (?, ?, ?, 'staff_grant', ?) ON CONFLICT DO NOTHING`, playerID, item.Kind,
+			item.ID, now.UTC().Format(time.RFC3339Nano))
+		if err != nil {
+			return 0, fmt.Errorf("grant development Lounge unlocks: %w", err)
+		}
+		rows, err := result.RowsAffected()
+		if err != nil {
+			return 0, fmt.Errorf("count development Lounge unlocks: %w", err)
+		}
+		granted += int(rows)
+	}
+	return granted, nil
+}
+
 func (store *Store) PrizeBoxOverview(ctx context.Context, playerID string, now time.Time) (PrizeBoxOverview, error) {
 	if playerID == "" {
 		return PrizeBoxOverview{}, ErrPrizeBoxUnavailable

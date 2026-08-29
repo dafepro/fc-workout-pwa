@@ -414,7 +414,7 @@ to resolve, not the implementing agent's.
   graceful drain, and room-stable Caddy routing. Production remains at one API
   replica until an intentional deployment-capacity change.
 - Move, rotate, scale, and delete each require a short-lived, one-use ZoomiGo
-  permit bound to the owner, current weekly room, Canvas and definition
+  permit bound to the owner, current durable room, Canvas and definition
   generations, entity revision, one operation, and its exact target. Only the
   player's own committed item from the current team-local day is editable.
 - A trusted accepted delete releases its placement credit; rejected, unknown,
@@ -489,15 +489,16 @@ to resolve, not the implementing agent's.
   individual 44 CSS pixel controls clamp inward to remain reachable at 320px;
   item coordinates never change to accommodate the editor.
 - Unselected current-day owned items have a faint lime dashed boundary. The
-  boundary becomes solid while selected; vertical gestures beginning on the
-  playfield or an unselected item remain available for page scrolling.
+  boundary becomes solid while selected. Avatar and selected-item gestures win
+  first claim; only otherwise-unclaimed playfield drags scroll the page.
 - The player-facing action names and order are Stamps, Items, Chat, and React.
   React opens an anchored emote tray. Chat opens an anchored set picker;
   Standard is enabled and Set 2 and Set 3 remain visibly locked without invented
   themes or unlock rules. Every tray uses the same quick slide-up and slide-down
   transition, disabled under reduced motion.
-- Standard contains exactly ten predefined messages in a two-column common
-  panel: `Hi!`, `Bye!`, `Let's Go!`, `Nice!`, `OK`, `Oops`, `No`, `Yep`,
+- Standard contains exactly ten predefined messages in two five-button wings
+  around the persistent vertical Standard, Set 2, Set 3 spine: `Hi!`, `Bye!`,
+  `Let's Go!`, `Nice!`, `OK`, `Oops`, `No`, `Yep`,
   `Huh?`, and `Thanks Bromigo`. Sending therefore takes three deliberate taps:
   Chat, Standard, then the final message. These remain room-wide transient
   reactions, not conversation content, and use the same authenticated
@@ -507,10 +508,22 @@ to resolve, not the implementing agent's.
   payload fields, unknown IDs, item targets, and inactive members are rejected.
   Nothing is persisted and no compatibility, Map, or extra API-replica path is
   introduced.
-- Canvas v12 replaces the implicit solid-edge material with four explicit,
+- Canvas v13 carries the v12 edge and kick behavior into a clean durable-room
+  identity cutover. It uses four explicit,
   invisible, frictionless elastic boundary colliders. Dynamic balls use lower
   drag and damping, a low-speed kick dead zone, nonlinear speed-to-power growth,
   and a hard impulse cap. Unlocks do not alter kick power in this revision; any
   future progression tuning needs a separate explicit product and authority
-  decision. The clean cutover creates generation-12 rooms rather than importing
-  v11 state, while owner-bound one-use mutation permits remain unchanged.
+  decision. The clean cutover creates generation-13 rooms rather than importing
+  weekly v12 state, while owner-bound one-use mutation permits remain unchanged.
+- Lounge placements are durable across team-local day and Monday week
+  boundaries by using one team-and-Canvas-generation room identity. Weekly
+  activity credits and the current-day owner edit window still roll over in the
+  team timezone. "Permanent" means the life of that immutable Canvas
+  generation; a future intentional clean cutover may start a new room and does
+  not import prior state.
+- Development builds expose a player-local Beach/Starlight preview switch and
+  an authenticated current-player-only test unlock action. The scene preview is
+  temporary browser state; the dev grant uses only predefined Lounge catalog
+  items. Neither control or route is enabled in production, and no general
+  staff/admin production authority is implied.

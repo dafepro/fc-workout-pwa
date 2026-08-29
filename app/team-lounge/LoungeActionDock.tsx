@@ -164,6 +164,7 @@ export function LoungeActionDock({
                   : actions.chooseStandardChat
             }
             data-anchor={tray === "emotes" ? "react" : "chat"}
+            data-layer={tray === "quick-phrases" ? chatLayer : undefined}
             data-state={closing ? "closing" : "open"}
           >
             {tray === "emotes" ? (
@@ -183,55 +184,59 @@ export function LoungeActionDock({
                   </button>
                 ))}
               </div>
-            ) : chatLayer === "sets" ? (
-              <div className="team-lounge__chat-sets">
-                <button
-                  type="button"
-                  aria-label={actions.standardChats}
-                  onClick={() => setChatLayer("standard")}
-                >
-                  <strong>{actions.standardChats}</strong>
-                  <small>10 messages</small>
-                </button>
-                {[2, 3].map((set) => (
-                  <button
-                    key={set}
-                    type="button"
-                    aria-label={actions.lockedChatSet(set)}
-                    disabled
-                  >
-                    <strong>Set {set}</strong>
-                    <small>Locked</small>
-                  </button>
-                ))}
-              </div>
             ) : (
-              <>
-                <button
-                  type="button"
-                  className="team-lounge__chat-back"
-                  aria-label={actions.backToChatSets}
-                  onClick={() => setChatLayer("sets")}
-                >
-                  ‹ {actions.standardChats}
-                </button>
-                <div className="team-lounge__reaction-options team-lounge__reaction-options--quick-phrases">
-                  {loungeQuickPhrases.map((phrase) => (
+              <div className="team-lounge__chat-menu">
+                {chatLayer === "standard" ? (
+                  <div className="team-lounge__chat-wing">
+                    {loungeQuickPhrases.slice(0, 5).map((phrase) => (
+                      <QuickPhraseButton
+                        key={phrase.id}
+                        phrase={phrase}
+                        disabled={reactionLocked}
+                        onSend={() => {
+                          onSendQuickPhrase(phrase);
+                          closeTray();
+                        }}
+                      />
+                    ))}
+                  </div>
+                ) : null}
+                <div className="team-lounge__chat-sets">
+                  <button
+                    type="button"
+                    aria-label={actions.standardChats}
+                    aria-pressed={chatLayer === "standard"}
+                    onClick={() => setChatLayer("standard")}
+                  >
+                    <strong>{actions.standardChats}</strong>
+                  </button>
+                  {[2, 3].map((set) => (
                     <button
-                      key={phrase.id}
+                      key={set}
                       type="button"
-                      aria-label={actions.sendQuickMessage(phrase.text)}
-                      disabled={reactionLocked}
-                      onClick={() => {
-                        onSendQuickPhrase(phrase);
-                        closeTray();
-                      }}
+                      aria-label={actions.lockedChatSet(set)}
+                      disabled
                     >
-                      {phrase.text}
+                      <strong>Set {set}</strong>
                     </button>
                   ))}
                 </div>
-              </>
+                {chatLayer === "standard" ? (
+                  <div className="team-lounge__chat-wing">
+                    {loungeQuickPhrases.slice(5).map((phrase) => (
+                      <QuickPhraseButton
+                        key={phrase.id}
+                        phrase={phrase}
+                        disabled={reactionLocked}
+                        onSend={() => {
+                          onSendQuickPhrase(phrase);
+                          closeTray();
+                        }}
+                      />
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             )}
           </div>
         ) : null}
@@ -269,5 +274,26 @@ export function LoungeActionDock({
         </button>
       </nav>
     </>
+  );
+}
+
+function QuickPhraseButton({
+  phrase,
+  disabled,
+  onSend,
+}: {
+  phrase: LoungeQuickPhrase;
+  disabled: boolean;
+  onSend(): void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={copy.teamLounge.actions.sendQuickMessage(phrase.text)}
+      disabled={disabled}
+      onClick={onSend}
+    >
+      {phrase.text}
+    </button>
   );
 }

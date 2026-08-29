@@ -61,7 +61,7 @@ func (service *service) createTeamLoungeSocketTicket(w http.ResponseWriter, r *h
 		writeError(w, r, http.StatusInternalServerError, "internal_error", "This week's lounge could not be opened.")
 		return
 	}
-	roomID, err := teamlounge.WeeklyRoomID(teamID, team.WeekStart)
+	roomID, err := teamlounge.DurableRoomID(teamID, team.WeekStart)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "internal_error", "This week's lounge could not be opened.")
 		return
@@ -198,7 +198,7 @@ func (service *service) issueTeamLoungeItemMutationPermit(w http.ResponseWriter,
 		writeError(w, r, http.StatusBadRequest, "invalid_request", "That Lounge edit request is invalid.")
 		return
 	}
-	requestTeamID, _, err := teamlounge.ParseWeeklyRoomID(request.RoomID)
+	requestTeamID, err := teamlounge.ParseRoomID(request.RoomID)
 	if err != nil || requestTeamID != teamID {
 		writeError(w, r, http.StatusUnprocessableEntity, "item_room_unavailable", "That Team Lounge is unavailable.")
 		return
@@ -284,7 +284,7 @@ func (service *service) reserveTeamLoungePlacement(w http.ResponseWriter, r *htt
 		writeError(w, r, http.StatusBadRequest, "invalid_request", "That Lounge placement request is invalid.")
 		return
 	}
-	requestTeamID, _, err := teamlounge.ParseWeeklyRoomID(request.RoomID)
+	requestTeamID, err := teamlounge.ParseRoomID(request.RoomID)
 	if err != nil || requestTeamID != teamID {
 		writeError(w, r, http.StatusUnprocessableEntity, "placement_room_unavailable", "That Team Lounge is unavailable.")
 		return

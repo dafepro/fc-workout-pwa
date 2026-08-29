@@ -2,10 +2,12 @@
 
 import { useEffect, useRef } from "react";
 import type { AvatarPointerIntent, RenderEntity } from "@canvas-physics/client";
+import type { AssetManifest } from "@canvas-physics/client";
 
 import { PlayerAvatar } from "../components/PlayerAvatar";
 import type { Player } from "../domain/types";
 import { loungeBallEntityID, publishLoungeBallPosition } from "./ball-position";
+import { createLoungeBackgroundScroll } from "./lounge-background-scroll";
 import { startLocalBeachBoardwalkSimulation } from "./local-simulation";
 import { beachBoardwalkAssets } from "./scene/assets";
 import {
@@ -17,9 +19,11 @@ export type LoungeCanvasState = "loading" | "ready" | "static" | "error";
 
 export function LocalLoungeCanvas({
   player,
+  assets = beachBoardwalkAssets,
   onStateChange,
 }: {
   player: Player;
+  assets?: AssetManifest;
   onStateChange(state: LoungeCanvasState): void;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -51,7 +55,7 @@ export function LocalLoungeCanvas({
         preloadAssetManifest,
       } = await import("@canvas-physics/client");
       if (disposed) return;
-      const assets = await preloadAssetManifest(beachBoardwalkAssets, {
+      const loadedAssets = await preloadAssetManifest(assets, {
         adapter: pixiAssetLoader,
       });
       if (disposed) return;
@@ -60,7 +64,7 @@ export function LocalLoungeCanvas({
         beachBoardwalkCanvas,
         beachBoardwalkDefinitions,
         { background: 0x63c9dc, resolution: Math.min(devicePixelRatio, 2) },
-        assets,
+        loadedAssets,
       );
       await scene.mount(mount);
       if (disposed) {
@@ -78,7 +82,7 @@ export function LocalLoungeCanvas({
           avatarCssPosition(scene, entities, playerID, mount),
       });
       const pointer = new PointerInteractionCoordinator(mount, {
-        strategies: [movement],
+        strategies: [movement, createLoungeBackgroundScroll()],
       });
       const keyboard = new KeyboardController(window);
       const worker = new Worker(
@@ -159,7 +163,7 @@ export function LocalLoungeCanvas({
       disposed = true;
       dispose();
     };
-  }, [onStateChange, playerID]);
+  }, [assets, onStateChange, playerID]);
 
   return (
     <>

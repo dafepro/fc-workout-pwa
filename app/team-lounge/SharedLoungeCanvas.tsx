@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import type {
   CanvasRuntime,
+  AssetManifest,
   OverlayEntityProjection,
   OverlayProjectionSnapshot,
   ParticipantPresence,
@@ -20,6 +21,7 @@ import { LoungeItemEditor, type LoungeEditableItem } from "./LoungeItemEditor";
 import { LoungeItemArt } from "./LoungeItemArt";
 import { loungeBallEntityID, publishLoungeBallPosition } from "./ball-position";
 import { loungeWorldPoint } from "./lounge-editor-geometry";
+import { createLoungeBackgroundScroll } from "./lounge-background-scroll";
 import {
   LOUNGE_REACTION_COOLDOWN_MS,
   LOUNGE_REACTION_DURATION_MS,
@@ -65,12 +67,14 @@ export function SharedLoungeCanvas({
   teamID,
   player,
   roster,
+  assets = beachBoardwalkAssets,
   onStateChange,
   onPresenceChange,
 }: {
   teamID: string;
   player: Player;
   roster: readonly Player[];
+  assets?: AssetManifest;
   onStateChange(state: LoungeCanvasState): void;
   onPresenceChange(count: number): void;
 }) {
@@ -310,7 +314,7 @@ export function SharedLoungeCanvas({
         mount,
         driver: new SimulationDriver(worker),
         definitions,
-        assets: beachBoardwalkAssets,
+        assets,
         scene: {
           background: 0x63c9dc,
           resolution: Math.min(devicePixelRatio, 2),
@@ -322,6 +326,7 @@ export function SharedLoungeCanvas({
           grabRadiusPx: 36,
           flick: false,
         },
+        pointerInteractions: [createLoungeBackgroundScroll()],
         hideDisabledAvatars: false,
         onError: failCanvas,
       });
@@ -418,7 +423,7 @@ export function SharedLoungeCanvas({
       projectionFrameRef.current = undefined;
       if (active) void active.stopGracefully(500).catch(() => active.stop());
     };
-  }, [onPresenceChange, onStateChange, playerID, teamID]);
+  }, [assets, onPresenceChange, onStateChange, playerID, teamID]);
 
   const placeItem = async (event: MouseEvent<HTMLButtonElement>) => {
     const runtime = runtimeRef.current;

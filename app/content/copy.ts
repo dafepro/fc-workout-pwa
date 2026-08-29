@@ -158,6 +158,15 @@ export const copy = {
     static: "The room is ready. Movement needs a supported browser.",
     unavailable: "The boardwalk could not open.",
     retry: "Try the boardwalk again",
+    development: {
+      label: "Lounge testing",
+      beach: "Beach",
+      starlight: "Starlight",
+      unlock: "Unlock test items",
+      unlocking: "Unlocking…",
+      unlocked: "Test items unlocked",
+      failed: "Test items could not be unlocked.",
+    },
     actions: {
       navigation: "Lounge actions",
       emotes: "React",

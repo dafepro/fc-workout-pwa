@@ -1,1 +1,3 @@
-export const developmentBuild = __ZOOMIGO_DEVELOPMENT_BUILD__;
+export const developmentBuild =
+  typeof __ZOOMIGO_DEVELOPMENT_BUILD__ !== "undefined" &&
+  __ZOOMIGO_DEVELOPMENT_BUILD__;

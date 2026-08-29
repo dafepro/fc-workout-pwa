@@ -94,7 +94,9 @@ describe("Lounge action dock", () => {
     fireEvent.click(screen.getByRole("button", { name: "Chat" }));
     const chatSets = screen.getByRole("dialog", { name: "Choose a chat set" });
     expect(chatSets).toHaveAttribute("data-anchor", "chat");
+    expect(chatSets).toHaveAttribute("data-layer", "sets");
     expect(screen.getByRole("button", { name: "Standard" })).toBeEnabled();
+    expect(screen.queryByText("10 messages")).toBeNull();
     expect(
       screen.getByRole("button", { name: "Set 2, locked" }),
     ).toBeDisabled();
@@ -105,9 +107,23 @@ describe("Lounge action dock", () => {
       screen.queryByRole("button", { name: "Send Nice! quick message" }),
     ).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Standard" }));
+    const standard = screen.getByRole("dialog", {
+      name: "Choose a Standard message",
+    });
+    expect(standard).toHaveAttribute("data-layer", "standard");
+    expect(screen.getByRole("button", { name: "Standard" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(standard.querySelectorAll(".team-lounge__chat-wing")).toHaveLength(
+      2,
+    );
     expect(
-      screen.getByRole("dialog", { name: "Choose a Standard message" }),
-    ).toBeVisible();
+      standard.querySelectorAll(".team-lounge__chat-wing:first-child button"),
+    ).toHaveLength(5);
+    expect(
+      standard.querySelectorAll(".team-lounge__chat-wing:last-child button"),
+    ).toHaveLength(5);
     expect(
       screen.getAllByRole("button", { name: / quick message$/u }),
     ).toHaveLength(10);

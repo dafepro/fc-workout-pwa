@@ -27,15 +27,20 @@ experiments.
   visible action; the historical disabled placeholder remains retired.
 - Review and approve the Starlight Training Camp candidate in
   `TEAM_LOUNGE_STARLIGHT_CAMP.md` before adding theme scheduling or rollback UI.
-- Delivered 2026-08-28: Chat now uses a three-tap Chat → Standard → message
-  flow with ten predefined bubbles in a two-column panel. Set 2 and Set 3 remain
+- Delivered 2026-08-29: Chat now uses a three-tap Chat → Standard → message
+  flow with ten predefined bubbles in two five-button wings around a vertical
+  set spine. Set 2 and Set 3 remain
   locked pending explicit content and unlock decisions. The authenticated React
   and Chat trays emerge from their own dock actions, share the transient
   rise-and-fade path, and add no typed chat, history, recipients, or free-form
   payloads.
+- Delivered 2026-08-29: generation-bound Lounge rooms persist placements across
+  day and Monday-week rollovers. Weekly placement credits and the same-day edit
+  window still use team-local dates; future generation cutovers remain clean
+  and do not import old room state.
 - Follow-up decision: if progression should change Lounge ball kick power,
   define bounded server-authorized tuning and youth-safe presentation first.
-  Canvas v12 currently applies one fixed low-speed dead zone, nonlinear response,
+  Canvas v13 currently applies one fixed low-speed dead zone, nonlinear response,
   and maximum impulse to every player.
 
 ## Release quality

@@ -78,7 +78,7 @@ func TestPlacementBudgetBackfillsCurrentWeekCheckInsAndUsesTeamTime(t *testing.T
 	}
 	store := NewSQLiteStore(db, Catalog{})
 	now := time.Date(2026, time.August, 26, 18, 0, 0, 0, time.UTC)
-	budget, err := store.PlacementBudget(t.Context(), "team:team-one:lounge:2026-08-24:v12", "player-one", now)
+	budget, err := store.PlacementBudget(t.Context(), "team:team-one:lounge:v13", "player-one", now)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,27 +103,27 @@ func TestReservePlacementConsumesOneCreditIdempotently(t *testing.T) {
 	store := NewSQLiteStore(db, BeachBoardwalkLoungeCatalog())
 	now := time.Date(2026, time.August, 26, 18, 0, 0, 0, time.UTC)
 	request := PlacementRequest{DefinitionID: "zoomigo-stamp-bolt", DefinitionVersion: 2, X: 40, Y: 70}
-	if _, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:2026-08-24:v12", "player-one", "unbound-room", request, now); !errors.Is(err, ErrPlacementUnavailable) {
+	if _, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:v13", "player-one", "unbound-room", request, now); !errors.Is(err, ErrPlacementUnavailable) {
 		t.Fatalf("unbound room reservation error = %v", err)
 	}
 	bindPlacementRoom(t, store)
-	first, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:2026-08-24:v12", "player-one", "one-request", request, now)
+	first, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:v13", "player-one", "one-request", request, now)
 	if err != nil || first.Replayed || first.Remaining != 0 || first.ID == "" {
 		t.Fatalf("first reservation = %+v, %v", first, err)
 	}
-	replay, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:2026-08-24:v12", "player-one", "one-request", request, now)
+	replay, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:v13", "player-one", "one-request", request, now)
 	if err != nil || !replay.Replayed || replay.ID != first.ID {
 		t.Fatalf("replayed reservation = %+v, %v", replay, err)
 	}
 	store.now = func() time.Time { return now }
-	authorization := authorizationRequest(replay, "player-one", "team:team-one:lounge:2026-08-24:v12", "mutation-one")
+	authorization := authorizationRequest(replay, "player-one", "team:team-one:lounge:v13", "mutation-one")
 	decision, err := store.AuthorizeMutation(t.Context(), authorization)
 	if err != nil || !decision.Authorized {
 		t.Fatalf("authorize reservation = %+v, %v", decision, err)
 	}
 	outcome := roomsdk.MutationOutcome{
 		Status: roomsdk.MutationOutcomeAccepted, CorrelationID: first.ID,
-		RoomID: "team:team-one:lounge:2026-08-24:v12", ParticipantID: "player-one",
+		RoomID: "team:team-one:lounge:v13", ParticipantID: "player-one",
 		Kind: roomsdk.MutationKindSpawn, EntityID: "canvas-entity-one",
 		DefinitionID: replay.DefinitionID, DefinitionVersion: replay.DefinitionVersion,
 	}
@@ -133,7 +133,7 @@ func TestReservePlacementConsumesOneCreditIdempotently(t *testing.T) {
 	if err := store.NotifyMutationOutcome(t.Context(), outcome); err != nil {
 		t.Fatalf("replay Canvas outcome: %v", err)
 	}
-	_, err = store.ReservePlacement(t.Context(), "team:team-one:lounge:2026-08-24:v12", "player-one", "another-request", request, now)
+	_, err = store.ReservePlacement(t.Context(), "team:team-one:lounge:v13", "player-one", "another-request", request, now)
 	if !errors.Is(err, ErrPlacementCreditsExhausted) {
 		t.Fatalf("second reservation error = %v", err)
 	}
@@ -156,13 +156,13 @@ func TestReservePlacementRequiresOwnedEarnedItem(t *testing.T) {
 	bindPlacementRoom(t, store)
 	now := time.Date(2026, time.August, 26, 18, 0, 0, 0, time.UTC)
 	request := PlacementRequest{DefinitionID: "zoomigo-stamp-shield", DefinitionVersion: 2, X: 40, Y: 70}
-	if _, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:2026-08-24:v12", "player-one", "locked-item", request, now); !errors.Is(err, ErrPlacementItemUnavailable) {
+	if _, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:v13", "player-one", "locked-item", request, now); !errors.Is(err, ErrPlacementItemUnavailable) {
 		t.Fatalf("unowned reservation error = %v", err)
 	}
 	if _, err := db.ExecContext(t.Context(), `INSERT INTO player_unlocks (player_id, item_kind, item_id, source, unlocked_at) VALUES ('player-one', 'lounge_stamp', 'lounge-stamp-shield', 'daily_check_in', '2026-08-26T17:30:00Z')`); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:2026-08-24:v12", "player-one", "owned-item", request, now); err != nil {
+	if _, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:v13", "player-one", "owned-item", request, now); err != nil {
 		t.Fatalf("owned reservation: %v", err)
 	}
 }
@@ -192,7 +192,7 @@ func TestReservePlacementSerializesConcurrentCreditClaims(t *testing.T) {
 		go func() {
 			defer wait.Done()
 			<-start
-			_, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:2026-08-24:v12", "player-one", fmt.Sprintf("claim-%d", index), request, now)
+			_, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:v13", "player-one", fmt.Sprintf("claim-%d", index), request, now)
 			errorsSeen <- err
 		}()
 	}
@@ -309,7 +309,7 @@ func TestRoomBindingIsIdempotentUnderConcurrentFirstAccess(t *testing.T) {
 	seedTeam(t, db)
 	store := NewSQLiteStore(db, Catalog{})
 	template := roomsdk.RoomTemplate{CanvasID: "beach-boardwalk", CanvasVersion: 3}
-	roomID, err := WeeklyRoomID("team-one", "2026-08-24")
+	roomID, err := DurableRoomID("team-one", "2026-08-24")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -346,16 +346,16 @@ func TestRoomBindingIsIdempotentUnderConcurrentFirstAccess(t *testing.T) {
 	}
 }
 
-func TestBoundRoomStoreFencesSnapshotsToTheirImmutableRoomBindings(t *testing.T) {
+func TestBoundRoomStoreKeepsSnapshotAcrossWeekRollover(t *testing.T) {
 	db := openMigratedDatabase(t)
 	seedTeam(t, db)
 	store := NewSQLiteStore(db, Catalog{})
 	template := roomsdk.RoomTemplate{CanvasID: "beach-boardwalk", CanvasVersion: 3}
-	oldRoom, err := WeeklyRoomID("team-one", "2026-08-24")
+	oldRoom, err := DurableRoomID("team-one", "2026-08-24")
 	if err != nil {
 		t.Fatal(err)
 	}
-	newRoom, err := WeeklyRoomID("team-one", "2026-08-31")
+	newRoom, err := DurableRoomID("team-one", "2026-08-31")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -364,16 +364,15 @@ func TestBoundRoomStoreFencesSnapshotsToTheirImmutableRoomBindings(t *testing.T)
 		t.Fatalf("old binding = %+v, %v", oldBinding, err)
 	}
 	newBinding, err := store.BindRoom(t.Context(), newRoom, "team-one", "2026-08-31", template)
-	if err != nil || !newBinding.Created || !newBinding.Rollover {
+	if err != nil || newBinding.Created || newBinding.Rollover {
 		t.Fatalf("new binding = %+v, %v", newBinding, err)
 	}
 
 	outcomes := []string{}
 	bound := NewBoundRoomStore(store, func(outcome string) { outcomes = append(outcomes, outcome) })
 	oldFirst := snapshotRecord(oldRoom, template, 1, `{"week":"old-first"}`)
-	newFirst := snapshotRecord(newRoom, template, 1, `{"week":"new"}`)
-	oldLate := snapshotRecord(oldRoom, template, 2, `{"week":"old-late"}`)
-	for _, snapshot := range []roomsdk.SnapshotRecord{oldFirst, newFirst, oldLate} {
+	newFirst := snapshotRecord(newRoom, template, 2, `{"week":"new"}`)
+	for _, snapshot := range []roomsdk.SnapshotRecord{oldFirst, newFirst} {
 		if err := bound.SaveSnapshot(t.Context(), snapshot); err != nil {
 			t.Fatal(err)
 		}
@@ -383,22 +382,19 @@ func TestBoundRoomStoreFencesSnapshotsToTheirImmutableRoomBindings(t *testing.T)
 		t.Fatalf("new snapshot = %#v, %v", newSnapshot, err)
 	}
 	oldSnapshot, err := store.LoadSnapshot(t.Context(), oldRoom)
-	if err != nil || string(oldSnapshot.SnapshotRaw) != `{"week":"old-late"}` {
-		t.Fatalf("old snapshot = %#v, %v", oldSnapshot, err)
+	if err != nil || string(oldSnapshot.SnapshotRaw) != `{"week":"new"}` {
+		t.Fatalf("durable snapshot = %#v, %v", oldSnapshot, err)
 	}
 
 	mismatch := snapshotRecord(oldRoom, roomsdk.RoomTemplate{CanvasID: "other", CanvasVersion: 1}, 3, `{"wrong":true}`)
 	if err := bound.SaveSnapshot(t.Context(), mismatch); !errors.Is(err, roomsdk.ErrRoomTemplateConflict) {
 		t.Fatalf("mismatched snapshot error = %v", err)
 	}
-	unbound, err := WeeklyRoomID("team-one", "2026-09-07")
-	if err != nil {
-		t.Fatal(err)
-	}
+	unbound := "team:team-two:lounge:v13"
 	if err := bound.SaveSnapshot(t.Context(), snapshotRecord(unbound, template, 1, `{"unbound":true}`)); !errors.Is(err, roomsdk.ErrNotFound) {
 		t.Fatalf("unbound snapshot error = %v", err)
 	}
-	if got := strings.Join(outcomes, ","); got != "success,success,success,conflict,not_found" {
+	if got := strings.Join(outcomes, ","); got != "success,success,conflict,not_found" {
 		t.Fatalf("snapshot outcomes = %q", got)
 	}
 }
@@ -429,7 +425,7 @@ func bindPlacementRoom(t *testing.T, store *SQLiteStore) {
 	t.Helper()
 	if _, err := store.BindRoom(
 		t.Context(),
-		"team:team-one:lounge:2026-08-24:v12",
+		"team:team-one:lounge:v13",
 		"team-one",
 		"2026-08-24",
 		roomsdk.RoomTemplate{CanvasID: BeachBoardwalkCanvasID, CanvasVersion: BeachBoardwalkCanvasVersion},
