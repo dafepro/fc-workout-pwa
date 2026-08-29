@@ -7,8 +7,8 @@ import type { AssetManifest } from "@canvas-physics/client";
 import { PlayerAvatar } from "../components/PlayerAvatar";
 import type { Player } from "../domain/types";
 import { loungeBallEntityID, publishLoungeBallPosition } from "./ball-position";
-import { createLoungeBackgroundScroll } from "./lounge-background-scroll";
 import { startLocalBeachBoardwalkSimulation } from "./local-simulation";
+import { preserveNativeCanvasScroll } from "./native-canvas-scroll";
 import { beachBoardwalkAssets } from "./scene/assets";
 import {
   beachBoardwalkCanvas,
@@ -41,6 +41,7 @@ export function LocalLoungeCanvas({
 
     let disposed = false;
     let dispose = () => undefined;
+    const stopPreservingNativeScroll = preserveNativeCanvasScroll(mount);
     onStateChange("loading");
 
     void (async () => {
@@ -82,7 +83,7 @@ export function LocalLoungeCanvas({
           avatarCssPosition(scene, entities, playerID, mount),
       });
       const pointer = new PointerInteractionCoordinator(mount, {
-        strategies: [movement, createLoungeBackgroundScroll()],
+        strategies: [movement],
       });
       const keyboard = new KeyboardController(window);
       const worker = new Worker(
@@ -162,6 +163,7 @@ export function LocalLoungeCanvas({
     return () => {
       disposed = true;
       dispose();
+      stopPreservingNativeScroll();
     };
   }, [assets, onStateChange, playerID]);
 

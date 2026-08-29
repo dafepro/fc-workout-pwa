@@ -220,6 +220,33 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
         .evaluate((canvas) => getComputedStyle(canvas).touchAction),
     )
     .toBe("pan-y");
+
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.mouse.move(4, 120);
+  const pageScrollStart = await page.evaluate(() => window.scrollY);
+  await page.mouse.wheel(0, 240);
+  await expect
+    .poll(() => page.evaluate(() => window.scrollY))
+    .toBeGreaterThan(pageScrollStart);
+  const pageScrollDelta =
+    (await page.evaluate(() => window.scrollY)) - pageScrollStart;
+
+  await stage.scrollIntoViewIfNeeded();
+  const visibleCanvasBox = await canvas.boundingBox();
+  expect(visibleCanvasBox).not.toBeNull();
+  const canvasScrollStart = await page.evaluate(() => window.scrollY);
+  await page.mouse.move(
+    visibleCanvasBox!.x + visibleCanvasBox!.width / 2,
+    visibleCanvasBox!.y + visibleCanvasBox!.height / 2,
+  );
+  await page.mouse.wheel(0, 240);
+  await expect
+    .poll(() => page.evaluate(() => window.scrollY))
+    .toBeGreaterThan(canvasScrollStart);
+  const canvasScrollDelta =
+    (await page.evaluate(() => window.scrollY)) - canvasScrollStart;
+  expect(canvasScrollDelta).toBe(pageScrollDelta);
+
   await lounge.getByRole("button", { name: "React" }).click();
   await expect.poll(() => loungeSizeDelta(sizeBeforeReact)).toBeLessThan(0.1);
   const reactTray = lounge.getByRole("dialog", { name: "Choose a reaction" });

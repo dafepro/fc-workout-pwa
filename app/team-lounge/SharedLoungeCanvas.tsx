@@ -21,7 +21,6 @@ import { LoungeItemEditor, type LoungeEditableItem } from "./LoungeItemEditor";
 import { LoungeItemArt } from "./LoungeItemArt";
 import { loungeBallEntityID, publishLoungeBallPosition } from "./ball-position";
 import { loungeWorldPoint } from "./lounge-editor-geometry";
-import { createLoungeBackgroundScroll } from "./lounge-background-scroll";
 import {
   LOUNGE_REACTION_COOLDOWN_MS,
   LOUNGE_REACTION_DURATION_MS,
@@ -51,6 +50,7 @@ import {
   type TeamLoungeItemMutationKind,
   type TeamLoungeItemTransform,
 } from "./lounge-gateway";
+import { preserveNativeCanvasScroll } from "./native-canvas-scroll";
 import { beachBoardwalkAssets } from "./scene/assets";
 import {
   beachBoardwalkCanvas,
@@ -161,6 +161,7 @@ export function SharedLoungeCanvas({
     let unsubscribeCanonical: () => void = () => undefined;
     let unsubscribeLifecycle: () => void = () => undefined;
     let unsubscribeEffects: () => void = () => undefined;
+    const stopPreservingNativeScroll = preserveNativeCanvasScroll(mount);
 
     const failCanvas = (cause: unknown) => {
       if (disposed) return;
@@ -328,7 +329,6 @@ export function SharedLoungeCanvas({
           grabRadiusPx: 36,
           flick: false,
         },
-        pointerInteractions: [createLoungeBackgroundScroll()],
         hideDisabledAvatars: false,
         onError: failCanvas,
       });
@@ -418,6 +418,7 @@ export function SharedLoungeCanvas({
       unsubscribeCanonical();
       unsubscribeLifecycle();
       unsubscribeEffects();
+      stopPreservingNativeScroll();
       const active = runtime;
       runtime = undefined;
       runtimeRef.current = null;
