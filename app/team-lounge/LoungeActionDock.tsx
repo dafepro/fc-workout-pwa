@@ -20,6 +20,7 @@ export function LoungeActionDock({
   choices,
   selectedItem,
   remaining,
+  capacity,
   placing,
   reactionLocked,
   onSelectItem,
@@ -29,6 +30,7 @@ export function LoungeActionDock({
   choices: readonly LoungeItemChoice[];
   selectedItem: LoungeItemChoice | null;
   remaining: number;
+  capacity: number;
   placing: boolean;
   reactionLocked: boolean;
   onSelectItem(item: LoungeItemChoice): void;
@@ -113,9 +115,14 @@ export function LoungeActionDock({
               ))}
             </div>
             <p className="team-lounge__placement-budget">
-              {remaining > 0
-                ? actions.placementsLeft(remaining)
-                : actions.exhausted}
+              <span>
+                {actions.placementSummary(capacity - remaining, capacity)}
+              </span>
+              <span>
+                {remaining > 0
+                  ? actions.placementsLeft(remaining)
+                  : actions.exhausted}
+              </span>
             </p>
             <div className="team-lounge__item-grid">
               {filteredChoices.map((choice) => (
@@ -165,6 +172,13 @@ export function LoungeActionDock({
             }
             data-anchor={tray === "emotes" ? "react" : "chat"}
             data-layer={tray === "quick-phrases" ? chatLayer : undefined}
+            data-layout={
+              tray === "quick-phrases"
+                ? chatLayer === "sets"
+                  ? "compact"
+                  : "expanded"
+                : undefined
+            }
             data-state={closing ? "closing" : "open"}
           >
             {tray === "emotes" ? (
@@ -202,15 +216,7 @@ export function LoungeActionDock({
                   </div>
                 ) : null}
                 <div className="team-lounge__chat-sets">
-                  <button
-                    type="button"
-                    aria-label={actions.standardChats}
-                    aria-pressed={chatLayer === "standard"}
-                    onClick={() => setChatLayer("standard")}
-                  >
-                    <strong>{actions.standardChats}</strong>
-                  </button>
-                  {[2, 3].map((set) => (
+                  {[3, 2].map((set) => (
                     <button
                       key={set}
                       type="button"
@@ -220,6 +226,14 @@ export function LoungeActionDock({
                       <strong>Set {set}</strong>
                     </button>
                   ))}
+                  <button
+                    type="button"
+                    aria-label={actions.standardChats}
+                    aria-pressed={chatLayer === "standard"}
+                    onClick={() => setChatLayer("standard")}
+                  >
+                    <strong>{actions.standardChats}</strong>
+                  </button>
                 </div>
                 {chatLayer === "standard" ? (
                   <div className="team-lounge__chat-wing">
@@ -242,19 +256,27 @@ export function LoungeActionDock({
         ) : null}
         <button
           type="button"
+          aria-label={actions.actionPlacements(actions.stamps, remaining)}
           aria-pressed={tray === "stamps"}
           onClick={() => toggle("stamps")}
         >
           <span aria-hidden="true">✦</span>
           {actions.stamps}
+          <b className="team-lounge__placement-badge" aria-hidden="true">
+            {remaining}
+          </b>
         </button>
         <button
           type="button"
+          aria-label={actions.actionPlacements(actions.items, remaining)}
           aria-pressed={tray === "items"}
           onClick={() => toggle("items")}
         >
           <span aria-hidden="true">▣</span>
           {actions.items}
+          <b className="team-lounge__placement-badge" aria-hidden="true">
+            {remaining}
+          </b>
         </button>
         <button
           type="button"

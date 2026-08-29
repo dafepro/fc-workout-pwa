@@ -24,6 +24,10 @@ export const beachBoardwalkAssets: AssetManifest = {
   textures: [
     { id: "lounge.background", sourceId: "lounge-background-source" },
     { id: "lounge.avatar", sourceId: "lounge-transparent-source" },
+    {
+      id: "lounge.stamp.transparent",
+      sourceId: "lounge-transparent-source",
+    },
     { id: "lounge.ball", sourceId: "lounge-ball-source" },
   ],
 };

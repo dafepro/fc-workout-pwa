@@ -189,6 +189,10 @@ export const copy = {
         `Choose ${label} ${kind}`,
       placementsLeft: (remaining: number) =>
         `${remaining} ${remaining === 1 ? "placement" : "placements"} left this week`,
+      placementSummary: (used: number, capacity: number) =>
+        `${used}/${capacity} objects placed this week`,
+      actionPlacements: (action: string, remaining: number) =>
+        `${action}, ${remaining} ${remaining === 1 ? "placement" : "placements"} left`,
       exhausted: "Complete another training day to place another item.",
       placeHint: (label: string) => `Tap the boardwalk to place ${label}.`,
       deleteItem: "Drop to remove item",

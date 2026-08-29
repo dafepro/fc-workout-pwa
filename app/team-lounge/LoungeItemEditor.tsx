@@ -13,6 +13,7 @@ import {
   clampLoungeItemScale,
   nextLoungeItemRotation,
 } from "./lounge-editor-geometry";
+import type { LoungeItemChoice } from "./lounge-items";
 import { LoungeItemArt } from "./LoungeItemArt";
 
 export interface LoungeEditableItem {
@@ -20,7 +21,7 @@ export interface LoungeEditableItem {
   label: string;
   glyph: string;
   imageSrc?: string;
-  category: "stamp" | "item";
+  kind: LoungeItemChoice["kind"];
   editable: boolean;
   owner: "current" | "teammate";
   itemRevision: number;
@@ -173,19 +174,20 @@ export function LoungeItemEditor({
             }
           : item.screen;
         const selectedItem = item.entityID === selectedEntityID;
+        const category = item.kind === "lounge_prop" ? "item" : "stamp";
         const style = {
           transform: `translate3d(${screen.x}px, ${screen.y}px, 0) translate(-50%, -50%) rotate(${item.transform.rotation}rad) scale(${item.transform.scale})`,
         } as CSSProperties;
         const label = item.editable
-          ? `${item.label} ${item.category}, yours; ${selectedItem ? "drag to move" : "tap to edit"}`
+          ? `${item.label} ${category}, yours; ${selectedItem ? "drag to move" : "tap to edit"}`
           : item.owner === "current"
-            ? `${item.label} ${item.category}, yours; locked from an earlier day`
-            : `${item.label} ${item.category} placed by a teammate`;
+            ? `${item.label} ${category}, yours; locked from an earlier day`
+            : `${item.label} ${category} placed by a teammate`;
         return item.editable ? (
           <button
             key={item.entityID}
             type="button"
-            className={`team-lounge__placed-item team-lounge__placed-item--editable${selectedItem ? " team-lounge__placed-item--selected" : ""}`}
+            className={`team-lounge__placed-item team-lounge__placed-item--${category} team-lounge__placed-item--editable${selectedItem ? " team-lounge__placed-item--selected" : ""}`}
             style={style}
             aria-label={label}
             aria-pressed={selectedItem}
@@ -228,7 +230,7 @@ export function LoungeItemEditor({
         ) : (
           <span
             key={item.entityID}
-            className="team-lounge__placed-item"
+            className={`team-lounge__placed-item team-lounge__placed-item--${category}`}
             style={style}
             role="img"
             aria-label={label}
@@ -241,7 +243,7 @@ export function LoungeItemEditor({
         <div
           className="team-lounge__item-editor"
           role="group"
-          aria-label={`Edit selected ${selected.category}`}
+          aria-label={`Edit selected ${selected.kind === "lounge_prop" ? "item" : "stamp"}`}
           data-layout="radial"
           data-dragging={dragging?.entityID === selected.entityID || undefined}
           data-canvas-pointer-ignore="true"
@@ -253,11 +255,14 @@ export function LoungeItemEditor({
           }
         >
           <span className="team-lounge__item-editor-ring" aria-hidden="true" />
-          <div role="group" aria-label={`${titleCase(selected.category)} size`}>
+          <div
+            role="group"
+            aria-label={`${titleCase(selected.kind === "lounge_prop" ? "item" : "stamp")} size`}
+          >
             <button
               type="button"
               className="team-lounge__item-editor-control team-lounge__item-editor-control--smaller"
-              aria-label={`Make ${selected.category} smaller`}
+              aria-label={`Make ${selected.kind === "lounge_prop" ? "item" : "stamp"} smaller`}
               disabled={pending || selected.transform.scale <= 0.75}
               onClick={() =>
                 onScale(
@@ -271,7 +276,7 @@ export function LoungeItemEditor({
             <button
               type="button"
               className="team-lounge__item-editor-control team-lounge__item-editor-control--larger"
-              aria-label={`Make ${selected.category} larger`}
+              aria-label={`Make ${selected.kind === "lounge_prop" ? "item" : "stamp"} larger`}
               disabled={pending || selected.transform.scale >= 1.4}
               onClick={() =>
                 onScale(
@@ -286,7 +291,7 @@ export function LoungeItemEditor({
           <button
             type="button"
             className="team-lounge__item-editor-control team-lounge__item-editor-control--rotate-left"
-            aria-label={`Rotate ${selected.category} left 15 degrees`}
+            aria-label={`Rotate ${selected.kind === "lounge_prop" ? "item" : "stamp"} left 15 degrees`}
             disabled={pending}
             onClick={() =>
               onRotate(
@@ -300,7 +305,7 @@ export function LoungeItemEditor({
           <button
             type="button"
             className="team-lounge__item-editor-control team-lounge__item-editor-control--rotate-right"
-            aria-label={`Rotate ${selected.category} right 15 degrees`}
+            aria-label={`Rotate ${selected.kind === "lounge_prop" ? "item" : "stamp"} right 15 degrees`}
             disabled={pending}
             onClick={() =>
               onRotate(

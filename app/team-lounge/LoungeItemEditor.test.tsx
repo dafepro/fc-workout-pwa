@@ -7,7 +7,7 @@ const item: LoungeEditableItem = {
   entityID: "canvas-item-one",
   label: "Bolt",
   glyph: "⚡",
-  category: "stamp",
+  kind: "lounge_stamp",
   editable: true,
   owner: "current",
   itemRevision: 3,

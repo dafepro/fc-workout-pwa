@@ -3,7 +3,7 @@ import { CollisionLayer, type ItemDefinition } from "@canvas-physics/core";
 import type { PrizeUnlock } from "../data/prize-box-gateway";
 import { defaultLoungeBallConfig } from "./lounge-ball-behavior";
 
-export interface LoungeItemChoice {
+interface LoungeItemChoiceBase {
   id: string;
   label: string;
   glyph: string;
@@ -11,8 +11,21 @@ export interface LoungeItemChoice {
   definitionId: string;
   definitionVersion: number;
   source: "included" | "earned";
-  kind: "lounge_stamp" | "lounge_prop";
 }
+
+export type LoungeItemCapability = "collision" | "physics" | "behavior";
+
+export interface LoungeStampChoice extends LoungeItemChoiceBase {
+  kind: "lounge_stamp";
+  capabilities: readonly [];
+}
+
+export interface LoungePropChoice extends LoungeItemChoiceBase {
+  kind: "lounge_prop";
+  capabilities: readonly [LoungeItemCapability, ...LoungeItemCapability[]];
+}
+
+export type LoungeItemChoice = LoungeStampChoice | LoungePropChoice;
 
 const itemCatalog = [
   ["bolt", "Bolt", "⚡"],
@@ -30,7 +43,7 @@ const itemCatalog = [
 const stampChoice = (
   [id, label, glyph]: (typeof itemCatalog)[number],
   source: LoungeItemChoice["source"],
-): LoungeItemChoice => ({
+): LoungeStampChoice => ({
   id,
   label,
   glyph,
@@ -38,9 +51,10 @@ const stampChoice = (
   definitionVersion: 2,
   source,
   kind: "lounge_stamp",
+  capabilities: [],
 });
 
-const beachBallProp: LoungeItemChoice = {
+const beachBallProp: LoungePropChoice = {
   id: "beach-ball",
   label: "Beach ball",
   glyph: "⚽",
@@ -48,9 +62,10 @@ const beachBallProp: LoungeItemChoice = {
   definitionVersion: 3,
   source: "earned",
   kind: "lounge_prop",
+  capabilities: ["collision", "physics", "behavior"],
 };
 
-const starlightProps: LoungeItemChoice[] = [
+const starlightStamps: LoungeStampChoice[] = [
   ["camp-lantern", "Camp lantern", "🏮"],
   ["pennant-flag", "Pennant flag", "🚩"],
   ["water-cooler", "Water cooler", "🧊"],
@@ -63,13 +78,14 @@ const starlightProps: LoungeItemChoice[] = [
   definitionId: `zoomigo-prop-starlight-${id}`,
   definitionVersion: 2,
   source: "included",
-  kind: "lounge_prop",
+  kind: "lounge_stamp",
+  capabilities: [],
 }));
 
 export const includedLoungeItems = itemCatalog
   .slice(0, 4)
   .map((item) => stampChoice(item, "included"))
-  .concat(starlightProps);
+  .concat(starlightStamps);
 
 export const loungeItemDefinitions: ItemDefinition[] = itemCatalog.map(
   (item) => ({
@@ -125,7 +141,7 @@ loungeItemDefinitions.push({
   persistence: { transform: true, behaviorState: true, onRoomSleep: "pause" },
   complexity: "simple",
 });
-for (const item of starlightProps) {
+for (const item of starlightStamps) {
   loungeItemDefinitions.push({
     definitionId: item.definitionId,
     version: item.definitionVersion,
@@ -154,22 +170,20 @@ export function loungeItemChoices(
       .filter(({ item }) => item.kind === "lounge_stamp")
       .map(({ item }) => item.assetId),
   );
-  return includedLoungeItems
-    .concat(
-      itemCatalog
-        .slice(4)
-        .flatMap((item) =>
-          earned.has(item[0]) ? [stampChoice(item, "earned")] : [],
-        ),
+  return [
+    ...includedLoungeItems,
+    ...itemCatalog
+      .slice(4)
+      .flatMap((item) =>
+        earned.has(item[0]) ? [stampChoice(item, "earned")] : [],
+      ),
+    ...(inventory.some(
+      ({ item }) =>
+        item.kind === "lounge_prop" && item.assetId === beachBallProp.id,
     )
-    .concat(
-      inventory.some(
-        ({ item }) =>
-          item.kind === "lounge_prop" && item.assetId === beachBallProp.id,
-      )
-        ? [beachBallProp]
-        : [],
-    );
+      ? [beachBallProp]
+      : []),
+  ];
 }
 
 export function loungeItemForDefinition(definitionId: string) {
@@ -177,7 +191,7 @@ export function loungeItemForDefinition(definitionId: string) {
     ([id]) => definitionId === `zoomigo-stamp-${id}`,
   );
   if (definitionId === beachBallProp.definitionId) return beachBallProp;
-  const prop = starlightProps.find(
+  const prop = starlightStamps.find(
     (candidate) => candidate.definitionId === definitionId,
   );
   if (prop) return prop;

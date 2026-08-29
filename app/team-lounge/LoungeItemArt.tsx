@@ -2,7 +2,7 @@ import type { LoungeItemChoice } from "./lounge-items";
 
 type LoungeItemArtSource = Pick<
   LoungeItemChoice,
-  "glyph" | "imageSrc" | "label"
+  "glyph" | "imageSrc" | "kind" | "label"
 >;
 
 export function LoungeItemArt({
@@ -12,16 +12,17 @@ export function LoungeItemArt({
   item: LoungeItemArtSource;
   decorative?: boolean;
 }) {
+  const className = `team-lounge__item-art team-lounge__item-art--${item.kind === "lounge_stamp" ? "stamp" : "item"}`;
   return item.imageSrc ? (
     // Canvas overlays own sizing and transforms, so framework image layout is not applicable.
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      className="team-lounge__item-art"
+      className={className}
       src={item.imageSrc}
       alt={decorative ? "" : item.label}
     />
   ) : (
-    <span className="team-lounge__item-art" aria-hidden="true">
+    <span className={className} aria-hidden="true">
       {item.glyph}
     </span>
   );

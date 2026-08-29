@@ -6,7 +6,9 @@ import {
   includedLoungeItems,
   loungeItemChoices,
   loungeItemDefinitions,
+  loungeItemForDefinition,
 } from "./lounge-items";
+import { beachBoardwalkAssets } from "./scene/assets";
 
 describe("development Lounge items", () => {
   it("offers included stamps plus only earned Lounge inventory", () => {
@@ -61,22 +63,26 @@ describe("development Lounge items", () => {
       "beach-ball",
     ]);
     expect(
-      includedLoungeItems.filter(({ kind }) => kind === "lounge_prop"),
+      includedLoungeItems.filter(({ imageSrc }) => imageSrc),
     ).toMatchObject([
       {
         id: "camp-lantern",
+        kind: "lounge_stamp",
         imageSrc: "/team-lounge/items/camp-lantern-v1.png",
       },
       {
         id: "pennant-flag",
+        kind: "lounge_stamp",
         imageSrc: "/team-lounge/items/pennant-flag-v1.png",
       },
       {
         id: "water-cooler",
+        kind: "lounge_stamp",
         imageSrc: "/team-lounge/items/water-cooler-v1.png",
       },
       {
         id: "training-cone",
+        kind: "lounge_stamp",
         imageSrc: "/team-lounge/items/training-cone-v1.png",
       },
     ]);
@@ -106,6 +112,32 @@ describe("development Lounge items", () => {
         join(process.cwd(), "public", item.imageSrc!.replace(/^\//, "")),
       );
       expect(asset.size).toBeLessThanOrEqual(256 * 1024);
+    }
+    expect(beachBoardwalkAssets.textures).toContainEqual({
+      id: "lounge.stamp.transparent",
+      sourceId: "lounge-transparent-source",
+    });
+  });
+
+  it("keeps stamps decorative and requires every item to declare engine capabilities", () => {
+    for (const definition of loungeItemDefinitions) {
+      const choice = loungeItemForDefinition(definition.definitionId);
+      expect(choice).toBeDefined();
+      if (choice?.kind === "lounge_stamp") {
+        expect(choice.capabilities).toEqual([]);
+        expect(definition.body).toBeUndefined();
+        expect(definition.colliders).toEqual([]);
+        expect(definition.behaviorType).toBeUndefined();
+      } else {
+        expect(choice?.capabilities.length).toBeGreaterThan(0);
+        expect(
+          Boolean(
+            definition.body ||
+              definition.colliders.length ||
+              definition.behaviorType,
+          ),
+        ).toBe(true);
+      }
     }
   });
 });

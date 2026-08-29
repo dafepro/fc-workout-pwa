@@ -108,6 +108,7 @@ export function SharedLoungeCanvas({
   );
   const [selectedEntityID, setSelectedEntityID] = useState<string | null>(null);
   const [remainingPlacements, setRemainingPlacements] = useState(0);
+  const [placementCapacity, setPlacementCapacity] = useState(0);
   const [placing, setPlacing] = useState(false);
   const [mutationPending, setMutationPending] = useState(false);
   const [dragState, setDragState] = useState<{
@@ -256,7 +257,7 @@ export function SharedLoungeCanvas({
               label: item.label,
               glyph: item.glyph,
               imageSrc: item.imageSrc,
-              category: item.kind === "lounge_prop" ? "item" : "stamp",
+              kind: item.kind,
               editable:
                 currentOwner &&
                 editableItemIDsRef.current.has(projection.entityId),
@@ -285,6 +286,7 @@ export function SharedLoungeCanvas({
       roomIDRef.current = join.roomID;
       editableItemIDsRef.current = new Set(join.editableItemIDs);
       setRemainingPlacements(join.placementCredits);
+      setPlacementCapacity(join.placementCapacity);
       setVisitorIDs(join.visitorIDs);
       const definitions = [
         ...beachBoardwalkDefinitions,
@@ -780,6 +782,7 @@ export function SharedLoungeCanvas({
           choices={choices}
           selectedItem={selectedItem}
           remaining={remainingPlacements}
+          capacity={placementCapacity}
           placing={placing}
           reactionLocked={reactionLocked}
           onSelectItem={(item) => {

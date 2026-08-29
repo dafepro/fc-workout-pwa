@@ -20,6 +20,7 @@ const earnedProp: LoungeItemChoice = {
   definitionVersion: 3,
   source: "earned",
   kind: "lounge_prop",
+  capabilities: ["collision", "physics", "behavior"],
 };
 
 describe("Lounge action dock", () => {
@@ -32,6 +33,7 @@ describe("Lounge action dock", () => {
         choices={[...includedLoungeItems, earnedProp]}
         selectedItem={null}
         remaining={2}
+        capacity={3}
         placing={false}
         reactionLocked={false}
         onSelectItem={onSelectItem}
@@ -55,17 +57,26 @@ describe("Lounge action dock", () => {
           .querySelectorAll(":scope > button"),
         (button) => button.textContent?.trim(),
       ),
-    ).toEqual(["✦Stamps", "▣Items", "▤Chat", "☺React"]);
+    ).toEqual(["✦Stamps2", "▣Items2", "▤Chat", "☺React"]);
+    expect(
+      screen.getAllByText("2", { selector: ".team-lounge__placement-badge" }),
+    ).toHaveLength(2);
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 
-    fireEvent.click(screen.getByRole("button", { name: "Stamps" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Stamps, 2 placements left" }),
+    );
     expect(
       screen.getByRole("dialog", { name: "Choose a Lounge item" }),
     ).toBeVisible();
     expect(screen.getByText("2 placements left this week")).toBeVisible();
+    expect(screen.getByText("1/3 objects placed this week")).toBeVisible();
     expect(
       screen.getByRole("button", { name: "Choose Bolt stamp" }),
     ).toBeVisible();
+    expect(screen.getByRole("img", { name: "Camp lantern" })).toHaveClass(
+      "team-lounge__item-art--stamp",
+    );
     expect(
       screen.queryByRole("button", { name: "Choose Beach ball item" }),
     ).toBeNull();
@@ -74,10 +85,6 @@ describe("Lounge action dock", () => {
     const beachBall = screen.getByRole("button", {
       name: "Choose Beach ball item",
     });
-    expect(screen.getByRole("img", { name: "Camp lantern" })).toHaveAttribute(
-      "src",
-      "/team-lounge/items/camp-lantern-v1.png",
-    );
     expect(beachBall).toBeVisible();
     expect(screen.getByText("Earned")).toBeVisible();
     fireEvent.click(beachBall);
@@ -95,6 +102,13 @@ describe("Lounge action dock", () => {
     const chatSets = screen.getByRole("dialog", { name: "Choose a chat set" });
     expect(chatSets).toHaveAttribute("data-anchor", "chat");
     expect(chatSets).toHaveAttribute("data-layer", "sets");
+    expect(chatSets).toHaveAttribute("data-layout", "compact");
+    expect(
+      Array.from(
+        chatSets.querySelectorAll(".team-lounge__chat-sets > button"),
+        (button) => button.textContent,
+      ),
+    ).toEqual(["Set 3", "Set 2", "Standard"]);
     expect(screen.getByRole("button", { name: "Standard" })).toBeEnabled();
     expect(screen.queryByText("10 messages")).toBeNull();
     expect(
@@ -111,6 +125,7 @@ describe("Lounge action dock", () => {
       name: "Choose a Standard message",
     });
     expect(standard).toHaveAttribute("data-layer", "standard");
+    expect(standard).toHaveAttribute("data-layout", "expanded");
     expect(screen.getByRole("button", { name: "Standard" })).toHaveAttribute(
       "aria-pressed",
       "true",
@@ -140,6 +155,7 @@ describe("Lounge action dock", () => {
         choices={includedLoungeItems}
         selectedItem={null}
         remaining={2}
+        capacity={3}
         placing={false}
         reactionLocked={false}
         onSelectItem={vi.fn()}
@@ -166,6 +182,7 @@ describe("Lounge action dock", () => {
         choices={includedLoungeItems}
         selectedItem={null}
         remaining={0}
+        capacity={3}
         placing={false}
         reactionLocked={false}
         onSelectItem={vi.fn()}
@@ -174,7 +191,9 @@ describe("Lounge action dock", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Stamps" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Stamps, 0 placements left" }),
+    );
     expect(
       screen.getByText("Complete another training day to place another item."),
     ).toBeVisible();

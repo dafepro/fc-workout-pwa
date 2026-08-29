@@ -4,6 +4,7 @@ export interface TeamLoungeCredential {
   serverURL: string;
   visitorIDs: string[];
   placementCredits: number;
+  placementCapacity: number;
   editableItemIDs: string[];
 }
 
@@ -29,6 +30,7 @@ export async function requestTeamLoungeCredential(
   const serverURL = typeof body.serverUrl === "string" ? body.serverUrl : "";
   const visitorIDs = Array.isArray(body.visitorIds) ? body.visitorIds : [];
   const placementCredits = body.placementCredits;
+  const placementCapacity = body.placementCapacity;
   const editableItemIDs = body.editableItemIds;
   let parsedServer: URL;
   try {
@@ -49,6 +51,9 @@ export async function requestTeamLoungeCredential(
     !Number.isInteger(placementCredits) ||
     (placementCredits as number) < 0 ||
     (placementCredits as number) > 99 ||
+    !Number.isInteger(placementCapacity) ||
+    (placementCapacity as number) < (placementCredits as number) ||
+    (placementCapacity as number) > 99 ||
     !Array.isArray(editableItemIDs) ||
     editableItemIDs.length > 99 ||
     editableItemIDs.some(
@@ -65,6 +70,7 @@ export async function requestTeamLoungeCredential(
     serverURL: parsedServer.toString().replace(/\/$/u, ""),
     visitorIDs: visitorIDs as string[],
     placementCredits: placementCredits as number,
+    placementCapacity: placementCapacity as number,
     editableItemIDs: editableItemIDs as string[],
   };
 }
@@ -79,6 +85,7 @@ export async function prepareTeamLoungeJoin(teamID: string) {
     serverURL,
     visitorIDs: queued.visitorIDs,
     placementCredits: queued.placementCredits,
+    placementCapacity: queued.placementCapacity,
     editableItemIDs: queued.editableItemIDs,
     async credentialProvider() {
       const credential = queued ?? (await requestTeamLoungeCredential(teamID));

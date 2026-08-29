@@ -28,19 +28,19 @@ weight belongs at the edges so avatars, the shared ball, placement ghosts, and
 selection rings remain legible at 320 CSS pixels. The lower action-dock area
 contains no essential scenery.
 
-## Included item expansion
+## Included stamp expansion
 
-These four predefined props are included rather than Prize Box rewards. That
-avoids silently changing the still-open rarity and destination balance. They
-consume the same weekly placement credit and exact permit path as every other
-Lounge item.
+These four predefined decorations are included stamps rather than Prize Box
+rewards. That avoids silently changing the still-open rarity and destination
+balance. They consume the same weekly placement credit and exact permit path as
+every other Lounge placement, but have no body, collision, or behavior.
 
-| Item          | Immutable asset                           | Canvas definition                        |
+| Stamp         | Immutable asset                           | Canvas definition                        |
 | ------------- | ----------------------------------------- | ---------------------------------------- |
-| Camp lantern  | `/team-lounge/items/camp-lantern-v1.png`  | `zoomigo-prop-starlight-camp-lantern@1`  |
-| Pennant flag  | `/team-lounge/items/pennant-flag-v1.png`  | `zoomigo-prop-starlight-pennant-flag@1`  |
-| Water cooler  | `/team-lounge/items/water-cooler-v1.png`  | `zoomigo-prop-starlight-water-cooler@1`  |
-| Training cone | `/team-lounge/items/training-cone-v1.png` | `zoomigo-prop-starlight-training-cone@1` |
+| Camp lantern  | `/team-lounge/items/camp-lantern-v1.png`  | `zoomigo-prop-starlight-camp-lantern@2`  |
+| Pennant flag  | `/team-lounge/items/pennant-flag-v1.png`  | `zoomigo-prop-starlight-pennant-flag@2`  |
+| Water cooler  | `/team-lounge/items/water-cooler-v1.png`  | `zoomigo-prop-starlight-water-cooler@2`  |
+| Training cone | `/team-lounge/items/training-cone-v1.png` | `zoomigo-prop-starlight-training-cone@2` |
 
 The cutouts are transparent PNGs capped at 384 pixels on their longest edge and
 256 KiB each. They are decorative, nonblocking, non-collecting objects with no

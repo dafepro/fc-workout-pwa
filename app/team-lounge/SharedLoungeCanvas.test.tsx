@@ -56,6 +56,7 @@ vi.mock("./lounge-gateway", () => ({
     serverURL: "https://canvas.example",
     visitorIDs: [],
     placementCredits: 1,
+    placementCapacity: 3,
     editableItemIDs: [],
     credentialProvider: vi.fn(),
   }),

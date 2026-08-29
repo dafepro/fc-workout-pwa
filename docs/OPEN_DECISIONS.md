@@ -476,7 +476,7 @@ to resolve, not the implementing agent's.
   props are immutable versioned assets, but the theme has no schedule or room
   generation until it receives explicit visual approval.
 - Camp lantern, pennant flag, water cooler, and training cone are included
-  predefined props. They do not enter the Prize Box catalog, change rarity
+  predefined stamps. They do not enter the Prize Box catalog, change rarity
   balance, block physics, collect data, or bypass weekly placement credit and
   owner-bound one-use mutation permits.
 
@@ -529,3 +529,18 @@ to resolve, not the implementing agent's.
   temporary browser state; the dev grant uses only predefined Lounge catalog
   items. Neither control or route is enabled in production, and no general
   staff/admin production authority is implied.
+
+## Team Lounge stamp and item contract (2026-08-29)
+
+- Stamps are inert transparent decorations with an empty capability tuple. They
+  share a sticker-like white keyline and sit below avatars and physical items.
+- Items must declare a non-empty tuple of collision, physics, or behavior
+  capabilities, and the matching Canvas definition must actually contain a
+  body, collider, or behavior. An inert visual belongs under Stamps.
+- Camp lantern, pennant flag, water cooler, and training cone are therefore
+  stamps. Their existing definition IDs remain unchanged to preserve the
+  durable generation-13 room without an import, compatibility path, or cutover.
+  The earned dynamic beach ball remains an Item.
+- Both dock buttons show the same remaining weekly placement count. The picker
+  shows used placements over earned capacity; this does not alter credit
+  accounting or owner-bound one-use permits.

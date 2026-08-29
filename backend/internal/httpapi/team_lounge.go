@@ -17,16 +17,17 @@ import (
 const teamLoungeSocketTicketTTL = 30 * time.Second
 
 type teamLoungeCredential struct {
-	Ticket           string   `json:"ticket"`
-	RoomID           string   `json:"roomId"`
-	WeekKey          string   `json:"weekKey"`
-	DayKey           string   `json:"dayKey"`
-	Theme            string   `json:"theme"`
-	VisitorIDs       []string `json:"visitorIds"`
-	RecentVisitors   int      `json:"recentVisitors"`
-	PlacementCredits int      `json:"placementCredits"`
-	EditableItemIDs  []string `json:"editableItemIds"`
-	ExpiresIn        int      `json:"expiresInSeconds"`
+	Ticket            string   `json:"ticket"`
+	RoomID            string   `json:"roomId"`
+	WeekKey           string   `json:"weekKey"`
+	DayKey            string   `json:"dayKey"`
+	Theme             string   `json:"theme"`
+	VisitorIDs        []string `json:"visitorIds"`
+	RecentVisitors    int      `json:"recentVisitors"`
+	PlacementCredits  int      `json:"placementCredits"`
+	PlacementCapacity int      `json:"placementCapacity"`
+	EditableItemIDs   []string `json:"editableItemIds"`
+	ExpiresIn         int      `json:"expiresInSeconds"`
 }
 
 func (service *service) createTeamLoungeSocketTicket(w http.ResponseWriter, r *http.Request) {
@@ -117,8 +118,9 @@ func (service *service) createTeamLoungeSocketTicket(w http.ResponseWriter, r *h
 	writeJSON(w, http.StatusCreated, teamLoungeCredential{
 		Ticket: ticket, RoomID: roomID, WeekKey: team.WeekStart, DayKey: budget.DayKey,
 		Theme: theme.Name, VisitorIDs: visitorIDs, RecentVisitors: len(visitorIDs), PlacementCredits: budget.Remaining,
-		EditableItemIDs: editableItemIDs,
-		ExpiresIn:       int(teamLoungeSocketTicketTTL.Seconds()),
+		PlacementCapacity: budget.Earned,
+		EditableItemIDs:   editableItemIDs,
+		ExpiresIn:         int(teamLoungeSocketTicketTTL.Seconds()),
 	})
 }
 

@@ -13,6 +13,7 @@ const response = {
   serverUrl: "https://api.example.test",
   visitorIds: ["player-two"],
   placementCredits: 2,
+  placementCapacity: 3,
   editableItemIds: ["canvas-item-one"],
 };
 
@@ -34,6 +35,7 @@ describe("canonical Team Lounge gateway", () => {
       serverURL: response.serverUrl,
       visitorIDs: ["player-two"],
       placementCredits: 2,
+      placementCapacity: 3,
       editableItemIDs: ["canvas-item-one"],
     });
     expect(fetcher).toHaveBeenCalledWith(
