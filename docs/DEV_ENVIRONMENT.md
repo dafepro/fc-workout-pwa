@@ -92,11 +92,11 @@ Configure these repository secrets with independent dev-only values:
 
 Configure these repository variables:
 
-| Variable                  | Purpose                                                                      |
-| ------------------------- | ---------------------------------------------------------------------------- |
-| `DEV_TF_STATE_BUCKET`     | Remote-state bucket; the object key is fixed.                                |
-| `DEV_TF_STATE_ENDPOINT`   | S3-compatible remote-state endpoint.                                         |
-| `OPERATOR_SSH_PUBLIC_KEY` | Optional sanitized Ed25519 troubleshooting key ending in `zoomigo-operator`. |
+| Variable                      | Purpose                                                                      |
+| ----------------------------- | ---------------------------------------------------------------------------- |
+| `DEV_TF_STATE_BUCKET`         | Remote-state bucket; the object key is fixed.                                |
+| `DEV_TF_STATE_ENDPOINT`       | S3-compatible remote-state endpoint.                                         |
+| `DEV_OPERATOR_SSH_PUBLIC_KEY` | Optional sanitized Ed25519 troubleshooting key ending in `zoomigo-operator`. |
 
 Use independent, randomly generated values of at least 32 URL-safe characters
 for the session, gateway, reset, and fixture secrets. `DEV_ADMIN_PASSWORD` must
@@ -139,7 +139,7 @@ continues to use its reviewed, repository-pinned host key.
 
 ## Operator troubleshooting access
 
-Create/update authorizes the optional `OPERATOR_SSH_PUBLIC_KEY` for the
+Create/update authorizes the optional `DEV_OPERATOR_SSH_PUBLIC_KEY` for the
 unprivileged `zoomigo` account and publishes the workflow-pinned host address
 and `known_hosts` file as the one-day `dev-operator-access-<run-id>` artifact.
 The artifact contains no credential. Download it from the same successful dev

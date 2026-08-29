@@ -305,6 +305,8 @@ test("updates prove the exact container and new infrastructure proves final flow
   assert.match(devVariables, /zoomigo-operator/);
   assert.match(devInfrastructure, /operator_ssh_public_key\s+=/);
   assert.match(devCloudInit, /\$\{operator_ssh_public_key\}/);
+  assert.match(workflow, /vars\.DEV_OPERATOR_SSH_PUBLIC_KEY/);
+  assert.doesNotMatch(workflow, /vars\.OPERATOR_SSH_PUBLIC_KEY/);
   assert.match(workflow, /TF_VAR_operator_ssh_public_key/);
   assert.match(workflow, /name: Authorize operator SSH key/);
   assert.match(workflow, / zoomigo-operator\$/);
