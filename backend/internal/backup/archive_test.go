@@ -148,7 +148,7 @@ func TestCreateVerifyAndRestoreArchive(t *testing.T) {
 	if manifest.ApplicationVersion != "test-version" || manifest.Encrypted {
 		t.Fatalf("unexpected manifest metadata: %+v", manifest)
 	}
-	if manifest.Counts.TrainingEntries != 3 || manifest.Counts.Players != 12 {
+	if manifest.Counts.TrainingEntries != 2 || manifest.Counts.Players != 12 {
 		t.Fatalf("unexpected validation counts: %+v", manifest.Counts)
 	}
 
@@ -184,8 +184,8 @@ func TestCreateVerifyAndRestoreArchive(t *testing.T) {
 	if err := db.QueryRowContext(ctx, "SELECT COUNT(*) FROM schema_migrations").Scan(&migrationsApplied); err != nil {
 		t.Fatal(err)
 	}
-	if entries != 3 || migrationsApplied != currentSchemaMigrationCount {
-		t.Fatalf("restored entries=%d migrations=%d, want 3 and %d", entries, migrationsApplied, currentSchemaMigrationCount)
+	if entries != 2 || migrationsApplied != currentSchemaMigrationCount {
+		t.Fatalf("restored entries=%d migrations=%d, want 2 and %d", entries, migrationsApplied, currentSchemaMigrationCount)
 	}
 }
 

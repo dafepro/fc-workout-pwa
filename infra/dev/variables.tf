@@ -18,6 +18,16 @@ variable "ssh_public_key" {
   }
 }
 
+variable "operator_ssh_public_key" {
+  type    = string
+  default = ""
+
+  validation {
+    condition     = var.operator_ssh_public_key == "" || can(regex("^ssh-ed25519 [A-Za-z0-9+/]+={0,3} zoomigo-operator$", var.operator_ssh_public_key))
+    error_message = "operator_ssh_public_key must be empty or a sanitized Ed25519 key ending in zoomigo-operator."
+  }
+}
+
 variable "release_sha" {
   type = string
 

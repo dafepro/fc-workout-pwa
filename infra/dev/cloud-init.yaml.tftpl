@@ -18,6 +18,9 @@ users:
     lock_passwd: true
     ssh_authorized_keys:
       - ${ssh_public_key}
+%{ if operator_ssh_public_key != "" ~}
+      - ${operator_ssh_public_key}
+%{ endif ~}
 
 ssh_pwauth: false
 disable_root: true
