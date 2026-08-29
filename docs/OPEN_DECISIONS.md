@@ -429,9 +429,11 @@ to resolve, not the implementing agent's.
   effects are transient and never join durable player history. Quick phrases
   are not chat: there is no typing, target recipient, inbox, transcript, or
   free-form payload.
-- Item dragging is optimistic in the browser and sends no mutation while the
-  pointer moves. Releasing a move, or choosing rotate, scale, or delete, adds
-  one ZoomiGo permit round trip followed by one Canvas mutation.
+- An unselected owned item uses a tap only to enter edit mode; a slide does not
+  select or move it. A later drag while selected is optimistic in the browser
+  and sends no mutation while the pointer moves. Releasing that move, or
+  choosing rotate, scale, or delete, adds one ZoomiGo permit round trip followed
+  by one Canvas mutation. Tapping the playfield or the checkmark ends editing.
 - The Docker browser gate budgets each permit round trip at 4 KiB, an idle
   Lounge at 8 KiB/s of total WebSocket traffic, and the four-operation edit
   sequence at 32 KiB of total WebSocket traffic. It also rejects more or fewer
@@ -486,10 +488,16 @@ to resolve, not the implementing agent's.
   projections. Near playfield edges the ring stays centered on the object while
   individual 44 CSS pixel controls clamp inward to remain reachable at 320px;
   item coordinates never change to accommodate the editor.
+- Unselected current-day owned items have a faint lime dashed boundary. The
+  boundary becomes solid while selected; vertical gestures beginning on the
+  playfield or an unselected item remain available for page scrolling.
 - The initial quick-phrase catalog is `Nice!`, `Let’s go!`, `Great work!`,
   `You’ve got this!`, and `Team time!`. These are room-wide transient reactions,
   not conversation content, and use the same authenticated membership check,
   sender binding, two-second cooldown, and 2.4-second display window as emotes.
+- Stamps, Items, Quick messages, and Emotes are four separate dock actions in
+  that order. Emotes and quick messages share the original 2.4-second rise,
+  hold, and fade animation, with animation disabled under reduced motion.
 - The phrase action accepts only `{phrase: <allowlisted-id>}`. Open text, extra
   payload fields, unknown IDs, item targets, and inactive members are rejected.
   Nothing is persisted and no compatibility, Map, or extra API-replica path is

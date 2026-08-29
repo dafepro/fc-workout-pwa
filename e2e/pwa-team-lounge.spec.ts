@@ -208,16 +208,31 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
     );
   };
   const sizeBeforeEmotes = await loungeSize();
+  await expect(
+    lounge
+      .getByRole("navigation", { name: "Lounge actions" })
+      .locator(":scope > button"),
+  ).toHaveText(["✦Stamps", "▣Items", "▤Quick messages", "☺Emotes"]);
+  await expect
+    .poll(() =>
+      lounge
+        .locator(".team-lounge__stage canvas")
+        .evaluate((canvas) => getComputedStyle(canvas).touchAction),
+    )
+    .toBe("pan-y");
   await lounge.getByRole("button", { name: "Emotes" }).click();
   await expect.poll(() => loungeSizeDelta(sizeBeforeEmotes)).toBeLessThan(0.1);
   await lounge.getByRole("button", { name: "Send Wave emote" }).click();
   await expect(lounge.getByRole("status")).toHaveText("Wave sent.");
-  await expect(lounge.getByRole("img", { name: "Wave" })).toBeVisible();
-  await lounge.getByRole("button", { name: "Emotes" }).click();
+  const wave = lounge.getByRole("img", { name: "Wave" });
+  await expect(wave).toBeVisible();
+  await expect
+    .poll(() => wave.evaluate((node) => getComputedStyle(node).animationName))
+    .toBe("lounge-avatar-reaction");
+  await lounge.getByRole("button", { name: "Quick messages" }).click();
   await expect(
-    lounge.getByRole("button", { name: "Send Heart emote" }),
+    lounge.getByRole("button", { name: "Send Nice! quick message" }),
   ).toBeDisabled();
-  await lounge.getByRole("tab", { name: "Quick messages" }).click();
   const niceQuickMessage = lounge.getByRole("button", {
     name: "Send Nice! quick message",
   });
@@ -228,6 +243,13 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   await expect(lounge.locator(".team-lounge__avatar-phrase")).toHaveText(
     "Nice!",
   );
+  await expect
+    .poll(() =>
+      lounge
+        .locator(".team-lounge__avatar-phrase")
+        .evaluate((node) => getComputedStyle(node).animationName),
+    )
+    .toBe("lounge-avatar-reaction");
 
   const sizeBeforeItems = await loungeSize();
   await lounge.getByRole("button", { name: "Stamps" }).click();
@@ -245,10 +267,38 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   await expect(lounge.getByRole("status")).toHaveText("Bolt placed.", {
     timeout: 10_000,
   });
-  const editableBolt = lounge.getByRole("button", {
-    name: "Bolt stamp, yours; tap or drag to move",
-  });
+  const editableBolt = lounge.locator(".team-lounge__placed-item--editable");
   await expect(editableBolt).toBeVisible({ timeout: 10_000 });
+  await expect(editableBolt).toHaveAccessibleName(
+    "Bolt stamp, yours; tap to edit",
+  );
+  await expect
+    .poll(() =>
+      editableBolt.evaluate((node) => ({
+        borderStyle: getComputedStyle(node).borderStyle,
+        touchAction: getComputedStyle(node).touchAction,
+      })),
+    )
+    .toEqual({ borderStyle: "dashed", touchAction: "pan-y" });
+  const boltBeforeIgnoredSlide = await editableBolt.boundingBox();
+  expect(boltBeforeIgnoredSlide).not.toBeNull();
+  await page.mouse.move(
+    boltBeforeIgnoredSlide!.x + boltBeforeIgnoredSlide!.width / 2,
+    boltBeforeIgnoredSlide!.y + boltBeforeIgnoredSlide!.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    boltBeforeIgnoredSlide!.x + boltBeforeIgnoredSlide!.width / 2 + 24,
+    boltBeforeIgnoredSlide!.y + boltBeforeIgnoredSlide!.height / 2 + 24,
+    { steps: 8 },
+  );
+  await page.mouse.up();
+  await expect(editableBolt).toHaveAccessibleName(
+    "Bolt stamp, yours; tap to edit",
+  );
+  const boltAfterIgnoredSlide = await editableBolt.boundingBox();
+  expect(boltAfterIgnoredSlide?.x).toBeCloseTo(boltBeforeIgnoredSlide!.x, 0);
+  expect(boltAfterIgnoredSlide?.y).toBeCloseTo(boltBeforeIgnoredSlide!.y, 0);
   const sizeBeforeEditing = await loungeSize();
   await editableBolt.click();
   const radialEditor = lounge.getByRole("group", {
@@ -256,6 +306,9 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   });
   await expect(radialEditor).toBeVisible();
   await expect(radialEditor).toHaveAttribute("data-layout", "radial");
+  await expect(editableBolt).toHaveAccessibleName(
+    "Bolt stamp, yours; drag to move",
+  );
   const radialEditorBox = await radialEditor
     .locator(".team-lounge__item-editor-ring")
     .boundingBox();
@@ -280,10 +333,22 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   await lounge
     .getByRole("button", { name: "Rotate stamp right 15 degrees" })
     .click();
-  await lounge.getByRole("button", { name: "Finish editing" }).click();
+  const finishEditing = lounge.getByRole("button", {
+    name: "Finish editing",
+  });
+  await expect(finishEditing).toHaveText("✓");
+  await finishEditing.click();
   await expect(
     lounge.getByRole("group", { name: "Edit selected stamp" }),
   ).toHaveCount(0);
+  await editableBolt.click();
+  await lounge
+    .locator(".team-lounge__playfield")
+    .click({ position: { x: 12, y: 12 } });
+  await expect(
+    lounge.getByRole("group", { name: "Edit selected stamp" }),
+  ).toHaveCount(0);
+  await editableBolt.click();
   const movePlayfieldBox = await lounge
     .locator(".team-lounge__playfield")
     .boundingBox();
@@ -300,7 +365,12 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
     boltBeforeMove!.y + boltBeforeMove!.height / 2 + 24,
     { steps: 8 },
   );
+  const boltDuringMove = await editableBolt.boundingBox();
   await page.mouse.up();
+  const boltAfterRelease = await editableBolt.boundingBox();
+  expect(boltDuringMove).not.toBeNull();
+  expect(boltAfterRelease?.x).toBeCloseTo(boltDuringMove!.x, 0);
+  expect(boltAfterRelease?.y).toBeCloseTo(boltDuringMove!.y, 0);
   await expect(lounge.getByRole("status")).toHaveText("Bolt updated.", {
     timeout: 10_000,
   });

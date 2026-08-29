@@ -37,6 +37,19 @@ describe("Lounge action dock", () => {
     expect(
       screen.getByRole("navigation", { name: "Lounge actions" }),
     ).toBeVisible();
+    expect(
+      screen
+        .getByRole("navigation", { name: "Lounge actions" })
+        .querySelectorAll(":scope > button"),
+    ).toHaveLength(4);
+    expect(
+      Array.from(
+        screen
+          .getByRole("navigation", { name: "Lounge actions" })
+          .querySelectorAll(":scope > button"),
+        (button) => button.textContent?.trim(),
+      ),
+    ).toEqual(["✦Stamps", "▣Items", "▤Quick messages", "☺Emotes"]);
     expect(screen.queryByRole("dialog")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Stamps" }));
@@ -69,8 +82,8 @@ describe("Lounge action dock", () => {
     fireEvent.click(screen.getByRole("button", { name: "Send Wave emote" }));
     expect(onSendEmote).toHaveBeenCalledWith(loungeEmotes[0]);
 
-    fireEvent.click(screen.getByRole("button", { name: "Emotes" }));
-    fireEvent.click(screen.getByRole("tab", { name: "Quick messages" }));
+    fireEvent.click(screen.getByRole("button", { name: "Quick messages" }));
+    expect(screen.queryByRole("tab", { name: "Quick messages" })).toBeNull();
     fireEvent.click(
       screen.getByRole("button", { name: "Send Nice! quick message" }),
     );

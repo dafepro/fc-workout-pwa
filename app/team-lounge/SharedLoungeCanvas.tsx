@@ -81,6 +81,15 @@ export function SharedLoungeCanvas({
   const roomIDRef = useRef("");
   const rosterRef = useRef(roster);
   const editableItemIDsRef = useRef(new Set<string>());
+  const optimisticItemMovesRef = useRef(
+    new Map<
+      string,
+      {
+        screen: Readonly<{ x: number; y: number }>;
+        target: Readonly<{ x: number; y: number }>;
+      }
+    >(),
+  );
   const projectionFrameRef = useRef<
     Pick<OverlayProjectionSnapshot, "canvasSize" | "viewport"> | undefined
   >(undefined);
@@ -103,13 +112,19 @@ export function SharedLoungeCanvas({
   } | null>(null);
   const [actionMessage, setActionMessage] = useState("");
   const [activeReaction, setActiveReaction] = useState<
-    | { playerID: string; kind: "emote"; emote: LoungeEmote }
-    | { playerID: string; kind: "quickPhrase"; phrase: LoungeQuickPhrase }
+    | { sequence: number; playerID: string; kind: "emote"; emote: LoungeEmote }
+    | {
+        sequence: number;
+        playerID: string;
+        kind: "quickPhrase";
+        phrase: LoungeQuickPhrase;
+      }
     | null
   >(null);
   const [reactionLocked, setReactionLocked] = useState(false);
   const reactionTimerRef = useRef<number | undefined>(undefined);
   const reactionCooldownTimerRef = useRef<number | undefined>(undefined);
+  const reactionSequenceRef = useRef(0);
 
   useEffect(() => {
     rosterRef.current = roster;
@@ -219,6 +234,18 @@ export function SharedLoungeCanvas({
             return [];
           }
           const currentOwner = canonical.ownerUserId === playerID;
+          const optimisticMove = optimisticItemMovesRef.current.get(
+            projection.entityId,
+          );
+          const projectionCaughtUp =
+            optimisticMove &&
+            Math.hypot(
+              projection.world.x - optimisticMove.target.x,
+              projection.world.y - optimisticMove.target.y,
+            ) < 0.01;
+          if (projectionCaughtUp) {
+            optimisticItemMovesRef.current.delete(projection.entityId);
+          }
           return [
             {
               entityID: projection.entityId,
@@ -231,7 +258,10 @@ export function SharedLoungeCanvas({
                 editableItemIDsRef.current.has(projection.entityId),
               owner: currentOwner ? "current" : "teammate",
               itemRevision: canonical.itemRevision,
-              screen: projection.screen,
+              screen:
+                optimisticMove && !projectionCaughtUp
+                  ? optimisticMove.screen
+                  : projection.screen,
               transform: {
                 x: canonical.x,
                 y: canonical.y,
@@ -341,6 +371,7 @@ export function SharedLoungeCanvas({
           );
           if (!received) return;
           setActiveReaction({
+            sequence: ++reactionSequenceRef.current,
             playerID: reactionPlayerID,
             kind: "emote",
             emote: received,
@@ -351,6 +382,7 @@ export function SharedLoungeCanvas({
           );
           if (!received) return;
           setActiveReaction({
+            sequence: ++reactionSequenceRef.current,
             playerID: reactionPlayerID,
             kind: "quickPhrase",
             phrase: received,
@@ -458,6 +490,7 @@ export function SharedLoungeCanvas({
     item: LoungeEditableItem,
     kind: TeamLoungeItemMutationKind,
     transform: TeamLoungeItemTransform | null,
+    rollbackScreen?: Readonly<{ x: number; y: number }>,
   ) => {
     const runtime = runtimeRef.current;
     const roomID = roomIDRef.current;
@@ -498,9 +531,29 @@ export function SharedLoungeCanvas({
           setActionMessage(`${item.label} updated.`);
         }
       } else {
+        if (rollbackScreen) {
+          optimisticItemMovesRef.current.delete(item.entityID);
+          setItemOverlays((current) =>
+            current.map((currentItem) =>
+              currentItem.entityID === item.entityID
+                ? { ...currentItem, screen: rollbackScreen }
+                : currentItem,
+            ),
+          );
+        }
         setActionMessage(itemMutationRejectionMessage(outcome.status));
       }
     } catch (error) {
+      if (rollbackScreen) {
+        optimisticItemMovesRef.current.delete(item.entityID);
+        setItemOverlays((current) =>
+          current.map((currentItem) =>
+            currentItem.entityID === item.entityID
+              ? { ...currentItem, screen: rollbackScreen }
+              : currentItem,
+          ),
+        );
+      }
       setActionMessage(
         error instanceof Error
           ? error.message
@@ -559,7 +612,18 @@ export function SharedLoungeCanvas({
 
   return (
     <>
-      <div className="team-lounge__playfield">
+      <div
+        className="team-lounge__playfield"
+        onClick={(event) => {
+          if (
+            event.target instanceof Element &&
+            event.target.closest("[data-canvas-pointer-ignore='true']")
+          ) {
+            return;
+          }
+          setSelectedEntityID(null);
+        }}
+      >
         <div
           ref={mountRef}
           className="team-lounge__stage"
@@ -579,6 +643,7 @@ export function SharedLoungeCanvas({
             {activeReaction?.playerID === player.id &&
             activeReaction.kind === "emote" ? (
               <b
+                key={activeReaction.sequence}
                 className="team-lounge__avatar-emote"
                 role="img"
                 aria-label={activeReaction.emote.label}
@@ -588,7 +653,11 @@ export function SharedLoungeCanvas({
             ) : null}
             {activeReaction?.playerID === player.id &&
             activeReaction.kind === "quickPhrase" ? (
-              <b className="team-lounge__avatar-phrase" aria-live="polite">
+              <b
+                key={activeReaction.sequence}
+                className="team-lounge__avatar-phrase"
+                aria-live="polite"
+              >
                 {activeReaction.phrase.text}
               </b>
             ) : null}
@@ -605,12 +674,10 @@ export function SharedLoungeCanvas({
             setSelectedEntityID(item.entityID);
           }}
           onMove={(item, screen) => {
-            const mount = mountRef.current;
             const frame = projectionFrameRef.current;
-            if (!mount || !frame) return;
-            const bounds = mount.getBoundingClientRect();
+            if (!frame) return;
             const target = loungeWorldPoint(
-              { x: screen.x - bounds.left, y: screen.y - bounds.top },
+              screen,
               frame.viewport,
               frame.canvasSize,
             );
@@ -618,10 +685,26 @@ export function SharedLoungeCanvas({
               setActionMessage("Keep that item inside the Lounge.");
               return;
             }
-            void mutateItem(item, "transform", {
-              ...item.transform,
-              ...target,
+            optimisticItemMovesRef.current.set(item.entityID, {
+              screen,
+              target,
             });
+            setItemOverlays((current) =>
+              current.map((currentItem) =>
+                currentItem.entityID === item.entityID
+                  ? { ...currentItem, screen }
+                  : currentItem,
+              ),
+            );
+            void mutateItem(
+              item,
+              "transform",
+              {
+                ...item.transform,
+                ...target,
+              },
+              item.screen,
+            );
           }}
           onRotate={(item, rotation) =>
             void mutateItem(item, "rotation", {

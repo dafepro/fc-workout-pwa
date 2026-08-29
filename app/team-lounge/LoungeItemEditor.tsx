@@ -37,6 +37,13 @@ interface DragState {
   overTrash: boolean;
 }
 
+interface TapState {
+  entityID: string;
+  pointerID: number;
+  start: { x: number; y: number };
+  moved: boolean;
+}
+
 export function LoungeItemEditor({
   items,
   selectedEntityID,
@@ -70,6 +77,8 @@ export function LoungeItemEditor({
   ): void;
 }) {
   const dragRef = useRef<DragState | null>(null);
+  const tapRef = useRef<TapState | null>(null);
+  const suppressedClickRef = useRef<string | null>(null);
   const [preview, setPreview] = useState<DragState | null>(null);
   const selected = items.find(({ entityID }) => entityID === selectedEntityID);
   const selectedScreen = selected
@@ -94,6 +103,14 @@ export function LoungeItemEditor({
       );
     };
     const move = (event: PointerEvent) => {
+      const tap = tapRef.current;
+      if (tap?.pointerID === event.pointerId) {
+        tap.moved ||=
+          Math.hypot(
+            event.clientX - tap.start.x,
+            event.clientY - tap.start.y,
+          ) >= 3;
+      }
       const active = dragRef.current;
       if (!active || active.pointerID !== event.pointerId) return;
       active.current = { x: event.clientX, y: event.clientY };
@@ -110,8 +127,16 @@ export function LoungeItemEditor({
       });
     };
     const finish = (event: PointerEvent) => {
+      const tap = tapRef.current;
+      if (tap?.pointerID === event.pointerId) {
+        if (tap.moved || event.type === "pointercancel") {
+          suppressedClickRef.current = tap.entityID;
+        }
+        tapRef.current = null;
+      }
       const active = dragRef.current;
       if (!active || active.pointerID !== event.pointerId) return;
+      active.current = { x: event.clientX, y: event.clientY };
       const droppingOnTrash = overTrash(event);
       dragRef.current = null;
       setPreview(null);
@@ -120,7 +145,10 @@ export function LoungeItemEditor({
       if (droppingOnTrash) {
         onDelete(active.item);
       } else {
-        onMove(active.item, { x: event.clientX, y: event.clientY });
+        onMove(active.item, {
+          x: active.item.screen.x + active.current.x - active.start.x,
+          y: active.item.screen.y + active.current.y - active.start.y,
+        });
       }
     };
     document.addEventListener("pointermove", move, true);
@@ -149,7 +177,7 @@ export function LoungeItemEditor({
           transform: `translate3d(${screen.x}px, ${screen.y}px, 0) translate(-50%, -50%) rotate(${item.transform.rotation}rad) scale(${item.transform.scale})`,
         } as CSSProperties;
         const label = item.editable
-          ? `${item.label} ${item.category}, yours; tap or drag to move`
+          ? `${item.label} ${item.category}, yours; ${selectedItem ? "drag to move" : "tap to edit"}`
           : item.owner === "current"
             ? `${item.label} ${item.category}, yours; locked from an earlier day`
             : `${item.label} ${item.category} placed by a teammate`;
@@ -162,11 +190,26 @@ export function LoungeItemEditor({
             aria-label={label}
             aria-pressed={selectedItem}
             disabled={pending}
-            onClick={() => onSelect(item)}
+            onClick={(event) => {
+              event.stopPropagation();
+              if (suppressedClickRef.current === item.entityID) {
+                suppressedClickRef.current = null;
+                return;
+              }
+              onSelect(item);
+            }}
             onPointerDown={(event) => {
+              if (!selectedItem) {
+                tapRef.current = {
+                  entityID: item.entityID,
+                  pointerID: event.pointerId,
+                  start: { x: event.clientX, y: event.clientY },
+                  moved: false,
+                };
+                return;
+              }
               event.preventDefault();
               event.stopPropagation();
-              onSelect(item);
               const next: DragState = {
                 item,
                 pointerID: event.pointerId,
@@ -271,10 +314,11 @@ export function LoungeItemEditor({
           <button
             type="button"
             className="team-lounge__item-editor-control team-lounge__item-editor-control--finish"
+            aria-label="Finish editing"
             disabled={pending}
             onClick={onFinish}
           >
-            Finish editing
+            ✓
           </button>
         </div>
       ) : null}

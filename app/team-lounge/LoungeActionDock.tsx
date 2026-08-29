@@ -11,8 +11,7 @@ import {
 import type { LoungeItemChoice } from "./lounge-items";
 import { LoungeItemArt } from "./LoungeItemArt";
 
-type Tray = "reactions" | "stamps" | "items" | null;
-type ReactionKind = "emotes" | "quick-phrases";
+type Tray = "emotes" | "quick-phrases" | "stamps" | "items" | null;
 
 export function LoungeActionDock({
   choices,
@@ -34,7 +33,6 @@ export function LoungeActionDock({
   onSendQuickPhrase(phrase: LoungeQuickPhrase): void;
 }) {
   const [tray, setTray] = useState<Tray>(null);
-  const [reactionKind, setReactionKind] = useState<ReactionKind>("emotes");
   const actions = copy.teamLounge.actions;
   const openInventory = tray === "stamps" || tray === "items";
   const filteredChoices = choices.filter(({ kind }) =>
@@ -126,33 +124,19 @@ export function LoungeActionDock({
         aria-label={actions.navigation}
         data-canvas-pointer-ignore="true"
       >
-        {tray === "reactions" ? (
+        {tray === "emotes" || tray === "quick-phrases" ? (
           <div
-            className="team-lounge__emote-popover"
-            aria-label={actions.chooseReaction}
+            className="team-lounge__reaction-popover"
+            aria-label={
+              tray === "emotes"
+                ? actions.chooseEmote
+                : actions.chooseQuickMessage
+            }
           >
-            <div className="team-lounge__reaction-tabs" role="tablist">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={reactionKind === "emotes"}
-                onClick={() => setReactionKind("emotes")}
-              >
-                {actions.emotes}
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={reactionKind === "quick-phrases"}
-                onClick={() => setReactionKind("quick-phrases")}
-              >
-                {actions.quickMessages}
-              </button>
-            </div>
             <div
-              className={`team-lounge__reaction-options team-lounge__reaction-options--${reactionKind}`}
+              className={`team-lounge__reaction-options team-lounge__reaction-options--${tray}`}
             >
-              {reactionKind === "emotes"
+              {tray === "emotes"
                 ? loungeEmotes.map((emote) => (
                     <button
                       key={emote.id}
@@ -186,14 +170,6 @@ export function LoungeActionDock({
         ) : null}
         <button
           type="button"
-          aria-pressed={tray === "reactions"}
-          onClick={() => toggle("reactions")}
-        >
-          <span aria-hidden="true">☺</span>
-          {actions.emotes}
-        </button>
-        <button
-          type="button"
           aria-pressed={tray === "stamps"}
           onClick={() => toggle("stamps")}
         >
@@ -207,6 +183,22 @@ export function LoungeActionDock({
         >
           <span aria-hidden="true">▣</span>
           {actions.items}
+        </button>
+        <button
+          type="button"
+          aria-pressed={tray === "quick-phrases"}
+          onClick={() => toggle("quick-phrases")}
+        >
+          <span aria-hidden="true">▤</span>
+          {actions.quickMessages}
+        </button>
+        <button
+          type="button"
+          aria-pressed={tray === "emotes"}
+          onClick={() => toggle("emotes")}
+        >
+          <span aria-hidden="true">☺</span>
+          {actions.emotes}
         </button>
       </nav>
     </>

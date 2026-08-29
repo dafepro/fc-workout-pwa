@@ -28,8 +28,9 @@ experiments.
 - Review and approve the Starlight Training Camp candidate in
   `TEAM_LOUNGE_STARLIGHT_CAMP.md` before adding theme scheduling or rollback UI.
 - Delivered 2026-08-28: five predefined supportive quick-message bubbles share
-  the authenticated emote path and cooldown. Typed chat, history, recipients,
-  and free-form payloads remain out of scope.
+  the authenticated emote path, cooldown, and transient fade. They have their
+  own dock action beside Emotes. Typed chat, history, recipients, and free-form
+  payloads remain out of scope.
 
 ## Release quality
 

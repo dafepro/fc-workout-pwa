@@ -179,7 +179,7 @@ Each step is test-first and small enough to review independently.
 - Canvas 0.6.0 clean cutover pins all TypeScript packages and the Go SDK to release commit `11ebf12`; migration 19 adds fenced ownership, shared atomic tickets, durable mutation outcomes, and exact one-use placement permits without importing the superseded reservation shape.
 - Canvas generation 10 routes the five predefined emotes through authenticated transient actions and enables safe predefined production placement; only stable trusted Canvas receipts commit or release a hold, and reconnects reconcile interrupted acknowledgements.
 - Canvas conformance, coordinator, ticket, mutation-authority, transient-action, persistence, gateway, behavior, simulation, and Docker tests cover the new integration, including exact wire coordinates and two-player presence; expired or unavailable trusted outcomes remain an operator follow-up.
-- Momentum V2 interface parity replaces the crowded in-canvas rows with a three-action dock, authenticated emote popover, categorized item sheet, source labels, weekly placement state, and a visible placement ghost while retaining the Canvas 0.6 authority path.
+- Momentum V2 interface parity replaces the crowded in-canvas rows with a four-action Stamps, Items, Quick messages, and Emotes dock, authenticated reaction popovers, categorized item sheet, source labels, weekly placement state, and a visible placement ghost while retaining the Canvas 0.6 authority path.
 - Operators now have a tested read-only `lounge-placement-holds` report and runbook that distinguish expired unconsumed permits, pending Canvas receipts, and stale consumed holds without granting any timer- or browser-driven release path.
 - The two-session Docker Lounge proof now follows a real kick through Canvas authority to the second browser, covering shared ball projection as well as authenticated presence and avatar movement.
 - [Dev run 33186493834](https://github.com/dafepro/fc-workout-pwa/actions/runs/33186493834) deployed exact app SHA `42f75977c312f695684b6aa930de45bb6e9ddf5c`; verification, packaging, image publication, and the public exact-container smoke all passed.
@@ -192,8 +192,8 @@ Each step is test-first and small enough to review independently.
 - Trusted outcomes finalize edit permits, only accepted delete returns the
   placement credit, and pending edit receipts join reconnect reconciliation,
   logical backup/reset coverage, and the read-only stale-outcome report.
-- The secured Lounge editor restores tap selection, direct drag, bounded scale
-  and rotation, finish editing, and trash through an exact one-use permit for
+- The secured Lounge editor uses one tap to select, selected-only drag, bounded
+  scale and rotation, checkmark or tap-away finish, and trash through an exact one-use permit for
   every team-local current-day owner mutation; live revision state follows the
   trusted placement and mutation ledger rather than a lagging sleep snapshot.
 - The 320px Docker Lounge proof keeps the qualified player's avatar, shared
@@ -230,7 +230,9 @@ Each step is test-first and small enough to review independently.
 - The item editor now travels with the selected object's live projection as a
   transparent-center radial ring, keeping edit controls around rather than over
   the art and clamping individual controls inside the 320px playfield edge.
+  Optimistic release retains the preview position until canonical projection,
+  while unselected slides do nothing and background vertical gestures scroll.
 - Five allowlisted supportive quick-message bubbles extend the existing
   authenticated transient reaction path. They share the emote cooldown and
-  sender binding, leave no history, and add no typing, recipient, persistence,
-  Map, compatibility, or replica path.
+  sender binding plus the original rise-and-fade motion, leave no history, and
+  add no typing, recipient, persistence, Map, compatibility, or replica path.

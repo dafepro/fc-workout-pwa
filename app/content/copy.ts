@@ -161,9 +161,10 @@ export const copy = {
     actions: {
       navigation: "Lounge actions",
       emotes: "Emotes",
-      chooseReaction: "Choose a reaction",
+      chooseEmote: "Choose an emote",
       sendEmote: (label: string) => `Send ${label} emote`,
       quickMessages: "Quick messages",
+      chooseQuickMessage: "Choose a quick message",
       sendQuickMessage: (message: string) => `Send ${message} quick message`,
       stamps: "Stamps",
       items: "Items",

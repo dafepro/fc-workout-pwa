@@ -49,7 +49,9 @@ describe("LoungeItemEditor", () => {
     );
     expect(onRotate.mock.calls[0]?.[0]).toBe(item);
     expect(onRotate.mock.calls[0]?.[1]).toBeCloseTo(Math.PI / 12);
-    fireEvent.click(screen.getByRole("button", { name: "Finish editing" }));
+    const finish = screen.getByRole("button", { name: "Finish editing" });
+    expect(finish).toHaveTextContent("✓");
+    fireEvent.click(finish);
     expect(onFinish).toHaveBeenCalled();
   });
 
@@ -70,7 +72,7 @@ describe("LoungeItemEditor", () => {
 
     fireEvent.pointerDown(
       screen.getByRole("button", {
-        name: "Bolt stamp, yours; tap or drag to move",
+        name: "Bolt stamp, yours; drag to move",
       }),
       { pointerId: 7, clientX: 120, clientY: 180 },
     );
@@ -132,7 +134,62 @@ describe("LoungeItemEditor", () => {
     ).toBeVisible();
   });
 
-  it("direct-drags an editable item and reports a trash drop separately", () => {
+  it("selects on a tap but ignores a slide until the item is selected", () => {
+    const onSelect = vi.fn();
+    const onMove = vi.fn();
+    render(
+      <LoungeItemEditor
+        items={[item]}
+        selectedEntityID={null}
+        pending={false}
+        dragging={null}
+        onSelect={onSelect}
+        onMove={onMove}
+        onRotate={vi.fn()}
+        onScale={vi.fn()}
+        onDelete={vi.fn()}
+        onFinish={vi.fn()}
+        onDragStateChange={vi.fn()}
+      />,
+    );
+    const editable = screen.getByRole("button", {
+      name: "Bolt stamp, yours; tap to edit",
+    });
+
+    fireEvent.pointerDown(editable, {
+      pointerId: 1,
+      clientX: 125,
+      clientY: 185,
+    });
+    fireEvent.pointerMove(document, {
+      pointerId: 1,
+      clientX: 155,
+      clientY: 215,
+    });
+    fireEvent.pointerUp(document, {
+      pointerId: 1,
+      clientX: 155,
+      clientY: 215,
+    });
+    fireEvent.click(editable);
+    expect(onMove).not.toHaveBeenCalled();
+    expect(onSelect).not.toHaveBeenCalled();
+
+    fireEvent.pointerDown(editable, {
+      pointerId: 2,
+      clientX: 120,
+      clientY: 180,
+    });
+    fireEvent.pointerUp(document, {
+      pointerId: 2,
+      clientX: 120,
+      clientY: 180,
+    });
+    fireEvent.click(editable);
+    expect(onSelect).toHaveBeenCalledWith(item);
+  });
+
+  it("drags a selected item without reverting and reports a trash drop separately", () => {
     const onMove = vi.fn();
     const onDelete = vi.fn();
     const onDragStateChange = vi.fn();
@@ -152,7 +209,7 @@ describe("LoungeItemEditor", () => {
     const { rerender } = render(
       <LoungeItemEditor
         items={[item]}
-        selectedEntityID={null}
+        selectedEntityID={item.entityID}
         pending={false}
         dragging={null}
         trashTargetRef={trashTargetRef}
@@ -166,23 +223,23 @@ describe("LoungeItemEditor", () => {
       />,
     );
     const editable = screen.getByRole("button", {
-      name: "Bolt stamp, yours; tap or drag to move",
+      name: "Bolt stamp, yours; drag to move",
     });
 
     fireEvent.pointerDown(editable, {
       pointerId: 1,
-      clientX: 120,
-      clientY: 180,
+      clientX: 125,
+      clientY: 185,
     });
     fireEvent.pointerMove(document, {
       pointerId: 1,
-      clientX: 150,
-      clientY: 210,
+      clientX: 155,
+      clientY: 215,
     });
     fireEvent.pointerUp(document, {
       pointerId: 1,
-      clientX: 150,
-      clientY: 210,
+      clientX: 155,
+      clientY: 215,
     });
     expect(onMove).toHaveBeenCalledWith(item, { x: 150, y: 210 });
 
@@ -203,7 +260,7 @@ describe("LoungeItemEditor", () => {
       />,
     );
     const selected = screen.getByRole("button", {
-      name: "Bolt stamp, yours; tap or drag to move",
+      name: "Bolt stamp, yours; drag to move",
     });
     fireEvent.pointerDown(selected, {
       pointerId: 2,

@@ -4170,6 +4170,7 @@ h2 {
   display: block;
   width: 100%;
   height: 100%;
+  touch-action: pan-y !important;
 }
 
 .team-lounge__avatar-fallback {
@@ -4234,6 +4235,8 @@ h2 {
 }
 
 .team-lounge__avatar-emote {
+  --lounge-reaction-x: -50%;
+
   position: absolute;
   bottom: 3.1rem;
   left: 0;
@@ -4246,9 +4249,12 @@ h2 {
   box-shadow: 0 0.25rem 0.8rem rgb(7 28 37 / 28%);
   font-size: 1.3rem;
   transform: translateX(-50%);
+  animation: lounge-avatar-reaction 2.4s ease-out both;
 }
 
 .team-lounge__avatar-phrase {
+  --lounge-reaction-x: -18%;
+
   position: absolute;
   bottom: 3.2rem;
   left: 0;
@@ -4264,6 +4270,32 @@ h2 {
   line-height: 1.15;
   text-align: center;
   transform: translateX(-18%);
+  animation: lounge-avatar-reaction 2.4s ease-out both;
+}
+
+@keyframes lounge-avatar-reaction {
+  0% {
+    opacity: 0;
+    transform: translateX(var(--lounge-reaction-x)) translateY(0.8rem)
+      scale(0.7);
+  }
+  15%,
+  75% {
+    opacity: 1;
+    transform: translateX(var(--lounge-reaction-x)) translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(var(--lounge-reaction-x)) translateY(-1.2rem)
+      scale(0.86);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .team-lounge__avatar-emote,
+  .team-lounge__avatar-phrase {
+    animation: none;
+  }
 }
 
 .team-lounge__placed-item {
@@ -4299,19 +4331,21 @@ h2 {
   width: 3.5rem;
   height: 3.5rem;
   padding: 0;
-  border: 0.12rem solid transparent;
+  border: 0.12rem dashed rgb(201 243 29 / 38%);
   border-radius: 50%;
   background: rgb(7 28 37 / 16%);
   color: inherit;
   font: inherit;
   font-size: clamp(1.8rem, 9vw, 2.8rem);
   pointer-events: auto;
-  touch-action: none;
+  touch-action: pan-y;
 }
 
 .team-lounge__placed-item--selected {
   border-color: #c9f31d;
+  border-style: solid;
   box-shadow: 0 0 0 0.18rem rgb(201 243 29 / 22%);
+  touch-action: none;
 }
 
 .team-lounge__item-editor {
@@ -4397,10 +4431,8 @@ h2 {
 
 .team-lounge__item-editor .team-lounge__item-editor-control--finish {
   top: clamp(1.375rem, calc(var(--editor-y) + 4.375rem), calc(100% - 1.375rem));
-  left: clamp(2.8rem, var(--editor-x), calc(100% - 2.8rem));
-  width: 5.6rem;
-  border-radius: 999px;
-  font-size: 0.68rem;
+  left: clamp(1.375rem, var(--editor-x), calc(100% - 1.375rem));
+  font-size: 1.1rem;
 }
 
 .team-lounge__item-editor button:disabled {
@@ -4470,8 +4502,9 @@ h2 {
   position: relative;
   z-index: 8;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.35rem;
+  height: calc(4.5rem + 1px);
   padding: 0.55rem 0.7rem 0.7rem;
   border-top: 1px solid rgb(255 255 255 / 16%);
   background: rgb(7 28 37 / 94%);
@@ -4485,6 +4518,8 @@ h2 {
   gap: 0.12rem;
   min-width: 0;
   min-height: 3.25rem;
+  height: 3.25rem;
+  padding: 0;
   border: 0;
   border-radius: 0.9rem;
   background: rgb(255 255 255 / 8%);
@@ -4492,6 +4527,7 @@ h2 {
   font: inherit;
   font-size: 0.67rem;
   font-weight: 850;
+  line-height: 1.1;
 }
 
 .team-lounge__actions > button span {
@@ -4503,7 +4539,7 @@ h2 {
   color: #092a2d;
 }
 
-.team-lounge__emote-popover {
+.team-lounge__reaction-popover {
   position: absolute;
   z-index: 9;
   bottom: calc(100% - 0.2rem);
@@ -4516,31 +4552,6 @@ h2 {
   border-radius: 1rem;
   background: rgb(3 28 34 / 96%);
   box-shadow: 0 0.8rem 1.8rem rgb(1 18 23 / 38%);
-}
-
-.team-lounge__reaction-tabs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.25rem;
-  padding: 0.2rem;
-  border-radius: 0.7rem;
-  background: rgb(0 0 0 / 22%);
-}
-
-.team-lounge__reaction-tabs button {
-  min-height: 2.25rem;
-  border: 0;
-  border-radius: 0.55rem;
-  background: transparent;
-  color: rgb(255 255 255 / 70%);
-  font: inherit;
-  font-size: 0.68rem;
-  font-weight: 900;
-}
-
-.team-lounge__reaction-tabs button[aria-selected="true"] {
-  background: #c9f31d;
-  color: #092a2d;
 }
 
 .team-lounge__reaction-options {
