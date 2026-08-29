@@ -490,7 +490,9 @@ to resolve, not the implementing agent's.
   item coordinates never change to accommodate the editor.
 - Unselected current-day owned items have a faint lime dashed boundary. The
   boundary becomes solid while selected. Avatar and selected-item gestures win
-  first claim; only otherwise-unclaimed playfield drags scroll the page.
+  first claim; only otherwise-unclaimed playfield drags scroll the page. Those
+  background drags use a small distance gain plus bounded touch momentum so the
+  canvas does not feel materially slower than the surrounding native page.
 - The player-facing action names and order are Stamps, Items, Chat, and React.
   React opens an anchored emote tray. Chat opens an anchored set picker;
   Standard is enabled and Set 2 and Set 3 remain visibly locked without invented
