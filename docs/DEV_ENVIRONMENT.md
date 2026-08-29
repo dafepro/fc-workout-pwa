@@ -92,10 +92,11 @@ Configure these repository secrets with independent dev-only values:
 
 Configure these repository variables:
 
-| Variable                | Purpose                                       |
-| ----------------------- | --------------------------------------------- |
-| `DEV_TF_STATE_BUCKET`   | Remote-state bucket; the object key is fixed. |
-| `DEV_TF_STATE_ENDPOINT` | S3-compatible remote-state endpoint.          |
+| Variable                  | Purpose                                                                      |
+| ------------------------- | ---------------------------------------------------------------------------- |
+| `DEV_TF_STATE_BUCKET`     | Remote-state bucket; the object key is fixed.                                |
+| `DEV_TF_STATE_ENDPOINT`   | S3-compatible remote-state endpoint.                                         |
+| `OPERATOR_SSH_PUBLIC_KEY` | Optional sanitized Ed25519 troubleshooting key ending in `zoomigo-operator`. |
 
 Use independent, randomly generated values of at least 32 URL-safe characters
 for the session, gateway, reset, and fixture secrets. `DEV_ADMIN_PASSWORD` must
@@ -135,6 +136,31 @@ The first SSH connection pins the key returned by `ssh-keyscan` for that
 workflow run. It then uses strict host-key checking for every command. This is a
 trust-on-first-use limitation inherent in fully automatic creation; production
 continues to use its reviewed, repository-pinned host key.
+
+## Operator troubleshooting access
+
+Create/update authorizes the optional `OPERATOR_SSH_PUBLIC_KEY` for the
+unprivileged `zoomigo` account and publishes the workflow-pinned host address
+and `known_hosts` file as the one-day `dev-operator-access-<run-id>` artifact.
+The artifact contains no credential. Download it from the same successful dev
+run, keep the matching private key local, and connect with all identity and host
+checks explicit:
+
+```sh
+gh run download RUN_ID --name dev-operator-access-RUN_ID --dir DEV_ACCESS_DIR
+ssh -i DEV_OPERATOR_PRIVATE_KEY \
+  -o BatchMode=yes \
+  -o IdentitiesOnly=yes \
+  -o StrictHostKeyChecking=yes \
+  -o UserKnownHostsFile=DEV_ACCESS_DIR/known_hosts \
+  zoomigo@"$(cat DEV_ACCESS_DIR/host)"
+```
+
+Use this path for bounded diagnostics such as container status, bounded Compose
+logs, and reviewed read-only admin reports. Do not copy the live SQLite file to
+a workstation, print container environments, weaken SSH checking, or reuse the
+dev key for production. A recreated Droplet requires the artifact from its own
+create/update run because both its address and host key can change.
 
 The create smoke uses `scripts/dev-deploy-smoke.mjs` with
 `DEV_SMOKE_API_BASE_URL` and `DEV_API_GATEWAY_TOKEN`. It proves dev player and

@@ -24,9 +24,10 @@ resource "digitalocean_droplet" "dev" {
   ssh_keys      = [digitalocean_ssh_key.dev.fingerprint]
   tags          = ["zoomigo", "dev", "ephemeral"]
   user_data = templatefile("${path.module}/cloud-init.yaml.tftpl", {
-    release_sha    = var.release_sha
-    repository_url = var.repository_url
-    ssh_public_key = var.ssh_public_key
+    release_sha             = var.release_sha
+    repository_url          = var.repository_url
+    ssh_public_key          = var.ssh_public_key
+    operator_ssh_public_key = var.operator_ssh_public_key
   })
 
   lifecycle {

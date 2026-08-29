@@ -222,7 +222,14 @@ async function readBody(request) {
 }
 
 test("updates prove the exact container and new infrastructure proves final flows", async () => {
-  const [workflowSource, deploy, retry] = await Promise.all([
+  const [
+    workflowSource,
+    deploy,
+    retry,
+    devVariables,
+    devInfrastructure,
+    devCloudInit,
+  ] = await Promise.all([
     readFile(
       resolve(import.meta.dirname, "../.github/workflows/dev.yml"),
       "utf8",
@@ -233,6 +240,12 @@ test("updates prove the exact container and new infrastructure proves final flow
     ),
     readFile(
       resolve(import.meta.dirname, "../deploy/release/retry-command.sh"),
+      "utf8",
+    ),
+    readFile(resolve(import.meta.dirname, "../infra/dev/variables.tf"), "utf8"),
+    readFile(resolve(import.meta.dirname, "../infra/dev/main.tf"), "utf8"),
+    readFile(
+      resolve(import.meta.dirname, "../infra/dev/cloud-init.yaml.tftpl"),
       "utf8",
     ),
   ]);
@@ -287,4 +300,15 @@ test("updates prove the exact container and new infrastructure proves final flow
   assert.match(deploy, /retry_command.*wrangler deploy/);
   assert.match(retry, /failed after \$attempt attempts/);
   assert.doesNotMatch(retry, /eval/);
+
+  assert.match(devVariables, /variable "operator_ssh_public_key"/);
+  assert.match(devVariables, /zoomigo-operator/);
+  assert.match(devInfrastructure, /operator_ssh_public_key\s+=/);
+  assert.match(devCloudInit, /\$\{operator_ssh_public_key\}/);
+  assert.match(workflow, /TF_VAR_operator_ssh_public_key/);
+  assert.match(workflow, /name: Authorize operator SSH key/);
+  assert.match(workflow, / zoomigo-operator\$/);
+  assert.match(workflow, /name: Publish dev operator access endpoint/);
+  assert.match(workflow, /dev-operator-access-\$\{\{ github\.run_id \}\}/);
+  assert.match(workflow, /retention-days: 1/);
 });
