@@ -7,6 +7,7 @@ export interface LoungeItemChoice {
   id: string;
   label: string;
   glyph: string;
+  imageSrc?: string;
   definitionId: string;
   definitionVersion: number;
   source: "included" | "earned";
@@ -49,9 +50,26 @@ const beachBallProp: LoungeItemChoice = {
   kind: "lounge_prop",
 };
 
+const starlightProps: LoungeItemChoice[] = [
+  ["camp-lantern", "Camp lantern", "🏮"],
+  ["pennant-flag", "Pennant flag", "🚩"],
+  ["water-cooler", "Water cooler", "🧊"],
+  ["training-cone", "Training cone", "🔶"],
+].map(([id, label, glyph]) => ({
+  id,
+  label,
+  glyph,
+  imageSrc: `/team-lounge/items/${id}-v1.png`,
+  definitionId: `zoomigo-prop-starlight-${id}`,
+  definitionVersion: 1,
+  source: "included",
+  kind: "lounge_prop",
+}));
+
 export const includedLoungeItems = itemCatalog
   .slice(0, 4)
-  .map((item) => stampChoice(item, "included"));
+  .map((item) => stampChoice(item, "included"))
+  .concat(starlightProps);
 
 export const loungeItemDefinitions: ItemDefinition[] = itemCatalog.map(
   (item) => ({
@@ -108,6 +126,27 @@ loungeItemDefinitions.push({
   persistence: { transform: true, behaviorState: true, onRoomSleep: "pause" },
   complexity: "simple",
 });
+for (const item of starlightProps) {
+  loungeItemDefinitions.push({
+    definitionId: item.definitionId,
+    version: item.definitionVersion,
+    displayName: item.label,
+    visual: {
+      size: { width: 10, height: 10 },
+      spriteId: "lounge.stamp.transparent",
+      placeholder: { shape: "circle", color: 0xc9f31d },
+      zIndex: 9,
+    },
+    colliders: [],
+    defaultConfig: {},
+    persistence: {
+      transform: true,
+      behaviorState: false,
+      onRoomSleep: "pause",
+    },
+    complexity: "simple",
+  });
+}
 
 export function loungeItemChoices(
   inventory: readonly PrizeUnlock[],
@@ -117,11 +156,13 @@ export function loungeItemChoices(
       .filter(({ item }) => item.kind === "lounge_stamp")
       .map(({ item }) => item.assetId),
   );
-  return itemCatalog
-    .flatMap((item, index) =>
-      index < 4 || earned.has(item[0])
-        ? [stampChoice(item, index < 4 ? "included" : "earned")]
-        : [],
+  return includedLoungeItems
+    .concat(
+      itemCatalog
+        .slice(4)
+        .flatMap((item) =>
+          earned.has(item[0]) ? [stampChoice(item, "earned")] : [],
+        ),
     )
     .concat(
       inventory.some(
@@ -138,5 +179,9 @@ export function loungeItemForDefinition(definitionId: string) {
     ([id]) => definitionId === `zoomigo-stamp-${id}`,
   );
   if (definitionId === beachBallProp.definitionId) return beachBallProp;
+  const prop = starlightProps.find(
+    (candidate) => candidate.definitionId === definitionId,
+  );
+  if (prop) return prop;
   return item ? stampChoice(item, "included") : undefined;
 }

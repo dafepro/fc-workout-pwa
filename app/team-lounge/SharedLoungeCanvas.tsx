@@ -17,14 +17,19 @@ import type { Player } from "../domain/types";
 import type { LoungeCanvasState } from "./LocalLoungeCanvas";
 import { LoungeActionDock } from "./LoungeActionDock";
 import { LoungeItemEditor, type LoungeEditableItem } from "./LoungeItemEditor";
+import { LoungeItemArt } from "./LoungeItemArt";
 import { loungeBallEntityID, publishLoungeBallPosition } from "./ball-position";
 import { loungeWorldPoint } from "./lounge-editor-geometry";
 import {
-  LOUNGE_EMOTE_COOLDOWN_MS,
-  LOUNGE_EMOTE_DURATION_MS,
+  LOUNGE_REACTION_COOLDOWN_MS,
+  LOUNGE_REACTION_DURATION_MS,
   loungeEmotes,
   type LoungeEmote,
 } from "./lounge-emotes";
+import {
+  loungeQuickPhrases,
+  type LoungeQuickPhrase,
+} from "./lounge-quick-phrases";
 import { performLoungeItemMutation } from "./lounge-item-mutations";
 import {
   includedLoungeItems,
@@ -97,13 +102,14 @@ export function SharedLoungeCanvas({
     overTrash: boolean;
   } | null>(null);
   const [actionMessage, setActionMessage] = useState("");
-  const [activeEmote, setActiveEmote] = useState<{
-    playerID: string;
-    emote: LoungeEmote;
-  } | null>(null);
-  const [emoteLocked, setEmoteLocked] = useState(false);
-  const emoteTimerRef = useRef<number | undefined>(undefined);
-  const emoteCooldownTimerRef = useRef<number | undefined>(undefined);
+  const [activeReaction, setActiveReaction] = useState<
+    | { playerID: string; kind: "emote"; emote: LoungeEmote }
+    | { playerID: string; kind: "quickPhrase"; phrase: LoungeQuickPhrase }
+    | null
+  >(null);
+  const [reactionLocked, setReactionLocked] = useState(false);
+  const reactionTimerRef = useRef<number | undefined>(undefined);
+  const reactionCooldownTimerRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     rosterRef.current = roster;
@@ -115,8 +121,8 @@ export function SharedLoungeCanvas({
 
   useEffect(
     () => () => {
-      window.clearTimeout(emoteTimerRef.current);
-      window.clearTimeout(emoteCooldownTimerRef.current);
+      window.clearTimeout(reactionTimerRef.current);
+      window.clearTimeout(reactionCooldownTimerRef.current);
     },
     [],
   );
@@ -218,6 +224,7 @@ export function SharedLoungeCanvas({
               entityID: projection.entityId,
               label: item.label,
               glyph: item.glyph,
+              imageSrc: item.imageSrc,
               category: item.kind === "lounge_prop" ? "item" : "stamp",
               editable:
                 currentOwner &&
@@ -326,16 +333,35 @@ export function SharedLoungeCanvas({
         if (state === "failed") onStateChange("error");
       });
       unsubscribeEffects = runtime.subscribeEffects((effect) => {
-        if (effect.effect !== "zoomigo.emote") return;
-        const emotePlayerID = effect.params?.playerId;
-        const emoteID = effect.params?.emote;
-        const received = loungeEmotes.find(({ id }) => id === emoteID);
-        if (typeof emotePlayerID !== "string" || !received) return;
-        setActiveEmote({ playerID: emotePlayerID, emote: received });
-        window.clearTimeout(emoteTimerRef.current);
-        emoteTimerRef.current = window.setTimeout(
-          () => setActiveEmote(null),
-          LOUNGE_EMOTE_DURATION_MS,
+        const reactionPlayerID = effect.params?.playerId;
+        if (typeof reactionPlayerID !== "string") return;
+        if (effect.effect === "zoomigo.emote") {
+          const received = loungeEmotes.find(
+            ({ id }) => id === effect.params?.emote,
+          );
+          if (!received) return;
+          setActiveReaction({
+            playerID: reactionPlayerID,
+            kind: "emote",
+            emote: received,
+          });
+        } else if (effect.effect === "zoomigo.quickPhrase") {
+          const received = loungeQuickPhrases.find(
+            ({ id }) => id === effect.params?.phrase,
+          );
+          if (!received) return;
+          setActiveReaction({
+            playerID: reactionPlayerID,
+            kind: "quickPhrase",
+            phrase: received,
+          });
+        } else {
+          return;
+        }
+        window.clearTimeout(reactionTimerRef.current);
+        reactionTimerRef.current = window.setTimeout(
+          () => setActiveReaction(null),
+          LOUNGE_REACTION_DURATION_MS,
         );
       });
       await runtime.start({ until: "presented" });
@@ -486,30 +512,44 @@ export function SharedLoungeCanvas({
     }
   };
 
-  const showEmote = async (next: LoungeEmote) => {
+  const sendReaction = async (
+    action: "zoomigo.emote" | "zoomigo.quickPhrase",
+    payload: { emote: string } | { phrase: string },
+    sentMessage: string,
+  ) => {
     const runtime = runtimeRef.current;
-    if (!runtime || emoteLocked) return;
-    setEmoteLocked(true);
-    window.clearTimeout(emoteCooldownTimerRef.current);
-    emoteCooldownTimerRef.current = window.setTimeout(
-      () => setEmoteLocked(false),
-      LOUNGE_EMOTE_COOLDOWN_MS,
+    if (!runtime || reactionLocked) return;
+    setReactionLocked(true);
+    window.clearTimeout(reactionCooldownTimerRef.current);
+    reactionCooldownTimerRef.current = window.setTimeout(
+      () => setReactionLocked(false),
+      LOUNGE_REACTION_COOLDOWN_MS,
     );
     try {
       const result = await runtime.submitTransientAction({
-        action: "zoomigo.emote",
+        action,
         target: "room",
-        payload: { emote: next.id },
+        payload,
       }).result;
       setActionMessage(
         result.accepted
-          ? `${next.label} sent.`
+          ? sentMessage
           : transientActionRejectionMessage(result.rejectCode),
       );
     } catch {
       setActionMessage("That reaction could not be sent.");
     }
   };
+
+  const showEmote = (next: LoungeEmote) =>
+    sendReaction("zoomigo.emote", { emote: next.id }, `${next.label} sent.`);
+
+  const showQuickPhrase = (next: LoungeQuickPhrase) =>
+    sendReaction(
+      "zoomigo.quickPhrase",
+      { phrase: next.id },
+      `${next.text} sent.`,
+    );
 
   const selectedEditableEntityID = itemOverlays.some(
     ({ entityID }) => entityID === selectedEntityID,
@@ -536,13 +576,20 @@ export function SharedLoungeCanvas({
           >
             <PlayerAvatar player={player} size="medium" />
             <span>{current ? "You" : player.firstName}</span>
-            {activeEmote?.playerID === player.id ? (
+            {activeReaction?.playerID === player.id &&
+            activeReaction.kind === "emote" ? (
               <b
                 className="team-lounge__avatar-emote"
                 role="img"
-                aria-label={activeEmote.emote.label}
+                aria-label={activeReaction.emote.label}
               >
-                {activeEmote.emote.symbol}
+                {activeReaction.emote.symbol}
+              </b>
+            ) : null}
+            {activeReaction?.playerID === player.id &&
+            activeReaction.kind === "quickPhrase" ? (
+              <b className="team-lounge__avatar-phrase" aria-live="polite">
+                {activeReaction.phrase.text}
               </b>
             ) : null}
           </div>
@@ -613,12 +660,14 @@ export function SharedLoungeCanvas({
           <button
             type="button"
             className="team-lounge__placement-surface"
-            aria-label={`Place ${selectedItem.label} stamp on the boardwalk`}
+            aria-label={`Place ${selectedItem.label} ${selectedItem.kind === "lounge_prop" ? "item" : "stamp"} on the boardwalk`}
             disabled={placing || remainingPlacements === 0}
             onClick={placeItem}
           >
             <span>{copy.teamLounge.actions.placeHint(selectedItem.label)}</span>
-            <b aria-hidden="true">{selectedItem.glyph}</b>
+            <b aria-hidden="true">
+              <LoungeItemArt item={selectedItem} decorative />
+            </b>
           </button>
         ) : null}
       </div>
@@ -644,12 +693,13 @@ export function SharedLoungeCanvas({
           selectedItem={selectedItem}
           remaining={remainingPlacements}
           placing={placing}
-          emoteLocked={emoteLocked}
+          reactionLocked={reactionLocked}
           onSelectItem={(item) => {
             setSelectedEntityID(null);
             setSelectedItem(item);
           }}
           onSendEmote={showEmote}
+          onSendQuickPhrase={showQuickPhrase}
         />
       )}
       <span className="visually-hidden" role="status">

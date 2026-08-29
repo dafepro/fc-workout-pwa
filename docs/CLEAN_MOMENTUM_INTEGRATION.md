@@ -221,3 +221,16 @@ Each step is test-first and small enough to review independently.
   permit and WebSocket limits; Map and compatibility paths remain absent,
   production remains one API replica, and optimistic poor-connection work stays
   in issue #5.
+- The Map decision is closed: no action ships until a future room requires and
+  defines real bounded camera navigation.
+- Starlight Training Camp adds one unscheduled second-theme review asset plus
+  four optimized transparent included props. The live item catalog renders the
+  generated art through the existing placement-credit and exact owner-permit
+  path without changing Prize Box balance or Canvas topology.
+- The item editor now travels with the selected object's live projection as a
+  transparent-center radial ring, keeping edit controls around rather than over
+  the art and clamping individual controls inside the 320px playfield edge.
+- Five allowlisted supportive quick-message bubbles extend the existing
+  authenticated transient reaction path. They share the emote cooldown and
+  sender binding, leave no history, and add no typing, recipient, persistence,
+  Map, compatibility, or replica path.

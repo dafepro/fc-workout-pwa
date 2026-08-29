@@ -217,6 +217,17 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   await expect(
     lounge.getByRole("button", { name: "Send Heart emote" }),
   ).toBeDisabled();
+  await lounge.getByRole("tab", { name: "Quick messages" }).click();
+  const niceQuickMessage = lounge.getByRole("button", {
+    name: "Send Nice! quick message",
+  });
+  await expect(niceQuickMessage).toBeDisabled();
+  await expect(niceQuickMessage).toBeEnabled({ timeout: 3_000 });
+  await niceQuickMessage.click();
+  await expect(lounge.getByRole("status").last()).toHaveText("Nice! sent.");
+  await expect(lounge.locator(".team-lounge__avatar-phrase")).toHaveText(
+    "Nice!",
+  );
 
   const sizeBeforeItems = await loungeSize();
   await lounge.getByRole("button", { name: "Stamps" }).click();
@@ -240,9 +251,29 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   await expect(editableBolt).toBeVisible({ timeout: 10_000 });
   const sizeBeforeEditing = await loungeSize();
   await editableBolt.click();
-  await expect(
-    lounge.getByRole("group", { name: "Edit selected stamp" }),
-  ).toBeVisible();
+  const radialEditor = lounge.getByRole("group", {
+    name: "Edit selected stamp",
+  });
+  await expect(radialEditor).toBeVisible();
+  await expect(radialEditor).toHaveAttribute("data-layout", "radial");
+  const radialEditorBox = await radialEditor
+    .locator(".team-lounge__item-editor-ring")
+    .boundingBox();
+  const selectedBoltBox = await editableBolt.boundingBox();
+  expect(radialEditorBox).not.toBeNull();
+  expect(selectedBoltBox).not.toBeNull();
+  const boltCenter = {
+    x: selectedBoltBox!.x + selectedBoltBox!.width / 2,
+    y: selectedBoltBox!.y + selectedBoltBox!.height / 2,
+  };
+  expect(boltCenter.x).toBeGreaterThan(radialEditorBox!.x);
+  expect(boltCenter.x).toBeLessThan(
+    radialEditorBox!.x + radialEditorBox!.width,
+  );
+  expect(boltCenter.y).toBeGreaterThan(radialEditorBox!.y);
+  expect(boltCenter.y).toBeLessThan(
+    radialEditorBox!.y + radialEditorBox!.height,
+  );
   await expect.poll(() => loungeSizeDelta(sizeBeforeEditing)).toBeLessThan(0.1);
   network.start();
   await lounge.getByRole("button", { name: "Make stamp larger" }).click();
@@ -345,6 +376,7 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
     .click();
 
   await expect(lounge.getByRole("combobox")).toHaveCount(0);
+  await expect(lounge.getByRole("textbox")).toHaveCount(0);
   await expect(lounge).not.toContainText(/\bV[12]\b|alternative|preview/i);
   expect(
     await page.evaluate(

@@ -20,4 +20,36 @@ describe("LoungeActionBehavior", () => {
       { params: { playerId: "player-one", emote: "wave" } },
     ]);
   });
+
+  it("turns an allowlisted quick-message action into a sender-bound effect", () => {
+    const subject = new BehaviorTestHarness(LoungeActionBehavior, {});
+
+    subject
+      .send({
+        type: "owner.action",
+        action: "zoomigo.quickPhrase",
+        userId: "player-two",
+        payload: { phrase: "nice" },
+      })
+      .flush();
+
+    expect(subject.effects("zoomigo.quickPhrase")).toMatchObject([
+      { params: { playerId: "player-two", phrase: "nice" } },
+    ]);
+  });
+
+  it("ignores a quick message payload that contains open text", () => {
+    const subject = new BehaviorTestHarness(LoungeActionBehavior, {});
+
+    subject
+      .send({
+        type: "owner.action",
+        action: "zoomigo.quickPhrase",
+        userId: "player-two",
+        payload: { phrase: "nice", text: "custom" },
+      })
+      .flush();
+
+    expect(subject.effects("zoomigo.quickPhrase")).toEqual([]);
+  });
 });

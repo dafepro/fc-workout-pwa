@@ -1,4 +1,4 @@
-import { render, waitFor } from "@testing-library/react";
+import { act, render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { defaultAvatar } from "../avatar/config";
@@ -9,6 +9,9 @@ import { SharedLoungeCanvas } from "./SharedLoungeCanvas";
 const runtime = vi.hoisted(() => ({
   projectionOptions: undefined as
     | { maxEntities?: number; maxHz?: number }
+    | undefined,
+  effectObserver: undefined as
+    | ((effect: { effect: string; params?: Record<string, unknown> }) => void)
     | undefined,
 }));
 
@@ -30,7 +33,8 @@ vi.mock("@canvas-physics/client", () => ({
     subscribeLifecycle() {
       return () => undefined;
     }
-    subscribeEffects() {
+    subscribeEffects(observer: typeof runtime.effectObserver) {
+      runtime.effectObserver = observer;
       return () => undefined;
     }
     projectWorldPoint() {
@@ -78,6 +82,7 @@ const mason: Player = {
 describe("Shared Lounge Canvas", () => {
   beforeEach(() => {
     runtime.projectionOptions = undefined;
+    runtime.effectObserver = undefined;
     vi.stubGlobal("Worker", class {});
   });
 
@@ -106,5 +111,33 @@ describe("Shared Lounge Canvas", () => {
         container.querySelector(".team-lounge__shared-avatar .avatar"),
       ).toBeVisible(),
     );
+  });
+
+  it("shows an allowlisted quick phrase as a transient sender bubble", async () => {
+    const { container } = render(
+      <AvatarIdentityProvider
+        value={{ currentPlayerID: mason.id, avatarConfig: defaultAvatar() }}
+      >
+        <SharedLoungeCanvas
+          teamID="team-one"
+          player={mason}
+          roster={[mason]}
+          onStateChange={vi.fn()}
+          onPresenceChange={vi.fn()}
+        />
+      </AvatarIdentityProvider>,
+    );
+
+    await waitFor(() => expect(runtime.effectObserver).toBeDefined());
+    act(() => {
+      runtime.effectObserver?.({
+        effect: "zoomigo.quickPhrase",
+        params: { playerId: mason.id, phrase: "nice" },
+      });
+    });
+
+    expect(
+      container.querySelector(".team-lounge__avatar-phrase"),
+    ).toHaveTextContent("Nice!");
   });
 });

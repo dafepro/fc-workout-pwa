@@ -20,22 +20,39 @@ export const LoungeActionBehavior: ItemBehavior<
     state,
     event: BehaviorEvent,
   ): BehaviorResult<LoungeActionState> {
-    if (
-      event.type !== "owner.action" ||
-      event.action !== "zoomigo.emote" ||
-      !isEmotePayload(event.payload)
-    ) {
+    if (event.type !== "owner.action") {
       return { state: state as LoungeActionState, commands: [] };
+    }
+    if (event.action === "zoomigo.emote" && isEmotePayload(event.payload)) {
+      return {
+        state: state as LoungeActionState,
+        commands: [
+          {
+            type: "emitEffect",
+            effect: "zoomigo.emote",
+            params: { playerId: event.userId, emote: event.payload.emote },
+          },
+        ],
+      };
+    }
+    if (
+      event.action === "zoomigo.quickPhrase" &&
+      isQuickPhrasePayload(event.payload)
+    ) {
+      return {
+        state: state as LoungeActionState,
+        commands: [
+          {
+            type: "emitEffect",
+            effect: "zoomigo.quickPhrase",
+            params: { playerId: event.userId, phrase: event.payload.phrase },
+          },
+        ],
+      };
     }
     return {
       state: state as LoungeActionState,
-      commands: [
-        {
-          type: "emitEffect",
-          effect: "zoomigo.emote",
-          params: { playerId: event.userId, emote: event.payload.emote },
-        },
-      ],
+      commands: [],
     };
   },
 };
@@ -44,6 +61,16 @@ function isEmotePayload(value: unknown): value is { emote: string } {
   return (
     typeof value === "object" &&
     value !== null &&
+    Object.keys(value).length === 1 &&
     typeof (value as { emote?: unknown }).emote === "string"
+  );
+}
+
+function isQuickPhrasePayload(value: unknown): value is { phrase: string } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    Object.keys(value).length === 1 &&
+    typeof (value as { phrase?: unknown }).phrase === "string"
   );
 }

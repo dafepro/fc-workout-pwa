@@ -423,9 +423,12 @@ to resolve, not the implementing agent's.
 - The reference branch's Map action was a disabled placeholder, not working
   parity. It remains absent unless camera navigation becomes an explicit
   requirement after the secured editor and unobscured viewport are restored.
-- Lounge reactions remain the five predefined emotes. Canvas derives sender
-  identity and sequence; ZoomiGo validates membership, payload, and cooldown,
-  while the effect is transient and never joins durable player history.
+- Lounge reactions include five predefined emotes and five reviewed supportive
+  quick phrases. Canvas derives sender identity and sequence; ZoomiGo validates
+  membership, the exact closed payload, and one shared reaction cooldown. Both
+  effects are transient and never join durable player history. Quick phrases
+  are not chat: there is no typing, target recipient, inbox, transcript, or
+  free-form payload.
 - Item dragging is optimistic in the browser and sends no mutation while the
   pointer moves. Releasing a move, or choosing rotate, scale, or delete, adds
   one ZoomiGo permit round trip followed by one Canvas mutation.
@@ -459,3 +462,35 @@ to resolve, not the implementing agent's.
 - This decision records budgets, not invented physical measurements. Both
   reference devices must populate the qualification record before a broad
   Lounge release; desktop automation protects only the deterministic subset.
+
+## Team Lounge Map and second theme (2026-08-28)
+
+- Decided: no Map action ships while the canonical Lounge fits one viewport.
+  The retired disabled placeholder does not return. A future larger room must
+  first define bounded camera navigation, touch/keyboard behavior, focus
+  movement, and reset-to-player behavior.
+- Starlight Training Camp is the second-theme review candidate recorded in
+  `TEAM_LOUNGE_STARLIGHT_CAMP.md`. Its generated background and four included
+  props are immutable versioned assets, but the theme has no schedule or room
+  generation until it receives explicit visual approval.
+- Camp lantern, pennant flag, water cooler, and training cone are included
+  predefined props. They do not enter the Prize Box catalog, change rarity
+  balance, block physics, collect data, or bypass weekly placement credit and
+  owner-bound one-use mutation permits.
+
+## Team Lounge radial editor and quick phrases (2026-08-28)
+
+- The selected-item editor is a circular ring centered on the item's live
+  projected position. Its center stays transparent, controls sit around the
+  object, and the ring follows optimistic dragging and later canonical Canvas
+  projections. Near playfield edges the ring stays centered on the object while
+  individual 44 CSS pixel controls clamp inward to remain reachable at 320px;
+  item coordinates never change to accommodate the editor.
+- The initial quick-phrase catalog is `Nice!`, `Let’s go!`, `Great work!`,
+  `You’ve got this!`, and `Team time!`. These are room-wide transient reactions,
+  not conversation content, and use the same authenticated membership check,
+  sender binding, two-second cooldown, and 2.4-second display window as emotes.
+- The phrase action accepts only `{phrase: <allowlisted-id>}`. Open text, extra
+  payload fields, unknown IDs, item targets, and inactive members are rejected.
+  Nothing is persisted and no compatibility, Map, or extra API-replica path is
+  introduced.

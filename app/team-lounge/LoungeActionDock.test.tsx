@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { loungeEmotes } from "./lounge-emotes";
+import { loungeQuickPhrases } from "./lounge-quick-phrases";
 import { includedLoungeItems, type LoungeItemChoice } from "./lounge-items";
 import { LoungeActionDock } from "./LoungeActionDock";
 
@@ -19,15 +20,17 @@ describe("Lounge action dock", () => {
   it("uses the consolidated V2 action bar and categorized item sheet", () => {
     const onSelectItem = vi.fn();
     const onSendEmote = vi.fn();
+    const onSendQuickPhrase = vi.fn();
     render(
       <LoungeActionDock
         choices={[...includedLoungeItems, earnedProp]}
         selectedItem={null}
         remaining={2}
         placing={false}
-        emoteLocked={false}
+        reactionLocked={false}
         onSelectItem={onSelectItem}
         onSendEmote={onSendEmote}
+        onSendQuickPhrase={onSendQuickPhrase}
       />,
     );
 
@@ -52,6 +55,10 @@ describe("Lounge action dock", () => {
     const beachBall = screen.getByRole("button", {
       name: "Choose Beach ball item",
     });
+    expect(screen.getByRole("img", { name: "Camp lantern" })).toHaveAttribute(
+      "src",
+      "/team-lounge/items/camp-lantern-v1.png",
+    );
     expect(beachBall).toBeVisible();
     expect(screen.getByText("Earned")).toBeVisible();
     fireEvent.click(beachBall);
@@ -61,6 +68,13 @@ describe("Lounge action dock", () => {
     fireEvent.click(screen.getByRole("button", { name: "Emotes" }));
     fireEvent.click(screen.getByRole("button", { name: "Send Wave emote" }));
     expect(onSendEmote).toHaveBeenCalledWith(loungeEmotes[0]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Emotes" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Quick messages" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Send Nice! quick message" }),
+    );
+    expect(onSendQuickPhrase).toHaveBeenCalledWith(loungeQuickPhrases[0]);
   });
 
   it("keeps exhausted placement controls visible but disabled", () => {
@@ -70,9 +84,10 @@ describe("Lounge action dock", () => {
         selectedItem={null}
         remaining={0}
         placing={false}
-        emoteLocked={false}
+        reactionLocked={false}
         onSelectItem={vi.fn()}
         onSendEmote={vi.fn()}
+        onSendQuickPhrase={vi.fn()}
       />,
     );
 

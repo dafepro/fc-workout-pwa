@@ -1,5 +1,5 @@
-export const LOUNGE_EMOTE_COOLDOWN_MS = 2_000;
-export const LOUNGE_EMOTE_DURATION_MS = 2_400;
+export const LOUNGE_REACTION_COOLDOWN_MS = 2_000;
+export const LOUNGE_REACTION_DURATION_MS = 2_400;
 
 export const loungeEmotes = [
   { id: "wave", symbol: "👋", label: "Wave" },

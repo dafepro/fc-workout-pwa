@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  LOUNGE_EMOTE_COOLDOWN_MS,
-  LOUNGE_EMOTE_DURATION_MS,
+  LOUNGE_REACTION_COOLDOWN_MS,
+  LOUNGE_REACTION_DURATION_MS,
   loungeEmotes,
 } from "./lounge-emotes";
 
@@ -15,7 +15,7 @@ describe("Lounge emotes", () => {
       "Star",
       "Laugh",
     ]);
-    expect(LOUNGE_EMOTE_COOLDOWN_MS).toBe(2_000);
-    expect(LOUNGE_EMOTE_DURATION_MS).toBe(2_400);
+    expect(LOUNGE_REACTION_COOLDOWN_MS).toBe(2_000);
+    expect(LOUNGE_REACTION_DURATION_MS).toBe(2_400);
   });
 });

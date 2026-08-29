@@ -13,32 +13,34 @@ import (
 
 const (
 	LoungeActionRouterEntityID = "lounge-action-router"
-	LoungeEmoteCooldown        = 2 * time.Second
+	LoungeReactionCooldown     = 2 * time.Second
 )
 
 var loungeEmoteIDs = map[string]struct{}{
 	"wave": {}, "heart": {}, "soccer": {}, "star": {}, "laugh": {},
 }
 
+var loungeQuickPhraseIDs = map[string]struct{}{
+	"nice": {}, "lets-go": {}, "great-work": {}, "you-got-this": {}, "team-time": {},
+}
+
 func (store *SQLiteStore) ResolveTransientAction(
 	ctx context.Context,
 	action roomsdk.TransientActionContext,
 ) (roomsdk.TransientActionRoute, error) {
-	if action.Action != "zoomigo.emote" {
+	if action.Action != "zoomigo.emote" && action.Action != "zoomigo.quickPhrase" {
 		return roomsdk.TransientActionRoute{}, roomsdk.ErrTransientActionUnknown
 	}
 	if action.Target != roomsdk.TransientActionTargetRoom || action.EntityID != "" {
 		return roomsdk.TransientActionRoute{}, roomsdk.ErrTransientActionUnauthorized
 	}
-	var payload struct {
-		Emote string `json:"emote"`
-	}
+	var payload map[string]string
 	decoder := json.NewDecoder(bytes.NewReader(action.Payload))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&payload); err != nil || decoder.Decode(&struct{}{}) != io.EOF {
 		return roomsdk.TransientActionRoute{}, roomsdk.ErrTransientActionPayload
 	}
-	if _, ok := loungeEmoteIDs[payload.Emote]; !ok {
+	if !validLoungeReactionPayload(action.Action, payload) {
 		return roomsdk.TransientActionRoute{}, roomsdk.ErrTransientActionPayload
 	}
 	teamID, _, err := ParseWeeklyRoomID(action.RoomID)
@@ -57,19 +59,31 @@ func (store *SQLiteStore) ResolveTransientAction(
 		AND (membership.active_to IS NULL OR membership.active_to >= ?)
 		ON CONFLICT(room_id, player_id) DO UPDATE SET available_at = excluded.available_at
 		WHERE team_lounge_emote_cooldowns.available_at <= ?`,
-		now.Add(LoungeEmoteCooldown).Format(time.RFC3339Nano), action.RoomID, teamID,
+		now.Add(LoungeReactionCooldown).Format(time.RFC3339Nano), action.RoomID, teamID,
 		action.ParticipantID, today, today, now.Format(time.RFC3339Nano))
 	if err != nil {
-		return roomsdk.TransientActionRoute{}, fmt.Errorf("authorize lounge emote: %w", err)
+		return roomsdk.TransientActionRoute{}, fmt.Errorf("authorize lounge reaction: %w", err)
 	}
 	rows, err := result.RowsAffected()
 	if err != nil {
-		return roomsdk.TransientActionRoute{}, fmt.Errorf("read lounge emote authorization: %w", err)
+		return roomsdk.TransientActionRoute{}, fmt.Errorf("read lounge reaction authorization: %w", err)
 	}
 	if rows != 1 {
 		return roomsdk.TransientActionRoute{}, roomsdk.ErrTransientActionUnauthorized
 	}
 	return roomsdk.TransientActionRoute{DispatchEntityID: LoungeActionRouterEntityID}, nil
+}
+
+func validLoungeReactionPayload(action string, payload map[string]string) bool {
+	if len(payload) != 1 {
+		return false
+	}
+	if action == "zoomigo.emote" {
+		_, ok := loungeEmoteIDs[payload["emote"]]
+		return ok
+	}
+	_, ok := loungeQuickPhraseIDs[payload["phrase"]]
+	return ok
 }
 
 var _ roomsdk.TransientActionRegistry = (*SQLiteStore)(nil)

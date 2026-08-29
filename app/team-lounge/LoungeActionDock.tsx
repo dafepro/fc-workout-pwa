@@ -4,28 +4,37 @@ import { useState } from "react";
 
 import { copy } from "../content/copy";
 import { loungeEmotes, type LoungeEmote } from "./lounge-emotes";
+import {
+  loungeQuickPhrases,
+  type LoungeQuickPhrase,
+} from "./lounge-quick-phrases";
 import type { LoungeItemChoice } from "./lounge-items";
+import { LoungeItemArt } from "./LoungeItemArt";
 
-type Tray = "emotes" | "stamps" | "items" | null;
+type Tray = "reactions" | "stamps" | "items" | null;
+type ReactionKind = "emotes" | "quick-phrases";
 
 export function LoungeActionDock({
   choices,
   selectedItem,
   remaining,
   placing,
-  emoteLocked,
+  reactionLocked,
   onSelectItem,
   onSendEmote,
+  onSendQuickPhrase,
 }: {
   choices: readonly LoungeItemChoice[];
   selectedItem: LoungeItemChoice | null;
   remaining: number;
   placing: boolean;
-  emoteLocked: boolean;
+  reactionLocked: boolean;
   onSelectItem(item: LoungeItemChoice): void;
   onSendEmote(emote: LoungeEmote): void;
+  onSendQuickPhrase(phrase: LoungeQuickPhrase): void;
 }) {
   const [tray, setTray] = useState<Tray>(null);
+  const [reactionKind, setReactionKind] = useState<ReactionKind>("emotes");
   const actions = copy.teamLounge.actions;
   const openInventory = tray === "stamps" || tray === "items";
   const filteredChoices = choices.filter(({ kind }) =>
@@ -98,7 +107,7 @@ export function LoungeActionDock({
                     setTray(null);
                   }}
                 >
-                  <span aria-hidden="true">{choice.glyph}</span>
+                  <LoungeItemArt item={choice} />
                   <strong>{choice.label}</strong>
                   <small>
                     {choice.source === "included"
@@ -117,31 +126,68 @@ export function LoungeActionDock({
         aria-label={actions.navigation}
         data-canvas-pointer-ignore="true"
       >
-        {tray === "emotes" ? (
+        {tray === "reactions" ? (
           <div
             className="team-lounge__emote-popover"
-            aria-label={actions.chooseEmote}
+            aria-label={actions.chooseReaction}
           >
-            {loungeEmotes.map((emote) => (
+            <div className="team-lounge__reaction-tabs" role="tablist">
               <button
-                key={emote.id}
                 type="button"
-                aria-label={actions.sendEmote(emote.label)}
-                disabled={emoteLocked}
-                onClick={() => {
-                  onSendEmote(emote);
-                  setTray(null);
-                }}
+                role="tab"
+                aria-selected={reactionKind === "emotes"}
+                onClick={() => setReactionKind("emotes")}
               >
-                {emote.symbol}
+                {actions.emotes}
               </button>
-            ))}
+              <button
+                type="button"
+                role="tab"
+                aria-selected={reactionKind === "quick-phrases"}
+                onClick={() => setReactionKind("quick-phrases")}
+              >
+                {actions.quickMessages}
+              </button>
+            </div>
+            <div
+              className={`team-lounge__reaction-options team-lounge__reaction-options--${reactionKind}`}
+            >
+              {reactionKind === "emotes"
+                ? loungeEmotes.map((emote) => (
+                    <button
+                      key={emote.id}
+                      type="button"
+                      aria-label={actions.sendEmote(emote.label)}
+                      disabled={reactionLocked}
+                      onClick={() => {
+                        onSendEmote(emote);
+                        setTray(null);
+                      }}
+                    >
+                      {emote.symbol}
+                    </button>
+                  ))
+                : loungeQuickPhrases.map((phrase) => (
+                    <button
+                      key={phrase.id}
+                      type="button"
+                      aria-label={actions.sendQuickMessage(phrase.text)}
+                      disabled={reactionLocked}
+                      onClick={() => {
+                        onSendQuickPhrase(phrase);
+                        setTray(null);
+                      }}
+                    >
+                      {phrase.text}
+                    </button>
+                  ))}
+            </div>
           </div>
         ) : null}
         <button
           type="button"
-          aria-pressed={tray === "emotes"}
-          onClick={() => toggle("emotes")}
+          aria-pressed={tray === "reactions"}
+          onClick={() => toggle("reactions")}
         >
           <span aria-hidden="true">☺</span>
           {actions.emotes}

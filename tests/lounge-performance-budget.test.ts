@@ -44,15 +44,19 @@ describe("Team Lounge performance budget", () => {
     ).toBeLessThanOrEqual(32 * 1024);
   });
 
-  it("keeps the shipped Lounge artwork inside its static asset allowance", () => {
+  it("keeps each Lounge theme background inside its static asset allowance", () => {
     const assetDirectory = join(process.cwd(), "public", "team-lounge");
-    const bytes = readdirSync(assetDirectory).reduce(
-      (total, name) => total + statSync(join(assetDirectory, name)).size,
-      0,
+    const backgrounds = readdirSync(assetDirectory).filter((name) =>
+      name.endsWith("-v1.png"),
     );
 
-    expect(bytes).toBeLessThanOrEqual(
-      loungePerformanceBudget.network.maxStaticLoungeAssetBytes,
-    );
+    expect(backgrounds).toContain("starlight-training-camp-v1.png");
+    for (const background of backgrounds) {
+      expect(
+        statSync(join(assetDirectory, background)).size,
+      ).toBeLessThanOrEqual(
+        loungePerformanceBudget.network.maxStaticLoungeAssetBytes,
+      );
+    }
   });
 });

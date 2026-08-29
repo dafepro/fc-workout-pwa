@@ -156,12 +156,40 @@ func BeachBoardwalkLoungeCatalog() Catalog {
 			DefinitionRaw: loungeStampDefinitionJSON(assetID),
 		})
 	}
+	for _, assetID := range []string{"camp-lantern", "pennant-flag", "water-cooler", "training-cone"} {
+		catalog.Items = append(catalog.Items, roomsdk.ItemDefinitionRecord{
+			DefinitionID:  "zoomigo-prop-starlight-" + assetID,
+			Version:       1,
+			Complexity:    roomsdk.ItemComplexitySimple,
+			ConfigSchema:  json.RawMessage(emptyConfigSchemaJSON),
+			DefinitionRaw: loungeStaticPropDefinitionJSON(assetID),
+		})
+	}
 	catalog.Items = append(catalog.Items, roomsdk.ItemDefinitionRecord{
 		DefinitionID: "zoomigo-prop-beach-ball", Version: 2,
 		Complexity: roomsdk.ItemComplexitySimple, ConfigSchema: json.RawMessage(loungeBallConfigSchemaJSON),
 		DefinitionRaw: json.RawMessage(beachBallPropDefinitionJSON),
 	})
 	return catalog
+}
+
+func loungeStaticPropDefinitionJSON(assetID string) json.RawMessage {
+	raw, err := json.Marshal(map[string]any{
+		"definitionId": "zoomigo-prop-starlight-" + assetID,
+		"version":      1,
+		"displayName":  strings.ReplaceAll(assetID, "-", " "),
+		"visual": map[string]any{
+			"size": map[string]float64{"width": 10, "height": 10}, "spriteId": "lounge.stamp.transparent",
+			"placeholder": map[string]any{"shape": "circle", "color": 13234973}, "zIndex": 9,
+		},
+		"colliders": []any{}, "defaultConfig": map[string]any{},
+		"persistence": map[string]any{"transform": true, "behaviorState": false, "onRoomSleep": "pause"},
+		"complexity":  "simple",
+	})
+	if err != nil {
+		panic(err)
+	}
+	return raw
 }
 
 func loungeStampDefinitionJSON(assetID string) json.RawMessage {

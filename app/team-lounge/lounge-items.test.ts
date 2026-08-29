@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { statSync } from "node:fs";
+import { join } from "node:path";
 
 import {
   includedLoungeItems,
@@ -58,14 +60,34 @@ describe("development Lounge items", () => {
       "lion",
       "beach-ball",
     ]);
+    expect(
+      includedLoungeItems.filter(({ kind }) => kind === "lounge_prop"),
+    ).toMatchObject([
+      {
+        id: "camp-lantern",
+        imageSrc: "/team-lounge/items/camp-lantern-v1.png",
+      },
+      {
+        id: "pennant-flag",
+        imageSrc: "/team-lounge/items/pennant-flag-v1.png",
+      },
+      {
+        id: "water-cooler",
+        imageSrc: "/team-lounge/items/water-cooler-v1.png",
+      },
+      {
+        id: "training-cone",
+        imageSrc: "/team-lounge/items/training-cone-v1.png",
+      },
+    ]);
   });
 
   it("gives every placeable item a durable transparent definition", () => {
-    expect(loungeItemDefinitions).toHaveLength(11);
+    expect(loungeItemDefinitions).toHaveLength(15);
     expect(
       new Set(loungeItemDefinitions.map(({ definitionId }) => definitionId))
         .size,
-    ).toBe(11);
+    ).toBe(15);
     expect(
       loungeItemDefinitions.every(({ persistence }) => persistence?.transform),
     ).toBe(true);
@@ -74,5 +96,16 @@ describe("development Lounge items", () => {
         ({ definitionId }) => definitionId === "zoomigo-prop-beach-ball",
       ),
     ).toMatchObject({ behaviorType: "zoomigoLoungeBall" });
+    expect(
+      loungeItemDefinitions.filter(({ definitionId }) =>
+        definitionId.startsWith("zoomigo-prop-starlight-"),
+      ),
+    ).toHaveLength(4);
+    for (const item of includedLoungeItems.filter(({ imageSrc }) => imageSrc)) {
+      const asset = statSync(
+        join(process.cwd(), "public", item.imageSrc!.replace(/^\//, "")),
+      );
+      expect(asset.size).toBeLessThanOrEqual(256 * 1024);
+    }
   });
 });

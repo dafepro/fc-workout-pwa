@@ -226,7 +226,7 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 
 func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 	catalog := BeachBoardwalkLoungeCatalog()
-	if len(catalog.Items) != 14 {
+	if len(catalog.Items) != 18 {
 		t.Fatalf("development item count = %d", len(catalog.Items))
 	}
 	for _, item := range catalog.Items[3:13] {
@@ -234,7 +234,12 @@ func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 			t.Fatalf("development item = %#v", item)
 		}
 	}
-	if item := catalog.Items[13]; item.DefinitionID != "zoomigo-prop-beach-ball" || item.Version != 2 {
+	for _, item := range catalog.Items[13:17] {
+		if !strings.HasPrefix(item.DefinitionID, "zoomigo-prop-starlight-") || item.Version != 1 {
+			t.Fatalf("included Starlight item = %#v", item)
+		}
+	}
+	if item := catalog.Items[17]; item.DefinitionID != "zoomigo-prop-beach-ball" || item.Version != 2 {
 		t.Fatalf("development prop = %#v", item)
 	}
 }

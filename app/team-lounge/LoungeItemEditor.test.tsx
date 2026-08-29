@@ -37,9 +37,11 @@ describe("LoungeItemEditor", () => {
       />,
     );
 
-    expect(
-      screen.getByRole("group", { name: "Edit selected stamp" }),
-    ).toBeVisible();
+    const editor = screen.getByRole("group", { name: "Edit selected stamp" });
+    expect(editor).toBeVisible();
+    expect(editor.style.getPropertyValue("--editor-x")).toBe("120px");
+    expect(editor.style.getPropertyValue("--editor-y")).toBe("180px");
+    expect(editor).toHaveAttribute("data-layout", "radial");
     fireEvent.click(screen.getByRole("button", { name: "Make stamp larger" }));
     expect(onScale).toHaveBeenCalledWith(item, 1.1);
     fireEvent.click(
@@ -49,6 +51,51 @@ describe("LoungeItemEditor", () => {
     expect(onRotate.mock.calls[0]?.[1]).toBeCloseTo(Math.PI / 12);
     fireEvent.click(screen.getByRole("button", { name: "Finish editing" }));
     expect(onFinish).toHaveBeenCalled();
+  });
+
+  it("moves the radial controls with the selected item projection", () => {
+    const props = {
+      selectedEntityID: item.entityID,
+      pending: false,
+      dragging: null,
+      onSelect: vi.fn(),
+      onMove: vi.fn(),
+      onRotate: vi.fn(),
+      onScale: vi.fn(),
+      onDelete: vi.fn(),
+      onFinish: vi.fn(),
+      onDragStateChange: vi.fn(),
+    };
+    const { rerender } = render(<LoungeItemEditor items={[item]} {...props} />);
+
+    fireEvent.pointerDown(
+      screen.getByRole("button", {
+        name: "Bolt stamp, yours; tap or drag to move",
+      }),
+      { pointerId: 7, clientX: 120, clientY: 180 },
+    );
+    fireEvent.pointerMove(document, {
+      pointerId: 7,
+      clientX: 140,
+      clientY: 200,
+    });
+    const movingEditor = screen.getByRole("group", {
+      name: "Edit selected stamp",
+    });
+    expect(movingEditor.style.getPropertyValue("--editor-x")).toBe("140px");
+    expect(movingEditor.style.getPropertyValue("--editor-y")).toBe("200px");
+    fireEvent.pointerCancel(document, { pointerId: 7 });
+
+    rerender(
+      <LoungeItemEditor
+        items={[{ ...item, screen: { x: 210, y: 95 } }]}
+        {...props}
+      />,
+    );
+
+    const editor = screen.getByRole("group", { name: "Edit selected stamp" });
+    expect(editor.style.getPropertyValue("--editor-x")).toBe("210px");
+    expect(editor.style.getPropertyValue("--editor-y")).toBe("95px");
   });
 
   it("keeps teammate and earlier-day items non-interactive", () => {

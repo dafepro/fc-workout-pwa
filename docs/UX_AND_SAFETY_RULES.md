@@ -45,6 +45,12 @@ Players may send predefined reactions only:
 - Robot Leg
 - Do It
 
+The Team Lounge may also show a small reviewed set of supportive quick-message
+bubbles. They use predefined IDs and copy only: there is no typing, arbitrary
+payload, recipient selection, inbox, transcript, persistence, or moderation
+queue. Quick messages share the Lounge reaction cooldown and disappear from the
+sender's avatar after the same short display window as an emote.
+
 Reactions should feel supportive. Avoid public negative reactions or downvotes.
 
 ## Effort and exhaustion

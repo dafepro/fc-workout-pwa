@@ -22,12 +22,14 @@ experiments.
 - The physical iOS Safari and Android Chrome acceptance budgets are recorded in
   `TEAM_LOUNGE_PERFORMANCE_BUDGET.md`; execution remains part of the broader
   physical-device release gate below.
-- Decide whether the historical disabled Map placeholder should become real
-  camera navigation after the secured editor lands. The reference branch's
-  button had no map behavior and only said that the room fit on one screen.
-- Design a second approved theme before adding theme scheduling or rollback UI.
-- Review any future predefined quick phrases separately; typed chat remains out
-  of scope.
+- Decided 2026-08-28: no Map control ships while the Lounge fits one viewport.
+  A future larger room must define bounded camera navigation before adding a
+  visible action; the historical disabled placeholder remains retired.
+- Review and approve the Starlight Training Camp candidate in
+  `TEAM_LOUNGE_STARLIGHT_CAMP.md` before adding theme scheduling or rollback UI.
+- Delivered 2026-08-28: five predefined supportive quick-message bubbles share
+  the authenticated emote path and cooldown. Typed chat, history, recipients,
+  and free-form payloads remain out of scope.
 
 ## Release quality
 

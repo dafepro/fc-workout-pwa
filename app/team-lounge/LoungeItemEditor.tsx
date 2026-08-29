@@ -13,11 +13,13 @@ import {
   clampLoungeItemScale,
   nextLoungeItemRotation,
 } from "./lounge-editor-geometry";
+import { LoungeItemArt } from "./LoungeItemArt";
 
 export interface LoungeEditableItem {
   entityID: string;
   label: string;
   glyph: string;
+  imageSrc?: string;
   category: "stamp" | "item";
   editable: boolean;
   owner: "current" | "teammate";
@@ -70,6 +72,14 @@ export function LoungeItemEditor({
   const dragRef = useRef<DragState | null>(null);
   const [preview, setPreview] = useState<DragState | null>(null);
   const selected = items.find(({ entityID }) => entityID === selectedEntityID);
+  const selectedScreen = selected
+    ? preview?.item.entityID === selected.entityID
+      ? {
+          x: selected.screen.x + preview.current.x - preview.start.x,
+          y: selected.screen.y + preview.current.y - preview.start.y,
+        }
+      : selected.screen
+    : undefined;
 
   useEffect(() => {
     const overTrash = (event: PointerEvent) => {
@@ -170,7 +180,7 @@ export function LoungeItemEditor({
               onDragStateChange({ entityID: item.entityID, overTrash: false });
             }}
           >
-            {item.glyph}
+            <LoungeItemArt item={item} decorative />
           </button>
         ) : (
           <span
@@ -180,20 +190,30 @@ export function LoungeItemEditor({
             role="img"
             aria-label={label}
           >
-            {item.glyph}
+            <LoungeItemArt item={item} decorative />
           </span>
         );
       })}
-      {selected && !dragging ? (
+      {selected && selectedScreen ? (
         <div
           className="team-lounge__item-editor"
           role="group"
           aria-label={`Edit selected ${selected.category}`}
+          data-layout="radial"
+          data-dragging={dragging?.entityID === selected.entityID || undefined}
           data-canvas-pointer-ignore="true"
+          style={
+            {
+              "--editor-x": `${selectedScreen.x}px`,
+              "--editor-y": `${selectedScreen.y}px`,
+            } as CSSProperties
+          }
         >
+          <span className="team-lounge__item-editor-ring" aria-hidden="true" />
           <div role="group" aria-label={`${titleCase(selected.category)} size`}>
             <button
               type="button"
+              className="team-lounge__item-editor-control team-lounge__item-editor-control--smaller"
               aria-label={`Make ${selected.category} smaller`}
               disabled={pending || selected.transform.scale <= 0.75}
               onClick={() =>
@@ -207,6 +227,7 @@ export function LoungeItemEditor({
             </button>
             <button
               type="button"
+              className="team-lounge__item-editor-control team-lounge__item-editor-control--larger"
               aria-label={`Make ${selected.category} larger`}
               disabled={pending || selected.transform.scale >= 1.4}
               onClick={() =>
@@ -221,6 +242,7 @@ export function LoungeItemEditor({
           </div>
           <button
             type="button"
+            className="team-lounge__item-editor-control team-lounge__item-editor-control--rotate-left"
             aria-label={`Rotate ${selected.category} left 15 degrees`}
             disabled={pending}
             onClick={() =>
@@ -234,6 +256,7 @@ export function LoungeItemEditor({
           </button>
           <button
             type="button"
+            className="team-lounge__item-editor-control team-lounge__item-editor-control--rotate-right"
             aria-label={`Rotate ${selected.category} right 15 degrees`}
             disabled={pending}
             onClick={() =>
@@ -245,7 +268,12 @@ export function LoungeItemEditor({
           >
             ↻
           </button>
-          <button type="button" disabled={pending} onClick={onFinish}>
+          <button
+            type="button"
+            className="team-lounge__item-editor-control team-lounge__item-editor-control--finish"
+            disabled={pending}
+            onClick={onFinish}
+          >
             Finish editing
           </button>
         </div>

@@ -11,10 +11,6 @@ the Team Lounge.
 
 ## P2 — deliberate cleanup and product decisions
 
-- **Decide whether the Lounge needs a real Map action.** The historical Map
-  button was disabled and only stated that the room fit on one screen; do not
-  restore a dead control. Define camera navigation first if the secured room
-  grows beyond one viewport.
 - **Propose bounded edit leases to Canvas.** Ask for a short-lived capability
   that lets ZoomiGo validate one owner/entity/revision edit session, then lets
   Canvas accept rate- and sequence-limited move, rotate, and scale targets
