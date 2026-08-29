@@ -69,6 +69,12 @@ to resolve, not the implementing agent's.
   explicit destructive workflow operation, and destroy is manual rather than a
   scheduled TTL. No real youth data, production credential, or production
   secret may enter this environment.
+- Decided 2026-08-29: disposable dev may authorize one repository-variable
+  Ed25519 operator key for direct troubleshooting as the unprivileged `zoomigo`
+  user. Trusted `main` reconciles the key, publishes only its already-pinned
+  endpoint metadata for one day, and retains strict host checking. This grants
+  no production access and does not authorize copying the SQLite database or
+  exposing container environments.
 
 ## Goals and workload
 
