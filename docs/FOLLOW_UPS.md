@@ -34,9 +34,6 @@ the Team Lounge.
 - **Define production access to developer controls.** Dev-only player and staff
   panels remain excluded from the production build. If they return in production,
   require an explicit administrator capability rather than a build-time shortcut.
-- **Add image-level visual regression coverage.** Existing component and 320px
-  browser tests protect structure, behavior, and overflow. A reviewed screenshot
-  baseline would catch subtler future color, spacing, and card-style drift.
 - **Upgrade GitHub Actions off deprecated Node 20 runtimes.** Dev run 33175103074
   warned that several pinned action majors are being forced onto Node 24; validate
   and pin compatible current majors before GitHub removes the compatibility path.

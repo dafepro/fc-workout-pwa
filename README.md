@@ -25,6 +25,11 @@ Run `./scripts/install-git-hooks.sh` once per clone. It points `core.hooksPath`
 at `scripts/git-hooks`, whose `pre-commit` hook rejects a commit whose staged
 files would fail the `pnpm format` gate in CI.
 
+The focused 320px Team Lounge image comparison is `pnpm test:e2e:visual`.
+Intentional baseline updates use `pnpm test:e2e:visual:update` and must be
+reviewed image by image. Both commands run through the pinned Linux Playwright
+container; see `docs/VISUAL_REGRESSION.md` for the approval contract.
+
 ## Suggested prototype boundaries
 
 - Player-facing experience only.

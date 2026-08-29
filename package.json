@@ -11,6 +11,8 @@
     "start": "vinext start",
     "test": "vitest run",
     "test:e2e": "./scripts/e2e.sh",
+    "test:e2e:visual": "./scripts/e2e-visual.sh",
+    "test:e2e:visual:update": "./scripts/e2e-visual.sh --update-snapshots",
     "test:browser": "playwright test",
     "test:vm": "./scripts/vm-smoke.sh",
     "verify:worker-upload": "node scripts/verify-worker-upload.mjs",

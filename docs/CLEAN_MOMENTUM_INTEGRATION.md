@@ -220,7 +220,7 @@ Each step is test-first and small enough to review independently.
 - The machine-readable contract and focused tests reuse the existing one-use
   permit and WebSocket limits; Map and compatibility paths remain absent,
   production remains one API replica, and optimistic poor-connection work stays
-  in issue #5.
+  deferred without a matching GitHub issue.
 - The Map decision is closed: no action ships until a future room requires and
   defines real bounded camera navigation.
 - Starlight Training Camp adds one unscheduled second-theme review asset plus
@@ -253,3 +253,7 @@ Each step is test-first and small enough to review independently.
   outranks the lower-priority background page-scroll gesture. Development builds
   add a temporary Beach/Starlight preview and current-player predefined Lounge
   unlock control; production gains no staff shortcut or broader mutation path.
+- Reviewed Linux image baselines now guard the 320px Lounge's idle dock, React
+  tray, compact and expanded Chat states, and radial Stamp editor. Focused
+  compare and update commands always use the pinned Playwright container, and
+  baseline changes require image-by-image review rather than host snapshots.

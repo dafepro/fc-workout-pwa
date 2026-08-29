@@ -459,8 +459,8 @@ to resolve, not the implementing agent's.
   MiB, reconnect at 384 KiB, and total session traffic at 12 MiB.
 - The existing exact one-use edit-permit and WebSocket budgets remain part of
   the same gate. Production remains one API replica; no Map, compatibility
-  path, or optimistic poor-connection behavior is introduced. The last item
-  remains tracked in issue #5.
+  path, or optimistic poor-connection behavior is introduced. Poor-connection
+  optimism remains deferred and currently has no matching GitHub issue.
 - This decision records budgets, not invented physical measurements. Both
   reference devices must populate the qualification record before a broad
   Lounge release; desktop automation protects only the deterministic subset.

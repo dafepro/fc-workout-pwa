@@ -6,7 +6,8 @@ must record its measurements in the table below before a broad Lounge release.
 
 The budget does not authorize a Map, compatibility route, extra API replica, or
 weaker mutation authority. Move, rotate, scale, and delete retain their exact
-owner-bound one-use permits. Canvas poor-connection optimism remains issue #5.
+owner-bound one-use permits. Canvas poor-connection optimism remains deferred;
+there is currently no matching GitHub issue.
 
 ## Reference devices
 
@@ -60,7 +61,7 @@ the reconnect trials after a five-second full disconnect. Repeat five cold-load
 and five reconnect trials with the platform network conditioner set to 1.6 Mbps
 down, 750 Kbps up, and 150 ms round-trip latency. The poor-connection sample
 must preserve authoritative rollback and reconnection; it does not require the
-optimistic interaction work tracked in issue #5.
+optimistic interaction work remains a separate untracked follow-up.
 
 Use Safari Web Inspector Timelines plus the device process memory report on iOS.
 Use Chrome remote DevTools Performance and the renderer process memory report on
