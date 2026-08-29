@@ -36,6 +36,10 @@ Canvas before the catalog exposes them.
   camp lantern, pennant flag, water cooler, and training cone are stamps.
 - The earned beach ball is an item because it has a dynamic body, solid and kick
   colliders, and the Lounge ball behavior.
+- Boost pad, bounce drum, pinwheel, orbit beacon, breeze fan, soft sand mat,
+  speed lane, wobble cone, swing gate, and mini goal are included items. Each
+  declares two compatible effects through the shared deterministic composite
+  behavior and exposes matching solid or sensor collider geometry.
 
 The four Starlight definition IDs retain their existing `zoomigo-prop-` names so
 durable generation-13 rooms do not need a compatibility import or destructive

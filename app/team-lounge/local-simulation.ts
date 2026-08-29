@@ -40,10 +40,12 @@ export function startLocalBeachBoardwalkSimulation({
   const unsubscribe = driver.onMessage((message: SimulationResponse) => {
     if (message.generation !== generation || stopped) return;
     if (message.type === "ready") {
-      driver.send({
-        type: "addItem",
-        instance: systemItemInstance(beachBoardwalkCanvas.systemItems[0]),
-      });
+      for (const item of beachBoardwalkCanvas.systemItems) {
+        driver.send({
+          type: "addItem",
+          instance: systemItemInstance(item),
+        });
+      }
       settleReady?.();
       settleReady = undefined;
       rejectReady = undefined;

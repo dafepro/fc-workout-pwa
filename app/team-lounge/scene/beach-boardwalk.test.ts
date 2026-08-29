@@ -28,6 +28,7 @@ describe("Beach Boardwalk collision contract", () => {
       collisionMask: CollisionLayer.WORLD_STATIC,
       restitution: 0.95,
       friction: 0.05,
+      tags: ["lounge-ball"],
     });
     expect(beachBallDefinition.body?.linearDamping).toBe(0.05);
     expect(beachBoardwalkCanvas.environment.base.linearDrag).toBe(0.03);

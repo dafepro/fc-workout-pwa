@@ -82,6 +82,22 @@ describe("Lounge action dock", () => {
     ).toBeNull();
 
     fireEvent.click(screen.getByRole("tab", { name: "Items" }));
+    for (const label of [
+      "Boost pad",
+      "Bounce drum",
+      "Pinwheel",
+      "Orbit beacon",
+      "Breeze fan",
+      "Soft sand mat",
+      "Speed lane",
+      "Wobble cone",
+      "Swing gate",
+      "Mini goal",
+    ]) {
+      expect(
+        screen.getByRole("button", { name: `Choose ${label} item` }),
+      ).toBeVisible();
+    }
     const beachBall = screen.getByRole("button", {
       name: "Choose Beach ball item",
     });

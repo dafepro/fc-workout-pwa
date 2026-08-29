@@ -397,6 +397,19 @@ to resolve, not the implementing agent's.
   lime-and-white ring plus a small sparkle marker. This avoids another visible
   `You` label while preserving an accessible `, you` name.
 
+## Team Lounge composite items (2026-08-29)
+
+- Implementation assumption: boost pad, bounce drum, pinwheel, orbit beacon,
+  breeze fan, soft sand mat, speed lane, wobble cone, swing gate, and mini goal
+  are included Lounge basics rather than Prize Box unlocks. They still consume
+  the same earned weekly placement credits as every other Lounge object.
+- Every item combines at least two predefined Canvas behaviors. Their effects
+  are playful room interactions only: they award no points, publish no player
+  result, and do not change training, Momentum, or leaderboard data.
+- The mini goal recognizes only the tagged predefined Lounge ball, dampens it
+  briefly inside the goal mouth, then returns it to the boardwalk ball spawn.
+  Other player-placed items cannot trigger a score or be teleported by it.
+
 ## Canvas 0.6 Lounge authority (2026-08-28)
 
 - Canvas generation 10 is a clean cutover: ZoomiGo does not import pre-0.6

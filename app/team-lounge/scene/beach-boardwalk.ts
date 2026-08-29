@@ -32,6 +32,7 @@ export const beachBallDefinition: ItemDefinition = {
       restitution: 0.95,
       friction: 0.05,
       collisionMask: CollisionLayer.WORLD_STATIC,
+      tags: ["lounge-ball"],
     },
     { id: "kick", role: "itemSensor", shape: { type: "circle", radius: 5.8 } },
   ],

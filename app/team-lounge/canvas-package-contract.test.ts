@@ -56,5 +56,14 @@ describe("Canvas package contract", () => {
 
     const goModule = await readFile(resolve(root, "backend/go.mod"), "utf8");
     expect(goModule).toMatch(/github\.com\/dafepro\/canvas\/server v0\.6\.0/u);
+
+    const worker = await readFile(
+      resolve(root, "app/team-lounge/canvas.worker.ts"),
+      "utf8",
+    );
+    expect(worker).toContain("LoungeCompositeBehavior");
+    expect(worker).toMatch(
+      /installSimulationWorker\([\s\S]*LoungeBallBehavior,[\s\S]*LoungeActionBehavior,[\s\S]*LoungeCompositeBehavior/u,
+    );
   });
 });
