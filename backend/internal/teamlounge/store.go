@@ -652,6 +652,11 @@ func loungePlacementItem(definitionID string) (string, bool) {
 	if strings.HasPrefix(definitionID, "zoomigo-prop-starlight-") {
 		return definitionID, true
 	}
+	for _, spec := range loungeCompositeItemSpecs {
+		if definitionID == "zoomigo-prop-play-"+spec.ID {
+			return definitionID, true
+		}
+	}
 	const prefix = "zoomigo-stamp-"
 	if len(definitionID) > len(prefix) && definitionID[:len(prefix)] == prefix {
 		itemID := "lounge-stamp-" + definitionID[len(prefix):]

@@ -9,6 +9,7 @@ import {
 } from "vitest";
 import type { RenderEntity } from "@canvas-physics/client";
 
+import { LoungeActionBehavior } from "./lounge-action-behavior";
 import { LoungeBallBehavior } from "./lounge-ball-behavior";
 import { startLocalBeachBoardwalkSimulation } from "./local-simulation";
 
@@ -48,13 +49,23 @@ describe("canonical local Lounge simulation", () => {
 
     await simulation.ready;
 
-    const seeded = requests.find(({ type }) => type === "addItem") as {
-      instance?: { itemRevision?: number; sceneRevision?: number };
-    };
-    expect(seeded.instance).toMatchObject({
-      itemRevision: 1,
-      sceneRevision: 1,
-    });
+    const seeded = requests.filter(({ type }) => type === "addItem") as {
+      instance?: {
+        definitionId?: string;
+        itemRevision?: number;
+        sceneRevision?: number;
+      };
+    }[];
+    expect(seeded.map(({ instance }) => instance?.definitionId)).toEqual([
+      "beach-ball",
+      "zoomigo-lounge-action-router",
+    ]);
+    expect(
+      seeded.every(
+        ({ instance }) =>
+          instance?.itemRevision === 1 && instance.sceneRevision === 1,
+      ),
+    ).toBe(true);
   }, 15_000);
 
   it("presents the player and lets a direct-drag target move them", async () => {
@@ -62,7 +73,10 @@ describe("canonical local Lounge simulation", () => {
     let entities: RenderEntity[] = [];
     const simulation = startLocalBeachBoardwalkSimulation({
       playerID: "mason",
-      driver: SimulationDriver.local([LoungeBallBehavior]),
+      driver: SimulationDriver.local([
+        LoungeBallBehavior,
+        LoungeActionBehavior,
+      ]),
       onRender(next) {
         entities = next;
       },
@@ -93,7 +107,10 @@ describe("canonical local Lounge simulation", () => {
     let entities: RenderEntity[] = [];
     const simulation = startLocalBeachBoardwalkSimulation({
       playerID: "mason",
-      driver: SimulationDriver.local([LoungeBallBehavior]),
+      driver: SimulationDriver.local([
+        LoungeBallBehavior,
+        LoungeActionBehavior,
+      ]),
       onRender(next) {
         entities = next;
       },
@@ -139,7 +156,10 @@ describe("canonical local Lounge simulation", () => {
     let entities: RenderEntity[] = [];
     const simulation = startLocalBeachBoardwalkSimulation({
       playerID: "mason",
-      driver: SimulationDriver.local([LoungeBallBehavior]),
+      driver: SimulationDriver.local([
+        LoungeBallBehavior,
+        LoungeActionBehavior,
+      ]),
       onRender(next) {
         entities = next;
       },
@@ -166,7 +186,10 @@ describe("canonical local Lounge simulation", () => {
     let entities: RenderEntity[] = [];
     const simulation = startLocalBeachBoardwalkSimulation({
       playerID: "mason",
-      driver: SimulationDriver.local([LoungeBallBehavior]),
+      driver: SimulationDriver.local([
+        LoungeBallBehavior,
+        LoungeActionBehavior,
+      ]),
       onRender(next) {
         entities = next;
       },
@@ -210,7 +233,10 @@ describe("canonical local Lounge simulation", () => {
     let peakLeftwardBounceSpeed = 0;
     const simulation = startLocalBeachBoardwalkSimulation({
       playerID: "mason",
-      driver: SimulationDriver.local([LoungeBallBehavior]),
+      driver: SimulationDriver.local([
+        LoungeBallBehavior,
+        LoungeActionBehavior,
+      ]),
       onRender(next) {
         entities = next;
         const ball = next.find(({ id }) => id === "boardwalk-beach-ball");

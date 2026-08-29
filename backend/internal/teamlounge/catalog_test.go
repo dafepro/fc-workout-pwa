@@ -215,15 +215,16 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 			SpriteID string `json:"spriteId"`
 		} `json:"visual"`
 		Colliders []struct {
-			ID            string  `json:"id"`
-			CollisionMask uint32  `json:"collisionMask"`
-			Restitution   float64 `json:"restitution"`
+			ID            string   `json:"id"`
+			CollisionMask uint32   `json:"collisionMask"`
+			Restitution   float64  `json:"restitution"`
+			Tags          []string `json:"tags"`
 		} `json:"colliders"`
 	}
 	if err := json.Unmarshal(catalog.Items[0].DefinitionRaw, &ball); err != nil {
 		t.Fatal(err)
 	}
-	if ball.Version != 6 || ball.Visual.SpriteID != "lounge.ball" || len(ball.Colliders) < 1 || ball.Colliders[0].CollisionMask != 4 || ball.Colliders[0].Restitution != 0.95 {
+	if ball.Version != 6 || ball.Visual.SpriteID != "lounge.ball" || len(ball.Colliders) < 1 || ball.Colliders[0].CollisionMask != 4 || ball.Colliders[0].Restitution != 0.95 || len(ball.Colliders[0].Tags) != 1 || ball.Colliders[0].Tags[0] != "lounge-ball" {
 		t.Fatalf("beach ball definition = %#v", ball)
 	}
 	var avatar struct {
@@ -241,7 +242,7 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 
 func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 	catalog := BeachBoardwalkLoungeCatalog()
-	if len(catalog.Items) != 18 {
+	if len(catalog.Items) != 28 {
 		t.Fatalf("development item count = %d", len(catalog.Items))
 	}
 	for _, item := range catalog.Items[3:13] {
@@ -254,7 +255,66 @@ func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 			t.Fatalf("included Starlight item = %#v", item)
 		}
 	}
-	if item := catalog.Items[17]; item.DefinitionID != "zoomigo-prop-beach-ball" || item.Version != 3 {
+	combinations := map[string]bool{}
+	wantComposite := []struct {
+		id      string
+		effects []string
+	}{
+		{"boost-pad", []string{"boost", "hop"}},
+		{"bounce-drum", []string{"bounce", "wobble"}},
+		{"pinwheel", []string{"spin", "push"}},
+		{"orbit-beacon", []string{"spin", "orbit"}},
+		{"breeze-fan", []string{"spin", "push"}},
+		{"soft-sand-mat", []string{"dampen", "orbit"}},
+		{"speed-lane", []string{"boost", "push"}},
+		{"wobble-cone", []string{"bounce", "wobble"}},
+		{"swing-gate", []string{"swing", "bounce"}},
+		{"mini-goal", []string{"dampen", "goal"}},
+	}
+	for index, item := range catalog.Items[17:27] {
+		want := wantComposite[index]
+		if item.DefinitionID != "zoomigo-prop-play-"+want.id || item.Version != 1 {
+			t.Fatalf("composite Lounge item = %#v", item)
+		}
+		var definition struct {
+			BehaviorType  string           `json:"behaviorType"`
+			Body          map[string]any   `json:"body"`
+			Colliders     []map[string]any `json:"colliders"`
+			DefaultConfig struct {
+				Effects []map[string]any `json:"effects"`
+			} `json:"defaultConfig"`
+		}
+		if err := json.Unmarshal(item.DefinitionRaw, &definition); err != nil {
+			t.Fatal(err)
+		}
+		if definition.BehaviorType != "zoomigoLoungeComposite" || len(definition.Colliders) == 0 || len(definition.DefaultConfig.Effects) < 2 {
+			t.Fatalf("composite Lounge definition = %#v", definition)
+		}
+		for effectIndex, effect := range definition.DefaultConfig.Effects {
+			if effect["kind"] != want.effects[effectIndex] {
+				t.Fatalf("%s effect %d = %#v", want.id, effectIndex, effect)
+			}
+		}
+		combination, err := json.Marshal(definition.DefaultConfig.Effects)
+		if err != nil {
+			t.Fatal(err)
+		}
+		combinations[string(combination)] = true
+	}
+	if len(combinations) != 10 {
+		t.Fatalf("composite behavior combinations = %d", len(combinations))
+	}
+	if item := catalog.Items[27]; item.DefinitionID != "zoomigo-prop-beach-ball" || item.Version != 3 {
 		t.Fatalf("development prop = %#v", item)
+	}
+}
+
+func TestCompositeLoungeItemsAreIncludedButUnrecognizedDefinitionsStayLocked(t *testing.T) {
+	itemID, included := loungePlacementItem("zoomigo-prop-play-boost-pad")
+	if itemID != "zoomigo-prop-play-boost-pad" || !included {
+		t.Fatalf("composite placement item = %q, included %v", itemID, included)
+	}
+	if itemID, included := loungePlacementItem("zoomigo-prop-play-custom"); itemID != "" || included {
+		t.Fatalf("unknown composite placement item = %q, included %v", itemID, included)
 	}
 }

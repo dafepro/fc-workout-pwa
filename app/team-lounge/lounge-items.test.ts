@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import {
@@ -11,6 +11,19 @@ import {
 import { beachBoardwalkAssets } from "./scene/assets";
 
 describe("development Lounge items", () => {
+  const compositeItemIDs = [
+    "boost-pad",
+    "bounce-drum",
+    "pinwheel",
+    "orbit-beacon",
+    "breeze-fan",
+    "soft-sand-mat",
+    "speed-lane",
+    "wobble-cone",
+    "swing-gate",
+    "mini-goal",
+  ];
+
   it("offers included stamps plus only earned Lounge inventory", () => {
     const choices = loungeItemChoices([
       {
@@ -63,7 +76,9 @@ describe("development Lounge items", () => {
       "beach-ball",
     ]);
     expect(
-      includedLoungeItems.filter(({ imageSrc }) => imageSrc),
+      includedLoungeItems.filter(({ definitionId }) =>
+        definitionId.startsWith("zoomigo-prop-starlight-"),
+      ),
     ).toMatchObject([
       {
         id: "camp-lantern",
@@ -89,11 +104,11 @@ describe("development Lounge items", () => {
   });
 
   it("gives every placeable item a durable transparent definition", () => {
-    expect(loungeItemDefinitions).toHaveLength(15);
+    expect(loungeItemDefinitions).toHaveLength(25);
     expect(
       new Set(loungeItemDefinitions.map(({ definitionId }) => definitionId))
         .size,
-    ).toBe(15);
+    ).toBe(25);
     expect(
       loungeItemDefinitions.every(({ persistence }) => persistence?.transform),
     ).toBe(true);
@@ -117,6 +132,103 @@ describe("development Lounge items", () => {
       id: "lounge.stamp.transparent",
       sourceId: "lounge-transparent-source",
     });
+  });
+
+  it("ships ten unique included props with two or more compatible effects", () => {
+    const props = includedLoungeItems.filter(({ id }) =>
+      compositeItemIDs.includes(id),
+    );
+
+    expect(props.map(({ id }) => id)).toEqual(compositeItemIDs);
+    expect(new Set(props.map(({ definitionId }) => definitionId)).size).toBe(
+      10,
+    );
+    expect(props.every(({ kind }) => kind === "lounge_prop")).toBe(true);
+    expect(props.every(({ imageSrc }) => imageSrc?.endsWith("-v1.png"))).toBe(
+      true,
+    );
+
+    const combinations = props.map((prop) => {
+      const definition = loungeItemDefinitions.find(
+        ({ definitionId }) => definitionId === prop.definitionId,
+      );
+      expect(definition).toMatchObject({
+        behaviorType: "zoomigoLoungeComposite",
+      });
+      const effects = (definition?.defaultConfig as { effects?: unknown[] })
+        ?.effects;
+      expect(effects?.length).toBeGreaterThanOrEqual(2);
+      expect(definition?.colliders.length).toBeGreaterThan(0);
+      return JSON.stringify(effects);
+    });
+    expect(new Set(combinations).size).toBe(10);
+  });
+
+  it("binds every configured sensor effect to a real bounded collider", () => {
+    const definitions = loungeItemDefinitions.filter(({ definitionId }) =>
+      definitionId.startsWith("zoomigo-prop-play-"),
+    );
+
+    expect(definitions).toHaveLength(10);
+    for (const definition of definitions) {
+      const colliderIDs = new Set(definition.colliders.map(({ id }) => id));
+      const config = definition.defaultConfig as {
+        effects: { kind: string; sensorId?: string }[];
+      };
+      for (const effect of config.effects) {
+        if (effect.sensorId)
+          expect(colliderIDs.has(effect.sensorId)).toBe(true);
+      }
+
+      for (const collider of definition.colliders) {
+        if (collider.role === "itemSolid") {
+          const offset = collider.offset ?? { x: 0, y: 0 };
+          const halfWidth =
+            collider.shape.type === "circle"
+              ? collider.shape.radius
+              : collider.shape.type === "rect"
+                ? collider.shape.width / 2
+                : 0;
+          const halfHeight =
+            collider.shape.type === "circle"
+              ? collider.shape.radius
+              : collider.shape.type === "rect"
+                ? collider.shape.height / 2
+                : 0;
+          expect(Math.abs(offset.x) + halfWidth).toBeLessThanOrEqual(
+            definition.visual.size.width / 2,
+          );
+          expect(Math.abs(offset.y) + halfHeight).toBeLessThanOrEqual(
+            definition.visual.size.height / 2,
+          );
+        } else {
+          const diameter =
+            collider.shape.type === "circle"
+              ? collider.shape.radius * 2
+              : collider.shape.type === "rect"
+                ? Math.max(collider.shape.width, collider.shape.height)
+                : 0;
+          expect(diameter).toBeGreaterThan(0);
+          expect(diameter).toBeLessThanOrEqual(20);
+        }
+      }
+    }
+  });
+
+  it("stores every generated sprite as a bounded RGBA PNG", () => {
+    for (const item of includedLoungeItems.filter(({ definitionId }) =>
+      definitionId.startsWith("zoomigo-prop-play-"),
+    )) {
+      const bytes = readFileSync(
+        join(process.cwd(), "public", item.imageSrc!.replace(/^\//, "")),
+      );
+      expect(bytes.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
+      const width = bytes.readUInt32BE(16);
+      const height = bytes.readUInt32BE(20);
+      expect(Math.max(width, height)).toBeLessThanOrEqual(384);
+      expect(Math.min(width, height)).toBeGreaterThanOrEqual(96);
+      expect(bytes[25]).toBe(6);
+    }
   });
 
   it("keeps stamps decorative and requires every item to declare engine capabilities", () => {

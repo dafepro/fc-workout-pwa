@@ -160,12 +160,190 @@ func BeachBoardwalkLoungeCatalog() Catalog {
 			DefinitionRaw: loungeStaticPropDefinitionJSON(assetID),
 		})
 	}
+	for _, spec := range loungeCompositeItemSpecs {
+		catalog.Items = append(catalog.Items, roomsdk.ItemDefinitionRecord{
+			DefinitionID:  "zoomigo-prop-play-" + spec.ID,
+			Version:       1,
+			Complexity:    roomsdk.ItemComplexitySimple,
+			ConfigSchema:  json.RawMessage(loungeCompositeConfigSchemaJSON),
+			DefinitionRaw: loungeCompositeItemDefinitionJSON(spec),
+		})
+	}
 	catalog.Items = append(catalog.Items, roomsdk.ItemDefinitionRecord{
 		DefinitionID: "zoomigo-prop-beach-ball", Version: 3,
 		Complexity: roomsdk.ItemComplexitySimple, ConfigSchema: json.RawMessage(loungeBallConfigSchemaJSON),
 		DefinitionRaw: json.RawMessage(beachBallPropDefinitionJSON),
 	})
 	return catalog
+}
+
+type loungeCompositeItemSpec struct {
+	ID          string
+	DisplayName string
+	Width       float64
+	Height      float64
+	Body        map[string]any
+	Colliders   []map[string]any
+	Effects     []map[string]any
+}
+
+var loungeCompositeItemSpecs = []loungeCompositeItemSpec{
+	{
+		ID: "boost-pad", DisplayName: "Boost pad", Width: 9, Height: 14,
+		Body: loungeFixedBody(), Colliders: []map[string]any{loungeSensorRect("zone", 7, 12)},
+		Effects: []map[string]any{
+			{"kind": "boost", "sensorId": "zone", "speed": 18, "directionRadians": -1.5707963267948966},
+			{"kind": "hop", "sensorId": "zone", "elevationSpeed": 5},
+		},
+	},
+	{
+		ID: "bounce-drum", DisplayName: "Bounce drum", Width: 12, Height: 12,
+		Body: loungeDynamicBody(7, 0.7), Colliders: []map[string]any{
+			loungeSolidCircle("solid", 5), loungeSensorCircle("bumper", 6),
+		},
+		Effects: []map[string]any{
+			{"kind": "bounce", "sensorId": "bumper", "impulse": 15},
+			{"kind": "wobble", "sensorId": "bumper", "torque": 4},
+		},
+	},
+	{
+		ID: "pinwheel", DisplayName: "Pinwheel", Width: 11, Height: 11,
+		Body: loungeKinematicBody(), Colliders: []map[string]any{loungeSensorCircle("air", 6.5)},
+		Effects: []map[string]any{
+			{"kind": "spin", "angularVelocity": 2.8},
+			{"kind": "push", "sensorId": "air", "force": 6},
+		},
+	},
+	{
+		ID: "orbit-beacon", DisplayName: "Orbit beacon", Width: 11, Height: 11,
+		Body: loungeKinematicBody(), Colliders: []map[string]any{loungeSensorCircle("field", 10)},
+		Effects: []map[string]any{
+			{"kind": "spin", "angularVelocity": 1.2},
+			{"kind": "orbit", "sensorId": "field", "radialForce": 5, "tangentialForce": 8, "maxForce": 9.5},
+		},
+	},
+	{
+		ID: "breeze-fan", DisplayName: "Breeze fan", Width: 12, Height: 11,
+		Body: loungeKinematicBody(), Colliders: []map[string]any{
+			loungeOffsetCollider(loungeSensorRect("air", 15, 7), 7.5, 0),
+		},
+		Effects: []map[string]any{
+			{"kind": "spin", "angularVelocity": 4.2},
+			{"kind": "push", "sensorId": "air", "force": 13},
+		},
+	},
+	{
+		ID: "soft-sand-mat", DisplayName: "Soft sand mat", Width: 16, Height: 10,
+		Body: loungeFixedBody(), Colliders: []map[string]any{loungeSensorRect("surface", 14, 8)},
+		Effects: []map[string]any{
+			{"kind": "dampen", "sensorId": "surface", "linearFactor": 0.88, "angularFactor": 0.8, "minimumSpeed": 0.75},
+			{"kind": "orbit", "sensorId": "surface", "radialForce": 2, "tangentialForce": 0, "maxForce": 2},
+		},
+	},
+	{
+		ID: "speed-lane", DisplayName: "Speed lane", Width: 18, Height: 6,
+		Body: loungeFixedBody(), Colliders: []map[string]any{loungeSensorRect("lane", 17, 5)},
+		Effects: []map[string]any{
+			{"kind": "boost", "sensorId": "lane", "speed": 22},
+			{"kind": "push", "sensorId": "lane", "force": 5},
+		},
+	},
+	{
+		ID: "wobble-cone", DisplayName: "Wobble cone", Width: 9, Height: 11,
+		Body: loungeDynamicBody(4, 0.4), Colliders: []map[string]any{
+			loungeSolidCircle("solid", 3.8), loungeSensorCircle("bumper", 5),
+		},
+		Effects: []map[string]any{
+			{"kind": "bounce", "sensorId": "bumper", "impulse": 7},
+			{"kind": "wobble", "sensorId": "bumper", "torque": 9},
+		},
+	},
+	{
+		ID: "swing-gate", DisplayName: "Swing gate", Width: 18, Height: 9,
+		Body: loungeKinematicBody(), Colliders: []map[string]any{
+			loungeSolidRect("bar", 14, 2.5), loungeSensorRect("bumper", 15, 4),
+		},
+		Effects: []map[string]any{
+			{"kind": "swing", "amplitudeRadians": 0.7, "periodSeconds": 3},
+			{"kind": "bounce", "sensorId": "bumper", "impulse": 6},
+		},
+	},
+	{
+		ID: "mini-goal", DisplayName: "Mini goal", Width: 18, Height: 11,
+		Body: loungeFixedBody(), Colliders: []map[string]any{
+			loungeOffsetCollider(loungeSolidRect("left-post", 2, 10), -7.5, 0),
+			loungeOffsetCollider(loungeSolidRect("right-post", 2, 10), 7.5, 0),
+			loungeOffsetCollider(loungeSolidRect("back-bar", 15, 2), 0, -4.5),
+			loungeSensorRect("mouth", 13, 7),
+		},
+		Effects: []map[string]any{
+			{"kind": "dampen", "sensorId": "mouth", "linearFactor": 0.7, "angularFactor": 0.7, "minimumSpeed": 0.5},
+			{"kind": "goal", "sensorId": "mouth", "requiredTag": "lounge-ball", "resetPosition": map[string]float64{"x": 62, "y": 98}, "dwellSeconds": 0.05, "cooldownSeconds": 1},
+		},
+	},
+}
+
+func loungeCompositeItemDefinitionJSON(spec loungeCompositeItemSpec) json.RawMessage {
+	raw, err := json.Marshal(map[string]any{
+		"definitionId": "zoomigo-prop-play-" + spec.ID,
+		"version":      1,
+		"displayName":  spec.DisplayName,
+		"visual": map[string]any{
+			"size":     map[string]float64{"width": spec.Width, "height": spec.Height},
+			"spriteId": "lounge.stamp.transparent", "zIndex": 10,
+		},
+		"body": spec.Body, "colliders": spec.Colliders,
+		"behaviorType":  "zoomigoLoungeComposite",
+		"defaultConfig": map[string]any{"effects": spec.Effects},
+		"persistence":   map[string]any{"transform": true, "behaviorState": true, "onRoomSleep": "pause"},
+		"complexity":    "simple",
+	})
+	if err != nil {
+		panic(err)
+	}
+	return raw
+}
+
+func loungeFixedBody() map[string]any {
+	return map[string]any{"mode": "fixed"}
+}
+
+func loungeKinematicBody() map[string]any {
+	return map[string]any{"mode": "kinematicVelocity", "gravityScale": 0, "canSleep": false}
+}
+
+func loungeDynamicBody(mass, angularDamping float64) map[string]any {
+	return map[string]any{
+		"mode": "dynamic", "mass": mass, "gravityScale": 0,
+		"linearDamping": 0.4, "angularDamping": angularDamping, "canSleep": true,
+	}
+}
+
+func loungeSensorRect(id string, width, height float64) map[string]any {
+	return map[string]any{"id": id, "role": "itemSensor", "shape": map[string]any{"type": "rect", "width": width, "height": height}}
+}
+
+func loungeSensorCircle(id string, radius float64) map[string]any {
+	return map[string]any{"id": id, "role": "itemSensor", "shape": map[string]any{"type": "circle", "radius": radius}}
+}
+
+func loungeSolidRect(id string, width, height float64) map[string]any {
+	return map[string]any{
+		"id": id, "role": "itemSolid", "shape": map[string]any{"type": "rect", "width": width, "height": height},
+		"collisionMask": 13, "restitution": 0.75, "friction": 0.15,
+	}
+}
+
+func loungeSolidCircle(id string, radius float64) map[string]any {
+	return map[string]any{
+		"id": id, "role": "itemSolid", "shape": map[string]any{"type": "circle", "radius": radius},
+		"collisionMask": 13, "restitution": 0.8, "friction": 0.12,
+	}
+}
+
+func loungeOffsetCollider(collider map[string]any, x, y float64) map[string]any {
+	collider["offset"] = map[string]float64{"x": x, "y": y}
+	return collider
 }
 
 func loungeStaticPropDefinitionJSON(assetID string) json.RawMessage {
@@ -229,7 +407,7 @@ const beachBallPropDefinitionJSON = `{
   "visual":{"size":{"width":9,"height":9},"spriteId":"lounge.stamp.transparent","placeholder":{"shape":"circle","color":16765757},"zIndex":8},
   "body":{"mode":"dynamic","mass":0.5,"gravityScale":0,"linearDamping":0.05,"angularDamping":0.08,"canSleep":true},
   "colliders":[
-    {"id":"solid","role":"itemSolid","shape":{"type":"circle","radius":4.5},"restitution":0.95,"friction":0.05,"collisionMask":4},
+    {"id":"solid","role":"itemSolid","shape":{"type":"circle","radius":4.5},"restitution":0.95,"friction":0.05,"collisionMask":4,"tags":["lounge-ball"]},
     {"id":"kick","role":"itemSensor","shape":{"type":"circle","radius":5.8}}
   ],
   "behaviorType":"zoomigoLoungeBall","defaultConfig":{"sensorId":"kick","minKickSpeed":2.5,"kickExponent":1.35,"kickStrength":3,"pinchStrength":2.8,"maxImpulse":48,"tangentialStrength":0.48,"maxTangentialImpulse":8,"spinTransfer":1,"spinRadius":4.5,"maxAngularSpeed":15,"cooldownSeconds":0.16},
@@ -241,7 +419,7 @@ const beachBallDefinitionJSON = `{
   "visual":{"size":{"width":9,"height":9},"spriteId":"lounge.ball","placeholder":{"shape":"circle","color":16765757},"zIndex":8},
   "body":{"mode":"dynamic","mass":0.5,"gravityScale":0,"linearDamping":0.05,"angularDamping":0.08,"canSleep":true},
   "colliders":[
-    {"id":"solid","role":"itemSolid","shape":{"type":"circle","radius":4.5},"restitution":0.95,"friction":0.05,"collisionMask":4},
+    {"id":"solid","role":"itemSolid","shape":{"type":"circle","radius":4.5},"restitution":0.95,"friction":0.05,"collisionMask":4,"tags":["lounge-ball"]},
     {"id":"kick","role":"itemSensor","shape":{"type":"circle","radius":5.8}}
   ],
   "behaviorType":"zoomigoLoungeBall","defaultConfig":{"sensorId":"kick","minKickSpeed":2.5,"kickExponent":1.35,"kickStrength":3,"pinchStrength":2.8,"maxImpulse":48,"tangentialStrength":0.48,"maxTangentialImpulse":8,"spinTransfer":1,"spinRadius":4.5,"maxAngularSpeed":15,"cooldownSeconds":0.16},
@@ -267,6 +445,12 @@ const loungeBallConfigSchemaJSON = `{
   "properties":{"sensorId":{"type":"string"},"minKickSpeed":{"type":"number"},"kickExponent":{"type":"number"},"kickStrength":{"type":"number"},"pinchStrength":{"type":"number"},"maxImpulse":{"type":"number"},"tangentialStrength":{"type":"number"},"maxTangentialImpulse":{"type":"number"},"spinTransfer":{"type":"number"},"spinRadius":{"type":"number"},"maxAngularSpeed":{"type":"number"},"cooldownSeconds":{"type":"number"}},
   "required":["sensorId","minKickSpeed","kickExponent","kickStrength","pinchStrength","maxImpulse","tangentialStrength","maxTangentialImpulse","spinTransfer","spinRadius","maxAngularSpeed","cooldownSeconds"],
   "additionalProperties":false
+}`
+
+const loungeCompositeConfigSchemaJSON = `{
+  "type":"object",
+  "properties":{"effects":{"type":"array","minItems":2,"items":{"type":"object","required":["kind"]}}},
+  "required":["effects"],"additionalProperties":false
 }`
 
 const emptyConfigSchemaJSON = `{"type":"object","additionalProperties":false}`
