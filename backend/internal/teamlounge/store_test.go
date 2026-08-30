@@ -325,6 +325,79 @@ func TestSQLiteStoreConformsToCanvasRoomsSDK(t *testing.T) {
 	})
 }
 
+func TestLoadSnapshotNormalizesCollisionProneGeneratedItemIDs(t *testing.T) {
+	db := openMigratedDatabase(t)
+	seedTeam(t, db)
+	store := NewSQLiteStore(db, Catalog{})
+	roomID := "team:team-one:lounge:v13"
+	template := roomsdk.RoomTemplate{
+		CanvasID: BeachBoardwalkCanvasID, CanvasVersion: BeachBoardwalkCanvasVersion,
+	}
+	if _, err := store.BindRoom(t.Context(), roomID, "team-one", "2026-08-24", template); err != nil {
+		t.Fatal(err)
+	}
+	capturedAt := time.Date(2026, time.August, 30, 12, 0, 0, 0, time.UTC)
+	snapshot := roomsdk.CanvasSnapshot{
+		SchemaVersion: 1, CanvasID: template.CanvasID, CanvasVersion: template.CanvasVersion,
+		SceneRevision: 4, HostEpoch: 2, CheckpointRevision: 3, Tick: 180,
+		CapturedAt: capturedAt.Format(time.RFC3339Nano), Normalized: true,
+		Items: []roomsdk.SnapshotItem{
+			{EntityID: "boardwalk-beach-ball", DefinitionID: "beach-ball", DefinitionVersion: 6, ItemRevision: 1},
+			{EntityID: "i1", DefinitionID: "zoomigo-prop-play-wobble-cone", DefinitionVersion: 3, OwnerUserID: "player-one", ItemRevision: 1},
+			{EntityID: "i1", DefinitionID: "zoomigo-stamp-rocket", DefinitionVersion: 2, OwnerUserID: "player-one", ItemRevision: 1},
+			{EntityID: "i2", DefinitionID: "zoomigo-stamp-star", DefinitionVersion: 2, OwnerUserID: "player-one", ItemRevision: 1},
+			{EntityID: "safe-item", DefinitionID: "zoomigo-stamp-bolt", DefinitionVersion: 2, OwnerUserID: "player-one", ItemRevision: 1},
+		},
+	}
+	for index := range snapshot.Items {
+		snapshot.Items[index].Transform = roomsdk.Transform{X: 20 + float64(index), Y: 40, Scale: 1}
+	}
+	raw, err := json.Marshal(snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.SaveSnapshot(t.Context(), roomsdk.SnapshotRecord{
+		RoomID: roomID, CanvasID: template.CanvasID, CanvasVersion: template.CanvasVersion,
+		SceneRevision: snapshot.SceneRevision, CheckpointRevision: snapshot.CheckpointRevision,
+		HostEpoch: snapshot.HostEpoch, Tick: snapshot.Tick, Normalized: snapshot.Normalized,
+		CapturedAt: capturedAt, SnapshotRaw: raw,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	first, err := store.LoadSnapshot(t.Context(), roomID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := store.LoadSnapshot(t.Context(), roomID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(first.SnapshotRaw) != string(second.SnapshotRaw) {
+		t.Fatal("snapshot ID normalization is not stable across loads")
+	}
+	var loaded roomsdk.CanvasSnapshot
+	if err := json.Unmarshal(first.SnapshotRaw, &loaded); err != nil {
+		t.Fatal(err)
+	}
+	ids := make(map[string]struct{}, len(loaded.Items))
+	for index, item := range loaded.Items {
+		if _, duplicate := ids[item.EntityID]; duplicate {
+			t.Fatalf("loaded snapshot retained duplicate item ID %q", item.EntityID)
+		}
+		ids[item.EntityID] = struct{}{}
+		if index >= 1 && index <= 3 && !strings.HasPrefix(item.EntityID, "lounge-item-") {
+			t.Errorf("generated item %d ID = %q, want normalized ID", index, item.EntityID)
+		}
+	}
+	if loaded.Items[0].EntityID != "boardwalk-beach-ball" {
+		t.Errorf("system item ID = %q", loaded.Items[0].EntityID)
+	}
+	if loaded.Items[4].EntityID != "safe-item" {
+		t.Errorf("safe participant item ID = %q", loaded.Items[4].EntityID)
+	}
+}
+
 func TestRoomBindingIsImmutable(t *testing.T) {
 	db := openMigratedDatabase(t)
 	seedTeam(t, db)

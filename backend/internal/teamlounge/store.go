@@ -189,7 +189,85 @@ func (store *SQLiteStore) LoadSnapshot(ctx context.Context, roomID string) (room
 	}
 	record.Normalized = normalized == 1
 	record.SnapshotRaw = json.RawMessage(raw)
+	record.SnapshotRaw, err = normalizeLoadedSnapshotItemIDs(record.RoomID, record.SnapshotRaw)
+	if err != nil {
+		return roomsdk.SnapshotRecord{}, err
+	}
 	return record, nil
+}
+
+func normalizeLoadedSnapshotItemIDs(roomID string, raw json.RawMessage) (json.RawMessage, error) {
+	var snapshot map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &snapshot); err != nil {
+		return nil, errors.New("load lounge snapshot: invalid snapshot shape")
+	}
+	itemsRaw, ok := snapshot["items"]
+	if !ok {
+		return raw, nil
+	}
+	var items []map[string]json.RawMessage
+	if err := json.Unmarshal(itemsRaw, &items); err != nil {
+		return nil, errors.New("load lounge snapshot: invalid snapshot items")
+	}
+	reserved := make(map[string]struct{}, len(items))
+	for _, item := range items {
+		var entityID, ownerUserID string
+		_ = json.Unmarshal(item["entityId"], &entityID)
+		_ = json.Unmarshal(item["ownerUserId"], &ownerUserID)
+		if ownerUserID == "" || !canvasGeneratedItemID(entityID) {
+			reserved[entityID] = struct{}{}
+		}
+	}
+	changed := false
+	for index, item := range items {
+		var entityID, ownerUserID string
+		_ = json.Unmarshal(item["entityId"], &entityID)
+		_ = json.Unmarshal(item["ownerUserId"], &ownerUserID)
+		if ownerUserID == "" || !canvasGeneratedItemID(entityID) {
+			continue
+		}
+		// Canvas 0.6 restarts its compact item counter after a room wake.
+		for nonce := 0; ; nonce++ {
+			digest := sha256.Sum256([]byte(fmt.Sprintf("%s\x00%s\x00%d\x00%d", roomID, entityID, index, nonce)))
+			candidate := "lounge-item-" + hex.EncodeToString(digest[:16])
+			if _, exists := reserved[candidate]; exists {
+				continue
+			}
+			encoded, err := json.Marshal(candidate)
+			if err != nil {
+				return nil, fmt.Errorf("load lounge snapshot: normalize item id: %w", err)
+			}
+			item["entityId"] = encoded
+			reserved[candidate] = struct{}{}
+			changed = true
+			break
+		}
+	}
+	if !changed {
+		return raw, nil
+	}
+	itemsRaw, err := json.Marshal(items)
+	if err != nil {
+		return nil, fmt.Errorf("load lounge snapshot: normalize items: %w", err)
+	}
+	snapshot["items"] = itemsRaw
+	normalized, err := json.Marshal(snapshot)
+	if err != nil {
+		return nil, fmt.Errorf("load lounge snapshot: normalize snapshot: %w", err)
+	}
+	return normalized, nil
+}
+
+func canvasGeneratedItemID(entityID string) bool {
+	if len(entityID) < 2 || entityID[0] != 'i' {
+		return false
+	}
+	for index := 1; index < len(entityID); index++ {
+		if entityID[index] < '0' || entityID[index] > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 func (store *SQLiteStore) SaveSnapshot(ctx context.Context, snapshot roomsdk.SnapshotRecord) error {
