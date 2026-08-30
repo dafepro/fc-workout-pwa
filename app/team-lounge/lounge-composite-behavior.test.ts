@@ -219,6 +219,13 @@ describe("LoungeCompositeBehavior effects", () => {
     const subject = harness({
       effects: [
         {
+          kind: "dampen",
+          sensorId: "mouth",
+          linearFactor: 0.7,
+          angularFactor: 0.7,
+          minimumSpeed: 0.5,
+        },
+        {
           kind: "goal",
           sensorId: "mouth",
           acceptedDefinitionIds: ["beach-ball", "zoomigo-prop-beach-ball"],
@@ -238,6 +245,12 @@ describe("LoungeCompositeBehavior effects", () => {
     subject.host.body("ball").velocity = { x: 8, y: -4 };
     subject.host.body("ball").angularVelocity = 3;
     subject.host.body("not-ball").tags = ["training-cone"];
+    const ball = {
+      entityId: "ball",
+      colliderId: "solid",
+      kind: "item" as const,
+      tags: ["beach-ball"],
+    };
 
     subject
       .send({
@@ -253,12 +266,7 @@ describe("LoungeCompositeBehavior effects", () => {
       .send({
         type: "contact.stay",
         selfColliderId: "mouth",
-        other: {
-          entityId: "ball",
-          colliderId: "solid",
-          kind: "item",
-          tags: ["beach-ball"],
-        },
+        other: ball,
         dwellTicks: 23,
       })
       .flush();
@@ -271,12 +279,7 @@ describe("LoungeCompositeBehavior effects", () => {
       .send({
         type: "contact.stay",
         selfColliderId: "mouth",
-        other: {
-          entityId: "ball",
-          colliderId: "solid",
-          kind: "item",
-          tags: ["beach-ball"],
-        },
+        other: ball,
         dwellTicks: 24,
       })
       .flush();
@@ -290,20 +293,71 @@ describe("LoungeCompositeBehavior effects", () => {
     expect(subject.host.body("ball").velocity.y).toBeCloseTo(0, 8);
     expect(subject.state.goalScore).toBe(1);
 
+    subject.advanceSeconds(1.1, false);
     subject
       .send({
         type: "contact.stay",
         selfColliderId: "mouth",
-        other: {
-          entityId: "ball",
-          colliderId: "solid",
-          kind: "item",
-          tags: ["beach-ball"],
-        },
-        dwellTicks: 25,
+        other: ball,
+        dwellTicks: 90,
       })
       .flush();
     expect(subject.effects("lounge.goal")).toHaveLength(1);
+    expect(subject.host.body("ball").velocity.x).toBeCloseTo(-18, 8);
+    expect(subject.host.body("ball").velocity.y).toBeCloseTo(0, 8);
+
+    subject
+      .send({
+        type: "contact.exit",
+        selfColliderId: "mouth",
+        other: ball,
+        dwellTicks: 91,
+      })
+      .flush();
+    subject.advanceSeconds(0.5, false);
+    subject
+      .send({
+        type: "contact.enter",
+        selfColliderId: "mouth",
+        other: ball,
+      })
+      .flush();
+    subject.advanceSeconds(0.6, false);
+    subject
+      .send({
+        type: "contact.stay",
+        selfColliderId: "mouth",
+        other: ball,
+        dwellTicks: 24,
+      })
+      .flush();
+    expect(subject.effects("lounge.goal")).toHaveLength(1);
+    expect(subject.state.goalScore).toBe(1);
+
+    subject
+      .send({
+        type: "contact.exit",
+        selfColliderId: "mouth",
+        other: ball,
+        dwellTicks: 24,
+      })
+      .flush();
+    subject.advanceSeconds(1.1, false);
+    subject
+      .send({
+        type: "contact.enter",
+        selfColliderId: "mouth",
+        other: ball,
+      })
+      .send({
+        type: "contact.stay",
+        selfColliderId: "mouth",
+        other: ball,
+        dwellTicks: 24,
+      })
+      .flush();
+    expect(subject.effects("lounge.goal")).toHaveLength(2);
+    expect(subject.state.goalScore).toBe(2);
   });
 
   it("wraps the two-digit score after the hundredth goal and emits confetti once", () => {
@@ -333,6 +387,17 @@ describe("LoungeCompositeBehavior effects", () => {
     };
 
     for (let score = 1; score <= 100; score += 1) {
+      if (score > 1) {
+        subject
+          .send({
+            type: "contact.exit",
+            selfColliderId: "mouth",
+            other: ball,
+            dwellTicks: 1,
+          })
+          .flush();
+        subject.advance(1, false);
+      }
       subject
         .send({
           type: "contact.stay",
@@ -341,7 +406,6 @@ describe("LoungeCompositeBehavior effects", () => {
           dwellTicks: 1,
         })
         .flush();
-      subject.advance(1, false);
     }
 
     expect(subject.state.goalScore).toBe(0);

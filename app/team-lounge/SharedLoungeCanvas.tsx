@@ -76,7 +76,8 @@ const visitorAnchors = [
 ] as const;
 
 const MINI_GOAL_DEFINITION_ID = "zoomigo-prop-play-mini-goal";
-const GOAL_CELEBRATION_DURATION_MS = 1_800;
+const GOAL_CELEBRATION_DURATION_MS = 2_800;
+const GOAL_CONFETTI_PARTICLE_COUNT = 100;
 const GOAL_CONFETTI_COLORS = ["#ffdc3f", "#22d3a8", "#ff617c", "#7dd3fc"];
 
 function goalScoreFor(
@@ -746,12 +747,6 @@ export function SharedLoungeCanvas({
   )
     ? selectedEntityID
     : null;
-  const celebratedGoal = activeGoalCelebration
-    ? itemOverlays.find(
-        ({ entityID }) => entityID === activeGoalCelebration.entityID,
-      )
-    : undefined;
-
   return (
     <>
       <div
@@ -864,32 +859,40 @@ export function SharedLoungeCanvas({
           onFinish={() => setSelectedEntityID(null)}
           onDragStateChange={setDragState}
         />
-        {celebratedGoal && activeGoalCelebration ? (
+        {activeGoalCelebration ? (
           <div
             key={activeGoalCelebration.sequence}
             className="team-lounge__goal-confetti"
             role="status"
-            style={
-              {
-                left: `${celebratedGoal.screen.x}px`,
-                top: `${celebratedGoal.screen.y}px`,
-              } as CSSProperties
-            }
           >
             <span className="sr-only">{copy.teamLounge.goalCelebration}</span>
-            {Array.from({ length: 12 }, (_, index) => (
-              <i
-                key={index}
-                aria-hidden="true"
-                style={
-                  {
-                    "--confetti-angle": `${index * 30}deg`,
-                    "--confetti-color":
-                      GOAL_CONFETTI_COLORS[index % GOAL_CONFETTI_COLORS.length],
-                  } as CSSProperties
-                }
-              />
-            ))}
+            {Array.from(
+              { length: GOAL_CONFETTI_PARTICLE_COUNT },
+              (_, index) => (
+                <i
+                  key={index}
+                  aria-hidden="true"
+                  style={
+                    {
+                      "--confetti-origin-x": `${45 + ((index * 17) % 11)}%`,
+                      "--confetti-x": `${((index * 47) % 101) - 50}vw`,
+                      "--confetti-mid-x": `${((index * 31) % 71) - 35}vw`,
+                      "--confetti-rise": `${-(30 + ((index * 29) % 65))}vh`,
+                      "--confetti-fall": `${20 + ((index * 19) % 65)}vh`,
+                      "--confetti-delay": `${(index % 8) * 0.035}s`,
+                      "--confetti-duration": `${1.9 + (index % 7) * 0.1}s`,
+                      "--confetti-mid-spin": `${210 + ((index * 31) % 420)}deg`,
+                      "--confetti-spin": `${360 + ((index * 53) % 720)}deg`,
+                      "--confetti-size": `${0.28 + (index % 5) * 0.055}rem`,
+                      "--confetti-color":
+                        GOAL_CONFETTI_COLORS[
+                          index % GOAL_CONFETTI_COLORS.length
+                        ],
+                    } as CSSProperties
+                  }
+                />
+              ),
+            )}
           </div>
         ) : null}
         {visitorIDs.flatMap((visitorID, index) => {

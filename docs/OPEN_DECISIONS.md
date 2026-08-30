@@ -451,6 +451,21 @@ to resolve, not the implementing agent's.
   eight world units out of its mouth at speed 18 along the goal's rotated axis.
   Other player-placed items cannot trigger the counter or be teleported by it.
 
+## Canvas v16 mini-goal re-entry guard (2026-08-30)
+
+- Canvas generation 16 is a clean cutover from generation 15 because the
+  mini-goal collider geometry and immutable definition change. Retired room
+  placements and counters are not imported, and its reservations do not debit
+  the active generation's weekly placement budget.
+- Mini-goal definition v4 moves its capture sensor behind the mouth and closer
+  to the back of the net. A scored ball is exempt from the goal's dampening and
+  remains ineligible to score again until it leaves that goal's sensor; a
+  one-second re-entry cooldown begins on exit and restarts if the ball returns
+  before it expires.
+- The hundredth-goal celebration remains reduced-motion-safe and now fills the
+  viewport with a short 100-particle burst. It remains transient presentation,
+  not durable or performance state.
+
 ## Canvas v15 dynamic mini goal (2026-08-30)
 
 - Canvas generation 15 is a clean cutover from generation 14. It does not

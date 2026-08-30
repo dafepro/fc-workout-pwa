@@ -93,7 +93,7 @@ func TestDurableRoomIdentityPersistsAcrossWeekRollover(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if roomID != "team:team-one:lounge:v15" {
+	if roomID != "team:team-one:lounge:v16" {
 		t.Fatalf("room id = %q", roomID)
 	}
 	nextWeek, err := DurableRoomID("team-one", "2026-08-31")
@@ -104,7 +104,7 @@ func TestDurableRoomIdentityPersistsAcrossWeekRollover(t *testing.T) {
 	if err != nil || teamID != "team-one" {
 		t.Fatalf("parsed = %q, %v", teamID, err)
 	}
-	for _, invalid := range []string{"", "team:other", "team:team/one:lounge:v15", "team:team-one:lounge:today", "team:team-one:lounge", "team:team-one:lounge:v14"} {
+	for _, invalid := range []string{"", "team:other", "team:team/one:lounge:v16", "team:team-one:lounge:today", "team:team-one:lounge", "team:team-one:lounge:v15"} {
 		if _, err := ParseRoomID(invalid); err == nil {
 			t.Fatalf("accepted invalid room id %q", invalid)
 		}
@@ -122,8 +122,8 @@ func TestWeeklyThemeManifestOwnsTheImmutableCanvasBinding(t *testing.T) {
 	if theme.RoomGeneration != BeachBoardwalkRoomGeneration {
 		t.Fatalf("room generation = %d", theme.RoomGeneration)
 	}
-	if theme.RoomGeneration != 15 {
-		t.Fatalf("room generation = %d, want dynamic-goal generation 15", theme.RoomGeneration)
+	if theme.RoomGeneration != 16 {
+		t.Fatalf("room generation = %d, want goal-reentry generation 16", theme.RoomGeneration)
 	}
 	if theme.Template.CanvasID != BeachBoardwalkCanvasID || theme.Template.CanvasVersion != BeachBoardwalkCanvasVersion {
 		t.Fatalf("theme template = %#v", theme.Template)
@@ -142,7 +142,7 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 	if canvas.CanvasID != BeachBoardwalkCanvasID || canvas.Version != BeachBoardwalkCanvasVersion || !json.Valid(canvas.DefinitionRaw) {
 		t.Fatalf("canvas record = %#v", canvas)
 	}
-	if canvas.Version != 15 {
+	if canvas.Version != 16 {
 		t.Fatalf("canvas version = %d", canvas.Version)
 	}
 	var shape struct {
@@ -295,7 +295,7 @@ func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 		{"speed-lane", 2, []string{"boost", "push"}},
 		{"wobble-cone", 2, []string{"bounce", "wobble"}},
 		{"swing-gate", 2, []string{"swing", "bounce"}},
-		{"mini-goal", 3, []string{"dampen", "goal"}},
+		{"mini-goal", 4, []string{"dampen", "goal"}},
 	}
 	for index, item := range catalog.Items[17:27] {
 		want := wantComposite[index]
@@ -325,6 +325,13 @@ func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 			}
 		}
 		if want.id == "mini-goal" {
+			mouth := definition.Colliders[3]
+			shape, _ := mouth["shape"].(map[string]any)
+			offset, _ := mouth["offset"].(map[string]any)
+			if mouth["id"] != "mouth" || shape["width"] != float64(11) || shape["height"] != float64(2) ||
+				offset["x"] != float64(0) || offset["y"] != -2.5 {
+				t.Fatalf("mini-goal mouth collider = %#v", mouth)
+			}
 			goal := definition.DefaultConfig.Effects[1]
 			ejectOffset, _ := goal["ejectOffset"].(map[string]any)
 			acceptedDefinitions, _ := goal["acceptedDefinitionIds"].([]any)

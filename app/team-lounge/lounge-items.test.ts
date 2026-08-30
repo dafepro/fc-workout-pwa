@@ -167,7 +167,14 @@ describe("development Lounge items", () => {
       ({ definitionId }) => definitionId === "zoomigo-prop-play-mini-goal",
     );
     expect(goal).toMatchObject({
-      version: 3,
+      version: 4,
+      colliders: expect.arrayContaining([
+        expect.objectContaining({
+          id: "mouth",
+          shape: { type: "rect", width: 11, height: 2 },
+          offset: { x: 0, y: -2.5 },
+        }),
+      ]),
       defaultConfig: {
         effects: expect.arrayContaining([
           expect.objectContaining({

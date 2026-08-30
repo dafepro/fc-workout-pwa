@@ -251,7 +251,7 @@ const compositeItemSpecs: CompositeItemSpec[] = [
   },
   {
     id: "mini-goal",
-    definitionVersion: 3,
+    definitionVersion: 4,
     label: "Mini goal",
     glyph: "🥅",
     size: { width: 18, height: 11 },
@@ -260,7 +260,7 @@ const compositeItemSpecs: CompositeItemSpec[] = [
       { ...solidRect("left-post", 2, 10), offset: { x: -7.5, y: 0 } },
       { ...solidRect("right-post", 2, 10), offset: { x: 7.5, y: 0 } },
       { ...solidRect("back-bar", 15, 2), offset: { x: 0, y: -4.5 } },
-      sensorRect("mouth", 13, 7),
+      { ...sensorRect("mouth", 11, 2), offset: { x: 0, y: -2.5 } },
     ],
     effects: [
       {

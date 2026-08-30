@@ -42,14 +42,17 @@ Canvas before the catalog exposes them.
   behavior and exposes matching solid or sensor collider geometry.
 
 The four Starlight definition IDs retain their existing `zoomigo-prop-` names.
-Generation 15 is a clean room cutover for the dynamic mini-goal state; no
+Generation 16 is a clean room cutover for the mini-goal v4 capture geometry; no
 compatibility import or destructive migration is needed. Their typed catalog
 kind and capability contract are authoritative.
 
-The mini goal holds any tagged Lounge ball for 0.4 seconds, increments a
-goal-owned `00`–`99` counter, and launches the ball out along its rotated mouth.
-The hundredth goal wraps to `00` and emits transient confetti. This is playful
-room state only and never becomes player performance data.
+The mini goal captures any tagged Lounge ball only after it reaches the back of
+the net, holds it for 0.4 seconds, increments a goal-owned `00`–`99` counter,
+and launches the ball out along its rotated mouth. An ejected ball cannot be
+dampened or score again until it leaves that goal's sensor and remains outside
+for one second. The hundredth goal wraps to `00` and emits a screen-wide,
+reduced-motion-safe 100-particle burst. This is playful room state only and
+never becomes player performance data.
 
 ## Placement budget
 

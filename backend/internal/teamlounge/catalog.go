@@ -13,7 +13,7 @@ import (
 
 const (
 	BeachBoardwalkCanvasID       = "zoomigo-beach-boardwalk"
-	BeachBoardwalkCanvasVersion  = uint32(15)
+	BeachBoardwalkCanvasVersion  = uint32(16)
 	BeachBoardwalkRoomGeneration = BeachBoardwalkCanvasVersion
 )
 
@@ -270,12 +270,12 @@ var loungeCompositeItemSpecs = []loungeCompositeItemSpec{
 		},
 	},
 	{
-		ID: "mini-goal", Version: 3, DisplayName: "Mini goal", Width: 18, Height: 11,
+		ID: "mini-goal", Version: 4, DisplayName: "Mini goal", Width: 18, Height: 11,
 		Body: loungeFixedBody(), Colliders: []map[string]any{
 			loungeOffsetCollider(loungeSolidRect("left-post", 2, 10), -7.5, 0),
 			loungeOffsetCollider(loungeSolidRect("right-post", 2, 10), 7.5, 0),
 			loungeOffsetCollider(loungeSolidRect("back-bar", 15, 2), 0, -4.5),
-			loungeSensorRect("mouth", 13, 7),
+			loungeOffsetCollider(loungeSensorRect("mouth", 11, 2), 0, -2.5),
 		},
 		Effects: []map[string]any{
 			{"kind": "dampen", "sensorId": "mouth", "linearFactor": 0.7, "angularFactor": 0.7, "minimumSpeed": 0.5},
@@ -391,7 +391,7 @@ func loungeStampDefinitionJSON(assetID string) json.RawMessage {
 }
 
 const beachBoardwalkCanvasJSON = `{
-  "id":"zoomigo-beach-boardwalk","version":15,
+  "id":"zoomigo-beach-boardwalk","version":16,
   "size":{"width":100,"height":150},"orientation":"topDown",
   "backgroundAssetId":"lounge.background",
   "edges":{"top":"open","right":"open","bottom":"open","left":"open"},

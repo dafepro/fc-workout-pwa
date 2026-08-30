@@ -208,7 +208,7 @@ func TestPlacementHoldReportSeparatesExpiredPermitsAndStaleCanvasOutcomes(t *tes
 	}
 }
 
-const loungeRoomID = "team:team-one:lounge:v15"
+const loungeRoomID = "team:team-one:lounge:v16"
 
 func placementAuthorityStore(t *testing.T, credits int) (*SQLiteStore, time.Time) {
 	t.Helper()

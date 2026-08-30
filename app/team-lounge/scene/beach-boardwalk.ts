@@ -85,7 +85,7 @@ export const beachBoardwalkDefinitions = [
 
 export const beachBoardwalkCanvas: CanvasDefinition = {
   id: "zoomigo-beach-boardwalk",
-  version: 15,
+  version: 16,
   size: { width: 100, height: 150 },
   orientation: "topDown",
   backgroundAssetId: "lounge.background",

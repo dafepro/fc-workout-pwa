@@ -4190,38 +4190,81 @@ h2 {
 }
 
 .team-lounge__goal-confetti {
-  position: absolute;
-  z-index: 8;
-  width: 1px;
-  height: 1px;
+  position: fixed;
+  z-index: 1200;
+  overflow: hidden;
   pointer-events: none;
+  inset: 0;
+}
+
+.team-lounge__goal-confetti::before {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(42rem, 90vmin);
+  height: min(42rem, 90vmin);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgb(255 255 255 / 92%) 0 2%,
+    rgb(255 220 63 / 72%) 7%,
+    rgb(255 97 124 / 32%) 24%,
+    transparent 62%
+  );
+  content: "";
+  transform: translate(-50%, -50%) scale(0);
+  animation: lounge-goal-burst 0.9s ease-out both;
 }
 
 .team-lounge__goal-confetti i {
   position: absolute;
-  width: 0.35rem;
-  height: 0.72rem;
+  top: 52%;
+  left: var(--confetti-origin-x);
+  width: var(--confetti-size);
+  height: calc(var(--confetti-size) * 2.1);
   border-radius: 0.08rem;
   background: var(--confetti-color);
-  animation: lounge-goal-confetti 1.6s cubic-bezier(0.18, 0.7, 0.3, 1) both;
+  box-shadow: 0 0 0.35rem color-mix(in srgb, var(--confetti-color) 70%, white);
+  animation: lounge-goal-confetti var(--confetti-duration)
+    cubic-bezier(0.16, 0.72, 0.26, 1) var(--confetti-delay) both;
+}
+
+@keyframes lounge-goal-burst {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0);
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.7);
+  }
 }
 
 @keyframes lounge-goal-confetti {
   0% {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.4) rotate(0);
+    transform: translate(-50%, -50%) scale(0.2) rotate(0);
   }
-  12% {
+  6% {
     opacity: 1;
+  }
+  48% {
+    opacity: 1;
+    transform: translate(var(--confetti-mid-x), var(--confetti-rise))
+      scale(1.35) rotate(var(--confetti-mid-spin));
   }
   100% {
     opacity: 0;
-    transform: rotate(var(--confetti-angle)) translateY(-5.5rem) scale(1)
-      rotate(240deg);
+    transform: translate(var(--confetti-x), var(--confetti-fall)) scale(0.9)
+      rotate(var(--confetti-spin));
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .team-lounge__goal-confetti::before,
   .team-lounge__goal-confetti i {
     opacity: 0;
     animation: none;

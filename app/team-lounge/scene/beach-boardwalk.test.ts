@@ -6,7 +6,7 @@ import { beachBallDefinition, beachBoardwalkCanvas } from "./beach-boardwalk";
 
 describe("Beach Boardwalk collision contract", () => {
   it("uses explicit elastic outer boundaries", () => {
-    expect(beachBoardwalkCanvas.version).toBe(15);
+    expect(beachBoardwalkCanvas.version).toBe(16);
     expect(beachBallDefinition.version).toBe(8);
     expect(beachBoardwalkCanvas.edges).toEqual({
       top: "open",

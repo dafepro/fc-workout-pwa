@@ -64,7 +64,13 @@ export const LoungeCompositeBehavior: ItemBehavior<
 > = {
   behaviorType: "zoomigoLoungeComposite",
   stateVersion: 2,
-  subscribes: ["contact.enter", "contact.stay", "tick", "room.wake"],
+  subscribes: [
+    "contact.enter",
+    "contact.stay",
+    "contact.exit",
+    "tick",
+    "room.wake",
+  ],
   initialState: () => ({ elapsedTicks: 0, cooldownUntil: [], goalScore: 0 }),
   onEvent(ctx, config, state, event) {
     if (event.type === "room.wake") {
@@ -81,6 +87,12 @@ export const LoungeCompositeBehavior: ItemBehavior<
     };
     const commands: BehaviorCommand[] = [];
 
+    if (event.type === "contact.exit") {
+      rearmExitedGoalTarget(ctx, config.effects, nextState, event);
+    }
+    if (event.type === "contact.enter") {
+      blockEarlyGoalReentry(ctx, config.effects, nextState, event);
+    }
     for (const effect of config.effects) {
       commands.push(...applyEffect(ctx, effect, nextState, event));
     }
@@ -175,7 +187,8 @@ function applyEffect(
         ? orbitCommands(ctx, event.other, effect)
         : [];
     case "dampen":
-      return event.type === "contact.stay"
+      return event.type === "contact.stay" &&
+        cooldownFor(state, event.other.entityId) <= ctx.tick
         ? dampenCommands(ctx, event.other, effect)
         : [];
     case "goal":
@@ -303,7 +316,7 @@ function goalCommands(
   state: LoungeCompositeState,
 ): BehaviorCommand[] {
   if (
-    !target.tags.some((tag) => effect.acceptedDefinitionIds.includes(tag)) ||
+    !goalAccepts(effect, target) ||
     cooldownFor(state, target.entityId) > ctx.tick
   ) {
     return [];
@@ -320,13 +333,7 @@ function goalCommands(
   }
   const goalTransform = ctx.transform();
   if (!goalTransform) return [];
-  const cooldownUntil: [string, number][] = [
-    ...state.cooldownUntil.filter(([entityID]) => entityID !== target.entityId),
-    [target.entityId, ctx.tick + ctx.ticksFor(effect.cooldownSeconds)],
-  ];
-  state.cooldownUntil = cooldownUntil.sort(([left], [right]) =>
-    left.localeCompare(right),
-  );
+  setCooldown(state, target.entityId, BLOCKED_UNTIL_SENSOR_EXIT);
   state.goalScore = (state.goalScore + 1) % 100;
   const ejectOffset = rotate(effect.ejectOffset, goalTransform.rotation);
   const ejectVelocity = rotate(
@@ -363,6 +370,63 @@ function goalCommands(
     });
   }
   return commands;
+}
+
+function rearmExitedGoalTarget(
+  ctx: BehaviorContext,
+  effects: readonly LoungeCompositeEffect[],
+  state: LoungeCompositeState,
+  event: Extract<BehaviorEvent, { type: "contact.exit" }>,
+) {
+  const goal = goalForContact(effects, event);
+  if (
+    !goal ||
+    cooldownFor(state, event.other.entityId) !== BLOCKED_UNTIL_SENSOR_EXIT
+  ) {
+    return;
+  }
+  setCooldown(
+    state,
+    event.other.entityId,
+    ctx.tick + ctx.ticksFor(goal.cooldownSeconds),
+  );
+}
+
+function blockEarlyGoalReentry(
+  ctx: BehaviorContext,
+  effects: readonly LoungeCompositeEffect[],
+  state: LoungeCompositeState,
+  event: Extract<BehaviorEvent, { type: "contact.enter" }>,
+) {
+  const goal = goalForContact(effects, event);
+  const cooldownUntil = cooldownFor(state, event.other.entityId);
+  if (
+    !goal ||
+    cooldownUntil <= ctx.tick ||
+    cooldownUntil === BLOCKED_UNTIL_SENSOR_EXIT
+  ) {
+    return;
+  }
+  setCooldown(state, event.other.entityId, BLOCKED_UNTIL_SENSOR_EXIT);
+}
+
+function goalForContact(
+  effects: readonly LoungeCompositeEffect[],
+  event: Extract<BehaviorEvent, { type: "contact.enter" | "contact.exit" }>,
+): Extract<LoungeCompositeEffect, { kind: "goal" }> | undefined {
+  return effects.find(
+    (effect): effect is Extract<LoungeCompositeEffect, { kind: "goal" }> =>
+      effect.kind === "goal" &&
+      effect.sensorId === event.selfColliderId &&
+      goalAccepts(effect, event.other),
+  );
+}
+
+function goalAccepts(
+  effect: Extract<LoungeCompositeEffect, { kind: "goal" }>,
+  target: ContactParty,
+) {
+  return target.tags.some((tag) => effect.acceptedDefinitionIds.includes(tag));
 }
 
 function idleMotionCommands(
@@ -409,3 +473,16 @@ const rotate = (vector: Vec2, radians: number): Vec2 => {
 
 const cooldownFor = (state: LoungeCompositeState, entityID: string) =>
   state.cooldownUntil.find(([candidate]) => candidate === entityID)?.[1] ?? 0;
+
+function setCooldown(
+  state: LoungeCompositeState,
+  entityID: string,
+  cooldownUntil: number,
+) {
+  state.cooldownUntil = [
+    ...state.cooldownUntil.filter(([candidate]) => candidate !== entityID),
+    [entityID, cooldownUntil] as [string, number],
+  ].sort(([left], [right]) => left.localeCompare(right));
+}
+
+const BLOCKED_UNTIL_SENSOR_EXIT = Number.MAX_SAFE_INTEGER;

@@ -367,6 +367,9 @@ describe("Shared Lounge Canvas", () => {
     expect(
       container.querySelector(".team-lounge__goal-confetti"),
     ).toBeVisible();
+    expect(
+      container.querySelectorAll(".team-lounge__goal-confetti i"),
+    ).toHaveLength(100);
     expect(container.querySelector('[role="status"]')).toHaveTextContent(
       "100 goals! Counter reset to 00.",
     );

@@ -345,7 +345,17 @@ describe("canonical local Lounge simulation", () => {
       target: { x: 59, y: 98 },
     });
     await until(() => sawScoreAndRelaunch, 4_000);
-  }, 6_000);
+    simulation.move({
+      direction: { x: 0, y: 0 },
+      intensity: 0,
+      held: false,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 1_200));
+    const goal = entities.find(({ id }) => id === "mini-goal");
+    expect(
+      (goal?.behaviorState as { goalScore?: number } | undefined)?.goalScore,
+    ).toBe(1);
+  }, 8_000);
 
   it("keeps the ball on the boardwalk and bounces it off the right edge", async () => {
     const { SimulationDriver } = await import("@canvas-physics/client");
