@@ -33,8 +33,10 @@ test("a qualified player enters the Lounge and sees their own avatar", async ({
   await page.getByLabel("Four-digit PIN").fill(access.pin);
   await page.getByRole("button", { name: "Sign in" }).click();
   await page.locator("html[data-app-ready='true']").waitFor();
-  await page.goto("/log/additional");
-  await page.locator("html[data-app-ready='true']").waitFor();
+  await page.getByRole("link", { name: /Log another activity/i }).click();
+  await expect(
+    page.getByRole("heading", { name: "Log Another Activity" }),
+  ).toBeVisible();
   await page
     .getByRole("button", { name: "Choose an activity", exact: true })
     .click();
