@@ -82,6 +82,15 @@ test("a qualified player enters the Lounge and sees their own avatar", async ({
     await expect(lounge.getByText("The boardwalk could not open.")).toHaveCount(
       0,
     );
+    const unlockResponsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/zoomigo/__dev/me/lounge-unlocks") &&
+        response.request().method() === "POST",
+    );
+    await lounge.getByRole("button", { name: "Unlock test items" }).click();
+    const unlockResponse = await unlockResponsePromise;
+    expect(unlockResponse.status()).toBe(200);
+    await expect(lounge.getByText("Test items unlocked")).toBeVisible();
     await lounge.getByRole("button", { name: /^Items,/u }).click();
     const cannonChoice = lounge.getByRole("button", {
       name: "Choose Ball cannon item",
@@ -102,6 +111,23 @@ test("a qualified player enters the Lounge and sees their own avatar", async ({
         ),
       )
       .toBe(true);
+    await lounge
+      .getByRole("button", { name: "Close item picker" })
+      .last()
+      .click();
+    await lounge.getByRole("button", { name: /^Stamps,/u }).click();
+    for (const label of [
+      "Shield",
+      "Target",
+      "Rainbow",
+      "Lion",
+      "Rocket",
+      "Sparkles",
+    ]) {
+      await expect(
+        lounge.getByRole("button", { name: `Choose ${label} stamp` }),
+      ).toHaveCount(1);
+    }
     await lounge
       .getByRole("button", { name: "Close item picker" })
       .last()

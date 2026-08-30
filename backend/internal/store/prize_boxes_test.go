@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/store"
 )
 
@@ -89,24 +90,48 @@ func TestDevelopmentLoungeUnlockGrantIsPredefinedAndIdempotent(t *testing.T) {
 	repository, db := socialProjectionStore(t)
 	now := time.Date(2026, time.August, 29, 12, 0, 0, 0, time.UTC)
 	seedSocialProjection(t, db, now)
+	loungeCatalog := make(map[string]bool)
+	for _, item := range domain.PrizeCatalogItems() {
+		if item.Destination == domain.PrizeDestinationTeamLounge {
+			loungeCatalog[item.ID] = true
+		}
+	}
 
 	granted, err := repository.GrantDevelopmentLoungeUnlocks(t.Context(), "player-mason", now)
-	if err != nil || granted != 7 {
+	if err != nil || granted != len(loungeCatalog) {
 		t.Fatalf("first development grant = %d, %v", granted, err)
 	}
 	granted, err = repository.GrantDevelopmentLoungeUnlocks(t.Context(), "player-mason", now.Add(time.Minute))
 	if err != nil || granted != 0 {
 		t.Fatalf("replayed development grant = %d, %v", granted, err)
 	}
-	var lounge, avatar int
-	if err = db.QueryRow(`SELECT
-		SUM(CASE WHEN item_kind IN ('lounge_stamp', 'lounge_prop') THEN 1 ELSE 0 END),
-		SUM(CASE WHEN item_kind = 'avatar_part' THEN 1 ELSE 0 END)
-		FROM player_unlocks WHERE player_id = 'player-mason'`).Scan(&lounge, &avatar); err != nil {
+	rows, err := db.Query(`SELECT item_id, item_kind FROM player_unlocks
+		WHERE player_id = 'player-mason' ORDER BY item_id`)
+	if err != nil {
 		t.Fatal(err)
 	}
-	if lounge != 7 || avatar != 0 {
-		t.Fatalf("granted Lounge=%d avatar=%d", lounge, avatar)
+	defer rows.Close()
+	grantedIDs := make(map[string]bool)
+	for rows.Next() {
+		var itemID, kind string
+		if err = rows.Scan(&itemID, &kind); err != nil {
+			t.Fatal(err)
+		}
+		if kind != "lounge_stamp" && kind != "lounge_prop" {
+			t.Fatalf("development Lounge grant included %s item %s", kind, itemID)
+		}
+		grantedIDs[itemID] = true
+	}
+	if err = rows.Err(); err != nil {
+		t.Fatal(err)
+	}
+	if len(grantedIDs) != len(loungeCatalog) {
+		t.Fatalf("granted Lounge catalog = %v, want %v", grantedIDs, loungeCatalog)
+	}
+	for itemID := range loungeCatalog {
+		if !grantedIDs[itemID] {
+			t.Fatalf("development Lounge grant omitted %s", itemID)
+		}
 	}
 }
 

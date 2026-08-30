@@ -345,10 +345,18 @@ export const compositeLoungeItems: LoungePropChoice[] = compositeItemSpecs.map(
   }),
 );
 
+const includedCompositeLoungeItems = [...compositeLoungeItems].sort(
+  (left, right) => {
+    if (left.id === "ball-cannon") return -1;
+    if (right.id === "ball-cannon") return 1;
+    return 0;
+  },
+);
+
 export const includedLoungeItems: LoungeItemChoice[] = [
   ...itemCatalog.slice(0, 4).map((item) => stampChoice(item, "included")),
   ...starlightStamps,
-  ...compositeLoungeItems,
+  ...includedCompositeLoungeItems,
 ];
 
 export const loungeItemDefinitions: ItemDefinition[] = itemCatalog.map(

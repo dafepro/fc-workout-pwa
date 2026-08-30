@@ -14,6 +14,7 @@ import { beachBoardwalkAssets } from "./scene/assets";
 
 describe("development Lounge items", () => {
   const compositeItemIDs = [
+    "ball-cannon",
     "boost-pad",
     "bounce-drum",
     "pinwheel",
@@ -24,8 +25,16 @@ describe("development Lounge items", () => {
     "wobble-cone",
     "swing-gate",
     "mini-goal",
-    "ball-cannon",
   ];
+
+  it("keeps the included ball cannon above the scroll fold", () => {
+    expect(
+      includedLoungeItems.find(({ kind }) => kind === "lounge_prop"),
+    ).toMatchObject({
+      id: "ball-cannon",
+      source: "included",
+    });
+  });
 
   it("offers included stamps plus only earned Lounge inventory", () => {
     const choices = loungeItemChoices([
