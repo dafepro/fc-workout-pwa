@@ -30,6 +30,8 @@ test("a player claims a sealed daily box and opens it on the consolidated page",
   await page.getByRole("button", { name: "Open box" }).click();
   const reveal = page.getByRole("dialog");
   await expect(reveal).toBeVisible();
+  await expect(reveal.locator("[data-prize-art]")).toBeVisible();
+  await expect(reveal.locator("[data-prize-art-missing]")).toHaveCount(0);
   await expect(
     reveal.getByRole("link", { name: /Use in (Avatar|Team Lounge)/ }),
   ).toBeVisible();

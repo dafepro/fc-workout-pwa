@@ -5,7 +5,7 @@ import {
   type RigidBodyDefinition,
 } from "@canvas-physics/core";
 
-import type { PrizeUnlock } from "../data/prize-box-gateway";
+import type { PrizeItem, PrizeUnlock } from "../data/prize-box-gateway";
 import { defaultLoungeBallConfig } from "./lounge-ball-behavior";
 import type {
   LoungeCompositeConfig,
@@ -69,6 +69,7 @@ const beachBallProp: LoungePropChoice = {
   id: "beach-ball",
   label: "Beach ball",
   glyph: "⚽",
+  imageSrc: "/team-lounge/beach-ball.svg",
   definitionId: "zoomigo-prop-beach-ball",
   definitionVersion: 3,
   source: "earned",
@@ -420,6 +421,18 @@ export function loungeItemChoices(
       ? [beachBallProp]
       : []),
   ];
+}
+
+export function loungePrizeItem(
+  item: Pick<PrizeItem, "assetId" | "kind">,
+): LoungeItemChoice | undefined {
+  if (item.kind === "lounge_prop") {
+    return item.assetId === beachBallProp.id ? beachBallProp : undefined;
+  }
+  if (item.kind !== "lounge_stamp") return undefined;
+
+  const stamp = itemCatalog.find(([id]) => id === item.assetId);
+  return stamp ? stampChoice(stamp, "earned") : undefined;
 }
 
 export function loungeItemForDefinition(definitionId: string) {

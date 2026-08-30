@@ -2,9 +2,6 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AvatarPartArt } from "../avatar/AvatarArt";
-import { AVATAR_LAYERS } from "../avatar/catalog";
-import { defaultAvatar } from "../avatar/config";
 import { copy } from "../content/copy";
 import { routes } from "../content/routes";
 import type {
@@ -15,6 +12,7 @@ import type {
   PrizeItem,
   PrizeUnlock,
 } from "../data/prize-box-gateway";
+import { PrizeItemArt } from "./PrizeItemArt";
 
 export function PrizeBoxesExperience({
   gateway,
@@ -275,49 +273,6 @@ export function PrizeBoxesExperience({
           </section>
         </div>
       ) : null}
-    </div>
-  );
-}
-
-function PrizeItemArt({
-  item,
-  featured = false,
-}: {
-  item: PrizeItem;
-  featured?: boolean;
-}) {
-  if (item.kind === "avatar_part") {
-    const layer = AVATAR_LAYERS.find(({ kind }) => kind === item.slot);
-    const option = layer?.options.find(({ id }) => id === item.assetId);
-    if (layer && option) {
-      return (
-        <div
-          className={`prize-item-art${featured ? " prize-item-art--featured" : ""}`}
-        >
-          <AvatarPartArt
-            kind={layer.kind}
-            option={option}
-            config={defaultAvatar()}
-          />
-        </div>
-      );
-    }
-  }
-  const symbols: Record<string, string> = {
-    shield: "◆",
-    target: "◎",
-    rainbow: "◒",
-    lion: "♛",
-    rocket: "▲",
-    sparkles: "✦",
-    "beach-ball": "●",
-  };
-  return (
-    <div
-      className={`prize-item-art${featured ? " prize-item-art--featured" : ""}`}
-      aria-hidden="true"
-    >
-      {symbols[item.assetId] ?? "✦"}
     </div>
   );
 }
