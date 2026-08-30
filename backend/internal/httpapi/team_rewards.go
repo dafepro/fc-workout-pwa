@@ -11,22 +11,10 @@ import (
 	"github.com/dafepro/fc-workout-pwa/backend/internal/store"
 )
 
-type teamRewardPlayerRepository interface {
-	TeamReward(context.Context, domain.Actor, string, time.Time) (store.TeamReward, error)
-}
-
 type teamRewardStaffRepository interface {
 	PublishTeamReward(context.Context, string, string, store.PublishTeamRewardInput) (store.TeamReward, error)
 	CancelTeamReward(context.Context, string, string, string, time.Time) (store.TeamReward, error)
 	TeamReward(context.Context, string, time.Time) (store.TeamReward, error)
-}
-
-func (service *service) playerTeamRewardRepository(w http.ResponseWriter, r *http.Request) (teamRewardPlayerRepository, bool) {
-	repository, ok := service.store.(teamRewardPlayerRepository)
-	if !ok {
-		writeError(w, r, http.StatusServiceUnavailable, "not_ready", "The service is not ready.")
-	}
-	return repository, ok
 }
 
 func (service *service) staffTeamRewardRepository(w http.ResponseWriter, r *http.Request) (teamRewardStaffRepository, bool) {
@@ -35,27 +23,6 @@ func (service *service) staffTeamRewardRepository(w http.ResponseWriter, r *http
 		writeError(w, r, http.StatusServiceUnavailable, "not_ready", "The service is not ready.")
 	}
 	return repository, ok
-}
-
-func (service *service) getPlayerTeamReward(w http.ResponseWriter, r *http.Request) {
-	actor, ok := service.authenticate(w, r)
-	if !ok {
-		return
-	}
-	repository, ok := service.playerTeamRewardRepository(w, r)
-	if !ok {
-		return
-	}
-	reward, err := repository.TeamReward(r.Context(), actor, r.PathValue("teamId"), service.now().UTC())
-	if errors.Is(err, store.ErrTeamRewardUnavailable) {
-		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
-		return
-	}
-	if err != nil {
-		writeError(w, r, http.StatusInternalServerError, "internal_error", "The team reward could not be loaded.")
-		return
-	}
-	writeJSON(w, http.StatusOK, reward)
 }
 
 func (service *service) listTeamRewardDefinitions(w http.ResponseWriter, r *http.Request) {

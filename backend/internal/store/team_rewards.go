@@ -212,28 +212,6 @@ func (staff *StaffStore) TeamReward(ctx context.Context, teamID string, now time
 	return visibleTeamReward(ctx, staff.db, teamID, now)
 }
 
-func (store *Store) TeamReward(ctx context.Context, actor domain.Actor, teamID string, now time.Time) (TeamReward, error) {
-	if actor.Role != domain.RolePlayer || actor.PlayerID == "" {
-		return TeamReward{}, ErrTeamRewardUnavailable
-	}
-	var zone string
-	if err := store.db.QueryRowContext(ctx, `SELECT time_zone FROM teams WHERE id = ?`, teamID).Scan(&zone); err != nil {
-		return TeamReward{}, ErrTeamRewardUnavailable
-	}
-	location, err := time.LoadLocation(zone)
-	if err != nil {
-		return TeamReward{}, ErrTeamRewardUnavailable
-	}
-	today := now.In(location).Format("2006-01-02")
-	var membership int
-	if err = store.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM team_memberships
-		WHERE team_id = ? AND player_id = ? AND active_from <= ?
-		AND (active_to IS NULL OR active_to >= ?)`, teamID, actor.PlayerID, today, today).Scan(&membership); err != nil || membership == 0 {
-		return TeamReward{}, ErrTeamRewardUnavailable
-	}
-	return visibleTeamReward(ctx, store.db, teamID, now)
-}
-
 func visibleTeamReward(ctx context.Context, db *sql.DB, teamID string, now time.Time) (TeamReward, error) {
 	var id string
 	err := db.QueryRowContext(ctx, `SELECT id FROM team_rewards

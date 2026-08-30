@@ -157,6 +157,28 @@ to resolve, not the implementing agent's.
 - Whether reaction totals are visible.
 - Whether a private recipient badge may mention an exact approved leaderboard placement.
 
+## Player Team Hub consolidation (2026-08-30)
+
+- Decided: `/team` is one overview with a shared weekly-focus card, one
+  positive-only teammate activity list, and one compact Lounge entry. The
+  retired player reward, pulse, challenge-roster, and weekly-roster cards do
+  not remain below it. Staff keeps the full roster-progress projection.
+- Teammate activity contains at most five unique active teammates, newest safe
+  participation first. Each teammate has at most one Cheer context, chosen in
+  this order: active challenge completion, recent participation, then weekly
+  goal completion. The API returns the chosen closed context and still
+  validates it when a reaction is sent.
+- The rolling three-active-days-in-five habit is private Momentum information.
+  It appears only on `/progress`; the fixed team-week aggregate and the rolling
+  personal window no longer share the Team screen.
+- The Lounge opens as `/team?view=lounge`. The overview does not mount its
+  worker, request a socket ticket, or show a live-presence count. Browser Back
+  returns to the overview and restores focus to `Open Lounge`.
+- `GET /v1/teams/{teamId}/hub` is the canonical player projection. It reuses
+  existing reward, assignment, participation, and reaction rules and adds no
+  schema. `/activity` remains because staff progress and focused-Lounge roster
+  bootstrap still consume its fuller authorized projection.
+
 ## Privacy and youth safety
 
 - Parent consent and account ownership.

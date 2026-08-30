@@ -197,41 +197,47 @@ export interface TeamActivityProjection {
   members: TeamMemberProjection[];
 }
 
-export interface TeamRewardDayProgress {
-  date: string;
-  activePlayers: number;
-  qualifyingPlayers: number;
-  requiredPlayers: number;
-  qualifies: boolean;
+export type TeamHubSignalKind =
+  | "active_today"
+  | "active_this_week"
+  | "challenge_complete"
+  | "weekly_goal_complete";
+
+export interface TeamHubFocus {
+  kind: "reward" | "challenge";
+  id: string;
+  title: string;
+  current: number;
+  target: number;
+  unit: "team_days" | "teammates";
+  endsOn?: string;
+  dueOn?: string;
 }
 
-export interface TeamRewardProjection {
-  id: string;
-  teamId: string;
-  definitionId: string;
-  definitionVersion: number;
-  title: string;
-  description: string;
-  artworkId: string;
-  status: "active" | "achieved";
-  startsOn: string;
-  endsOn: string;
-  timeZone: string;
-  rule: {
-    version: 1;
-    requiredDays: number;
-    minimumRosterPercent: number;
+export interface TeamHubActivity {
+  player: Player;
+  signals: { kind: TeamHubSignalKind }[];
+  reactionContext?: ReactionContext;
+}
+
+export interface TeamHubProjection {
+  team: {
+    id: string;
+    name: string;
+    weekStart: string;
+    weekEnd: string;
   };
-  progress: {
-    current: number;
-    target: number;
-    percent: number;
-    achieved: boolean;
-    days: TeamRewardDayProgress[];
+  access: {
+    activityUnlocked: boolean;
+    loungeUnlocked: boolean;
   };
-  achievedAt?: string;
-  createdAt: string;
-  updatedAt: string;
+  focus: TeamHubFocus[];
+  activitySummary: { activeThisWeek: number };
+  activity: TeamHubActivity[];
+  lounge: {
+    themeId: "beach-boardwalk";
+    title: string;
+  };
 }
 
 export interface LeaderboardItem extends Player {

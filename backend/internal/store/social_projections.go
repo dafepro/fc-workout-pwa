@@ -97,6 +97,10 @@ func (store *Store) TeamActivity(ctx context.Context, actor domain.Actor, teamID
 	if err != nil {
 		return TeamActivityProjection{}, err
 	}
+	return store.teamActivity(ctx, team, location, now)
+}
+
+func (store *Store) teamActivity(ctx context.Context, team socialTeamRecord, location *time.Location, now time.Time) (TeamActivityProjection, error) {
 	members, entries, err := store.socialProjectionData(ctx, team.ID, now, location)
 	if err != nil {
 		return TeamActivityProjection{}, err

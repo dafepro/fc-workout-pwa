@@ -14,6 +14,7 @@ func TestTeamAndLeaderboardProjectionsArePrivateAndAuthorized(t *testing.T) {
 
 	for _, path := range []string{
 		"/v1/teams/team-hill-striders/activity",
+		"/v1/teams/team-hill-striders/hub",
 		"/v1/teams/team-hill-striders/leaderboards?period=weekly&metric=effort",
 	} {
 		response := api.do(t, http.MethodGet, path, masonToken, "", nil)
@@ -26,6 +27,9 @@ func TestTeamAndLeaderboardProjectionsArePrivateAndAuthorized(t *testing.T) {
 		if strings.Contains(path, "/activity") && (!strings.Contains(body, `"currentChallenge"`) || !strings.Contains(body, `"challengeCompleted"`)) {
 			t.Fatalf("Team projection omitted safe challenge state: %s", body)
 		}
+		if strings.Contains(path, "/hub") && (!strings.Contains(body, `"activitySummary"`) || !strings.Contains(body, `"lounge"`)) {
+			t.Fatalf("Team Hub omitted its consolidated contract: %s", body)
+		}
 		for _, privateValue := range []string{"resultValue", "resultUnit", "exhaustionLevel", "occurredAt", "assessment"} {
 			if strings.Contains(body, privateValue) {
 				t.Fatalf("projection leaked %q: %s", privateValue, body)
@@ -36,6 +40,9 @@ func TestTeamAndLeaderboardProjectionsArePrivateAndAuthorized(t *testing.T) {
 	concealed := api.do(t, http.MethodGet, "/v1/teams/team-hill-striders/activity", otherCoachToken, "", nil)
 	assertStatus(t, concealed, http.StatusNotFound)
 	_ = concealed.Body.Close()
+	concealedHub := api.do(t, http.MethodGet, "/v1/teams/team-hill-striders/hub", otherCoachToken, "", nil)
+	assertStatus(t, concealedHub, http.StatusNotFound)
+	_ = concealedHub.Body.Close()
 
 	invalid := api.do(t, http.MethodGet, "/v1/teams/team-hill-striders/leaderboards?period=weekly&metric=speed", masonToken, "", nil)
 	assertStatus(t, invalid, http.StatusBadRequest)

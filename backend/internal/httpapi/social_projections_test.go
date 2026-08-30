@@ -56,6 +56,7 @@ func TestSocialProjectionRoutesAreAuthenticatedSafeAndValidated(t *testing.T) {
 
 	for _, path := range []string{
 		"/v1/teams/team-one/activity",
+		"/v1/teams/team-one/hub",
 		"/v1/teams/team-one/leaderboards?period=weekly&metric=effort",
 	} {
 		request := httptest.NewRequest(http.MethodGet, path, nil)

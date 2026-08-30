@@ -3,9 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PlayerShell } from "./PlayerShell";
 
 let pathname = "/";
+let searchParameters = new URLSearchParams();
 
 vi.mock("next/navigation", () => ({
   usePathname: () => pathname,
+  useSearchParams: () => searchParameters,
 }));
 
 vi.mock("../state/auth-context", () => ({
@@ -31,6 +33,7 @@ vi.mock("../components/PlayerAvatar", () => ({
 describe("PlayerShell", () => {
   beforeEach(() => {
     pathname = "/";
+    searchParameters = new URLSearchParams();
   });
 
   it("offers only Today, Team, and Me in both player navigation regions", () => {
@@ -102,5 +105,21 @@ describe("PlayerShell", () => {
       "aria-current",
       "page",
     );
+  });
+
+  it("keeps the in-place Lounge focused with its own Back control", () => {
+    pathname = "/team";
+    searchParameters = new URLSearchParams("view=lounge");
+
+    render(
+      <PlayerShell>
+        <button type="button">Back to Team</button>
+      </PlayerShell>,
+    );
+
+    expect(
+      screen.getAllByRole("navigation", { name: "Primary navigation" }),
+    ).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Back to Team" })).toBeVisible();
   });
 });

@@ -81,7 +81,7 @@ test("a player equips an owned Prize Box part in a v4 look", async ({
 
   await page.goto("/team");
   await expect(
-    page.locator(".player-progress .avatar--self .avatar-art"),
+    page.locator(".player-nav__avatar .avatar-art:visible"),
   ).toBeVisible();
 
   await page.goto("/me");

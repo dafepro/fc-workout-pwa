@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { PlayerAvatar } from "../components/PlayerAvatar";
 import { copy } from "../content/copy";
@@ -18,8 +18,11 @@ const navigation = [
 
 export function PlayerShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const searchParameters = useSearchParams();
   const { currentPlayer: player } = useAuth();
-  const focused = pathname === routes.playerAvatar;
+  const focused =
+    pathname === routes.playerAvatar ||
+    (pathname === "/team" && searchParameters.get("view") === "lounge");
 
   useEffect(() => {
     document.documentElement.dataset.appReady = "true";
