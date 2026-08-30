@@ -42,7 +42,7 @@ Canvas before the catalog exposes them.
   behavior and exposes matching solid or sensor collider geometry.
 
 The four Starlight definition IDs retain their existing `zoomigo-prop-` names so
-durable generation-13 rooms do not need a compatibility import or destructive
+durable generation-14 rooms do not need a compatibility import or destructive
 cutover. Their typed catalog kind and capability contract are authoritative.
 
 ## Placement budget

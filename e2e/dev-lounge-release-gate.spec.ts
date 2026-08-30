@@ -64,33 +64,27 @@ test("a qualified player enters the Lounge and sees their own avatar", async ({
     const stage = lounge.getByLabel("Interactive lounge canvas");
     const ownAvatar = lounge
       .locator(".team-lounge__shared-avatar")
-      .filter({ hasText: "You" })
-      .locator(".avatar");
+      .filter({ hasText: "You" });
     await expect(stage.locator("canvas")).toBeVisible({ timeout: 15_000 });
-    await expect(ownAvatar).toBeVisible({ timeout: 15_000 });
+    await expect(ownAvatar.getByText("You")).toBeVisible({ timeout: 15_000 });
+    await expect(ownAvatar.locator(".avatar")).toHaveCount(0);
     await expect(lounge.getByText("The boardwalk could not open.")).toHaveCount(
       0,
     );
 
     await page.setViewportSize({ width: 320, height: 800 });
-    await expect(ownAvatar).toBeVisible();
     const geometry = await lounge.evaluate((region) => {
       const stageElement = region.querySelector(".team-lounge__stage");
-      const avatarElement = region.querySelector(
-        ".team-lounge__shared-avatar .avatar",
-      );
       const dockElement = region.querySelector(".team-lounge__actions");
-      if (!stageElement || !avatarElement || !dockElement) return null;
+      if (!stageElement || !dockElement) return null;
       const stageBox = stageElement.getBoundingClientRect();
-      const avatarBox = avatarElement.getBoundingClientRect();
       const dockBox = dockElement.getBoundingClientRect();
+      const playerX = Number(stageElement.getAttribute("data-player-x"));
+      const playerY = Number(stageElement.getAttribute("data-player-y"));
       return {
         stageAboveDock: stageBox.bottom <= dockBox.top + 1,
         avatarInsideStage:
-          avatarBox.left >= stageBox.left &&
-          avatarBox.right <= stageBox.right &&
-          avatarBox.top >= stageBox.top &&
-          avatarBox.bottom <= stageBox.bottom,
+          playerX >= 0 && playerX <= 100 && playerY >= 0 && playerY <= 150,
         documentWidth: document.documentElement.scrollWidth,
       };
     });

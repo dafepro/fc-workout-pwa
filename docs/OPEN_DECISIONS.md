@@ -421,6 +421,23 @@ to resolve, not the implementing agent's.
   briefly inside the goal mouth, then returns it to the boardwalk ball spawn.
   Other player-placed items cannot trigger a score or be teleported by it.
 
+## Canvas v14 Lounge physics bridge (2026-08-30)
+
+- Canvas generation 14 is a clean cutover from generation 13. It does not
+  import the retired room snapshot; the existing generation-bound credit rule
+  prevents retired reservations from reducing the active room's weekly budget.
+- The system ball and earned ball now collide with item solids. Fixed and
+  kinematic objects keep their authored position, while the dynamic bounce drum
+  and wobble cone can be displaced and rotated by ball or avatar contact.
+- The ball definitions advance to versions 7 and 4, and the shared composite
+  definitions advance to version 2. Wobble torque is calibrated against the
+  real simulation rather than the command-only behavior harness.
+- Pixi paints participant avatars and placed item artwork from simulated entity
+  state. DOM overlays retain accessibility and editing controls but no longer
+  hide authoritative motion behind a separately transformed image.
+- These interactions remain transient Lounge play. They create no score,
+  training entry, Momentum, leaderboard value, or public performance result.
+
 ## Canvas 0.6 Lounge authority (2026-08-28)
 
 - Canvas generation 10 is a clean cutover: ZoomiGo does not import pre-0.6
@@ -579,3 +596,20 @@ to resolve, not the implementing agent's.
 - Both dock buttons show the same remaining weekly placement count. The picker
   shows used placements over earned capacity; this does not alter credit
   accounting or owner-bound one-use permits.
+
+## Team Lounge Pixi actor presentation (2026-08-30)
+
+- The authenticated shared Lounge renders moving participants and placed scene
+  items in Canvas's existing stable Pixi/WebGL entity layer. React remains
+  responsible for labels, reactions, accessibility descriptions, and edit
+  controls; static weekly visitor traces may remain DOM UI.
+- Participant-specific avatar art is selected with a renderer-local visual
+  projection. It does not mutate simulation entities, snapshots, protocol
+  messages, ownership, physics, or server authority.
+- Every placeable definition supplies its real catalog texture to Pixi while
+  retaining its existing body, collider, behavior, layer, and authority
+  contract. The DOM item editor keeps transparent hit targets but no longer
+  repaints duplicate item artwork.
+- A WebGPU or scene-stack rewrite remains deferred. It requires its own device
+  qualification and migration decision after the current WebGL path is proven
+  insufficient against the recorded performance budgets.

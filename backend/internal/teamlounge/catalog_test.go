@@ -93,7 +93,7 @@ func TestDurableRoomIdentityPersistsAcrossWeekRollover(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if roomID != "team:team-one:lounge:v13" {
+	if roomID != "team:team-one:lounge:v14" {
 		t.Fatalf("room id = %q", roomID)
 	}
 	nextWeek, err := DurableRoomID("team-one", "2026-08-31")
@@ -104,7 +104,7 @@ func TestDurableRoomIdentityPersistsAcrossWeekRollover(t *testing.T) {
 	if err != nil || teamID != "team-one" {
 		t.Fatalf("parsed = %q, %v", teamID, err)
 	}
-	for _, invalid := range []string{"", "team:other", "team:team/one:lounge:v13", "team:team-one:lounge:today", "team:team-one:lounge", "team:team-one:lounge:v12"} {
+	for _, invalid := range []string{"", "team:other", "team:team/one:lounge:v14", "team:team-one:lounge:today", "team:team-one:lounge", "team:team-one:lounge:v13"} {
 		if _, err := ParseRoomID(invalid); err == nil {
 			t.Fatalf("accepted invalid room id %q", invalid)
 		}
@@ -122,8 +122,8 @@ func TestWeeklyThemeManifestOwnsTheImmutableCanvasBinding(t *testing.T) {
 	if theme.RoomGeneration != BeachBoardwalkRoomGeneration {
 		t.Fatalf("room generation = %d", theme.RoomGeneration)
 	}
-	if theme.RoomGeneration != 13 {
-		t.Fatalf("room generation = %d, want clean-cutover generation 13", theme.RoomGeneration)
+	if theme.RoomGeneration != 14 {
+		t.Fatalf("room generation = %d, want physics-bridge generation 14", theme.RoomGeneration)
 	}
 	if theme.Template.CanvasID != BeachBoardwalkCanvasID || theme.Template.CanvasVersion != BeachBoardwalkCanvasVersion {
 		t.Fatalf("theme template = %#v", theme.Template)
@@ -142,7 +142,7 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 	if canvas.CanvasID != BeachBoardwalkCanvasID || canvas.Version != BeachBoardwalkCanvasVersion || !json.Valid(canvas.DefinitionRaw) {
 		t.Fatalf("canvas record = %#v", canvas)
 	}
-	if canvas.Version != 13 {
+	if canvas.Version != 14 {
 		t.Fatalf("canvas version = %d", canvas.Version)
 	}
 	var shape struct {
@@ -224,7 +224,7 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 	if err := json.Unmarshal(catalog.Items[0].DefinitionRaw, &ball); err != nil {
 		t.Fatal(err)
 	}
-	if ball.Version != 6 || ball.Visual.SpriteID != "lounge.ball" || len(ball.Colliders) < 1 || ball.Colliders[0].CollisionMask != 4 || ball.Colliders[0].Restitution != 0.95 || len(ball.Colliders[0].Tags) != 1 || ball.Colliders[0].Tags[0] != "lounge-ball" {
+	if ball.Version != 7 || ball.Visual.SpriteID != "lounge.ball" || len(ball.Colliders) < 1 || ball.Colliders[0].CollisionMask != 12 || ball.Colliders[0].Restitution != 0.95 || len(ball.Colliders[0].Tags) != 1 || ball.Colliders[0].Tags[0] != "lounge-ball" {
 		t.Fatalf("beach ball definition = %#v", ball)
 	}
 	var avatar struct {
@@ -298,7 +298,7 @@ func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 	}
 	for index, item := range catalog.Items[17:27] {
 		want := wantComposite[index]
-		if item.DefinitionID != "zoomigo-prop-play-"+want.id || item.Version != 1 {
+		if item.DefinitionID != "zoomigo-prop-play-"+want.id || item.Version != 2 {
 			t.Fatalf("composite Lounge item = %#v", item)
 		}
 		var definition struct {
@@ -332,7 +332,7 @@ func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 	if len(combinations) != 10 {
 		t.Fatalf("composite behavior combinations = %d", len(combinations))
 	}
-	if item := catalog.Items[27]; item.DefinitionID != "zoomigo-prop-beach-ball" || item.Version != 3 {
+	if item := catalog.Items[27]; item.DefinitionID != "zoomigo-prop-beach-ball" || item.Version != 4 {
 		t.Fatalf("development prop = %#v", item)
 	}
 }

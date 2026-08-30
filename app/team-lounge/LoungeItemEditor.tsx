@@ -47,6 +47,7 @@ interface TapState {
 
 export function LoungeItemEditor({
   items,
+  paintArtwork = true,
   selectedEntityID,
   pending,
   dragging,
@@ -60,6 +61,7 @@ export function LoungeItemEditor({
   onDragStateChange,
 }: {
   items: readonly LoungeEditableItem[];
+  paintArtwork?: boolean;
   selectedEntityID: string | null;
   pending: boolean;
   dragging: { entityID: string; overTrash: boolean } | null;
@@ -202,6 +204,9 @@ export function LoungeItemEditor({
             }}
             onPointerDown={(event) => {
               if (!selectedItem) {
+                if (suppressedClickRef.current === item.entityID) {
+                  suppressedClickRef.current = null;
+                }
                 tapRef.current = {
                   entityID: item.entityID,
                   pointerID: event.pointerId,
@@ -225,7 +230,7 @@ export function LoungeItemEditor({
               onDragStateChange({ entityID: item.entityID, overTrash: false });
             }}
           >
-            <LoungeItemArt item={item} decorative />
+            {paintArtwork ? <LoungeItemArt item={item} decorative /> : null}
           </button>
         ) : (
           <span
@@ -235,7 +240,7 @@ export function LoungeItemEditor({
             role="img"
             aria-label={label}
           >
-            <LoungeItemArt item={item} decorative />
+            {paintArtwork ? <LoungeItemArt item={item} decorative /> : null}
           </span>
         );
       })}

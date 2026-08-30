@@ -7,6 +7,21 @@ import { AvatarIdentityProvider } from "../state/avatar-identity-context";
 import { SharedLoungeCanvas } from "./SharedLoungeCanvas";
 
 const runtime = vi.hoisted(() => ({
+  options: undefined as
+    | {
+        assets?: { id: string };
+        definitions?: Array<{
+          definitionId: string;
+          visual: { spriteId?: string };
+        }>;
+        scene?: {
+          projectEntityVisual?: (entity: {
+            kind: string;
+            userId?: string;
+          }) => unknown;
+        };
+      }
+    | undefined,
   projectionSubscriptions: [] as Array<{
     observer(snapshot: {
       entities: Array<{
@@ -30,7 +45,13 @@ const runtime = vi.hoisted(() => ({
 
 vi.mock("@canvas-physics/client", () => ({
   CanvasRuntime: class {
-    constructor({ onError }: { onError(error: unknown): void }) {
+    constructor(
+      options: NonNullable<typeof runtime.options> & {
+        onError(error: unknown): void;
+      },
+    ) {
+      runtime.options = options;
+      const { onError } = options;
       runtime.errorObserver = onError;
     }
     subscribePresence() {
@@ -98,6 +119,7 @@ const mason: Player = {
 
 describe("Shared Lounge Canvas", () => {
   beforeEach(() => {
+    runtime.options = undefined;
     runtime.projectionSubscriptions = [];
     runtime.effectObserver = undefined;
     runtime.errorObserver = undefined;
@@ -162,7 +184,7 @@ describe("Shared Lounge Canvas", () => {
     expect(onStateChange).toHaveBeenLastCalledWith("ownership-lost");
   });
 
-  it("observes the full bounded Lounge instead of dropping late avatars", async () => {
+  it("uses the bounded projection only for UI overlays", async () => {
     const { container } = render(
       <AvatarIdentityProvider
         value={{ currentPlayerID: mason.id, avatarConfig: defaultAvatar() }}
@@ -178,28 +200,22 @@ describe("Shared Lounge Canvas", () => {
     );
 
     await waitFor(() =>
-      expect(runtime.projectionSubscriptions).toHaveLength(2),
+      expect(runtime.projectionSubscriptions).toHaveLength(1),
     );
     expect(
       runtime.projectionSubscriptions.map(({ options }) => options),
-    ).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ maxEntities: 200, maxHz: 30 }),
-        expect.objectContaining({
-          entityIds: [`avatar:${mason.id}`],
-          maxEntities: 1,
-          maxHz: 60,
-        }),
-      ]),
-    );
+    ).toEqual([expect.objectContaining({ maxEntities: 200, maxHz: 30 })]);
     await waitFor(() =>
       expect(
-        container.querySelector(".team-lounge__shared-avatar .avatar"),
+        container.querySelector(".team-lounge__shared-avatar"),
       ).toBeVisible(),
     );
+    expect(
+      container.querySelector(".team-lounge__shared-avatar .avatar"),
+    ).toBeNull();
   });
 
-  it("presents the current avatar from the 60 Hz local projection without a React render", async () => {
+  it("gives participant and item artwork to the Pixi renderer", async () => {
     const { container } = render(
       <AvatarIdentityProvider
         value={{ currentPlayerID: mason.id, avatarConfig: defaultAvatar() }}
@@ -214,32 +230,22 @@ describe("Shared Lounge Canvas", () => {
       </AvatarIdentityProvider>,
     );
 
-    const avatar = await waitFor(() => {
-      const element = container.querySelector<HTMLElement>(
-        ".team-lounge__shared-avatar[data-current='true']",
-      );
-      expect(element).toBeVisible();
-      return element!;
-    });
-    const localProjection = runtime.projectionSubscriptions.find(
-      ({ options }) => options.maxHz === 60,
-    );
-    expect(localProjection).toBeDefined();
-
-    act(() => {
-      localProjection?.observer({
-        entities: [
-          {
-            entityId: `avatar:${mason.id}`,
-            screen: { x: 147, y: 263 },
-            world: { x: 44, y: 79 },
-            inViewport: true,
-          },
-        ],
-      });
-    });
-
-    expect(avatar).toHaveStyle({ transform: "translate3d(147px, 263px, 0)" });
+    await waitFor(() => expect(runtime.options).toBeDefined());
+    expect(runtime.options?.assets?.id).toContain("pixi-presentation");
+    expect(
+      runtime.options?.definitions?.find(
+        ({ definitionId }) => definitionId === "zoomigo-prop-play-wobble-cone",
+      )?.visual.spriteId,
+    ).toBe("lounge.item.zoomigo-prop-play-wobble-cone");
+    expect(
+      runtime.options?.scene?.projectEntityVisual?.({
+        kind: "avatar",
+        userId: mason.id,
+      }),
+    ).toEqual({ variant: "participant-0" });
+    expect(
+      container.querySelector(".team-lounge__shared-avatar .avatar"),
+    ).toBeNull();
   });
 
   it("shows an allowlisted quick phrase as a transient sender bubble", async () => {

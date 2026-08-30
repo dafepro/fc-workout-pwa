@@ -5,21 +5,21 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  "@canvas-physics/core": file:vendor/canvas/canvas-physics-core-0.6.0.tgz
-  "@canvas-physics/protocol": file:vendor/canvas/canvas-physics-protocol-0.6.0.tgz
+  "@canvas-physics/core": file:vendor/canvas/canvas-physics-core-0.6.2.tgz
+  "@canvas-physics/protocol": file:vendor/canvas/canvas-physics-protocol-0.6.2.tgz
 
 importers:
   .:
     dependencies:
       "@canvas-physics/client":
-        specifier: file:vendor/canvas/canvas-physics-client-0.6.0.tgz
-        version: file:vendor/canvas/canvas-physics-client-0.6.0.tgz
+        specifier: file:vendor/canvas/canvas-physics-client-0.6.2.tgz
+        version: file:vendor/canvas/canvas-physics-client-0.6.2.tgz
       "@canvas-physics/core":
-        specifier: file:vendor/canvas/canvas-physics-core-0.6.0.tgz
-        version: file:vendor/canvas/canvas-physics-core-0.6.0.tgz
+        specifier: file:vendor/canvas/canvas-physics-core-0.6.2.tgz
+        version: file:vendor/canvas/canvas-physics-core-0.6.2.tgz
       "@canvas-physics/protocol":
-        specifier: file:vendor/canvas/canvas-physics-protocol-0.6.0.tgz
-        version: file:vendor/canvas/canvas-physics-protocol-0.6.0.tgz
+        specifier: file:vendor/canvas/canvas-physics-protocol-0.6.2.tgz
+        version: file:vendor/canvas/canvas-physics-protocol-0.6.2.tgz
       next:
         specifier: 16.2.6
         version: 16.2.6(@babel/core@7.29.0(supports-color@10.2.2))(@playwright/test@1.62.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -245,29 +245,29 @@ packages:
         integrity: sha512-C3UGsiCwSprE2NKIIFA3hCDlpXTMCAXRZuEVp88L1GY36Y41+rYL5fryE+nOFhp4p4JPQvdV8PQ4DWgHgeTE+w==,
       }
 
-  "@canvas-physics/client@file:vendor/canvas/canvas-physics-client-0.6.0.tgz":
+  "@canvas-physics/client@file:vendor/canvas/canvas-physics-client-0.6.2.tgz":
     resolution:
       {
-        integrity: sha512-LukEu7iuSQpNWqWaNa1f9H93/rp+MXSWCHVT5o9UATmPYBNsBO0HyMcDnpNyI+c+hu+64hXxfM12ZcyZ9jJ0ng==,
-        tarball: file:vendor/canvas/canvas-physics-client-0.6.0.tgz,
+        integrity: sha512-sPPwS7KR4vrTyKeXA7+IcJDZptO2SYMtZ+VkvjKQWpofN5B4k7rqD8cM23BdG+7TwHDT2N6EPDioIekLJVzqig==,
+        tarball: file:vendor/canvas/canvas-physics-client-0.6.2.tgz,
       }
-    version: 0.6.0
+    version: 0.6.2
 
-  "@canvas-physics/core@file:vendor/canvas/canvas-physics-core-0.6.0.tgz":
+  "@canvas-physics/core@file:vendor/canvas/canvas-physics-core-0.6.2.tgz":
     resolution:
       {
-        integrity: sha512-pc9kVqH3q4YPtZuhq5qNXw8nTcu/dwUfsv5/4LKMS5FrFxPCxZIgdwWTGz7ziiHDnksOnpcfj0RePziy2p8MEw==,
-        tarball: file:vendor/canvas/canvas-physics-core-0.6.0.tgz,
+        integrity: sha512-wIFmjf9XivfDBtmc01qYB+26RxALagpVy5k+cupvfw9W6fWOWm0ajFdtoMN2+gyKOUWuv0UhuLwnx4fH060Lzw==,
+        tarball: file:vendor/canvas/canvas-physics-core-0.6.2.tgz,
       }
-    version: 0.6.0
+    version: 0.6.2
 
-  "@canvas-physics/protocol@file:vendor/canvas/canvas-physics-protocol-0.6.0.tgz":
+  "@canvas-physics/protocol@file:vendor/canvas/canvas-physics-protocol-0.6.2.tgz":
     resolution:
       {
-        integrity: sha512-AITlGM+fwlgq+zjt4hl08/x84zxlzDBRyfB3NPc4hB8NltWtxoSuIM6yR09e+BFp0BZhxFP7uV08cdRC/kvNbQ==,
-        tarball: file:vendor/canvas/canvas-physics-protocol-0.6.0.tgz,
+        integrity: sha512-sPr8ARDJoJtR5K32h5hq1riphkBrqkwiMRw1JEhIXOp6bPX8UrBj9D8TCWNFt6NsJPRKx16PFCfk6N7f0PH5Nw==,
+        tarball: file:vendor/canvas/canvas-physics-protocol-0.6.2.tgz,
       }
-    version: 0.6.0
+    version: 0.6.2
 
   "@cloudflare/kv-asset-handler@0.5.0":
     resolution:
@@ -6520,19 +6520,19 @@ snapshots:
 
   "@bufbuild/protobuf@2.14.0": {}
 
-  "@canvas-physics/client@file:vendor/canvas/canvas-physics-client-0.6.0.tgz":
+  "@canvas-physics/client@file:vendor/canvas/canvas-physics-client-0.6.2.tgz":
     dependencies:
-      "@canvas-physics/core": file:vendor/canvas/canvas-physics-core-0.6.0.tgz
-      "@canvas-physics/protocol": file:vendor/canvas/canvas-physics-protocol-0.6.0.tgz
+      "@canvas-physics/core": file:vendor/canvas/canvas-physics-core-0.6.2.tgz
+      "@canvas-physics/protocol": file:vendor/canvas/canvas-physics-protocol-0.6.2.tgz
       "@dimforge/rapier2d-compat": 0.20.0
       pixi.js: 8.20.1
 
-  "@canvas-physics/core@file:vendor/canvas/canvas-physics-core-0.6.0.tgz": {}
+  "@canvas-physics/core@file:vendor/canvas/canvas-physics-core-0.6.2.tgz": {}
 
-  "@canvas-physics/protocol@file:vendor/canvas/canvas-physics-protocol-0.6.0.tgz":
+  "@canvas-physics/protocol@file:vendor/canvas/canvas-physics-protocol-0.6.2.tgz":
     dependencies:
       "@bufbuild/protobuf": 2.14.0
-      "@canvas-physics/core": file:vendor/canvas/canvas-physics-core-0.6.0.tgz
+      "@canvas-physics/core": file:vendor/canvas/canvas-physics-core-0.6.2.tgz
 
   "@cloudflare/kv-asset-handler@0.5.0": {}
 

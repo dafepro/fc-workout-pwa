@@ -211,6 +211,30 @@ describe("LoungeItemEditor", () => {
     expect(fireEvent.dragStart(artwork!)).toBe(false);
   });
 
+  it("can leave painting to Pixi while preserving the edit hit target", () => {
+    render(
+      <LoungeItemEditor
+        items={[{ ...item, imageSrc: "/team-lounge/items/wobble-cone-v1.png" }]}
+        paintArtwork={false}
+        selectedEntityID={null}
+        pending={false}
+        dragging={null}
+        onSelect={vi.fn()}
+        onMove={vi.fn()}
+        onRotate={vi.fn()}
+        onScale={vi.fn()}
+        onDelete={vi.fn()}
+        onFinish={vi.fn()}
+        onDragStateChange={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Bolt stamp, yours; tap to edit" }),
+    ).toBeVisible();
+    expect(document.querySelector(".team-lounge__item-art")).toBeNull();
+  });
+
   it("drags a selected item without reverting and reports a trash drop separately", () => {
     const onMove = vi.fn();
     const onDelete = vi.fn();

@@ -7,10 +7,10 @@ not need private GitHub or npm registry credentials.
 | Field                         | Value                                      |
 | ----------------------------- | ------------------------------------------ |
 | Source repository             | `https://github.com/dafepro/canvas.git`    |
-| Package archive source commit | `11ebf12f451decc368712bce35833319cdab0395` |
-| Package archive source date   | `2026-08-28T09:21:01-05:00`                |
-| Package version               | `0.6.0`                                    |
-| Go rooms SDK                  | `github.com/dafepro/canvas/server v0.6.0`  |
+| Package archive source commit | `b67b79f7ce685d7526b88f68fe1058ba6cbecc89` |
+| Package archive source date   | `2026-08-30T15:37:31-05:00`                |
+| Package version               | `0.6.2`                                    |
+| Go rooms SDK                  | `github.com/dafepro/canvas/server v0.6.2`  |
 | Protocol version              | `8`                                        |
 | Pack tool                     | pnpm `11.21.0`                             |
 | Runtime used to pack          | Node.js `24.19.0`                          |
@@ -19,9 +19,9 @@ not need private GitHub or npm registry credentials.
 
 | Archive                             | Digest                                                             |
 | ----------------------------------- | ------------------------------------------------------------------ |
-| `canvas-physics-client-0.6.0.tgz`   | `9DF2AD4F4E2F7EE0B6C98931A7846E7A806ED0A87CDFA4BCD72DC4E5B3850C48` |
-| `canvas-physics-core-0.6.0.tgz`     | `9AF3588BF579C3C5F1B5FCC9256457EB749E6776167E69DA618195E302C11E4C` |
-| `canvas-physics-protocol-0.6.0.tgz` | `0527FA9E30047BB2AEC2D7AC5E42C361561FE4280BF18B985893D9CE880291FA` |
+| `canvas-physics-client-0.6.2.tgz`   | `B4C64E4E173603B19FFCEA16A74AA8B20A9044847C9057EA49DF86A9074EFDF7` |
+| `canvas-physics-core-0.6.2.tgz`     | `A00E6C7F541E3B7FC1AF4F17A785598083BA5C0D8C9C918FA9B24D161EF5900F` |
+| `canvas-physics-protocol-0.6.2.tgz` | `7E8881490B7F50D6D7640B9795F69F2A3DFABE4C8D36F1C8F196D32A2CA8EF68` |
 
 ## Verification performed
 

@@ -4,7 +4,7 @@ import type {
   SimulationDriver,
   SimulationResponse,
 } from "@canvas-physics/client";
-import type { ItemInstance } from "@canvas-physics/core";
+import type { ItemDefinition, ItemInstance } from "@canvas-physics/core";
 
 import {
   beachBoardwalkCanvas,
@@ -16,11 +16,15 @@ export function startLocalBeachBoardwalkSimulation({
   onRender,
   onError,
   driver,
+  additionalDefinitions = [],
+  additionalItems = [],
 }: {
   playerID: string;
   onRender(entities: RenderEntity[]): void;
   onError?(message: string): void;
   driver: SimulationDriver;
+  additionalDefinitions?: readonly ItemDefinition[];
+  additionalItems?: readonly ItemInstance[];
 }) {
   const generation = 1;
   const avatarID = `avatar:${playerID}`;
@@ -46,6 +50,9 @@ export function startLocalBeachBoardwalkSimulation({
           instance: systemItemInstance(item),
         });
       }
+      for (const instance of additionalItems) {
+        driver.send({ type: "addItem", instance });
+      }
       settleReady?.();
       settleReady = undefined;
       rejectReady = undefined;
@@ -63,7 +70,7 @@ export function startLocalBeachBoardwalkSimulation({
     type: "init",
     generation,
     canvas: beachBoardwalkCanvas,
-    definitions: beachBoardwalkDefinitions,
+    definitions: [...beachBoardwalkDefinitions, ...additionalDefinitions],
     tickRate: 60,
     isHost: true,
     localAvatar: {

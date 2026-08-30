@@ -45,12 +45,16 @@ test("the 320px Lounge keeps its approved visual states", async ({ page }) => {
     "data-canvas-state",
     "ready",
   );
-  await expect(lounge.getByLabel("Mason C., you")).toBeVisible();
+  await expect(lounge.getByLabel("Mason C., you")).toHaveCount(1);
+  await expect(lounge.getByText("You", { exact: true })).toBeVisible();
   const dock = lounge.getByRole("navigation", { name: "Lounge actions" });
   const appNavigation = page.getByRole("navigation", {
     name: "Primary navigation",
   });
   const revealDock = async () => {
+    await lounge.evaluate((element) =>
+      element.scrollIntoView({ block: "start", behavior: "instant" }),
+    );
     const [dockBox, navigationBox] = await Promise.all([
       dock.boundingBox(),
       appNavigation.boundingBox(),
@@ -125,6 +129,7 @@ test("the 320px Lounge keeps its approved visual states", async ({ page }) => {
   await expect(
     lounge.getByRole("group", { name: "Edit selected stamp" }),
   ).toBeVisible();
+  await revealDock();
   await expect(lounge).toHaveScreenshot("team-lounge-stamp-editor.png", {
     animations: "disabled",
   });
