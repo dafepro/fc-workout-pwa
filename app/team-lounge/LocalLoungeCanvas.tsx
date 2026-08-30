@@ -15,7 +15,12 @@ import {
   beachBoardwalkDefinitions,
 } from "./scene/beach-boardwalk";
 
-export type LoungeCanvasState = "loading" | "ready" | "static" | "error";
+export type LoungeCanvasState =
+  | "loading"
+  | "ready"
+  | "static"
+  | "error"
+  | "superseded";
 
 export function LocalLoungeCanvas({
   player,

@@ -66,6 +66,27 @@ const visitorAnchors = [
   { x: 48, y: 125 },
 ] as const;
 
+function isSupersededSession(cause: unknown) {
+  if (!cause || typeof cause !== "object") return false;
+  const error = cause as {
+    code?: unknown;
+    source?: unknown;
+    details?: unknown;
+  };
+  if (
+    error.code !== "server_rejected" ||
+    error.source !== "protocol" ||
+    !error.details ||
+    typeof error.details !== "object"
+  ) {
+    return false;
+  }
+  return (
+    (error.details as Readonly<Record<string, unknown>>).serverCode ===
+    "session_superseded"
+  );
+}
+
 export function SharedLoungeCanvas({
   teamID,
   player,
@@ -168,6 +189,10 @@ export function SharedLoungeCanvas({
 
     const failCanvas = (cause: unknown) => {
       if (disposed) return;
+      if (isSupersededSession(cause)) {
+        onStateChange("superseded");
+        return;
+      }
       console.error("The Lounge Canvas failed.", cause);
       onStateChange("error");
     };

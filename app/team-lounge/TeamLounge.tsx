@@ -110,7 +110,7 @@ export function TeamLounge({
         data-canvas-state={unlocked ? state : "locked"}
         data-scene={scene}
       >
-        {unlocked ? (
+        {unlocked && state !== "superseded" ? (
           connected ? (
             <SharedLoungeCanvas
               key={canvasKey}
@@ -131,7 +131,7 @@ export function TeamLounge({
               />
             </div>
           )
-        ) : (
+        ) : !unlocked ? (
           <div className="team-lounge__lock">
             <span className="team-lounge__lock-mark" aria-hidden="true">
               ◆
@@ -140,8 +140,14 @@ export function TeamLounge({
             <p>{copy.teamLounge.lockedDetail}</p>
             <Link href="/">{copy.teamLounge.lockedAction}</Link>
           </div>
-        )}
-        {unlocked && state === "error" ? (
+        ) : null}
+        {unlocked && state === "superseded" ? (
+          <div className="team-lounge__status" role="status">
+            <p>{copy.teamLounge.openElsewhere}</p>
+            <p>{copy.teamLounge.openElsewhereDetail}</p>
+            <Link href="/">{copy.teamLounge.openElsewhereAction}</Link>
+          </div>
+        ) : unlocked && state === "error" ? (
           <div className="team-lounge__status" role="alert">
             <p>{copy.teamLounge.unavailable}</p>
             <button

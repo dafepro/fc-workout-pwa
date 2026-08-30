@@ -158,6 +158,10 @@ export const copy = {
     static: "The room is ready. Movement needs a supported browser.",
     unavailable: "The boardwalk could not open.",
     retry: "Try the boardwalk again",
+    openElsewhere: "The boardwalk is open in another tab.",
+    openElsewhereDetail:
+      "Keep playing there, or close that tab before coming back here.",
+    openElsewhereAction: "Go to Today",
     development: {
       label: "Lounge testing",
       beach: "Beach",

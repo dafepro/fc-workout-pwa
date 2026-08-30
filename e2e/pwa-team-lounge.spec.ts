@@ -685,6 +685,65 @@ test.describe("touch placement", () => {
   });
 });
 
+test("opening the same player Lounge in another tab retires the first tab cleanly", async ({
+  page,
+}) => {
+  const api = await request.newContext({ baseURL: apiBaseURL });
+  const completion = await api.post("/v1/me/training-entries", {
+    headers: {
+      Authorization: "Bearer e2e-player-ava",
+      "Idempotency-Key": "browser-lounge-superseded-ava",
+    },
+    data: {
+      teamId: "team-hill-striders",
+      activityDefinitionId: "hill-sprints",
+      assignmentId: "assignment-hill-sprints",
+      occurredAt: new Date(Date.now() - 60_000).toISOString(),
+      result: { kind: "repetitions", value: 8, unit: "reps" },
+      effortLevel: 4,
+      exhaustionLevel: 3,
+      completionOutcome: "as_listed",
+    },
+  });
+  expect(completion.status()).toBe(201);
+  await api.dispose();
+
+  await loginAsAva(page);
+  await page.goto("/team");
+  await page.locator("html[data-app-ready='true']").waitFor();
+  const firstLounge = page.getByRole("region", {
+    name: "Beach Boardwalk Team Lounge",
+  });
+  await expect(firstLounge.locator(".team-lounge__world")).toHaveAttribute(
+    "data-canvas-state",
+    "ready",
+  );
+
+  const secondPage = await page.context().newPage();
+  try {
+    await secondPage.goto("/team");
+    await secondPage.locator("html[data-app-ready='true']").waitFor();
+    const secondLounge = secondPage.getByRole("region", {
+      name: "Beach Boardwalk Team Lounge",
+    });
+    await expect(secondLounge.locator(".team-lounge__world")).toHaveAttribute(
+      "data-canvas-state",
+      "ready",
+    );
+    await expect(firstLounge.getByRole("status")).toContainText(
+      "The boardwalk is open in another tab.",
+    );
+    await expect(
+      firstLounge.getByLabel("Interactive lounge canvas"),
+    ).toHaveCount(0);
+    await expect(
+      firstLounge.getByRole("button", { name: "Try the boardwalk again" }),
+    ).toHaveCount(0);
+  } finally {
+    await secondPage.close();
+  }
+});
+
 test("two qualified players share Lounge presence and avatar movement", async ({
   browser,
   page,

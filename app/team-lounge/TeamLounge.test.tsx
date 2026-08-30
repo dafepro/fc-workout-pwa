@@ -25,15 +25,20 @@ vi.mock("./SharedLoungeCanvas", () => ({
     onStateChange(state: string): void;
     onPresenceChange(count: number): void;
   }) => (
-    <button
-      type="button"
-      onClick={() => {
-        onPresenceChange(2);
-        onStateChange("ready");
-      }}
-    >
-      Shared weekly lounge
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          onPresenceChange(2);
+          onStateChange("ready");
+        }}
+      >
+        Shared weekly lounge
+      </button>
+      <button type="button" onClick={() => onStateChange("superseded")}>
+        Supersede shared lounge
+      </button>
+    </>
   ),
 }));
 
@@ -133,5 +138,33 @@ describe("canonical Team Lounge", () => {
         name: "Mason's interactive lounge canvas",
       }),
     ).not.toBe(canvas);
+  });
+
+  it("stops a superseded shared Lounge without offering a retry", () => {
+    render(
+      <TeamLounge
+        player={mason}
+        unlocked
+        connected
+        teamID="team-one"
+        roster={[mason]}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Supersede shared lounge" }),
+    );
+
+    expect(screen.getByText(/boardwalk is open in another tab/i)).toBeVisible();
+    expect(screen.getByRole("link", { name: "Go to Today" })).toHaveAttribute(
+      "href",
+      "/",
+    );
+    expect(
+      screen.queryByRole("button", { name: "Shared weekly lounge" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Try the boardwalk again" }),
+    ).not.toBeInTheDocument();
   });
 });
