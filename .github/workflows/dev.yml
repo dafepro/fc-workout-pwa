@@ -1,6 +1,9 @@
 name: Operate disposable ZoomiGo dev
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       operation:
@@ -23,9 +26,33 @@ permissions:
   contents: read
 
 jobs:
+  context:
+    name: Resolve dev operation
+    runs-on: ubuntu-24.04
+    outputs:
+      operation: ${{ steps.resolve.outputs.operation }}
+      ref: ${{ steps.resolve.outputs.ref }}
+    steps:
+      - name: Resolve automatic or manual operation
+        id: resolve
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          MANUAL_OPERATION: ${{ inputs.operation }}
+          MANUAL_REF: ${{ inputs.ref }}
+          PUSH_SHA: ${{ github.sha }}
+        run: |
+          if [ "$EVENT_NAME" = "push" ]; then
+            echo "operation=update" >>"$GITHUB_OUTPUT"
+            echo "ref=$PUSH_SHA" >>"$GITHUB_OUTPUT"
+          else
+            echo "operation=$MANUAL_OPERATION" >>"$GITHUB_OUTPUT"
+            echo "ref=$MANUAL_REF" >>"$GITHUB_OUTPUT"
+          fi
+
   build:
     name: Verify and package the selected application
-    if: inputs.operation == 'create' || inputs.operation == 'update'
+    needs: context
+    if: needs.context.outputs.operation == 'create' || needs.context.outputs.operation == 'update'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
@@ -38,7 +65,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref }}
+          ref: ${{ needs.context.outputs.ref }}
           persist-credentials: false
 
       - name: Resolve the deployed revision
@@ -110,11 +137,12 @@ jobs:
 
   operate:
     name: Operate isolated dev infrastructure
-    needs: build
+    needs: [context, build]
     if: >-
       always() &&
-      (inputs.operation == 'reset' ||
-      inputs.operation == 'destroy' ||
+      needs.context.result == 'success' &&
+      (needs.context.outputs.operation == 'reset' ||
+      needs.context.outputs.operation == 'destroy' ||
       needs.build.result == 'success')
     runs-on: ubuntu-24.04
     timeout-minutes: 35
@@ -146,7 +174,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - uses: actions/download-artifact@v4
-        if: inputs.operation == 'create' || inputs.operation == 'update'
+        if: needs.context.outputs.operation == 'create' || needs.context.outputs.operation == 'update'
         with:
           name: dev-worker-${{ needs.build.outputs.revision }}
           path: source/dist
@@ -171,7 +199,7 @@ jobs:
 
       - name: Apply disposable infrastructure
         id: infra
-        if: inputs.operation == 'create' || inputs.operation == 'update'
+        if: needs.context.outputs.operation == 'create' || needs.context.outputs.operation == 'update'
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}
@@ -200,7 +228,7 @@ jobs:
           tofu output -raw deploy_host >"$RUNNER_TEMP/dev-host"
 
       - name: Pin the new host key for this run
-        if: inputs.operation == 'create' || inputs.operation == 'update'
+        if: needs.context.outputs.operation == 'create' || needs.context.outputs.operation == 'update'
         run: |
           host=$(cat "$RUNNER_TEMP/dev-host")
           for _ in $(seq 1 30); do
@@ -213,7 +241,7 @@ jobs:
           exit 1
 
       - name: Authorize operator SSH key
-        if: (inputs.operation == 'create' || inputs.operation == 'update') && vars.DEV_OPERATOR_SSH_PUBLIC_KEY != ''
+        if: (needs.context.outputs.operation == 'create' || needs.context.outputs.operation == 'update') && vars.DEV_OPERATOR_SSH_PUBLIC_KEY != ''
         env:
           DEV_DEPLOY_SSH_KEY_VALUE: ${{ secrets.DEV_DEPLOY_SSH_KEY }}
           DEV_OPERATOR_SSH_PUBLIC_KEY: ${{ vars.DEV_OPERATOR_SSH_PUBLIC_KEY }}
@@ -252,7 +280,7 @@ jobs:
               trap - EXIT'
 
       - name: Publish dev operator access endpoint
-        if: inputs.operation == 'create' || inputs.operation == 'update'
+        if: needs.context.outputs.operation == 'create' || needs.context.outputs.operation == 'update'
         run: |
           access_directory="$RUNNER_TEMP/dev-operator-access"
           install -d -m 0700 "$access_directory"
@@ -260,7 +288,7 @@ jobs:
           install -m 0600 "$RUNNER_TEMP/dev-known-hosts" "$access_directory/known_hosts"
 
       - uses: actions/upload-artifact@v4
-        if: inputs.operation == 'create' || inputs.operation == 'update'
+        if: needs.context.outputs.operation == 'create' || needs.context.outputs.operation == 'update'
         with:
           name: dev-operator-access-${{ github.run_id }}
           path: ${{ runner.temp }}/dev-operator-access
@@ -268,7 +296,7 @@ jobs:
           if-no-files-found: error
 
       - name: Deploy VM and password-gated Worker
-        if: inputs.operation == 'create' || inputs.operation == 'update'
+        if: needs.context.outputs.operation == 'create' || needs.context.outputs.operation == 'update'
         env:
           DEPLOY_HOST_FILE: ${{ runner.temp }}/dev-host
           DEPLOY_USER: zoomigo
@@ -304,7 +332,7 @@ jobs:
             "$GITHUB_WORKSPACE/source"
 
       - name: Seed a newly created preview
-        if: inputs.operation == 'create' || steps.infra.outputs.created == 'true'
+        if: needs.context.outputs.operation == 'create' || steps.infra.outputs.created == 'true'
         env:
           DEV_API_GATEWAY_TOKEN: ${{ secrets.DEV_API_GATEWAY_TOKEN }}
           DEV_RESET_KEY: ${{ secrets.DEV_RESET_KEY }}
@@ -316,7 +344,7 @@ jobs:
             https://api-dev.zoomigo.quicktrack.cc/__dev/reset
 
       - name: Reset preview fixtures
-        if: inputs.operation == 'reset'
+        if: needs.context.outputs.operation == 'reset'
         env:
           DEV_API_GATEWAY_TOKEN: ${{ secrets.DEV_API_GATEWAY_TOKEN }}
           DEV_RESET_KEY: ${{ secrets.DEV_RESET_KEY }}
@@ -328,7 +356,7 @@ jobs:
             https://api-dev.zoomigo.quicktrack.cc/__dev/reset
 
       - name: Prove the exact dev container is serving
-        if: inputs.operation == 'create' || inputs.operation == 'update'
+        if: needs.context.outputs.operation == 'create' || needs.context.outputs.operation == 'update'
         env:
           DEV_SMOKE_API_BASE_URL: https://api-dev.zoomigo.quicktrack.cc
           DEV_API_GATEWAY_TOKEN: ${{ secrets.DEV_API_GATEWAY_TOKEN }}
@@ -336,11 +364,11 @@ jobs:
         run: node scripts/dev-deploy-smoke.mjs --read-only
 
       - name: Install the deployed-dev release browser
-        if: inputs.operation == 'create' || inputs.operation == 'update'
+        if: needs.context.outputs.operation == 'create' || needs.context.outputs.operation == 'update'
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Prove a qualified player's visible Lounge avatar
-        if: inputs.operation == 'create' || inputs.operation == 'update'
+        if: needs.context.outputs.operation == 'create' || needs.context.outputs.operation == 'update'
         env:
           DEV_LOUNGE_RELEASE_GATE: "true"
           DEV_SMOKE_API_BASE_URL: https://api-dev.zoomigo.quicktrack.cc
@@ -350,7 +378,7 @@ jobs:
         run: pnpm exec playwright test e2e/dev-lounge-release-gate.spec.ts
 
       - name: Prove final disposable-dev flows
-        if: inputs.operation == 'create' || steps.infra.outputs.created == 'true'
+        if: needs.context.outputs.operation == 'create' || steps.infra.outputs.created == 'true'
         env:
           DEV_SMOKE_API_BASE_URL: https://api-dev.zoomigo.quicktrack.cc
           DEV_API_GATEWAY_TOKEN: ${{ secrets.DEV_API_GATEWAY_TOKEN }}
@@ -358,14 +386,14 @@ jobs:
         run: node scripts/dev-deploy-smoke.mjs
 
       - name: Remove Worker
-        if: inputs.operation == 'destroy'
+        if: needs.context.outputs.operation == 'destroy'
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: pnpm exec wrangler delete zoomigo-training-dev --force
 
       - name: Destroy disposable infrastructure
-        if: inputs.operation == 'destroy'
+        if: needs.context.outputs.operation == 'destroy'
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}
@@ -389,12 +417,12 @@ jobs:
           {
             echo "### ZoomiGo disposable dev"
             echo ""
-            echo "- Operation: \`${{ inputs.operation }}\`"
+            echo "- Operation: \`${{ needs.context.outputs.operation }}\`"
             echo "- Trusted deployment revision: \`${{ github.sha }}\`"
             if [ -n "${{ needs.build.outputs.revision }}" ]; then
               echo "- Application revision: \`${{ needs.build.outputs.revision }}\`"
             fi
-            if [ "${{ inputs.operation }}" != "destroy" ]; then
+            if [ "${{ needs.context.outputs.operation }}" != "destroy" ]; then
               echo "- PWA: https://dev.zoomigo.quicktrack.cc"
             fi
           } >>"$GITHUB_STEP_SUMMARY"

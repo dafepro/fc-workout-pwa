@@ -69,6 +69,11 @@ to resolve, not the implementing agent's.
   explicit destructive workflow operation, and destroy is manual rather than a
   scheduled TTL. No real youth data, production credential, or production
   secret may enter this environment.
+- Decided 2026-08-30: `main` is the canonical development integration branch,
+  and every push automatically deploys that exact SHA to disposable dev as a
+  serialized, database-preserving update. Manual dispatch remains available for
+  create, reset, destroy, and intentional feature-branch previews. Production
+  release remains a separate manual operation.
 - Decided 2026-08-29: disposable dev may authorize one repository-variable
   Ed25519 operator key for direct troubleshooting as the unprivileged `zoomigo`
   user. Trusted `main` reconciles the key, publishes only its already-pinned

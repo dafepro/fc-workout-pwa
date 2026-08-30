@@ -263,3 +263,8 @@ Each step is test-first and small enough to review independently.
   so invisible retired-room reservations cannot consume current-generation
   allocations. Snapshot import, compatibility paths, owner permit boundaries,
   and the single API replica remain unchanged.
+- Main integration stages the complete consolidated parity history through a
+  reviewable PR, with current-main conflicts resolved in favor of the final
+  Lounge/avatar release gates and completed visual coverage. Every subsequent
+  push to `main` becomes an exact-SHA, database-preserving disposable-dev update;
+  manual lifecycle operations and production's manual release boundary remain.

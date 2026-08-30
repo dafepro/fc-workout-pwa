@@ -113,7 +113,13 @@ cron triggers, service bindings, storage bindings, and variables.
 
 ## Operating flow
 
-Run the **Operate disposable ZoomiGo dev** workflow from GitHub Actions:
+Every push to `main` automatically runs an `update` for that exact commit. The
+update verifies and packages the pushed revision, deploys it through the trusted
+workflow from the same commit, preserves the dev database, and proves the exact
+API container plus the qualified-player Lounge flow before succeeding.
+
+Run the **Operate disposable ZoomiGo dev** workflow manually for the other
+operations or for an intentional feature-branch preview:
 
 - `create` with a branch or SHA verifies the revision, publishes a dev-tagged
   image, applies OpenTofu, deploys the API and Worker, seeds the fixtures, and
@@ -122,10 +128,12 @@ Run the **Operate disposable ZoomiGo dev** workflow from GitHub Actions:
 - `reset` reseeds fixtures without rebuilding or changing infrastructure.
 - `destroy` removes the Worker and disposable infrastructure.
 
-For the normal update path, commit and push the branch, then run
+For a feature-branch preview, commit and push the branch, then run
 `pnpm deploy:dev`. The command verifies that the worktree is clean and the exact
 current commit is the pushed branch head, dispatches that SHA through the
-trusted `main` workflow, prints the run URL, and exits without waiting.
+trusted `main` workflow, prints the run URL, and exits without waiting. Do not
+run it after a normal push to `main`; that push has already queued the same
+serialized update.
 
 The workflow is serialized, so two operations cannot mutate the environment at
 once. Infrastructure state is separate from production. No resource has
