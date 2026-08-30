@@ -5,7 +5,7 @@ interface DevAccess {
   pin: string;
 }
 
-test("a player with today's recorded training sees their own Lounge avatar", async ({
+test("a qualified player enters the Lounge and sees their own avatar", async ({
   page,
 }) => {
   test.skip(
@@ -33,11 +33,11 @@ test("a player with today's recorded training sees their own Lounge avatar", asy
   await page.getByLabel("Four-digit PIN").fill(access.pin);
   await page.getByRole("button", { name: "Sign in" }).click();
   await page.locator("html[data-app-ready='true']").waitFor();
-  await expect(
-    page.getByText("Done for today!", { exact: true }),
-  ).toBeVisible();
-
-  await page.goto("/team");
+  const teamLoungeLink = page.getByRole("link", { name: /Team lounge/ });
+  await expect(teamLoungeLink).toContainText(
+    "Cheer the team or visit the boardwalk.",
+  );
+  await teamLoungeLink.click();
   await page.locator("html[data-app-ready='true']").waitFor();
   const lounge = page.getByRole("region", {
     name: "Beach Boardwalk Team Lounge",
