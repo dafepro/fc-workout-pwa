@@ -4199,14 +4199,14 @@ h2 {
   position: absolute;
   inset: 0;
   z-index: 2;
-  touch-action: none;
+  touch-action: pan-y;
 }
 
 .team-lounge__stage canvas {
   display: block;
   width: 100%;
   height: 100%;
-  touch-action: none !important;
+  touch-action: pan-y !important;
 }
 
 .team-lounge__avatar-fallback {

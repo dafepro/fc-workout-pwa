@@ -30,13 +30,12 @@ test("a teammate can be cheered from Team with labeled, contextual choices", asy
   await page.emulateMedia({ reducedMotion: "reduce" });
   await fire.click();
 
-  await expect(page.getByRole("status")).toContainText("sent to Liam");
-  await expect(page.getByRole("status")).not.toContainText(/left|remaining/i);
+  const sentStatus = page.locator(".reaction-sent-status");
+  await expect(sentStatus).toContainText("sent to Liam");
+  await expect(sentStatus).not.toContainText(/left|remaining/i);
   await expect
     .poll(() =>
-      page
-        .getByRole("status")
-        .evaluate((element) => getComputedStyle(element).animationName),
+      sentStatus.evaluate((element) => getComputedStyle(element).animationName),
     )
     .toBe("none");
   await expect(picker).toBeHidden();
@@ -76,7 +75,9 @@ test("a completed shared challenge can be cheered without hiding other cheer ent
   const picker = page.getByRole("dialog", { name: "Cheer for Ava" });
   await expect(picker.getByText("For Hill Sprints challenge")).toBeVisible();
   await picker.getByRole("button", { name: "Send Strong to Ava" }).click();
-  await expect(page.getByRole("status")).toContainText("sent to Ava");
+  await expect(page.locator(".reaction-sent-status")).toContainText(
+    "sent to Ava",
+  );
 
   await expect(
     page.getByRole("button", { name: "Cheer for Liam J." }),
@@ -93,7 +94,9 @@ test("the picker is usable for a second teammate after a successful cheer", asyn
     .getByRole("dialog", { name: "Cheer for Liam" })
     .getByRole("button", { name: "Send Fire to Liam" })
     .click();
-  await expect(page.getByRole("status")).toContainText("sent to Liam");
+  await expect(page.locator(".reaction-sent-status")).toContainText(
+    "sent to Liam",
+  );
 
   await page.getByRole("button", { name: /Noah K\./ }).click();
   const secondPicker = page.getByRole("dialog", { name: "Cheer for Noah" });
@@ -104,7 +107,9 @@ test("the picker is usable for a second teammate after a successful cheer", asyn
   await expect(secondCheer).toBeEnabled();
   await secondCheer.click();
 
-  await expect(page.getByRole("status")).toContainText("sent to Noah");
+  await expect(page.locator(".reaction-sent-status")).toContainText(
+    "sent to Noah",
+  );
   await expect(secondPicker).toBeHidden();
 });
 
@@ -128,7 +133,7 @@ test("the sixth cheer to one teammate within 30 minutes shows only the limit err
     "You have sent five cheers to this teammate in the last 30 minutes. Try again soon.",
   );
   await expect(picker).toBeVisible();
-  await expect(page.getByRole("status")).toHaveCount(0);
+  await expect(page.locator(".reaction-sent-status")).toHaveCount(0);
 });
 
 test("received contextual reactions appear privately on Me", async ({

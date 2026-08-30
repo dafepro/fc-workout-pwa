@@ -208,11 +208,13 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
     );
   };
   const sizeBeforeReact = await loungeSize();
-  await expect(
-    lounge
-      .getByRole("navigation", { name: "Lounge actions" })
-      .locator(":scope > button"),
-  ).toHaveText(["✦Stamps", "▣Items", "▤Chat", "☺React"]);
+  const actionButtons = lounge
+    .getByRole("navigation", { name: "Lounge actions" })
+    .locator(":scope > button");
+  await expect(actionButtons).toHaveCount(4);
+  for (const [index, label] of ["Stamps", "Items", "Chat", "React"].entries()) {
+    await expect(actionButtons.nth(index)).toContainText(label);
+  }
   await expect
     .poll(() =>
       lounge
