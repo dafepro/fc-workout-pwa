@@ -33,21 +33,19 @@ test("a qualified player enters the Lounge and sees their own avatar", async ({
   await page.getByLabel("Four-digit PIN").fill(access.pin);
   await page.getByRole("button", { name: "Sign in" }).click();
   await page.locator("html[data-app-ready='true']").waitFor();
-  const qualificationResponse = await page.request.post(
-    "/api/zoomigo/v1/me/training-entries",
-    {
-      headers: { "Idempotency-Key": crypto.randomUUID() },
-      data: {
-        teamId: "team-hill-striders",
-        activityDefinitionId: "hill-sprints",
-        occurredAt: new Date(Date.now() - 60_000).toISOString(),
-        result: { kind: "repetitions", value: 8, unit: "reps" },
-        effortLevel: 4,
-        exhaustionLevel: 3,
-        completionOutcome: "as_listed",
-      },
-    },
+  await page.goto("/log/additional");
+  await page.locator("html[data-app-ready='true']").waitFor();
+  await page
+    .getByRole("button", { name: "Choose an activity", exact: true })
+    .click();
+  await page.getByRole("radio", { name: /^Hill Sprints/i }).click();
+  const qualificationResponsePromise = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/zoomigo/v1/me/training-entries") &&
+      response.request().method() === "POST",
   );
+  await page.getByRole("button", { name: /^Save / }).click();
+  const qualificationResponse = await qualificationResponsePromise;
   expect(qualificationResponse.status()).toBe(201);
   const qualification = (await qualificationResponse.json()) as { id: string };
 
@@ -102,10 +100,23 @@ test("a qualified player enters the Lounge and sees their own avatar", async ({
       documentWidth: 320,
     });
   } finally {
-    const cleanupResponse = await page.request.delete(
-      `/api/zoomigo/v1/training-entries/${encodeURIComponent(qualification.id)}`,
+    await page.goto(`/sessions/${encodeURIComponent(qualification.id)}`);
+    await expect(
+      page.getByRole("heading", { name: "Hill Sprints" }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Delete session" }).click();
+    const cleanupResponsePromise = page.waitForResponse(
+      (response) =>
+        response
+          .url()
+          .includes(
+            `/api/zoomigo/v1/training-entries/${encodeURIComponent(qualification.id)}`,
+          ) && response.request().method() === "DELETE",
     );
+    await page.getByRole("button", { name: "Yes, delete" }).click();
+    const cleanupResponse = await cleanupResponsePromise;
     expect(cleanupResponse.status()).toBe(204);
+    await expect(page).toHaveURL(/\/$/);
   }
 });
 
