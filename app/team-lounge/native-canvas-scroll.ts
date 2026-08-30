@@ -20,3 +20,29 @@ export function preserveNativeCanvasScroll(mount: HTMLElement) {
 
   return () => observer.disconnect();
 }
+
+export function relayAvatarPointerDown(
+  canvas: HTMLCanvasElement,
+  pointer: PointerEvent,
+) {
+  pointer.preventDefault();
+  canvas.dispatchEvent(
+    new PointerEvent("pointerdown", {
+      pointerId: pointer.pointerId,
+      pointerType: pointer.pointerType,
+      isPrimary: pointer.isPrimary,
+      button: pointer.button,
+      buttons: pointer.buttons,
+      clientX: pointer.clientX,
+      clientY: pointer.clientY,
+      width: pointer.width,
+      height: pointer.height,
+      pressure: pointer.pressure,
+      tiltX: pointer.tiltX,
+      tiltY: pointer.tiltY,
+      twist: pointer.twist,
+      bubbles: true,
+      cancelable: true,
+    }),
+  );
+}

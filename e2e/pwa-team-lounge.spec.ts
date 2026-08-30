@@ -570,6 +570,18 @@ test.describe("touch placement", () => {
     await expect
       .poll(async () => Number(await stage.getAttribute("data-player-x")))
       .toBeGreaterThan(0);
+    const currentAvatar = lounge.locator(
+      ".team-lounge__shared-avatar[data-current='true'] .avatar",
+    );
+    await expect(currentAvatar).toBeVisible();
+    await expect
+      .poll(() =>
+        currentAvatar.evaluate((node) => ({
+          pointerEvents: getComputedStyle(node).pointerEvents,
+          touchAction: getComputedStyle(node).touchAction,
+        })),
+      )
+      .toEqual({ pointerEvents: "auto", touchAction: "none" });
 
     const items = lounge.getByRole("button", {
       name: /Items, \d+ placements? left/u,
@@ -664,26 +676,49 @@ test.describe("touch placement", () => {
       0,
     );
 
-    const playerName = lounge.getByText("You", { exact: true });
     const canvasBox = await stage.locator("canvas").boundingBox();
-    const playerBox = await playerName.boundingBox();
+    const playerBox = await currentAvatar.boundingBox();
     expect(canvasBox).not.toBeNull();
     expect(playerBox).not.toBeNull();
     const destinationX = 35;
-    await page.mouse.move(
-      playerBox!.x + playerBox!.width / 2,
-      playerBox!.y + 30,
-    );
-    await page.mouse.down();
-    await page.mouse.move(
-      canvasBox!.x + canvasBox!.width * (destinationX / 100),
-      canvasBox!.y + canvasBox!.height * (100 / 150),
-      { steps: 24 },
-    );
-    await page.mouse.up();
+    const origin = {
+      x: playerBox!.x + playerBox!.width / 2,
+      y: playerBox!.y + playerBox!.height / 2,
+    };
+    const destination = {
+      x: canvasBox!.x + canvasBox!.width * (destinationX / 100),
+      y: canvasBox!.y + canvasBox!.height * (85 / 150),
+    };
+    const cdp = await page.context().newCDPSession(page);
+    const touchPoint = (x: number, y: number) => [
+      { x, y, id: 0, radiusX: 2, radiusY: 2, force: 1 },
+    ];
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: touchPoint(origin.x, origin.y),
+    });
+    for (let step = 1; step <= 16; step += 1) {
+      const progress = step / 16;
+      await cdp.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: touchPoint(
+          origin.x + (destination.x - origin.x) * progress,
+          origin.y + (destination.y - origin.y) * progress,
+        ),
+      });
+      await page.waitForTimeout(16);
+    }
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+    await cdp.detach();
     await expect
       .poll(async () => Number(await stage.getAttribute("data-player-x")))
       .toBeCloseTo(destinationX, 0);
+    await expect
+      .poll(async () => Number(await stage.getAttribute("data-player-y")))
+      .toBeCloseTo(85, 0);
   });
 });
 

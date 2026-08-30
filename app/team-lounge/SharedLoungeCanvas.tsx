@@ -54,7 +54,10 @@ import {
   type TeamLoungeItemMutationKind,
   type TeamLoungeItemTransform,
 } from "./lounge-gateway";
-import { preserveNativeCanvasScroll } from "./native-canvas-scroll";
+import {
+  preserveNativeCanvasScroll,
+  relayAvatarPointerDown,
+} from "./native-canvas-scroll";
 import { beachBoardwalkAssets } from "./scene/assets";
 import {
   beachBoardwalkCanvas,
@@ -713,7 +716,17 @@ export function SharedLoungeCanvas({
         {overlays.map(({ player, position, current }) => (
           <div
             className="team-lounge__shared-avatar"
+            data-current={current || undefined}
             key={player.id}
+            onPointerDown={
+              current
+                ? (event) => {
+                    const canvas = mountRef.current?.querySelector("canvas");
+                    if (canvas)
+                      relayAvatarPointerDown(canvas, event.nativeEvent);
+                  }
+                : undefined
+            }
             style={{
               transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
             }}

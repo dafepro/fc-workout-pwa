@@ -4251,6 +4251,11 @@ h2 {
   transform: translate(-50%, -50%);
 }
 
+.team-lounge__shared-avatar[data-current="true"] .avatar {
+  pointer-events: auto;
+  touch-action: none;
+}
+
 .team-lounge__avatar-fallback .avatar__self-marker,
 .team-lounge__shared-avatar .avatar__self-marker {
   display: none;
