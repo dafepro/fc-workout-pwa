@@ -20,9 +20,15 @@ vi.mock("next/link", () => ({
   }) => <a href={href}>{children}</a>,
 }));
 
-function openWithFragment(fragment: string) {
+function openWithFragment(
+  fragment: string,
+  devAccess = false,
+  existingSession: "player" | "staff" | null = null,
+) {
   window.history.replaceState(null, "", `/login${fragment}`);
-  render(<LoginEntry />);
+  render(
+    <LoginEntry devAccess={devAccess} existingSession={existingSession} />,
+  );
 }
 
 beforeEach(() => {
@@ -59,6 +65,29 @@ describe("sign-in entry states", () => {
       document.querySelector("form[data-credential-ready='true']"),
     ).not.toBeNull();
     await waitFor(() => expect(window.location.hash).toBe(""));
+  });
+
+  it("sends an unscanned dev visitor to the preview account directory", async () => {
+    openWithFragment("", true);
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/dev-access"));
+    expect(
+      screen.queryByRole("heading", { name: "Scan your QR code to sign in" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps a scanned dev credential on the player PIN form", async () => {
+    openWithFragment("#credential=example-credential-value", true, "player");
+
+    expect(await screen.findByLabelText("Four-digit PIN")).toBeInTheDocument();
+    expect(replace).not.toHaveBeenCalledWith("/dev-access");
+    expect(replace).not.toHaveBeenCalledWith("/");
+  });
+
+  it("returns an existing player home only when no replacement QR was scanned", async () => {
+    openWithFragment("", false, "player");
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
   });
 
   it("says the same thing however sign-in failed", async () => {

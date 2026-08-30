@@ -9,6 +9,7 @@ test("macOS and Linux are the canonical local automation path", async () => {
   const required = [
     "scripts/verify.sh",
     "scripts/e2e.sh",
+    "scripts/e2e-visual.sh",
     "scripts/vm-smoke.sh",
     "scripts/contracts.mjs",
     "infra/digitalocean/provision.sh",
@@ -47,14 +48,22 @@ test("macOS and Linux are the canonical local automation path", async () => {
 });
 
 test("the browser image runs Playwright without recursing into Docker", async () => {
-  const [dockerfile, packageDocument] = await Promise.all([
+  const [dockerfile, packageDocument, visualRunner] = await Promise.all([
     readFile(join(root, "Dockerfile.e2e"), "utf8"),
     readFile(join(root, "package.json"), "utf8"),
+    readFile(join(root, "scripts/e2e-visual.sh"), "utf8"),
   ]);
   const scripts = JSON.parse(packageDocument).scripts;
 
   assert.equal(scripts["test:e2e"], "./scripts/e2e.sh");
+  assert.equal(scripts["test:e2e:visual"], "./scripts/e2e-visual.sh");
+  assert.equal(
+    scripts["test:e2e:visual:update"],
+    "./scripts/e2e-visual.sh --update-snapshots",
+  );
   assert.equal(scripts["test:browser"], "playwright test");
   assert.match(dockerfile, /CMD \["pnpm", "test:browser"\]/);
   assert.doesNotMatch(dockerfile, /CMD \["pnpm", "test:e2e"\]/);
+  assert.match(visualRunner, /--volume.*\/e2e:\/app\/e2e/);
+  assert.match(visualRunner, /--update-snapshots/);
 });

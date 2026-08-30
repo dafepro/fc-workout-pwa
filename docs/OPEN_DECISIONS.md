@@ -69,6 +69,11 @@ to resolve, not the implementing agent's.
   explicit destructive workflow operation, and destroy is manual rather than a
   scheduled TTL. No real youth data, production credential, or production
   secret may enter this environment.
+- Decided 2026-08-30: `main` is the canonical development integration branch,
+  and every push automatically deploys that exact SHA to disposable dev as a
+  serialized, database-preserving update. Manual dispatch remains available for
+  create, reset, destroy, and intentional feature-branch previews. Production
+  release remains a separate manual operation.
 - Decided 2026-08-29: disposable dev may authorize one repository-variable
   Ed25519 operator key for direct troubleshooting as the unprivileged `zoomigo`
   user. Trusted `main` reconciles the key, publishes only its already-pinned
@@ -78,8 +83,12 @@ to resolve, not the implementing agent's.
 
 ## Goals and workload
 
-- Approve the provisional training-plan duration, intensity, and spacing bounds;
-  plan publication remains development-only until then.
+- Decided 2026-08-28: a plan has at most seven consecutive days; an active day
+  is 5–20 minutes; a seven-day plan has at most five active days, at most two
+  non-consecutive hard days, and at least one full rest day. These are
+  conservative bounds for the app's supplemental work, not a complete physical
+  activity prescription. Production authoring remains behind its separate
+  explicit-capability decision.
 - Default weekly goal calculation.
 - Whether players can select a goal from approved options.
 - Coach override rules.
@@ -398,3 +407,168 @@ to resolve, not the implementing agent's.
 - In dense lists, the current player's avatar is slightly larger and gets a
   lime-and-white ring plus a small sparkle marker. This avoids another visible
   `You` label while preserving an accessible `, you` name.
+
+## Team Lounge composite items (2026-08-29)
+
+- Implementation assumption: boost pad, bounce drum, pinwheel, orbit beacon,
+  breeze fan, soft sand mat, speed lane, wobble cone, swing gate, and mini goal
+  are included Lounge basics rather than Prize Box unlocks. They still consume
+  the same earned weekly placement credits as every other Lounge object.
+- Every item combines at least two predefined Canvas behaviors. Their effects
+  are playful room interactions only: they award no points, publish no player
+  result, and do not change training, Momentum, or leaderboard data.
+- The mini goal recognizes only the tagged predefined Lounge ball, dampens it
+  briefly inside the goal mouth, then returns it to the boardwalk ball spawn.
+  Other player-placed items cannot trigger a score or be teleported by it.
+
+## Canvas 0.6 Lounge authority (2026-08-28)
+
+- Canvas generation 10 is a clean cutover: ZoomiGo does not import pre-0.6
+  rooms, item data, permits, or intermediate placement reservations.
+- Production may expose only the predefined Lounge items now that every spawn
+  consumes a short-lived ZoomiGo permit bound to the participant, room/week,
+  canvas and definition generations, transform, configuration, and mutation.
+- Only a trusted Canvas `accepted` or `rejected` outcome finalizes a consumed
+  hold. `unknown` and `expired` remain held for operator review; browser claims
+  and timeouts never release earned inventory.
+- Socket tickets, room leases, ownership generations, and emote cooldowns use
+  the application database as their atomic authority.
+- Proven 2026-08-28: two real API processes sharing that SQLite database pass
+  atomic ticket consumption, fenced ownership handoff, stale-owner rejection,
+  graceful drain, and room-stable Caddy routing. Production remains at one API
+  replica until an intentional deployment-capacity change.
+- Move, rotate, scale, and delete each require a short-lived, one-use ZoomiGo
+  permit bound to the owner, current durable room, Canvas and definition
+  generations, entity revision, one operation, and its exact target. Only the
+  player's own committed item from the current team-local day is editable.
+- A trusted accepted delete releases its placement credit; rejected, unknown,
+  and expired outcomes do not. Pending edit outcomes join the existing
+  reconnect reconciliation and read-only operator report.
+- The reference branch's Map action was a disabled placeholder, not working
+  parity. It remains absent unless camera navigation becomes an explicit
+  requirement after the secured editor and unobscured viewport are restored.
+- Lounge reactions include five predefined emotes and five reviewed supportive
+  quick phrases. Canvas derives sender identity and sequence; ZoomiGo validates
+  membership, the exact closed payload, and one shared reaction cooldown. Both
+  effects are transient and never join durable player history. Quick phrases
+  are not chat: there is no typing, target recipient, inbox, transcript, or
+  free-form payload.
+- An unselected owned item uses a tap only to enter edit mode; a slide does not
+  select or move it. A later drag while selected is optimistic in the browser
+  and sends no mutation while the pointer moves. Releasing that move, or
+  choosing rotate, scale, or delete, adds one ZoomiGo permit round trip followed
+  by one Canvas mutation. Tapping the playfield or the checkmark ends editing.
+- The Docker browser gate budgets each permit round trip at 4 KiB, an idle
+  Lounge at 8 KiB/s of total WebSocket traffic, and the four-operation edit
+  sequence at 32 KiB of total WebSocket traffic. It also rejects more or fewer
+  than one permit for each committed operation.
+- Do not replace exact permits with an unbounded validation-only client stream.
+  A future Canvas capability lease may amortize move, rotate, and scale only if
+  it is short-lived and owner/entity/revision scoped, enforces transform bounds,
+  rate and sequence limits at mutation acceptance, and returns canonical state
+  for rollback after rejection. Delete remains separately authorized.
+
+## Team Lounge physical performance budget (2026-08-28)
+
+- Adopted physical acceptance thresholds are recorded in
+  `TEAM_LOUNGE_PERFORMANCE_BUDGET.md` for an iPhone SE (2nd generation) on iOS
+  26.6.1 Safari and a Pixel 6a on Android 16 Chrome 152.0.7977.42. Later stable
+  patch releases are allowed only when the exact tested build is recorded.
+- The canonical 320 CSS-pixel floor allows at most 1 CSS pixel of horizontal
+  overflow, no playfield/dock overlap, no overlay-driven Lounge resize beyond
+  1 CSS pixel, and 44 CSS-pixel primary dock targets.
+- Physical p95 Canvas ready and reconnect budgets are 5 seconds and 3 seconds.
+  The 15-minute device session caps single-core CPU at 25% average and 50% p95,
+  resident memory at 180 MiB with no more than 20 MiB growth, cold load at 4
+  MiB, reconnect at 384 KiB, and total session traffic at 12 MiB.
+- The existing exact one-use edit-permit and WebSocket budgets remain part of
+  the same gate. Production remains one API replica; no Map, compatibility
+  path, or optimistic poor-connection behavior is introduced. Poor-connection
+  optimism remains deferred and currently has no matching GitHub issue.
+- This decision records budgets, not invented physical measurements. Both
+  reference devices must populate the qualification record before a broad
+  Lounge release; desktop automation protects only the deterministic subset.
+
+## Team Lounge Map and second theme (2026-08-28)
+
+- Decided: no Map action ships while the canonical Lounge fits one viewport.
+  The retired disabled placeholder does not return. A future larger room must
+  first define bounded camera navigation, touch/keyboard behavior, focus
+  movement, and reset-to-player behavior.
+- Starlight Training Camp is the second-theme review candidate recorded in
+  `TEAM_LOUNGE_STARLIGHT_CAMP.md`. Its generated background and four included
+  props are immutable versioned assets, but the theme has no schedule or room
+  generation until it receives explicit visual approval.
+- Camp lantern, pennant flag, water cooler, and training cone are included
+  predefined stamps. They do not enter the Prize Box catalog, change rarity
+  balance, block physics, collect data, or bypass weekly placement credit and
+  owner-bound one-use mutation permits.
+
+## Team Lounge radial editor and quick phrases (2026-08-28)
+
+- The selected-item editor is a circular ring centered on the item's live
+  projected position. Its center stays transparent, controls sit around the
+  object, and the ring follows optimistic dragging and later canonical Canvas
+  projections. Near playfield edges the ring stays centered on the object while
+  individual 44 CSS pixel controls clamp inward to remain reachable at 320px;
+  item coordinates never change to accommodate the editor.
+- Unselected current-day owned items have a faint lime dashed boundary. The
+  boundary becomes solid while selected. Avatar and selected-item gestures win
+  first claim. Vertical background gestures use the browser's native page
+  scrolling and momentum; the Lounge does not synthesize or scale scroll input.
+- The player-facing action names and order are Stamps, Items, Chat, and React.
+  React opens an anchored emote tray. Chat opens an anchored set picker;
+  Standard is enabled and Set 2 and Set 3 remain visibly locked without invented
+  themes or unlock rules. Every tray uses the same quick slide-up and slide-down
+  transition, disabled under reduced motion.
+- Standard contains exactly ten predefined messages in two five-button wings
+  around the persistent vertical Standard, Set 2, Set 3 spine: `Hi!`, `Bye!`,
+  `Let's Go!`, `Nice!`, `OK`, `Oops`, `No`, `Yep`,
+  `Huh?`, and `Thanks Bromigo`. Sending therefore takes three deliberate taps:
+  Chat, Standard, then the final message. These remain room-wide transient
+  reactions, not conversation content, and use the same authenticated
+  membership check, sender binding, two-second cooldown, and 2.4-second
+  rise-hold-fade window as emotes.
+- The phrase action accepts only `{phrase: <allowlisted-id>}`. Open text, extra
+  payload fields, unknown IDs, item targets, and inactive members are rejected.
+  Nothing is persisted and no compatibility, Map, or extra API-replica path is
+  introduced.
+- Canvas v13 carries the v12 edge and kick behavior into a clean durable-room
+  identity cutover. It uses four explicit,
+  invisible, frictionless elastic boundary colliders. Dynamic balls use lower
+  drag and damping, a low-speed kick dead zone, nonlinear speed-to-power growth,
+  and a hard impulse cap. Unlocks do not alter kick power in this revision; any
+  future progression tuning needs a separate explicit product and authority
+  decision. The clean cutover creates generation-13 rooms rather than importing
+  weekly v12 state, while owner-bound one-use mutation permits remain unchanged.
+- Lounge placements are durable across team-local day and Monday week
+  boundaries by using one team-and-Canvas-generation room identity. Weekly
+  activity credits and the current-day owner edit window still roll over in the
+  team timezone. "Permanent" means the life of that immutable Canvas
+  generation; a future intentional clean cutover may start a new room and does
+  not import prior state.
+- Decided 2026-08-30: a clean Canvas-generation cutover does not import the
+  retired room's snapshot, but its invisible reservations also do not debit the
+  active room's weekly placement budget. Credits are claimed independently per
+  room generation. Reservation, entity, and owner-mutation authority remain
+  bound to the exact immutable room and Canvas generation that accepted them.
+- Development builds expose a player-local Beach/Starlight preview switch and
+  an authenticated current-player-only test unlock action. The scene preview is
+  temporary browser state; the dev grant uses only predefined Lounge catalog
+  items. Neither control or route is enabled in production, and no general
+  staff/admin production authority is implied.
+
+## Team Lounge stamp and item contract (2026-08-29)
+
+- Stamps are inert transparent decorations with an empty capability tuple. They
+  share a sticker-like white keyline and sit below avatars and physical items.
+- Items must declare a non-empty tuple of collision, physics, or behavior
+  capabilities, and the matching Canvas definition must actually contain a
+  body, collider, or behavior. An inert visual belongs under Stamps.
+- Camp lantern, pennant flag, water cooler, and training cone are therefore
+  stamps. Their existing definition IDs remain unchanged to preserve the
+  durable generation-13 room without an import, compatibility path, or cutover.
+  The earned dynamic beach ball remains an Item.
+- Both dock buttons show the same remaining weekly placement count. The picker
+  shows used placements over earned capacity; this does not alter credit
+  accounting or owner-bound one-use permits.

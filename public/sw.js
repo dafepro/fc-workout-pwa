@@ -25,9 +25,9 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   if (IS_DEV_PREVIEW) {
     event.waitUntil(
-      Promise.all([clearAllCaches(), self.registration.unregister()]).then(() =>
-        self.clients.claim(),
-      ),
+      clearAllCaches()
+        .then(() => self.clients.claim())
+        .then(() => self.registration.unregister()),
     );
     return;
   }

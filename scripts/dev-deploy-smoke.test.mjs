@@ -258,8 +258,8 @@ test("updates prove the exact container and new infrastructure proves final flow
     workflow.lastIndexOf("- name:", readOnlySmoke),
     readOnlySmoke,
   );
-  assert.match(readOnlyStep, /inputs\.operation == 'create'/);
-  assert.match(readOnlyStep, /inputs\.operation == 'update'/);
+  assert.match(readOnlyStep, /needs\.context\.outputs\.operation == 'create'/);
+  assert.match(readOnlyStep, /needs\.context\.outputs\.operation == 'update'/);
   assert.match(readOnlyStep, /DEV_SMOKE_EXPECTED_RELEASE/);
 
   const fullSmoke = workflow.indexOf(
@@ -270,10 +270,26 @@ test("updates prove the exact container and new infrastructure proves final flow
     workflow.lastIndexOf("- name:", fullSmoke),
     fullSmoke,
   );
-  assert.match(fullSmokeStep, /inputs\.operation == 'create'/);
+  assert.match(fullSmokeStep, /needs\.context\.outputs\.operation == 'create'/);
   assert.match(fullSmokeStep, /steps\.infra\.outputs\.created == 'true'/);
-  assert.doesNotMatch(fullSmokeStep, /inputs\.operation == 'update'/);
+  assert.doesNotMatch(
+    fullSmokeStep,
+    /needs\.context\.outputs\.operation == 'update'/,
+  );
   assert.match(fullSmokeStep, /DEV_SMOKE_EXPECTED_RELEASE/);
+
+  const loungeAvatarGate = workflow.indexOf(
+    "pnpm exec playwright test e2e/dev-lounge-release-gate.spec.ts",
+  );
+  assert.ok(loungeAvatarGate > readOnlySmoke);
+  const loungeAvatarStep = workflow.slice(
+    workflow.lastIndexOf("- name:", loungeAvatarGate),
+    loungeAvatarGate,
+  );
+  assert.match(loungeAvatarStep, /DEV_ACCESS_PASSWORD/);
+  assert.match(loungeAvatarStep, /DEV_API_GATEWAY_TOKEN/);
+  assert.match(loungeAvatarStep, /DEV_LOUNGE_RELEASE_GATE/);
+  assert.match(loungeAvatarStep, /E2E_PWA_BASE_URL/);
 
   assert.match(workflow, /retry-command\.sh 3 10 tofu init/);
   assert.match(workflow, /retry-command\.sh 3 15 tofu apply/);
@@ -300,4 +316,27 @@ test("updates prove the exact container and new infrastructure proves final flow
   assert.match(workflow, /name: Publish dev operator access endpoint/);
   assert.match(workflow, /dev-operator-access-\$\{\{ github\.run_id \}\}/);
   assert.match(workflow, /retention-days: 1/);
+});
+
+test("main pushes resolve to exact-sha dev updates while manual operations remain available", async () => {
+  const workflow = (
+    await readFile(
+      resolve(import.meta.dirname, "..", ".github/workflows/dev.yml"),
+      "utf8",
+    )
+  ).replaceAll("\r\n", "\n");
+
+  assert.match(
+    workflow,
+    /on:\n  push:\n    branches:\n      - main\n  workflow_dispatch:/,
+  );
+  assert.match(workflow, /name: Resolve dev operation/);
+  assert.match(workflow, /EVENT_NAME: \$\{\{ github\.event_name \}\}/);
+  assert.match(workflow, /PUSH_SHA: \$\{\{ github\.sha \}\}/);
+  assert.match(workflow, /echo "operation=update" >>"\$GITHUB_OUTPUT"/);
+  assert.match(workflow, /echo "ref=\$PUSH_SHA" >>"\$GITHUB_OUTPUT"/);
+  assert.match(workflow, /ref: \$\{\{ needs\.context\.outputs\.ref \}\}/);
+  assert.match(workflow, /needs\.context\.outputs\.operation == 'update'/);
+  assert.equal(workflow.match(/inputs\.operation/g)?.length, 1);
+  assert.equal(workflow.match(/inputs\.ref/g)?.length, 1);
 });

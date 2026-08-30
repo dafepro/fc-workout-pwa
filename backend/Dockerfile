@@ -1,3 +1,5 @@
+FROM caddy:2.11.4-alpine AS caddy
+
 FROM golang:1.26.5-alpine AS build
 
 WORKDIR /src
@@ -11,6 +13,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w -X main.version=
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/zoomigo-admin ./cmd/admin
 
 FROM build AS test
+
+COPY --from=caddy /usr/bin/caddy /usr/bin/caddy
 
 FROM alpine:3.22 AS runtime
 

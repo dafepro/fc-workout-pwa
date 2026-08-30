@@ -41,11 +41,29 @@ export const copy = {
     ],
   },
   today: {
-    moreForToday: "More for today",
+    moreForToday: "Other things you can do",
+    teamLounge: "Team lounge",
+    teamLoungeDetail: "Cheer the team or visit the boardwalk.",
+    teamLoungeLocked: "Complete today’s plan to enter.",
     logAnother: "Log another activity",
-    logAnotherDetail: "Record something outside today’s completed workout.",
-    prizeBoxes: "Prize boxes",
-    prizeBoxesDetail: "Claim today’s sealed box or open one you earned.",
+    logAnotherDetail: "Record something outside the planned workout.",
+    prizeBoxes: "View prize boxes",
+    prizeBoxesDetail: "See available, earned, or unopened rewards.",
+    prizeBoxesUnopened: (count: number) => `${count} unopened`,
+    prizeBoxEarned: "Prize box earned! Saved to Prize boxes.",
+    yourMomentum: "Your momentum",
+    yourMomentumDetail: "View your check-in streak and progress.",
+    weekTitle: "Your plan",
+    planDay: (day: number, count: number) => `Day ${day} of ${count}`,
+    fullPlan: "View full plan",
+    fullPlanTitle: "Your training plan",
+    backToToday: "Back to Today",
+    todayStatus: "Today",
+    upcoming: "Upcoming",
+    completed: "Completed",
+    plannedRest: "Planned rest",
+    missed: "Missed",
+    planUnavailable: "No published training plan is available right now.",
   },
   prizes: {
     eyebrow: "Your rewards",
@@ -96,6 +114,7 @@ export const copy = {
   },
   teamPulse: {
     eyebrow: "Team pulse",
+    title: "Latest from your team",
     lockedTitle: "Check in to open Team pulse",
     lockedDetail:
       "Finish today’s workout or check in for planned rest to see recent team activity.",
@@ -104,7 +123,15 @@ export const copy = {
     encouragement: "Your crew is building momentum together.",
     empty: "Your team’s next check-in will show here.",
     listLabel: "Recent team activity",
-    action: "Team activity",
+    cheer: "Cheer",
+    cheering: "Sending…",
+    cheered: "Cheered",
+    showMore: "Show more",
+    showLess: "Show less",
+    showMoreLabel: "Show more team activity",
+    showLessLabel: "Show less team activity",
+    privateDetail: "Cheers arrive privately.",
+    failed: "That cheer could not be sent. Try again.",
   },
   teamReward: {
     eyebrow: "Team reward",
@@ -128,9 +155,52 @@ export const copy = {
       "Check in for today’s workout or planned rest to bring your avatar into the Team Lounge.",
     lockedAction: "Go to Today",
     loading: "Setting up the boardwalk…",
-    ready: "Press your player, then drag to move.",
     static: "The room is ready. Movement needs a supported browser.",
     unavailable: "The boardwalk could not open.",
+    retry: "Try the boardwalk again",
+    development: {
+      label: "Lounge testing",
+      beach: "Beach",
+      starlight: "Starlight",
+      unlock: "Unlock test items",
+      unlocking: "Unlocking…",
+      unlocked: "Test items unlocked",
+      failed: "Test items could not be unlocked.",
+    },
+    actions: {
+      navigation: "Lounge actions",
+      emotes: "React",
+      chooseEmote: "Choose a reaction",
+      sendEmote: (label: string) => `Send ${label} emote`,
+      quickMessages: "Chat",
+      chooseQuickMessage: "Choose a chat set",
+      standardChats: "Standard",
+      chooseStandardChat: "Choose a Standard message",
+      lockedChatSet: (set: number) => `Set ${set}, locked`,
+      backToChatSets: "Back to chat sets",
+      sendQuickMessage: (message: string) => `Send ${message} quick message`,
+      stamps: "Stamps",
+      items: "Items",
+      chooseItem: "Choose a Lounge item",
+      closeItems: "Close item picker",
+      included: "Included",
+      earned: "Earned",
+      choosePlacement: (label: string, kind: "stamp" | "item") =>
+        `Choose ${label} ${kind}`,
+      placementsLeft: (remaining: number) =>
+        `${remaining} ${remaining === 1 ? "placement" : "placements"} left this week`,
+      placementSummary: (used: number, capacity: number) =>
+        `${used}/${capacity} objects placed this week`,
+      actionPlacements: (action: string, remaining: number) =>
+        `${action}, ${remaining} ${remaining === 1 ? "placement" : "placements"} left`,
+      exhausted: "Complete another training day to place another item.",
+      placeHint: (label: string) => `Tap the boardwalk to place ${label}.`,
+      deleteItem: "Drop to remove item",
+      dropToDelete: "Drop here to remove",
+      releaseToDelete: "Release to remove",
+      deleteHint:
+        "Your placement becomes available again after Canvas accepts.",
+    },
   },
   momentum: {
     eyebrow: "Your momentum",
@@ -145,10 +215,29 @@ export const copy = {
     gauge: (score: number) => `Momentum: ${score} out of 100`,
     infoAction: "What Momentum means",
     info: "Regular check-ins matter most. A second and third activity add smaller boosts, and planned rest counts without stacking.",
+    gaugeLabel: "Momentum",
+    guidanceLabel: "This week",
+    firstCheckIn:
+      "Your first check-in starts this week’s team target. Planned rest counts too.",
+    weeklyProgress: (checkIns: number, remaining: number) =>
+      `${checkIns} ${checkIns === 1 ? "check-in" : "check-ins"} this week. ${remaining} more ${remaining === 1 ? "reaches" : "reach"} your team’s target.`,
+    weeklyComplete: (goal: number) =>
+      `You reached your team’s ${goal}-check-in target this week. Nice consistency.`,
+    improvementTip:
+      "Show up on different days for the biggest lift. A second and third activity add smaller boosts; planned rest counts too.",
   },
   log: {
     overMax: (max: number, unit: string) => `Max is ${max} ${unit}`,
     underMin: (min: number, unit: string) => `Min is ${min} ${unit}`,
+    additionalTitle: "Log Another Activity",
+    chooseActivity: "Choose an activity",
+    additionalIntro:
+      "Nothing will be saved until you choose an activity, review it, and press Save.",
+    chooseBeforeSaving: "Choose an activity before saving.",
+    saveActivity: (value: number, unit: string, activity: string) => {
+      const displayUnit = value === 1 ? unit.replace(/s$/, "") : unit;
+      return `Save ${value.toLocaleString("en-US")} ${displayUnit} · ${activity}`;
+    },
     outcomePrompt: "Did you finish?",
     outcomes: {
       partial: "Almost…",

@@ -1,33 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { SessionList } from "./components/SessionList";
 import { copy } from "./content/copy";
 import { useTraining } from "./state/training-context";
-import { useAuth } from "./state/auth-context";
 import { MomentumStatus } from "./player/MomentumStatus";
 import { TodayAdditionalAction } from "./player/TodayAdditionalAction";
 import { TodayPrimaryAction } from "./player/TodayPrimaryAction";
 import { PlanWeekStrip } from "./player/PlanWeekStrip";
-import { TeamPulse } from "./player/TeamPulse";
 
 export default function HomePage() {
   const {
     connected,
     dashboard,
     dashboardStatus,
-    entries,
-    entriesStatus,
     refreshDashboard,
-    refreshEntries,
     recordPlannedRest,
   } = useTraining();
-  const { currentPlayerID } = useAuth();
   const [showSavedToast, setShowSavedToast] = useState(false);
   const [celebrateCompletion, setCelebrateCompletion] = useState(false);
-  const personalEntries = entries.filter(
-    (entry) => entry.playerId === currentPlayerID,
-  );
   const momentumScore = dashboard?.summary.momentumScore ?? 0;
   const checkInStreak = dashboard?.summary.currentCheckInStreak ?? 0;
   const assignment = dashboard?.currentAssignment ?? null;
@@ -85,15 +75,6 @@ export default function HomePage() {
           <strong>{copy.saveSuccess}</strong>
         </div>
       ) : null}
-      {entriesStatus === "error" ? (
-        <div className="notice notice--error" role="alert">
-          <strong>Your sessions could not be loaded.</strong>
-          <button type="button" onClick={() => void refreshEntries()}>
-            Try again
-          </button>
-        </div>
-      ) : null}
-
       <MomentumStatus
         momentumScore={momentumScore}
         checkInStreak={checkInStreak}
@@ -111,22 +92,10 @@ export default function HomePage() {
 
       {currentPlan ? <PlanWeekStrip plan={currentPlan} /> : null}
 
-      <TodayAdditionalAction showAdditionalWorkout={primaryComplete} />
-
-      <SessionList
-        entries={personalEntries}
-        activities={dashboard?.activities ?? []}
-      />
-
-      <TeamPulse
-        projection={dashboard?.teamPulse ?? localTeamPulseProjection}
+      <TodayAdditionalAction
+        teamLocked={!(dashboard?.teamPulse.unlocked ?? false)}
+        prizeBoxesConnected={connected}
       />
     </div>
   );
 }
-
-const localTeamPulseProjection = {
-  activeThisWeek: 0,
-  unlocked: false,
-  recentActivities: [],
-};

@@ -3,11 +3,14 @@ package config
 import (
 	"encoding/base64"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 	_ "time/tzdata"
 )
+
+var canvasReplicaIDPattern = regexp.MustCompile(`^[A-Za-z0-9._-]{1,128}$`)
 
 const (
 	defaultPort            = 8080
@@ -43,6 +46,7 @@ type Config struct {
 	TeamTimeZone       *time.Location
 	TeamTimeZoneID     string
 	ShutdownTimeout    time.Duration
+	CanvasReplicaID    string
 	EnableE2EFixtures  bool
 	E2EResetKey        string
 	EnableDevAccess    bool
@@ -75,6 +79,7 @@ func Load(getenv func(string) string) (Config, error) {
 		AllowedOrigin:      valueOrDefault(getenv("ALLOWED_ORIGIN"), "http://localhost:3000"),
 		TeamTimeZoneID:     valueOrDefault(getenv("TEAM_TIME_ZONE"), defaultTeamTimeZone),
 		ShutdownTimeout:    defaultShutdownTimeout,
+		CanvasReplicaID:    strings.TrimSpace(getenv("CANVAS_REPLICA_ID")),
 		E2EResetKey:        getenv("E2E_RESET_KEY"),
 		DevAPIGatewayToken: strings.TrimSpace(getenv("DEV_API_GATEWAY_TOKEN")),
 		DevResetKey:        strings.TrimSpace(getenv("DEV_RESET_KEY")),
@@ -85,6 +90,9 @@ func Load(getenv func(string) string) (Config, error) {
 		ReleaseSHA:         valueOrDefault(strings.TrimSpace(getenv("RELEASE_SHA")), "unknown"),
 	}
 	cfg.ProductionDataApproved = getenv("PRODUCTION_DATA_APPROVED") == "true"
+	if cfg.CanvasReplicaID != "" && !canvasReplicaIDPattern.MatchString(cfg.CanvasReplicaID) {
+		return Config{}, fmt.Errorf("CANVAS_REPLICA_ID must be 1 to 128 letters, digits, dots, underscores, or hyphens")
+	}
 
 	if raw := getenv("ENABLE_E2E_FIXTURES"); raw != "" {
 		enabled, err := strconv.ParseBool(raw)

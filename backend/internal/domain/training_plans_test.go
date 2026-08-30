@@ -78,9 +78,41 @@ func TestTrainingPlanValidationRejectsUnsafeOrUnusableSequences(t *testing.T) {
 
 	errors := domain.ValidateTrainingPlanTemplate(template)
 	if !containsPlanError(errors, "Hard days must not be consecutive.") ||
-		!containsPlanError(errors, "Include at least one recovery or rest day.") ||
+		!containsPlanError(errors, "Seven-day plans must include at least one full rest day.") ||
 		!containsPlanError(errors, "Duration activities must use supported five-minute steps.") {
 		t.Fatalf("validation errors = %v", errors)
+	}
+}
+
+func TestTrainingPlanValidationEnforcesApprovedWeeklyWorkloadBounds(t *testing.T) {
+	template, ok := domain.TrainingPlanTemplateByID("in-season-balance-v1")
+	if !ok {
+		t.Fatal("missing template")
+	}
+	for _, index := range []int{0, 2, 4} {
+		template.Days[index].Kind = domain.TrainingPlanTraining
+		template.Days[index].Intensity = domain.TrainingPlanHard
+	}
+	for _, index := range []int{3, 6} {
+		template.Days[index] = template.Days[1]
+		template.Days[index].Offset = index
+	}
+
+	errors := domain.ValidateTrainingPlanTemplate(template)
+	for _, want := range []string{
+		"Seven-day plans may contain at most five active days.",
+		"Seven-day plans may contain at most two hard days.",
+		"Seven-day plans must include at least one full rest day.",
+	} {
+		if !containsPlanError(errors, want) {
+			t.Fatalf("validation errors = %v, missing %q", errors, want)
+		}
+	}
+
+	template.Days = append(template.Days, template.Days[6])
+	template.Days[7].Offset = 7
+	if errors = domain.ValidateTrainingPlanTemplate(template); !containsPlanError(errors, "Plans may contain at most seven consecutive days.") {
+		t.Fatalf("validation errors = %v, missing plan-length bound", errors)
 	}
 }
 

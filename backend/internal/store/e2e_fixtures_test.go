@@ -205,6 +205,7 @@ func TestResetE2EFixturesClearsCanonicalTeamLoungeState(t *testing.T) {
 	}
 	for _, table := range []string{
 		"team_lounge_rooms", "team_lounge_snapshots", "team_lounge_visits", "team_lounge_placement_credits",
+		"team_lounge_item_mutation_permits",
 	} {
 		var count int
 		if err := db.QueryRowContext(ctx, "SELECT COUNT(*) FROM "+table).Scan(&count); err != nil {

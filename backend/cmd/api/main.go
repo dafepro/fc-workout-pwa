@@ -61,9 +61,10 @@ func run() error {
 	}
 	authenticator, resetAuthFixtures := configuredAuthenticator(cfg, sessions, staff)
 
+	loungeCatalog := teamlounge.BeachBoardwalkLoungeCatalog()
 	handlerOptions := []httpapi.Option{
 		httpapi.WithStore(observedRepository),
-		httpapi.WithTeamLoungeStore(teamlounge.NewSQLiteStore(db, teamlounge.BeachBoardwalkCatalog())),
+		httpapi.WithTeamLoungeStore(teamlounge.NewSQLiteStore(db, loungeCatalog)),
 		// A staff bearer token resolves through the same interface as a player
 		// one, so authorization stays the single place that decides anything.
 		httpapi.WithAuthenticator(authn.Fallback{Primary: authenticator, Secondary: staff}),
@@ -80,7 +81,8 @@ func run() error {
 	if devAccess := configuredDevAccess(cfg, db, repository, sessions, staff); devAccess != nil {
 		handlerOptions = append(handlerOptions, httpapi.WithDevAccessManager(devAccess))
 	}
-	server, metricsServer := newServers(cfg, httpapi.NewHandler(cfg, handlerOptions...), metrics.Handler())
+	applicationHandler := httpapi.NewHandler(cfg, handlerOptions...)
+	server, metricsServer := newServers(cfg, applicationHandler, metrics.Handler())
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -98,16 +100,26 @@ func run() error {
 	select {
 	case err := <-serverErrors:
 		if !errors.Is(err, http.ErrServerClosed) {
-			shutdownServers(cfg.ShutdownTimeout, server, metricsServer)
+			_ = drainAndShutdown(cfg.ShutdownTimeout, applicationHandler, server, metricsServer)
 			return fmt.Errorf("serve: %w", err)
 		}
 		return nil
 	case <-ctx.Done():
-		if err := shutdownServers(cfg.ShutdownTimeout, server, metricsServer); err != nil {
+		if err := drainAndShutdown(cfg.ShutdownTimeout, applicationHandler, server, metricsServer); err != nil {
 			return fmt.Errorf("shutdown: %w", err)
 		}
 		return nil
 	}
+}
+
+func drainAndShutdown(timeout time.Duration, handler http.Handler, servers ...*http.Server) error {
+	drainContext, cancelDrain := context.WithTimeout(context.Background(), timeout)
+	drainErr := httpapi.Drain(drainContext, handler)
+	cancelDrain()
+	if drainErr != nil {
+		return fmt.Errorf("drain Team Lounge rooms: %w", drainErr)
+	}
+	return shutdownServers(timeout, servers...)
 }
 
 func newServers(cfg config.Config, applicationHandler, metricsHandler http.Handler) (*http.Server, *http.Server) {

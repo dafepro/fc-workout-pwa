@@ -1,6 +1,7 @@
 package config
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -46,6 +47,17 @@ func TestLoadAcceptsDisabledLoginThrottle(t *testing.T) {
 	}
 }
 
+func TestLoadAcceptsBoundedCanvasReplicaIdentity(t *testing.T) {
+	values := map[string]string{"CANVAS_REPLICA_ID": "topology-api-a"}
+	cfg, err := Load(func(key string) string { return values[key] })
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.CanvasReplicaID != "topology-api-a" {
+		t.Fatalf("CanvasReplicaID = %q", cfg.CanvasReplicaID)
+	}
+}
+
 func TestLoadRejectsInvalidValues(t *testing.T) {
 	tests := []map[string]string{
 		{"PORT": "0"},
@@ -61,6 +73,8 @@ func TestLoadRejectsInvalidValues(t *testing.T) {
 		{"LOGIN_ATTEMPTS_PER_MINUTE": "-1"},
 		{"LOGIN_ATTEMPTS_PER_MINUTE": "plenty"},
 		{"GLOBAL_LOGIN_ATTEMPTS_PER_MINUTE": "-1"},
+		{"CANVAS_REPLICA_ID": "replica with spaces"},
+		{"CANVAS_REPLICA_ID": strings.Repeat("a", 129)},
 	}
 	for _, values := range tests {
 		_, err := Load(func(key string) string { return values[key] })

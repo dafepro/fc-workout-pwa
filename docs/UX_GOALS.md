@@ -5,15 +5,14 @@ Reviewed: 2026-08-08
 Baseline: `ca3e5d3`
 
 This document is the UX north star and product-question queue for ZoomiGo. It
-turns the product brief, safety rules, roadmap, mockups, alpha feedback, source
-review, and a live pass at 320 and 1280 CSS pixels into principles that should
-guide later implementation. It is intentionally written before more feature
-work begins.
+turns the product brief, safety rules, roadmap, alpha feedback, source review,
+and a live pass at 320 and 1280 CSS pixels into principles that should guide
+later implementation. It is intentionally written before more feature work
+begins.
 
-The mockups remain useful for hierarchy and emotional tone, but they should not
-be treated as pixel targets. The current application is calmer and easier to
-scan. The next step is to restore meaning, feedback, and delight without
-restoring the mockups' density.
+The retired initial mockups are not product authority. Current screen
+specifications, recorded decisions, and the consolidated application define the
+experience going forward.
 
 ## North-star experience
 

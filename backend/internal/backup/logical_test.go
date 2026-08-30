@@ -33,6 +33,8 @@ var exportedTables = []string{
 	"team_lounge_snapshots",
 	"team_lounge_visits",
 	"team_lounge_placement_credits",
+	"team_lounge_placement_reservations",
+	"team_lounge_item_mutation_permits",
 	"accounts",
 	"team_memberships",
 	"coach_team_assignments",
@@ -403,12 +405,13 @@ func fullyPopulatedDatabase(t *testing.T, ctx context.Context) string {
 		`INSERT INTO team_lounge_snapshots (
 			room_id, canvas_id, canvas_version, scene_revision, checkpoint_revision,
 			host_epoch, tick, normalized, captured_at, snapshot_json,
-			mutation_receipts_json, mutation_high_water_json
+			mutation_receipts_json, mutation_high_water_json, room_ownership_generation,
+			mutation_outcome_revision, mutation_outcomes_json
 		) VALUES (
 			'team:team-hill-striders:lounge:2026-08-03:v6',
 			'zoomigo.team-lounge.beach-boardwalk', 6, 4, 3, 2, 120, 1,
 			'2026-08-03T12:05:00Z', '{}', '[{"mutationId":"mutation-1"}]',
-			'[{"clientId":"client-1","sequence":1}]'
+			'[{"clientId":"client-1","sequence":1}]', 4, 1, '[]'
 		)`,
 		`INSERT INTO team_lounge_visits (room_id, player_id, last_visited_at)
 		 VALUES ('team:team-hill-striders:lounge:2026-08-03:v6', 'player-mason', '2026-08-03T12:06:00Z')`,
@@ -417,6 +420,32 @@ func fullyPopulatedDatabase(t *testing.T, ctx context.Context) string {
 		) VALUES (
 			'team-hill-striders', 'player-mason', '2026-08-03', '2026-08-03',
 			'training_entry', 'entry-mason-recent', '2026-08-03T12:07:00Z'
+		)`,
+		`INSERT INTO team_lounge_placement_reservations (
+			reservation_id, team_id, player_id, week_key, day_key, room_id, canvas_id,
+			canvas_version, definition_id, definition_version, position_x, position_y,
+			rotation, scale, config_json, idempotency_key_hash, request_hash, permit_hash,
+			permit_expires_at, mutation_key, state, entity_id, rejection_code, held_at, finalized_at
+		) VALUES (
+			'lounge-placement-logical', 'team-hill-striders', 'player-mason', '2026-08-03',
+			'2026-08-03', 'team:team-hill-striders:lounge:2026-08-03:v6',
+			'zoomigo.team-lounge.beach-boardwalk', 6, 'zoomigo-stamp-bolt', 1, 40, 70,
+			0, 1, '{}', zeroblob(32), randomblob(32), randomblob(32),
+			'2026-08-03T12:09:00Z', printf('%064d', 1), 'committed', 'canvas-item-1', NULL,
+			'2026-08-03T12:07:00Z', '2026-08-03T12:08:00Z'
+		)`,
+		`INSERT INTO team_lounge_item_mutation_permits (
+			permit_id, reservation_id, team_id, player_id, room_id, canvas_id, canvas_version,
+			entity_id, definition_id, definition_version, item_revision, mutation_kind,
+			position_x, position_y, rotation, scale, idempotency_key_hash, request_hash,
+			permit_hash, permit_expires_at, mutation_key, state, rejection_code, issued_at, finalized_at
+		) VALUES (
+			'lounge-mutation-logical', 'lounge-placement-logical', 'team-hill-striders',
+			'player-mason', 'team:team-hill-striders:lounge:2026-08-03:v6',
+			'zoomigo.team-lounge.beach-boardwalk', 6, 'canvas-item-1', 'zoomigo-stamp-bolt',
+			1, 3, 'rotation', 40, 70, 0.5, 1, randomblob(32), randomblob(32),
+			randomblob(32), '2026-08-03T12:10:00Z', printf('%064d', 2), 'accepted', NULL,
+			'2026-08-03T12:08:00Z', '2026-08-03T12:09:00Z'
 		)`,
 		`INSERT INTO accounts (id, club_id, player_id, role, status, created_at)
 		 VALUES ('account-coach', 'club-zoomigo', NULL, 'coach', 'active', '2026-01-02T00:00:00Z')`,

@@ -10,7 +10,14 @@
 		-Server
 	}
 
-	reverse_proxy api:8080 {
+	@team_lounge_realtime path /v1/realtime/rooms/*
+	reverse_proxy @team_lounge_realtime {$CADDY_UPSTREAMS:api:8080} {
+		health_uri /readyz
+		lb_policy uri_hash
+		lb_try_duration 5s
+	}
+
+	reverse_proxy {$CADDY_UPSTREAMS:api:8080} {
 		health_uri /readyz
 		lb_try_duration 5s
 	}

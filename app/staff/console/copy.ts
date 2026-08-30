@@ -360,6 +360,62 @@ export const consoleCopy = {
     deleteConfirm:
       "Deleting removes this assignment. It only works before it has started and while nothing has been logged or sent against it.",
   },
+  trainingPlans: {
+    regionLabel: "Training plan builder",
+    eyebrow: "Planned training",
+    title: "Choose a weekly plan",
+    scope: "Whole team",
+    intro:
+      "Choose a curated sequence, preview its dates, then publish one shared plan for the team.",
+    workloadBounds:
+      "5–20 minutes per active day · up to 5 active days · up to 2 hard days · at least 1 full rest day",
+    loading: "Loading training plans…",
+    catalogLoadFailed: "The training-plan catalog could not be loaded.",
+    choose: "Plan template",
+    customize: "Customize future days",
+    customizeHint:
+      "Adjust only predefined day types, focus, intensity, duration, and approved activities before publishing.",
+    dayType: "Day type",
+    duration: "Minutes",
+    activity: "Activity",
+    startsOn: "Plan starts",
+    day: (number: number) => `Day ${number}`,
+    scheduleLabel: "Plan schedule",
+    kind: { training: "Training", recovery: "Recovery", rest: "Rest" },
+    focus: { speed: "Speed", endurance: "Endurance", recovery: "Recovery" },
+    intensity: { easy: "Easy", steady: "Steady", hard: "Hard" },
+    noWorkout: "No workout to log",
+    missedDays:
+      "Missed days stay missed. The plan keeps moving forward and never stacks catch-up work onto the next day.",
+    publishAction: "Publish plan",
+    rescheduleAction: "Reschedule",
+    reschedulingAction: "Publish replacement",
+    cancelAction: "Cancel plan",
+    cancelQuestion:
+      "Cancel this plan? Its dates, completed days, and missed days stay in history.",
+    confirmCancel: "Yes, cancel plan",
+    keepPlan: "Keep plan",
+    replaces: "Replacement plan",
+    replaced: "Rescheduled",
+    editReplacement:
+      "Choose a new start date below. The original will be cancelled only if the replacement publishes.",
+    publishing: "Publishing…",
+    loadingHistory: "Loading published plans…",
+    historyTitle: "Published plans",
+    status: {
+      published: "Published",
+      cancelled: "Cancelled",
+      active: "Active",
+      upcoming: "Upcoming",
+      completed: "Completed",
+    },
+    legacy: {
+      loading: "Loading legacy assignment history…",
+      title: "Legacy assignment history",
+      summary: "Older activity requests retained during the plan cutover",
+      body: "These records remain readable and continue through their existing date windows. Schedule new player work with a training plan above.",
+    },
+  },
   audit: {
     title: "Audit trail",
     accountLabel: "Account id",

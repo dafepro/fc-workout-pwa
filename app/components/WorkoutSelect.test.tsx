@@ -90,4 +90,22 @@ describe("workout select", () => {
 
     expect(container).toBeEmptyDOMElement();
   });
+
+  it("can require a deliberate first choice instead of guessing", () => {
+    render(
+      <WorkoutSelect
+        label="Workout"
+        choices={presets}
+        selectedKey=""
+        placeholder="Choose an activity"
+        onSelect={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Choose an activity" }));
+    expect(screen.getAllByRole("radio")).toHaveLength(2);
+    expect(
+      screen.getByRole("radio", { name: /Distance Run/i }),
+    ).not.toBeChecked();
+  });
 });

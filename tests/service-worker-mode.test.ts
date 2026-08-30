@@ -26,6 +26,7 @@ describe("service worker host mode", () => {
       "zoomigo-shell-v5",
     ]);
     expect(harness.unregistered()).toBe(1);
+    expect(harness.lifecycle()).toEqual(["claim", "unregister"]);
     expect(intercepted).toBe(false);
   });
 
@@ -56,6 +57,7 @@ function serviceWorkerHarness(hostname: string) {
   const deleted: string[] = [];
   let opened = 0;
   let unregistered = 0;
+  const lifecycle: string[] = [];
   const context = {
     URL,
     fetch: async () => new Response("ok"),
@@ -85,9 +87,14 @@ function serviceWorkerHarness(hostname: string) {
         handler: (event: Record<string, unknown>) => void,
       ) => handlers.set(kind, handler),
       skipWaiting: () => undefined,
-      clients: { claim: async () => undefined },
+      clients: {
+        claim: async () => {
+          lifecycle.push("claim");
+        },
+      },
       registration: {
         unregister: async () => {
+          lifecycle.push("unregister");
           unregistered += 1;
           return true;
         },
@@ -100,6 +107,7 @@ function serviceWorkerHarness(hostname: string) {
     deleted,
     opened: () => opened,
     unregistered: () => unregistered,
+    lifecycle: () => lifecycle,
   };
 }
 

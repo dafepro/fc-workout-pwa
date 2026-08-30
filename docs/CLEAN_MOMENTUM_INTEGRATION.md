@@ -143,7 +143,128 @@ Each step is test-first and small enough to review independently.
 - Regression coverage now proves the gate renders from non-U.S. and non-Midwest edge locations; deployment config no longer publishes a dead region allowlist.
 - Dev gate release: [run 33160369341](https://github.com/dafepro/fc-workout-pwa/actions/runs/33160369341) updated the existing preview to exact main SHA `c906d0f33e9a31b7f7404b942105cb6df512e4e3`; live checks proved gate, signed session, staff directory, and four QR entries.
 - Two-player Lounge proof: E2E-only Mason and Ava credentials now support two independent browser sessions; focused Docker coverage passes shared presence and remote avatar movement, with shared-ball motion still tracked separately.
+- Dev bare-login recovery: an authorized preview visitor without a QR fragment now opens the credential directory, while credential-bearing links still reach the PIN form and can replace an existing player session.
+- Focused login component and server-page tests cover dev directory routing, QR preservation, and normal signed-in redirects.
+- Consolidated recorder parity: planned workouts retain exact plan provenance and outcomes, while “Log another activity” gets a deliberate no-default picker, descriptive save action, and hydration-safe local timestamp.
+- The player flow keeps structured values and predefined outcomes only; the momentum branch’s free-text workout note remains intentionally excluded.
+- Workout feedback artwork: restored only the final Almost, Did it, and Extra Zoomi PNGs and verified the three structured outcome controls resolve to those production assets.
+- Dev staff planning: replaced the duplicate assignment-authoring form with the curated seven-day plan builder, dated preview, bounded day customization, immutable rescheduling, and confirmed cancellation.
+- Existing assignments remain read-only in a collapsed history; production keeps its current assignment console until training-plan authoring is deliberately enabled there.
+- Consolidated plan navigation: Today’s week strip now opens a read-only full-plan timeline and day detail, with future work visible but decisively non-startable.
+- The parity audit retained the final Canvas 0.4.1 Lounge and current prize authority, and rejected alternate shells, old Canvas/Lounge routes, free-text notes, prototype reward gateways, and migration churn; remaining prize presentation work is tracked separately.
+- Consolidated parity release gate: lint, typecheck, 321 frontend tests, production and development builds, and the migrated Docker API suite pass.
+- All 26 Docker browser workflows pass, including intentional additional-activity selection, the 320px Lounge, staff access, Prize Boxes, and training persistence.
+- Lounge Canvas v7 keeps scenery solid for players but lets the beach ball clear traps, and returns over-hit balls to a safe central point for immediate reuse.
+- Local cart/edge/re-kick tests and the 320px shared Docker proof cover authoritative ball recovery plus two-player presence and movement.
+- Removed the drag instruction and Lounge-only redundant self sparkle; the accessible current-player identity and selection ring remain.
+- Added `pnpm deploy:dev`, which validates a clean, pushed exact SHA, dispatches the trusted dev workflow, prints its URL, and exits without waiting.
+- Restored the discoverable development Team Reward section for coach and operator staff portals against the predefined clean reward contract.
+- Today again owns one primary plan plus four consolidated destinations; private session history remains only in Me, and `/progress` restores the Momentum detail destination.
+- Team Pulse is back above the canonical Lounge with its avatars, three-to-five expansion, safe recency, and a real Docker-proven private predefined cheer.
+- The parity audit retains the V2 Lounge and structured reward authority while leaving alternate shells, uploads, free text, and legacy reward rules dropped.
+- Lounge Canvas v8 replaces edge respawns with four solid boardwalk boundaries; a Canvas 0.4.1 consumer behavior adds faster normal kicks, slower drag, and tangential spin while scenery remains ball-permeable.
+- Development builds restore predefined durable Lounge stamps from included and earned Zoomigo inventory, plus the five cooldown-limited V2 reactions; production receives neither definitions nor controls.
+- Weekly visitor traces suppress players already live in the room, and a one-tap runtime retry restores useful V2 affordances without reviving alternate Lounge routes or old data contracts.
+- Focused behavior, local-simulation, gateway, catalog, UI, Go room, and 320px Docker coverage now proves the v8 bounce/spin plus real WebSocket stamp placement and reaction controls.
+- Lounge placement authority now reserves one reconciled activity-day credit through ZoomiGo before Canvas receives a mutation, validating current room/week, predefined inventory, and idempotency under a serialized SQLite transaction.
+- Development controls use the authoritative remaining count and confirm accepted Canvas entity IDs back to the ledger; the production item catalog remains disabled while Canvas lacks a permit-policy hook.
+- Store, HTTP, gateway, exact PWA proxy allowlisting, migration/backup, concurrent-claim, and Docker Lounge coverage protect the new migration-18 end state.
 - Dev CD now reports each verification gate separately, retries only idempotent infrastructure, SSH/SCP, fixture, and Worker operations, and bounds remote connections and cloud-init waits.
 - Every create/update proves the exact requested release SHA is serving from the healthy dev API container; the deeper mutating product smoke remains scoped to newly seeded previews.
 - The stale backup-fixture count that blocked run 33172357905 now matches the three-entry canonical fixture, restoring the full Go gate without suppressing failures.
 - Failed run 33175103074 exposed duplicate browser-worker modules; builds now prune them and enforce a 2800 KiB pre-infrastructure budget, while [run 33176381693](https://github.com/dafepro/fc-workout-pwa/actions/runs/33176381693) deployed exact app SHA `347ce012196dba4fda6500574ce461a7d148f2f4` and passed the public exact-container smoke.
+- Approved plan bounds now enforce 5–20-minute active days, no more than five active or two non-consecutive hard days, and at least one full rest day in every seven-day plan.
+- Lounge Canvas v9 removes scenery and item-to-item blocking so players can reach every place the ball can travel, while the four outer edges remain solid to keep the ball on the boardwalk.
+- [Dev run 33177878843](https://github.com/dafepro/fc-workout-pwa/actions/runs/33177878843) deployed exact app SHA `de4ff3178d585030cd9d118aabe0ad08e436e343` and passed the public exact-container smoke.
+- Canvas 0.6.0 clean cutover pins all TypeScript packages and the Go SDK to release commit `11ebf12`; migration 19 adds fenced ownership, shared atomic tickets, durable mutation outcomes, and exact one-use placement permits without importing the superseded reservation shape.
+- Canvas generation 10 routes the five predefined emotes through authenticated transient actions and enables safe predefined production placement; only stable trusted Canvas receipts commit or release a hold, and reconnects reconcile interrupted acknowledgements.
+- Canvas conformance, coordinator, ticket, mutation-authority, transient-action, persistence, gateway, behavior, simulation, and Docker tests cover the new integration, including exact wire coordinates and two-player presence; expired or unavailable trusted outcomes remain an operator follow-up.
+- Momentum V2 interface parity replaces the crowded in-canvas rows with a four-action Stamps, Items, Chat, and React dock, authenticated anchored reaction popovers, categorized item sheet, source labels, weekly placement state, and a visible placement ghost while retaining the Canvas 0.6 authority path.
+- Operators now have a tested read-only `lounge-placement-holds` report and runbook that distinguish expired unconsumed permits, pending Canvas receipts, and stale consumed holds without granting any timer- or browser-driven release path.
+- The two-session Docker Lounge proof now follows a real kick through Canvas authority to the second browser, covering shared ball projection as well as authenticated presence and avatar movement.
+- [Dev run 33186493834](https://github.com/dafepro/fc-workout-pwa/actions/runs/33186493834) deployed exact app SHA `42f75977c312f695684b6aa930de45bb6e9ddf5c`; verification, packaging, image publication, and the public exact-container smoke all passed.
+- Two-process Canvas topology proof runs two real API binaries against one SQLite database behind the pinned deployment Caddy proxy; room-stable WebSocket routing, fenced ownership handoff, stale-owner rejection, graceful drain, and shared atomic ticket consumption pass together.
+- Production remains at one API replica; the proof adds no deployed replica and keeps any later scale change deliberate.
+- Retired the four initial visual mockups and removed their automatic context-loading requirement; current specifications, recorded decisions, and the consolidated application are the product authority.
+- Owner-bound Canvas edit authority now issues atomic one-use move, rotate,
+  scale, and delete permits bound to the current-day owner, room/canvas and
+  definition generations, entity revision, operation, and exact wire target.
+- Trusted outcomes finalize edit permits, only accepted delete returns the
+  placement credit, and pending edit receipts join reconnect reconciliation,
+  logical backup/reset coverage, and the read-only stale-outcome report.
+- The secured Lounge editor uses one tap to select, selected-only drag, bounded
+  scale and rotation, checkmark or tap-away finish, and trash through an exact one-use permit for
+  every team-local current-day owner mutation; live revision state follows the
+  trusted placement and mutation ledger rather than a lagging sleep snapshot.
+- The 320px Docker Lounge proof keeps the qualified player's avatar, shared
+  ball, and editable items inside a playfield above the dock, trash, and sheets;
+  it also proves an accepted predefined reaction renders for that player.
+- The disabled Map placeholder remains absent, production stays at one API
+  replica, and any camera navigation or topology change remains deliberate.
+- Disabled Canvas avatars remain projected as idle, so a qualified current
+  player stays visible through room sleep, teammate-first wake, and rejoin.
+- The 320px Docker gate now budgets idle and edit WebSocket bytes, caps each
+  permit round trip, and requires exactly one permit for each committed edit.
+- A bounded Canvas edit-lease proposal is tracked for later traffic reduction;
+  exact one-use authority remains until Canvas can enforce the full lease.
+- Long-lived Lounge rooms now observe the V2-sized 200-entity projection set,
+  and a stable current-player/canonical-arrival fallback prevents the signed-in avatar from disappearing during projection truncation or reconnect rebuilds.
+- The V2 overlay geometry is restored without its retired shell: emotes and item sheets layer over the fixed playfield, while normal actions and trash keep one constant dock footprint at 320px.
+- Live dev diagnosis traced the missing self-avatar past projection and CSS to a failed immutable Canvas v10 room; Canvas v11 now performs the clean room-and-template cutover while retaining the same 100-by-150 Lounge geometry.
+- [Dev run 33217941292](https://github.com/dafepro/fc-workout-pwa/actions/runs/33217941292) deployed the recovery; signed-in Mason visibly renders as “You” on desktop and at 320px, inside the playfield above the constant action dock with no horizontal overflow.
+- The trusted dev release workflow now gates every create/update on that same completed-training player, visible own-avatar, live Canvas, and 320px playfield/dock geometry proof.
+- A six-hour, manually dispatchable production monitor now runs the read-only Lounge hold report and alerts on malformed data or nonzero stale placement/edit outcomes without refunding, releasing, or otherwise mutating authority state.
+- Team Lounge physical acceptance budgets now define 320px geometry, Canvas
+  load/reconnect p95, CPU, memory, cold/reconnect/session network ceilings, and
+  exact reference device/browser versions without claiming unrun measurements.
+- The machine-readable contract and focused tests reuse the existing one-use
+  permit and WebSocket limits; Map and compatibility paths remain absent,
+  production remains one API replica, and optimistic poor-connection work stays
+  deferred without a matching GitHub issue.
+- The Map decision is closed: no action ships until a future room requires and
+  defines real bounded camera navigation.
+- Starlight Training Camp adds one unscheduled second-theme review asset plus
+  four optimized transparent included props. The live item catalog renders the
+  generated art through the existing placement-credit and exact owner-permit
+  path without changing Prize Box balance or Canvas topology.
+- The item editor now travels with the selected object's live projection as a
+  transparent-center radial ring, keeping edit controls around rather than over
+  the art and clamping individual controls inside the 320px playfield edge.
+  Optimistic release retains the preview position until canonical projection,
+  while unselected slides do nothing and background vertical gestures scroll.
+- Five allowlisted supportive quick-message bubbles extend the existing
+  authenticated transient reaction path. They share the emote cooldown and
+  sender binding plus the original rise-and-fade motion, leave no history, and
+  add no typing, recipient, persistence, Map, compatibility, or replica path.
+- Canvas v13 clean-cuts the final weekly room identity to explicit frictionless elastic boundary
+  colliders, reduced ball drag, and a capped nonlinear avatar-kick response with
+  a low-speed dead zone. The Standard Chat set replaces the interim five phrases
+  with ten allowlisted choices behind Chat → Standard → message; Set 2 and Set 3
+  stay locked. React and Chat trays point to their dock buttons, every menu gains
+  a reduced-motion-safe slide transition, stamp art rotates around its visual
+  center, and owned editable items retain a larger faint dashed lime outline.
+  Owner-bound one-use permits, one API replica, no Map, and no compatibility
+  import remain unchanged.
+- Generation-13 room identity is now durable across team-local day and Monday
+  boundaries, so accepted placements remain on the Canvas while weekly credits
+  and same-day editing roll independently. The Chat picker uses a centered
+  vertical set spine with five equal-size message wings on each side, React and
+  Chat popovers clamp around their own dock-button centers, and avatar dragging
+  outranks the lower-priority background page-scroll gesture. Development builds
+  add a temporary Beach/Starlight preview and current-player predefined Lounge
+  unlock control; production gains no staff shortcut or broader mutation path.
+- Reviewed Linux image baselines now guard the 320px Lounge's idle dock, React
+  tray, compact and expanded Chat states, and radial Stamp editor. Focused
+  compare and update commands always use the pinned Playwright container, and
+  baseline changes require image-by-image review rather than host snapshots.
+- Live dev forensics found Mason's credits and committed reservations intact in
+  retired v10/v11 rooms while the active v13 snapshot correctly began clean.
+  Placement-budget and credit-day selection are now scoped to the active room,
+  so invisible retired-room reservations cannot consume current-generation
+  allocations. Snapshot import, compatibility paths, owner permit boundaries,
+  and the single API replica remain unchanged.
+- Main integration stages the complete consolidated parity history through a
+  reviewable PR, with current-main conflicts resolved in favor of the final
+  Lounge/avatar release gates and completed visual coverage. Every subsequent
+  push to `main` becomes an exact-SHA, database-preserving disposable-dev update;
+  manual lifecycle operations and production's manual release boundary remain.

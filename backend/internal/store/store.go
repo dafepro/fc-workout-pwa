@@ -292,6 +292,11 @@ func (store *Store) ResetE2EFixtures(ctx context.Context, now time.Time) error {
 	}
 	defer tx.Rollback()
 	statements := []string{
+		"DELETE FROM team_lounge_emote_cooldowns",
+		"DELETE FROM team_lounge_socket_tickets",
+		"DELETE FROM team_lounge_room_ownership",
+		"DELETE FROM team_lounge_item_mutation_permits",
+		"DELETE FROM team_lounge_placement_reservations",
 		"DELETE FROM team_lounge_placement_credits",
 		"DELETE FROM team_lounge_visits",
 		"DELETE FROM team_lounge_snapshots",
@@ -392,17 +397,18 @@ func (store *Store) ResetE2EFixtures(ctx context.Context, now time.Time) error {
 		return fmt.Errorf("seed e2e training entry: %w", err)
 	}
 	entries := []struct {
-		id, occurredAt, createdAt, deadline string
+		id, playerID, occurredAt, createdAt, deadline string
 	}{
-		{"entry-mason-recent", withinWeek(now.Add(-2*time.Hour), weekStart), now.Add(-2 * time.Hour).Format(time.RFC3339Nano), now.Add(22 * time.Hour).Format(time.RFC3339Nano)},
-		{"entry-mason-expired", withinWeek(now.Add(-25*time.Hour), weekStart), now.Add(-25 * time.Hour).Format(time.RFC3339Nano), now.Add(-time.Hour).Format(time.RFC3339Nano)},
+		{"entry-mason-recent", "player-mason", withinWeek(now.Add(-2*time.Hour), weekStart), now.Add(-2 * time.Hour).Format(time.RFC3339Nano), now.Add(22 * time.Hour).Format(time.RFC3339Nano)},
+		{"entry-mason-expired", "player-mason", withinWeek(now.Add(-25*time.Hour), weekStart), now.Add(-25 * time.Hour).Format(time.RFC3339Nano), now.Add(-time.Hour).Format(time.RFC3339Nano)},
+		{"entry-ava-recent", "player-ava", withinWeek(now.Add(-3*time.Hour), weekStart), now.Add(-3 * time.Hour).Format(time.RFC3339Nano), now.Add(21 * time.Hour).Format(time.RFC3339Nano)},
 	}
 	for _, entry := range entries {
 		if _, err := tx.ExecContext(ctx, `INSERT INTO training_entries (
 			id, player_id, team_id, activity_definition_id, occurred_at, result_value,
 			result_unit, effort_level, exhaustion_level, created_at, delete_eligible_until
-		) VALUES (?, 'player-mason', 'team-hill-striders', 'hill-sprints', ?, 8, 'reps', 4, 3, ?, ?)`,
-			entry.id, entry.occurredAt, entry.createdAt, entry.deadline); err != nil {
+		) VALUES (?, ?, 'team-hill-striders', 'hill-sprints', ?, 8, 'reps', 4, 3, ?, ?)`,
+			entry.id, entry.playerID, entry.occurredAt, entry.createdAt, entry.deadline); err != nil {
 			return fmt.Errorf("seed e2e training entry: %w", err)
 		}
 	}

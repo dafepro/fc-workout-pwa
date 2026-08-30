@@ -80,6 +80,25 @@ test("connected Today and activity logging use the server assignment", async ({
   await expect(
     page.getByRole("progressbar", { name: "Momentum: 8 out of 100" }),
   ).toHaveAttribute("aria-valuenow", "8");
+  await expect(page.getByRole("heading", { name: "My Sessions" })).toHaveCount(
+    0,
+  );
+  const secondaryActions = page.getByRole("list", {
+    name: "Other things you can do",
+  });
+  await expect(secondaryActions.getByRole("listitem")).toHaveCount(4);
+  await expect(
+    secondaryActions.getByRole("link", { name: /Your momentum/i }),
+  ).toHaveAttribute("href", "/progress");
+  await secondaryActions.getByRole("link", { name: /Your momentum/i }).click();
+  await expect(page).toHaveURL(/\/progress$/);
+  await expect(
+    page.getByRole("heading", { name: "Your momentum" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("progressbar", { name: "Momentum: 8 out of 100" }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "Today" }).click();
 
   await page.getByRole("link", { name: /Record this workout/i }).click();
   await expect(
@@ -139,6 +158,18 @@ test("connected Today and activity logging use the server assignment", async ({
   await expect(page.locator(".today-plan-hero.is-celebrating")).toBeVisible();
 
   await page.getByRole("link", { name: "See team progress" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Latest from your team" }),
+  ).toBeVisible();
+  const teamPulse = page.getByRole("region", {
+    name: "Latest from your team",
+  });
+  await teamPulse
+    .getByRole("button", { name: "Cheer Ava for Hill Sprints" })
+    .click();
+  await expect(
+    teamPulse.getByRole("button", { name: "Cheered for Ava" }),
+  ).toBeDisabled();
   const challenge = page.getByRole("region", { name: "Hill Sprints" });
   await expect(
     challenge.getByText("1 of 12 teammates completed"),
@@ -165,12 +196,16 @@ test("connected Today and activity logging use the server assignment", async ({
 
   await page.getByRole("link", { name: "Today" }).click();
   await page.getByRole("link", { name: /Log another activity/i }).click();
+  await page
+    .getByRole("button", { name: "Choose an activity", exact: true })
+    .click();
+  await page.getByRole("radio", { name: /^Distance Run/i }).click();
   const secondCreateResponse = page.waitForResponse(
     (response) =>
       response.url().includes("/api/zoomigo/v1/me/training-entries") &&
       response.request().method() === "POST",
   );
-  await page.getByRole("button", { name: "Save" }).click();
+  await page.getByRole("button", { name: /^Save / }).click();
   expect((await secondCreateResponse).ok()).toBe(true);
 
   await expect(

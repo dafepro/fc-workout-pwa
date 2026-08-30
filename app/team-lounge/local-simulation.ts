@@ -24,6 +24,11 @@ export function startLocalBeachBoardwalkSimulation({
 }) {
   const generation = 1;
   const avatarID = `avatar:${playerID}`;
+  const arrival = beachBoardwalkCanvas.spawnPoints.find(
+    ({ id }) => id === "arrival",
+  );
+  if (!arrival)
+    throw new Error("Beach Boardwalk is missing its arrival point.");
   let inputSequence = 0;
   let stopped = false;
   let settleReady: (() => void) | undefined;
@@ -35,10 +40,12 @@ export function startLocalBeachBoardwalkSimulation({
   const unsubscribe = driver.onMessage((message: SimulationResponse) => {
     if (message.generation !== generation || stopped) return;
     if (message.type === "ready") {
-      driver.send({
-        type: "addItem",
-        instance: systemItemInstance(beachBoardwalkCanvas.systemItems[0]),
-      });
+      for (const item of beachBoardwalkCanvas.systemItems) {
+        driver.send({
+          type: "addItem",
+          instance: systemItemInstance(item),
+        });
+      }
       settleReady?.();
       settleReady = undefined;
       rejectReady = undefined;
@@ -63,7 +70,7 @@ export function startLocalBeachBoardwalkSimulation({
       entityId: avatarID,
       clientId: "zoomigo-local-lounge",
       userId: playerID,
-      position: beachBoardwalkCanvas.spawnPoints[0].position,
+      position: arrival.position,
       ...beachBoardwalkCanvas.avatarController,
     },
   });

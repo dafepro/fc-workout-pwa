@@ -4,24 +4,24 @@ These package archives are generated, reviewable dependencies from
 the private `dafepro/canvas` repository. They are committed so Zoomigo builds do
 not need private GitHub or npm registry credentials.
 
-| Field                         | Value                                         |
-| ----------------------------- | --------------------------------------------- |
-| Source repository             | `https://github.com/dafepro/canvas.git`       |
-| Package archive source commit | `bfbc188092f82333a1a1e8a6482f96119967b109`    |
-| Package archive source date   | `2026-08-27T20:17:20-05:00`                   |
-| Package version               | `0.4.1`                                       |
-| Go rooms SDK                  | Not vendored by the local-only ZoomiGo Lounge |
-| Protocol version              | `8`                                           |
-| Pack tool                     | pnpm `11.20.0`                                |
-| Runtime used to pack          | Node.js `24.19.0`                             |
+| Field                         | Value                                      |
+| ----------------------------- | ------------------------------------------ |
+| Source repository             | `https://github.com/dafepro/canvas.git`    |
+| Package archive source commit | `11ebf12f451decc368712bce35833319cdab0395` |
+| Package archive source date   | `2026-08-28T09:21:01-05:00`                |
+| Package version               | `0.6.0`                                    |
+| Go rooms SDK                  | `github.com/dafepro/canvas/server v0.6.0`  |
+| Protocol version              | `8`                                        |
+| Pack tool                     | pnpm `11.21.0`                             |
+| Runtime used to pack          | Node.js `24.19.0`                          |
 
 ## SHA-256
 
 | Archive                             | Digest                                                             |
 | ----------------------------------- | ------------------------------------------------------------------ |
-| `canvas-physics-client-0.4.1.tgz`   | `183D073DED09A97451530965993CF819293B78D09C56D4CE96706A8B9B425601` |
-| `canvas-physics-core-0.4.1.tgz`     | `7136B6723D50D9E6D89BB5D44DC5CC4E6833A7612B2CBE2AD5A8BA6A53668D36` |
-| `canvas-physics-protocol-0.4.1.tgz` | `6A142948F1C907A48C026DFA4F829227BB5F53C549FF6F8801387909EFE179A5` |
+| `canvas-physics-client-0.6.0.tgz`   | `9DF2AD4F4E2F7EE0B6C98931A7846E7A806ED0A87CDFA4BCD72DC4E5B3850C48` |
+| `canvas-physics-core-0.6.0.tgz`     | `9AF3588BF579C3C5F1B5FCC9256457EB749E6776167E69DA618195E302C11E4C` |
+| `canvas-physics-protocol-0.6.0.tgz` | `0527FA9E30047BB2AEC2D7AC5E42C361561FE4280BF18B985893D9CE880291FA` |
 
 ## Verification performed
 
@@ -35,9 +35,11 @@ pnpm build
 docker compose -f backend/compose.e2e.yaml run --rm browser-e2e pnpm test:browser e2e/pwa-team-lounge.spec.ts
 ```
 
-The Lounge intentionally has no compatibility adapter for pre-0.4 room,
-snapshot, item-revision, or inventory data. It seeds one current local room from
-ZoomiGo's authenticated player ID and canonical predefined content.
+The Lounge intentionally has no compatibility adapter for pre-0.6 room,
+snapshot, placement-reservation, item-revision, or inventory data. ZoomiGo uses
+Canvas 0.6's application mutation authorization, outcome reconciliation,
+transient actions, fenced room ownership, and graceful draining against the
+same exact source generation as these archives.
 
 ## Rebuild
 

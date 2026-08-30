@@ -244,6 +244,11 @@ entire daily write allowance.
 
 ## 5. Enable normal CI/CD
 
+Production still runs one API replica. The Caddy upstream defaults to that one
+`api:8080` service; only the Docker topology proof supplies two upstreams. Do
+not scale the deployed service or override `CADDY_UPSTREAMS` as an incidental
+release change.
+
 Set repository variable `PRODUCTION_DEPLOY_ENABLED=true`. It must be
 repository-scoped, not environment-scoped: a job-level `if` is evaluated before
 the environment is resolved, so an environment variable is not visible there.
@@ -322,6 +327,34 @@ scoped token, update the GitHub secret, release, verify fresh data and Alloy
 health, then revoke the old token. Rotate the read token by updating
 `GRAFANA_READ_TOKEN`, dispatching one safe query, and only then revoking the old
 token. A failed rotation should disable Alloy, not weaken API availability.
+
+## Reviewing unresolved Lounge placement holds
+
+Canvas is the only authority that may commit or release a consumed placement
+hold. The operator command is therefore deliberately read-only: it separates
+expired, never-consumed permits from holds awaiting a Canvas receipt and flags
+consumed holds older than the requested reconciliation window.
+
+The `Monitor stale Lounge outcomes` GitHub workflow runs this report every six
+hours and may also be dispatched manually. It fails the run, emits a GitHub
+error annotation, and uses the repository's normal Actions-failure notification
+path when either stale outcome count is nonzero or when the report is malformed.
+The workflow never releases a hold, changes a permit, or writes to the database.
+Treat a failed scheduled run as an operator alert and follow the investigation
+steps below.
+
+```sh
+cd /opt/app/deploy/vm
+sudo -n docker compose --env-file .env --profile operations run --rm --no-TTY admin \
+  lounge-placement-holds --stale-after 24h
+```
+
+Any nonzero `staleCanvasOutcomes` or `staleItemOutcomes` count needs
+investigation against Canvas room logs and retained mutation receipts. The item
+fields separately report `totalItemMutations`, `expiredItemPermits`,
+`awaitingItemOutcomes`, and the oldest pending edit. Never release a hold or
+finalize an edit merely because it is old or because a browser reports a
+timeout. Expired permits are likewise reported, not automatically acted on.
 
 ## Creating the first operator account
 

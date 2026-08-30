@@ -24,6 +24,7 @@ import (
 	"github.com/dafepro/fc-workout-pwa/backend/internal/authn"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/store"
+	"github.com/dafepro/fc-workout-pwa/backend/internal/teamlounge"
 )
 
 func main() {
@@ -70,9 +71,35 @@ func run(arguments []string, stdout io.Writer) error {
 		return deactivateStaff(ctx, arguments[1:], stdout)
 	case "list-staff":
 		return listStaff(ctx, arguments[1:], stdout)
+	case "lounge-placement-holds":
+		return loungePlacementHolds(ctx, arguments[1:], stdout)
 	default:
 		return usageError()
 	}
+}
+
+func loungePlacementHolds(ctx context.Context, arguments []string, stdout io.Writer) error {
+	flags := flag.NewFlagSet("lounge-placement-holds", flag.ContinueOnError)
+	databaseURL := flags.String("database-url", envOr("DATABASE_URL", "file:data/zoomigo.db"), "")
+	staleAfter := flags.Duration("stale-after", 24*time.Hour, "age after which a consumed hold needs operator review")
+	if err := flags.Parse(arguments); err != nil {
+		return err
+	}
+	if *staleAfter <= 0 || *staleAfter > 30*24*time.Hour {
+		return errors.New("stale-after must be greater than zero and no more than 720h")
+	}
+	db, err := open(ctx, *databaseURL)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	report, err := teamlounge.NewSQLiteStore(db, teamlounge.BeachBoardwalkLoungeCatalog()).PlacementHoldReport(
+		ctx, time.Now().UTC(), *staleAfter,
+	)
+	if err != nil {
+		return err
+	}
+	return json.NewEncoder(stdout).Encode(report)
 }
 
 func bootstrapTeam(ctx context.Context, arguments []string, stdout io.Writer) error {
@@ -677,5 +704,5 @@ func requireProvisioningApproval(testOnly bool) error {
 	return errors.New("real player provisioning is locked; complete the production approval checklist and set PRODUCTION_DATA_APPROVED=true, or use --test-only for a disposable test identity")
 }
 func usageError() error {
-	return errors.New("usage: zoomigo-admin bootstrap-team|provision-player|rotate-player-login|revoke-player-login|list-players|credential-status|deactivate-player|unlock-player-login|list-teams|audit|create-operator|create-coach|reset-staff-credential|deactivate-staff|list-staff [flags]")
+	return errors.New("usage: zoomigo-admin bootstrap-team|provision-player|rotate-player-login|revoke-player-login|list-players|credential-status|deactivate-player|unlock-player-login|list-teams|audit|create-operator|create-coach|reset-staff-credential|deactivate-staff|list-staff|lounge-placement-holds [flags]")
 }

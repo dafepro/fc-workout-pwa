@@ -37,16 +37,14 @@ describe("canonical player routes", () => {
   });
 
   it("keeps team reward authoring out of the production route graph", () => {
-    const routeDirectory = join(
-      process.cwd(),
-      "app",
-      "staff",
-      "teams",
-      "[teamId]",
-      "reward",
-    );
-    expect(existsSync(join(routeDirectory, "page.tsx"))).toBe(false);
-    expect(existsSync(join(routeDirectory, "page.dev.tsx"))).toBe(true);
+    for (const route of [
+      join("staff", "teams", "[teamId]", "rewards"),
+      join("staff", "admin", "teams", "[teamId]", "rewards"),
+    ]) {
+      const routeDirectory = join(process.cwd(), "app", route);
+      expect(existsSync(join(routeDirectory, "page.tsx"))).toBe(false);
+      expect(existsSync(join(routeDirectory, "page.dev.tsx"))).toBe(true);
+    }
   });
 
   it("ships one consolidated Prize Boxes route without an alternate gallery", () => {

@@ -19,6 +19,28 @@ type prizeBoxRepository interface {
 	MarkPlayerUnlockViewed(context.Context, string, string, time.Time) (store.PlayerUnlock, error)
 }
 
+type developmentLoungeUnlockRepository interface {
+	GrantDevelopmentLoungeUnlocks(context.Context, string, time.Time) (int, error)
+}
+
+func (service *service) grantDevelopmentLoungeUnlocks(w http.ResponseWriter, r *http.Request) {
+	actor, ok := service.authenticate(w, r)
+	if !ok {
+		return
+	}
+	repository, ready := service.store.(developmentLoungeUnlockRepository)
+	if actor.Role != domain.RolePlayer || actor.PlayerID == "" || !ready {
+		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
+		return
+	}
+	granted, err := repository.GrantDevelopmentLoungeUnlocks(r.Context(), actor.PlayerID, service.now().UTC())
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "internal_error", "Development Lounge items could not be unlocked.")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]int{"granted": granted})
+}
+
 func (service *service) getPrizeBoxes(w http.ResponseWriter, r *http.Request) {
 	actor, repository, ok := service.prizeBoxActor(w, r)
 	if !ok {

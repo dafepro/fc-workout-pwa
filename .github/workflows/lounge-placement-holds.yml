@@ -1,0 +1,50 @@
+name: Monitor stale Lounge outcomes
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: lounge-placement-holds-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    name: Inspect read-only Canvas outcome holds
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.20.0
+
+      - name: Read and evaluate the production hold report
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          ZOOMIGO_DEPLOY_SSH_KEY: ${{ secrets.ZOOMIGO_DEPLOY_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          identity="$RUNNER_TEMP/deploy_ssh_key"
+          trap 'rm -f -- "$identity"' EXIT
+          (umask 077 && printf '%s\n' "$ZOOMIGO_DEPLOY_SSH_KEY" >"$identity")
+          report=$(
+            ssh -i "$identity" \
+              -o BatchMode=yes \
+              -o IdentitiesOnly=yes \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile=infra/known_hosts \
+              "${DEPLOY_USER}@${DEPLOY_HOST}" \
+              'cd /opt/app/deploy/vm && sudo -n docker compose --env-file .env --profile operations run --rm --no-TTY admin lounge-placement-holds --stale-after 24h'
+          )
+          if ! printf '%s\n' "$report" | node scripts/lounge-placement-holds-monitor.mjs; then
+            echo '::error title=Stale Canvas outcomes::Review the production Lounge hold report and Canvas receipts; do not release holds from age alone.'
+            exit 1
+          fi

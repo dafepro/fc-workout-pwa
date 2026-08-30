@@ -1,13 +1,14 @@
 import {
   CollisionLayer,
-  defaultKickableConfig,
   type CanvasDefinition,
   type ItemDefinition,
 } from "@canvas-physics/core";
 
+import { defaultLoungeBallConfig } from "../lounge-ball-behavior";
+
 export const beachBallDefinition: ItemDefinition = {
   definitionId: "beach-ball",
-  version: 3,
+  version: 6,
   displayName: "Beach ball",
   visual: {
     size: { width: 9, height: 9 },
@@ -19,8 +20,8 @@ export const beachBallDefinition: ItemDefinition = {
     mode: "dynamic",
     mass: 0.5,
     gravityScale: 0,
-    linearDamping: 0.35,
-    angularDamping: 0.2,
+    linearDamping: 0.05,
+    angularDamping: 0.08,
     canSleep: true,
   },
   colliders: [
@@ -28,24 +29,15 @@ export const beachBallDefinition: ItemDefinition = {
       id: "solid",
       role: "itemSolid",
       shape: { type: "circle", radius: 4.5 },
-      restitution: 0.82,
-      friction: 0.18,
-      collisionMask:
-        CollisionLayer.WORLD_STATIC |
-        CollisionLayer.ITEM_SOLID |
-        CollisionLayer.ITEM_SENSOR |
-        CollisionLayer.REGION_SENSOR,
+      restitution: 0.95,
+      friction: 0.05,
+      collisionMask: CollisionLayer.WORLD_STATIC,
+      tags: ["lounge-ball"],
     },
     { id: "kick", role: "itemSensor", shape: { type: "circle", radius: 5.8 } },
   ],
-  behaviorType: "kickable",
-  defaultConfig: {
-    ...defaultKickableConfig,
-    kickStrength: 3.2,
-    minImpulse: 9,
-    maxImpulse: 42,
-    cooldownSeconds: 0.18,
-  },
+  behaviorType: "zoomigoLoungeBall",
+  defaultConfig: defaultLoungeBallConfig,
   persistence: { transform: true, behaviorState: true, onRoomSleep: "pause" },
   complexity: "simple",
 };
@@ -66,52 +58,75 @@ export const loungeAvatarDefinition: ItemDefinition = {
   complexity: "simple",
 };
 
+export const loungeActionRouterDefinition: ItemDefinition = {
+  definitionId: "zoomigo-lounge-action-router",
+  version: 1,
+  displayName: "Lounge action router",
+  visual: {
+    size: { width: 0.1, height: 0.1 },
+    spriteId: "lounge.stamp.transparent",
+    zIndex: 0,
+  },
+  colliders: [],
+  behaviorType: "zoomigoLoungeActions",
+  defaultConfig: {},
+  persistence: { transform: false, behaviorState: false, onRoomSleep: "pause" },
+  complexity: "simple",
+};
+
 export const beachBoardwalkDefinitions = [
   beachBallDefinition,
   loungeAvatarDefinition,
+  loungeActionRouterDefinition,
 ];
 
 export const beachBoardwalkCanvas: CanvasDefinition = {
   id: "zoomigo-beach-boardwalk",
-  version: 6,
+  version: 13,
   size: { width: 100, height: 150 },
   orientation: "topDown",
   backgroundAssetId: "lounge.background",
-  edges: { top: "solid", right: "solid", bottom: "solid", left: "solid" },
+  edges: {
+    top: "open",
+    right: "open",
+    bottom: "open",
+    left: "open",
+  },
   staticGeometry: [
     {
-      id: "lifeguard-hut",
-      shape: { type: "rect", width: 38, height: 42 },
-      position: { x: 79, y: 27 },
-      rotation: 0,
+      id: "elastic-edge-top",
+      shape: { type: "rect", width: 104, height: 2 },
+      position: { x: 50, y: -1 },
+      restitution: 1,
+      friction: 0,
+      tags: ["elastic-edge"],
       blocks: { avatars: true, items: true },
     },
     {
-      id: "umbrella-table",
-      shape: { type: "circle", radius: 14 },
-      position: { x: 18, y: 36 },
-      rotation: 0,
+      id: "elastic-edge-right",
+      shape: { type: "rect", width: 2, height: 154 },
+      position: { x: 101, y: 75 },
+      restitution: 1,
+      friction: 0,
+      tags: ["elastic-edge"],
       blocks: { avatars: true, items: true },
     },
     {
-      id: "boardwalk-bench",
-      shape: { type: "rect", width: 31, height: 21 },
-      position: { x: 16, y: 108 },
-      rotation: -0.12,
+      id: "elastic-edge-bottom",
+      shape: { type: "rect", width: 104, height: 2 },
+      position: { x: 50, y: 151 },
+      restitution: 1,
+      friction: 0,
+      tags: ["elastic-edge"],
       blocks: { avatars: true, items: true },
     },
     {
-      id: "snack-cart",
-      shape: { type: "rect", width: 28, height: 49 },
-      position: { x: 88, y: 116.5 },
-      rotation: 0.02,
-      blocks: { avatars: true, items: true },
-    },
-    {
-      id: "lower-pool-edge",
-      shape: { type: "rect", width: 76, height: 16 },
-      position: { x: 25, y: 141 },
-      rotation: 0.29,
+      id: "elastic-edge-left",
+      shape: { type: "rect", width: 2, height: 154 },
+      position: { x: -1, y: 75 },
+      restitution: 1,
+      friction: 0,
+      tags: ["elastic-edge"],
       blocks: { avatars: true, items: true },
     },
   ],
@@ -119,9 +134,9 @@ export const beachBoardwalkCanvas: CanvasDefinition = {
   environment: {
     base: {
       gravityXY: { x: 0, y: 0 },
-      linearDrag: 0.2,
-      angularDrag: 0.2,
-      softSpeedLimit: 28,
+      linearDrag: 0.03,
+      angularDrag: 0.06,
+      softSpeedLimit: 40,
       surfaceFrictionMultiplier: 1,
     },
   },
@@ -133,6 +148,13 @@ export const beachBoardwalkCanvas: CanvasDefinition = {
       definitionVersion: beachBallDefinition.version,
       transform: { x: 62, y: 98, rotation: 0, scale: 1 },
       resolvedConfig: beachBallDefinition.defaultConfig,
+    },
+    {
+      entityId: "lounge-action-router",
+      definitionId: loungeActionRouterDefinition.definitionId,
+      definitionVersion: loungeActionRouterDefinition.version,
+      transform: { x: 0, y: 0, rotation: 0, scale: 1 },
+      resolvedConfig: {},
     },
   ],
   limits: { maxAvatars: 24, maxItems: 169, maxComplexPhysicsItems: 4 },

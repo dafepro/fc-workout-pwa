@@ -2,14 +2,19 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   prepareTeamLoungeJoin,
+  requestTeamLoungeItemMutationPermit,
+  reserveTeamLoungePlacement,
   requestTeamLoungeCredential,
 } from "./lounge-gateway";
 
 const response = {
   ticket: "a".repeat(43),
-  roomId: "team:team-one:lounge:2026-08-24:v6",
+  roomId: "team:team-one:lounge:2026-08-24:v10",
   serverUrl: "https://api.example.test",
   visitorIds: ["player-two"],
+  placementCredits: 2,
+  placementCapacity: 3,
+  editableItemIds: ["canvas-item-one"],
 };
 
 afterEach(() => vi.unstubAllGlobals());
@@ -29,6 +34,9 @@ describe("canonical Team Lounge gateway", () => {
       roomID: response.roomId,
       serverURL: response.serverUrl,
       visitorIDs: ["player-two"],
+      placementCredits: 2,
+      placementCapacity: 3,
+      editableItemIDs: ["canvas-item-one"],
     });
     expect(fetcher).toHaveBeenCalledWith(
       "/api/zoomigo/v1/teams/team-one/lounge/socket-ticket",
@@ -54,5 +62,108 @@ describe("canonical Team Lounge gateway", () => {
       `ticket.${response.ticket}`,
     );
     expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it("reserves a Canvas-authorized placement permit through ZoomiGo", async () => {
+    const placementID = `lounge-placement-${"a".repeat(32)}`;
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            placementId: placementID,
+            definitionId: "zoomigo-stamp-bolt",
+            definitionVersion: 1,
+            permit: "p".repeat(43),
+            x: 40,
+            y: 70,
+            remainingPlacements: 0,
+          }),
+          { status: 201 },
+        ),
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetcher);
+
+    await expect(
+      reserveTeamLoungePlacement(
+        "team-one",
+        response.roomId,
+        "zoomigo-stamp-bolt",
+        1,
+        { x: 40, y: 70 },
+        "placement-key",
+      ),
+    ).resolves.toEqual({
+      placementID,
+      permit: "p".repeat(43),
+      definitionVersion: 1,
+      position: { x: 40, y: 70 },
+      remaining: 0,
+    });
+    expect(fetcher).toHaveBeenNthCalledWith(
+      1,
+      "/api/zoomigo/v1/teams/team-one/lounge/placements",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          "Idempotency-Key": "placement-key",
+        }),
+      }),
+    );
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("requests an exact owner-bound rotation permit before Canvas mutates", async () => {
+    const mutationPermitID = `lounge-mutation-${"b".repeat(32)}`;
+    const transform = { x: 20, y: 70, rotation: 0.5, scale: 1 };
+    const fetcher = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          mutationPermitId: mutationPermitID,
+          entityId: "canvas-item-one",
+          itemRevision: 3,
+          kind: "rotation",
+          transform,
+          permit: "m".repeat(43),
+        }),
+        { status: 201 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetcher);
+
+    await expect(
+      requestTeamLoungeItemMutationPermit(
+        "team-one",
+        response.roomId,
+        "canvas-item-one",
+        3,
+        "rotation",
+        transform,
+        "rotate-item-one",
+      ),
+    ).resolves.toEqual({
+      mutationPermitID,
+      entityID: "canvas-item-one",
+      itemRevision: 3,
+      kind: "rotation",
+      transform,
+      permit: "m".repeat(43),
+    });
+    expect(fetcher).toHaveBeenCalledWith(
+      "/api/zoomigo/v1/teams/team-one/lounge/items/canvas-item-one/mutation-permits",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          "Idempotency-Key": "rotate-item-one",
+        }),
+        body: JSON.stringify({
+          roomId: response.roomId,
+          itemRevision: 3,
+          kind: "rotation",
+          transform,
+        }),
+      }),
+    );
   });
 });

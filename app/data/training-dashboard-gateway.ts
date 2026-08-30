@@ -73,6 +73,7 @@ class LocalTrainingDashboardGateway implements TrainingDashboardGateway {
 
   async get(): Promise<TrainingDashboard> {
     const streak = currentStreak(initialEntries);
+    const weeklyEntries = entriesWithinDays(initialEntries, 7);
     return {
       team: {
         id: "team-hill-striders",
@@ -93,7 +94,10 @@ class LocalTrainingDashboardGateway implements TrainingDashboardGateway {
       currentPlanDay: null,
       currentPlan: null,
       summary: {
-        weeklySessions: entriesWithinDays(initialEntries, 7).length,
+        weeklySessions: weeklyEntries.length,
+        weeklyMomentumCredits: new Set(
+          weeklyEntries.map((entry) => entry.occurredAt.slice(0, 10)),
+        ).size,
         rolling30Sessions: entriesWithinDays(initialEntries, 30).length,
         momentumScore: 68,
         currentCheckInStreak: streak,

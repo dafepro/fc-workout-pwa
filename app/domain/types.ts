@@ -121,6 +121,7 @@ export interface TrainingDashboard {
   currentPlan: TrainingPlanWindow | null;
   summary: {
     weeklySessions: number;
+    weeklyMomentumCredits: number;
     rolling30Sessions: number;
     momentumScore: number;
     currentCheckInStreak: number;
@@ -142,6 +143,7 @@ export interface TrainingDashboard {
 }
 
 export interface TeamPulseActivity {
+  playerId: string;
   firstName: string;
   lastInitial: string;
   activityName: string;

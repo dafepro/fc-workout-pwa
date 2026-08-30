@@ -1,6 +1,6 @@
 # ZoomiGo
 
-This repository packet turns the product discussion and visual mockups into durable context for Codex.
+This repository turns the product decisions and safety rules into durable context for Codex.
 
 ## Recommended first milestone
 
@@ -10,7 +10,6 @@ Build a responsive, mobile-first PWA prototype with mock data. Implement the fou
 
 1. Read `AGENTS.md`.
 2. Read all files in `docs/`.
-3. Inspect the four mockups in `docs/mockups/`.
 
 Active priorities and release gates are maintained in `docs/ROADMAP.md`.
 
@@ -26,6 +25,11 @@ Run `./scripts/install-git-hooks.sh` once per clone. It points `core.hooksPath`
 at `scripts/git-hooks`, whose `pre-commit` hook rejects a commit whose staged
 files would fail the `pnpm format` gate in CI.
 
+The focused 320px Team Lounge image comparison is `pnpm test:e2e:visual`.
+Intentional baseline updates use `pnpm test:e2e:visual:update` and must be
+reviewed image by image. Both commands run through the pinned Linux Playwright
+container; see `docs/VISUAL_REGRESSION.md` for the approval contract.
+
 ## Suggested prototype boundaries
 
 - Player-facing experience only.
@@ -39,7 +43,7 @@ files would fail the `pnpm format` gate in CI.
 
 ## Definition of done for milestone 1
 
-- Four responsive routes match the intent and hierarchy of the mockups.
+- The responsive player routes match the current screen specifications and product decisions.
 - Navigation works between Home, Log, Team, Leaders, and Me placeholders.
 - Logging a session updates local in-memory or browser-local mock state.
 - Activity-specific inputs change based on activity type.
