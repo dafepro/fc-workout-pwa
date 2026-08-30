@@ -339,6 +339,11 @@ to resolve, not the implementing agent's.
 - Integration assumption 2026-08-27: one free sealed daily box is independent
   of training and does not change Momentum. Opening later chooses the item, so
   claiming cannot reveal or reroll a reward.
+- Decided 2026-08-30: Prize collection and chronological history browsing stay
+  inside the canonical `/prizes` route, with predefined Avatar and Team Lounge
+  filters. The retired `/prizes/all` reference route does not return. Opening an
+  unviewed item's detail attempts `markViewed`; a failure keeps both the owned
+  item and its New treatment until the server confirms the update.
 - Integration assumption 2026-08-27: Team Rewards begin as one predefined,
   versioned celebration with bundled artwork and immutable display snapshots.
   Progress uses only qualifying team-local days at a bounded roster percentage;
