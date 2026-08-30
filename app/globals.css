@@ -3850,25 +3850,24 @@ h2 {
 }
 
 .team-lounge__header-actions {
-  display: grid;
+  display: flex;
   flex: 0 0 auto;
-  justify-items: stretch;
-  gap: 0.4rem;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .team-lounge__fullscreen {
   display: inline-flex;
+  width: 2.75rem;
   min-height: 2.75rem;
   align-items: center;
   justify-content: center;
-  gap: 0.32rem;
-  padding: 0.4rem 0.62rem;
+  padding: 0;
   border: 1px solid rgb(255 255 255 / 20%);
   border-radius: 0.72rem;
   background: rgb(255 255 255 / 10%);
   color: white;
   font: inherit;
-  font-size: 0.68rem;
   font-weight: 900;
   cursor: pointer;
 }

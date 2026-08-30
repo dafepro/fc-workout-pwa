@@ -103,9 +103,6 @@ export function TeamLounge({
               }
             >
               <span aria-hidden="true">{fullscreenActive ? "×" : "⛶"}</span>
-              {fullscreenActive
-                ? copy.teamLounge.exitFullscreen
-                : copy.teamLounge.fullscreen}
             </button>
           ) : null}
         </div>

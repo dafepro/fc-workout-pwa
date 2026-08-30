@@ -59,6 +59,35 @@ test("the 320px Lounge keeps its approved visual states", async ({ page }) => {
     maxDiffPixels: 4_000,
   });
 
+  await lounge.getByRole("button", { name: "Enter full screen" }).click();
+  await expect(lounge).toHaveAttribute("data-fullscreen", "true");
+  expect(
+    await lounge.evaluate((region) => {
+      const bounds = region.getBoundingClientRect();
+      return {
+        top: Math.round(bounds.top),
+        left: Math.round(bounds.left),
+        width: Math.round(bounds.width),
+        height: Math.round(bounds.height),
+        viewportWidth: innerWidth,
+        viewportHeight: innerHeight,
+      };
+    }),
+  ).toEqual({
+    top: 0,
+    left: 0,
+    width: 320,
+    height: 720,
+    viewportWidth: 320,
+    viewportHeight: 720,
+  });
+  await expect(lounge).toHaveScreenshot("team-lounge-fullscreen.png", {
+    animations: "disabled",
+    maxDiffPixels: 4_000,
+  });
+  await lounge.getByRole("button", { name: "Exit full screen" }).click();
+  await expect(lounge).not.toHaveAttribute("data-fullscreen");
+
   await lounge.getByRole("button", { name: "React" }).click();
   await expect(
     lounge.getByRole("dialog", { name: "Choose a reaction" }),
