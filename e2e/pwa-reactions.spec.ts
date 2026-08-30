@@ -20,18 +20,18 @@ test("a teammate can be cheered from Team with labeled, contextual choices", asy
 }) => {
   await openReadyPage(page, "/team");
 
-  await page.getByRole("button", { name: /Liam J\./ }).click();
-  const picker = page.getByRole("dialog", { name: "Cheer for Liam" });
+  await page.getByRole("button", { name: /Cheer for Ava R\./ }).click();
+  const picker = page.getByRole("dialog", { name: "Cheer for Ava" });
   await expect(picker).toBeVisible();
   await expect(picker.getByText("For Team progress")).toBeVisible();
 
-  const fire = picker.getByRole("button", { name: "Send Fire to Liam" });
+  const fire = picker.getByRole("button", { name: "Send Fire to Ava" });
   await expect(fire.getByText("Fire", { exact: true })).toBeVisible();
   await page.emulateMedia({ reducedMotion: "reduce" });
   await fire.click();
 
   const sentStatus = page.locator(".reaction-sent-status");
-  await expect(sentStatus).toContainText("sent to Liam");
+  await expect(sentStatus).toContainText("sent to Ava");
   await expect(sentStatus).not.toContainText(/left|remaining/i);
   await expect
     .poll(() =>
@@ -44,7 +44,7 @@ test("a teammate can be cheered from Team with labeled, contextual choices", asy
   ).toHaveCount(0);
 });
 
-test("a completed shared challenge can be cheered without hiding other cheer entry points", async ({
+test("a completed shared challenge becomes the teammate's single prioritized cheer context", async ({
   page,
 }) => {
   const api = await request.newContext({ baseURL: apiBaseURL });
@@ -61,15 +61,14 @@ test("a completed shared challenge can be cheered without hiding other cheer ent
   await page.setViewportSize({ width: 320, height: 700 });
   await openReadyPage(page, "/team");
 
-  const challenge = page.getByRole("region", {
-    name: "Hill Sprints",
-  });
+  const challenge = page.getByRole("region", { name: "This week" });
   await expect(
     challenge.getByText("1 of 12 teammates completed"),
   ).toBeVisible();
-  await challenge
+  await page
+    .getByRole("region", { name: "Teammate activity" })
     .getByRole("button", {
-      name: "Cheer for Ava R. for completing Hill Sprints",
+      name: "Cheer for Ava R. for Hill Sprints challenge",
     })
     .click();
   const picker = page.getByRole("dialog", { name: "Cheer for Ava" });
@@ -78,37 +77,48 @@ test("a completed shared challenge can be cheered without hiding other cheer ent
   await expect(page.locator(".reaction-sent-status")).toContainText(
     "sent to Ava",
   );
-
   await expect(
-    page.getByRole("button", { name: "Cheer for Liam J." }),
-  ).toBeVisible();
+    page
+      .getByRole("region", { name: "Teammate activity" })
+      .getByRole("button", { name: /Cheer for Ava R\./ }),
+  ).toHaveCount(1);
 });
 
 test("the picker is usable for a second teammate after a successful cheer", async ({
   page,
 }) => {
+  const api = await request.newContext({ baseURL: apiBaseURL });
+  const liamActivity = await api.post("/v1/me/training-entries", {
+    headers: {
+      Authorization: "Bearer e2e-player-liam",
+      "Idempotency-Key": "browser-liam-team-activity",
+    },
+    data: participationEntry(),
+  });
+  expect(liamActivity.status()).toBe(201);
+  await api.dispose();
   await openReadyPage(page, "/team");
 
-  await page.getByRole("button", { name: /Liam J\./ }).click();
+  await page.getByRole("button", { name: /Cheer for Ava R\./ }).click();
   await page
-    .getByRole("dialog", { name: "Cheer for Liam" })
-    .getByRole("button", { name: "Send Fire to Liam" })
+    .getByRole("dialog", { name: "Cheer for Ava" })
+    .getByRole("button", { name: "Send Fire to Ava" })
     .click();
   await expect(page.locator(".reaction-sent-status")).toContainText(
-    "sent to Liam",
+    "sent to Ava",
   );
 
-  await page.getByRole("button", { name: /Noah K\./ }).click();
-  const secondPicker = page.getByRole("dialog", { name: "Cheer for Noah" });
+  await page.getByRole("button", { name: /Cheer for Liam J\./ }).click();
+  const secondPicker = page.getByRole("dialog", { name: "Cheer for Liam" });
   const secondCheer = secondPicker.getByRole("button", {
-    name: "Send Clap to Noah",
+    name: "Send Clap to Liam",
   });
   await expect(secondPicker).toBeVisible();
   await expect(secondCheer).toBeEnabled();
   await secondCheer.click();
 
   await expect(page.locator(".reaction-sent-status")).toContainText(
-    "sent to Noah",
+    "sent to Liam",
   );
   await expect(secondPicker).toBeHidden();
 });
@@ -119,15 +129,15 @@ test("the sixth cheer to one teammate within 30 minutes shows only the limit err
   await openReadyPage(page, "/team");
 
   for (let index = 0; index < 5; index += 1) {
-    await page.getByRole("button", { name: /Cheer for Liam J\./ }).click();
-    const picker = page.getByRole("dialog", { name: "Cheer for Liam" });
-    await picker.getByRole("button", { name: "Send Fire to Liam" }).click();
+    await page.getByRole("button", { name: /Cheer for Ava R\./ }).click();
+    const picker = page.getByRole("dialog", { name: "Cheer for Ava" });
+    await picker.getByRole("button", { name: "Send Fire to Ava" }).click();
     await expect(picker).toBeHidden();
   }
 
-  await page.getByRole("button", { name: /Cheer for Liam J\./ }).click();
-  const picker = page.getByRole("dialog", { name: "Cheer for Liam" });
-  await picker.getByRole("button", { name: "Send Fire to Liam" }).click();
+  await page.getByRole("button", { name: /Cheer for Ava R\./ }).click();
+  const picker = page.getByRole("dialog", { name: "Cheer for Ava" });
+  await picker.getByRole("button", { name: "Send Fire to Ava" }).click();
 
   await expect(picker.getByRole("alert")).toHaveText(
     "You have sent five cheers to this teammate in the last 30 minutes. Try again soon.",
@@ -255,5 +265,16 @@ function challengeEntry() {
     result: { kind: "repetitions", value: 8, unit: "reps" },
     effortLevel: 4,
     exhaustionLevel: 3,
+  };
+}
+
+function participationEntry() {
+  return {
+    teamId: "team-hill-striders",
+    activityDefinitionId: "recovery-walk-jog",
+    occurredAt: new Date(Date.now() - 90_000).toISOString(),
+    result: { kind: "duration", value: 20, unit: "minutes" },
+    effortLevel: 3,
+    exhaustionLevel: 2,
   };
 }

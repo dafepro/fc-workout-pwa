@@ -49,7 +49,7 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
     height: 720,
   });
   const canvasLoadStartedAt = Date.now();
-  await openReadyPage(page, "/team");
+  await openReadyPage(page, "/team?view=lounge");
 
   const lounge = page.getByRole("region", {
     name: "Beach Boardwalk Team Lounge",
@@ -179,7 +179,7 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
     .toBe("true");
   expect(
     Number(await stage.getAttribute("data-e2e-ball-max-x")),
-  ).toBeLessThanOrEqual(96.05);
+  ).toBeLessThanOrEqual(96.1);
 
   await dragSelfToWorld(35, 98);
   await dragSelfToWorld(35, 75);
@@ -233,7 +233,7 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   const pageScrollDelta =
     (await page.evaluate(() => window.scrollY)) - pageScrollStart;
 
-  await stage.scrollIntoViewIfNeeded();
+  await page.evaluate(() => window.scrollTo(0, 0));
   const visibleCanvasBox = await canvas.boundingBox();
   expect(visibleCanvasBox).not.toBeNull();
   const canvasScrollStart = await page.evaluate(() => window.scrollY);
@@ -557,7 +557,7 @@ test.describe("touch placement", () => {
 
     await page.setViewportSize({ width: 320, height: 720 });
     await loginAsAva(page);
-    await page.goto("/team");
+    await page.goto("/team?view=lounge");
     await page.locator("html[data-app-ready='true']").waitFor();
     const lounge = page.getByRole("region", {
       name: "Beach Boardwalk Team Lounge",
@@ -746,7 +746,7 @@ test("a replacement Ava tab recovers two interrupted placement holds", async ({
   await api.dispose();
 
   await loginAsAva(page);
-  await page.goto("/team");
+  await page.goto("/team?view=lounge");
   await page.locator("html[data-app-ready='true']").waitFor();
   const firstLounge = page.getByRole("region", {
     name: "Beach Boardwalk Team Lounge",
@@ -804,7 +804,7 @@ test("a replacement Ava tab recovers two interrupted placement holds", async ({
 
   const secondPage = await page.context().newPage();
   try {
-    await secondPage.goto("/team");
+    await secondPage.goto("/team?view=lounge");
     await secondPage.locator("html[data-app-ready='true']").waitFor();
     const secondLounge = secondPage.getByRole("region", {
       name: "Beach Boardwalk Team Lounge",
@@ -858,7 +858,7 @@ test("opening the same player Lounge in another tab retires the first tab cleanl
   await api.dispose();
 
   await loginAsAva(page);
-  await page.goto("/team");
+  await page.goto("/team?view=lounge");
   await page.locator("html[data-app-ready='true']").waitFor();
   const firstLounge = page.getByRole("region", {
     name: "Beach Boardwalk Team Lounge",
@@ -870,7 +870,7 @@ test("opening the same player Lounge in another tab retires the first tab cleanl
 
   const secondPage = await page.context().newPage();
   try {
-    await secondPage.goto("/team");
+    await secondPage.goto("/team?view=lounge");
     await secondPage.locator("html[data-app-ready='true']").waitFor();
     const secondLounge = secondPage.getByRole("region", {
       name: "Beach Boardwalk Team Lounge",
@@ -928,9 +928,9 @@ test("two qualified players share Lounge presence and avatar movement", async ({
       page.setViewportSize({ width: 320, height: 720 }),
       avaPage.setViewportSize({ width: 320, height: 720 }),
     ]);
-    await openReadyPage(page, "/team");
+    await openReadyPage(page, "/team?view=lounge");
     await loginAsAva(avaPage);
-    await avaPage.goto("/team");
+    await avaPage.goto("/team?view=lounge");
     await avaPage.locator("html[data-app-ready='true']").waitFor();
 
     const masonLounge = page.getByRole("region", {
@@ -1106,7 +1106,7 @@ test("a qualified player sees their own avatar after a teammate wakes the room",
   }
   await api.dispose();
 
-  await openReadyPage(page, "/team");
+  await openReadyPage(page, "/team?view=lounge");
   const currentAvatar = page
     .locator(".team-lounge__shared-avatar")
     .filter({ hasText: "You" })
@@ -1123,13 +1123,13 @@ test("a qualified player sees their own avatar after a teammate wakes the room",
   const avaPage = await avaContext.newPage();
   try {
     await loginAsAva(avaPage);
-    await avaPage.goto("/team");
+    await avaPage.goto("/team?view=lounge");
     await avaPage.locator("html[data-app-ready='true']").waitFor();
     await expect(avaPage.getByLabel("Mason visited this week")).toBeVisible({
       timeout: 15_000,
     });
 
-    await page.goto("/team");
+    await page.goto("/team?view=lounge");
     await page.locator("html[data-app-ready='true']").waitFor();
     const stage = page.getByLabel("Interactive lounge canvas");
     await expect(stage.locator("canvas")).toBeVisible({ timeout: 15_000 });

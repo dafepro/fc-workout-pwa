@@ -27,8 +27,8 @@ const allowed = [
   { method: "GET", pattern: /^v1\/training-entries\/[^/]+$/ },
   { method: "DELETE", pattern: /^v1\/training-entries\/[^/]+$/ },
   { method: "GET", pattern: /^v1\/teams\/[^/]+\/activity$/ },
+  { method: "GET", pattern: /^v1\/teams\/[^/]+\/hub$/ },
   { method: "GET", pattern: /^v1\/teams\/[^/]+\/leaderboards$/ },
-  { method: "GET", pattern: /^v1\/teams\/[^/]+\/team-reward$/ },
   { method: "POST", pattern: /^v1\/teams\/[^/]+\/lounge\/socket-ticket$/ },
   { method: "POST", pattern: /^v1\/teams\/[^/]+\/lounge\/placements$/ },
   {

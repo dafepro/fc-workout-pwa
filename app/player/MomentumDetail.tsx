@@ -11,11 +11,13 @@ export function MomentumDetail({
   weeklyCheckIns,
   weeklyGoal,
   checkInStreak,
+  rollingFiveActiveDays,
 }: {
   momentumScore: number;
   weeklyCheckIns: number;
   weeklyGoal: number;
   checkInStreak: number;
+  rollingFiveActiveDays: number;
 }) {
   const auth = useOptionalAuth();
   const progress = momentumProgress(momentumScore);
@@ -72,6 +74,17 @@ export function MomentumDetail({
               {copy.momentum.improvementTip}
             </p>
           </div>
+        </div>
+      </div>
+      <div className="momentum-detail__habit">
+        <span aria-hidden="true">✦</span>
+        <div>
+          <strong>
+            {copy.momentum.rollingHabit(
+              Math.min(5, Math.max(0, Math.floor(rollingFiveActiveDays))),
+            )}
+          </strong>
+          <small>{copy.momentum.rollingHabitPrivate}</small>
         </div>
       </div>
     </section>

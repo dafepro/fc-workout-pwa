@@ -57,19 +57,9 @@ func TestTeamRewardRoutesPublishIdempotentlyAndExposeSafeAggregateReads(t *testi
 		t.Fatalf("staff read status=%d body=%s", staffRead.Code, staffRead.Body.String())
 	}
 
-	playerHandler := httpapi.NewHandler(config.Config{}, httpapi.WithStore(playerStore),
-		httpapi.WithAuthenticator(socialAuthenticator{actor: domain.Actor{
-			Role: domain.RolePlayer, PlayerID: "player-one", ClubID: "club-one",
-		}}),
-	)
-	playerRead := teamRewardRequest(playerHandler, http.MethodGet, "/v1/teams/team-one/team-reward", "", "")
-	if playerRead.Code != http.StatusOK {
-		t.Fatalf("player read status=%d body=%s", playerRead.Code, playerRead.Body.String())
-	}
-	for _, privateField := range []string{"playerId", "firstName", "resultValue", "effortLevel", "exhaustionLevel"} {
-		if strings.Contains(playerRead.Body.String(), privateField) {
-			t.Fatalf("player reward leaked %q: %s", privateField, playerRead.Body.String())
-		}
+	legacyPlayerRead := teamRewardRequest(staffHandler, http.MethodGet, "/v1/teams/team-one/team-reward", "", "")
+	if legacyPlayerRead.Code != http.StatusNotFound {
+		t.Fatalf("legacy player route status=%d body=%s", legacyPlayerRead.Code, legacyPlayerRead.Body.String())
 	}
 	cancelPath := "/v1/staff/teams/team-one/team-reward/" + publishedReward.ID + "/cancel"
 	cancelled := teamRewardRequest(staffHandler, http.MethodPost, cancelPath, "", "")

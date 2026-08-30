@@ -1,4 +1,3 @@
-import { playerColor } from "../avatar/color";
 import type {
   LeaderboardItem,
   LeaderboardProjection,
@@ -9,6 +8,7 @@ import type {
   TeamMemberProjection,
 } from "../domain/types";
 import { activities, players, TEAM_NAME, WEEKLY_GOAL } from "./mockData";
+import { playerFromSocialIdentity } from "./social-identity";
 
 export interface SocialGateway {
   teamActivity(): Promise<TeamActivityProjection>;
@@ -201,7 +201,7 @@ export function createSocialGateway(
 
 function fromAPITeamMember(member: APITeamMember): TeamMemberProjection {
   return {
-    ...socialIdentity(member),
+    ...playerFromSocialIdentity({ id: member.playerId, ...member }),
     weeklySessions: member.weeklySessions,
     effortPoints: member.effortPoints,
     currentStreak: member.currentStreak,
@@ -214,7 +214,7 @@ function fromAPITeamMember(member: APITeamMember): TeamMemberProjection {
 
 function fromAPILeaderboardItem(item: APILeaderboardItem): LeaderboardItem {
   return {
-    ...socialIdentity(item),
+    ...playerFromSocialIdentity({ id: item.playerId, ...item }),
     rank: item.rank,
     value: item.value,
     weeklySessions: item.sessions,
@@ -224,23 +224,6 @@ function fromAPILeaderboardItem(item: APILeaderboardItem): LeaderboardItem {
     sessions: item.sessions,
     streakDays: item.streakDays,
     consistencyDays: item.consistencyDays,
-  };
-}
-
-function socialIdentity(identity: {
-  playerId: string;
-  firstName: string;
-  lastInitial: string;
-}) {
-  const id = identity.playerId;
-  const lastInitial = `${identity.lastInitial.replace(/\.$/, "")}.`;
-  return {
-    id,
-    firstName: identity.firstName,
-    lastInitial,
-    initials:
-      `${identity.firstName[0] ?? ""}${lastInitial[0] ?? ""}`.toUpperCase(),
-    avatarColor: playerColor(id),
   };
 }
 

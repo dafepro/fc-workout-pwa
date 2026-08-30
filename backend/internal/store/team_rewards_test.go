@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/store"
 )
 
@@ -107,10 +106,7 @@ func TestTeamRewardCountsAppropriatePlanParticipationWithoutPlayerDetails(t *tes
 			t.Fatal(err)
 		}
 	}
-	playerStore := store.New(db, time.UTC)
-	asPlayer, err := playerStore.TeamReward(ctx, domain.Actor{
-		Role: domain.RolePlayer, PlayerID: "player-met", ClubID: "club-assignments",
-	}, teamID, time.Date(2026, time.August, 23, 18, 0, 0, 0, time.UTC))
+	asPlayer, err := staff.TeamReward(ctx, teamID, time.Date(2026, time.August, 23, 18, 0, 0, 0, time.UTC))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,11 +120,6 @@ func TestTeamRewardCountsAppropriatePlanParticipationWithoutPlayerDetails(t *tes
 	}
 	if achievedEvents != 1 {
 		t.Fatalf("achieved events = %d, want one", achievedEvents)
-	}
-	if _, err = playerStore.TeamReward(ctx, domain.Actor{
-		Role: domain.RolePlayer, PlayerID: "player-outsider", ClubID: "club-assignments",
-	}, teamID, now); !errors.Is(err, store.ErrTeamRewardUnavailable) {
-		t.Fatalf("outsider error = %v", err)
 	}
 }
 

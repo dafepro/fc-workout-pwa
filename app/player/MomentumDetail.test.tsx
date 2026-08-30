@@ -14,6 +14,7 @@ describe("MomentumDetail", () => {
         weeklyCheckIns={2}
         weeklyGoal={3}
         checkInStreak={4}
+        rollingFiveActiveDays={2}
       />,
     );
 
@@ -25,5 +26,9 @@ describe("MomentumDetail", () => {
       screen.getByText(/2 check-ins this week.*1 more reaches/i),
     ).toBeVisible();
     expect(screen.getByText("4-day check-in streak")).toBeVisible();
+    expect(
+      screen.getByText("2 of 3 active days in your rolling 5-day window"),
+    ).toBeVisible();
+    expect(screen.getByText(/Only you can see this habit/)).toBeVisible();
   });
 });

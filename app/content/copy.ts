@@ -112,36 +112,46 @@ export const copy = {
       epic: "Epic",
     },
   },
-  teamPulse: {
-    eyebrow: "Team pulse",
-    title: "Latest from your team",
-    lockedTitle: "Check in to open Team pulse",
-    lockedDetail:
-      "Finish today’s workout or check in for planned rest to see recent team activity.",
-    activeThisWeek: (count: number) =>
-      `${count} ${count === 1 ? "player" : "players"} checked in this week`,
-    encouragement: "Your crew is building momentum together.",
-    empty: "Your team’s next check-in will show here.",
-    listLabel: "Recent team activity",
-    cheer: "Cheer",
-    cheering: "Sending…",
-    cheered: "Cheered",
-    showMore: "Show more",
-    showLess: "Show less",
-    showMoreLabel: "Show more team activity",
-    showLessLabel: "Show less team activity",
-    privateDetail: "Cheers arrive privately.",
-    failed: "That cheer could not be sent. Try again.",
-  },
-  teamReward: {
-    eyebrow: "Team reward",
-    progress: (current: number, target: number) =>
+  teamHub: {
+    loading: "Loading your Team Hub…",
+    loadFailed: "Your Team Hub could not be loaded.",
+    retry: "Try again",
+    weekEyebrow: "Team focus",
+    weekTitle: "This week",
+    weekEmpty: "Your team’s next shared focus will appear here.",
+    reward: "Team reward",
+    challenge: "Team challenge",
+    rewardProgress: (current: number, target: number) =>
       `${current} of ${target} team days`,
-    achieved: "Unlocked together!",
+    challengeProgress: (current: number, target: number) =>
+      `${current} of ${target} teammates completed`,
     through: (date: string) => `Through ${date}`,
-    progressLabel: "Team reward progress",
-    loadFailed: "Team reward progress could not be loaded.",
-    retry: "Try reward again",
+    due: (date: string) => `Due ${date}`,
+    activityEyebrow: "Team energy",
+    activityTitle: "Teammate activity",
+    activeThisWeek: (count: number) =>
+      `${count} ${count === 1 ? "player" : "players"} active this week`,
+    activityEmpty: "Your team’s next check-in will show here.",
+    lockedTitle: "Check in to see teammate activity",
+    lockedDetail: "Finish today’s workout or check in for planned rest first.",
+    privateCheers: "Cheers arrive privately.",
+    cheer: "Cheer",
+    showMore: "Show more teammates",
+    showLess: "Show fewer teammates",
+    signals: {
+      active_today: "Active today",
+      active_this_week: "Active this week",
+      challenge_complete: "Challenge complete",
+      weekly_goal_complete: "Weekly goal complete",
+    },
+    loungeEyebrow: "Team Lounge",
+    loungeTitle: "Beach Boardwalk",
+    loungeDetail: "Play, react, and decorate together.",
+    loungeLocked: "Finish today’s plan to enter.",
+    openLounge: "Open Lounge",
+    backToTeam: "Back to Team",
+    rosterLoading: "Gathering your teammates…",
+    rosterFailed: "The Team Lounge could not open.",
   },
   teamLounge: {
     label: "Team Lounge",
@@ -229,6 +239,9 @@ export const copy = {
       `You reached your team’s ${goal}-check-in target this week. Nice consistency.`,
     improvementTip:
       "Show up on different days for the biggest lift. A second and third activity add smaller boosts; planned rest counts too.",
+    rollingHabit: (activeDays: number) =>
+      `${activeDays} of 3 active days in your rolling 5-day window`,
+    rollingHabitPrivate: "Only you can see this habit.",
   },
   log: {
     overMax: (max: number, unit: string) => `Max is ${max} ${unit}`,
@@ -273,21 +286,6 @@ export const copy = {
     signInFailed:
       "That did not work. Ask a parent or coach to reissue your QR code.",
     staffLink: "Coaches and staff sign in",
-  },
-  social: {
-    teamLoading: "Loading team progress…",
-    teamError: "Team progress could not be loaded.",
-    retry: "Try again",
-    weeklyGoal: "This week’s goal",
-    dueSunday: "◇ By Sunday",
-    consistencyBadge: "✦ 3 active days in 5 = Consistency badge",
-    teamChallenge: "Team challenge",
-    challengeCount: (completed: number, total: number) =>
-      `${completed} of ${total} teammates completed`,
-    challengeTarget: (value: number, unit: string) => `${value} ${unit}`,
-    challengeDue: (date: string) => `Due ${date}`,
-    noChallenge: "The next Team challenge is warming up.",
-    cheer: "Cheer",
   },
   cheers: {
     inboxEyebrow: "From your teammates · Last 7 days",

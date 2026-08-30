@@ -32,6 +32,11 @@ export default function PlayerProgressPage() {
         weeklyCheckIns={dashboard.summary.weeklyMomentumCredits}
         weeklyGoal={dashboard.team.weeklyGoal}
         checkInStreak={dashboard.summary.currentCheckInStreak}
+        rollingFiveActiveDays={
+          dashboard.summary.activityDays
+            .slice(-5)
+            .filter((day) => day.activityCount > 0).length
+        }
       />
     </div>
   );

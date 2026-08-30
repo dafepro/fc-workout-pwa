@@ -58,6 +58,7 @@ test("a qualified player enters the Lounge and sees their own avatar", async ({
     );
     await teamLoungeLink.click();
     await page.locator("html[data-app-ready='true']").waitFor();
+    await page.getByRole("button", { name: "Open Lounge" }).click();
     const lounge = page.getByRole("region", {
       name: "Beach Boardwalk Team Lounge",
     });

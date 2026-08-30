@@ -159,29 +159,21 @@ test("connected Today and activity logging use the server assignment", async ({
 
   await page.getByRole("link", { name: "See team progress" }).click();
   await expect(
-    page.getByRole("heading", { name: "Latest from your team" }),
+    page.getByRole("heading", { name: "Teammate activity" }),
   ).toBeVisible();
-  const teamPulse = page.getByRole("region", {
-    name: "Latest from your team",
+  const teamActivity = page.getByRole("region", {
+    name: "Teammate activity",
   });
-  await teamPulse
-    .getByRole("button", { name: "Cheer Ava for Hill Sprints" })
-    .click();
-  await expect(
-    teamPulse.getByRole("button", { name: "Cheered for Ava" }),
-  ).toBeDisabled();
-  const challenge = page.getByRole("region", { name: "Hill Sprints" });
+  await teamActivity.getByRole("button", { name: /Cheer for Ava R\./ }).click();
+  const teamPicker = page.getByRole("dialog", { name: "Cheer for Ava" });
+  await teamPicker.getByRole("button", { name: "Send Clap to Ava" }).click();
+  await expect(page.locator(".reaction-sent-status")).toContainText(
+    "sent to Ava",
+  );
+  const challenge = page.getByRole("region", { name: "This week" });
   await expect(
     challenge.getByText("1 of 12 teammates completed"),
   ).toBeVisible();
-  await expect(
-    challenge.locator(".challenge-participants .avatar--self"),
-  ).toHaveAttribute("aria-label", /, you$/);
-  await expect(
-    challenge.locator(".challenge-participants").getByText("You", {
-      exact: true,
-    }),
-  ).toHaveCount(0);
   await expect(challenge.getByText(/tired|effort|result/i)).toHaveCount(0);
 
   const api = await request.newContext({ baseURL: apiBaseURL });
