@@ -25,15 +25,6 @@ export function TeamHub({
           <p className="eyebrow">Team</p>
           <h1>{hub.team.name}</h1>
         </div>
-        <button
-          type="button"
-          className="button button--lime team-hub-header__lounge"
-          data-team-lounge-open
-          disabled={!hub.access.loungeUnlocked}
-          onClick={onOpenLounge}
-        >
-          {copy.teamHub.openLounge}
-        </button>
       </header>
       <TeamWeekFocus focus={hub.focus} />
       <TeammateActivity
@@ -54,7 +45,7 @@ export function TeamHub({
             unoptimized
           />
         </div>
-        <div>
+        <div className="team-lounge-preview__content">
           <p className="eyebrow">{copy.teamHub.loungeEyebrow}</p>
           <h2>{copy.teamHub.loungeTitle}</h2>
           <p>
@@ -62,6 +53,15 @@ export function TeamHub({
               ? copy.teamHub.loungeDetail
               : copy.teamHub.loungeLocked}
           </p>
+          <button
+            type="button"
+            className="button button--lime team-lounge-preview__action"
+            data-team-lounge-open
+            disabled={!hub.access.loungeUnlocked}
+            onClick={onOpenLounge}
+          >
+            {copy.teamHub.openLounge}
+          </button>
         </div>
       </section>
     </>

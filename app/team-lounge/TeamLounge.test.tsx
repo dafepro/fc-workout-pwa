@@ -71,6 +71,9 @@ describe("canonical Team Lounge", () => {
     ).toBeVisible();
     expect(screen.queryByRole("combobox")).toBeNull();
     expect(screen.queryByRole("status")).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Enter full screen" }),
+    ).toBeVisible();
     expect(document.body.textContent).not.toMatch(
       /\bV[12]\b|preview|alternative/i,
     );

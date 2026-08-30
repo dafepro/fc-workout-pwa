@@ -13,6 +13,7 @@ import {
   beachBoardwalkAssets,
   starlightTrainingCampAssets,
 } from "./scene/assets";
+import { useLoungeFullscreen } from "./use-lounge-fullscreen";
 
 export function TeamLounge({
   player,
@@ -30,6 +31,12 @@ export function TeamLounge({
   const [state, setState] = useState<LoungeCanvasState>("loading");
   const [presence, setPresence] = useState(1);
   const [canvasKey, setCanvasKey] = useState(0);
+  const {
+    active: fullscreenActive,
+    bindContainer: bindFullscreenContainer,
+    enter: enterFullscreen,
+    exit: exitFullscreen,
+  } = useLoungeFullscreen<HTMLElement>();
   const ownershipRetriesRef = useRef(0);
   const [scene, setScene] = useState<"beach" | "starlight">("beach");
   const [unlockState, setUnlockState] = useState<
@@ -62,7 +69,9 @@ export function TeamLounge({
 
   return (
     <section
-      className="team-lounge"
+      ref={bindFullscreenContainer}
+      className={`team-lounge${fullscreenActive ? " team-lounge--fullscreen" : ""}`}
+      data-fullscreen={fullscreenActive || undefined}
       role="region"
       aria-label={copy.teamLounge.regionLabel}
     >
@@ -74,10 +83,32 @@ export function TeamLounge({
             {copy.teamLounge.theme}
           </h2>
         </div>
-        <span className="team-lounge__presence">
-          <span aria-hidden="true" />
-          {unlocked ? `${presence} here` : copy.teamLounge.locked}
-        </span>
+        <div className="team-lounge__header-actions">
+          <span className="team-lounge__presence">
+            <span aria-hidden="true" />
+            {unlocked ? `${presence} here` : copy.teamLounge.locked}
+          </span>
+          {unlocked ? (
+            <button
+              type="button"
+              className="team-lounge__fullscreen"
+              aria-pressed={fullscreenActive}
+              aria-label={
+                fullscreenActive
+                  ? copy.teamLounge.exitFullscreen
+                  : copy.teamLounge.enterFullscreen
+              }
+              onClick={() =>
+                void (fullscreenActive ? exitFullscreen() : enterFullscreen())
+              }
+            >
+              <span aria-hidden="true">{fullscreenActive ? "×" : "⛶"}</span>
+              {fullscreenActive
+                ? copy.teamLounge.exitFullscreen
+                : copy.teamLounge.fullscreen}
+            </button>
+          ) : null}
+        </div>
       </header>
       {developmentBuild && unlocked ? (
         <div

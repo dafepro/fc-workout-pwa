@@ -696,13 +696,6 @@
   line-height: 1.05;
 }
 
-.team-hub-header__lounge {
-  min-height: 2.75rem;
-  flex: 0 0 auto;
-  padding-inline: 0.85rem;
-  white-space: nowrap;
-}
-
 .team-hub-card,
 .team-lounge-preview {
   min-width: 0;
@@ -921,7 +914,7 @@
 
 .teammate-activity li > button:focus-visible,
 .teammate-activity__expand:focus-visible,
-.team-hub-header__lounge:focus-visible,
+.team-lounge-preview__action:focus-visible,
 .team-lounge-focus__header button:focus-visible {
   outline: 3px solid rgb(36 107 74 / 30%);
   outline-offset: 2px;
@@ -1011,17 +1004,30 @@
   margin: 0;
 }
 
+.team-lounge-preview__content {
+  display: grid;
+  min-width: 0;
+  justify-items: start;
+}
+
 .team-lounge-preview h2 {
   color: #173c31;
   font-size: 1.08rem;
 }
 
-.team-lounge-preview div:last-child > p:last-child {
+.team-lounge-preview__content > p:last-of-type {
   margin-top: 0.28rem;
   color: #66746d;
   font-size: 0.72rem;
   font-weight: 700;
   line-height: 1.35;
+}
+
+.team-lounge-preview__action {
+  min-height: 2.75rem;
+  margin-top: 0.65rem;
+  padding-inline: 0.9rem;
+  white-space: nowrap;
 }
 
 .team-lounge-focus {

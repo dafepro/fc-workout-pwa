@@ -172,6 +172,9 @@ export const copy = {
     openElsewhereDetail:
       "Keep playing there, or close that tab before coming back here.",
     openElsewhereAction: "Go to Today",
+    fullscreen: "Full screen",
+    enterFullscreen: "Enter full screen",
+    exitFullscreen: "Exit full screen",
     development: {
       label: "Lounge testing",
       beach: "Beach",
