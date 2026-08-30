@@ -87,6 +87,71 @@ func TestPlacementBudgetBackfillsCurrentWeekCheckInsAndUsesTeamTime(t *testing.T
 	}
 }
 
+func TestPlacementBudgetDoesNotChargeRetiredRoomPlacementsToTheActiveRoom(t *testing.T) {
+	db := openMigratedDatabase(t)
+	seedTeam(t, db)
+	for _, statement := range []string{
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-one', 'club-one', 'One', 'P', '{}', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-one', 'player-one', '2026-01-01')`,
+		`INSERT INTO training_entries (id, player_id, team_id, activity_definition_id, occurred_at, result_value, result_unit, effort_level, exhaustion_level, created_at, delete_eligible_until)
+		 VALUES ('entry-one', 'player-one', 'team-one', 'hill-sprints', '2026-08-26T17:00:00Z', 8, 'reps', 3, 3, '2026-08-26T17:00:00Z', '2026-08-27T17:00:00Z')`,
+		`INSERT INTO training_entries (id, player_id, team_id, activity_definition_id, occurred_at, result_value, result_unit, effort_level, exhaustion_level, created_at, delete_eligible_until)
+		 VALUES ('entry-two', 'player-one', 'team-one', 'hill-sprints', '2026-08-27T17:00:00Z', 8, 'reps', 3, 3, '2026-08-27T17:00:00Z', '2026-08-28T17:00:00Z')`,
+	} {
+		if _, err := db.ExecContext(t.Context(), statement); err != nil {
+			t.Fatal(err)
+		}
+	}
+	store := NewSQLiteStore(db, BeachBoardwalkLoungeCatalog())
+	bindPlacementRoom(t, store)
+	now := time.Date(2026, time.August, 27, 18, 0, 0, 0, time.UTC)
+	if _, err := store.PlacementBudget(t.Context(), "team:team-one:lounge:v13", "player-one", now); err != nil {
+		t.Fatal(err)
+	}
+	for _, statement := range []string{
+		`INSERT INTO team_lounge_rooms (room_id, team_id, week_key, canvas_id, canvas_version, created_at)
+		 VALUES ('team:team-one:lounge:2026-08-24:v12', 'team-one', '2026-08-24', 'beach-boardwalk', 12, '2026-08-26T18:00:00Z')`,
+		`INSERT INTO team_lounge_placement_reservations (
+			reservation_id, team_id, player_id, week_key, day_key, room_id, canvas_id, canvas_version,
+			definition_id, definition_version, position_x, position_y, rotation, scale, config_json,
+			idempotency_key_hash, request_hash, permit_hash, permit_expires_at, mutation_key,
+			state, entity_id, held_at, finalized_at
+		) VALUES (
+			'retired-placement', 'team-one', 'player-one', '2026-08-24', '2026-08-26',
+			'team:team-one:lounge:2026-08-24:v12', 'beach-boardwalk', 12,
+			'zoomigo-stamp-bolt', 2, 40, 70, 0, 1, '{}',
+			zeroblob(32), zeroblob(32), zeroblob(32), '2026-08-26T18:02:00Z',
+			'0000000000000000000000000000000000000000000000000000000000000000',
+			'committed', 'retired-entity', '2026-08-26T18:00:00Z', '2026-08-26T18:00:01Z'
+		)`,
+	} {
+		if _, err := db.ExecContext(t.Context(), statement); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	budget, err := store.PlacementBudget(t.Context(), "team:team-one:lounge:v13", "player-one", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if budget.Earned != 2 || budget.Used != 0 || budget.Remaining != 2 {
+		t.Fatalf("active-room placement budget = %+v, want earned 2, used 0, remaining 2", budget)
+	}
+	reservation, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:v13", "player-one", "active-room-placement",
+		PlacementRequest{DefinitionID: "zoomigo-stamp-bolt", DefinitionVersion: 2, X: 45, Y: 75}, now)
+	if err != nil || reservation.Remaining != 1 {
+		t.Fatalf("active-room reservation = %+v, %v", reservation, err)
+	}
+	var dayKey string
+	if err := db.QueryRowContext(t.Context(), `SELECT day_key FROM team_lounge_placement_reservations
+		WHERE reservation_id = ?`, reservation.ID).Scan(&dayKey); err != nil {
+		t.Fatal(err)
+	}
+	if dayKey != "2026-08-26" {
+		t.Fatalf("active-room reservation day = %q, want reusable retired-room credit day", dayKey)
+	}
+}
+
 func TestReservePlacementConsumesOneCreditIdempotently(t *testing.T) {
 	db := openMigratedDatabase(t)
 	seedTeam(t, db)

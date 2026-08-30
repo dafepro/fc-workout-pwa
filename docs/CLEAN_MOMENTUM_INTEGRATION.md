@@ -257,3 +257,9 @@ Each step is test-first and small enough to review independently.
   tray, compact and expanded Chat states, and radial Stamp editor. Focused
   compare and update commands always use the pinned Playwright container, and
   baseline changes require image-by-image review rather than host snapshots.
+- Live dev forensics found Mason's credits and committed reservations intact in
+  retired v10/v11 rooms while the active v13 snapshot correctly began clean.
+  Placement-budget and credit-day selection are now scoped to the active room,
+  so invisible retired-room reservations cannot consume current-generation
+  allocations. Snapshot import, compatibility paths, owner permit boundaries,
+  and the single API replica remain unchanged.

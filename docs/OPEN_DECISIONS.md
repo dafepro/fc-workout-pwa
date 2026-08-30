@@ -542,6 +542,11 @@ to resolve, not the implementing agent's.
   team timezone. "Permanent" means the life of that immutable Canvas
   generation; a future intentional clean cutover may start a new room and does
   not import prior state.
+- Decided 2026-08-30: a clean Canvas-generation cutover does not import the
+  retired room's snapshot, but its invisible reservations also do not debit the
+  active room's weekly placement budget. Credits are claimed independently per
+  room generation. Reservation, entity, and owner-mutation authority remain
+  bound to the exact immutable room and Canvas generation that accepted them.
 - Development builds expose a player-local Beach/Starlight preview switch and
   an authenticated current-player-only test unlock action. The scene preview is
   temporary browser state; the dev grant uses only predefined Lounge catalog

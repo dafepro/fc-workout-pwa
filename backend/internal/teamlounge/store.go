@@ -470,8 +470,8 @@ func (store *SQLiteStore) PlacementBudget(
 	}
 	var used int
 	if err = tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM team_lounge_placement_reservations
-		WHERE team_id = ? AND player_id = ? AND week_key = ? AND state IN ('held', 'committed')`,
-		teamID, playerID, weekKey).Scan(&used); err != nil {
+		WHERE team_id = ? AND player_id = ? AND week_key = ? AND room_id = ?
+		AND state IN ('held', 'committed')`, teamID, playerID, weekKey, roomID).Scan(&used); err != nil {
 		return PlacementBudget{}, fmt.Errorf("count lounge placements: %w", err)
 	}
 	if err = tx.Commit(); err != nil {
@@ -586,8 +586,8 @@ func (store *SQLiteStore) ReservePlacement(
 	}
 	var used int
 	if err = connection.QueryRowContext(ctx, `SELECT COUNT(*) FROM team_lounge_placement_reservations
-		WHERE team_id = ? AND player_id = ? AND week_key = ? AND state IN ('held', 'committed')`,
-		budget.TeamID, playerID, budget.WeekKey).Scan(&used); err != nil {
+		WHERE team_id = ? AND player_id = ? AND week_key = ? AND room_id = ?
+		AND state IN ('held', 'committed')`, budget.TeamID, playerID, budget.WeekKey, roomID).Scan(&used); err != nil {
 		return PlacementReservation{}, fmt.Errorf("count reserved lounge placements: %w", err)
 	}
 	if used >= budget.Earned {
@@ -607,8 +607,8 @@ func (store *SQLiteStore) ReservePlacement(
 		AND NOT EXISTS (SELECT 1 FROM team_lounge_placement_reservations AS reservation
 			WHERE reservation.team_id = credit.team_id AND reservation.player_id = credit.player_id
 			AND reservation.week_key = credit.week_key AND reservation.day_key = credit.day_key
-			AND reservation.state IN ('held', 'committed'))
-		ORDER BY day_key LIMIT 1`, budget.TeamID, playerID, budget.WeekKey).Scan(&creditDay)
+			AND reservation.room_id = ? AND reservation.state IN ('held', 'committed'))
+		ORDER BY day_key LIMIT 1`, budget.TeamID, playerID, budget.WeekKey, roomID).Scan(&creditDay)
 	if errors.Is(err, sql.ErrNoRows) {
 		return PlacementReservation{}, ErrPlacementCreditsExhausted
 	}

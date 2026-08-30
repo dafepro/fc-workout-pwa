@@ -38,6 +38,10 @@ experiments.
   day and Monday-week rollovers. Weekly placement credits and the same-day edit
   window still use team-local dates; future generation cutovers remain clean
   and do not import old room state.
+- Corrected 2026-08-30: retired clean-cutover rooms no longer consume the active
+  room's weekly placement slots. This restores allocations after an intentional
+  Canvas-generation change without importing an old snapshot or broadening
+  owner-bound mutation permits.
 - Follow-up decision: if progression should change Lounge ball kick power,
   define bounded server-authorized tuning and youth-safe presentation first.
   Canvas v13 currently applies one fixed low-speed dead zone, nonlinear response,
