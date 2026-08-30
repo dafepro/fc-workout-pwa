@@ -9,6 +9,7 @@ Build a simple, safe training PWA for youth soccer players, mostly age 11. The p
 Before planning or editing, read:
 
 - `README.md`
+- `docs/README.md`
 - `docs/PRODUCT_BRIEF.md`
 - `docs/UX_AND_SAFETY_RULES.md`
 - `docs/SCREEN_SPECS.md`
@@ -29,9 +30,21 @@ Before planning or editing, read:
 - Never expose raw performance or assessment data in team or leaderboard views.
 - Rank and reward effort, participation, consistency, streaks, and challenge completion only.
 - Do not add chat, comments, announcements, or direct messaging.
-- Do not invent product requirements silently. Record assumptions in `docs/OPEN_DECISIONS.md`.
+- Do not invent product requirements silently. Put task-local assumptions in the
+  implementation plan and completion report. Add only unresolved owner choices
+  to `docs/OPEN_DECISIONS.md`; when an assumption is accepted, update the
+  maintained specification it affects.
 - Add tests for business rules, especially visibility and entry deletion limits.
 - Run formatting, linting, type checks, tests, and the production build before declaring work complete.
+
+## Documentation lifecycle
+
+- Treat `docs/README.md` as the authoritative documentation index. Update it
+  whenever a document is added, renamed, or deleted.
+- Keep implementation plans, feedback logs, and progress journals short-lived.
+  Merge durable current behavior into a maintained document, move worthwhile
+  unfinished ideas with explicit activation triggers to `docs/FUTURE_WORK.md`,
+  then delete the source document. Git history is the archive.
 
 ## Testing policy
 
