@@ -44,7 +44,10 @@ import {
   type LoungeAvatarOverlay,
 } from "./lounge-presence";
 import {
+  clearPendingTeamLoungePlacement,
   prepareTeamLoungeJoin,
+  recoverPendingTeamLoungePlacement,
+  rememberPendingTeamLoungePlacement,
   requestTeamLoungeItemMutationPermit,
   reserveTeamLoungePlacement,
   type TeamLoungeItemMutationKind,
@@ -282,7 +285,7 @@ export function SharedLoungeCanvas({
 
     onStateChange("loading");
     void (async () => {
-      const join = await prepareTeamLoungeJoin(teamID);
+      const join = await prepareTeamLoungeJoin(teamID, playerID);
       if (disposed) return;
       roomIDRef.current = join.roomID;
       editableItemIDsRef.current = new Set(join.editableItemIDs);
@@ -446,13 +449,21 @@ export function SharedLoungeCanvas({
     };
     setPlacing(true);
     try {
+      const recovered = await recoverPendingTeamLoungePlacement(
+        teamID,
+        playerID,
+        roomID,
+      );
+      if (recovered !== null) setRemainingPlacements(recovered);
+      const idempotencyKey = crypto.randomUUID();
+      rememberPendingTeamLoungePlacement(teamID, playerID, idempotencyKey);
       const reservation = await reserveTeamLoungePlacement(
         teamID,
         roomID,
         selectedItem.definitionId,
         selectedItem.definitionVersion,
         point,
-        crypto.randomUUID(),
+        idempotencyKey,
       );
       setRemainingPlacements(reservation.remaining);
       const outcome = await runtime.spawnItem(
@@ -465,6 +476,7 @@ export function SharedLoungeCanvas({
           applicationCorrelationId: reservation.placementID,
         },
       ).settled;
+      clearPendingTeamLoungePlacement(teamID, playerID, idempotencyKey);
       if (outcome.status === "accepted" && outcome.item?.entityId) {
         editableItemIDsRef.current.add(outcome.item.entityId);
         setItemOverlays((current) =>
@@ -485,7 +497,7 @@ export function SharedLoungeCanvas({
       }
     } catch (error) {
       setActionMessage(
-        error instanceof Error
+        error instanceof Error && !(error instanceof TypeError)
           ? error.message
           : "That item could not be placed.",
       );

@@ -126,6 +126,40 @@ func TestDeniedMutationOutcomeDoesNotReleaseUnconsumedReservation(t *testing.T) 
 	}
 }
 
+func TestReleaseUnconsumedPlacementRestoresOnlyUnusedCredit(t *testing.T) {
+	store, now := placementAuthorityStore(t, 1)
+	reserveAuthorityPlacement(t, store, "abandoned-before-canvas", 20, now)
+
+	released, err := store.ReleaseUnconsumedPlacement(
+		t.Context(), loungeRoomID, "player-one", "abandoned-before-canvas", now.Add(time.Second),
+	)
+	if err != nil || !released {
+		t.Fatalf("release unconsumed placement = %v, %v", released, err)
+	}
+	budget, err := store.PlacementBudget(t.Context(), loungeRoomID, "player-one", now)
+	if err != nil || budget.Remaining != 1 {
+		t.Fatalf("budget after abandoned placement recovery = %+v, %v", budget, err)
+	}
+
+	consumed := reserveAuthorityPlacement(t, store, "already-sent-to-canvas", 30, now)
+	decision, err := store.AuthorizeMutation(
+		t.Context(), authorizationRequest(consumed, "player-one", loungeRoomID, "consumed-mutation"),
+	)
+	if err != nil || !decision.Authorized {
+		t.Fatalf("authorize consumed placement = %+v, %v", decision, err)
+	}
+	released, err = store.ReleaseUnconsumedPlacement(
+		t.Context(), loungeRoomID, "player-one", "already-sent-to-canvas", now.Add(2*time.Second),
+	)
+	if err != nil || released {
+		t.Fatalf("release consumed placement = %v, %v", released, err)
+	}
+	budget, err = store.PlacementBudget(t.Context(), loungeRoomID, "player-one", now)
+	if err != nil || budget.Remaining != 0 {
+		t.Fatalf("budget after consumed placement recovery = %+v, %v", budget, err)
+	}
+}
+
 func TestPlacementHoldReportSeparatesExpiredPermitsAndStaleCanvasOutcomes(t *testing.T) {
 	store, now := placementAuthorityStore(t, 3)
 	expired := reserveAuthorityPlacement(t, store, "expired-unconsumed", 20, now)

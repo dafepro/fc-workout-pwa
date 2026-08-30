@@ -8,6 +8,71 @@ export interface TeamLoungeCredential {
   editableItemIDs: string[];
 }
 
+const pendingPlacementPrefix = "zoomigo:team-lounge:pending-placement";
+
+function pendingPlacementStorageKey(teamID: string, playerID: string) {
+  return `${pendingPlacementPrefix}:${teamID}:${playerID}`;
+}
+
+export function rememberPendingTeamLoungePlacement(
+  teamID: string,
+  playerID: string,
+  idempotencyKey: string,
+) {
+  sessionStorage.setItem(
+    pendingPlacementStorageKey(teamID, playerID),
+    idempotencyKey,
+  );
+}
+
+export function clearPendingTeamLoungePlacement(
+  teamID: string,
+  playerID: string,
+  idempotencyKey: string,
+) {
+  const storageKey = pendingPlacementStorageKey(teamID, playerID);
+  if (sessionStorage.getItem(storageKey) === idempotencyKey) {
+    sessionStorage.removeItem(storageKey);
+  }
+}
+
+export async function recoverPendingTeamLoungePlacement(
+  teamID: string,
+  playerID: string,
+  roomID: string,
+): Promise<number | null> {
+  const storageKey = pendingPlacementStorageKey(teamID, playerID);
+  const idempotencyKey = sessionStorage.getItem(storageKey);
+  if (!idempotencyKey) return null;
+  const response = await fetch(
+    `/api/zoomigo/v1/teams/${encodeURIComponent(teamID)}/lounge/placements/pending`,
+    {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": idempotencyKey,
+      },
+      body: JSON.stringify({ roomId: roomID }),
+    },
+  );
+  if (!response.ok) throw await placementError(response);
+  const body = (await response.json()) as Record<string, unknown>;
+  const released = body.released;
+  const remaining = body.remainingPlacements;
+  if (
+    typeof released !== "boolean" ||
+    !Number.isInteger(remaining) ||
+    (remaining as number) < 0 ||
+    (remaining as number) > 99
+  ) {
+    throw new Error("That Lounge placement could not be recovered.");
+  }
+  if (sessionStorage.getItem(storageKey) === idempotencyKey) {
+    sessionStorage.removeItem(storageKey);
+  }
+  return remaining as number;
+}
+
 export async function requestTeamLoungeCredential(
   teamID: string,
 ): Promise<TeamLoungeCredential> {
@@ -75,9 +140,19 @@ export async function requestTeamLoungeCredential(
   };
 }
 
-export async function prepareTeamLoungeJoin(teamID: string) {
+export async function prepareTeamLoungeJoin(teamID: string, playerID?: string) {
   let queued: TeamLoungeCredential | null =
     await requestTeamLoungeCredential(teamID);
+  if (playerID) {
+    const recovered = await recoverPendingTeamLoungePlacement(
+      teamID,
+      playerID,
+      queued.roomID,
+    );
+    if (recovered !== null) {
+      queued = { ...queued, placementCredits: recovered };
+    }
+  }
   const roomID = queued.roomID;
   const serverURL = queued.serverURL;
   return {

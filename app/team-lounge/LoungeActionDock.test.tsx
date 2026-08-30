@@ -211,6 +211,11 @@ describe("Lounge action dock", () => {
       screen.getByRole("button", { name: "Stamps, 0 placements left" }),
     );
     expect(
+      screen.queryAllByText("0", {
+        selector: ".team-lounge__placement-badge",
+      }),
+    ).toHaveLength(0);
+    expect(
       screen.getByText("Complete another training day to place another item."),
     ).toBeVisible();
     expect(

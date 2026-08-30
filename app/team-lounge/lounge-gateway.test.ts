@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  rememberPendingTeamLoungePlacement,
   prepareTeamLoungeJoin,
   requestTeamLoungeItemMutationPermit,
   reserveTeamLoungePlacement,
@@ -17,7 +18,10 @@ const response = {
   editableItemIds: ["canvas-item-one"],
 };
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  sessionStorage.clear();
+  vi.unstubAllGlobals();
+});
 
 describe("canonical Team Lounge gateway", () => {
   it("accepts one exact weekly room credential", async () => {
@@ -62,6 +66,51 @@ describe("canonical Team Lounge gateway", () => {
       `ticket.${response.ticket}`,
     );
     expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it("recovers an abandoned browser placement before joining the room", async () => {
+    const exhausted = {
+      ...response,
+      placementCredits: 0,
+      placementCapacity: 1,
+    };
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(exhausted), { status: 201 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ released: true, remainingPlacements: 1 }),
+          { status: 200 },
+        ),
+      );
+    vi.stubGlobal("fetch", fetcher);
+    rememberPendingTeamLoungePlacement(
+      "team-one",
+      "player-one",
+      "abandoned-placement",
+    );
+
+    await expect(
+      prepareTeamLoungeJoin("team-one", "player-one"),
+    ).resolves.toMatchObject({ placementCredits: 1 });
+    expect(fetcher).toHaveBeenNthCalledWith(
+      2,
+      "/api/zoomigo/v1/teams/team-one/lounge/placements/pending",
+      expect.objectContaining({
+        method: "DELETE",
+        headers: expect.objectContaining({
+          "Idempotency-Key": "abandoned-placement",
+        }),
+      }),
+    );
+
+    fetcher.mockResolvedValueOnce(
+      new Response(JSON.stringify(response), { status: 201 }),
+    );
+    await prepareTeamLoungeJoin("team-one", "player-one");
+    expect(fetcher).toHaveBeenCalledTimes(3);
   });
 
   it("reserves a Canvas-authorized placement permit through ZoomiGo", async () => {

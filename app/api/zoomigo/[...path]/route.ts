@@ -32,6 +32,10 @@ const allowed = [
   { method: "POST", pattern: /^v1\/teams\/[^/]+\/lounge\/socket-ticket$/ },
   { method: "POST", pattern: /^v1\/teams\/[^/]+\/lounge\/placements$/ },
   {
+    method: "DELETE",
+    pattern: /^v1\/teams\/[^/]+\/lounge\/placements\/pending$/,
+  },
+  {
     method: "POST",
     pattern: /^v1\/teams\/[^/]+\/lounge\/items\/[^/]+\/mutation-permits$/,
   },
