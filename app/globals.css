@@ -3849,6 +3849,85 @@ h2 {
   background: #c9f31d;
 }
 
+.team-lounge__header-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.team-lounge__fullscreen {
+  display: inline-flex;
+  width: 2.75rem;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 20%);
+  border-radius: 0.72rem;
+  background: rgb(255 255 255 / 10%);
+  color: white;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.team-lounge__fullscreen > span {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.team-lounge__fullscreen:focus-visible {
+  outline: 3px solid rgb(201 243 29 / 55%);
+  outline-offset: 2px;
+}
+
+.team-lounge--fullscreen,
+.team-lounge:fullscreen {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: flex;
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  margin: 0;
+  flex-direction: column;
+  border: 0;
+  border-radius: 0;
+}
+
+.team-lounge--fullscreen .team-lounge__header,
+.team-lounge:fullscreen .team-lounge__header {
+  flex: 0 0 auto;
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+  padding-right: max(0.75rem, env(safe-area-inset-right));
+  padding-left: max(0.75rem, env(safe-area-inset-left));
+}
+
+.team-lounge--fullscreen .team-lounge__world,
+.team-lounge:fullscreen .team-lounge__world {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+.team-lounge--fullscreen .team-lounge__playfield,
+.team-lounge:fullscreen .team-lounge__playfield {
+  min-height: 0;
+  flex: 1 1 auto;
+  aspect-ratio: auto;
+}
+
+.team-lounge--fullscreen .team-lounge__actions,
+.team-lounge:fullscreen .team-lounge__actions {
+  height: calc(4.5rem + env(safe-area-inset-bottom));
+  padding-right: max(0.7rem, env(safe-area-inset-right));
+  padding-bottom: max(0.7rem, env(safe-area-inset-bottom));
+  padding-left: max(0.7rem, env(safe-area-inset-left));
+}
+
 .team-lounge__world {
   position: relative;
   overflow: hidden;

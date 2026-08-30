@@ -58,7 +58,17 @@ test("a qualified player enters the Lounge and sees their own avatar", async ({
     );
     await teamLoungeLink.click();
     await page.locator("html[data-app-ready='true']").waitFor();
-    await page.getByRole("button", { name: "Open Lounge" }).click();
+    const loungePreview = page.getByRole("region", {
+      name: "Team Lounge preview",
+    });
+    const openLounge = loungePreview.getByRole("button", {
+      name: "Open Lounge",
+    });
+    await expect(openLounge).toBeVisible();
+    await expect(page.getByRole("button", { name: "Open Lounge" })).toHaveCount(
+      1,
+    );
+    await openLounge.click();
     const lounge = page.getByRole("region", {
       name: "Beach Boardwalk Team Lounge",
     });
@@ -74,6 +84,8 @@ test("a qualified player enters the Lounge and sees their own avatar", async ({
     );
 
     await page.setViewportSize({ width: 320, height: 800 });
+    await lounge.getByRole("button", { name: "Enter full screen" }).click();
+    await expect(lounge).toHaveAttribute("data-fullscreen", "true");
     const geometry = await lounge.evaluate((region) => {
       const stageElement = region.querySelector(".team-lounge__stage");
       const dockElement = region.querySelector(".team-lounge__actions");
@@ -83,6 +95,12 @@ test("a qualified player enters the Lounge and sees their own avatar", async ({
       const playerX = Number(stageElement.getAttribute("data-player-x"));
       const playerY = Number(stageElement.getAttribute("data-player-y"));
       return {
+        loungeBounds: {
+          top: Math.round(region.getBoundingClientRect().top),
+          left: Math.round(region.getBoundingClientRect().left),
+          width: Math.round(region.getBoundingClientRect().width),
+          height: Math.round(region.getBoundingClientRect().height),
+        },
         stageAboveDock: stageBox.bottom <= dockBox.top + 1,
         avatarInsideStage:
           playerX >= 0 && playerX <= 100 && playerY >= 0 && playerY <= 150,
@@ -90,10 +108,14 @@ test("a qualified player enters the Lounge and sees their own avatar", async ({
       };
     });
     expect(geometry).toEqual({
+      loungeBounds: { top: 0, left: 0, width: 320, height: 800 },
       stageAboveDock: true,
       avatarInsideStage: true,
       documentWidth: 320,
     });
+    await lounge.getByRole("button", { name: "Exit full screen" }).click();
+    await expect(lounge).not.toHaveAttribute("data-fullscreen");
+    await expect(ownAvatar.getByText("You")).toBeVisible();
   } finally {
     await page.goto(`/sessions/${encodeURIComponent(qualification.id)}`);
     await expect(

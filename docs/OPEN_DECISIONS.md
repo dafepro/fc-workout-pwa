@@ -173,7 +173,14 @@ to resolve, not the implementing agent's.
   personal window no longer share the Team screen.
 - The Lounge opens as `/team?view=lounge`. The overview does not mount its
   worker, request a socket ticket, or show a live-presence count. Browser Back
-  returns to the overview and restores focus to `Open Lounge`.
+  returns to the overview and restores focus to `Open Lounge`. Decided
+  2026-08-30: the one overview action lives inside the compact Lounge card
+  rather than being duplicated in the Team header.
+- Decided 2026-08-30: the focused Lounge has a reversible full-screen control.
+  It fills the visual viewport immediately, requests native browser fullscreen
+  when supported, and keeps the viewport fallback when native fullscreen is
+  unavailable or refused. Entering and leaving never remounts the Canvas or
+  reconnects its room, and an in-Lounge Exit control remains reachable.
 - `GET /v1/teams/{teamId}/hub` is the canonical player projection. It reuses
   existing reward, assignment, participation, and reaction rules and adds no
   schema. `/activity` remains because staff progress and focused-Lounge roster

@@ -55,17 +55,29 @@ test("the Team Hub deduplicates positive activity and lazily opens Lounge", asyn
   ).toHaveCount(1);
   await expect(page.getByText(/0 of 3/i)).toHaveCount(0);
   await expect(page.getByText(/3 active days in 5/i)).toHaveCount(0);
-  const loungePreview = page.locator(".team-lounge-preview__art img");
-  await expect(loungePreview).toBeVisible();
+  const loungePreview = page.getByRole("region", {
+    name: "Team Lounge preview",
+  });
+  const loungePreviewImage = loungePreview.locator(
+    ".team-lounge-preview__art img",
+  );
+  await expect(loungePreviewImage).toBeVisible();
   await expect
     .poll(() =>
-      loungePreview.evaluate(
+      loungePreviewImage.evaluate(
         (image) =>
           (image as HTMLImageElement).complete &&
           (image as HTMLImageElement).naturalWidth > 0,
       ),
     )
     .toBe(true);
+  const openLounge = loungePreview.getByRole("button", {
+    name: "Open Lounge",
+  });
+  await expect(openLounge).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open Lounge" })).toHaveCount(
+    1,
+  );
   expect(prematureLoungeRequests).toEqual([]);
   expect(
     await page.evaluate(
@@ -103,7 +115,6 @@ test("the Team Hub deduplicates positive activity and lazily opens Lounge", asyn
     "Hill Sprints challenge",
   );
 
-  const openLounge = page.getByRole("button", { name: "Open Lounge" });
   await openLounge.click();
   await expect(page).toHaveURL(/\/team\?view=lounge$/);
   const lounge = page.getByRole("region", {
@@ -112,6 +123,39 @@ test("the Team Hub deduplicates positive activity and lazily opens Lounge", asyn
   await expect(lounge).toBeVisible();
   await expect(lounge.locator("canvas")).toBeVisible({ timeout: 10_000 });
   expect(prematureLoungeRequests.length).toBeGreaterThan(0);
+
+  const roomRequestCount = prematureLoungeRequests.length;
+  await lounge.getByRole("button", { name: "Enter full screen" }).click();
+  await expect(lounge).toHaveAttribute("data-fullscreen", "true");
+  expect(
+    await lounge.evaluate((region) => {
+      const bounds = region.getBoundingClientRect();
+      return {
+        top: Math.round(bounds.top),
+        left: Math.round(bounds.left),
+        width: Math.round(bounds.width),
+        height: Math.round(bounds.height),
+        viewportWidth: innerWidth,
+        viewportHeight: innerHeight,
+        overflow: document.documentElement.scrollWidth - innerWidth,
+      };
+    }),
+  ).toEqual({
+    top: 0,
+    left: 0,
+    width: 320,
+    height: 700,
+    viewportWidth: 320,
+    viewportHeight: 700,
+    overflow: 0,
+  });
+  await expect(lounge.locator("canvas")).toHaveCount(1);
+  expect(prematureLoungeRequests).toHaveLength(roomRequestCount);
+
+  await lounge.getByRole("button", { name: "Exit full screen" }).click();
+  await expect(lounge).not.toHaveAttribute("data-fullscreen");
+  await expect(lounge.locator("canvas")).toBeVisible();
+  expect(prematureLoungeRequests).toHaveLength(roomRequestCount);
 
   await page.goBack();
   await expect(page).toHaveURL(/\/team$/);

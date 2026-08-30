@@ -77,8 +77,16 @@ describe("TeamHub", () => {
     expect(screen.queryByText(/0 of 3/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/3 active days in 5/i)).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Open Lounge" }));
+    const loungePreview = screen.getByRole("region", {
+      name: "Team Lounge preview",
+    });
+    fireEvent.click(
+      within(loungePreview).getByRole("button", { name: "Open Lounge" }),
+    );
     expect(onOpenLounge).toHaveBeenCalledTimes(1);
+    expect(screen.getAllByRole("button", { name: "Open Lounge" })).toHaveLength(
+      1,
+    );
   });
 
   it("keeps teammate activity and Lounge private until today's check-in", () => {
@@ -96,6 +104,10 @@ describe("TeamHub", () => {
 
     expect(screen.getByText("Check in to see teammate activity")).toBeVisible();
     expect(screen.queryByRole("button", { name: /Cheer for/i })).toBeNull();
-    expect(screen.getByRole("button", { name: "Open Lounge" })).toBeDisabled();
+    expect(
+      within(
+        screen.getByRole("region", { name: "Team Lounge preview" }),
+      ).getByRole("button", { name: "Open Lounge" }),
+    ).toBeDisabled();
   });
 });
