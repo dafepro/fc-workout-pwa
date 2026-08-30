@@ -44,6 +44,46 @@ test("a teammate can be cheered from Team with labeled, contextual choices", asy
   ).toHaveCount(0);
 });
 
+test("the mobile cheer picker stays above the fixed bottom navigation", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 500 });
+  await openReadyPage(page, "/team");
+
+  await page.getByRole("button", { name: /Cheer for Ava R\./ }).click();
+  const picker = page.getByRole("dialog", { name: "Cheer for Ava" });
+  const fire = picker.getByRole("button", { name: "Send Fire to Ava" });
+
+  await expect(fire).toBeVisible();
+  await expect
+    .poll(() =>
+      picker.evaluate((dialog) => {
+        const navigation = document.querySelector(".player-bottom-nav");
+        if (!(navigation instanceof HTMLElement)) return "navigation missing";
+
+        const dialogBounds = dialog.getBoundingClientRect();
+        const navigationBounds = navigation.getBoundingClientRect();
+        const overlapTop = Math.max(dialogBounds.top, navigationBounds.top);
+        const overlapBottom = Math.min(
+          dialogBounds.bottom,
+          navigationBounds.bottom,
+        );
+        if (overlapBottom <= overlapTop) return "elements do not overlap";
+
+        const topmost = document.elementFromPoint(
+          dialogBounds.left + dialogBounds.width / 2,
+          overlapTop + (overlapBottom - overlapTop) / 2,
+        );
+        if (topmost === dialog || dialog.contains(topmost)) {
+          return "reaction picker";
+        }
+        if (!(topmost instanceof HTMLElement)) return "no painted element";
+        return `covered by ${topmost.tagName.toLowerCase()}.${topmost.className}`;
+      }),
+    )
+    .toBe("reaction picker");
+});
+
 test("a completed shared challenge becomes the teammate's single prioritized cheer context", async ({
   page,
 }) => {
