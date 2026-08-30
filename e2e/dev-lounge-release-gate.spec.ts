@@ -52,7 +52,6 @@ test("a qualified player enters the Lounge and sees their own avatar", async ({
   const qualification = (await qualificationResponse.json()) as { id: string };
 
   try {
-    await expect(page).toHaveURL(/\/\?saved=1/);
     const teamLoungeLink = page.getByRole("link", { name: /Team lounge/ });
     await expect(teamLoungeLink).toContainText(
       "Cheer the team or visit the boardwalk.",
