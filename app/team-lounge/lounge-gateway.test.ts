@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  recoverPendingTeamLoungePlacement,
   rememberPendingTeamLoungePlacement,
   prepareTeamLoungeJoin,
   requestTeamLoungeItemMutationPermit,
@@ -19,6 +20,7 @@ const response = {
 };
 
 afterEach(() => {
+  localStorage.clear();
   sessionStorage.clear();
   vi.unstubAllGlobals();
 });
@@ -89,6 +91,7 @@ describe("canonical Team Lounge gateway", () => {
     rememberPendingTeamLoungePlacement(
       "team-one",
       "player-one",
+      response.roomId,
       "abandoned-placement",
     );
 
@@ -111,6 +114,179 @@ describe("canonical Team Lounge gateway", () => {
     );
     await prepareTeamLoungeJoin("team-one", "player-one");
     expect(fetcher).toHaveBeenCalledTimes(3);
+  });
+
+  it("migrates the legacy same-tab pending placement", async () => {
+    const exhausted = {
+      ...response,
+      placementCredits: 0,
+      placementCapacity: 1,
+    };
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(exhausted), { status: 201 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ released: true, remainingPlacements: 1 }),
+          { status: 200 },
+        ),
+      );
+    vi.stubGlobal("fetch", fetcher);
+    sessionStorage.setItem(
+      "zoomigo:team-lounge:pending-placement:team-one:player-one",
+      "legacy-interrupted",
+    );
+
+    await expect(
+      prepareTeamLoungeJoin("team-one", "player-one"),
+    ).resolves.toMatchObject({ placementCredits: 1 });
+    expect(sessionStorage).toHaveLength(0);
+    expect(localStorage).toHaveLength(0);
+    expect(fetcher).toHaveBeenNthCalledWith(
+      2,
+      "/api/zoomigo/v1/teams/team-one/lounge/placements/pending",
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          "Idempotency-Key": "legacy-interrupted",
+        }),
+      }),
+    );
+  });
+
+  it("recovers every interrupted placement from a replacement tab", async () => {
+    const exhausted = {
+      ...response,
+      placementCredits: 0,
+      placementCapacity: 2,
+    };
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(exhausted), { status: 201 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ released: true, remainingPlacements: 1 }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ released: true, remainingPlacements: 2 }),
+          { status: 200 },
+        ),
+      );
+    vi.stubGlobal("fetch", fetcher);
+    rememberPendingTeamLoungePlacement(
+      "team-one",
+      "player-one",
+      response.roomId,
+      "interrupted-one",
+    );
+    rememberPendingTeamLoungePlacement(
+      "team-one",
+      "player-one",
+      response.roomId,
+      "interrupted-two",
+    );
+
+    expect(localStorage).toHaveLength(2);
+    sessionStorage.clear();
+
+    await expect(
+      prepareTeamLoungeJoin("team-one", "player-one"),
+    ).resolves.toMatchObject({ placementCredits: 2 });
+    expect(localStorage).toHaveLength(0);
+    expect(fetcher).toHaveBeenNthCalledWith(
+      2,
+      "/api/zoomigo/v1/teams/team-one/lounge/placements/pending",
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          "Idempotency-Key": "interrupted-one",
+        }),
+      }),
+    );
+    expect(fetcher).toHaveBeenNthCalledWith(
+      3,
+      "/api/zoomigo/v1/teams/team-one/lounge/placements/pending",
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          "Idempotency-Key": "interrupted-two",
+        }),
+      }),
+    );
+  });
+
+  it("keeps an unresolved placement proof for an idempotent later recovery", async () => {
+    const exhausted = {
+      ...response,
+      placementCredits: 0,
+      placementCapacity: 1,
+    };
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(exhausted), { status: 201 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ released: false, remainingPlacements: 0 }),
+          { status: 200 },
+        ),
+      );
+    vi.stubGlobal("fetch", fetcher);
+    rememberPendingTeamLoungePlacement(
+      "team-one",
+      "player-one",
+      response.roomId,
+      "still-in-flight",
+    );
+
+    await prepareTeamLoungeJoin("team-one", "player-one");
+
+    expect(localStorage).toHaveLength(1);
+  });
+
+  it("is idempotent when two tabs recover the same placement concurrently", async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ released: true, remainingPlacements: 1 }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ released: false, remainingPlacements: 1 }),
+          { status: 200 },
+        ),
+      );
+    vi.stubGlobal("fetch", fetcher);
+    rememberPendingTeamLoungePlacement(
+      "team-one",
+      "player-one",
+      response.roomId,
+      "shared-interruption",
+    );
+
+    await expect(
+      Promise.all([
+        recoverPendingTeamLoungePlacement(
+          "team-one",
+          "player-one",
+          response.roomId,
+        ),
+        recoverPendingTeamLoungePlacement(
+          "team-one",
+          "player-one",
+          response.roomId,
+        ),
+      ]),
+    ).resolves.toEqual([1, 1]);
+    expect(localStorage).toHaveLength(0);
   });
 
   it("reserves a Canvas-authorized placement permit through ZoomiGo", async () => {

@@ -685,6 +685,118 @@ test.describe("touch placement", () => {
   });
 });
 
+test("a replacement Ava tab recovers two interrupted placement holds", async ({
+  page,
+}) => {
+  const api = await request.newContext({ baseURL: apiBaseURL });
+  const completion = await api.post("/v1/me/training-entries", {
+    headers: {
+      Authorization: "Bearer e2e-player-ava",
+      "Idempotency-Key": "browser-lounge-multi-recovery",
+    },
+    data: {
+      teamId: "team-hill-striders",
+      activityDefinitionId: "hill-sprints",
+      assignmentId: "assignment-hill-sprints",
+      occurredAt: new Date(Date.now() - 24 * 60 * 60 * 1_000).toISOString(),
+      result: { kind: "repetitions", value: 8, unit: "reps" },
+      effortLevel: 4,
+      exhaustionLevel: 3,
+      completionOutcome: "as_listed",
+    },
+  });
+  expect(completion.status()).toBe(201);
+  await api.dispose();
+
+  await loginAsAva(page);
+  await page.goto("/team");
+  await page.locator("html[data-app-ready='true']").waitFor();
+  const firstLounge = page.getByRole("region", {
+    name: "Beach Boardwalk Team Lounge",
+  });
+  await expect(firstLounge.locator(".team-lounge__world")).toHaveAttribute(
+    "data-canvas-state",
+    "ready",
+  );
+
+  const interrupted = await page.evaluate(async () => {
+    const teamID = "team-hill-striders";
+    const playerID = "player-ava";
+    const credentialResponse = await fetch(
+      `/api/zoomigo/v1/teams/${teamID}/lounge/socket-ticket`,
+      { method: "POST", headers: { "Content-Type": "application/json" } },
+    );
+    if (!credentialResponse.ok) throw new Error("credential failed");
+    const credential = (await credentialResponse.json()) as {
+      roomId: string;
+      placementCredits: number;
+    };
+    if (credential.placementCredits < 2) {
+      throw new Error("Ava needs two placement credits");
+    }
+    const storagePrefix = `zoomigo:team-lounge:pending-placement:${teamID}:${playerID}:`;
+    const attempts = [crypto.randomUUID(), crypto.randomUUID()];
+    for (const [index, idempotencyKey] of attempts.entries()) {
+      localStorage.setItem(
+        `${storagePrefix}${idempotencyKey}`,
+        credential.roomId,
+      );
+      const reservation = await fetch(
+        `/api/zoomigo/v1/teams/${teamID}/lounge/placements`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": idempotencyKey,
+          },
+          body: JSON.stringify({
+            roomId: credential.roomId,
+            definitionId: "zoomigo-stamp-bolt",
+            definitionVersion: 2,
+            position: { x: 25 + index * 10, y: 70 },
+          }),
+        },
+      );
+      if (!reservation.ok) throw new Error("reservation failed");
+    }
+    return {
+      credits: credential.placementCredits,
+      storagePrefix,
+    };
+  });
+
+  const secondPage = await page.context().newPage();
+  try {
+    await secondPage.goto("/team");
+    await secondPage.locator("html[data-app-ready='true']").waitFor();
+    const secondLounge = secondPage.getByRole("region", {
+      name: "Beach Boardwalk Team Lounge",
+    });
+    await expect(secondLounge.locator(".team-lounge__world")).toHaveAttribute(
+      "data-canvas-state",
+      "ready",
+    );
+    await expect(
+      secondLounge.getByRole("button", {
+        name: `Items, ${interrupted.credits} placements left`,
+      }),
+    ).toBeVisible();
+    await expect
+      .poll(() =>
+        secondPage.evaluate(
+          (storagePrefix) =>
+            Object.keys(localStorage).filter((key) =>
+              key.startsWith(storagePrefix),
+            ).length,
+          interrupted.storagePrefix,
+        ),
+      )
+      .toBe(0);
+  } finally {
+    await secondPage.close();
+  }
+});
+
 test("opening the same player Lounge in another tab retires the first tab cleanly", async ({
   page,
 }) => {

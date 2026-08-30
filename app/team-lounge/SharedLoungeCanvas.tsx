@@ -481,7 +481,12 @@ export function SharedLoungeCanvas({
       );
       if (recovered !== null) setRemainingPlacements(recovered);
       const idempotencyKey = crypto.randomUUID();
-      rememberPendingTeamLoungePlacement(teamID, playerID, idempotencyKey);
+      rememberPendingTeamLoungePlacement(
+        teamID,
+        playerID,
+        roomID,
+        idempotencyKey,
+      );
       const reservation = await reserveTeamLoungePlacement(
         teamID,
         roomID,

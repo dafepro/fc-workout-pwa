@@ -10,18 +10,76 @@ export interface TeamLoungeCredential {
 
 const pendingPlacementPrefix = "zoomigo:team-lounge:pending-placement";
 
-function pendingPlacementStorageKey(teamID: string, playerID: string) {
+function legacyPendingPlacementStorageKey(teamID: string, playerID: string) {
   return `${pendingPlacementPrefix}:${teamID}:${playerID}`;
+}
+
+function pendingPlacementStoragePrefix(teamID: string, playerID: string) {
+  return `${legacyPendingPlacementStorageKey(teamID, playerID)}:`;
+}
+
+function pendingPlacementStorageKey(
+  teamID: string,
+  playerID: string,
+  idempotencyKey: string,
+) {
+  return `${pendingPlacementStoragePrefix(teamID, playerID)}${idempotencyKey}`;
+}
+
+function validPendingPlacementID(value: string) {
+  return /^[a-zA-Z0-9_-]{1,128}$/u.test(value);
+}
+
+function pendingTeamLoungePlacements(
+  teamID: string,
+  playerID: string,
+  currentRoomID: string,
+) {
+  const legacyStorageKey = legacyPendingPlacementStorageKey(teamID, playerID);
+  const legacyID = sessionStorage.getItem(legacyStorageKey);
+  if (legacyID && validPendingPlacementID(legacyID)) {
+    rememberPendingTeamLoungePlacement(
+      teamID,
+      playerID,
+      currentRoomID,
+      legacyID,
+    );
+    sessionStorage.removeItem(legacyStorageKey);
+  }
+
+  const storagePrefix = pendingPlacementStoragePrefix(teamID, playerID);
+  const placements: Array<{
+    idempotencyKey: string;
+    roomID: string;
+    storageKey: string;
+  }> = [];
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const storageKey = localStorage.key(index);
+    if (!storageKey?.startsWith(storagePrefix)) continue;
+    const idempotencyKey = storageKey.slice(storagePrefix.length);
+    const roomID = localStorage.getItem(storageKey);
+    if (
+      !validPendingPlacementID(idempotencyKey) ||
+      !roomID?.startsWith(`team:${teamID}:lounge:`)
+    ) {
+      continue;
+    }
+    placements.push({ idempotencyKey, roomID, storageKey });
+  }
+  return placements.sort((left, right) =>
+    left.storageKey.localeCompare(right.storageKey),
+  );
 }
 
 export function rememberPendingTeamLoungePlacement(
   teamID: string,
   playerID: string,
+  roomID: string,
   idempotencyKey: string,
 ) {
-  sessionStorage.setItem(
-    pendingPlacementStorageKey(teamID, playerID),
-    idempotencyKey,
+  localStorage.setItem(
+    pendingPlacementStorageKey(teamID, playerID, idempotencyKey),
+    roomID,
   );
 }
 
@@ -30,9 +88,15 @@ export function clearPendingTeamLoungePlacement(
   playerID: string,
   idempotencyKey: string,
 ) {
-  const storageKey = pendingPlacementStorageKey(teamID, playerID);
-  if (sessionStorage.getItem(storageKey) === idempotencyKey) {
-    sessionStorage.removeItem(storageKey);
+  const storageKey = pendingPlacementStorageKey(
+    teamID,
+    playerID,
+    idempotencyKey,
+  );
+  localStorage.removeItem(storageKey);
+  const legacyStorageKey = legacyPendingPlacementStorageKey(teamID, playerID);
+  if (sessionStorage.getItem(legacyStorageKey) === idempotencyKey) {
+    sessionStorage.removeItem(legacyStorageKey);
   }
 }
 
@@ -41,36 +105,47 @@ export async function recoverPendingTeamLoungePlacement(
   playerID: string,
   roomID: string,
 ): Promise<number | null> {
-  const storageKey = pendingPlacementStorageKey(teamID, playerID);
-  const idempotencyKey = sessionStorage.getItem(storageKey);
-  if (!idempotencyKey) return null;
-  const response = await fetch(
-    `/api/zoomigo/v1/teams/${encodeURIComponent(teamID)}/lounge/placements/pending`,
-    {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        "Idempotency-Key": idempotencyKey,
+  const placements = pendingTeamLoungePlacements(teamID, playerID, roomID);
+  let currentRoomRemaining: number | null = null;
+  for (const placement of placements) {
+    if (placement.roomID !== roomID) {
+      if (localStorage.getItem(placement.storageKey) === placement.roomID) {
+        localStorage.removeItem(placement.storageKey);
+      }
+      continue;
+    }
+    const response = await fetch(
+      `/api/zoomigo/v1/teams/${encodeURIComponent(teamID)}/lounge/placements/pending`,
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": placement.idempotencyKey,
+        },
+        body: JSON.stringify({ roomId: placement.roomID }),
       },
-      body: JSON.stringify({ roomId: roomID }),
-    },
-  );
-  if (!response.ok) throw await placementError(response);
-  const body = (await response.json()) as Record<string, unknown>;
-  const released = body.released;
-  const remaining = body.remainingPlacements;
-  if (
-    typeof released !== "boolean" ||
-    !Number.isInteger(remaining) ||
-    (remaining as number) < 0 ||
-    (remaining as number) > 99
-  ) {
-    throw new Error("That Lounge placement could not be recovered.");
+    );
+    if (!response.ok) throw await placementError(response);
+    const body = (await response.json()) as Record<string, unknown>;
+    const released = body.released;
+    const remaining = body.remainingPlacements;
+    if (
+      typeof released !== "boolean" ||
+      !Number.isInteger(remaining) ||
+      (remaining as number) < 0 ||
+      (remaining as number) > 99
+    ) {
+      throw new Error("That Lounge placement could not be recovered.");
+    }
+    currentRoomRemaining = remaining as number;
+    if (
+      released &&
+      localStorage.getItem(placement.storageKey) === placement.roomID
+    ) {
+      localStorage.removeItem(placement.storageKey);
+    }
   }
-  if (sessionStorage.getItem(storageKey) === idempotencyKey) {
-    sessionStorage.removeItem(storageKey);
-  }
-  return remaining as number;
+  return currentRoomRemaining;
 }
 
 export async function requestTeamLoungeCredential(

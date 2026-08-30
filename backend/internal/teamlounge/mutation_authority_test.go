@@ -127,17 +127,24 @@ func TestDeniedMutationOutcomeDoesNotReleaseUnconsumedReservation(t *testing.T) 
 }
 
 func TestReleaseUnconsumedPlacementRestoresOnlyUnusedCredit(t *testing.T) {
-	store, now := placementAuthorityStore(t, 1)
-	reserveAuthorityPlacement(t, store, "abandoned-before-canvas", 20, now)
-
-	released, err := store.ReleaseUnconsumedPlacement(
-		t.Context(), loungeRoomID, "player-one", "abandoned-before-canvas", now.Add(time.Second),
-	)
-	if err != nil || !released {
-		t.Fatalf("release unconsumed placement = %v, %v", released, err)
+	store, now := placementAuthorityStore(t, 3)
+	for index, placement := range []struct {
+		key string
+		x   float64
+	}{
+		{key: "abandoned-before-canvas-one", x: 20},
+		{key: "abandoned-before-canvas-two", x: 25},
+	} {
+		reserveAuthorityPlacement(t, store, placement.key, placement.x, now)
+		released, err := store.ReleaseUnconsumedPlacement(
+			t.Context(), loungeRoomID, "player-one", placement.key, now.Add(time.Duration(index+1)*time.Second),
+		)
+		if err != nil || !released {
+			t.Fatalf("release unconsumed placement %q = %v, %v", placement.key, released, err)
+		}
 	}
 	budget, err := store.PlacementBudget(t.Context(), loungeRoomID, "player-one", now)
-	if err != nil || budget.Remaining != 1 {
+	if err != nil || budget.Remaining != 3 {
 		t.Fatalf("budget after abandoned placement recovery = %+v, %v", budget, err)
 	}
 
@@ -148,14 +155,14 @@ func TestReleaseUnconsumedPlacementRestoresOnlyUnusedCredit(t *testing.T) {
 	if err != nil || !decision.Authorized {
 		t.Fatalf("authorize consumed placement = %+v, %v", decision, err)
 	}
-	released, err = store.ReleaseUnconsumedPlacement(
-		t.Context(), loungeRoomID, "player-one", "already-sent-to-canvas", now.Add(2*time.Second),
+	released, err := store.ReleaseUnconsumedPlacement(
+		t.Context(), loungeRoomID, "player-one", "already-sent-to-canvas", now.Add(3*time.Second),
 	)
 	if err != nil || released {
 		t.Fatalf("release consumed placement = %v, %v", released, err)
 	}
 	budget, err = store.PlacementBudget(t.Context(), loungeRoomID, "player-one", now)
-	if err != nil || budget.Remaining != 0 {
+	if err != nil || budget.Remaining != 2 {
 		t.Fatalf("budget after consumed placement recovery = %+v, %v", budget, err)
 	}
 }
