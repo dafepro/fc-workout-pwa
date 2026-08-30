@@ -1,130 +1,94 @@
 # UX and safety rules
 
-## Core experience
+**Status:** Maintained
 
-The product should feel like a mix of:
+These rules are product constraints, not suggestions. When a feature conflicts
+with them, change the feature.
 
-- a useful training tracker
-- a light team challenge app
-- a safe, locked-down social layer
+## Closed content system
 
-It should feel polished and fun for 10- to 12-year-olds without feeling designed for very young children.
+Player-facing features must not accept free-form text, comments, links, uploads,
+photos, custom names, status messages, announcements, or direct messages.
+Coach-authored player experiences also use predefined workouts, plan templates,
+rewards, and structured controls.
 
-## No user-created content
+Avatars, Lounge objects, reactions, quick phrases, rewards, and system messages
+come from reviewed versioned catalogs. Unknown IDs or extra payload fields are
+rejected. A locked catalog item must not imply an unlock rule until that rule is
+approved and implemented.
 
-Player-facing features must not permit:
+## Private athletic data
 
-- free-form text
-- comments
-- links
-- image uploads
-- custom photos
-- custom usernames
-- custom status messages
-- announcements
-- direct messages
+Players and authorized staff may see the private training values needed for
+their role. Teammates must never see sprint or run times, pace, distance,
+repetitions, assessment scores, exhaustion, private trends, exact timestamps,
+or inferred athletic ability.
 
-Coach tools should also use predefined workouts and structured controls. Do not add free-form announcements in the first version.
+Team surfaces may show participation, safe effort points, weekly completion,
+streaks, consistency, challenge completion, predefined reactions, and reviewed
+rewards. The server owns every team projection; clients must not rebuild a
+leaderboard from private entries.
 
-## Avatars
+## Effort, recovery, and workload
 
-- Players build avatars from locked options.
-- Avatar options may include face, skin tone, hair, expression, kit, and accessory choices.
-- Players cannot upload an image.
+Completed sessions record two independent seven-step values: effort during the
+activity and exhaustion afterwards. Controls use kid-friendly labels and
+accessible names without presenting the values as medical measures.
 
-## Structured reactions
-
-Players may send predefined reactions only:
-
-- Clap
-- Fire
-- Strong
-- Hustle
-- Runner
-- Wind
-- Robot Leg
-- Do It
-
-The Team Lounge may also show a small reviewed set of supportive quick-message
-bubbles. They use predefined IDs and copy only: there is no typing, arbitrary
-payload, recipient selection, inbox, transcript, persistence, or moderation
-queue. Quick messages share the Lounge reaction cooldown and disappear from the
-sender's avatar after the same short display window as an emote.
-
-Reactions should feel supportive. Avoid public negative reactions or downvotes.
-
-## Effort and exhaustion
-
-Each completed session records two kid-friendly seven-step values:
-
-1. Effort during the activity
-2. Exhaustion after the activity
-
-Use simple labels, emoji faces, and a visual scale progressing through green, yellow, orange, red, and purple. Do not present the scale as a medical measure.
-
-## Motivation and overtraining
-
-The home screen's top state may show:
-
-- next assigned workout
-- weekly goal progress
-- goal met
-- above-and-beyond state
-- a gentle recovery or possible-overtraining warning
-
-Warnings must not diagnose a health condition. They should suggest rest, hydration, or checking with a parent or coach.
-
-## Social visibility
-
-Teammates may see:
-
-- whether a player logged an approved activity
-- effort or participation points
-- weekly completion status
-- streaks
-- consistency badges
-- challenge completion
-- preset reactions
-
-Teammates must not see:
-
-- sprint times
-- distance-run times
-- pace
-- shuttle times
-- assessment scores
-- private trend charts
-- notes, because notes do not exist
+Recovery or possible-overtraining copy must be gentle, non-diagnostic, and tell
+the player to rest, hydrate, or check with a parent or coach. Do not create an
+incentive to log unsafe volume. Production training-plan publication stays off
+until numeric workload bounds are approved.
 
 ## Positive grouping
 
-Grouping players is allowed. Ranking them is not: avoid labels such as bottom,
-behind, failing, worst, or inactive, and never order a group by who is doing
-least.
+Grouping is allowed; ranking children by who is doing least is not. Avoid labels
+such as bottom, behind, failing, worst, or inactive, and never order a group by
+lowest participation.
 
-A group's label must be neutral or encouraging **and** true of everyone in it.
-Alpha 1.1 revised the original three, because two of them failed the second
-half of that rule and coaches could not tell what either meant:
+A group label must be neutral or encouraging and true for everyone in the
+group. It cannot carry the meaning alone: show the rule and the measured goal
+with it. Assignment completion and weekly-session progress are different
+questions and must not reuse ambiguous labels.
 
-| Question            | Group                        | Who is in it                            |
+Current grouping vocabulary:
+
+| Question            | Group                        | Rule                                    |
 | ------------------- | ---------------------------- | --------------------------------------- |
 | Current assignment  | Done                         | Logged the target or more               |
 |                     | Under way                    | Logged a session, not yet at the target |
 |                     | Not started                  | No session logged against it            |
-| Weekly session goal | Reached the _n_-session goal | Sessions ≥ the goal                     |
-|                     | One session away             | Exactly one short                       |
-|                     | Working towards it           | More than one short                     |
+| Weekly session goal | Reached the _n_-session goal | Sessions at or above the goal           |
+|                     | One session away             | Exactly one session short               |
+|                     | Working towards it           | More than one session short             |
 
-"One Away" was the specific failure: on the assignment it meant _started but not
-finished_, however far off, and on the weekly goal it meant _exactly one
-session short_. One phrase, two meanings, neither stated on screen.
+## Supportive social behavior
 
-Two rules follow from that, and both are load-bearing:
+Reactions and Lounge phrases are predefined, positive, rate-limited, and bound
+to an authenticated team membership. They have no arbitrary payload, private
+recipient, inbox transcript, persistence, downvote, or moderation queue.
 
-- **A label is never the only thing carrying the meaning.** The rule that puts a
-  player in a group is printed with the group, and the thing being measured --
-  the assignment's target, or the week's session goal -- is stated above it.
-- **The two questions do not share vocabulary.** Whether a player has done the
-  assignment and whether they have hit the weekly goal are different questions,
-  so they get different words. Reusing a phrase across both is what made each
-  ambiguous.
+Lounge physics, placements, counters, and celebrations are play state only.
+They award no training credit, points, Momentum, athletic status, or public
+player result.
+
+## Interaction quality
+
+- Mobile-first down to 320 CSS pixels; primary touch targets are at least 44 CSS
+  pixels.
+- Semantic HTML and native controls are the default.
+- Keyboard, screen-reader, reduced-motion, touch, and desktop use remain
+  supported.
+- Labels and state must be understandable without color, emoji, motion, or an
+  icon alone.
+- A user-visible failure must preserve input where safe and give a specific next
+  action.
+- Offline-looking UI must not claim a write succeeded before the authority has
+  accepted it.
+
+## Privacy operations
+
+Do not log credentials, session tokens, personal names, raw URLs, request
+bodies, training values, or unbounded identifiers. Analytics accepts only a
+typed, allowlisted event catalog and derives pseudonymous subject/team keys on
+the server. Small-cohort behavioral breakdowns remain suppressed.

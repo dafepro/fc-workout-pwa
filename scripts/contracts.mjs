@@ -607,11 +607,7 @@ async function brandingContract() {
   ]);
   const matches = [];
   for (const path of fileList) {
-    if (
-      /^docs\/_ALPHA_FEEDBACK_0\.[0-6]\.md$/.test(path) ||
-      path === "scripts/contracts.mjs"
-    )
-      continue;
+    if (path === "scripts/contracts.mjs") continue;
     if (path !== ".gitignore" && !textExtensions.has(extname(path))) continue;
     let contents;
     try {

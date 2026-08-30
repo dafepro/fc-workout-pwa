@@ -1,10 +1,12 @@
 # Production secrets
 
-ZoomiGo keeps no local, plaintext, or encrypted-bundle copy of production
-credentials. GitHub Actions secrets and variables in the protected
-`production` environment are the only place these credentials live.
-`.github/workflows/backend-image.yml` and `.github/workflows/infra.yml`
-read them directly; nothing decrypts a file to reach them.
+**Status:** Maintained
+
+ZoomiGo keeps no checked-in plaintext or encrypted-bundle copy of production
+credentials. GitHub Actions reads its automation inputs directly from the
+protected `production` environment; nothing decrypts a repository file to reach
+them. Credentials intentionally installed on the VM and the separate offline
+backup-recovery copy are documented below.
 
 ## GitHub `production` environment secrets
 
@@ -40,8 +42,7 @@ read them directly; nothing decrypts a file to reach them.
 | `PLAYER_LOGIN_URL` / `STAFF_SETUP_URL`                                                | Absolute https URLs on the PWA hostname. The console builds a player's QR link and a coach's one-time setup link from these.                                                                                                                                         |
 | `PRODUCTION_DATA_APPROVED`                                                            | `true` allows the console and the CLI to create real player accounts. Keep it unset or `false` until the approval checklist is recorded.                                                                                                                             |
 | `PRODUCTION_DEPLOY_ENABLED`                                                           | Repository-scoped, not environment-scoped (a job-level `if` cannot see environment variables). Kill switch: releases also require dispatching the workflow with `deploy: true`, so `true` here never deploys on its own. Set to anything else to block all releases. |
-| `ANALYTICS_D1_DATABASE_ID`                                                            | Optional D1 database UUID. When absent, the release removes the placeholder binding and analytics remains off. Setting it enables collection and requires `ANALYTICS_SUBJECT_KEY`.                                                                                   |
-| `DEV_OBSERVABILITY_ENABLED` / `PRODUCTION_OBSERVABILITY_ENABLED`                      | Explicit per-environment collector switches. Keep production false on the current 512 MiB host.                                                                                                                                                                      |
+| `DEV_OBSERVABILITY_ENABLED` / `PRODUCTION_OBSERVABILITY_ENABLED`                      | Explicit per-environment collector switches. Enable only after the corresponding 1 GiB host passes the observability admission and privacy checks.                                                                                                                   |
 | `GRAFANA_DEV_LOGS_URL` / `GRAFANA_DEV_LOGS_USERNAME`                                  | Dev Loki push endpoint and stack username.                                                                                                                                                                                                                           |
 | `GRAFANA_DEV_METRICS_URL` / `GRAFANA_DEV_METRICS_USERNAME`                            | Dev Prometheus remote-write endpoint and stack username.                                                                                                                                                                                                             |
 | `GRAFANA_PRODUCTION_LOGS_URL` / `GRAFANA_PRODUCTION_LOGS_USERNAME`                    | Production Loki push endpoint and stack username.                                                                                                                                                                                                                    |
@@ -65,13 +66,16 @@ age-keygen -o backup-identity.txt
 ```
 
 The file's `# public key:` comment line is `BACKUP_AGE_RECIPIENT` (a plain
-GitHub variable). The `AGE-SECRET-KEY-...` line is `BACKUP_AGE_IDENTITY` (a
-GitHub secret, only needed for a restore drill or local restore). Store that
-secret in GitHub, then keep exactly one offline copy of `backup-identity.txt`
-somewhere durable outside GitHub — a safe, a second password manager entry,
-printed and locked away — for the doomsday case of losing GitHub account
-access. This is a one-time step, not a rotation pipeline. Delete the local
-file once both copies exist.
+GitHub variable). The `AGE-SECRET-KEY-...` line is `BACKUP_AGE_IDENTITY`, which
+the current on-demand restore-drill workflow reads from the protected GitHub
+environment. Keep a separate offline recovery copy of `backup-identity.txt`
+somewhere durable outside GitHub for loss of account access, and delete the
+temporary local file after both destinations are verified.
+
+Long-term GitHub custody versus temporary population is not yet owner-approved;
+record that decision in
+[`docs/backend/PRODUCTION_APPROVAL_CHECKLIST.md`](../../docs/backend/PRODUCTION_APPROVAL_CHECKLIST.md)
+before treating the recovery process as production-approved.
 
 ## Rotating a credential
 

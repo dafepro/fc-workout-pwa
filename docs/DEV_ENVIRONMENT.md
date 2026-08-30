@@ -1,5 +1,7 @@
 # Disposable dev environment
 
+**Status:** Maintained
+
 The dev environment is a separate, disposable deployment at
 `dev.zoomigo.quicktrack.cc`. It does not use Cloudflare Access, an identity
 provider, or an email allowlist. A shared outer password is the invitation.

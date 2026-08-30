@@ -1,129 +1,104 @@
-# Player screen specifications
+# Current screen specifications
 
-## Shared navigation
+**Status:** Maintained
 
-Bottom navigation:
+This document describes the connected application, not the retired milestone-1
+prototype. Route files and gateway contracts remain the executable authority.
 
-1. Home
-2. Log
-3. Team
-4. Leaders
-5. Me
+## Player shell
 
-The prototype should include working routes for the first four. `Me` may begin as a simple profile/avatar placeholder.
+Primary navigation has three destinations: **Today**, **Team**, and **Me**.
+Focused Avatar Studio and Team Lounge views hide the shell navigation on small
+screens so it cannot cover their controls. Every player route remains usable at
+320 CSS pixels and on desktop.
 
-## 1. Player home
+## Today (`/`)
 
-Primary goals:
+Today answers one question first: what is the next useful action?
 
-- Tell the player what to do next.
-- Give a fast view of personal progress.
-- Provide a small preview of team participation.
+- current seven-day training plan or assignment state;
+- the day's predefined workout blocks or planned-rest check-in;
+- Momentum and weekly progress;
+- a privacy-safe Team pulse that unlocks only after accepted participation;
+- prize-box status and links to private progress or plan detail;
+- one primary action into structured training.
 
-Content hierarchy:
+`/plan` shows the read-only full plan and `/plan/[dayIndex]` shows one day.
+Future work is visible but cannot be started early. `/progress` shows private
+Momentum detail. `/prizes` shows sealed and opened prize boxes plus owned
+inventory.
 
-1. Player avatar, first name plus last initial, and team.
-2. Next workout or current goal card.
-3. Primary `Log Session` action.
-4. Weekly target and progress.
-5. Compact personal metrics.
-6. Seven-day recent activity summary.
-7. Small team activity preview.
+## Record training (`/log` and `/log/additional`)
 
-Suggested initial personal metrics:
+The default activity comes from the current server projection. Players can pick
+another approved activity from the bounded catalog.
 
-- current streak
-- longest streak
-- sessions in rolling 30 days
-- weekly goal completion
+Activity-specific values are repetitions, duration, or distance with
+server-owned units and ranges. Shared controls are team-local date/time, effort,
+exhaustion, and a predefined completion outcome. There is no notes field.
 
-Effort points may be shown, but the formula must remain simple and should not reward unsafe volume.
+Saving waits for server acceptance, updates the relevant Today/Team projection,
+and opens a clear success state. Additional training is available separately so
+it cannot masquerade as completion of a prescribed block. Entry detail lives at
+`/sessions/[id]`; an owner may delete there while the 24-hour window remains
+open.
 
-## 2. Quick training entry
+## Team (`/team`)
 
-The coach-selected activity is the default. Other approved activities appear as secondary choices.
+Team is a bounded hub rather than an endless feed. It combines:
 
-Activity-specific result inputs:
+- the current challenge and weekly-session rule;
+- safe participation groups with the rule printed beside each group;
+- roster identity limited to first name, last initial, and approved avatar;
+- predefined contextual cheers;
+- the current team reward;
+- the shared Team Lounge.
 
-- Hill sprints: completed repetitions; show assigned rep duration as context.
-- Timed run/walk: actual elapsed duration.
-- Distance run: actual distance completed, with a simple unit choice determined by team settings.
-- Recovery walk/jog: actual elapsed duration.
+The hub never renders raw training results, exhaustion, assessments, exact
+timestamps, or a least-active ordering. The older standalone activity-board and
+Leaders screens are retired; approved leaderboards, where present, are a bounded
+Team view rather than primary navigation.
 
-Shared fields:
+The Lounge uses authenticated transient reactions and server-authorized Canvas
+state. Placement/edit controls expose only owned current-generation items and
+must preserve keyboard, touch, reduced-motion, and 320 px behavior.
 
-- date within the past seven days
-- time
-- effort level, seven steps
-- exhaustion level, seven steps
+## Me (`/me` and `/me/avatar`)
 
-No notes field.
+Me owns private history and identity:
 
-After saving:
+- player identity and team memberships;
+- private session history and entry detail;
+- received reaction badges;
+- prize collection and unseen-item state;
+- sign-out and credential guidance;
+- entry to the predefined Avatar Studio.
 
-- show a clear success state
-- update home progress
-- update team participation
-- allow delete within 24 hours
+Avatar Studio previews each layer independently, supports reviewed preset or
+custom colors within the validated shape, and saves the whole configuration.
+No profile field accepts free-form content.
 
-## 3. Team activity
+## Authentication
 
-This should be a board, not an endless social feed.
+`/login` reads a QR credential from the URL fragment, removes it immediately,
+and then asks for the PIN. A bare hosted login route does not invent a player
+directory. Successful authentication uses the secure server-side session
+gateway.
 
-Top section:
+Development-only access routes may expose disposable credentials or catalog
+grants, but must be absent from production builds.
 
-- current team challenge
-- due window
-- count completed
-- row or grid of participant avatars
+## Staff shell
 
-Weekly progress section:
+`/staff/sign-in` handles password and TOTP. `/staff/setup` consumes a one-time
+setup token and enrolls TOTP. Sensitive operations require a fresh step-up
+challenge.
 
-- progress toward the team-defined session goal
-- group players into Completed, One Away, and Keep Going
-- use bars and status icons
-- avoid showing raw workout results
+Coaches enter `/staff` and can open only assigned teams. Team sections cover
+training, progress, and roster; development may additionally expose gated plan
+or reward authoring.
 
-Reaction section:
-
-- select a teammate or a recent completion
-- send one predefined reaction
-- prevent spam with a basic cooldown in the real product; mock it in milestone 1
-
-Consistency callout:
-
-- `3 logs in the last 5 days` earns a recognizable automatic visual effect or badge
-
-## 4. Leaderboards
-
-Time filters:
-
-- Weekly
-- Rolling 30 Days
-- Season
-
-Ranking views:
-
-- Effort
-- Streaks
-- Consistency
-
-Recommended prototype leaderboards:
-
-1. Weekly consistency score
-2. Rolling 30-day participation points
-3. Current streak
-
-Do not rank raw athletic performance.
-
-Make the top positions feel special, but show a clear message that every player's effort counts.
-
-## 5. Me / profile placeholder
-
-- avatar builder entry point (satisfied: opens the layered avatar builder)
-- player name and team memberships
-- personal assessment history link
-- session history link
-- QR/PIN security placeholder
-
-Do not add editable free-form profile fields.
+Platform operators use `/staff/admin` for clubs, teams, player recovery,
+accounts, audit history, and the privacy-safe analytics overview. Operator pages
+must guard in the UI and at the backend; the backend remains authoritative.
+See [STAFF_CONSOLE.md](STAFF_CONSOLE.md).

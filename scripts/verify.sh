@@ -38,6 +38,7 @@ go test ./...
 
 cd "$REPOSITORY_ROOT"
 node scripts/contracts.mjs
+node scripts/documentation-contract.mjs
 node --test scripts/unix-automation-contract.test.mjs
 node --test scripts/deploy-dev.test.mjs
 node --test deploy/observability/config_test.mjs scripts/observability-query.test.mjs

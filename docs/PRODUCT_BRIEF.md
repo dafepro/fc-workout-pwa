@@ -1,73 +1,86 @@
 # Product brief
 
-## Product name
-
-**ZoomiGo** is the standalone product identity. It must not use O26FC club colors or depend on one club's branding.
+**Status:** Maintained
 
 ## Purpose
 
-Help youth soccer players record conditioning work in a few taps, see their own progress, and gain motivation from safe team participation features.
+ZoomiGo helps youth soccer players record structured conditioning work, follow a
+coach-created plan, understand their own progress, and feel part of a team. It
+rewards showing up, consistency, and challenge completion without publicly
+ranking children by athletic ability.
 
-The app should reward showing up and doing the work. It must not publicly rank children by speed, endurance, assessment scores, or athletic ability.
+ZoomiGo is a standalone product identity. It does not depend on one club's
+branding.
 
-## Primary users
+## Users
 
-- Players, mostly age 11, using phones.
-- A parent may enter data for a player, but the player flow is primary.
-- Desktop support is required.
-- Coaches will later assign goals and challenges and record assessments.
+- Players, mostly ages 10–12, usually on a phone and sometimes assisted by a
+  parent.
+- Coaches working only with teams assigned to them.
+- Platform operators managing clubs, accounts, recovery, and privacy operations.
+- Club-administrator domain authority exists, but a dedicated club-manager
+  experience is preserved in [FUTURE_WORK.md](FUTURE_WORK.md) rather than
+  treated as a current launch persona.
 
-## Tenancy and membership
+One player may have active memberships in more than one team. Team-local time
+zones control weekly boundaries and allowed dates.
 
-- A player has an account identified by first name and last initial.
-- Player identity is shown within a team context, such as `Mason C. · O26FC White`.
-- The system should support multiple teams and clubs later.
-- A player may belong to more than one team.
+## Player promise
 
-## Login concept
+A player should be able to:
 
-- Each player receives a printed personal QR code.
-- Scanning the QR code opens the player's login flow.
-- The player enters a short PIN.
-- The authenticated session remains active for a useful period before asking for the PIN again.
-- Exact token lifetime and security design remain open.
-- Milestone 1 should mock this flow rather than implement production authentication.
+1. open ZoomiGo and understand the next useful action;
+2. record a predefined workout or planned-rest check-in without typing free
+   text;
+3. see private Momentum, session history, plan progress, and earned items;
+4. see privacy-safe team participation and send predefined supportive reactions;
+5. enter a shared Lounge whose objects and interactions cannot change training
+   or leaderboard results;
+6. customize an avatar using only the reviewed catalog.
 
-## Launch activity set
+## Training and plans
 
-1. Hill sprints
-2. Timed run or walk
-3. Distance run
-4. Recovery walk or jog
+The supported activity definitions are hill sprints, timed run or walk,
+distance run, and recovery walk or jog. Activity-specific inputs, units, ranges,
+and point policies are server-owned.
 
-Future versions may track ball work and touches, but those are out of scope for the first prototype.
+Players may log multiple sessions per day and backdate an entry by at most seven
+team-local calendar days while they were an active member. Entries cannot be
+edited: an owner may delete within 24 hours and re-enter. Later removal requires
+a future audited moderation flow.
 
-## Assignment concept
+Coaches use predefined assignment and seven-day training-plan catalogs. A plan
+may include structured training blocks or planned rest. Partial work remains
+visible privately but does not count as completion. Production publication of
+training plans remains gated by approved workload bounds.
 
-- The coach can set a preferred or default activity for the team.
-- The quick-entry screen opens with that activity selected.
-- The player can choose another approved activity through a smaller secondary control.
-- Initial coach assignment scope is whole-team, one-time challenges.
-- Future options may include recurring, subgroup, or individual assignments.
+## Motivation and rewards
 
-## Training entries
+Momentum, team progress, streaks, prize boxes, and team rewards may reflect
+participation, effort, consistency, or completion. They must not reward unsafe
+volume or expose raw speed, distance, pace, exhaustion, or assessments to
+teammates.
 
-- Players record completed training.
-- More than one session may be logged per day.
-- Entries may be backdated up to seven days.
-- The system supplies the current date and time by default.
-- Players may adjust date and time within the allowed range.
-- Entries are trust-based and need no coach verification.
-- Players can delete their own entry within 24 hours.
-- After 24 hours, deletion requires an admin request.
-- Entries cannot be edited. Delete and re-enter instead.
+Prize boxes are sealed until opened and choose only from predefined, unowned
+inventory. Rewards have no cash value, do not create peer-to-peer transfers,
+and do not alter athletic results.
 
-## Assessments
+## Identity and access
 
-Coaches will later record private assessment results for:
+Players receive a reissuable QR credential and a generated four-digit PIN. The
+hosted PWA keeps the opaque session token in a secure HTTP-only cookie. Staff use
+password, TOTP, role authorization, and step-up authentication for sensitive
+actions.
 
-- timed sprint
-- timed distance run
-- timed shuttle run
+Exact guardian handoff and account-recovery policy is an unresolved launch gate
+in [OPEN_DECISIONS.md](OPEN_DECISIONS.md).
 
-Assessment trends are visible to the player and coaches, but never to teammates or public leaderboards.
+## Explicit non-goals
+
+- free-form player or coach content;
+- chat, comments, announcements, or direct messaging;
+- user-provided images, files, URLs, usernames, or status text;
+- public raw-performance or assessment comparisons;
+- coach verification of ordinary player training entries;
+- medical diagnosis or individualized training prescriptions from the app;
+- ads, purchases, currency, or tradable rewards.

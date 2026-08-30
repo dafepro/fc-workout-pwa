@@ -1,718 +1,110 @@
 # Open decisions
 
-Do not block the first UI prototype on these. Use clear mock assumptions and record them here.
-
-## Branding
-
-- Product name selected: `ZoomiGo`.
-- Final logo, type, color tokens, and icon set remain open.
-- Approved Zoomi mascot artwork is required before mascot integration; Rover
-  still needs an approved visual direction or asset. **Narrowed 2026-08-10:**
-  this gate covers branded Zoomi/Rover moments — hero art, loading states,
-  celebration illustrations. It no longer blocks player-chosen avatar parts. The
-  product owner lifted the art gate for the avatar builder, so
-  `app/avatar/art/` ships hand-authored inline SVG faces a player picks for
-  themselves. If approved mascot artwork later replaces a face, it is one entry
-  in one registry.
-- Native `zoomigo` cookie, database, archive, route, cache, binary, project,
-  and service identifiers are the supported runtime contract.
-
-## Authentication
-
-- Implemented baseline: a unique reissuable 256-bit QR credential is combined with exactly four PIN digits and verified with Argon2id; only hashes/verifiers are stored. Trivial repeated/sequential PINs are rejected, malformed or unknown QR values avoid expensive password work, and only one Argon2 login runs at a time on the small VM.
-- Implemented baseline: five failures trigger a 15-minute lock, later failure windows double, and the tenth failure revokes the credential and all associated sessions.
-- Implemented baseline: normal sessions last 12 hours and explicitly remembered devices last 30 days. Reissuing or revoking a QR invalidates prior sessions.
-- Implemented baseline: sign-in attempts are throttled per client address and in total before any credential work, defaulting to 30 per address and 120 overall per minute. The per-address key is `CF-Connecting-IP`, trusted only from a loopback or private peer because the origin firewall admits Cloudflare ranges only. Throttled attempts are logged with the client address, which the privacy review should confirm is acceptable retention for an abuse signal.
-- Parent recovery flow.
-- Decided 2026-08-08: the system generates a player's PIN and reveals it exactly once, at provisioning or reissue. An operator no longer chooses PINs, so none can be reused or guessed from a habit, and the revealed value is what goes to the guardian. The operator still sees it while handing it over; removing that requires a player-chosen PIN on first sign-in, which is not being built now.
-- Still open: the approved physical/guardian delivery process for the QR code and that revealed PIN, before real accounts are created.
-- Decided 2026-08-08: staff sign in with email, password, and mandatory TOTP on a route separate from the player QR+PIN path. `CreateSession`'s `role='player'` refusal stays, so a four-digit PIN can never mint a coach session. Federated sign-in is deferred.
-- Decided 2026-08-08: `/login` must not render a PIN field without a QR credential in the URL fragment. The corrected entry states are REQ-101 through REQ-107 in `STAFF_CONSOLE_DESIGN.md`.
-- Decided 2026-08-12: the Cloudflare Access gate over `/staff/admin` is removed, and staff sign-in with mandatory TOTP is the single code gate into the console. Two code prompts covered the same people, and Access ran its own eight-hour session that expired underneath an operator already working in the console — asking for an email code mid-session, and doing it to the XHRs under `/staff/admin/api/backend/` as well. The gate never covered the data either: the staff API answers on the API hostname. REQ-402 is withdrawn; the operator gateway's role check and the backend's per-request authorization are unchanged. Reinstating an edge gate means aligning its session with the application's first.
-- Decided 2026-08-12: the staff setup token moves from the link's query to its fragment, matching the player QR credential. A browser never sends a fragment, so the token now reaches no server and lands in no request log; in the query it was reaching the Worker, whose script has observability enabled, and so Workers Logs. The Access redirect that forced the query form is gone. This is a clean cutover with no query fallback — reading the old shape would keep minting the exposure the move removes — so any unredeemed link must be reissued with `reset-staff-credential`. The token lifetime drops from seven days to 48 hours in the same change: a setup link is redeemed in the next few minutes or not at all, and the rest of the window was only time for an unredeemed token to sit somewhere it should not.
-- Still open: how a player recovers on a device whose remembered 30-day session expired without the printed QR code to hand. Caching anything on the device that substitutes for the QR weakens the credential, so the interim behavior is help copy pointing at a parent or coach.
-
-## Staff access and the console
-
-All of these are raised by `STAFF_CONSOLE_DESIGN.md` and are the product owner's
-to resolve, not the implementing agent's.
-
-- Decided 2026-08-08: one team-scoped staff persona called coach, holding both coaching and team-administration duties. A club-level manager for multi-team clubs is deferred; `accounts.role` already reserves `club_admin`. A global `platform_admin` role is added for the operator.
-- Decided 2026-08-08: the console is a separate route tree on the same host with its own entry, code-split out of the player bundle, behind an independent access gate.
-- Decided 2026-08-08: the access gate is Cloudflare Zero Trust Access on the `/staff/*` path of the PWA hostname, provisioned in `infra/digitalocean` so it is reviewed and applied like the rest of the infrastructure. Membership is an Access policy listing operator email addresses, authenticated by Cloudflare's built-in one-time PIN so no external identity provider is required. It is free at this seat count. If the Cloudflare API token lacks the Access scopes, the interim gate is a memorable three-word key held in a Worker secret, and the token scope becomes the blocker to close.
-- Decided 2026-08-08: the console's most destructive action is deactivation. Erasure stays with roadmap item 7.
-- Decided 2026-08-08: a coach may provision players on their own team, same as the design's recommendation, because coaches are the people physically handing a printed code to a guardian. This is phase 3's F-C5.
-- Still open: how a coach's one-time setup link and temporary password reach them, given no email infrastructure. Same shape as the QR/PIN delivery question above.
-- Decided 2026-08-08: staff sessions expire after 30 minutes idle and 8 hours absolute, the step-up re-authentication window is 5 minutes, and staff have no remembered-device option. These were the design's assumed values, now confirmed.
-- Decided 2026-08-08: `PRODUCTION_DATA_APPROVED=true` in production, so the console may provision real players. This trades the approval-checklist gate for a usable alpha; the checklist items it was protecting are now owed rather than enforced, and the guardian-delivery question above is the one that matters most.
-- Still open: whether a coach may see raw entry and assessment values for their own team. `domain.CanViewSession` already says yes for an assigned coach and the design assumes that stands, but it is a youth-privacy decision.
-- Still open: whether the operator's global read across every club needs a stronger control than TOTP plus audit before real data exists.
-- Still open: plausible minimum and maximum values for sprint, distance-run, and shuttle assessments. These are UI guardrails, not standards.
-
-## Disposable dev preview (2026-08-21)
-
-- Decided: the preview is a separate ephemeral environment, not a mode on the
-  production Droplet and not a copy of production authentication or data.
-- Decided 2026-08-28: preview invitations use one shared outer password rather
-  than Cloudflare Access membership, an email list, or an IP geofence. The
-  Worker issues a signed eight-hour cookie from any network because edge
-  geolocation prevented invited testers from reliably reaching the gate.
-  Passwords can be forwarded, so preview data must remain invented.
-- Decided: the gated directory shows four invented player QR codes, all with PIN
-  `1111`, plus a preset preview administrator email and runtime-supplied
-  password. These shortcuts exist only in the dev-tagged API. Production keeps
-  trivial-PIN rejection and mandatory staff TOTP.
-- Decided: every non-health API route also requires an independent gateway
-  token shared only by the API and Worker. The outer password is never sent to
-  the API.
-- Decided: create seeds fixtures, update preserves review changes, reset is an
-  explicit destructive workflow operation, and destroy is manual rather than a
-  scheduled TTL. No real youth data, production credential, or production
-  secret may enter this environment.
-- Decided 2026-08-30: `main` is the canonical development integration branch,
-  and every push automatically deploys that exact SHA to disposable dev as a
-  serialized, database-preserving update. Manual dispatch remains available for
-  create, reset, destroy, and intentional feature-branch previews. Production
-  release remains a separate manual operation.
-- Decided 2026-08-29: disposable dev may authorize one repository-variable
-  Ed25519 operator key for direct troubleshooting as the unprivileged `zoomigo`
-  user. Trusted `main` reconciles the key, publishes only its already-pinned
-  endpoint metadata for one day, and retains strict host checking. This grants
-  no production access and does not authorize copying the SQLite database or
-  exposing container environments.
-
-## Goals and workload
-
-- Decided 2026-08-28: a plan has at most seven consecutive days; an active day
-  is 5–20 minutes; a seven-day plan has at most five active days, at most two
-  non-consecutive hard days, and at least one full rest day. These are
-  conservative bounds for the app's supplemental work, not a complete physical
-  activity prescription. Production authoring remains behind its separate
-  explicit-capability decision.
-- Default weekly goal calculation.
-- Whether players can select a goal from approved options.
-- Coach override rules.
-- How the system decides to show recovery or overtraining guidance.
-
-## Points and leaderboards
-
-- Implemented interim safe projection formula: one session per player per
-  team-local calendar day may score `10 + min(effort level, 5)` points. Extra
-  sessions, duration, distance, repetitions, and exhaustion add no leaderboard
-  points; effort levels 6–7 add nothing beyond the level-5 cap. All valid sessions still count toward a
-  session-based weekly goal. The final formula remains an owner decision.
-- How to avoid rewarding unsafe overtraining or fake volume.
-- Implemented interim tie-breaking: selected metric, then rolling five-day
-  consistency, then display name. The API owns ordering and returns rank.
-- Whether the top-three podium is healthy for this team.
-- Whether consistency should use a rolling window or fixed week.
-- Implemented interim period behavior: Effort sums capped daily points; Streaks
-  counts the current run ending today or yesterday within the selected period;
-  Consistency counts distinct active days in the selected period. The Team
-  consistency badge remains three active days in the rolling last five days.
-- Until explicit season dates are modeled, the Season window begins at the
-  team's creation timestamp.
-
-## Activity rules
-
-- Distance units by team or locale.
-- Minimum and maximum plausible values.
-- Implemented prototype entry defaults are 8 hill-sprint reps, 20 minutes for
-  timed run/walk, 1 mile for distance run, and 20 minutes for recovery
-  walk/jog. These are editable starting points, not targets or medical guidance;
-  an active coach assignment overrides the matching activity's default.
-- Implemented first-assignment rule: the current whole-team assignment is the
-  earliest-due assignment whose team-local date window includes today. A
-  session is attached only when the PWA submits that exact assignment ID with
-  its matching team, activity, unit, and in-window occurrence date. Partial
-  work remains a valid private training entry but completes the assignment only
-  when its structured value meets or exceeds the target. An unassigned session
-  of the same activity does not complete it. Recurring, subgroup, and
-  individual assignments remain deferred.
-- Whether effort and exhaustion are required for recovery sessions.
-- Whether logging becomes a true overlay instead of the `/log` route. Alpha 0.9
-  asked for one so entry feels instantaneous, and the FAB now toggles between
-  `+` and `−` over the route. An overlay changes back-button and deep-link
-  behavior, so it is deferred until that navigation contract is decided.
-- Implemented out-of-range entry handling: a value beyond an activity's
-  `min`/`max` is shown inline as an error and left as the player typed it
-  rather than silently clamped, so the guardrail is visible and the correction
-  stays the player's. Save still refuses the entry.
-
-## Reactions
-
-- Implemented cheer contexts are challenge completion, weekly Team progress,
-  and approved leaderboards. Adding a challenge entry point does not remove
-  cheers elsewhere: the UI names the selected context, and Me distinguishes the
-  three contexts with labels and backgrounds.
-- A challenge cheer is eligible only when the recipient is an active teammate
-  who completed that exact assignment. The private message may name the
-  predefined activity but may not include the recorded value or feeling data.
-- Implemented limit: five reactions from one sender to one recipient in a
-  rolling 30-minute window, across all contexts. Successful UI confirmations do
-  not expose a remaining count; the next attempt shows a private inline error.
-- Implemented Me projection: cheers from the rolling last seven days are shown
-  newest first, 20 at a time behind an opaque “More cheers” cursor. This display
-  window does not delete reactions or define their storage retention.
-- Whether reaction totals are visible.
-- Whether a private recipient badge may mention an exact approved leaderboard placement.
-
-## Player Team Hub consolidation (2026-08-30)
-
-- Decided: `/team` is one overview with a shared weekly-focus card, one
-  positive-only teammate activity list, and one compact Lounge entry. The
-  retired player reward, pulse, challenge-roster, and weekly-roster cards do
-  not remain below it. Staff keeps the full roster-progress projection.
-- Teammate activity contains at most five unique active teammates, newest safe
-  participation first. Each teammate has at most one Cheer context, chosen in
-  this order: active challenge completion, recent participation, then weekly
-  goal completion. The API returns the chosen closed context and still
-  validates it when a reaction is sent.
-- The rolling three-active-days-in-five habit is private Momentum information.
-  It appears only on `/progress`; the fixed team-week aggregate and the rolling
-  personal window no longer share the Team screen.
-- The Lounge opens as `/team?view=lounge`. The overview does not mount its
-  worker, request a socket ticket, or show a live-presence count. Browser Back
-  returns to the overview and restores focus to `Open Lounge`. Decided
-  2026-08-30: the one overview action lives inside the compact Lounge card
-  rather than being duplicated in the Team header.
-- Decided 2026-08-30: the focused Lounge has a reversible full-screen control.
-  It fills the visual viewport immediately, requests native browser fullscreen
-  when supported, and keeps the viewport fallback when native fullscreen is
-  unavailable or refused. Entering and leaving never remounts the Canvas or
-  reconnects its room, and an in-Lounge Exit control remains reachable.
-- `GET /v1/teams/{teamId}/hub` is the canonical player projection. It reuses
-  existing reward, assignment, participation, and reaction rules and adds no
-  schema. `/activity` remains because staff progress and focused-Lounge roster
-  bootstrap still consume its fuller authorized projection.
-
-## Privacy and youth safety
-
-- Parent consent and account ownership.
-- Data retention.
-- Coach and club admin permissions.
-- Audit trail and deletion requests.
-- Applicable youth privacy requirements before production use.
-
-## Product analytics
-
-- Decided 2026-08-14: production collection is operationally enabled by applying
-  the reviewed OpenTofu plan that creates the protected, dedicated Cloudflare D1
-  database. Releases discover that database by its fixed name and require the
-  independent HMAC key; no copied database-ID variable or generic enable flag is
-  used. See `USER_METRICS_PLAN.md`.
-- Proposed retention: 90 days for pseudonymous raw events and 13 months for
-  non-personal daily aggregates, with immediate subject deletion plus a bounded
-  tombstone that reapplies deletion after a D1 Time Travel restore.
-- Proposed access: platform operators may view aggregate product analytics and
-  deliberately resolve one searched player's pseudonymous journey. Coaches do
-  not receive behavioral analytics about children, and D1 stores no roster.
-- Proposed primary product metric: weekly meaningful active players, defined as
-  distinct players who successfully save at least one approved training entry
-  in a calendar week. This measures adoption without rewarding workout volume or
-  athletic performance.
-- Still open: guardian notice/consent or other approved basis, final retention,
-  operator single-player lookup, and aggregate handling after erasure. These
-  policy obligations remain owed even though the owner approved operational
-  enablement on 2026-08-14.
-- Planning assumption: analytics mounts inside the existing platform-operator
-  console rather than creating another admin surface. Its capacity card should
-  track actual Worker requests, D1 reads/writes/storage, events per active player,
-  and projected free-tier headroom.
-- Proposed scale policy: keep business outcomes unsampled; summarize route time by
-  visit; step raw retention from 90 to an approved 60/30 days before D1 reaches
-  70%; and deterministically sample only high-volume route/time events if needed.
-  Still open: the exact alert/step-down thresholds after two weeks of measured
-  production coefficients replace the planning estimates.
-
-## Backend observability (2026-08-23)
-
-- Implementation assumption: the reviewed code path targets one Grafana Cloud
-  Loki/Prometheus stack. This does not create an account, accept provider terms,
-  or enable collection; those remain deliberate owner actions.
-- The collector is opt-in. Dev may enable it only after the measured admission
-  test in `OBSERVABILITY_PLAN.md`. Production moves to the reversible 1 GiB
-  CPU/RAM size with the initial rollout; collection remains off until the live
-  host passes the same admission test and the Grafana endpoints are configured.
-- Proposed provider retention remains 14 days for dev and 30 days for
-  production. Final retention is still a privacy/cost decision configured in
-  Grafana Cloud, not silently enforced by application code.
-- Alert definitions are checked in paused. The owner email destination and
-  final latency/error thresholds remain open until seven days of dev baseline
-  data exist; provisioning the file must not unpause the rules.
-- Cloudflare Worker logs remain phase two. Origin API logs and metrics do not
-  depend on that decision.
-
-## Backup operations
-
-- Recovery-point and recovery-time objectives.
-- Daily/weekly retention after youth-data and deletion-policy review.
-- Selected first off-host provider: private Cloudflare R2 Standard storage, using only the free allowance while usage remains below it. The age X25519 identity and key-rotation schedule still require owner approval.
-- Who may initiate, download, or restore a backup and how those actions are audited.
-- Implemented baseline: format-v1 `tar.gz` archives contain a consistent SQLite snapshot, strict manifest, checksums, migration ledger, and safe counts. Restore always writes a new isolated file, applies forward migrations, and refuses live-file overwrite.
-- Implemented production envelope: verified format-v1 payloads are encrypted with age X25519 before upload; the VM stores only the public recipient. The matching identity remains off-host with the recovery custodian. Retention and custodian approval remain open.
-
-## Cloud VM operations
-
-- Implemented baseline: one provider-neutral Linux VM runs Caddy plus one non-root Go/SQLite API replica through Docker Compose; only ports 80/443 are public, while database and backup directories are explicit protected host bind mounts.
-- Selected first host: one DigitalOcean Basic x64 Droplet in `nyc1`, initially 512 MiB and resized CPU/RAM-only to 1 GiB for the bounded observability collector, with 1 GiB swap, DigitalOcean backups, monitoring, an assigned Reserved IP, and an operator-maintained SSH allowlist.
-- Implemented operations baseline: Ubuntu security updates run daily without unattended reboot; required reboots are completed within seven days, container logs are bounded, the production check requires at least 1 GiB free, and DigitalOcean alerts watch disk, memory, CPU, and the public `/readyz` endpoint. The alert email destinations remain operator-private inputs.
-- QR/PIN authentication and the same-origin PWA cookie gateway are implemented. Real youth-data deployment still requires guardian ownership/recovery policy, secure credential distribution, and privacy approval.
-- Implemented safety gate: production player provisioning defaults locked and accepts only explicit `--test-only` identities until `PRODUCTION_DATA_APPROVED=true` is deliberately configured after approval.
-- Implemented release candidate: one GitHub workflow runs static, targeted-test,
-  and build gates and publishes an immutable GHCR image, and a separate release
-  workflow deploys an already-published image to the VM and Cloudflare Worker
-  through a disabled-by-default protected environment. Releasing therefore never
-  rebuilds, so the artifact reaching production is the one that was verified; the
-  release refuses a revision with no published image or one that is not an
-  ancestor of `main`. Full Docker E2E is an explicit periodic or
-  release-candidate workflow input. The identical release path is available
-  locally during a GitHub incident.
-- Implemented secret baseline: one dedicated age identity decrypts the exact deployment bundle in CI; a separate operator identity provides recovery. Neither identity is the database-backup recovery key. The remaining decisions are custodian identities, rotation interval, and repository environment-review availability.
-- Implemented IaC baseline: OpenTofu models the DigitalOcean project, Droplet,
-  assigned Reserved IP, restricted firewall, proxied API DNS, monitoring,
-  backups, and secret-free cloud-init. Unix operator scripts create a reviewed
-  plan and explicit apply while keeping encrypted local state; CI never applies
-  or destroys infrastructure.
-- Selected production frontend host: Cloudflare Workers at `zoomigo.quicktrack.cc`; the API is `api.quicktrack.cc`. The release configures the Worker custom domain, while OpenTofu manages the API A record.
-
-## Milestone 1 prototype assumptions
-
-- The mock team uses a three-session weekly goal.
-- Distance entries use miles because unit selection is a team-level setting, not a player setting.
-- Prototype effort points award a capped completion value plus the selected effort level; repetitions, speed, distance, and duration do not increase the score.
-- The automatic consistency badge uses three logs in a rolling five-day window.
-- Leaderboard ties are resolved by consistency first, then by display name. This is presentation behavior, not a finalized competition policy.
-- Reactions target a teammate's recent completion. Milestone 1 shows a short device-local cooldown after sending one reaction.
-- Activity input ranges are conservative UI guardrails for the prototype and are not medical or performance standards.
-- Date and 24-hour deletion checks use the player's current device time until a trusted server clock exists.
-- The PWA frontend will remain independently cloud-hostable and will use a small JSON API boundary when the backend is added.
-- The first training-entry API treats the previous seven team-local calendar dates plus today as eligible, rejects future timestamps, and sets deletion eligibility to exactly 24 hours after the trusted server creation time.
-- The privately hosted Sites preview remains in explicit device-local prototype
-  mode when neither backend binding nor production-required flag is configured.
-  A production Worker release sets both `ZOOMIGO_API_BASE_URL` and
-  `ZOOMIGO_REQUIRE_BACKEND=true`; if its backend URL is absent, authentication
-  fails closed and prototype data is never rendered. Connected builds keep the
-  opaque API session in a same-origin HTTP-only cookie and never expose it
-  through `VITE_*` variables.
-- The milestone 2 backend starts with Go `database/sql`, CGo-free SQLite, one API replica, and a persistent volume. Repository boundaries preserve a managed Postgres move when horizontal replicas, higher concurrent writes, or managed HA/PITR justify the extra operations.
-- Milestone 1 uses device-local persistence as required by the prototype boundary and does not add framework-specific server actions, so the Go API can replace the local store without rewriting the view components.
-- Implemented connected-mode streak comparisons: the Go API deterministically
-  selects a predefined kid-safe template per player and team-local day and
-  returns server-generated copy. The local prototype keeps a fixed predefined
-  comparison; player-authored copy is never accepted.
-- Milestone 1 session-detail routes filter to the current mock player. The production Go API must authorize each detail request for only the entry owner, an assigned coach, or an authorized club administrator; route knowledge alone must never grant access.
-
-## Avatar builder (2026-08-10)
-
-- The avatar is a layer system, not a fixed portrait. `app/avatar/catalog.ts` is
-  the single source of truth for which parts exist; adding a frame, animated
-  effect, or shader later means one union member, one catalog entry, and one art
-  registry entry, all inside `app/avatar/`.
-- Server validation is deliberately **shape only**: an object of
-  `layer key -> option slug`, capped at 12 keys and 512 bytes of canonical JSON.
-  Membership is not checked, so a well-formed but unknown slug is stored and
-  the client treats the complete configuration as invalid and renders initials.
-  The server takes over allowlisting when unlocks or currency give it a reason
-  to know the catalog.
-- Avatar Studio configurations require `version: "2"` plus every current layer.
-  Legacy, partial, unknown, or malformed configurations intentionally render as
-  the player's initials on their hashed-color background. Opening the Studio
-  from that fallback starts a new default v2 draft; there is no data backfill.
-- An absent `background` means "use the hashed player color", so the default and
-  a deliberate choice stay distinguishable in storage.
-- The two divergent hashed avatar palettes are now one shared
-  `app/avatar/color.ts` `playerColor(id)` keeping the richer eight-color set. It
-  tints the initials fallback and doubles as the default avatar background, so a
-  player is no longer one color in the nav and another in the team list.
-- The `player` face ships one deliberately non-naturalistic ZoomiGo-purple tone
-  for everyone. Asking an 11-year-old to pick a skin color from a few swatches is
-  worse than shipping none, so a researched skin layer is deferred to its own
-  change rather than approximated here.
-- Avatars are rendered on the player's own surfaces only — the builder, the `/me`
-  hero, and the nav. Team and leaderboard rows keep initials, so no teammate's
-  chosen look can appear in a row that is not theirs.
-- Decided 2026-08-27: Prize Boxes own a versioned, server-authorized inventory
-  for optional Avatar parts and Team Lounge items. Included basics require no
-  per-player row. Currency, purchases, trades, rerolls, and crafting remain out
-  of scope.
-- Integration assumption 2026-08-27: one free sealed daily box is independent
-  of training and does not change Momentum. Opening later chooses the item, so
-  claiming cannot reveal or reroll a reward.
-- Decided 2026-08-30: Prize collection and chronological history browsing stay
-  inside the canonical `/prizes` route, with predefined Avatar and Team Lounge
-  filters. The retired `/prizes/all` reference route does not return. Opening an
-  unviewed item's detail attempts `markViewed`; a failure keeps both the owned
-  item and its New treatment until the server confirms the update.
-- Decided 2026-08-30: collection cards and item details identify rarity and the
-  place an item can be used, but not its acquisition source. Source remains in
-  the explicit chronological History view only.
-- Presentation assumption 2026-08-30: the four app rarities follow Rocket
-  League's ordered item-color ladder: Common/Base gray, Uncommon/Sport green,
-  Rare/Special blue, and Epic uses the Very Rare/Deluxe purple treatment because
-  Rocket League has no tier named Epic. Text labels remain present alongside
-  the gradient, so color never carries rarity by itself.
-- Development-fixture assumption 2026-08-30: an explicit disposable-dev reset
-  gives Mason 99 sealed prior-day boxes while leaving today's daily box
-  claimable. Other preview players and production builds are unchanged.
-- Integration assumption 2026-08-27: Team Rewards begin as one predefined,
-  versioned celebration with bundled artwork and immutable display snapshots.
-  Progress uses only qualifying team-local days at a bounded roster percentage;
-  authored copy, uploads, alternate rules, and player-level results stay out.
-- A player qualifies for a reward day only through an accepted workout linked
-  to that day's plan or its planned-rest check-in. Each active roster member
-  counts once per team-local day; partial work remains safe but does not count.
-
-## Coach console UX, issue #9 (2026-08-12)
-
-- **`assignment_catalog` is the preset table.** Issue #9 asked separately for
-  every workout type to be assignable and for the weekly plan to be built from
-  presets. Those are one feature: a catalog row already carries an activity, a
-  default target, and a unit. So the fix was seed rows in a migration, not a new
-  table and not a client-side list. `app/domain/types.ts` no longer pins a
-  catalog key literal, because pinning one is what made the product look like it
-  had exactly one workout.
-- **Deleting an assignment is refused rather than cascaded.** `reactions
-.context_assignment_id` and `training_entries.assignment_id` both reference
-  `assignments`, so deleting one players have used would either violate the
-  foreign key or take their own history with it. Delete is therefore only for a
-  future assignment nothing points at; anything else is **ended early**, which
-  sets `due_on` to today in the team's time zone and alters no entry. The 409
-  names that alternative rather than just refusing.
-- **A start date that has passed cannot be moved.** Which entries counted toward
-  an assignment is decided by its window, so moving a passed start silently
-  re-judges the past. The target and the due date stay amendable.
-- **The coach's progress screen reads the players' own projection.** Rather than
-  compute weekly sessions and goal attainment a second time for staff,
-  `GET /v1/staff/teams/{id}/progress` serves `store.TeamActivity`, so a coach and
-  a player can never be told different things about who met the goal. The
-  operator may read it too: repairing a team is hard without seeing the picture
-  the coach is describing.
-- **No "Today" route.** It was in the first draft of the plan and cut: coaches
-  see players only on practice days, and there is no channel to push anything to
-  a player — the app has to be opened by the player. A route framed around today
-  would have implied a reach the product does not have. Training, Progress, and
-  Roster are the three sections.
-
-## Avatar Studio foundation (2026-08-11)
-
-- Avatar editing uses the focused `/me/avatar` route. Player navigation and the
-  record-training action are hidden on the mobile editing surface so they cannot
-  cover category choices or save controls.
-- Avatar configuration v3 intentionally invalidates v2. Invalid or older saved
-  values render initials and open as the new three-person default.
-- Gear is one visible category with independent hat and glasses paint layers;
-  replacing an item affects only its own sublayer.
-- Three people are available initially. The dog, cheetah, and fox are shown as
-  advancement-locked proofs; their exact requirements and inventory source are
-  deferred and must not be treated as finalized progression rules.
-- The only background style is a user-selected solid color. Avatar primary and
-  accent colors use the same native color-control pattern and default to blue
-  with a dark violet accent.
-- The orbit effect proves composable animation and stops under reduced-motion
-  preferences. Saved looks, rarity, currency, and unlock celebrations remain
-  later work.
-- The Studio preview uses a taller 64-by-82 portrait crop so the complete kit is
-  visible. Profile and navigation avatars keep the compact 64-by-64 icon crop.
-- The expanded prototype catalog (six heroes, eight kits, seven gear choices,
-  and twelve backdrops) demonstrates dense browsing with predefined options;
-  availability and unlock rules are intentionally not represented yet.
-
-## Avatar Studio palette and save pass (2026-08-11)
-
-- Avatar configuration v4 intentionally invalidates v3. Four compact
-  `primary:accent` layer palettes plus one background color keep the complete
-  configuration at the server's existing 12-key limit.
-- Color belongs to the layer it paints: person, kit, hat, and glasses each keep
-  independent primary and accent values. Background keeps one independent solid
-  color. Each swatch opens a preset wheel that updates the preview immediately;
-  a pencil keeps the native custom-color control as a secondary path.
-- Background is one top-level category with Color and FX sublayers. Orbit and a
-  brightness pulse prove that effects remain independently composable.
-- Saving is complete only after the profile owns the result: the Studio returns
-  to `/me`, and that caller shows and clears a transient query-driven toast.
-  The editor has no persistent success state or reset action.
-- All kit options share one symmetric shoulder-and-collar geometry. Pattern art
-  changes independently without moving the outfit's silhouette.
-
-## Avatar Studio production save hotfix (2026-08-11)
-
-- The server continues to store a small flat configuration rather than owning
-  the client catalog. Safe values are now precisely one of: a lowercase option
-  slug, a six-digit hex color, or two six-digit hex colors separated by a colon.
-- Layer keys may contain camelCase after their initial lowercase character.
-  This matches v4's `headPalette` and `backgroundColor` keys while still
-  rejecting punctuation, spaces, and uppercase-leading keys.
-
-## Current-player avatar identity (2026-08-11)
-
-- The signed-in player's saved avatar is reused anywhere that player appears,
-  including team progress, challenges, and leaderboards. Other players remain
-  on the safe initials fallback until shared avatar visibility is designed.
-- In dense lists, the current player's avatar is slightly larger and gets a
-  lime-and-white ring plus a small sparkle marker. This avoids another visible
-  `You` label while preserving an accessible `, you` name.
-
-## Team Lounge composite items (2026-08-29)
-
-- Implementation assumption: boost pad, bounce drum, pinwheel, orbit beacon,
-  breeze fan, soft sand mat, speed lane, wobble cone, swing gate, mini goal, and
-  ball cannon are included Lounge basics rather than Prize Box unlocks. They
-  still consume the same earned weekly placement credits as every other Lounge
-  object.
-- Every item combines at least two predefined Canvas behaviors. Their effects
-  are playful room interactions only: they award no points, publish no player
-  result, and do not change training, Momentum, or leaderboard data.
-- The mini goal recognizes any tagged predefined Lounge ball, holds it for 0.4
-  seconds, increments its own durable two-digit counter, then launches the ball
-  eight world units out of its mouth at speed 18 along the goal's rotated axis.
-  Other player-placed items cannot trigger the counter or be teleported by it.
-
-## Canvas v16 mini-goal re-entry guard (2026-08-30)
-
-- Canvas generation 16 is a clean cutover from generation 15 because the
-  mini-goal collider geometry and immutable definition change. Retired room
-  placements and counters are not imported, and its reservations do not debit
-  the active generation's weekly placement budget.
-- Mini-goal definition v4 moves its capture sensor behind the mouth and closer
-  to the back of the net. A scored ball is exempt from the goal's dampening and
-  remains ineligible to score again until it leaves that goal's sensor; a
-  one-second re-entry cooldown begins on exit and restarts if the ball returns
-  before it expires.
-- The hundredth-goal celebration remains reduced-motion-safe and now fills the
-  viewport with a short 100-particle burst. It remains transient presentation,
-  not durable or performance state.
-
-## Canvas v15 dynamic mini goal (2026-08-30)
-
-- Canvas generation 15 is a clean cutover from generation 14. It does not
-  import the retired room snapshot; every mini goal begins at `00` in the new
-  room, while the generation-bound credit rule protects the active budget.
-- The shared composite behavior state advances to version 2 and the mini-goal
-  definition advances to version 3. A score is stored on each goal, not on a
-  player or team performance record.
-- The system and earned ball definitions advance to versions 8 and 5. Their
-  solid colliders opt into item sensors, and the goal accepts the two predefined
-  ball definition IDs because Canvas contact parties expose entity-definition
-  tags rather than collider tags.
-- Counters display `00` through `99`. The hundredth scored ball wraps `99` to
-  `00` and emits a transient, reduced-motion-safe confetti celebration.
-- The counter is playful Lounge state only. It does not award points or change
-  training, Momentum, challenges, leaderboards, or public player data.
-
-## Canvas v17 pass-through, visual layers, and ball cannon (2026-08-30)
-
-- Canvas generation 17 is a clean cutover from generation 16. It does not
-  import the retired room snapshot; retired reservations remain isolated from
-  the active generation's placement budget.
-- Placed item solids no longer include the avatar-body collision bit. Avatars
-  therefore pass through goals, nets, gates, drums, and cones while preserving
-  boundary containment, sensor-driven item effects, and ball-kick behavior.
-  Ball solids still collide with the world and other item solids.
-- Entity artwork uses semantic Pixi bands instead of accidental catalog order:
-  decorative stamps at 4, ground effects at 6, physical props at 10, moving
-  balls at 20, and avatars at 30. Interactive movers therefore remain readable
-  above pads and props while DOM editing controls stay above the scene.
-- The included ball cannon has one rear sensor. After either predefined Lounge
-  ball definition dwells there for 0.05 seconds, the authoritative behavior
-  moves the ball just beyond the rotated muzzle and gives it a
-  34-unit-per-second forward velocity. Per-ball cooldown prevents duplicate
-  launches; avatars and non-ball items are ignored.
-- The Canvas, system ball, avatar, earned ball, and stamp definitions advance to
-  versions 17, 9, 2, 6, and 3. Existing composite items advance to version 3,
-  the scoring mini goal advances to version 5, and the new cannon begins at
-  version 1. These effects remain Lounge-only and create no score, training,
-  Momentum, or leaderboard data.
-
-## Canvas v14 Lounge physics bridge (2026-08-30)
-
-- Canvas generation 14 is a clean cutover from generation 13. It does not
-  import the retired room snapshot; the existing generation-bound credit rule
-  prevents retired reservations from reducing the active room's weekly budget.
-- The system ball and earned ball now collide with item solids. Fixed and
-  kinematic objects keep their authored position, while the dynamic bounce drum
-  and wobble cone can be displaced and rotated by ball or avatar contact.
-- The ball definitions advance to versions 7 and 4, and the shared composite
-  definitions advance to version 2. Wobble torque is calibrated against the
-  real simulation rather than the command-only behavior harness.
-- Pixi paints participant avatars and placed item artwork from simulated entity
-  state. DOM overlays retain accessibility and editing controls but no longer
-  hide authoritative motion behind a separately transformed image.
-- These interactions remain transient Lounge play. They create no score,
-  training entry, Momentum, leaderboard value, or public performance result.
-
-## Canvas 0.6 Lounge authority (2026-08-28)
-
-- Canvas generation 10 is a clean cutover: ZoomiGo does not import pre-0.6
-  rooms, item data, permits, or intermediate placement reservations.
-- Production may expose only the predefined Lounge items now that every spawn
-  consumes a short-lived ZoomiGo permit bound to the participant, room/week,
-  canvas and definition generations, transform, configuration, and mutation.
-- Only a trusted Canvas `accepted` or `rejected` outcome finalizes a consumed
-  hold. `unknown` and `expired` remain held for operator review; browser claims
-  and timeouts never release earned inventory.
-- A browser tab remembers the exact idempotency key for an unfinished placement.
-  On refresh or retry, the app may release only that player's matching team,
-  room, and reservation while it is still held and has no Canvas mutation key.
-  The atomic release-versus-authorization check keeps consumed or unknown
-  Canvas outcomes held for reconciliation. A zero remaining count stays in
-  accessible control labels and picker state, but the dock omits the visual
-  count badge when there is nothing left to place.
-- Socket tickets, room leases, ownership generations, and emote cooldowns use
-  the application database as their atomic authority.
-- Proven 2026-08-28: two real API processes sharing that SQLite database pass
-  atomic ticket consumption, fenced ownership handoff, stale-owner rejection,
-  graceful drain, and room-stable Caddy routing. Production remains at one API
-  replica until an intentional deployment-capacity change.
-- Move, rotate, scale, and delete each require a short-lived, one-use ZoomiGo
-  permit bound to the owner, current durable room, Canvas and definition
-  generations, entity revision, one operation, and its exact target. Only the
-  player's own committed item from the current team-local day is editable.
-- A trusted accepted delete releases its placement credit; rejected, unknown,
-  and expired outcomes do not. Pending edit outcomes join the existing
-  reconnect reconciliation and read-only operator report.
-- The reference branch's Map action was a disabled placeholder, not working
-  parity. It remains absent unless camera navigation becomes an explicit
-  requirement after the secured editor and unobscured viewport are restored.
-- Lounge reactions include five predefined emotes and five reviewed supportive
-  quick phrases. Canvas derives sender identity and sequence; ZoomiGo validates
-  membership, the exact closed payload, and one shared reaction cooldown. Both
-  effects are transient and never join durable player history. Quick phrases
-  are not chat: there is no typing, target recipient, inbox, transcript, or
-  free-form payload.
-- An unselected owned item uses a tap only to enter edit mode; a slide does not
-  select or move it. A later drag while selected is optimistic in the browser
-  and sends no mutation while the pointer moves. Releasing that move, or
-  choosing rotate, scale, or delete, adds one ZoomiGo permit round trip followed
-  by one Canvas mutation. Tapping the playfield or the checkmark ends editing.
-- The Docker browser gate budgets each permit round trip at 4 KiB, an idle
-  Lounge at 8 KiB/s of total WebSocket traffic, and the four-operation edit
-  sequence at 32 KiB of total WebSocket traffic. It also rejects more or fewer
-  than one permit for each committed operation.
-- Do not replace exact permits with an unbounded validation-only client stream.
-  A future Canvas capability lease may amortize move, rotate, and scale only if
-  it is short-lived and owner/entity/revision scoped, enforces transform bounds,
-  rate and sequence limits at mutation acceptance, and returns canonical state
-  for rollback after rejection. Delete remains separately authorized.
-
-## Team Lounge physical performance budget (2026-08-28)
-
-- Adopted physical acceptance thresholds are recorded in
-  `TEAM_LOUNGE_PERFORMANCE_BUDGET.md` for an iPhone SE (2nd generation) on iOS
-  26.6.1 Safari and a Pixel 6a on Android 16 Chrome 152.0.7977.42. Later stable
-  patch releases are allowed only when the exact tested build is recorded.
-- The canonical 320 CSS-pixel floor allows at most 1 CSS pixel of horizontal
-  overflow, no playfield/dock overlap, no overlay-driven Lounge resize beyond
-  1 CSS pixel, and 44 CSS-pixel primary dock targets.
-- Physical p95 Canvas ready and reconnect budgets are 5 seconds and 3 seconds.
-  The 15-minute device session caps single-core CPU at 25% average and 50% p95,
-  resident memory at 180 MiB with no more than 20 MiB growth, cold load at 4
-  MiB, reconnect at 384 KiB, and total session traffic at 12 MiB.
-- The existing exact one-use edit-permit and WebSocket budgets remain part of
-  the same gate. Production remains one API replica; no Map, compatibility
-  path, or optimistic poor-connection behavior is introduced. Poor-connection
-  optimism remains deferred and currently has no matching GitHub issue.
-- This decision records budgets, not invented physical measurements. Both
-  reference devices must populate the qualification record before a broad
-  Lounge release; desktop automation protects only the deterministic subset.
-
-## Team Lounge Map and second theme (2026-08-28)
-
-- Decided: no Map action ships while the canonical Lounge fits one viewport.
-  The retired disabled placeholder does not return. A future larger room must
-  first define bounded camera navigation, touch/keyboard behavior, focus
-  movement, and reset-to-player behavior.
-- Starlight Training Camp is the second-theme review candidate recorded in
-  `TEAM_LOUNGE_STARLIGHT_CAMP.md`. Its generated background and four included
-  props are immutable versioned assets, but the theme has no schedule or room
-  generation until it receives explicit visual approval.
-- Camp lantern, pennant flag, water cooler, and training cone are included
-  predefined stamps. They do not enter the Prize Box catalog, change rarity
-  balance, block physics, collect data, or bypass weekly placement credit and
-  owner-bound one-use mutation permits.
-
-## Team Lounge radial editor and quick phrases (2026-08-28)
-
-- The selected-item editor is a circular ring centered on the item's live
-  projected position. Its center stays transparent, controls sit around the
-  object, and the ring follows optimistic dragging and later canonical Canvas
-  projections. Near playfield edges the ring stays centered on the object while
-  individual 44 CSS pixel controls clamp inward to remain reachable at 320px;
-  item coordinates never change to accommodate the editor.
-- Unselected current-day owned items have a faint lime dashed boundary. The
-  boundary becomes solid while selected. Avatar and selected-item gestures win
-  first claim. Vertical background gestures use the browser's native page
-  scrolling and momentum; the Lounge does not synthesize or scale scroll input.
-- The player-facing action names and order are Stamps, Items, Chat, and React.
-  React opens an anchored emote tray. Chat opens an anchored set picker;
-  Standard is enabled and Set 2 and Set 3 remain visibly locked without invented
-  themes or unlock rules. Every tray uses the same quick slide-up and slide-down
-  transition, disabled under reduced motion.
-- Standard contains exactly ten predefined messages in two five-button wings
-  around the persistent vertical Standard, Set 2, Set 3 spine: `Hi!`, `Bye!`,
-  `Let's Go!`, `Nice!`, `OK`, `Oops`, `No`, `Yep`,
-  `Huh?`, and `Thanks Bromigo`. Sending therefore takes three deliberate taps:
-  Chat, Standard, then the final message. These remain room-wide transient
-  reactions, not conversation content, and use the same authenticated
-  membership check, sender binding, two-second cooldown, and 2.4-second
-  rise-hold-fade window as emotes.
-- The phrase action accepts only `{phrase: <allowlisted-id>}`. Open text, extra
-  payload fields, unknown IDs, item targets, and inactive members are rejected.
-  Nothing is persisted and no compatibility, Map, or extra API-replica path is
-  introduced.
-- Canvas v13 carries the v12 edge and kick behavior into a clean durable-room
-  identity cutover. It uses four explicit,
-  invisible, frictionless elastic boundary colliders. Dynamic balls use lower
-  drag and damping, a low-speed kick dead zone, nonlinear speed-to-power growth,
-  and a hard impulse cap. Unlocks do not alter kick power in this revision; any
-  future progression tuning needs a separate explicit product and authority
-  decision. The clean cutover creates generation-13 rooms rather than importing
-  weekly v12 state, while owner-bound one-use mutation permits remain unchanged.
-- Lounge placements are durable across team-local day and Monday week
-  boundaries by using one team-and-Canvas-generation room identity. Weekly
-  activity credits and the current-day owner edit window still roll over in the
-  team timezone. "Permanent" means the life of that immutable Canvas
-  generation; a future intentional clean cutover may start a new room and does
-  not import prior state.
-- Decided 2026-08-30: a clean Canvas-generation cutover does not import the
-  retired room's snapshot, but its invisible reservations also do not debit the
-  active room's weekly placement budget. Credits are claimed independently per
-  room generation. Reservation, entity, and owner-mutation authority remain
-  bound to the exact immutable room and Canvas generation that accepted them.
-- Development builds expose a player-local Beach/Starlight preview switch and
-  an authenticated current-player-only test unlock action. The scene preview is
-  temporary browser state; the dev grant uses only predefined Lounge catalog
-  items. Neither control or route is enabled in production, and no general
-  staff/admin production authority is implied.
-
-## Team Lounge stamp and item contract (2026-08-29)
-
-- Stamps are inert transparent decorations with an empty capability tuple. They
-  share a sticker-like white keyline and sit below avatars and physical items.
-- Items must declare a non-empty tuple of collision, physics, or behavior
-  capabilities, and the matching Canvas definition must actually contain a
-  body, collider, or behavior. An inert visual belongs under Stamps.
-- Camp lantern, pennant flag, water cooler, and training cone are therefore
-  stamps. Their existing definition IDs remain unchanged to preserve the
-  durable generation-13 room without an import, compatibility path, or cutover.
-  The earned dynamic beach ball remains an Item.
-- Both dock buttons show the same remaining weekly placement count. The picker
-  shows used placements over earned capacity; this does not alter credit
-  accounting or owner-bound one-use permits.
-
-## Team Lounge Pixi actor presentation (2026-08-30)
-
-- The authenticated shared Lounge renders moving participants and placed scene
-  items in Canvas's existing stable Pixi/WebGL entity layer. React remains
-  responsible for labels, reactions, accessibility descriptions, and edit
-  controls; static weekly visitor traces may remain DOM UI.
-- Participant-specific avatar art is selected with a renderer-local visual
-  projection. It does not mutate simulation entities, snapshots, protocol
-  messages, ownership, physics, or server authority.
-- Every placeable definition supplies its real catalog texture to Pixi while
-  retaining its existing body, collider, behavior, layer, and authority
-  contract. The DOM item editor keeps transparent hit targets but no longer
-  repaints duplicate item artwork.
-- A WebGPU or scene-stack rewrite remains deferred. It requires its own device
-  qualification and migration decision after the current WebGL path is proven
-  insufficient against the recorded performance budgets.
+**Status:** Decision register
+
+Only unresolved owner choices belong here. Add an owner, decision deadline or
+trigger, and dated resolution. When resolved, update the maintained source of
+truth and remove the item; Git keeps the history.
+
+## Real-youth-data launch approval
+
+**Owner:** Product owner and named recovery/key custodians
+
+**Needed before:** Any real player is provisioned or real youth data is stored
+
+The repository and production templates keep `PRODUCTION_DATA_APPROVED=false`
+until every item in
+[backend/PRODUCTION_APPROVAL_CHECKLIST.md](backend/PRODUCTION_APPROVAL_CHECKLIST.md)
+has a dated owner approval. A historical note claimed the flag had already been
+enabled for an alpha, but that conflicts with the current runtime defaults,
+runbook, checklist, and release contract. Confirm one of these explicitly:
+
+1. complete the checklist and approve real data; or
+2. keep production test-only.
+
+Do not treat the removed historical note as authorization.
+
+## Guardian handoff and recovery
+
+**Owner:** Product owner
+
+**Needed before:** Real-player launch approval
+
+Decide who hands a generated QR/PIN to the guardian, how identity is verified,
+which channels are permitted, how a lost credential is recovered, and whether a
+second adult must participate. The app currently reveals credentials once and
+supports reissue/revoke, but it cannot define the real-world custody policy.
+
+## Retention, deletion, and moderation
+
+**Owner:** Product owner/privacy owner
+
+**Needed before:** Real-player launch approval
+
+Approve concrete retention periods for training entries, reactions/badges,
+authentication and admin audit events, analytics events, backups, and inactive
+accounts. Define guardian deletion/export requests and an audited staff flow for
+removing a training entry after the player's 24-hour window. Current product
+code must not be mistaken for a complete privacy policy.
+
+## Backup recovery-key custody
+
+**Owner:** Named primary and recovery custodians
+
+**Needed before:** The first production restore drill and real-data approval
+
+The release/runbook automation currently supports a protected GitHub
+`BACKUP_AGE_IDENTITY` for on-demand restore drills plus one offline recovery
+copy. The approval checklist historically required the identity never to live
+permanently in GitHub. Choose and record the approved model, custodians,
+rotation interval, access review, loss procedure, and whether GitHub storage is
+temporary or prohibited. Until then, do not claim key custody is approved.
+
+There is no encrypted deployment-secrets bundle; that retired mechanism is not
+part of this decision.
+
+## Training-plan workload bounds
+
+**Owner:** Product/training owner
+
+**Needed before:** Enabling staff plan publication in production
+
+Approve numeric limits for daily blocks, duration/distance/repetitions,
+consecutive training days, recovery/rest expectations, and the warning or
+refusal behavior at each limit. Development can exercise the existing
+predefined templates; production authoring remains disabled.
+
+## Product analytics policy
+
+**Owner:** Product owner/privacy owner
+
+**Needed before:** Enabling collection for real players
+
+Approve the event catalog, 90-day raw-event retention, subject erasure behavior,
+small-cohort threshold, access review, and incident procedure. The current D1
+implementation has one raw-event table and bounded pruning; durable aggregate
+rollups and restore-safe erasure tombstones are not implemented.
+
+## Brand and progression content
+
+**Owner:** Product/visual owner
+
+**Needed before:** Shipping the related content
+
+- Approve final Zoomi/Rover hero, loading, and celebration art.
+- Define requirements for currently locked animal avatars rather than implying
+  a progression rule.
+- Approve content and unlock rules for Lounge quick-message Set 2/Set 3.
+- Approve or reject the Starlight Training Camp candidate in
+  [TEAM_LOUNGE_STARLIGHT_CAMP.md](TEAM_LOUNGE_STARLIGHT_CAMP.md).
+
+## API lifecycle and private reaction badges
+
+**Owner:** Product and engineering owner
+
+**Needed before:** A breaking API revision or reaction-moderation work
+
+Decide whether a private reaction badge may name an exact placement on an
+approved participation leaderboard, and define API versioning/deprecation plus
+final opaque cursor encoding. The current safe default omits raw performance
+and does not provide an audited moderation endpoint.

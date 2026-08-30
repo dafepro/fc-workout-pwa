@@ -1,5 +1,7 @@
 # Backup and restore operations (snapshot v1, logical export v1, age envelope)
 
+**Status:** Maintained
+
 ## Delivered boundary
 
 The `zoomigo-backup` Go command creates, verifies, age-encrypts, and restores a migration-aware SQLite snapshot archive, and produces and imports a versioned logical export. Cryptography and restore behavior are local and require no cloud service. The VM upload script sends only the encrypted envelope to a private Cloudflare R2 bucket.
@@ -166,7 +168,10 @@ zoomigo-backup import-encrypted \
 
 `export`, `verify-export`, and `import` are the plaintext equivalents, for local tests and format tooling.
 
-The export runs inside one deferred read transaction, so all thirteen tables come from a single consistent point in time while the API keeps serving. The source database is not modified. Publication mirrors the snapshot path: write to a temporary archive, re-extract and verify it, then rename.
+The export runs inside one deferred read transaction, so every exported table
+comes from a single consistent point in time while the API keeps serving. The
+source database is not modified. Publication mirrors the snapshot path: write
+to a temporary archive, re-extract and verify it, then rename.
 
 Verification is offline and needs no database. It checks the envelope shape, `SHA256SUMS`, the manifest against its checksum, each table file against its manifest digest and byte size, the declared dependency ordering, the declared row count, and that every row carries exactly the fields the manifest declares.
 
@@ -178,8 +183,12 @@ The export carries every table, including `auth_credentials` and `auth_sessions`
 
 ### Proven by
 
-- A focused real-SQLite round trip seeds every table, including nullable columns, `BLOB` columns and columns added by later migrations, exports, imports, and compares all thirteen tables row for row.
-- A second test exports from a two-migration schema and imports it into the current five-migration schema, asserting the later-added columns take their declared defaults and the later-added tables arrive empty.
+- A focused real-SQLite round trip seeds every current table, including nullable
+  columns, `BLOB` columns and columns added by later migrations, exports,
+  imports, and compares every exported table row for row.
+- A second test exports from an older schema and imports it into the current
+  schema, asserting later-added columns take their declared defaults and
+  later-added tables arrive empty.
 - Further tests cover byte-identical repeat exports, rejection of a tampered table without creating a target, rejection of an export from a newer build, refusal to overwrite an existing database, the age envelope, and that the two archive formats reject each other.
 - The Docker E2E suite exports from the live API's WAL database, imports it, starts a second API on the result, and compares the owner's private projections.
 

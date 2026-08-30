@@ -1,164 +1,101 @@
-# Draft domain model
+# Domain model
 
-This is a conceptual model for the prototype. Names may change during implementation.
+**Status:** Maintained
 
-## Club
+This is the conceptual model and authority map. It intentionally avoids a fixed
+table or migration count; [../backend/migrations](../backend/migrations) is the
+executable SQLite schema.
 
-- id
-- name
-- branding settings
+## Identity and organization
 
-## Team
+- **Club** owns teams and club-scoped staff authority.
+- **Team** owns an IANA time zone, weekly goal, active memberships, assignments,
+  plans, rewards, and one current-generation Lounge room.
+- **Player** has a safe display identity, avatar configuration, and one or more
+  dated team memberships.
+- **Account** authenticates as player, coach, club administrator, or platform
+  administrator. A player account refers to one player.
+- **Coach team assignment** grants current, explicit authority over one team. A
+  shared club is not enough.
 
-- id
-- clubId
-- name
-- seasonId
-- weeklyDefaultGoal
+Player authentication uses reissuable hashed QR/PIN credentials and hashed
+opaque sessions. Staff authentication uses password credentials, encrypted TOTP
+enrollment, recovery codes, setup tokens, bounded sign-in challenges, and staff
+sessions. Raw secrets are revealed only in their one-time handoff flow.
 
-## Player
+## Training
 
-- id
-- firstName
-- lastInitial
-- avatarConfiguration
-- memberships[]
+- **Activity definition** is a server-owned catalog entry with input kind, unit,
+  accepted range, recovery category, and safe point policy.
+- **Assignment catalog item** is a predefined coach-selectable workout.
+- **Assignment** snapshots one catalog item, target, and active window for a
+  team.
+- **Training plan** is an immutable published seven-day snapshot built from a
+  predefined template. Days contain ordered activity blocks or planned rest.
+- **Training entry** is an append-only player result linked to a team and,
+  optionally, exact assignment or plan provenance. Deletion is a tombstone;
+  editing is delete-and-re-enter.
+- **Planned-rest check-in** proves participation in an exact rest day without
+  creating a workout or accepting athletic values.
 
-## TeamMembership
+Team-local dates determine membership, backdating, plan-day, Momentum, and
+weekly boundaries. Explicit partial work does not complete an assignment or
+plan block even if its numeric value reaches a target.
 
-- playerId
-- teamId
-- role: player
-- activeFrom
-- activeTo
+## Progress and social projections
 
-## ActivityDefinition
+Momentum, streaks, consistency, weekly completion, challenge groups, and
+leaderboards are derived projections. The server calculates them from accepted,
+non-deleted records and exposes only the fields approved for each audience.
 
-- id
-- name
-- inputKind: repetitions | duration | distance
-- approvedForPlayerEntry
-- recoveryCategory
-- displayIcon
-- effortPointPolicy
+A **reaction** binds an authenticated sender to another active teammate, one
+predefined reaction, and a bounded context. The private badge message is
+server-generated. Rate limits and idempotency are authoritative across devices.
 
-Initial definitions:
+## Rewards and inventory
 
-- hill-sprints: repetitions
-- timed-run-walk: duration
-- distance-run: distance
-- recovery-walk-jog: duration
+- **Prize box** is earned from a predefined source and remains sealed until its
+  owner opens it.
+- **Player unlock** is one owned item from the versioned avatar or Lounge
+  catalogs, including source, rarity, unlock time, and optional viewed time.
+- **Team reward** is a coach-selected predefined reward and its lifecycle
+  events. It carries no athletic value.
 
-## Assignment
+Opening a prize box and granting a nonduplicate item are one transaction.
+Completing three or seven distinct proven plan days grants separate boxes once;
+later deletion or plan cancellation does not revoke an already granted box.
 
-- id
-- teamId
-- activityDefinitionId
-- title from predefined catalog
-- targetValue
-- targetUnit
-- startsAt
-- dueAt
-- assignmentKind: daily | weekly | challenge
-- status
+## Team Lounge
 
-Initial prototype supports whole-team, one-time challenges.
+A Lounge room belongs to a team and immutable Canvas generation. Durable room
+state includes trusted snapshots, visits, placement credits/reservations,
+single-use socket tickets, fenced room ownership, emote cooldowns, and
+owner/entity/revision-bound mutation permits.
 
-## TrainingEntry
+Canvas outcomes, not the browser, finalize consumed placement or edit holds.
+Unknown and expired outcomes stay held for operator reconciliation. A generation
+cutover starts a clean room and does not import retired state or debit the new
+generation's budget.
 
-- id
-- playerId
-- teamContextId
-- activityDefinitionId
-- assignmentId optional
-- occurredAt
-- value
-- unit
-- effortLevel: 1..7
-- exhaustionLevel: 1..7
-- completionOutcome optional: as_listed | partial | extra
-- createdAt
-- deleteEligibleUntil
-- deletedAt optional
+Lounge state is play state only. It cannot create training credit, Momentum,
+leaderboard value, or a public performance result.
 
-## Reaction
+## Analytics and operations
 
-- id
-- senderPlayerId
-- targetPlayerId
-- targetTrainingEntryId optional
-- reactionType: clap | fire | strong | hustle | runner | wind | robot-leg | do-it
-- createdAt
+First-party product analytics lives in a separate Cloudflare D1 database. It
+stores typed events with server-derived pseudonymous subject and team keys; it
+is not an identity or training-data source of truth. Operational logs and
+Prometheus metrics are separate again and prohibit user-level labels.
 
-## AssessmentDefinition
+Admin and authentication audit events record bounded action metadata without
+credentials, training values, or arbitrary request bodies.
 
-- id
-- type: sprint-time | distance-run-time | shuttle-run-time
-- name
-- unit
+## Persistence boundary
 
-## AssessmentResult
+The initial deployment is one Go API writer over a local SQLite file. Repository
+interfaces keep business rules outside SQLite-specific SQL. A move to managed
+Postgres is trigger-based future work, not a partially supported second path.
 
-- id
-- playerId
-- teamId
-- assessmentDefinitionId
-- assessedAt
-- value
-- recordedByCoachId
-
-Visibility: player and authorized coaches only.
-
-## BadgeAward
-
-- id
-- playerId
-- badgeType
-- earnedAt
-- periodStart optional
-- periodEnd optional
-
-Initial automatic badges:
-
-- three-in-five-days
-- current-streak milestones
-- weekly-goal-complete
-- above-and-beyond
-
-## PrizeBox
-
-- id
-- playerId
-- source: daily_check_in | plan_participation_3 | plan_completion_7
-- dailyDay and dailyTimeZone for a daily box, or trainingPlanId for a plan box
-- earnedAt
-- openedAt optional
-- itemKind and itemId optional until opened
-- hashed earn/open idempotency keys where applicable
-
-A box is sealed when earned and chooses no item until its owner opens it. Three
-and seven distinct proven plan days grant separate boxes exactly once.
-
-## PlayerUnlock
-
-- playerId
-- itemKind: avatar_part | lounge_stamp | lounge_prop
-- itemId from the predefined versioned catalog
-- source
-- unlockedAt
-- viewedAt optional
-
-Ownership is private. Team Lounge receives only the authenticated player’s
-approved owned item IDs through its inventory boundary.
-
-## Derived progress
-
-Compute rather than store when practical:
-
-- current streak
-- longest streak
-- sessions this week
-- sessions in rolling 30 days
-- weekly goal completion
-- consistency qualification
-- safe effort or participation score
+Backup snapshots and logical exports contain private hashed credentials and
+sessions as well as product data. They receive the same protection as the live
+database and leave the host only inside an age-encrypted envelope.

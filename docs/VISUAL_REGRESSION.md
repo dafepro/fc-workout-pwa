@@ -1,5 +1,7 @@
 # Visual regression
 
+**Status:** Maintained
+
 The Team Lounge has reviewed image baselines for the highest-risk 320 CSS-pixel
 states:
 

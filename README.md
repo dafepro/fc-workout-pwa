@@ -1,77 +1,77 @@
 # ZoomiGo
 
-This repository turns the product decisions and safety rules into durable context for Codex.
+ZoomiGo is a mobile-first training PWA for youth soccer players. It combines
+structured workout tracking, private progress, curated rewards, and a
+locked-down team experience without open chat or public performance ranking.
 
-## Recommended first milestone
-
-Build a responsive, mobile-first PWA prototype with mock data. Implement the four player-facing screens and their main interactions before adding real authentication, persistence, coach tools, or production infrastructure.
+The repository contains the connected player PWA, a staff console, a Go API
+with SQLite persistence, a shared Canvas-powered Team Lounge, production
+automation, and local end-to-end test environments.
 
 ## Start here
 
-1. Read `AGENTS.md`.
-2. Read all files in `docs/`.
+1. Read [AGENTS.md](AGENTS.md) for the product and engineering rules.
+2. Use [docs/README.md](docs/README.md) to find the maintained source of truth.
+3. Check [docs/ROADMAP.md](docs/ROADMAP.md) before choosing new work.
+4. Record a genuinely unresolved product or operational choice in
+   [docs/OPEN_DECISIONS.md](docs/OPEN_DECISIONS.md); do not use it as a change
+   log.
 
-Active priorities and release gates are maintained in `docs/ROADMAP.md`.
+## Current product
 
-On macOS or Linux, `./scripts/verify.sh` runs every static, unit, build, and
-contract gate. For an intentional periodic or release-candidate pass, use
-`./scripts/verify.sh --all` to append the Docker API/browser E2E and VM
-backup/restore smoke suites. `./scripts/drills.sh` rehearses the production
-operations drills — bounded logs, encrypted backups, isolated restore, cutover
-and rollback, QR reissue and revoke, the incident-release path — entirely in
-containers. Unix shell is the only supported local automation environment.
+Players sign in with a personal QR credential plus PIN and use three primary
+destinations:
 
-Run `./scripts/install-git-hooks.sh` once per clone. It points `core.hooksPath`
-at `scripts/git-hooks`, whose `pre-commit` hook rejects a commit whose staged
-files would fail the `pnpm format` gate in CI.
+- **Today** for the current plan, Momentum, rewards, and structured training or
+  rest check-ins;
+- **Team** for privacy-safe progress, challenges, predefined cheers, rewards,
+  and the shared Team Lounge;
+- **Me** for private session history, prize inventory, security actions, and the
+  avatar studio.
 
-The focused 320px Team Lounge image comparison is `pnpm test:e2e:visual`.
-Intentional baseline updates use `pnpm test:e2e:visual:update` and must be
-reviewed image by image. Both commands run through the pinned Linux Playwright
-container; see `docs/VISUAL_REGRESSION.md` for the approval contract.
+Staff use password, TOTP, role checks, and step-up authentication. Coaches can
+manage their assigned teams, rosters, assignments, training plans, progress,
+and team rewards. Platform operators can manage clubs, teams, staff accounts,
+players, audit records, and the privacy-safe product-analytics overview.
 
-## Suggested prototype boundaries
+The Go service is authoritative for identity, authorization, training data,
+safe team projections, rewards, and Lounge permits. SQLite is intentionally
+limited to one API writer. Production uses an immutable container release on a
+single 1 GiB DigitalOcean VM behind Caddy and Cloudflare.
 
-- Player-facing experience only.
-- Mobile first, but functional and clean on desktop.
-- Use mock players, teams, assignments, logs, reactions, and assessment history.
-- No free-form text, user images, URLs, or uploads anywhere.
-- Milestone 1 used local-only identity; the connected deployment now uses reissuable QR+PIN credentials and revocable server sessions.
-- Use the connected QR-code-plus-PIN login flow for hosted environments; the
-  device-local adapter remains available only for an unhosted prototype.
-- Do not implement coach screens yet, but keep domain types ready for coach-created assignments and recorded assessments.
+## Development
 
-## Definition of done for milestone 1
+The supported automation environment is a Unix shell. From the repository
+root:
 
-- The responsive player routes match the current screen specifications and product decisions.
-- Navigation works between Home, Log, Team, Leaders, and Me placeholders.
-- Logging a session updates local in-memory or browser-local mock state.
-- Activity-specific inputs change based on activity type.
-- Effort and exhaustion use a seven-step kid-friendly control.
-- Team progress and leaderboards use effort and consistency only.
-- Raw performance and assessment results remain personal-only.
-- Automated checks cover the main logging and visibility rules.
+```text
+pnpm install --frozen-lockfile
+./scripts/verify.sh
+```
 
-## Milestone 2 backend prework
+`./scripts/verify.sh` runs formatting, linting, type checks, unit tests, Go
+checks, production builds, documentation contracts, deployment contracts, and
+OpenTofu validation. Use `./scripts/verify.sh --all` only for an intentional
+release-candidate pass that should also run the full Docker API/browser E2E and
+VM smoke suites.
 
-The backend foundation lives in `backend/` and the review contracts live in `docs/backend/`. It currently includes:
+Focused workflows:
 
-- a dependency-light, cloud-hostable Go service with health/readiness endpoints and graceful shutdown;
-- configuration validation and safe HTTP defaults;
-- pure authorization rules for player, assigned-coach, and club-admin access;
-- predefined contextual-reaction rules and a five-per-recipient rolling 30-minute limit;
-- a CGo-free SQLite adapter, embedded versioned migrations, and a repository boundary suitable for a later Postgres move;
-- a first contextual-reaction API slice with idempotent writes, private inbox badges, and an authoritative rolling rate limit;
-- safe, server-ranked Team and Leaderboard projections derived from active memberships and participation only;
-- private training-entry create/list/detail/delete endpoints with server-owned timestamps, structured activity validation, and the 24-hour player deletion rule;
-- a frontend gateway that uses the real API when configured and retains the milestone 1 device-local adapter as an unhosted fallback;
-- a Docker Compose black-box E2E harness with a real SQLite database and no cloud dependencies;
-- a migration-aware SQLite backup CLI with checksummed archives, isolated forward-migrating restore, and a Docker restore drill;
-- a provider-neutral single-VM deployment bundle with Caddy-managed HTTPS, hardened containers, persistent host storage, and operator backup scripts;
-- draft API, authorization, and persistence contracts for review before frontend integration.
+- `pnpm test:e2e:visual` runs the pinned 320 px Team Lounge image comparison;
+- `./scripts/drills.sh` exercises backup, restore, cutover, rollback, credential,
+  and incident-release procedures locally;
+- [backend/README.md](backend/README.md) documents API development;
+- [docs/PRODUCTION_RUNBOOK.md](docs/PRODUCTION_RUNBOOK.md) documents production;
+- [docs/DEV_ENVIRONMENT.md](docs/DEV_ENVIRONMENT.md) documents the disposable
+  preview environment.
 
-See `backend/README.md` for local commands and `docs/PRODUCTION_RUNBOOK.md` for the automated under-$5 production path. The backend and QR+PIN session path are deployable; real youth-data use still requires approved guardian/recovery policy, secure credential distribution, encrypted off-host backups, and privacy operations.
+Install the formatting hook once per clone with
+`./scripts/install-git-hooks.sh`.
 
-The separately gated disposable preview is documented in
-`docs/DEV_ENVIRONMENT.md`. It uses its own dev-tagged API, database, Worker,
-DNS names, OpenTofu state, and GitHub Actions create/update/reset/destroy flow.
+## Real-data boundary
+
+Infrastructure and encrypted backup/restore paths are implemented, but the
+checked-in configuration keeps real-player provisioning locked. Do not store
+real youth data until every dated owner approval in
+[docs/backend/PRODUCTION_APPROVAL_CHECKLIST.md](docs/backend/PRODUCTION_APPROVAL_CHECKLIST.md)
+is complete and `PRODUCTION_DATA_APPROVED=true` is deliberately configured.

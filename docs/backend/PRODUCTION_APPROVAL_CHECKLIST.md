@@ -1,20 +1,22 @@
 # Production approval checklist
 
+**Status:** Maintained approval record
+
 This file separates implemented technical controls from decisions that require the product owner. Do not enter a real child's name, issue a real player's QR code, or widen production access until every **owner approval required** item has a dated decision.
 
 ## Technical gates
 
-| Gate                     | Status                               | Evidence                                                                                                                                                                                                                                                                                                        |
-| ------------------------ | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Player authentication    | Implemented                          | Unique 256-bit QR credential plus exactly four PIN digits; trivial PINs rejected; Argon2id verifier; one password hash at a time; five failures lock for 15 minutes; later windows double; tenth recorded failure revokes the QR and its sessions.                                                              |
-| Browser session handling | Implemented                          | The Cloudflare gateway keeps the bearer token in a host-only, Secure, HTTP-only, SameSite=Strict cookie. QR secrets arrive in the URL fragment and are removed from browser history immediately.                                                                                                                |
-| Authorization            | Implemented for current API          | Private training details are owner/assigned-coach/admin only. Team and leaderboard projections exclude raw performance.                                                                                                                                                                                         |
-| Encrypted backups        | Implemented                          | Daily backups are verified, encrypted to an age X25519 public recipient, and can be restored only with the separately held identity.                                                                                                                                                                            |
-| Off-host backups         | Implemented, configuration required  | The host uploads only `.tar.gz.age` files to a private Cloudflare R2 bucket. Default tests never contact R2.                                                                                                                                                                                                    |
-| Restore verification     | Implemented                          | Wrong identities, corrupt envelopes, corrupt payloads, unsupported migrations, and existing targets are rejected. Restore writes an isolated database first.                                                                                                                                                    |
-| Small-VM safety          | Implemented                          | Immutable image, 1 GiB swap, memory/PID/log limits, HTTPS proxy, one SQLite writer, disk/readiness/private-route/backup checks.                                                                                                                                                                                 |
-| CI release gate          | Implemented; operator setup required | Static checks, targeted tests, and builds gate immutable image publication. Full Docker API/browser E2E and VM smoke are explicit periodic or release-candidate runs. Protected deployment stays disabled until the encrypted bundle, environment review, first manual release, and restore drill are complete. |
-| Infrastructure safety    | Implemented; operator apply required | OpenTofu models the project, Droplet, assigned Reserved IP, restricted firewall, DNS, monitoring, backups, and secret-free cloud-init. Destructive resources use `prevent_destroy`; CI never applies infrastructure.                                                                                            |
+| Gate                     | Status                               | Evidence                                                                                                                                                                                                                                                                                                                                   |
+| ------------------------ | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Player authentication    | Implemented                          | Unique 256-bit QR credential plus exactly four PIN digits; trivial PINs rejected; Argon2id verifier; one password hash at a time; five failures lock for 15 minutes; later windows double; tenth recorded failure revokes the QR and its sessions.                                                                                         |
+| Browser session handling | Implemented                          | The Cloudflare gateway keeps the bearer token in a host-only, Secure, HTTP-only, SameSite=Strict cookie. QR secrets arrive in the URL fragment and are removed from browser history immediately.                                                                                                                                           |
+| Authorization            | Implemented for current API          | Private training details are owner/assigned-coach/admin only. Team and leaderboard projections exclude raw performance.                                                                                                                                                                                                                    |
+| Encrypted backups        | Implemented                          | Daily backups are verified, encrypted to an age X25519 public recipient, and can be restored only with the separately held identity.                                                                                                                                                                                                       |
+| Off-host backups         | Implemented, configuration required  | The host uploads only `.tar.gz.age` files to a private Cloudflare R2 bucket. Default tests never contact R2.                                                                                                                                                                                                                               |
+| Restore verification     | Implemented                          | Wrong identities, corrupt envelopes, corrupt payloads, unsupported migrations, and existing targets are rejected. Restore writes an isolated database first.                                                                                                                                                                               |
+| Small-VM safety          | Implemented                          | Immutable image, 1 GiB swap, memory/PID/log limits, HTTPS proxy, one SQLite writer, disk/readiness/private-route/backup checks.                                                                                                                                                                                                            |
+| CI release gate          | Implemented; operator setup required | Static checks, targeted tests, and builds gate immutable image publication. Full Docker API/browser E2E and VM smoke are explicit periodic or release-candidate runs. Protected deployment stays disabled until environment review, the first manual release, and the restore drill are complete. There is no encrypted deployment bundle. |
+| Infrastructure safety    | Implemented; operator apply required | OpenTofu models the project, Droplet, assigned Reserved IP, restricted firewall, DNS, monitoring, backups, and secret-free cloud-init. Destructive resources use `prevent_destroy`; CI never applies infrastructure.                                                                                                                       |
 
 ## Owner approval required
 
@@ -52,7 +54,11 @@ Recommended initial policy:
 
 - one named primary operator has SSH/Docker access; no shared administrator login;
 - a second trusted adult holds the encrypted recovery-key copy and can take over after documented verification;
-- the age identity never lives permanently on the VM, in GitHub, in Cloudflare, in email, or beside an encrypted backup;
+- the age identity never lives on the VM, in Cloudflare, in email, or beside an
+  encrypted backup;
+- decide whether the protected GitHub `BACKUP_AGE_IDENTITY` used by the current
+  on-demand restore-drill workflow is approved for long-term custody or may be
+  populated only temporarily; keep a separate offline recovery copy either way;
 - S3-compatible credentials are bucket-scoped and stored only in root-readable `/etc/zoomigo/backup-s3.env`;
 - operator actions use the CLI and are recorded in the host journal plus application audit events where supported.
 
@@ -76,7 +82,8 @@ Before launch, confirm:
 
 - privacy/consent wording has been reviewed for the team's jurisdiction and organization;
 - `zoomigo.quicktrack.cc`, `api.quicktrack.cc`, the `nyc1` region, SSH allowlist, and Cloudflare zone are final;
-- the first R2 upload and restore with the offline identity succeeded;
+- the first R2 upload and restore with the approved identity-custody process
+  succeeded;
 - `sudo ./scripts/production-check.sh .env --check-s3` passes;
 - QR/PIN delivery and credential-reissue rehearsals succeeded with test-only identities;
 - the PWA access level is deliberately approved.
@@ -85,4 +92,5 @@ After all items are recorded, the operator may change `PRODUCTION_DATA_APPROVED=
 
 ## Decision record
 
-No production decisions recorded yet.
+No production decisions recorded yet. The checked-in and release defaults remain
+`PRODUCTION_DATA_APPROVED=false`.

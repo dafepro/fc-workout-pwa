@@ -1,5 +1,7 @@
 # Team Lounge physical performance budget
 
+**Status:** Maintained qualification gate
+
 Adopted 2026-08-28. These are release thresholds for the canonical Canvas 0.6
 Team Lounge, not results inferred from desktop emulation. A physical-device run
 must record its measurements in the table below before a broad Lounge release.
@@ -15,22 +17,22 @@ The minimum qualification pair is deliberately modest hardware still receiving
 the current browser engine. Record the exact OS build, browser build, free
 storage, battery state, and whether the PWA is installed for every run.
 
-| Platform | Physical reference         | OS and browser baseline                  | Viewport assumption                                                                   |
-| -------- | -------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------- |
-| iOS      | iPhone SE (2nd generation) | iOS 26.6.1; bundled Mobile Safari/WebKit | Native portrait viewport; automated coverage separately holds the 320 CSS-pixel floor |
-| Android  | Pixel 6a                   | Android 16; Chrome 152.0.7977.42 stable  | Native portrait viewport; browser text and display scaling at defaults                |
+| Platform | Physical reference         | OS and browser baseline                       | Viewport assumption                                                                   |
+| -------- | -------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------- |
+| iOS      | iPhone SE (2nd generation) | iOS 26.6.1; bundled Mobile Safari/WebKit      | Native portrait viewport; automated coverage separately holds the 320 CSS-pixel floor |
+| Android  | Pixel 6a                   | Android 16; Chrome 153.0.8010.18 early stable | Native portrait viewport; browser text and display scaling at defaults                |
 
-The versions above are the current stable baselines at adoption. A later patch
-release is acceptable and must be written into the result row; a beta, preview,
+The versions above are the current baselines as last reviewed on 2026-08-30. A
+later stable patch is acceptable and must be written into the result row; a beta, preview,
 desktop responsive mode, simulator, or device farm does not satisfy the
 physical-device gate. Use an unplugged device at 20–80% battery, disable Low
 Power/Battery Saver, close other foreground apps, and let the device return to
 room temperature between runs.
 
-Version references: Apple lists iOS 26.6.1 as the current iOS release in its
-[security releases](https://support.apple.com/en-us/100100); Google records
-Chrome 152.0.7977.42 in its
-[Chrome for Android release](https://chromereleases.googleblog.com/2026/08/chrome-for-android-update_0318651269.html).
+Version references: Apple lists iOS 26.6.1 in its
+[security releases](https://support.apple.com/en-us/100100); Google released
+Chrome 153.0.8010.18 to the Android early stable channel in its
+[Chrome for Android release](https://chromereleases.googleblog.com/2026/08/chrome-for-android-update_0280487438.html).
 
 ## Measurable thresholds
 
@@ -78,7 +80,7 @@ the result table.
 | Date                  | Exact revision | Device                     | OS/browser build                  | P95 cold / reconnect | CPU avg / p95 | Memory peak / growth | Cold / reconnect / 15-min bytes | Result  |
 | --------------------- | -------------- | -------------------------- | --------------------------------- | -------------------- | ------------- | -------------------- | ------------------------------- | ------- |
 | Pending physical gate | Pending        | iPhone SE (2nd generation) | iOS 26.6.1 / bundled Safari       | —                    | —             | —                    | —                               | Not run |
-| Pending physical gate | Pending        | Pixel 6a                   | Android 16 / Chrome 152.0.7977.42 | —                    | —             | —                    | —                               | Not run |
+| Pending physical gate | Pending        | Pixel 6a                   | Android 16 / Chrome 153.0.8010.18 | —                    | —             | —                    | —                               | Not run |
 
 ## Automated protection
 

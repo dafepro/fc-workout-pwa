@@ -1,5 +1,7 @@
 # Offline live restore and rollback runbook
 
+**Status:** Maintained
+
 This procedure replaces the live SQLite database only during an approved recovery window. It is intentionally separate from the routine restore drill. Rehearse it with test-only data and record the elapsed time before real youth data is allowed.
 
 ## Preconditions

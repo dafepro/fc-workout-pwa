@@ -1,5 +1,7 @@
 # ZoomiGo production runbook
 
+**Status:** Maintained
+
 This is the single production setup path. It creates a small DigitalOcean API
 host and serves the PWA from Cloudflare at:
 
@@ -296,7 +298,7 @@ reuse the owner Viewer login, a write token, or a provisioning token for the
 diagnostic workflow.
 
 Keep `DEV_OBSERVABILITY_ENABLED=false` initially. Record the 24-hour baseline
-from `docs/OBSERVABILITY_PLAN.md`, enable the dev variable, and run another
+from `docs/OBSERVABILITY.md`, enable the dev variable, and run another
 24-hour traffic/deploy/backup/outage pass. The deployment refuses to start Alloy
 below 900,000 KiB total RAM (the lower bound for the selected 1 GiB VM class),
 below 256 MiB available memory, or below 2 GiB free disk. If readiness regresses

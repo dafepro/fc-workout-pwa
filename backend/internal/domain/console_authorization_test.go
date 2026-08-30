@@ -7,7 +7,7 @@ import (
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 )
 
-// The authority matrix from STAFF_CONSOLE_DESIGN.md part 1, as a table across
+// The authority matrix from docs/backend/AUTHORIZATION_MATRIX.md, across
 // all four roles. A capability nobody holds is as much a requirement as one
 // somebody does: "—" in that table means the persona must not even see an
 // affordance, so every denial here is deliberate.

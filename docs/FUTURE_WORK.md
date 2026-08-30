@@ -1,0 +1,45 @@
+# Preserved future work
+
+**Status:** Maintained trigger register
+
+This is the single home for worthwhile unfinished ideas recovered from retired
+plans and feedback. These are not commitments. Start one only when its trigger
+is true, move it into [ROADMAP.md](ROADMAP.md), write a focused implementation
+plan if necessary, and remove it from this file when completed or rejected.
+
+## Product and content
+
+| Idea                                                                | Activation trigger                                                                       | Constraints to preserve                                                                                                                              |
+| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Approved Zoomi/Rover hero, loading, and celebration art             | Reviewed assets and visual direction arrive                                              | Keep player cosmetics separate from branded mascot identity; no temporary or unapproved mascot art                                                   |
+| Private coach-recorded assessments and trends                       | Product owner prioritizes an assessment release and defines assessment catalog/retention | Player and authorized coaches only; never Team, rewards, or leaderboards                                                                             |
+| Club-manager experience                                             | A club needs delegated multi-team administration                                         | Club-scoped authority only; no platform-wide search or implicit coach access                                                                         |
+| Locked avatar animals, saved looks, rarity, and unlock celebrations | Explicit progression and inventory rules are approved                                    | Predefined catalog; no purchases, trading, free text, or ability-based unlocks                                                                       |
+| Lounge quick-message Set 2/Set 3                                    | Reviewed phrases and unlock rules are approved                                           | Transient room-wide allowlisted phrases; no typing, private recipient, inbox, or transcript                                                          |
+| Additional predefined ball-work activities                          | A training owner approves inputs, units, ranges, and workload policy                     | Structured entry only; update server catalog and privacy projections together                                                                        |
+| Prize Box and Team Reward catalog/fulfillment pass                  | Production reward authoring is prioritized                                               | Approve catalog, rarity/destination balance, artwork, fulfillment language, and incomplete-reward lifecycle without purchases or performance ranking |
+| Multi-team calendar authority                                       | A real player belongs to teams with different time zones                                 | Define which team controls plan, Prize Box, reward, and Lounge day boundaries before data is earned                                                  |
+
+## Team Lounge
+
+| Idea                                                      | Activation trigger                                                                          | Constraints to preserve                                                                                                      |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Larger-room Map/camera navigation                         | The canonical Lounge no longer fits one bounded viewport                                    | Define touch, keyboard, focus, bounds, and reset-to-player behavior before adding a Map action                               |
+| Short-lived Canvas capability lease for move/rotate/scale | Measured one-use permit traffic exceeds the accepted budget                                 | Owner/entity/revision scoped; enforce transforms, rate, sequence, and canonical rollback; delete stays separately authorized |
+| Poor-connection optimistic editing                        | Real-device evidence shows the current accepted/rollback flow is unusable                   | Browser state never releases a hold or outranks trusted Canvas outcome                                                       |
+| WebGPU or scene-stack rewrite                             | Qualified WebGL/Pixi path fails the physical performance budget after targeted optimization | Separate migration and device qualification; no protocol/authority bypass                                                    |
+| Progression-sensitive ball behavior                       | Product owner explicitly wants it                                                           | Must not imply athletic ability or alter training, Momentum, or leaderboard results                                          |
+
+## Scale and operations
+
+| Idea                                                            | Activation trigger                                                                                                             | Constraints to preserve                                                                                            |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| Managed Postgres adapter                                        | Horizontal writers, multi-region writes, managed HA/PITR, or sustained write concurrency makes single-writer SQLite inadequate | One intentional migration path with populated-data tests, backup/rollback, and no shared SQLite network filesystem |
+| More than one production API replica                            | Postgres or another safe shared authority exists and Lounge topology passes multi-process fencing tests                        | No deployment change based only on a successful local topology test                                                |
+| Anonymous operational aggregates in Workers Analytics Engine    | D1 event volume or dashboard latency becomes a measured problem                                                                | No child-linked journeys, raw identifiers, replay, or third-party autocapture                                      |
+| Hosted product-analytics UI                                     | The product needs analyses the bounded operator page cannot provide and a privacy review approves a processor                  | Keep the typed event catalog; forbid session replay, broad autocapture, and advertising use                        |
+| Origin-port restriction to maintained Cloudflare address ranges | There is an owned, tested update mechanism that cannot lock out recovery                                                       | Keep SSH key-only and retain an independent recovery procedure                                                     |
+| GitHub Actions Node runtime upgrades                            | An action still uses a runtime GitHub has deprecated or scheduled for removal                                                  | Upgrade the pinned action, preserve permissions, and rerun every affected workflow contract                        |
+| Installed-PWA and assistive-technology review                   | A release candidate is preparing for real-device qualification                                                                 | Exercise offline/update, keyboard, screen reader, reduced motion, and installed display mode on physical devices   |
+| Production Lounge rollout rehearsal                             | A broad Lounge release is scheduled                                                                                            | Prove exact-revision rollout and rollback without importing retired Canvas room state                              |
+| Team Reward email delivery                                      | Delivery is approved beyond the non-delivering sink                                                                            | Complete mail domain, suppression, alerting, privacy review, and runbook setup first                               |

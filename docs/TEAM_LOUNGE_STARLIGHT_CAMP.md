@@ -1,6 +1,8 @@
 # Team Lounge theme candidate: Starlight Training Camp
 
-Status: review candidate, not scheduled. Theme scheduling and rollback UI remain
+**Status:** Candidate
+
+Review candidate, not scheduled. Theme scheduling and rollback UI remain
 out of scope until this package is explicitly approved.
 
 ## Immutable identity
