@@ -82,6 +82,30 @@ test("a qualified player enters the Lounge and sees their own avatar", async ({
     await expect(lounge.getByText("The boardwalk could not open.")).toHaveCount(
       0,
     );
+    await lounge.getByRole("button", { name: /^Items,/u }).click();
+    const cannonChoice = lounge.getByRole("button", {
+      name: "Choose Ball cannon item",
+    });
+    await expect(cannonChoice).toBeVisible();
+    const cannonImage = cannonChoice.locator("img");
+    await expect(cannonImage).toHaveAttribute(
+      "src",
+      "/team-lounge/items/ball-cannon-v1.svg",
+    );
+    await expect
+      .poll(() =>
+        cannonImage.evaluate(
+          (image) =>
+            image instanceof HTMLImageElement &&
+            image.complete &&
+            image.naturalWidth > 0,
+        ),
+      )
+      .toBe(true);
+    await lounge
+      .getByRole("button", { name: "Close item picker" })
+      .last()
+      .click();
 
     await page.setViewportSize({ width: 320, height: 800 });
     await lounge.getByRole("button", { name: "Enter full screen" }).click();

@@ -1,13 +1,17 @@
 import { CollisionLayer } from "@canvas-physics/core";
 import { describe, expect, it } from "vitest";
 
-import { loungeItemDefinitions } from "../lounge-items";
-import { beachBallDefinition, beachBoardwalkCanvas } from "./beach-boardwalk";
+import { LoungeVisualLayer, loungeItemDefinitions } from "../lounge-items";
+import {
+  beachBallDefinition,
+  beachBoardwalkCanvas,
+  loungeAvatarDefinition,
+} from "./beach-boardwalk";
 
 describe("Beach Boardwalk collision contract", () => {
   it("uses explicit elastic outer boundaries", () => {
-    expect(beachBoardwalkCanvas.version).toBe(16);
-    expect(beachBallDefinition.version).toBe(8);
+    expect(beachBoardwalkCanvas.version).toBe(17);
+    expect(beachBallDefinition.version).toBe(9);
     expect(beachBoardwalkCanvas.edges).toEqual({
       top: "open",
       right: "open",
@@ -34,11 +38,13 @@ describe("Beach Boardwalk collision contract", () => {
       tags: ["lounge-ball"],
     });
     expect(beachBallDefinition.body?.linearDamping).toBe(0.05);
+    expect(beachBallDefinition.visual.zIndex).toBe(LoungeVisualLayer.BALL);
+    expect(loungeAvatarDefinition.visual.zIndex).toBe(LoungeVisualLayer.AVATAR);
     expect(beachBoardwalkCanvas.environment.base.linearDrag).toBe(0.03);
     const catalogBall = loungeItemDefinitions.find(
       ({ definitionId }) => definitionId === "zoomigo-prop-beach-ball",
     );
-    expect(catalogBall?.version).toBe(5);
+    expect(catalogBall?.version).toBe(6);
     expect(catalogBall?.colliders).toContainEqual(
       expect.objectContaining({
         role: "itemSolid",

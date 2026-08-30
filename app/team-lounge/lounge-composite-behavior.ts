@@ -10,7 +10,10 @@ import {
   type Vec2,
 } from "@canvas-physics/core";
 
-type SensorEffect = { sensorId: string };
+type SensorEffect = {
+  sensorId: string;
+  acceptedDefinitionIds?: string[];
+};
 
 export type LoungeCompositeEffect =
   | ({ kind: "boost"; speed: number; directionRadians?: number } & SensorEffect)
@@ -45,6 +48,14 @@ export type LoungeCompositeEffect =
       holdSeconds: number;
       ejectOffset: Vec2;
       ejectSpeed: number;
+      cooldownSeconds: number;
+    } & SensorEffect)
+  | ({
+      kind: "cannon";
+      acceptedDefinitionIds: string[];
+      exitOffset: Vec2;
+      speed: number;
+      dwellSeconds: number;
       cooldownSeconds: number;
     } & SensorEffect);
 
@@ -136,7 +147,11 @@ function applyEffect(
   if (
     (event.type !== "contact.enter" && event.type !== "contact.stay") ||
     event.selfColliderId !== effect.sensorId ||
-    (event.other.kind !== "avatar" && event.other.kind !== "item")
+    (event.other.kind !== "avatar" && event.other.kind !== "item") ||
+    (effect.acceptedDefinitionIds !== undefined &&
+      !event.other.tags.some((tag) =>
+        effect.acceptedDefinitionIds?.includes(tag),
+      ))
   ) {
     return [];
   }
@@ -194,6 +209,11 @@ function applyEffect(
     case "goal":
       return event.type === "contact.stay"
         ? goalCommands(ctx, event.other, event.dwellTicks, effect, state)
+        : [];
+    case "cannon":
+      return event.type === "contact.stay" &&
+        event.dwellTicks >= ctx.ticksFor(effect.dwellSeconds)
+        ? cannonCommands(ctx, event.other, effect, state)
         : [];
   }
 }
@@ -427,6 +447,48 @@ function goalAccepts(
   target: ContactParty,
 ) {
   return target.tags.some((tag) => effect.acceptedDefinitionIds.includes(tag));
+}
+
+function cannonCommands(
+  ctx: BehaviorContext,
+  target: ContactParty,
+  effect: Extract<LoungeCompositeEffect, { kind: "cannon" }>,
+  state: LoungeCompositeState,
+): BehaviorCommand[] {
+  const cannon = ctx.transform();
+  if (
+    !cannon ||
+    !target.tags.some((tag) => effect.acceptedDefinitionIds.includes(tag)) ||
+    !claimCooldown(ctx, state, target.entityId, effect.cooldownSeconds)
+  ) {
+    return [];
+  }
+  const exit = rotate(effect.exitOffset, cannon.rotation);
+  const velocity = rotate({ x: effect.speed, y: 0 }, cannon.rotation);
+  return [
+    {
+      type: "teleport",
+      target: target.entityId,
+      position: { x: cannon.x + exit.x, y: cannon.y + exit.y },
+      velocity,
+    },
+    {
+      type: "emitEffect",
+      effect: "lounge.cannon",
+      params: { target: target.entityId, speed: effect.speed },
+    },
+  ];
+}
+
+function claimCooldown(
+  ctx: BehaviorContext,
+  state: LoungeCompositeState,
+  entityID: string,
+  seconds: number,
+): boolean {
+  if (cooldownFor(state, entityID) > ctx.tick) return false;
+  setCooldown(state, entityID, ctx.tick + ctx.ticksFor(seconds));
+  return true;
 }
 
 function idleMotionCommands(

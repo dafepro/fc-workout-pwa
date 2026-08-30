@@ -416,6 +416,93 @@ describe("LoungeCompositeBehavior effects", () => {
     expect(LoungeCompositeBehavior.stateVersion).toBe(2);
   });
 
+  it("takes only a predefined ball through a rotated rear intake and launches it from the muzzle", () => {
+    const subject = harness({
+      effects: [
+        {
+          kind: "cannon",
+          sensorId: "intake",
+          acceptedDefinitionIds: ["beach-ball", "zoomigo-prop-beach-ball"],
+          exitOffset: { x: 10, y: 0 },
+          speed: 34,
+          dwellSeconds: 0.05,
+          cooldownSeconds: 0.75,
+        },
+      ],
+    });
+    subject.host.body(subject.entityId).transform = {
+      x: 40,
+      y: 60,
+      rotation: Math.PI / 2,
+    };
+    subject.host.body("ball").tags = ["beach-ball"];
+    subject.host.body("cone").tags = ["zoomigo-prop-play-wobble-cone"];
+
+    subject
+      .send({
+        type: "contact.stay",
+        selfColliderId: "intake",
+        other: {
+          entityId: "cone",
+          colliderId: "solid",
+          kind: "item",
+          tags: ["zoomigo-prop-play-wobble-cone"],
+        },
+        dwellTicks: 3,
+      })
+      .send({
+        type: "contact.stay",
+        selfColliderId: "intake",
+        other: {
+          entityId: "ball",
+          colliderId: "solid",
+          kind: "item",
+          tags: ["beach-ball"],
+        },
+        dwellTicks: 2,
+      })
+      .flush();
+
+    expect(subject.effects("lounge.cannon")).toHaveLength(0);
+    expect(subject.host.body("cone").transform).toMatchObject({ x: 0, y: 0 });
+
+    subject
+      .send({
+        type: "contact.stay",
+        selfColliderId: "intake",
+        other: {
+          entityId: "ball",
+          colliderId: "solid",
+          kind: "item",
+          tags: ["beach-ball"],
+        },
+        dwellTicks: 3,
+      })
+      .flush();
+
+    expect(subject.host.body("ball").transform).toMatchObject({ x: 40, y: 70 });
+    expect(subject.host.body("ball").velocity.x).toBeCloseTo(0, 8);
+    expect(subject.host.body("ball").velocity.y).toBeCloseTo(34, 8);
+    expect(subject.effects("lounge.cannon")).toMatchObject([
+      { params: { target: "ball", speed: 34 } },
+    ]);
+
+    subject
+      .send({
+        type: "contact.stay",
+        selfColliderId: "intake",
+        other: {
+          entityId: "ball",
+          colliderId: "solid",
+          kind: "item",
+          tags: ["beach-ball"],
+        },
+        dwellTicks: 4,
+      })
+      .flush();
+    expect(subject.effects("lounge.cannon")).toHaveLength(1);
+  });
+
   it("clears transient target cooldowns on room wake without resetting motion phase", () => {
     const subject = harness({
       effects: [
