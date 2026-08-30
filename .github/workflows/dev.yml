@@ -179,7 +179,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           TF_VAR_cloudflare_zone_id: ${{ vars.CLOUDFLARE_ZONE_ID }}
           TF_VAR_release_sha: ${{ github.sha }}
-          TF_VAR_operator_ssh_public_key: ${{ vars.OPERATOR_SSH_PUBLIC_KEY }}
+          TF_VAR_operator_ssh_public_key: ${{ vars.DEV_OPERATOR_SSH_PUBLIC_KEY }}
           DEPLOY_KEY: ${{ secrets.DEV_DEPLOY_SSH_KEY }}
         working-directory: infra/dev
         run: |
@@ -213,20 +213,20 @@ jobs:
           exit 1
 
       - name: Authorize operator SSH key
-        if: (inputs.operation == 'create' || inputs.operation == 'update') && vars.OPERATOR_SSH_PUBLIC_KEY != ''
+        if: (inputs.operation == 'create' || inputs.operation == 'update') && vars.DEV_OPERATOR_SSH_PUBLIC_KEY != ''
         env:
           DEV_DEPLOY_SSH_KEY_VALUE: ${{ secrets.DEV_DEPLOY_SSH_KEY }}
-          OPERATOR_SSH_PUBLIC_KEY: ${{ vars.OPERATOR_SSH_PUBLIC_KEY }}
+          DEV_OPERATOR_SSH_PUBLIC_KEY: ${{ vars.DEV_OPERATOR_SSH_PUBLIC_KEY }}
         run: |
-          case "$OPERATOR_SSH_PUBLIC_KEY" in
+          case "$DEV_OPERATOR_SSH_PUBLIC_KEY" in
             "ssh-ed25519 "*" zoomigo-operator") ;;
-            *) echo "OPERATOR_SSH_PUBLIC_KEY is not a sanitized Ed25519 key" >&2; exit 1 ;;
+            *) echo "DEV_OPERATOR_SSH_PUBLIC_KEY is not a sanitized Ed25519 key" >&2; exit 1 ;;
           esac
           key_file="$RUNNER_TEMP/dev-deploy-key"
           printf '%s\n' "$DEV_DEPLOY_SSH_KEY_VALUE" >"$key_file"
           chmod 0600 "$key_file" "$RUNNER_TEMP/dev-known-hosts"
           host=$(cat "$RUNNER_TEMP/dev-host")
-          printf '%s\n' "$OPERATOR_SSH_PUBLIC_KEY" | ssh \
+          printf '%s\n' "$DEV_OPERATOR_SSH_PUBLIC_KEY" | ssh \
             -i "$key_file" \
             -o BatchMode=yes \
             -o IdentitiesOnly=yes \
