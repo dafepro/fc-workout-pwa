@@ -193,6 +193,9 @@ func (store *SQLiteStore) LoadSnapshot(ctx context.Context, roomID string) (room
 	if err != nil {
 		return roomsdk.SnapshotRecord{}, err
 	}
+	if err = store.reconcileNormalizedSnapshotItemOwnership(ctx, record.RoomID, record.SnapshotRaw); err != nil {
+		return roomsdk.SnapshotRecord{}, err
+	}
 	return record, nil
 }
 
@@ -268,6 +271,118 @@ func canvasGeneratedItemID(entityID string) bool {
 		}
 	}
 	return true
+}
+
+type snapshotOwnershipKey struct {
+	ownerID           string
+	definitionID      string
+	definitionVersion uint32
+}
+
+type snapshotOwnershipReservation struct {
+	reservationID string
+	entityID      string
+}
+
+func (store *SQLiteStore) reconcileNormalizedSnapshotItemOwnership(
+	ctx context.Context,
+	roomID string,
+	raw json.RawMessage,
+) error {
+	var snapshot roomsdk.CanvasSnapshot
+	if err := json.Unmarshal(raw, &snapshot); err != nil {
+		return errors.New("load lounge snapshot: invalid ownership shape")
+	}
+	itemIDsByOwner := make(map[snapshotOwnershipKey][]string)
+	for _, item := range snapshot.Items {
+		if item.OwnerUserID == "" || !strings.HasPrefix(item.EntityID, "lounge-item-") {
+			continue
+		}
+		key := snapshotOwnershipKey{
+			ownerID:           item.OwnerUserID,
+			definitionID:      item.DefinitionID,
+			definitionVersion: item.DefinitionVersion,
+		}
+		itemIDsByOwner[key] = append(itemIDsByOwner[key], item.EntityID)
+	}
+	if len(itemIDsByOwner) == 0 {
+		return nil
+	}
+	tx, err := store.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("reconcile lounge snapshot ownership: %w", err)
+	}
+	defer tx.Rollback()
+	for key, snapshotItemIDs := range itemIDsByOwner {
+		rows, queryErr := tx.QueryContext(ctx, `SELECT reservation_id, entity_id
+			FROM team_lounge_placement_reservations
+			WHERE room_id = ? AND player_id = ? AND definition_id = ? AND definition_version = ?
+			AND state = 'committed' AND entity_id IS NOT NULL
+			ORDER BY finalized_at, reservation_id`, roomID, key.ownerID, key.definitionID, key.definitionVersion)
+		if queryErr != nil {
+			return fmt.Errorf("reconcile lounge snapshot ownership: %w", queryErr)
+		}
+		reservations := []snapshotOwnershipReservation{}
+		for rows.Next() {
+			var reservation snapshotOwnershipReservation
+			if err = rows.Scan(&reservation.reservationID, &reservation.entityID); err != nil {
+				rows.Close()
+				return fmt.Errorf("reconcile lounge snapshot ownership: %w", err)
+			}
+			reservations = append(reservations, reservation)
+		}
+		if err = rows.Close(); err != nil {
+			return fmt.Errorf("reconcile lounge snapshot ownership: %w", err)
+		}
+		if err = rows.Err(); err != nil {
+			return fmt.Errorf("reconcile lounge snapshot ownership: %w", err)
+		}
+		// A complete one-to-one match is required before changing authority. It
+		// preserves ownership while refusing to guess through partial history.
+		if len(reservations) == 0 || len(reservations) != len(snapshotItemIDs) {
+			continue
+		}
+		matchedSnapshotIDs := make([]bool, len(snapshotItemIDs))
+		unmatchedReservations := []snapshotOwnershipReservation{}
+		for _, reservation := range reservations {
+			matched := false
+			for index, snapshotItemID := range snapshotItemIDs {
+				if !matchedSnapshotIDs[index] && reservation.entityID == snapshotItemID {
+					matchedSnapshotIDs[index] = true
+					matched = true
+					break
+				}
+			}
+			if !matched {
+				unmatchedReservations = append(unmatchedReservations, reservation)
+			}
+		}
+		unmatchedSnapshotIDs := []string{}
+		for index, snapshotItemID := range snapshotItemIDs {
+			if !matchedSnapshotIDs[index] {
+				unmatchedSnapshotIDs = append(unmatchedSnapshotIDs, snapshotItemID)
+			}
+		}
+		if len(unmatchedReservations) != len(unmatchedSnapshotIDs) {
+			continue
+		}
+		for index, reservation := range unmatchedReservations {
+			result, updateErr := tx.ExecContext(ctx, `UPDATE team_lounge_placement_reservations
+				SET entity_id = ? WHERE reservation_id = ? AND entity_id = ?`,
+				unmatchedSnapshotIDs[index], reservation.reservationID, reservation.entityID)
+			if updateErr != nil {
+				return fmt.Errorf("reconcile lounge snapshot ownership: %w", updateErr)
+			}
+			changed, rowsErr := result.RowsAffected()
+			if rowsErr != nil || changed != 1 {
+				return errors.New("reconcile lounge snapshot ownership: reservation changed concurrently")
+			}
+		}
+	}
+	if err = tx.Commit(); err != nil {
+		return fmt.Errorf("reconcile lounge snapshot ownership: %w", err)
+	}
+	return nil
 }
 
 func (store *SQLiteStore) SaveSnapshot(ctx context.Context, snapshot roomsdk.SnapshotRecord) error {

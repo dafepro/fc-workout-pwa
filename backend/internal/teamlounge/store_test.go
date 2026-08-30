@@ -336,6 +336,30 @@ func TestLoadSnapshotNormalizesCollisionProneGeneratedItemIDs(t *testing.T) {
 	if _, err := store.BindRoom(t.Context(), roomID, "team-one", "2026-08-24", template); err != nil {
 		t.Fatal(err)
 	}
+	for _, statement := range []string{
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at)
+		 VALUES ('player-one', 'club-one', 'One', 'P', '{}', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO team_memberships (team_id, player_id, active_from)
+		 VALUES ('team-one', 'player-one', '2026-01-01')`,
+		`INSERT INTO team_lounge_placement_credits
+		 (team_id, player_id, week_key, day_key, source_kind, source_id, granted_at)
+		 VALUES ('team-one', 'player-one', '2026-08-24', '2026-08-30', 'training_entry', 'entry-one', '2026-08-30T12:00:00Z')`,
+		`INSERT INTO team_lounge_placement_reservations (
+		 reservation_id, team_id, player_id, week_key, day_key, room_id, canvas_id, canvas_version,
+		 definition_id, definition_version, position_x, position_y, rotation, scale, config_json,
+		 idempotency_key_hash, request_hash, permit_hash, permit_expires_at, state, entity_id, held_at, finalized_at
+		 ) VALUES
+		 ('reservation-wobble', 'team-one', 'player-one', '2026-08-24', '2026-08-30', 'team:team-one:lounge:v13', 'beach-boardwalk', 13,
+		  'zoomigo-prop-play-wobble-cone', 3, 21, 40, 0, 1, '{}', randomblob(32), randomblob(32), randomblob(32), '2026-08-30T12:05:00Z', 'committed', 'i1', '2026-08-30T12:00:00Z', '2026-08-30T12:00:01Z'),
+		 ('reservation-rocket', 'team-one', 'player-one', '2026-08-24', '2026-08-30', 'team:team-one:lounge:v13', 'beach-boardwalk', 13,
+		  'zoomigo-stamp-rocket', 2, 22, 40, 0, 1, '{}', randomblob(32), randomblob(32), randomblob(32), '2026-08-30T12:05:00Z', 'committed', 'i1', '2026-08-30T12:00:02Z', '2026-08-30T12:00:03Z'),
+		 ('reservation-rocket-two', 'team-one', 'player-one', '2026-08-24', '2026-08-30', 'team:team-one:lounge:v13', 'beach-boardwalk', 13,
+		  'zoomigo-stamp-rocket', 2, 23, 40, 0, 1, '{}', randomblob(32), randomblob(32), randomblob(32), '2026-08-30T12:05:00Z', 'committed', 'i1', '2026-08-30T12:00:04Z', '2026-08-30T12:00:05Z')`,
+	} {
+		if _, err := db.ExecContext(t.Context(), statement); err != nil {
+			t.Fatal(err)
+		}
+	}
 	capturedAt := time.Date(2026, time.August, 30, 12, 0, 0, 0, time.UTC)
 	snapshot := roomsdk.CanvasSnapshot{
 		SchemaVersion: 1, CanvasID: template.CanvasID, CanvasVersion: template.CanvasVersion,
@@ -345,7 +369,7 @@ func TestLoadSnapshotNormalizesCollisionProneGeneratedItemIDs(t *testing.T) {
 			{EntityID: "boardwalk-beach-ball", DefinitionID: "beach-ball", DefinitionVersion: 6, ItemRevision: 1},
 			{EntityID: "i1", DefinitionID: "zoomigo-prop-play-wobble-cone", DefinitionVersion: 3, OwnerUserID: "player-one", ItemRevision: 1},
 			{EntityID: "i1", DefinitionID: "zoomigo-stamp-rocket", DefinitionVersion: 2, OwnerUserID: "player-one", ItemRevision: 1},
-			{EntityID: "i2", DefinitionID: "zoomigo-stamp-star", DefinitionVersion: 2, OwnerUserID: "player-one", ItemRevision: 1},
+			{EntityID: "i1", DefinitionID: "zoomigo-stamp-rocket", DefinitionVersion: 2, OwnerUserID: "player-one", ItemRevision: 1},
 			{EntityID: "safe-item", DefinitionID: "zoomigo-stamp-bolt", DefinitionVersion: 2, OwnerUserID: "player-one", ItemRevision: 1},
 		},
 	}
@@ -395,6 +419,27 @@ func TestLoadSnapshotNormalizesCollisionProneGeneratedItemIDs(t *testing.T) {
 	}
 	if loaded.Items[4].EntityID != "safe-item" {
 		t.Errorf("safe participant item ID = %q", loaded.Items[4].EntityID)
+	}
+	rows, err := db.QueryContext(t.Context(), `SELECT entity_id
+		FROM team_lounge_placement_reservations WHERE room_id = ? ORDER BY finalized_at`, roomID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	var ownedReservationIDs []string
+	for rows.Next() {
+		var entityID string
+		if err := rows.Scan(&entityID); err != nil {
+			t.Fatal(err)
+		}
+		ownedReservationIDs = append(ownedReservationIDs, entityID)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
+	wantReservationIDs := []string{loaded.Items[1].EntityID, loaded.Items[2].EntityID, loaded.Items[3].EntityID}
+	if strings.Join(ownedReservationIDs, ",") != strings.Join(wantReservationIDs, ",") {
+		t.Fatalf("reservation item IDs = %v, want normalized snapshot IDs %v", ownedReservationIDs, wantReservationIDs)
 	}
 }
 
