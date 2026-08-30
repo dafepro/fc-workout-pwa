@@ -183,6 +183,56 @@ describe("canonical local Lounge simulation", () => {
     }, 4_000);
   });
 
+  it("lets the avatar pass through a mini goal while preserving ball collisions", async () => {
+    const { SimulationDriver } = await import("@canvas-physics/client");
+    let entities: RenderEntity[] = [];
+    const goalDefinition = loungeItemDefinitions.find(
+      ({ definitionId }) => definitionId === "zoomigo-prop-play-mini-goal",
+    );
+    expect(goalDefinition).toBeDefined();
+    const simulation = startLocalBeachBoardwalkSimulation({
+      playerID: "mason",
+      driver: SimulationDriver.local([
+        LoungeBallBehavior,
+        LoungeActionBehavior,
+        LoungeCompositeBehavior,
+      ]),
+      additionalDefinitions: [goalDefinition!],
+      additionalItems: [
+        {
+          entityId: "mini-goal",
+          canvasId: "zoomigo-beach-boardwalk",
+          definitionId: goalDefinition!.definitionId,
+          definitionVersion: goalDefinition!.version,
+          ownerUserId: "mason",
+          transform: { x: 58, y: 92, rotation: 0, scale: 1 },
+          resolvedConfig: goalDefinition!.defaultConfig,
+          createdAt: "2026-08-30T00:00:00.000Z",
+          sceneRevision: 1,
+          itemRevision: 1,
+        },
+      ],
+      onRender(next) {
+        entities = next;
+      },
+    });
+    stop = simulation.stop;
+
+    await simulation.ready;
+    await until(() => entities.some(({ id }) => id === "mini-goal"));
+    simulation.move({
+      direction: { x: 0, y: 0 },
+      intensity: 0,
+      held: true,
+      target: { x: 76, y: 92 },
+    });
+
+    await until(
+      () => (entities.find(({ id }) => id === "avatar:mason")?.x ?? 0) > 72,
+      4_000,
+    );
+  }, 8_000);
+
   it("turns an off-centre player contact into ball spin", async () => {
     const { SimulationDriver } = await import("@canvas-physics/client");
     let entities: RenderEntity[] = [];

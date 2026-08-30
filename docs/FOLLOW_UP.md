@@ -44,7 +44,7 @@ experiments.
   owner-bound mutation permits.
 - Follow-up decision: if progression should change Lounge ball kick power,
   define bounded server-authorized tuning and youth-safe presentation first.
-  Canvas v16 currently applies one fixed low-speed dead zone, nonlinear response,
+  Canvas v17 currently applies one fixed low-speed dead zone, nonlinear response,
   and maximum impulse to every player.
 
 ## Release quality

@@ -115,6 +115,25 @@ test("the 320px Lounge keeps its approved visual states", async ({ page }) => {
     maxDiffPixels: 4_000,
   });
 
+  await lounge.getByRole("button", { name: /^Items,/u }).click();
+  const cannonChoice = lounge.getByRole("button", {
+    name: "Choose Ball cannon item",
+  });
+  await expect(cannonChoice).toBeVisible();
+  await cannonChoice.scrollIntoViewIfNeeded();
+  await expect(cannonChoice.locator("img")).toHaveAttribute(
+    "src",
+    "/team-lounge/items/ball-cannon-v1.svg",
+  );
+  await expect(lounge).toHaveScreenshot("team-lounge-items-cannon.png", {
+    animations: "disabled",
+    maxDiffPixels: 4_000,
+  });
+  await lounge
+    .getByRole("button", { name: "Close item picker" })
+    .last()
+    .click();
+
   await lounge.getByRole("button", { name: "Stamps" }).click();
   await lounge
     .getByRole("button", { name: "Choose Soccer ball stamp" })

@@ -37,12 +37,13 @@ Canvas before the catalog exposes them.
 - The earned beach ball is an item because it has a dynamic body, solid and kick
   colliders, and the Lounge ball behavior.
 - Boost pad, bounce drum, pinwheel, orbit beacon, breeze fan, soft sand mat,
-  speed lane, wobble cone, swing gate, and mini goal are included items. Each
-  declares two compatible effects through the shared deterministic composite
-  behavior and exposes matching solid or sensor collider geometry.
+  speed lane, wobble cone, swing gate, mini goal, and ball cannon are included
+  items. Each declares two compatible effects through the shared deterministic
+  composite behavior and exposes matching solid or sensor collider geometry.
 
 The four Starlight definition IDs retain their existing `zoomigo-prop-` names.
-Generation 16 is a clean room cutover for the mini-goal v4 capture geometry; no
+Generation 17 is a clean room cutover following the mini-goal v4 capture
+geometry; no
 compatibility import or destructive migration is needed. Their typed catalog
 kind and capability contract are authoritative.
 
@@ -53,6 +54,10 @@ dampened or score again until it leaves that goal's sensor and remains outside
 for one second. The hundredth goal wraps to `00` and emits a screen-wide,
 reduced-motion-safe 100-particle burst. This is playful room state only and
 never becomes player performance data.
+
+The ball cannon accepts only the two predefined Lounge ball definitions through
+its rear sensor, then relaunches them beyond the rotated muzzle. Avatars and
+other props pass through without being captured.
 
 ## Placement budget
 

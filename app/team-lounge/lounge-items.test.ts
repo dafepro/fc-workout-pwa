@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { CollisionLayer } from "@canvas-physics/core";
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import {
   includedLoungeItems,
+  LoungeVisualLayer,
   loungeItemChoices,
   loungeItemDefinitions,
   loungeItemForDefinition,
@@ -22,6 +24,7 @@ describe("development Lounge items", () => {
     "wobble-cone",
     "swing-gate",
     "mini-goal",
+    "ball-cannon",
   ];
 
   it("offers included stamps plus only earned Lounge inventory", () => {
@@ -104,11 +107,11 @@ describe("development Lounge items", () => {
   });
 
   it("gives every placeable item a durable transparent definition", () => {
-    expect(loungeItemDefinitions).toHaveLength(25);
+    expect(loungeItemDefinitions).toHaveLength(26);
     expect(
       new Set(loungeItemDefinitions.map(({ definitionId }) => definitionId))
         .size,
-    ).toBe(25);
+    ).toBe(26);
     expect(
       loungeItemDefinitions.every(({ persistence }) => persistence?.transform),
     ).toBe(true);
@@ -134,17 +137,17 @@ describe("development Lounge items", () => {
     });
   });
 
-  it("ships ten unique included props with two or more compatible effects", () => {
+  it("ships eleven unique included props with two or more compatible effects", () => {
     const props = includedLoungeItems.filter(({ id }) =>
       compositeItemIDs.includes(id),
     );
 
     expect(props.map(({ id }) => id)).toEqual(compositeItemIDs);
     expect(new Set(props.map(({ definitionId }) => definitionId)).size).toBe(
-      10,
+      11,
     );
     expect(props.every(({ kind }) => kind === "lounge_prop")).toBe(true);
-    expect(props.every(({ imageSrc }) => imageSrc?.endsWith("-v1.png"))).toBe(
+    expect(props.every(({ imageSrc }) => imageSrc?.includes("-v1."))).toBe(
       true,
     );
 
@@ -161,13 +164,13 @@ describe("development Lounge items", () => {
       expect(definition?.colliders.length).toBeGreaterThan(0);
       return JSON.stringify(effects);
     });
-    expect(new Set(combinations).size).toBe(10);
+    expect(new Set(combinations).size).toBe(11);
 
     const goal = loungeItemDefinitions.find(
       ({ definitionId }) => definitionId === "zoomigo-prop-play-mini-goal",
     );
     expect(goal).toMatchObject({
-      version: 4,
+      version: 5,
       colliders: expect.arrayContaining([
         expect.objectContaining({
           id: "mouth",
@@ -186,6 +189,23 @@ describe("development Lounge items", () => {
         ]),
       },
     });
+
+    const cannon = loungeItemDefinitions.find(
+      ({ definitionId }) => definitionId === "zoomigo-prop-play-ball-cannon",
+    );
+    expect(cannon).toMatchObject({
+      version: 1,
+      defaultConfig: {
+        effects: expect.arrayContaining([
+          expect.objectContaining({
+            kind: "cannon",
+            acceptedDefinitionIds: ["beach-ball", "zoomigo-prop-beach-ball"],
+            exitOffset: { x: 10, y: 0 },
+            speed: 34,
+          }),
+        ]),
+      },
+    });
   });
 
   it("binds every configured sensor effect to a real bounded collider", () => {
@@ -193,7 +213,7 @@ describe("development Lounge items", () => {
       definitionId.startsWith("zoomigo-prop-play-"),
     );
 
-    expect(definitions).toHaveLength(10);
+    expect(definitions).toHaveLength(11);
     for (const definition of definitions) {
       const colliderIDs = new Set(definition.colliders.map(({ id }) => id));
       const config = definition.defaultConfig as {
@@ -239,9 +259,56 @@ describe("development Lounge items", () => {
     }
   });
 
-  it("stores every generated sprite as a bounded RGBA PNG", () => {
-    for (const item of includedLoungeItems.filter(({ definitionId }) =>
-      definitionId.startsWith("zoomigo-prop-play-"),
+  it("keeps avatars non-blocking while ball solids still meet physical props", () => {
+    const solids = loungeItemDefinitions.flatMap((definition) =>
+      definition.colliders.filter(({ role }) => role === "itemSolid"),
+    );
+
+    expect(solids.length).toBeGreaterThan(0);
+    for (const solid of solids) {
+      expect((solid.collisionMask ?? 0) & CollisionLayer.AVATAR_BODY).toBe(0);
+      expect((solid.collisionMask ?? 0) & CollisionLayer.ITEM_SOLID).toBe(
+        CollisionLayer.ITEM_SOLID,
+      );
+    }
+  });
+
+  it("uses semantic draw bands so moving balls stay above props and below avatars", () => {
+    const compositeDefinitions = loungeItemDefinitions.filter(
+      ({ definitionId }) => definitionId.startsWith("zoomigo-prop-play-"),
+    );
+    const groundIDs = new Set([
+      "zoomigo-prop-play-boost-pad",
+      "zoomigo-prop-play-soft-sand-mat",
+      "zoomigo-prop-play-speed-lane",
+    ]);
+
+    expect(LoungeVisualLayer).toEqual({
+      DECAL: 4,
+      GROUND_EFFECT: 6,
+      PROP: 10,
+      BALL: 20,
+      AVATAR: 30,
+    });
+    for (const definition of compositeDefinitions) {
+      expect(definition.visual.zIndex).toBe(
+        groundIDs.has(definition.definitionId)
+          ? LoungeVisualLayer.GROUND_EFFECT
+          : LoungeVisualLayer.PROP,
+      );
+    }
+    expect(
+      loungeItemDefinitions.find(
+        ({ definitionId }) => definitionId === "zoomigo-prop-beach-ball",
+      )?.visual.zIndex,
+    ).toBe(LoungeVisualLayer.BALL);
+  });
+
+  it("stores every generated PNG sprite as bounded RGBA art", () => {
+    for (const item of includedLoungeItems.filter(
+      ({ definitionId, imageSrc }) =>
+        definitionId.startsWith("zoomigo-prop-play-") &&
+        imageSrc?.endsWith(".png"),
     )) {
       const bytes = readFileSync(
         join(process.cwd(), "public", item.imageSrc!.replace(/^\//, "")),
@@ -253,6 +320,17 @@ describe("development Lounge items", () => {
       expect(Math.min(width, height)).toBeGreaterThanOrEqual(96);
       expect(bytes[25]).toBe(6);
     }
+  });
+
+  it("ships the cannon as bounded vector art with no embedded external resources", () => {
+    const cannon = includedLoungeItems.find(({ id }) => id === "ball-cannon");
+    expect(cannon?.imageSrc).toBe("/team-lounge/items/ball-cannon-v1.svg");
+    const art = readFileSync(
+      join(process.cwd(), "public", cannon!.imageSrc!.replace(/^\//, "")),
+      "utf8",
+    );
+    expect(art).toContain('viewBox="0 0 192 112"');
+    expect(art).not.toMatch(/<script|(?:href|src)=["'](?:https?:|data:)/iu);
   });
 
   it("keeps stamps decorative and requires every item to declare engine capabilities", () => {

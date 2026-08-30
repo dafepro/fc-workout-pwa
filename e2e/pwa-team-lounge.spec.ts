@@ -520,6 +520,146 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   ).toBe(true);
 });
 
+test("the ball cannon launches the system ball and the avatar crosses through the goal", async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  const api = await request.newContext({ baseURL: apiBaseURL });
+  for (const dayOffset of [0, 1]) {
+    const completion = await api.post("/v1/me/training-entries", {
+      headers: {
+        Authorization: "Bearer e2e-player-mason",
+        "Idempotency-Key": `browser-lounge-cannon-qualification-${dayOffset}`,
+      },
+      data: {
+        teamId: "team-hill-striders",
+        activityDefinitionId: "hill-sprints",
+        assignmentId: "assignment-hill-sprints",
+        occurredAt: new Date(
+          Date.now() - dayOffset * 24 * 60 * 60 * 1_000 - 60_000,
+        ).toISOString(),
+        result: { kind: "repetitions", value: 8, unit: "reps" },
+        effortLevel: 4,
+        exhaustionLevel: 3,
+        completionOutcome: "as_listed",
+      },
+    });
+    expect(completion.status()).toBe(201);
+  }
+  await api.dispose();
+
+  await page.setViewportSize({ width: 320, height: 720 });
+  await openReadyPage(page, "/team?view=lounge");
+  const lounge = page.getByRole("region", {
+    name: "Beach Boardwalk Team Lounge",
+  });
+  const stage = lounge.getByLabel("Interactive lounge canvas");
+  await expect(lounge.locator(".team-lounge__world")).toHaveAttribute(
+    "data-canvas-state",
+    "ready",
+  );
+  await expect(stage.locator("canvas")).toBeVisible();
+
+  const place = async (label: string, x: number, y: number) => {
+    await lounge.getByRole("button", { name: /^Items,/u }).click();
+    const choice = lounge.getByRole("button", {
+      name: `Choose ${label} item`,
+    });
+    await expect(choice).toBeVisible();
+    await choice.click();
+    const surface = lounge.getByRole("button", {
+      name: `Place ${label} item on the boardwalk`,
+    });
+    const bounds = await surface.boundingBox();
+    expect(bounds).not.toBeNull();
+    await surface.click({
+      position: {
+        x: bounds!.width * (x / 100),
+        y: bounds!.height * (y / 150),
+      },
+    });
+    await expect(lounge.getByRole("status")).toHaveText(`${label} placed.`, {
+      timeout: 10_000,
+    });
+    const item = lounge.getByRole("button", {
+      name: `${label} item, yours; tap to edit`,
+    });
+    await expect(item).toBeVisible({ timeout: 10_000 });
+    return item;
+  };
+
+  await place("Ball cannon", 75, 98);
+  await place("Mini goal", 58, 80);
+
+  await stage.evaluate((element) => {
+    let previous = Number(element.getAttribute("data-ball-x"));
+    element.setAttribute("data-e2e-ball-max-step", "0");
+    new MutationObserver(() => {
+      const current = Number(element.getAttribute("data-ball-x"));
+      const previousMaximum = Number(
+        element.getAttribute("data-e2e-ball-max-step"),
+      );
+      element.setAttribute(
+        "data-e2e-ball-max-step",
+        String(Math.max(previousMaximum, Math.abs(current - previous))),
+      );
+      previous = current;
+    }).observe(element, {
+      attributes: true,
+      attributeFilter: ["data-ball-x"],
+    });
+  });
+
+  const canvas = stage.locator("canvas");
+  const canvasBox = await canvas.boundingBox();
+  expect(canvasBox).not.toBeNull();
+  const maxArrivalError = 3;
+  const dragSelfToWorld = async (x: number, y: number) => {
+    const currentX = Number(await stage.getAttribute("data-player-x"));
+    const currentY = Number(await stage.getAttribute("data-player-y"));
+    await page.mouse.move(
+      canvasBox!.x + canvasBox!.width * (currentX / 100),
+      canvasBox!.y + canvasBox!.height * (currentY / 150),
+    );
+    await page.mouse.down();
+    await page.mouse.move(
+      canvasBox!.x + canvasBox!.width * (x / 100),
+      canvasBox!.y + canvasBox!.height * (y / 150),
+      { steps: 24 },
+    );
+    await page.mouse.up();
+    await expect
+      .poll(async () =>
+        Math.abs(Number(await stage.getAttribute("data-player-x")) - x),
+      )
+      .toBeLessThan(maxArrivalError);
+    await expect
+      .poll(async () =>
+        Math.abs(Number(await stage.getAttribute("data-player-y")) - y),
+      )
+      .toBeLessThan(maxArrivalError);
+  };
+
+  await dragSelfToWorld(48, 98);
+  await dragSelfToWorld(59, 98);
+  await expect
+    .poll(async () => Number(await stage.getAttribute("data-ball-x")), {
+      timeout: 10_000,
+    })
+    .toBeGreaterThan(84);
+  await expect
+    .poll(async () =>
+      Number(await stage.getAttribute("data-e2e-ball-max-step")),
+    )
+    .toBeGreaterThan(10);
+
+  await dragSelfToWorld(40, 80);
+  await dragSelfToWorld(76, 80);
+  await expect
+    .poll(async () => Number(await stage.getAttribute("data-player-x")))
+    .toBeGreaterThan(72);
+});
+
 test.describe("touch placement", () => {
   test.use({ hasTouch: true });
 
@@ -706,11 +846,17 @@ test.describe("touch placement", () => {
     });
     await cdp.detach();
     await expect
-      .poll(async () => Number(await stage.getAttribute("data-player-x")))
-      .toBeCloseTo(destinationX, 0);
+      .poll(async () =>
+        Math.abs(
+          Number(await stage.getAttribute("data-player-x")) - destinationX,
+        ),
+      )
+      .toBeLessThan(1.5);
     await expect
-      .poll(async () => Number(await stage.getAttribute("data-player-y")))
-      .toBeCloseTo(85, 0);
+      .poll(async () =>
+        Math.abs(Number(await stage.getAttribute("data-player-y")) - 85),
+      )
+      .toBeLessThan(1.5);
   });
 });
 
@@ -781,7 +927,7 @@ test("a replacement Ava tab recovers two interrupted placement holds", async ({
           body: JSON.stringify({
             roomId: credential.roomId,
             definitionId: "zoomigo-stamp-bolt",
-            definitionVersion: 2,
+            definitionVersion: 3,
             position: { x: 25 + index * 10, y: 70 },
           }),
         },

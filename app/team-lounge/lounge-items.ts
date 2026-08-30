@@ -24,6 +24,14 @@ interface LoungeItemChoiceBase {
 
 export type LoungeItemCapability = "collision" | "physics" | "behavior";
 
+export const LoungeVisualLayer = {
+  DECAL: 4,
+  GROUND_EFFECT: 6,
+  PROP: 10,
+  BALL: 20,
+  AVATAR: 30,
+} as const;
+
 export interface LoungeStampChoice extends LoungeItemChoiceBase {
   kind: "lounge_stamp";
   capabilities: readonly [];
@@ -59,7 +67,7 @@ const stampChoice = (
   label,
   glyph,
   definitionId: `zoomigo-stamp-${id}`,
-  definitionVersion: 2,
+  definitionVersion: 3,
   source,
   kind: "lounge_stamp",
   capabilities: [],
@@ -71,7 +79,7 @@ const beachBallProp: LoungePropChoice = {
   glyph: "⚽",
   imageSrc: "/team-lounge/beach-ball.svg",
   definitionId: "zoomigo-prop-beach-ball",
-  definitionVersion: 5,
+  definitionVersion: 6,
   source: "earned",
   kind: "lounge_prop",
   capabilities: ["collision", "physics", "behavior"],
@@ -88,7 +96,7 @@ const starlightStamps: LoungeStampChoice[] = [
   glyph,
   imageSrc: `/team-lounge/items/${id}-v1.png`,
   definitionId: `zoomigo-prop-starlight-${id}`,
-  definitionVersion: 2,
+  definitionVersion: 3,
   source: "included",
   kind: "lounge_stamp",
   capabilities: [],
@@ -100,6 +108,8 @@ interface CompositeItemSpec {
   label: string;
   glyph: string;
   size: { width: number; height: number };
+  imageSrc?: string;
+  visualLayer?: number;
   capabilities: LoungePropChoice["capabilities"];
   body?: RigidBodyDefinition;
   colliders: ColliderDefinition[];
@@ -112,6 +122,7 @@ const compositeItemSpecs: CompositeItemSpec[] = [
     label: "Boost pad",
     glyph: "⏩",
     size: { width: 9, height: 14 },
+    visualLayer: LoungeVisualLayer.GROUND_EFFECT,
     capabilities: ["collision", "behavior"],
     colliders: [sensorRect("zone", 7, 12)],
     effects: [
@@ -192,6 +203,7 @@ const compositeItemSpecs: CompositeItemSpec[] = [
     label: "Soft sand mat",
     glyph: "🏖️",
     size: { width: 16, height: 10 },
+    visualLayer: LoungeVisualLayer.GROUND_EFFECT,
     capabilities: ["collision", "behavior"],
     colliders: [sensorRect("surface", 14, 8)],
     effects: [
@@ -216,6 +228,7 @@ const compositeItemSpecs: CompositeItemSpec[] = [
     label: "Speed lane",
     glyph: "💨",
     size: { width: 18, height: 6 },
+    visualLayer: LoungeVisualLayer.GROUND_EFFECT,
     capabilities: ["collision", "behavior"],
     colliders: [sensorRect("lane", 17, 5)],
     effects: [
@@ -251,7 +264,7 @@ const compositeItemSpecs: CompositeItemSpec[] = [
   },
   {
     id: "mini-goal",
-    definitionVersion: 4,
+    definitionVersion: 5,
     label: "Mini goal",
     glyph: "🥅",
     size: { width: 18, height: 11 },
@@ -266,6 +279,7 @@ const compositeItemSpecs: CompositeItemSpec[] = [
       {
         kind: "dampen",
         sensorId: "mouth",
+        acceptedDefinitionIds: ["beach-ball", "zoomigo-prop-beach-ball"],
         linearFactor: 0.7,
         angularFactor: 0.7,
         minimumSpeed: 0.5,
@@ -281,14 +295,48 @@ const compositeItemSpecs: CompositeItemSpec[] = [
       },
     ],
   },
+  {
+    id: "ball-cannon",
+    definitionVersion: 1,
+    label: "Ball cannon",
+    glyph: "💥",
+    imageSrc: "/team-lounge/items/ball-cannon-v1.svg",
+    size: { width: 18, height: 10.5 },
+    capabilities: ["collision", "behavior"],
+    colliders: [
+      {
+        ...sensorRect("intake", 4, 7),
+        offset: { x: -7, y: 0 },
+      },
+    ],
+    effects: [
+      {
+        kind: "dampen",
+        sensorId: "intake",
+        acceptedDefinitionIds: ["beach-ball", "zoomigo-prop-beach-ball"],
+        linearFactor: 0,
+        angularFactor: 0,
+        minimumSpeed: 0,
+      },
+      {
+        kind: "cannon",
+        sensorId: "intake",
+        acceptedDefinitionIds: ["beach-ball", "zoomigo-prop-beach-ball"],
+        exitOffset: { x: 10, y: 0 },
+        speed: 34,
+        dwellSeconds: 0.05,
+        cooldownSeconds: 0.75,
+      },
+    ],
+  },
 ];
 
 export const compositeLoungeItems: LoungePropChoice[] = compositeItemSpecs.map(
-  ({ id, label, glyph, capabilities, definitionVersion = 2 }) => ({
+  ({ id, label, glyph, imageSrc, capabilities, definitionVersion = 3 }) => ({
     id,
     label,
     glyph,
-    imageSrc: `/team-lounge/items/${id}-v1.png`,
+    imageSrc: imageSrc ?? `/team-lounge/items/${id}-v1.png`,
     definitionId: `zoomigo-prop-play-${id}`,
     definitionVersion,
     source: "included",
@@ -306,12 +354,12 @@ export const includedLoungeItems: LoungeItemChoice[] = [
 export const loungeItemDefinitions: ItemDefinition[] = itemCatalog.map(
   (item) => ({
     definitionId: `zoomigo-stamp-${item[0]}`,
-    version: 2,
+    version: 3,
     displayName: `${item[1]} stamp`,
     visual: {
       size: { width: 10, height: 10 },
       spriteId: "lounge.stamp.transparent",
-      zIndex: 9,
+      zIndex: LoungeVisualLayer.DECAL,
     },
     colliders: [],
     defaultConfig: {},
@@ -325,13 +373,13 @@ export const loungeItemDefinitions: ItemDefinition[] = itemCatalog.map(
 );
 loungeItemDefinitions.push({
   definitionId: beachBallProp.definitionId,
-  version: 5,
+  version: 6,
   displayName: "Beach ball prop",
   visual: {
     size: { width: 9, height: 9 },
     spriteId: "lounge.stamp.transparent",
     placeholder: { shape: "circle", color: 0xffd33d },
-    zIndex: 8,
+    zIndex: LoungeVisualLayer.BALL,
   },
   body: {
     mode: "dynamic",
@@ -365,12 +413,12 @@ for (const spec of compositeItemSpecs) {
   const config: LoungeCompositeConfig = { effects: spec.effects };
   loungeItemDefinitions.push({
     definitionId: `zoomigo-prop-play-${spec.id}`,
-    version: spec.definitionVersion ?? 2,
+    version: spec.definitionVersion ?? 3,
     displayName: spec.label,
     visual: {
       size: spec.size,
       spriteId: "lounge.stamp.transparent",
-      zIndex: 10,
+      zIndex: spec.visualLayer ?? LoungeVisualLayer.PROP,
     },
     body: spec.body ?? { mode: "fixed" },
     colliders: spec.colliders,
@@ -392,7 +440,7 @@ for (const item of starlightStamps) {
     visual: {
       size: { width: 10, height: 10 },
       spriteId: "lounge.stamp.transparent",
-      zIndex: 9,
+      zIndex: LoungeVisualLayer.DECAL,
     },
     colliders: [],
     defaultConfig: {},
@@ -478,10 +526,7 @@ function solidRect(id: string, width: number, height: number) {
     id,
     role: "itemSolid" as const,
     shape: { type: "rect" as const, width, height },
-    collisionMask:
-      CollisionLayer.AVATAR_BODY |
-      CollisionLayer.WORLD_STATIC |
-      CollisionLayer.ITEM_SOLID,
+    collisionMask: CollisionLayer.WORLD_STATIC | CollisionLayer.ITEM_SOLID,
     restitution: 0.75,
     friction: 0.15,
   };
@@ -492,10 +537,7 @@ function solidCircle(id: string, radius: number) {
     id,
     role: "itemSolid" as const,
     shape: { type: "circle" as const, radius },
-    collisionMask:
-      CollisionLayer.AVATAR_BODY |
-      CollisionLayer.WORLD_STATIC |
-      CollisionLayer.ITEM_SOLID,
+    collisionMask: CollisionLayer.WORLD_STATIC | CollisionLayer.ITEM_SOLID,
     restitution: 0.8,
     friction: 0.12,
   };

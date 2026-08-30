@@ -342,8 +342,8 @@ func writeLoungeJoin(connection *websocket.Conn, roomID string) error {
 		Payload: &pb.RoomEnvelope_Join{Join: &pb.Join{
 			RoomId: roomID, ProtocolVersion: 8,
 			Definitions: []*pb.DefinitionVersion{
-				{DefinitionId: "beach-ball", Version: 8},
-				{DefinitionId: "avatar", Version: 1},
+				{DefinitionId: "beach-ball", Version: 9},
+				{DefinitionId: "avatar", Version: 2},
 				{DefinitionId: "zoomigo-lounge-action-router", Version: 1},
 			},
 		}},

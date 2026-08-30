@@ -101,7 +101,7 @@ describe("player repair", () => {
 
     expect(await screen.findByText("4821")).toBeInTheDocument();
     expect(
-      screen.getByRole("img", { name: "Personal sign-in QR code" }),
+      await screen.findByRole("img", { name: "Personal sign-in QR code" }),
     ).toHaveAttribute("src", "data:image/png;base64,aGVsbG8=");
     expect(screen.getByText(/can never be shown again/)).toBeInTheDocument();
   });

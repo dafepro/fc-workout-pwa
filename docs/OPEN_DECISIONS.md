@@ -456,9 +456,10 @@ to resolve, not the implementing agent's.
 ## Team Lounge composite items (2026-08-29)
 
 - Implementation assumption: boost pad, bounce drum, pinwheel, orbit beacon,
-  breeze fan, soft sand mat, speed lane, wobble cone, swing gate, and mini goal
-  are included Lounge basics rather than Prize Box unlocks. They still consume
-  the same earned weekly placement credits as every other Lounge object.
+  breeze fan, soft sand mat, speed lane, wobble cone, swing gate, mini goal, and
+  ball cannon are included Lounge basics rather than Prize Box unlocks. They
+  still consume the same earned weekly placement credits as every other Lounge
+  object.
 - Every item combines at least two predefined Canvas behaviors. Their effects
   are playful room interactions only: they award no points, publish no player
   result, and do not change training, Momentum, or leaderboard data.
@@ -498,6 +499,30 @@ to resolve, not the implementing agent's.
   `00` and emits a transient, reduced-motion-safe confetti celebration.
 - The counter is playful Lounge state only. It does not award points or change
   training, Momentum, challenges, leaderboards, or public player data.
+
+## Canvas v17 pass-through, visual layers, and ball cannon (2026-08-30)
+
+- Canvas generation 17 is a clean cutover from generation 16. It does not
+  import the retired room snapshot; retired reservations remain isolated from
+  the active generation's placement budget.
+- Placed item solids no longer include the avatar-body collision bit. Avatars
+  therefore pass through goals, nets, gates, drums, and cones while preserving
+  boundary containment, sensor-driven item effects, and ball-kick behavior.
+  Ball solids still collide with the world and other item solids.
+- Entity artwork uses semantic Pixi bands instead of accidental catalog order:
+  decorative stamps at 4, ground effects at 6, physical props at 10, moving
+  balls at 20, and avatars at 30. Interactive movers therefore remain readable
+  above pads and props while DOM editing controls stay above the scene.
+- The included ball cannon has one rear sensor. After either predefined Lounge
+  ball definition dwells there for 0.05 seconds, the authoritative behavior
+  moves the ball just beyond the rotated muzzle and gives it a
+  34-unit-per-second forward velocity. Per-ball cooldown prevents duplicate
+  launches; avatars and non-ball items are ignored.
+- The Canvas, system ball, avatar, earned ball, and stamp definitions advance to
+  versions 17, 9, 2, 6, and 3. Existing composite items advance to version 3,
+  the scoring mini goal advances to version 5, and the new cannon begins at
+  version 1. These effects remain Lounge-only and create no score, training,
+  Momentum, or leaderboard data.
 
 ## Canvas v14 Lounge physics bridge (2026-08-30)
 

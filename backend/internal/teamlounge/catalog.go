@@ -12,9 +12,14 @@ import (
 )
 
 const (
-	BeachBoardwalkCanvasID       = "zoomigo-beach-boardwalk"
-	BeachBoardwalkCanvasVersion  = uint32(16)
-	BeachBoardwalkRoomGeneration = BeachBoardwalkCanvasVersion
+	BeachBoardwalkCanvasID        = "zoomigo-beach-boardwalk"
+	BeachBoardwalkCanvasVersion   = uint32(17)
+	BeachBoardwalkRoomGeneration  = BeachBoardwalkCanvasVersion
+	loungeVisualLayerDecal        = 4
+	loungeVisualLayerGroundEffect = 6
+	loungeVisualLayerProp         = 10
+	loungeVisualLayerBall         = 20
+	loungeVisualLayerAvatar       = 30
 )
 
 type ThemeManifest struct {
@@ -121,12 +126,12 @@ func BeachBoardwalkCatalog() Catalog {
 		}},
 		Items: []roomsdk.ItemDefinitionRecord{
 			{
-				DefinitionID: "beach-ball", Version: 8, Complexity: roomsdk.ItemComplexitySimple,
+				DefinitionID: "beach-ball", Version: 9, Complexity: roomsdk.ItemComplexitySimple,
 				ConfigSchema:  json.RawMessage(loungeBallConfigSchemaJSON),
 				DefinitionRaw: json.RawMessage(beachBallDefinitionJSON),
 			},
 			{
-				DefinitionID: "avatar", Version: 1, Complexity: roomsdk.ItemComplexitySimple,
+				DefinitionID: "avatar", Version: 2, Complexity: roomsdk.ItemComplexitySimple,
 				ConfigSchema:  json.RawMessage(emptyConfigSchemaJSON),
 				DefinitionRaw: json.RawMessage(avatarDefinitionJSON),
 			},
@@ -145,7 +150,7 @@ func BeachBoardwalkLoungeCatalog() Catalog {
 	for _, assetID := range []string{"bolt", "fire", "star", "soccer", "shield", "target", "rainbow", "lion", "rocket", "sparkles"} {
 		catalog.Items = append(catalog.Items, roomsdk.ItemDefinitionRecord{
 			DefinitionID:  "zoomigo-stamp-" + assetID,
-			Version:       2,
+			Version:       3,
 			Complexity:    roomsdk.ItemComplexitySimple,
 			ConfigSchema:  json.RawMessage(emptyConfigSchemaJSON),
 			DefinitionRaw: loungeStampDefinitionJSON(assetID),
@@ -154,7 +159,7 @@ func BeachBoardwalkLoungeCatalog() Catalog {
 	for _, assetID := range []string{"camp-lantern", "pennant-flag", "water-cooler", "training-cone"} {
 		catalog.Items = append(catalog.Items, roomsdk.ItemDefinitionRecord{
 			DefinitionID:  "zoomigo-prop-starlight-" + assetID,
-			Version:       2,
+			Version:       3,
 			Complexity:    roomsdk.ItemComplexitySimple,
 			ConfigSchema:  json.RawMessage(emptyConfigSchemaJSON),
 			DefinitionRaw: loungeStaticPropDefinitionJSON(assetID),
@@ -170,7 +175,7 @@ func BeachBoardwalkLoungeCatalog() Catalog {
 		})
 	}
 	catalog.Items = append(catalog.Items, roomsdk.ItemDefinitionRecord{
-		DefinitionID: "zoomigo-prop-beach-ball", Version: 5,
+		DefinitionID: "zoomigo-prop-beach-ball", Version: 6,
 		Complexity: roomsdk.ItemComplexitySimple, ConfigSchema: json.RawMessage(loungeBallConfigSchemaJSON),
 		DefinitionRaw: json.RawMessage(beachBallPropDefinitionJSON),
 	})
@@ -183,6 +188,7 @@ type loungeCompositeItemSpec struct {
 	DisplayName string
 	Width       float64
 	Height      float64
+	VisualLayer int
 	Body        map[string]any
 	Colliders   []map[string]any
 	Effects     []map[string]any
@@ -191,7 +197,8 @@ type loungeCompositeItemSpec struct {
 var loungeCompositeItemSpecs = []loungeCompositeItemSpec{
 	{
 		ID: "boost-pad", DisplayName: "Boost pad", Width: 9, Height: 14,
-		Body: loungeFixedBody(), Colliders: []map[string]any{loungeSensorRect("zone", 7, 12)},
+		VisualLayer: loungeVisualLayerGroundEffect,
+		Body:        loungeFixedBody(), Colliders: []map[string]any{loungeSensorRect("zone", 7, 12)},
 		Effects: []map[string]any{
 			{"kind": "boost", "sensorId": "zone", "speed": 18, "directionRadians": -1.5707963267948966},
 			{"kind": "hop", "sensorId": "zone", "elevationSpeed": 5},
@@ -235,7 +242,8 @@ var loungeCompositeItemSpecs = []loungeCompositeItemSpec{
 	},
 	{
 		ID: "soft-sand-mat", DisplayName: "Soft sand mat", Width: 16, Height: 10,
-		Body: loungeFixedBody(), Colliders: []map[string]any{loungeSensorRect("surface", 14, 8)},
+		VisualLayer: loungeVisualLayerGroundEffect,
+		Body:        loungeFixedBody(), Colliders: []map[string]any{loungeSensorRect("surface", 14, 8)},
 		Effects: []map[string]any{
 			{"kind": "dampen", "sensorId": "surface", "linearFactor": 0.88, "angularFactor": 0.8, "minimumSpeed": 0.75},
 			{"kind": "orbit", "sensorId": "surface", "radialForce": 2, "tangentialForce": 0, "maxForce": 2},
@@ -243,7 +251,8 @@ var loungeCompositeItemSpecs = []loungeCompositeItemSpec{
 	},
 	{
 		ID: "speed-lane", DisplayName: "Speed lane", Width: 18, Height: 6,
-		Body: loungeFixedBody(), Colliders: []map[string]any{loungeSensorRect("lane", 17, 5)},
+		VisualLayer: loungeVisualLayerGroundEffect,
+		Body:        loungeFixedBody(), Colliders: []map[string]any{loungeSensorRect("lane", 17, 5)},
 		Effects: []map[string]any{
 			{"kind": "boost", "sensorId": "lane", "speed": 22},
 			{"kind": "push", "sensorId": "lane", "force": 5},
@@ -270,7 +279,7 @@ var loungeCompositeItemSpecs = []loungeCompositeItemSpec{
 		},
 	},
 	{
-		ID: "mini-goal", Version: 4, DisplayName: "Mini goal", Width: 18, Height: 11,
+		ID: "mini-goal", Version: 5, DisplayName: "Mini goal", Width: 18, Height: 11,
 		Body: loungeFixedBody(), Colliders: []map[string]any{
 			loungeOffsetCollider(loungeSolidRect("left-post", 2, 10), -7.5, 0),
 			loungeOffsetCollider(loungeSolidRect("right-post", 2, 10), 7.5, 0),
@@ -278,8 +287,18 @@ var loungeCompositeItemSpecs = []loungeCompositeItemSpec{
 			loungeOffsetCollider(loungeSensorRect("mouth", 11, 2), 0, -2.5),
 		},
 		Effects: []map[string]any{
-			{"kind": "dampen", "sensorId": "mouth", "linearFactor": 0.7, "angularFactor": 0.7, "minimumSpeed": 0.5},
+			{"kind": "dampen", "sensorId": "mouth", "acceptedDefinitionIds": []string{"beach-ball", "zoomigo-prop-beach-ball"}, "linearFactor": 0.7, "angularFactor": 0.7, "minimumSpeed": 0.5},
 			{"kind": "goal", "sensorId": "mouth", "acceptedDefinitionIds": []string{"beach-ball", "zoomigo-prop-beach-ball"}, "holdSeconds": 0.4, "ejectOffset": map[string]float64{"x": 0, "y": 8}, "ejectSpeed": 18, "cooldownSeconds": 1},
+		},
+	},
+	{
+		ID: "ball-cannon", Version: 1, DisplayName: "Ball cannon", Width: 18, Height: 10.5,
+		Body: loungeFixedBody(), Colliders: []map[string]any{
+			loungeOffsetCollider(loungeSensorRect("intake", 4, 7), -7, 0),
+		},
+		Effects: []map[string]any{
+			{"kind": "dampen", "sensorId": "intake", "acceptedDefinitionIds": []string{"beach-ball", "zoomigo-prop-beach-ball"}, "linearFactor": 0, "angularFactor": 0, "minimumSpeed": 0},
+			{"kind": "cannon", "sensorId": "intake", "acceptedDefinitionIds": []string{"beach-ball", "zoomigo-prop-beach-ball"}, "exitOffset": map[string]float64{"x": 10, "y": 0}, "speed": 34, "dwellSeconds": 0.05, "cooldownSeconds": 0.75},
 		},
 	},
 }
@@ -288,7 +307,7 @@ func loungeCompositeVersion(spec loungeCompositeItemSpec) uint32 {
 	if spec.Version > 0 {
 		return spec.Version
 	}
-	return 2
+	return 3
 }
 
 func loungeCompositeItemDefinitionJSON(spec loungeCompositeItemSpec) json.RawMessage {
@@ -298,7 +317,7 @@ func loungeCompositeItemDefinitionJSON(spec loungeCompositeItemSpec) json.RawMes
 		"displayName":  spec.DisplayName,
 		"visual": map[string]any{
 			"size":     map[string]float64{"width": spec.Width, "height": spec.Height},
-			"spriteId": "lounge.stamp.transparent", "zIndex": 10,
+			"spriteId": "lounge.stamp.transparent", "zIndex": loungeCompositeVisualLayer(spec),
 		},
 		"body": spec.Body, "colliders": spec.Colliders,
 		"behaviorType":  "zoomigoLoungeComposite",
@@ -310,6 +329,13 @@ func loungeCompositeItemDefinitionJSON(spec loungeCompositeItemSpec) json.RawMes
 		panic(err)
 	}
 	return raw
+}
+
+func loungeCompositeVisualLayer(spec loungeCompositeItemSpec) int {
+	if spec.VisualLayer != 0 {
+		return spec.VisualLayer
+	}
+	return loungeVisualLayerProp
 }
 
 func loungeFixedBody() map[string]any {
@@ -338,14 +364,14 @@ func loungeSensorCircle(id string, radius float64) map[string]any {
 func loungeSolidRect(id string, width, height float64) map[string]any {
 	return map[string]any{
 		"id": id, "role": "itemSolid", "shape": map[string]any{"type": "rect", "width": width, "height": height},
-		"collisionMask": 13, "restitution": 0.75, "friction": 0.15,
+		"collisionMask": 12, "restitution": 0.75, "friction": 0.15,
 	}
 }
 
 func loungeSolidCircle(id string, radius float64) map[string]any {
 	return map[string]any{
 		"id": id, "role": "itemSolid", "shape": map[string]any{"type": "circle", "radius": radius},
-		"collisionMask": 13, "restitution": 0.8, "friction": 0.12,
+		"collisionMask": 12, "restitution": 0.8, "friction": 0.12,
 	}
 }
 
@@ -357,10 +383,10 @@ func loungeOffsetCollider(collider map[string]any, x, y float64) map[string]any 
 func loungeStaticPropDefinitionJSON(assetID string) json.RawMessage {
 	raw, err := json.Marshal(map[string]any{
 		"definitionId": "zoomigo-prop-starlight-" + assetID,
-		"version":      2,
+		"version":      3,
 		"displayName":  strings.ReplaceAll(assetID, "-", " "),
 		"visual": map[string]any{
-			"size": map[string]float64{"width": 10, "height": 10}, "spriteId": "lounge.stamp.transparent", "zIndex": 9,
+			"size": map[string]float64{"width": 10, "height": 10}, "spriteId": "lounge.stamp.transparent", "zIndex": loungeVisualLayerDecal,
 		},
 		"colliders": []any{}, "defaultConfig": map[string]any{},
 		"persistence": map[string]any{"transform": true, "behaviorState": false, "onRoomSleep": "pause"},
@@ -375,10 +401,10 @@ func loungeStaticPropDefinitionJSON(assetID string) json.RawMessage {
 func loungeStampDefinitionJSON(assetID string) json.RawMessage {
 	raw, err := json.Marshal(map[string]any{
 		"definitionId": "zoomigo-stamp-" + assetID,
-		"version":      2,
+		"version":      3,
 		"displayName":  assetID + " stamp",
 		"visual": map[string]any{
-			"size": map[string]float64{"width": 10, "height": 10}, "spriteId": "lounge.stamp.transparent", "zIndex": 9,
+			"size": map[string]float64{"width": 10, "height": 10}, "spriteId": "lounge.stamp.transparent", "zIndex": loungeVisualLayerDecal,
 		},
 		"colliders": []any{}, "defaultConfig": map[string]any{},
 		"persistence": map[string]any{"transform": true, "behaviorState": false, "onRoomSleep": "pause"},
@@ -391,7 +417,7 @@ func loungeStampDefinitionJSON(assetID string) json.RawMessage {
 }
 
 const beachBoardwalkCanvasJSON = `{
-  "id":"zoomigo-beach-boardwalk","version":16,
+  "id":"zoomigo-beach-boardwalk","version":17,
   "size":{"width":100,"height":150},"orientation":"topDown",
   "backgroundAssetId":"lounge.background",
   "edges":{"top":"open","right":"open","bottom":"open","left":"open"},
@@ -404,15 +430,15 @@ const beachBoardwalkCanvasJSON = `{
   "regions":[],
   "environment":{"base":{"gravityXY":{"x":0,"y":0},"linearDrag":0.03,"angularDrag":0.06,"softSpeedLimit":40,"surfaceFrictionMultiplier":1}},
   "spawnPoints":[{"id":"arrival","position":{"x":43,"y":92}}],
-  "systemItems":[{"entityId":"boardwalk-beach-ball","definitionId":"beach-ball","definitionVersion":8,"transform":{"x":62,"y":98,"rotation":0,"scale":1},"resolvedConfig":{"sensorId":"kick","minKickSpeed":2.5,"kickExponent":1.35,"kickStrength":3,"pinchStrength":2.8,"maxImpulse":48,"tangentialStrength":0.48,"maxTangentialImpulse":8,"spinTransfer":1,"spinRadius":4.5,"maxAngularSpeed":15,"cooldownSeconds":0.16}},{"entityId":"lounge-action-router","definitionId":"zoomigo-lounge-action-router","definitionVersion":1,"transform":{"x":0,"y":0,"rotation":0,"scale":1},"resolvedConfig":{}}],
+  "systemItems":[{"entityId":"boardwalk-beach-ball","definitionId":"beach-ball","definitionVersion":9,"transform":{"x":62,"y":98,"rotation":0,"scale":1},"resolvedConfig":{"sensorId":"kick","minKickSpeed":2.5,"kickExponent":1.35,"kickStrength":3,"pinchStrength":2.8,"maxImpulse":48,"tangentialStrength":0.48,"maxTangentialImpulse":8,"spinTransfer":1,"spinRadius":4.5,"maxAngularSpeed":15,"cooldownSeconds":0.16}},{"entityId":"lounge-action-router","definitionId":"zoomigo-lounge-action-router","definitionVersion":1,"transform":{"x":0,"y":0,"rotation":0,"scale":1},"resolvedConfig":{}}],
   "limits":{"maxAvatars":24,"maxItems":169,"maxComplexPhysicsItems":4},
   "avatarController":{"radius":4,"maxSpeed":26,"acceleration":125,"flickDeceleration":42,"maxTurnSpeed":9,"facing":"fixed","directInteractionMaxSpeed":32},
   "terrainDefaults":{"avatars":true,"items":true}
 }`
 
 const beachBallPropDefinitionJSON = `{
-  "definitionId":"zoomigo-prop-beach-ball","version":5,"displayName":"Beach ball prop",
-  "visual":{"size":{"width":9,"height":9},"spriteId":"lounge.stamp.transparent","placeholder":{"shape":"circle","color":16765757},"zIndex":8},
+  "definitionId":"zoomigo-prop-beach-ball","version":6,"displayName":"Beach ball prop",
+  "visual":{"size":{"width":9,"height":9},"spriteId":"lounge.stamp.transparent","placeholder":{"shape":"circle","color":16765757},"zIndex":20},
   "body":{"mode":"dynamic","mass":0.5,"gravityScale":0,"linearDamping":0.05,"angularDamping":0.08,"canSleep":true},
   "colliders":[
     {"id":"solid","role":"itemSolid","shape":{"type":"circle","radius":4.5},"restitution":0.95,"friction":0.05,"collisionMask":28,"tags":["lounge-ball"]},
@@ -423,8 +449,8 @@ const beachBallPropDefinitionJSON = `{
 }`
 
 const beachBallDefinitionJSON = `{
-  "definitionId":"beach-ball","version":8,"displayName":"Beach ball",
-  "visual":{"size":{"width":9,"height":9},"spriteId":"lounge.ball","placeholder":{"shape":"circle","color":16765757},"zIndex":8},
+  "definitionId":"beach-ball","version":9,"displayName":"Beach ball",
+  "visual":{"size":{"width":9,"height":9},"spriteId":"lounge.ball","placeholder":{"shape":"circle","color":16765757},"zIndex":20},
   "body":{"mode":"dynamic","mass":0.5,"gravityScale":0,"linearDamping":0.05,"angularDamping":0.08,"canSleep":true},
   "colliders":[
     {"id":"solid","role":"itemSolid","shape":{"type":"circle","radius":4.5},"restitution":0.95,"friction":0.05,"collisionMask":28,"tags":["lounge-ball"]},
@@ -435,8 +461,8 @@ const beachBallDefinitionJSON = `{
 }`
 
 const avatarDefinitionJSON = `{
-  "definitionId":"avatar","version":1,"displayName":"Player avatar",
-  "visual":{"size":{"width":9,"height":9},"spriteId":"lounge.stamp.transparent","placeholder":{"shape":"circle","color":1923719},"zIndex":12},
+  "definitionId":"avatar","version":2,"displayName":"Player avatar",
+  "visual":{"size":{"width":9,"height":9},"spriteId":"lounge.stamp.transparent","placeholder":{"shape":"circle","color":1923719},"zIndex":30},
   "colliders":[],"defaultConfig":{},
   "persistence":{"transform":false,"behaviorState":false,"onRoomSleep":"pause"},"complexity":"simple"
 }`
@@ -457,7 +483,7 @@ const loungeBallConfigSchemaJSON = `{
 
 const loungeCompositeConfigSchemaJSON = `{
   "type":"object",
-  "properties":{"effects":{"type":"array","minItems":2,"maxItems":4,"items":{"type":"object","properties":{"kind":{"type":"string","enum":["boost","hop","bounce","wobble","spin","push","orbit","dampen","swing","goal"]}},"required":["kind"],"additionalProperties":true}}},
+  "properties":{"effects":{"type":"array","minItems":2,"maxItems":4,"items":{"type":"object","properties":{"kind":{"type":"string","enum":["boost","hop","bounce","wobble","spin","push","orbit","dampen","swing","goal","cannon"]}},"required":["kind"],"additionalProperties":true}}},
   "required":["effects"],"additionalProperties":false
 }`
 

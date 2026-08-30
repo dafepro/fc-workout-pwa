@@ -5,16 +5,17 @@ import {
 } from "@canvas-physics/core";
 
 import { defaultLoungeBallConfig } from "../lounge-ball-behavior";
+import { LoungeVisualLayer } from "../lounge-items";
 
 export const beachBallDefinition: ItemDefinition = {
   definitionId: "beach-ball",
-  version: 8,
+  version: 9,
   displayName: "Beach ball",
   visual: {
     size: { width: 9, height: 9 },
     spriteId: "lounge.ball",
     placeholder: { shape: "circle", color: 0xffd33d },
-    zIndex: 8,
+    zIndex: LoungeVisualLayer.BALL,
   },
   body: {
     mode: "dynamic",
@@ -47,13 +48,13 @@ export const beachBallDefinition: ItemDefinition = {
 
 export const loungeAvatarDefinition: ItemDefinition = {
   definitionId: "avatar",
-  version: 1,
+  version: 2,
   displayName: "Player avatar",
   visual: {
     size: { width: 9, height: 9 },
     spriteId: "lounge.avatar",
     placeholder: { shape: "circle", color: 0x1d5a87 },
-    zIndex: 12,
+    zIndex: LoungeVisualLayer.AVATAR,
   },
   colliders: [],
   defaultConfig: {},
@@ -85,7 +86,7 @@ export const beachBoardwalkDefinitions = [
 
 export const beachBoardwalkCanvas: CanvasDefinition = {
   id: "zoomigo-beach-boardwalk",
-  version: 16,
+  version: 17,
   size: { width: 100, height: 150 },
   orientation: "topDown",
   backgroundAssetId: "lounge.background",
