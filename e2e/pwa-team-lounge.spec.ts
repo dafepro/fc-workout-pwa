@@ -948,6 +948,39 @@ test("two qualified players share Lounge presence and avatar movement", async ({
     await expect(masonLounge.getByLabel("Ava R.")).toBeVisible();
     await expect(avaLounge.getByLabel("Mason C.")).toBeVisible();
 
+    await masonLounge
+      .getByRole("button", { name: /Items, \d+ placements? left/u })
+      .click();
+    await masonLounge
+      .getByRole("button", { name: "Choose Wobble cone item" })
+      .click();
+    await masonLounge
+      .getByRole("button", {
+        name: "Place Wobble cone item on the boardwalk",
+      })
+      .click({ position: { x: 170, y: 160 } });
+    await expect(masonLounge.getByRole("status")).toHaveText(
+      "Wobble cone placed.",
+      { timeout: 10_000 },
+    );
+    const avaStage = avaLounge.getByLabel("Interactive lounge canvas");
+    const teammateCone = avaLounge.getByLabel(
+      "Wobble cone item placed by a teammate",
+    );
+    await expect(teammateCone).toBeVisible({ timeout: 10_000 });
+    const [avaStageBox, teammateConeBox] = await Promise.all([
+      avaStage.boundingBox(),
+      teammateCone.boundingBox(),
+    ]);
+    expect(avaStageBox).not.toBeNull();
+    expect(teammateConeBox).not.toBeNull();
+    expect(teammateConeBox!.width).toBeLessThanOrEqual(
+      avaStageBox!.width * 0.4,
+    );
+    expect(teammateConeBox!.height).toBeLessThanOrEqual(
+      avaStageBox!.width * 0.4,
+    );
+
     const masonSelf = masonLounge
       .locator(".team-lounge__shared-avatar")
       .filter({ hasText: "You" });
@@ -997,7 +1030,6 @@ test("two qualified players share Lounge presence and avatar movement", async ({
       })
       .toBeGreaterThan(3);
 
-    const avaStage = avaLounge.getByLabel("Interactive lounge canvas");
     await expect
       .poll(async () => Number(await avaStage.getAttribute("data-ball-x")))
       .toBeGreaterThan(0);

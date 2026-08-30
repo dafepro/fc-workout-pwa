@@ -4343,6 +4343,8 @@ h2 {
   position: absolute;
   top: 0;
   left: 0;
+  width: 3.5rem;
+  height: 3.5rem;
   z-index: 3;
   font-size: clamp(1.8rem, 9vw, 2.8rem);
   line-height: 1;
@@ -4387,8 +4389,6 @@ h2 {
 }
 
 .team-lounge__placed-item--editable {
-  width: 3.5rem;
-  height: 3.5rem;
   padding: 0;
   border: 0;
   border-radius: 50%;
