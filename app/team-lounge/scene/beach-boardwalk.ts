@@ -8,7 +8,7 @@ import { defaultLoungeBallConfig } from "../lounge-ball-behavior";
 
 export const beachBallDefinition: ItemDefinition = {
   definitionId: "beach-ball",
-  version: 6,
+  version: 7,
   displayName: "Beach ball",
   visual: {
     size: { width: 9, height: 9 },
@@ -31,7 +31,7 @@ export const beachBallDefinition: ItemDefinition = {
       shape: { type: "circle", radius: 4.5 },
       restitution: 0.95,
       friction: 0.05,
-      collisionMask: CollisionLayer.WORLD_STATIC,
+      collisionMask: CollisionLayer.WORLD_STATIC | CollisionLayer.ITEM_SOLID,
       tags: ["lounge-ball"],
     },
     { id: "kick", role: "itemSensor", shape: { type: "circle", radius: 5.8 } },
@@ -82,7 +82,7 @@ export const beachBoardwalkDefinitions = [
 
 export const beachBoardwalkCanvas: CanvasDefinition = {
   id: "zoomigo-beach-boardwalk",
-  version: 13,
+  version: 14,
   size: { width: 100, height: 150 },
   orientation: "topDown",
   backgroundAssetId: "lounge.background",

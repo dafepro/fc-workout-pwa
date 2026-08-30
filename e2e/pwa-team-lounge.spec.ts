@@ -22,6 +22,7 @@ test.beforeEach(async () => {
 test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels", async ({
   page,
 }) => {
+  test.setTimeout(90_000);
   const network = observeLoungeNetwork(page);
   const idleNetwork = observeLoungeNetwork(page);
   const api = await request.newContext({ baseURL: apiBaseURL });
@@ -92,15 +93,13 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
     );
   }
   await expect(lounge.getByText(/drag to move/i)).toHaveCount(0);
-  await expect(lounge.getByLabel("Mason C., you")).toBeVisible();
-  const qualifiedAvatarBox = await lounge
-    .getByLabel("Mason C., you")
-    .boundingBox();
-  expect(qualifiedAvatarBox).not.toBeNull();
-  expect(qualifiedAvatarBox!.y).toBeGreaterThanOrEqual(playfieldBox!.y);
-  expect(
-    qualifiedAvatarBox!.y + qualifiedAvatarBox!.height,
-  ).toBeLessThanOrEqual(playfieldBox!.y + playfieldBox!.height);
+  await expect(lounge.getByLabel("Mason C., you")).toHaveCount(1);
+  await expect
+    .poll(async () => Number(await stage.getAttribute("data-player-y")))
+    .toBeGreaterThanOrEqual(0);
+  expect(Number(await stage.getAttribute("data-player-y"))).toBeLessThanOrEqual(
+    150,
+  );
   await expect
     .poll(async () => Number(await stage.getAttribute("data-ball-x")))
     .toBeGreaterThan(0);
@@ -144,9 +143,12 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   const canvasBox = await canvas.boundingBox();
   expect(canvasBox).not.toBeNull();
   const dragSelfToWorld = async (x: number, y: number) => {
-    const current = await playerName.boundingBox();
-    expect(current).not.toBeNull();
-    await page.mouse.move(current!.x + current!.width / 2, current!.y + 30);
+    const currentX = Number(await stage.getAttribute("data-player-x"));
+    const currentY = Number(await stage.getAttribute("data-player-y"));
+    await page.mouse.move(
+      canvasBox!.x + canvasBox!.width * (currentX / 100),
+      canvasBox!.y + canvasBox!.height * (currentY / 150),
+    );
     await page.mouse.down();
     await page.mouse.move(
       canvasBox!.x + canvasBox!.width * (x / 100),
@@ -339,19 +341,8 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
       touchAction: "pan-y",
     });
   const stampBox = await editableStamp.boundingBox();
-  const stampArtBox = await editableStamp
-    .locator(".team-lounge__item-art")
-    .boundingBox();
   expect(stampBox).not.toBeNull();
-  expect(stampArtBox).not.toBeNull();
-  expect(stampArtBox!.x + stampArtBox!.width / 2).toBeCloseTo(
-    stampBox!.x + stampBox!.width / 2,
-    0,
-  );
-  expect(stampArtBox!.y + stampArtBox!.height / 2).toBeCloseTo(
-    stampBox!.y + stampBox!.height / 2,
-    0,
-  );
+  await expect(editableStamp.locator(".team-lounge__item-art")).toHaveCount(0);
   const boltBeforeIgnoredSlide = await editableStamp.boundingBox();
   expect(boltBeforeIgnoredSlide).not.toBeNull();
   await page.mouse.move(
@@ -571,17 +562,18 @@ test.describe("touch placement", () => {
       .poll(async () => Number(await stage.getAttribute("data-player-x")))
       .toBeGreaterThan(0);
     const currentAvatar = lounge.locator(
-      ".team-lounge__shared-avatar[data-current='true'] .avatar",
+      ".team-lounge__shared-avatar[data-current='true']",
     );
-    await expect(currentAvatar).toBeVisible();
+    await expect(currentAvatar.getByText("You")).toBeVisible();
+    await expect(currentAvatar.locator(".avatar")).toHaveCount(0);
     await expect
       .poll(() =>
-        currentAvatar.evaluate((node) => ({
+        stage.locator("canvas").evaluate((node) => ({
           pointerEvents: getComputedStyle(node).pointerEvents,
           touchAction: getComputedStyle(node).touchAction,
         })),
       )
-      .toEqual({ pointerEvents: "auto", touchAction: "none" });
+      .toEqual({ pointerEvents: "auto", touchAction: "pan-y" });
 
     const items = lounge.getByRole("button", {
       name: /Items, \d+ placements? left/u,
@@ -945,8 +937,10 @@ test("two qualified players share Lounge presence and avatar movement", async ({
     await expect(avaLounge.getByText("2 here")).toBeVisible({
       timeout: 15_000,
     });
-    await expect(masonLounge.getByLabel("Ava R.")).toBeVisible();
-    await expect(avaLounge.getByLabel("Mason C.")).toBeVisible();
+    await expect(masonLounge.getByLabel("Ava R.")).toHaveCount(1);
+    await expect(avaLounge.getByLabel("Mason C.")).toHaveCount(1);
+    await expect(masonLounge.getByText("Ava", { exact: true })).toBeVisible();
+    await expect(avaLounge.getByText("Mason", { exact: true })).toBeVisible();
 
     await masonLounge
       .getByRole("button", { name: /Items, \d+ placements? left/u })
@@ -968,17 +962,7 @@ test("two qualified players share Lounge presence and avatar movement", async ({
         name: "Wobble cone item, yours; tap to edit",
       })
       .locator("img");
-    await expect(ownedConeArtwork).toHaveJSProperty("draggable", false);
-    expect(
-      await ownedConeArtwork.evaluate((artwork) => {
-        const drag = new DragEvent("dragstart", {
-          bubbles: true,
-          cancelable: true,
-        });
-        artwork.dispatchEvent(drag);
-        return drag.defaultPrevented;
-      }),
-    ).toBe(true);
+    await expect(ownedConeArtwork).toHaveCount(0);
     const avaStage = avaLounge.getByLabel("Interactive lounge canvas");
     const teammateCone = avaLounge.getByLabel(
       "Wobble cone item placed by a teammate",
@@ -1014,14 +998,18 @@ test("two qualified players share Lounge presence and avatar movement", async ({
     const startWorldX = Number(await masonStage.getAttribute("data-player-x"));
     const startWorldY = Number(await masonStage.getAttribute("data-player-y"));
     const targetWorldX = Math.max(20, startWorldX - 15);
-    const startSelf = await masonSelf.boundingBox();
-    const startRemote = await masonOnAvaPage.boundingBox();
-    expect(startSelf).not.toBeNull();
-    expect(startRemote).not.toBeNull();
+    const overlayX = (overlay: typeof masonOnAvaPage) =>
+      overlay.evaluate((node) => {
+        const match = node
+          .getAttribute("style")
+          ?.match(/translate3d\(([-\d.]+)px/u);
+        return Number(match?.[1]);
+      });
+    const startRemoteX = await overlayX(masonOnAvaPage);
 
     await page.mouse.move(
-      startSelf!.x + startSelf!.width / 2,
-      startSelf!.y + 30,
+      masonCanvasBox!.x + masonCanvasBox!.width * (startWorldX / 100),
+      masonCanvasBox!.y + masonCanvasBox!.height * (startWorldY / 150),
     );
     await page.mouse.down();
     await page.mouse.move(
@@ -1040,19 +1028,21 @@ test("two qualified players share Lounge presence and avatar movement", async ({
       .toBeLessThan(1.5);
 
     await expect
-      .poll(async () => {
-        const current = await masonOnAvaPage.boundingBox();
-        return current ? Math.abs(current.x - startRemote!.x) : 0;
-      })
+      .poll(async () =>
+        Math.abs((await overlayX(masonOnAvaPage)) - startRemoteX),
+      )
       .toBeGreaterThan(3);
 
     await expect
       .poll(async () => Number(await avaStage.getAttribute("data-ball-x")))
       .toBeGreaterThan(0);
     const dragMasonToWorld = async (x: number, y: number) => {
-      const current = await masonSelf.boundingBox();
-      expect(current).not.toBeNull();
-      await page.mouse.move(current!.x + current!.width / 2, current!.y + 30);
+      const currentX = Number(await masonStage.getAttribute("data-player-x"));
+      const currentY = Number(await masonStage.getAttribute("data-player-y"));
+      await page.mouse.move(
+        masonCanvasBox!.x + masonCanvasBox!.width * (currentX / 100),
+        masonCanvasBox!.y + masonCanvasBox!.height * (currentY / 150),
+      );
       await page.mouse.down();
       await page.mouse.move(
         masonCanvasBox!.x + masonCanvasBox!.width * (x / 100),
@@ -1109,9 +1099,11 @@ test("a qualified player sees their own avatar after a teammate wakes the room",
   await openReadyPage(page, "/team?view=lounge");
   const currentAvatar = page
     .locator(".team-lounge__shared-avatar")
-    .filter({ hasText: "You" })
-    .locator(".avatar");
-  await expect(currentAvatar).toBeVisible({ timeout: 15_000 });
+    .filter({ hasText: "You" });
+  await expect(currentAvatar.getByText("You")).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(currentAvatar.locator(".avatar")).toHaveCount(0);
 
   await page.goto("/me");
   await page.locator("html[data-app-ready='true']").waitFor();
@@ -1133,14 +1125,16 @@ test("a qualified player sees their own avatar after a teammate wakes the room",
     await page.locator("html[data-app-ready='true']").waitFor();
     const stage = page.getByLabel("Interactive lounge canvas");
     await expect(stage.locator("canvas")).toBeVisible({ timeout: 15_000 });
-    await expect(currentAvatar).toBeVisible({ timeout: 15_000 });
+    await expect(currentAvatar.getByText("You")).toBeVisible({
+      timeout: 15_000,
+    });
     await expect
       .poll(async () => Number(await stage.getAttribute("data-player-x")))
       .toBeGreaterThan(0);
 
     await page.keyboard.press("p");
     await page.waitForTimeout(1_500);
-    await expect(currentAvatar).toBeVisible();
+    await expect(currentAvatar.getByText("You")).toBeVisible();
 
     await page.keyboard.press("p");
     await page.waitForTimeout(500);

@@ -11,6 +11,8 @@ import type { RenderEntity } from "@canvas-physics/client";
 
 import { LoungeActionBehavior } from "./lounge-action-behavior";
 import { LoungeBallBehavior } from "./lounge-ball-behavior";
+import { LoungeCompositeBehavior } from "./lounge-composite-behavior";
+import { loungeItemDefinitions } from "./lounge-items";
 import { startLocalBeachBoardwalkSimulation } from "./local-simulation";
 
 let stop: (() => void) | undefined;
@@ -222,6 +224,65 @@ describe("canonical local Lounge simulation", () => {
         ) > 0.1,
     );
   });
+
+  it("lets the ball move and visibly rotate a dynamic Lounge item", async () => {
+    const { SimulationDriver } = await import("@canvas-physics/client");
+    let entities: RenderEntity[] = [];
+    const coneDefinition = loungeItemDefinitions.find(
+      ({ definitionId }) => definitionId === "zoomigo-prop-play-wobble-cone",
+    );
+    expect(coneDefinition).toBeDefined();
+    const simulation = startLocalBeachBoardwalkSimulation({
+      playerID: "mason",
+      driver: SimulationDriver.local([
+        LoungeBallBehavior,
+        LoungeActionBehavior,
+        LoungeCompositeBehavior,
+      ]),
+      additionalDefinitions: [coneDefinition!],
+      additionalItems: [
+        {
+          entityId: "wobble-cone",
+          canvasId: "zoomigo-beach-boardwalk",
+          definitionId: coneDefinition!.definitionId,
+          definitionVersion: coneDefinition!.version,
+          ownerUserId: "mason",
+          transform: { x: 76, y: 98, rotation: 0, scale: 1 },
+          resolvedConfig: coneDefinition!.defaultConfig,
+          createdAt: "2026-08-30T00:00:00.000Z",
+          sceneRevision: 1,
+          itemRevision: 1,
+        },
+      ],
+      onRender(next) {
+        entities = next;
+      },
+    });
+    stop = simulation.stop;
+
+    await simulation.ready;
+    await until(() => entities.some(({ id }) => id === "wobble-cone"));
+    simulation.move({
+      direction: { x: 0, y: 0 },
+      intensity: 0,
+      held: true,
+      target: { x: 50, y: 98 },
+    });
+    await until(
+      () => (entities.find(({ id }) => id === "avatar:mason")?.y ?? 0) > 96,
+    );
+    simulation.move({
+      direction: { x: 0, y: 0 },
+      intensity: 0,
+      held: true,
+      target: { x: 59, y: 98 },
+    });
+
+    await until(() => {
+      const cone = entities.find(({ id }) => id === "wobble-cone");
+      return (cone?.x ?? 76) > 76.5 && Math.abs(cone?.rotation ?? 0) > 0.04;
+    }, 5_000);
+  }, 8_000);
 
   it("keeps the ball on the boardwalk and bounces it off the right edge", async () => {
     const { SimulationDriver } = await import("@canvas-physics/client");

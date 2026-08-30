@@ -71,7 +71,7 @@ const beachBallProp: LoungePropChoice = {
   glyph: "⚽",
   imageSrc: "/team-lounge/beach-ball.svg",
   definitionId: "zoomigo-prop-beach-ball",
-  definitionVersion: 3,
+  definitionVersion: 4,
   source: "earned",
   kind: "lounge_prop",
   capabilities: ["collision", "physics", "behavior"],
@@ -133,7 +133,7 @@ const compositeItemSpecs: CompositeItemSpec[] = [
     colliders: [solidCircle("solid", 5), sensorCircle("bumper", 6)],
     effects: [
       { kind: "bounce", sensorId: "bumper", impulse: 15 },
-      { kind: "wobble", sensorId: "bumper", torque: 4 },
+      { kind: "wobble", sensorId: "bumper", torque: 420 },
     ],
   },
   {
@@ -232,7 +232,7 @@ const compositeItemSpecs: CompositeItemSpec[] = [
     colliders: [solidCircle("solid", 3.8), sensorCircle("bumper", 5)],
     effects: [
       { kind: "bounce", sensorId: "bumper", impulse: 7 },
-      { kind: "wobble", sensorId: "bumper", torque: 9 },
+      { kind: "wobble", sensorId: "bumper", torque: 780 },
     ],
   },
   {
@@ -287,7 +287,7 @@ export const compositeLoungeItems: LoungePropChoice[] = compositeItemSpecs.map(
     glyph,
     imageSrc: `/team-lounge/items/${id}-v1.png`,
     definitionId: `zoomigo-prop-play-${id}`,
-    definitionVersion: 1,
+    definitionVersion: 2,
     source: "included",
     kind: "lounge_prop",
     capabilities,
@@ -322,7 +322,7 @@ export const loungeItemDefinitions: ItemDefinition[] = itemCatalog.map(
 );
 loungeItemDefinitions.push({
   definitionId: beachBallProp.definitionId,
-  version: 3,
+  version: 4,
   displayName: "Beach ball prop",
   visual: {
     size: { width: 9, height: 9 },
@@ -345,7 +345,7 @@ loungeItemDefinitions.push({
       shape: { type: "circle", radius: 4.5 },
       restitution: 0.95,
       friction: 0.05,
-      collisionMask: CollisionLayer.WORLD_STATIC,
+      collisionMask: CollisionLayer.WORLD_STATIC | CollisionLayer.ITEM_SOLID,
       tags: ["lounge-ball"],
     },
     { id: "kick", role: "itemSensor", shape: { type: "circle", radius: 5.8 } },
@@ -359,7 +359,7 @@ for (const spec of compositeItemSpecs) {
   const config: LoungeCompositeConfig = { effects: spec.effects };
   loungeItemDefinitions.push({
     definitionId: `zoomigo-prop-play-${spec.id}`,
-    version: 1,
+    version: 2,
     displayName: spec.label,
     visual: {
       size: spec.size,

@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type MouseEvent,
-} from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import type {
   CanvasRuntime,
   AssetManifest,
@@ -21,6 +15,7 @@ import { PlayerAvatar } from "../components/PlayerAvatar";
 import { copy } from "../content/copy";
 import { createPrizeBoxGateway } from "../data/prize-box-gateway";
 import type { Player } from "../domain/types";
+import { useAvatarIdentity } from "../state/avatar-identity-context";
 import type { LoungeCanvasState } from "./LocalLoungeCanvas";
 import { LoungeActionDock } from "./LoungeActionDock";
 import { LoungeItemEditor, type LoungeEditableItem } from "./LoungeItemEditor";
@@ -60,15 +55,13 @@ import {
   type TeamLoungeItemMutationKind,
   type TeamLoungeItemTransform,
 } from "./lounge-gateway";
-import {
-  preserveNativeCanvasScroll,
-  relayAvatarPointerDown,
-} from "./native-canvas-scroll";
+import { preserveNativeCanvasScroll } from "./native-canvas-scroll";
 import { beachBoardwalkAssets } from "./scene/assets";
 import {
   beachBoardwalkCanvas,
   beachBoardwalkDefinitions,
 } from "./scene/beach-boardwalk";
+import { createLoungePixiPresentation } from "./scene/pixi-presentation";
 
 const visitorAnchors = [
   { x: 8, y: 74 },
@@ -113,6 +106,7 @@ export function SharedLoungeCanvas({
   onPresenceChange(count: number): void;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
+  const { avatarConfig } = useAvatarIdentity();
   const playerID = player.id;
   const playerRef = useRef(player);
   const runtimeRef = useRef<CanvasRuntime | null>(null);
@@ -164,30 +158,6 @@ export function SharedLoungeCanvas({
   const reactionTimerRef = useRef<number | undefined>(undefined);
   const reactionCooldownTimerRef = useRef<number | undefined>(undefined);
   const reactionSequenceRef = useRef(0);
-  const currentAvatarElementRef = useRef<HTMLDivElement | null>(null);
-  const currentAvatarPositionRef = useRef<Readonly<{
-    x: number;
-    y: number;
-  }> | null>(null);
-
-  const presentCurrentAvatar = useCallback(
-    (position: Readonly<{ x: number; y: number }>) => {
-      currentAvatarPositionRef.current = position;
-      if (currentAvatarElementRef.current) {
-        currentAvatarElementRef.current.style.transform = `translate3d(${position.x}px, ${position.y}px, 0)`;
-      }
-    },
-    [],
-  );
-
-  const bindCurrentAvatar = useCallback((element: HTMLDivElement | null) => {
-    currentAvatarElementRef.current = element;
-    const position = currentAvatarPositionRef.current;
-    if (element && position) {
-      element.style.transform = `translate3d(${position.x}px, ${position.y}px, 0)`;
-    }
-  }, []);
-
   useEffect(() => {
     rosterRef.current = roster;
   }, [roster]);
@@ -216,7 +186,6 @@ export function SharedLoungeCanvas({
     let failureReported = false;
     let unsubscribePresence: () => void = () => undefined;
     let unsubscribeProjection: () => void = () => undefined;
-    let unsubscribeLocalProjection: () => void = () => undefined;
     let unsubscribeCanonical: () => void = () => undefined;
     let unsubscribeLifecycle: () => void = () => undefined;
     let unsubscribeEffects: () => void = () => undefined;
@@ -259,11 +228,6 @@ export function SharedLoungeCanvas({
         presented && !localProjection && !canonicalProjection && arrival
           ? runtime?.projectWorldPoint(arrival)
           : undefined;
-      const currentProjection =
-        localProjection ?? canonicalProjection ?? arrivalProjection;
-      if (currentProjection?.inViewport) {
-        presentCurrentAvatar(currentProjection.screen);
-      }
       if (localProjection) {
         mount.dataset.playerX = localProjection.world.x.toFixed(3);
         mount.dataset.playerY = localProjection.world.y.toFixed(3);
@@ -362,10 +326,13 @@ export function SharedLoungeCanvas({
       setRemainingPlacements(join.placementCredits);
       setPlacementCapacity(join.placementCapacity);
       setVisitorIDs(join.visitorIDs);
-      const definitions = [
-        ...beachBoardwalkDefinitions,
-        ...loungeItemDefinitions,
-      ];
+      const presentation = createLoungePixiPresentation({
+        assets,
+        definitions: [...beachBoardwalkDefinitions, ...loungeItemDefinitions],
+        roster: rosterRef.current,
+        currentPlayerID: playerID,
+        avatarConfig,
+      });
       void createPrizeBoxGateway(true)
         .inventory(["lounge_stamp", "lounge_prop"])
         .then((inventory) => {
@@ -389,11 +356,12 @@ export function SharedLoungeCanvas({
         credentialProvider: join.credentialProvider,
         mount,
         driver: new SimulationDriver(worker),
-        definitions,
-        assets,
+        definitions: presentation.definitions,
+        assets: presentation.assets,
         scene: {
           background: 0x63c9dc,
           resolution: Math.min(devicePixelRatio, 2),
+          projectEntityVisual: presentation.projectEntityVisual,
         },
         spawnPointId: "arrival",
         pointer: {
@@ -437,20 +405,6 @@ export function SharedLoungeCanvas({
           publishOverlays();
         },
         { kinds: ["avatar", "item"], maxEntities: 200, maxHz: 30 },
-      );
-      unsubscribeLocalProjection = runtime.subscribeOverlayProjection(
-        (snapshot) => {
-          const localAvatar = snapshot.entities[0];
-          if (!localAvatar?.inViewport) return;
-          presentCurrentAvatar(localAvatar.screen);
-          mount.dataset.playerX = localAvatar.world.x.toFixed(3);
-          mount.dataset.playerY = localAvatar.world.y.toFixed(3);
-        },
-        {
-          entityIds: [localAvatarEntityID],
-          maxEntities: 1,
-          maxHz: 60,
-        },
       );
       unsubscribeLifecycle = runtime.subscribeLifecycle(({ state }) => {
         if (state === "reconnecting") onStateChange("loading");
@@ -502,7 +456,6 @@ export function SharedLoungeCanvas({
       disposed = true;
       unsubscribePresence();
       unsubscribeProjection();
-      unsubscribeLocalProjection();
       unsubscribeCanonical();
       unsubscribeLifecycle();
       unsubscribeEffects();
@@ -514,14 +467,7 @@ export function SharedLoungeCanvas({
       projectionFrameRef.current = undefined;
       if (active) void active.stopGracefully(500).catch(() => active.stop());
     };
-  }, [
-    assets,
-    onPresenceChange,
-    onStateChange,
-    playerID,
-    presentCurrentAvatar,
-    teamID,
-  ]);
+  }, [assets, avatarConfig, onPresenceChange, onStateChange, playerID, teamID]);
 
   const placeItem = async (event: MouseEvent<HTMLButtonElement>) => {
     const runtime = runtimeRef.current;
@@ -781,25 +727,12 @@ export function SharedLoungeCanvas({
             className="team-lounge__shared-avatar"
             data-current={current || undefined}
             key={player.id}
-            ref={current ? bindCurrentAvatar : undefined}
-            onPointerDown={
-              current
-                ? (event) => {
-                    const canvas = mountRef.current?.querySelector("canvas");
-                    if (canvas)
-                      relayAvatarPointerDown(canvas, event.nativeEvent);
-                  }
-                : undefined
-            }
-            style={
-              current
-                ? undefined
-                : {
-                    transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
-                  }
-            }
+            role="img"
+            aria-label={`${player.firstName} ${player.lastInitial}${current ? ", you" : ""}`}
+            style={{
+              transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
+            }}
           >
-            <PlayerAvatar player={player} size="medium" />
             <span>{current ? "You" : player.firstName}</span>
             {activeReaction?.playerID === player.id &&
             activeReaction.kind === "emote" ? (
@@ -826,6 +759,7 @@ export function SharedLoungeCanvas({
         ))}
         <LoungeItemEditor
           items={itemOverlays}
+          paintArtwork={false}
           selectedEntityID={selectedEditableEntityID}
           pending={mutationPending}
           dragging={dragState}
@@ -947,7 +881,7 @@ export function SharedLoungeCanvas({
           onSendQuickPhrase={showQuickPhrase}
         />
       )}
-      <span className="visually-hidden" role="status">
+      <span className="sr-only" role="status">
         {actionMessage}
       </span>
     </>
