@@ -323,6 +323,68 @@ func (service *service) reserveTeamLoungePlacement(w http.ResponseWriter, r *htt
 	})
 }
 
+type teamLoungePendingPlacementRequest struct {
+	RoomID string `json:"roomId"`
+}
+
+type teamLoungePendingPlacementResponse struct {
+	Released            bool `json:"released"`
+	RemainingPlacements int  `json:"remainingPlacements"`
+}
+
+func (service *service) releasePendingTeamLoungePlacement(w http.ResponseWriter, r *http.Request) {
+	actor, ok := service.authenticate(w, r)
+	if !ok {
+		return
+	}
+	if actor.Role != domain.RolePlayer || actor.PlayerID == "" || service.store == nil || service.teamLoungeStore == nil {
+		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
+		return
+	}
+	teamID := r.PathValue("teamId")
+	dashboard, err := service.store.TrainingDashboard(r.Context(), actor, teamID, service.now().UTC())
+	if err != nil {
+		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
+		return
+	}
+	if !dashboard.TeamPulse.Unlocked {
+		writeError(w, r, http.StatusLocked, "team_lounge_locked", "Complete or check in for today's plan to use the Team Lounge.")
+		return
+	}
+	key := strings.TrimSpace(r.Header.Get("Idempotency-Key"))
+	var request teamLoungePendingPlacementRequest
+	if len(key) < 1 || len(key) > 128 || decodeStrictJSON(w, r, &request) != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid_request", "That Lounge placement recovery request is invalid.")
+		return
+	}
+	requestTeamID, err := teamlounge.ParseRoomID(request.RoomID)
+	if err != nil || requestTeamID != teamID {
+		writeError(w, r, http.StatusUnprocessableEntity, "placement_room_unavailable", "That Team Lounge is unavailable.")
+		return
+	}
+	released, err := service.teamLoungeStore.ReleaseUnconsumedPlacement(
+		r.Context(), request.RoomID, actor.PlayerID, key, service.now().UTC(),
+	)
+	if err != nil {
+		if errors.Is(err, teamlounge.ErrPlacementUnavailable) {
+			writeError(w, r, http.StatusBadRequest, "invalid_request", "That Lounge placement recovery request is invalid.")
+		} else {
+			writeError(w, r, http.StatusInternalServerError, "internal_error", "That Lounge placement could not be recovered.")
+		}
+		return
+	}
+	budget, err := service.teamLoungeStore.PlacementBudget(
+		r.Context(), request.RoomID, actor.PlayerID, service.now().UTC(),
+	)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "internal_error", "This week's Lounge placements could not be reconciled.")
+		return
+	}
+	writeJSON(w, http.StatusOK, teamLoungePendingPlacementResponse{
+		Released: released, RemainingPlacements: budget.Remaining,
+	})
+}
+
 func (service *service) buildTeamLoungeRoomHandler() http.Handler {
 	if service.teamLoungeStore == nil {
 		return nil

@@ -252,7 +252,30 @@ func TestCanonicalTeamLoungeRequiresTodayCheckInAndJoinsCanvasRoom(t *testing.T)
 	if replay := reservePlacement("placement-one"); replay.Code != http.StatusOK {
 		t.Fatalf("placement replay status = %d: %s", replay.Code, replay.Body.String())
 	}
-	if exhausted := reservePlacement("placement-two"); exhausted.Code != http.StatusConflict {
+	recoverRequest := httptest.NewRequest(http.MethodDelete,
+		"/v1/teams/team-one/lounge/placements/pending", bytes.NewReader([]byte(`{"roomId":"team:team-one:lounge:v13"}`)))
+	recoverRequest.Header.Set("Authorization", "Bearer test-session")
+	recoverRequest.Header.Set("Content-Type", "application/json")
+	recoverRequest.Header.Set("Idempotency-Key", "placement-one")
+	recoverResponse := httptest.NewRecorder()
+	handler.ServeHTTP(recoverResponse, recoverRequest)
+	if recoverResponse.Code != http.StatusOK {
+		t.Fatalf("placement recovery status = %d: %s", recoverResponse.Code, recoverResponse.Body.String())
+	}
+	var recovery struct {
+		Released  bool `json:"released"`
+		Remaining int  `json:"remainingPlacements"`
+	}
+	if err := json.NewDecoder(recoverResponse.Body).Decode(&recovery); err != nil {
+		t.Fatal(err)
+	}
+	if !recovery.Released || recovery.Remaining != 1 {
+		t.Fatalf("placement recovery = %#v", recovery)
+	}
+	if second := reservePlacement("placement-two"); second.Code != http.StatusCreated {
+		t.Fatalf("placement after recovery status = %d: %s", second.Code, second.Body.String())
+	}
+	if exhausted := reservePlacement("placement-three"); exhausted.Code != http.StatusConflict {
 		t.Fatalf("placement exhaustion status = %d: %s", exhausted.Code, exhausted.Body.String())
 	}
 	legacyCommit := httptest.NewRequest(http.MethodPost,

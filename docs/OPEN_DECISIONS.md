@@ -431,6 +431,13 @@ to resolve, not the implementing agent's.
 - Only a trusted Canvas `accepted` or `rejected` outcome finalizes a consumed
   hold. `unknown` and `expired` remain held for operator review; browser claims
   and timeouts never release earned inventory.
+- A browser tab remembers the exact idempotency key for an unfinished placement.
+  On refresh or retry, the app may release only that player's matching team,
+  room, and reservation while it is still held and has no Canvas mutation key.
+  The atomic release-versus-authorization check keeps consumed or unknown
+  Canvas outcomes held for reconciliation. A zero remaining count stays in
+  accessible control labels and picker state, but the dock omits the visual
+  count badge when there is nothing left to place.
 - Socket tickets, room leases, ownership generations, and emote cooldowns use
   the application database as their atomic authority.
 - Proven 2026-08-28: two real API processes sharing that SQLite database pass

@@ -266,9 +266,11 @@ export function LoungeActionDock({
         >
           <span aria-hidden="true">✦</span>
           {actions.stamps}
-          <b className="team-lounge__placement-badge" aria-hidden="true">
-            {remaining}
-          </b>
+          {remaining > 0 ? (
+            <b className="team-lounge__placement-badge" aria-hidden="true">
+              {remaining}
+            </b>
+          ) : null}
         </button>
         <button
           type="button"
@@ -278,9 +280,11 @@ export function LoungeActionDock({
         >
           <span aria-hidden="true">▣</span>
           {actions.items}
-          <b className="team-lounge__placement-badge" aria-hidden="true">
-            {remaining}
-          </b>
+          {remaining > 0 ? (
+            <b className="team-lounge__placement-badge" aria-hidden="true">
+              {remaining}
+            </b>
+          ) : null}
         </button>
         <button
           type="button"

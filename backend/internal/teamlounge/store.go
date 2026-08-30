@@ -642,6 +642,37 @@ func (store *SQLiteStore) ReservePlacement(
 	}, nil
 }
 
+func (store *SQLiteStore) ReleaseUnconsumedPlacement(
+	ctx context.Context,
+	roomID, playerID, idempotencyKey string,
+	finalizedAt time.Time,
+) (bool, error) {
+	if playerID == "" || len(idempotencyKey) < 1 || len(idempotencyKey) > 128 {
+		return false, ErrPlacementUnavailable
+	}
+	teamID, err := ParseRoomID(roomID)
+	if err != nil {
+		return false, ErrPlacementUnavailable
+	}
+	keyHash := sha256.Sum256([]byte(idempotencyKey))
+	result, err := store.db.ExecContext(ctx, `UPDATE team_lounge_placement_reservations
+		SET state = 'released', finalized_at = ?
+		WHERE team_id = ? AND room_id = ? AND player_id = ? AND idempotency_key_hash = ?
+		AND state = 'held' AND mutation_key IS NULL`,
+		finalizedAt.UTC().Format(time.RFC3339Nano), teamID, roomID, playerID, keyHash[:])
+	if err != nil {
+		return false, fmt.Errorf("release unconsumed lounge placement: %w", err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("read unconsumed lounge placement release: %w", err)
+	}
+	if rows > 1 {
+		return false, errors.New("release unconsumed lounge placement: multiple reservations matched")
+	}
+	return rows == 1, nil
+}
+
 func loungePlacementItem(definitionID string) (string, bool) {
 	switch definitionID {
 	case "zoomigo-stamp-bolt", "zoomigo-stamp-fire", "zoomigo-stamp-star", "zoomigo-stamp-soccer":

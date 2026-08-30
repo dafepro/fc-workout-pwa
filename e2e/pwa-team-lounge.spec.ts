@@ -530,14 +530,14 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
 test.describe("touch placement", () => {
   test.use({ hasTouch: true });
 
-  test("a player places a Mini goal and can move their avatar again", async ({
+  test("Ava keeps an interrupted placement after refresh and hides empty badges", async ({
     page,
   }) => {
     const api = await request.newContext({ baseURL: apiBaseURL });
     const completion = await api.post("/v1/me/training-entries", {
       headers: {
-        Authorization: "Bearer e2e-player-mason",
-        "Idempotency-Key": "browser-lounge-touch-mini-goal",
+        Authorization: "Bearer e2e-player-ava",
+        "Idempotency-Key": "browser-lounge-touch-ava-mini-goal",
       },
       data: {
         teamId: "team-hill-striders",
@@ -554,7 +554,9 @@ test.describe("touch placement", () => {
     await api.dispose();
 
     await page.setViewportSize({ width: 320, height: 720 });
-    await openReadyPage(page, "/team");
+    await loginAsAva(page);
+    await page.goto("/team");
+    await page.locator("html[data-app-ready='true']").waitFor();
     const lounge = page.getByRole("region", {
       name: "Beach Boardwalk Team Lounge",
     });
@@ -567,29 +569,98 @@ test.describe("touch placement", () => {
       .poll(async () => Number(await stage.getAttribute("data-player-x")))
       .toBeGreaterThan(0);
 
-    await lounge
-      .getByRole("button", { name: /Items, \d+ placements? left/u })
-      .click();
+    const items = lounge.getByRole("button", {
+      name: /Items, \d+ placements? left/u,
+    });
+    await expect(items).toBeVisible();
+    const initialLabel = await items.getAttribute("aria-label");
+    const initialRemaining = Number.parseInt(
+      initialLabel?.match(/Items, (\d+) placements? left/u)?.[1] ?? "0",
+      10,
+    );
+    expect(initialRemaining).toBeGreaterThan(0);
+    let reservedOnServer = false;
+    const placementRoute =
+      /\/api\/zoomigo\/v1\/teams\/team-hill-striders\/lounge\/placements$/u;
+    await page.route(placementRoute, async (route) => {
+      const response = await route.fetch();
+      expect(response.status()).toBe(201);
+      reservedOnServer = true;
+      await route.abort("connectionfailed");
+    });
+
+    await items.click();
     await lounge.getByRole("button", { name: "Choose Mini goal item" }).click();
-    const placementSurface = lounge.getByRole("button", {
+    let placementSurface = lounge.getByRole("button", {
       name: "Place Mini goal item on the boardwalk",
     });
-    const placementBox = await placementSurface.boundingBox();
+    let placementBox = await placementSurface.boundingBox();
     expect(placementBox).not.toBeNull();
     await page.touchscreen.tap(
       placementBox!.x + placementBox!.width * 0.7,
       placementBox!.y + placementBox!.height * 0.72,
     );
+    await expect.poll(() => reservedOnServer).toBe(true);
+    await expect(lounge.getByRole("status")).toHaveText(
+      "That item could not be placed.",
+    );
 
-    await expect(lounge.getByRole("status")).toHaveText("Mini goal placed.", {
-      timeout: 10_000,
-    });
-    await expect(placementSurface).toHaveCount(0);
+    await page.unroute(placementRoute);
+    await page.reload();
+    await page.locator("html[data-app-ready='true']").waitFor();
+    await expect(lounge.locator(".team-lounge__world")).toHaveAttribute(
+      "data-canvas-state",
+      "ready",
+    );
+    const placementLabel = (remaining: number) =>
+      `Items, ${remaining} ${remaining === 1 ? "placement" : "placements"} left`;
     await expect(
       lounge.getByRole("button", {
-        name: "Mini goal item, yours; tap to edit",
+        name: placementLabel(initialRemaining),
       }),
     ).toBeVisible();
+
+    for (let index = 0; index < initialRemaining; index += 1) {
+      await lounge
+        .getByRole("button", {
+          name: placementLabel(initialRemaining - index),
+        })
+        .click();
+      await lounge
+        .getByRole("button", { name: "Choose Mini goal item" })
+        .click();
+      placementSurface = lounge.getByRole("button", {
+        name: "Place Mini goal item on the boardwalk",
+      });
+      placementBox = await placementSurface.boundingBox();
+      expect(placementBox).not.toBeNull();
+      await page.touchscreen.tap(
+        placementBox!.x +
+          placementBox!.width * Math.min(0.85, 0.55 + index * 0.08),
+        placementBox!.y + placementBox!.height * 0.72,
+      );
+      await expect(
+        lounge.getByRole("button", {
+          name: placementLabel(initialRemaining - index - 1),
+        }),
+      ).toBeVisible({ timeout: 10_000 });
+    }
+
+    await expect(lounge.getByRole("status")).toHaveText("Mini goal placed.");
+    await expect(placementSurface).toHaveCount(0);
+    await expect(
+      lounge
+        .getByRole("button", {
+          name: "Mini goal item, yours; tap to edit",
+        })
+        .first(),
+    ).toBeVisible();
+    await expect(
+      lounge.getByRole("button", { name: "Items, 0 placements left" }),
+    ).toBeVisible();
+    await expect(lounge.locator(".team-lounge__placement-badge")).toHaveCount(
+      0,
+    );
 
     const playerName = lounge.getByText("You", { exact: true });
     const canvasBox = await stage.locator("canvas").boundingBox();

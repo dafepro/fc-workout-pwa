@@ -179,6 +179,7 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	mux.HandleFunc("GET /v1/teams/{teamId}/team-reward", service.getPlayerTeamReward)
 	mux.HandleFunc("POST /v1/teams/{teamId}/lounge/socket-ticket", service.createTeamLoungeSocketTicket)
 	mux.HandleFunc("POST /v1/teams/{teamId}/lounge/placements", service.reserveTeamLoungePlacement)
+	mux.HandleFunc("DELETE /v1/teams/{teamId}/lounge/placements/pending", service.releasePendingTeamLoungePlacement)
 	mux.HandleFunc("POST /v1/teams/{teamId}/lounge/items/{entityId}/mutation-permits", service.issueTeamLoungeItemMutationPermit)
 	if service.teamLoungeRooms != nil {
 		mux.Handle("GET /v1/realtime/rooms/{id}", service.teamLoungeRooms)
