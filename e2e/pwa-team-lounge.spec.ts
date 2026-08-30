@@ -963,6 +963,22 @@ test("two qualified players share Lounge presence and avatar movement", async ({
       "Wobble cone placed.",
       { timeout: 10_000 },
     );
+    const ownedConeArtwork = masonLounge
+      .getByRole("button", {
+        name: "Wobble cone item, yours; tap to edit",
+      })
+      .locator("img");
+    await expect(ownedConeArtwork).toHaveJSProperty("draggable", false);
+    expect(
+      await ownedConeArtwork.evaluate((artwork) => {
+        const drag = new DragEvent("dragstart", {
+          bubbles: true,
+          cancelable: true,
+        });
+        artwork.dispatchEvent(drag);
+        return drag.defaultPrevented;
+      }),
+    ).toBe(true);
     const avaStage = avaLounge.getByLabel("Interactive lounge canvas");
     const teammateCone = avaLounge.getByLabel(
       "Wobble cone item placed by a teammate",

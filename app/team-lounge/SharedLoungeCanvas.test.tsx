@@ -7,9 +7,21 @@ import { AvatarIdentityProvider } from "../state/avatar-identity-context";
 import { SharedLoungeCanvas } from "./SharedLoungeCanvas";
 
 const runtime = vi.hoisted(() => ({
-  projectionOptions: undefined as
-    | { maxEntities?: number; maxHz?: number }
-    | undefined,
+  projectionSubscriptions: [] as Array<{
+    observer(snapshot: {
+      entities: Array<{
+        entityId: string;
+        screen: { x: number; y: number };
+        world: { x: number; y: number };
+        inViewport: boolean;
+      }>;
+    }): void;
+    options: {
+      entityIds?: readonly string[];
+      maxEntities?: number;
+      maxHz?: number;
+    };
+  }>,
   effectObserver: undefined as
     | ((effect: { effect: string; params?: Record<string, unknown> }) => void)
     | undefined,
@@ -28,10 +40,10 @@ vi.mock("@canvas-physics/client", () => ({
       return () => undefined;
     }
     subscribeOverlayProjection(
-      _observer: unknown,
-      options: { maxEntities?: number; maxHz?: number },
+      observer: (typeof runtime.projectionSubscriptions)[number]["observer"],
+      options: (typeof runtime.projectionSubscriptions)[number]["options"],
     ) {
-      runtime.projectionOptions = options;
+      runtime.projectionSubscriptions.push({ observer, options });
       return () => undefined;
     }
     subscribeLifecycle() {
@@ -86,7 +98,7 @@ const mason: Player = {
 
 describe("Shared Lounge Canvas", () => {
   beforeEach(() => {
-    runtime.projectionOptions = undefined;
+    runtime.projectionSubscriptions = [];
     runtime.effectObserver = undefined;
     runtime.errorObserver = undefined;
     vi.stubGlobal("Worker", class {});
@@ -165,16 +177,69 @@ describe("Shared Lounge Canvas", () => {
       </AvatarIdentityProvider>,
     );
 
-    await waitFor(() => expect(runtime.projectionOptions).toBeDefined());
-    expect(runtime.projectionOptions).toMatchObject({
-      maxEntities: 200,
-      maxHz: 30,
-    });
+    await waitFor(() =>
+      expect(runtime.projectionSubscriptions).toHaveLength(2),
+    );
+    expect(
+      runtime.projectionSubscriptions.map(({ options }) => options),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ maxEntities: 200, maxHz: 30 }),
+        expect.objectContaining({
+          entityIds: [`avatar:${mason.id}`],
+          maxEntities: 1,
+          maxHz: 60,
+        }),
+      ]),
+    );
     await waitFor(() =>
       expect(
         container.querySelector(".team-lounge__shared-avatar .avatar"),
       ).toBeVisible(),
     );
+  });
+
+  it("presents the current avatar from the 60 Hz local projection without a React render", async () => {
+    const { container } = render(
+      <AvatarIdentityProvider
+        value={{ currentPlayerID: mason.id, avatarConfig: defaultAvatar() }}
+      >
+        <SharedLoungeCanvas
+          teamID="team-one"
+          player={mason}
+          roster={[mason]}
+          onStateChange={vi.fn()}
+          onPresenceChange={vi.fn()}
+        />
+      </AvatarIdentityProvider>,
+    );
+
+    const avatar = await waitFor(() => {
+      const element = container.querySelector<HTMLElement>(
+        ".team-lounge__shared-avatar[data-current='true']",
+      );
+      expect(element).toBeVisible();
+      return element!;
+    });
+    const localProjection = runtime.projectionSubscriptions.find(
+      ({ options }) => options.maxHz === 60,
+    );
+    expect(localProjection).toBeDefined();
+
+    act(() => {
+      localProjection?.observer({
+        entities: [
+          {
+            entityId: `avatar:${mason.id}`,
+            screen: { x: 147, y: 263 },
+            world: { x: 44, y: 79 },
+            inViewport: true,
+          },
+        ],
+      });
+    });
+
+    expect(avatar).toHaveStyle({ transform: "translate3d(147px, 263px, 0)" });
   });
 
   it("shows an allowlisted quick phrase as a transient sender bubble", async () => {

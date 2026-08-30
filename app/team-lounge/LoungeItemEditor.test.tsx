@@ -189,6 +189,28 @@ describe("LoungeItemEditor", () => {
     expect(onSelect).toHaveBeenCalledWith(item);
   });
 
+  it("disables the browser's native drag gesture for image-backed items", () => {
+    render(
+      <LoungeItemEditor
+        items={[{ ...item, imageSrc: "/team-lounge/items/wobble-cone-v1.png" }]}
+        selectedEntityID={null}
+        pending={false}
+        dragging={null}
+        onSelect={vi.fn()}
+        onMove={vi.fn()}
+        onRotate={vi.fn()}
+        onScale={vi.fn()}
+        onDelete={vi.fn()}
+        onFinish={vi.fn()}
+        onDragStateChange={vi.fn()}
+      />,
+    );
+
+    const artwork = document.querySelector(".team-lounge__item-art");
+    expect(artwork).toHaveProperty("draggable", false);
+    expect(fireEvent.dragStart(artwork!)).toBe(false);
+  });
+
   it("drags a selected item without reverting and reports a trash drop separately", () => {
     const onMove = vi.fn();
     const onDelete = vi.fn();

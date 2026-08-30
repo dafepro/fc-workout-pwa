@@ -20,6 +20,8 @@ export function LoungeItemArt({
       className={className}
       src={item.imageSrc}
       alt={decorative ? "" : item.label}
+      draggable={false}
+      onDragStart={(event) => event.preventDefault()}
     />
   ) : (
     <span className={className} aria-hidden="true">

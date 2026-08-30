@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type MouseEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent,
+} from "react";
 import type {
   CanvasRuntime,
   AssetManifest,
@@ -158,6 +164,29 @@ export function SharedLoungeCanvas({
   const reactionTimerRef = useRef<number | undefined>(undefined);
   const reactionCooldownTimerRef = useRef<number | undefined>(undefined);
   const reactionSequenceRef = useRef(0);
+  const currentAvatarElementRef = useRef<HTMLDivElement | null>(null);
+  const currentAvatarPositionRef = useRef<Readonly<{
+    x: number;
+    y: number;
+  }> | null>(null);
+
+  const presentCurrentAvatar = useCallback(
+    (position: Readonly<{ x: number; y: number }>) => {
+      currentAvatarPositionRef.current = position;
+      if (currentAvatarElementRef.current) {
+        currentAvatarElementRef.current.style.transform = `translate3d(${position.x}px, ${position.y}px, 0)`;
+      }
+    },
+    [],
+  );
+
+  const bindCurrentAvatar = useCallback((element: HTMLDivElement | null) => {
+    currentAvatarElementRef.current = element;
+    const position = currentAvatarPositionRef.current;
+    if (element && position) {
+      element.style.transform = `translate3d(${position.x}px, ${position.y}px, 0)`;
+    }
+  }, []);
 
   useEffect(() => {
     rosterRef.current = roster;
@@ -187,10 +216,12 @@ export function SharedLoungeCanvas({
     let failureReported = false;
     let unsubscribePresence: () => void = () => undefined;
     let unsubscribeProjection: () => void = () => undefined;
+    let unsubscribeLocalProjection: () => void = () => undefined;
     let unsubscribeCanonical: () => void = () => undefined;
     let unsubscribeLifecycle: () => void = () => undefined;
     let unsubscribeEffects: () => void = () => undefined;
     const stopPreservingNativeScroll = preserveNativeCanvasScroll(mount);
+    const localAvatarEntityID = `avatar:${playerID}`;
 
     const failCanvas = (cause: unknown) => {
       if (disposed || failureReported) return;
@@ -209,7 +240,6 @@ export function SharedLoungeCanvas({
 
     const publishOverlays = () => {
       if (disposed) return;
-      const localAvatarEntityID = `avatar:${playerID}`;
       const localProjection = projections.find(
         ({ entityId }) => entityId === localAvatarEntityID,
       );
@@ -229,6 +259,11 @@ export function SharedLoungeCanvas({
         presented && !localProjection && !canonicalProjection && arrival
           ? runtime?.projectWorldPoint(arrival)
           : undefined;
+      const currentProjection =
+        localProjection ?? canonicalProjection ?? arrivalProjection;
+      if (currentProjection?.inViewport) {
+        presentCurrentAvatar(currentProjection.screen);
+      }
       if (localProjection) {
         mount.dataset.playerX = localProjection.world.x.toFixed(3);
         mount.dataset.playerY = localProjection.world.y.toFixed(3);
@@ -403,6 +438,20 @@ export function SharedLoungeCanvas({
         },
         { kinds: ["avatar", "item"], maxEntities: 200, maxHz: 30 },
       );
+      unsubscribeLocalProjection = runtime.subscribeOverlayProjection(
+        (snapshot) => {
+          const localAvatar = snapshot.entities[0];
+          if (!localAvatar?.inViewport) return;
+          presentCurrentAvatar(localAvatar.screen);
+          mount.dataset.playerX = localAvatar.world.x.toFixed(3);
+          mount.dataset.playerY = localAvatar.world.y.toFixed(3);
+        },
+        {
+          entityIds: [localAvatarEntityID],
+          maxEntities: 1,
+          maxHz: 60,
+        },
+      );
       unsubscribeLifecycle = runtime.subscribeLifecycle(({ state }) => {
         if (state === "reconnecting") onStateChange("loading");
         if (state === "failed") onStateChange("error");
@@ -453,6 +502,7 @@ export function SharedLoungeCanvas({
       disposed = true;
       unsubscribePresence();
       unsubscribeProjection();
+      unsubscribeLocalProjection();
       unsubscribeCanonical();
       unsubscribeLifecycle();
       unsubscribeEffects();
@@ -464,7 +514,14 @@ export function SharedLoungeCanvas({
       projectionFrameRef.current = undefined;
       if (active) void active.stopGracefully(500).catch(() => active.stop());
     };
-  }, [assets, onPresenceChange, onStateChange, playerID, teamID]);
+  }, [
+    assets,
+    onPresenceChange,
+    onStateChange,
+    playerID,
+    presentCurrentAvatar,
+    teamID,
+  ]);
 
   const placeItem = async (event: MouseEvent<HTMLButtonElement>) => {
     const runtime = runtimeRef.current;
@@ -724,6 +781,7 @@ export function SharedLoungeCanvas({
             className="team-lounge__shared-avatar"
             data-current={current || undefined}
             key={player.id}
+            ref={current ? bindCurrentAvatar : undefined}
             onPointerDown={
               current
                 ? (event) => {
@@ -733,9 +791,13 @@ export function SharedLoungeCanvas({
                   }
                 : undefined
             }
-            style={{
-              transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
-            }}
+            style={
+              current
+                ? undefined
+                : {
+                    transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
+                  }
+            }
           >
             <PlayerAvatar player={player} size="medium" />
             <span>{current ? "You" : player.firstName}</span>
