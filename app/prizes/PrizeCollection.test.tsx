@@ -35,6 +35,25 @@ const prizes: PrizeUnlock[] = [
   },
 ];
 
+const rarityPrizes: PrizeUnlock[] = (
+  [
+    ["common", "Rover the dog"],
+    ["uncommon", "Beach ball"],
+    ["rare", "Rare trail"],
+    ["epic", "Epic glow"],
+  ] as const
+).map(([rarity, label], index) => ({
+  item: {
+    ...prizes[0].item,
+    id: `rarity-${rarity}`,
+    assetId: `rarity-${rarity}`,
+    label,
+    rarity,
+  },
+  source: "daily_check_in",
+  unlockedAt: `2026-08-${27 - index}T12:00:00Z`,
+}));
+
 describe("PrizeCollection", () => {
   it("filters owned prizes and switches to chronological history", () => {
     render(
@@ -49,9 +68,32 @@ describe("PrizeCollection", () => {
     fireEvent.click(screen.getByRole("button", { name: "Avatar" }));
     expect(screen.getByText("Rover the dog")).toBeInTheDocument();
     expect(screen.queryByText("Beach ball")).not.toBeInTheDocument();
+    expect(screen.queryByText("From 3-day plan box")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "View Rover the dog" }));
+    expect(screen.queryByText("From 3-day plan box")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Close prize detail" }));
 
     fireEvent.click(screen.getByRole("button", { name: "History" }));
     expect(screen.getByText("From 3-day plan box")).toBeInTheDocument();
+  });
+
+  it("renders every rarity as its Rocket League-inspired gradient", () => {
+    render(
+      <PrizeCollection
+        inventory={rarityPrizes}
+        status="ready"
+        onRetry={vi.fn()}
+        onMarkViewed={vi.fn()}
+      />,
+    );
+
+    for (const rarity of ["common", "uncommon", "rare", "epic"] as const) {
+      expect(screen.getByText(new RegExp(`^${rarity}$`, "i"))).toHaveClass(
+        "prize-rarity",
+        `prize-rarity--${rarity}`,
+      );
+    }
   });
 
   it("keeps an unviewed prize owned and marked New when markViewed fails", async () => {

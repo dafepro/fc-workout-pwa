@@ -1549,10 +1549,14 @@ h2 {
   justify-items: center;
   gap: 0.38rem;
   padding: 0.75rem 0.45rem;
-  border: 1px solid #dcd7ff;
+  border: 1px solid var(--prize-rarity-border, #dcd7ff);
   border-radius: 1rem;
   color: var(--ink);
-  background: white;
+  background: linear-gradient(
+    155deg,
+    white 52%,
+    var(--prize-rarity-wash, #f7f5ff)
+  );
   text-align: center;
 }
 
@@ -1564,6 +1568,77 @@ h2 {
 .prize-collection-card small {
   color: var(--muted);
   font-size: 0.68rem;
+}
+
+.prize-collection-card__meta,
+.prize-detail-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.prize-rarity {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 1.35rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.18rem 0.48rem;
+  border: 1px solid rgb(255 255 255 / 42%);
+  border-radius: 999px;
+  color: white;
+  background-image: linear-gradient(
+    135deg,
+    var(--prize-rarity-from),
+    var(--prize-rarity-to)
+  );
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 30%),
+    0 0.18rem 0.45rem var(--prize-rarity-shadow);
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  text-transform: uppercase;
+  text-shadow: 0 1px 1px rgb(0 0 0 / 35%);
+}
+
+.rarity-common,
+.prize-rarity--common {
+  --prize-rarity-from: #303944;
+  --prize-rarity-to: #697786;
+  --prize-rarity-shadow: rgb(48 57 68 / 28%);
+  --prize-rarity-border: #c7ced5;
+  --prize-rarity-wash: #eef1f4;
+}
+
+.rarity-uncommon,
+.prize-rarity--uncommon {
+  --prize-rarity-from: #075f38;
+  --prize-rarity-to: #15945a;
+  --prize-rarity-shadow: rgb(7 95 56 / 28%);
+  --prize-rarity-border: #a8ddbf;
+  --prize-rarity-wash: #e9f8ef;
+}
+
+.rarity-rare,
+.prize-rarity--rare {
+  --prize-rarity-from: #0d3f91;
+  --prize-rarity-to: #1479c9;
+  --prize-rarity-shadow: rgb(13 63 145 / 28%);
+  --prize-rarity-border: #adcff0;
+  --prize-rarity-wash: #eaf4fd;
+}
+
+.rarity-epic,
+.prize-rarity--epic {
+  --prize-rarity-from: #4f1f83;
+  --prize-rarity-to: #8b3faf;
+  --prize-rarity-shadow: rgb(79 31 131 / 28%);
+  --prize-rarity-border: #d2b8e5;
+  --prize-rarity-wash: #f4ecfa;
 }
 
 .prize-collection-card__art {

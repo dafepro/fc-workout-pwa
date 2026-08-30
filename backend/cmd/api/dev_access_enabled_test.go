@@ -34,9 +34,27 @@ func TestDevResetCreatesFourPlayerLoginsAndPresetAdministrator(t *testing.T) {
 	}
 	sessions := authn.NewService(db)
 	staff := staffauth.NewService(db, []byte("0123456789abcdef0123456789abcdef"), authn.NewSlot())
-	manager := configuredDevAccess(cfg, db, store.New(db, location), sessions, staff).(*devAccessManager)
+	repository := store.New(db, location)
+	manager := configuredDevAccess(cfg, db, repository, sessions, staff).(*devAccessManager)
 	if err = manager.Reset(t.Context()); err != nil {
 		t.Fatalf("Reset() error = %v", err)
+	}
+	overview, err := repository.PrizeBoxOverview(t.Context(), "player-mason", time.Now())
+	if err != nil {
+		t.Fatalf("Mason prize overview: %v", err)
+	}
+	if overview.ReadyCount != 99 || overview.EarnedTotal != 99 {
+		t.Fatalf("Mason prize overview = %+v, want 99 sealed boxes", overview)
+	}
+	if overview.DailyState != store.PrizeBoxDailyAvailable {
+		t.Fatalf("Mason daily state = %q, want available", overview.DailyState)
+	}
+	avaOverview, err := repository.PrizeBoxOverview(t.Context(), "player-ava", time.Now())
+	if err != nil {
+		t.Fatalf("Ava prize overview: %v", err)
+	}
+	if avaOverview.ReadyCount != 0 || avaOverview.EarnedTotal != 0 {
+		t.Fatalf("Ava prize overview = %+v, want no seeded boxes", avaOverview)
 	}
 	access, err := manager.Access(t.Context())
 	if err != nil || len(access.Players) != 4 || access.PIN != "1111" {

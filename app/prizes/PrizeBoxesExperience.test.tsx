@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { PrizeBoxGateway } from "../data/prize-box-gateway";
 import { PrizeBoxesExperience } from "./PrizeBoxesExperience";
@@ -61,6 +67,10 @@ describe("PrizeBoxesExperience", () => {
     fireEvent.click(openButton);
     expect(await screen.findByRole("dialog")).toHaveTextContent(
       "Rover the dog",
+    );
+    expect(within(screen.getByRole("dialog")).getByText("Common")).toHaveClass(
+      "prize-rarity",
+      "prize-rarity--common",
     );
     expect(
       screen.getByRole("link", { name: /use in avatar/i }),

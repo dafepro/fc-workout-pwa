@@ -11,6 +11,7 @@ import type {
 } from "../data/prize-box-gateway";
 import { PrizeDialog } from "./PrizeDialog";
 import { PrizeItemArt } from "./PrizeItemArt";
+import { PrizeRarityBadge } from "./PrizeRarityBadge";
 
 type CollectionStatus = "loading" | "ready" | "error";
 type CollectionFilter = "all" | PrizeItem["destination"];
@@ -162,10 +163,10 @@ export function PrizeCollection({
                   {unlock.item.label}
                   {count > 1 ? ` ×${count}` : ""}
                 </strong>
-                <small>
-                  {rarityLabel(unlock.item.rarity)} ·{" "}
-                  {destinationLabel(unlock.item)}
-                </small>
+                <span className="prize-collection-card__meta">
+                  <PrizeRarityBadge rarity={unlock.item.rarity} />
+                  <small>{destinationLabel(unlock.item)}</small>
+                </span>
               </button>
             </li>
           ))}
@@ -202,9 +203,9 @@ export function PrizeCollection({
             <span className="prize-new">{copy.prizes.newItem}</span>
           ) : null}
           <h2 id="prize-detail-title">{selected.item.label}</h2>
-          <p>
-            {rarityLabel(selected.item.rarity)} ·{" "}
-            {destinationLabel(selected.item)}
+          <p className="prize-detail-meta">
+            <PrizeRarityBadge rarity={selected.item.rarity} />
+            <span>{destinationLabel(selected.item)}</span>
           </p>
           {markError ? (
             <p className="notice notice--error" role="alert">
@@ -245,10 +246,6 @@ function groupPrizes(inventory: PrizeUnlock[]) {
 
 function historySourceLabel(source: PrizeBoxSource) {
   return copy.prizes.historySources[source];
-}
-
-function rarityLabel(rarity: PrizeItem["rarity"]) {
-  return copy.prizes.rarities[rarity];
 }
 
 function destinationLabel(item: PrizeItem) {

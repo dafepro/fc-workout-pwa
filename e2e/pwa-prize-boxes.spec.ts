@@ -43,6 +43,10 @@ test("a player claims a sealed daily box and opens it on the consolidated page",
   await expect(reveal).toBeVisible();
   await expect(reveal.locator("[data-prize-art]")).toBeVisible();
   await expect(reveal.locator("[data-prize-art-missing]")).toHaveCount(0);
+  await expect(reveal.locator(".prize-rarity")).toHaveCSS(
+    "background-image",
+    /linear-gradient/,
+  );
   await expect(
     reveal.getByRole("link", { name: /Use in (Avatar|Team Lounge)/ }),
   ).toBeVisible();
@@ -57,6 +61,7 @@ test("a player claims a sealed daily box and opens it on the consolidated page",
 
   const ownedPrize = page.getByRole("button", { name: /^View / }).first();
   await expect(ownedPrize).toContainText("New");
+  await expect(ownedPrize).not.toContainText("From ");
   await ownedPrize.click();
   const detail = page.getByRole("dialog");
   await expect(detail).toBeVisible();

@@ -16,6 +16,7 @@ import type {
 import { PrizeCollection } from "./PrizeCollection";
 import { PrizeDialog } from "./PrizeDialog";
 import { PrizeItemArt } from "./PrizeItemArt";
+import { PrizeRarityBadge } from "./PrizeRarityBadge";
 
 type LoadStatus = "loading" | "ready" | "error";
 
@@ -378,7 +379,7 @@ function PrizeReveal({
       </h2>
       {reveal.item ? (
         <>
-          <p>{rarityLabel(reveal.item.rarity)}</p>
+          <PrizeRarityBadge rarity={reveal.item.rarity} />
           <Link
             className="button button--lime"
             href={destinationHref(reveal.item)}
@@ -423,10 +424,6 @@ function dailyDetail(state: PrizeBoxOverview["dailyState"]) {
 
 function sourceLabel(source: PrizeBox["source"]) {
   return copy.prizes.sources[source];
-}
-
-function rarityLabel(rarity: PrizeItem["rarity"]) {
-  return copy.prizes.rarities[rarity];
 }
 
 function destinationHref(item: PrizeItem) {
