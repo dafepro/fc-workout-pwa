@@ -121,6 +121,35 @@ describe("Shared Lounge Canvas", () => {
     expect(onStateChange).toHaveBeenLastCalledWith("superseded");
   });
 
+  it("reports lost room ownership as a recoverable handoff", async () => {
+    const onStateChange = vi.fn();
+    render(
+      <AvatarIdentityProvider
+        value={{ currentPlayerID: mason.id, avatarConfig: defaultAvatar() }}
+      >
+        <SharedLoungeCanvas
+          teamID="team-one"
+          player={mason}
+          roster={[mason]}
+          onStateChange={onStateChange}
+          onPresenceChange={vi.fn()}
+        />
+      </AvatarIdentityProvider>,
+    );
+
+    await waitFor(() => expect(runtime.errorObserver).toBeDefined());
+    act(() => {
+      runtime.errorObserver?.({
+        code: "server_rejected",
+        source: "protocol",
+        recoverable: false,
+        details: { serverCode: "room_ownership_lost" },
+      });
+    });
+
+    expect(onStateChange).toHaveBeenLastCalledWith("ownership-lost");
+  });
+
   it("observes the full bounded Lounge instead of dropping late avatars", async () => {
     const { container } = render(
       <AvatarIdentityProvider

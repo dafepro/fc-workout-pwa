@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { TeamLounge } from "./TeamLounge";
@@ -37,6 +37,9 @@ vi.mock("./SharedLoungeCanvas", () => ({
       </button>
       <button type="button" onClick={() => onStateChange("superseded")}>
         Supersede shared lounge
+      </button>
+      <button type="button" onClick={() => onStateChange("ownership-lost")}>
+        Lose shared room ownership
       </button>
     </>
   ),
@@ -166,5 +169,39 @@ describe("canonical Team Lounge", () => {
     expect(
       screen.queryByRole("button", { name: "Try the boardwalk again" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("automatically remounts once after room ownership moves", async () => {
+    render(
+      <TeamLounge
+        player={mason}
+        unlocked
+        connected
+        teamID="team-one"
+        roster={[mason]}
+      />,
+    );
+    const firstRoom = screen.getByRole("button", {
+      name: "Shared weekly lounge",
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Lose shared room ownership" }),
+    );
+
+    expect(screen.getByText("Setting up the boardwalk…")).toBeVisible();
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Shared weekly lounge" }),
+      ).not.toBe(firstRoom),
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Lose shared room ownership" }),
+    );
+    expect(screen.getByText("The boardwalk could not open.")).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Try the boardwalk again" }),
+    ).toBeVisible();
   });
 });

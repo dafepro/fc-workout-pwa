@@ -20,7 +20,8 @@ export type LoungeCanvasState =
   | "ready"
   | "static"
   | "error"
-  | "superseded";
+  | "superseded"
+  | "ownership-lost";
 
 export function LocalLoungeCanvas({
   player,

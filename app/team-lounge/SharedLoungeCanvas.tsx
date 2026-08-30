@@ -70,7 +70,7 @@ const visitorAnchors = [
   { x: 48, y: 125 },
 ] as const;
 
-function isSupersededSession(cause: unknown) {
+function isServerRejection(cause: unknown, serverCode: string) {
   if (!cause || typeof cause !== "object") return false;
   const error = cause as {
     code?: unknown;
@@ -87,7 +87,7 @@ function isSupersededSession(cause: unknown) {
   }
   return (
     (error.details as Readonly<Record<string, unknown>>).serverCode ===
-    "session_superseded"
+    serverCode
   );
 }
 
@@ -184,6 +184,7 @@ export function SharedLoungeCanvas({
     let projections: readonly OverlayEntityProjection[] = [];
     let canonicalEntities: readonly Readonly<RenderEntity>[] = [];
     let presented = false;
+    let failureReported = false;
     let unsubscribePresence: () => void = () => undefined;
     let unsubscribeProjection: () => void = () => undefined;
     let unsubscribeCanonical: () => void = () => undefined;
@@ -192,9 +193,14 @@ export function SharedLoungeCanvas({
     const stopPreservingNativeScroll = preserveNativeCanvasScroll(mount);
 
     const failCanvas = (cause: unknown) => {
-      if (disposed) return;
-      if (isSupersededSession(cause)) {
+      if (disposed || failureReported) return;
+      failureReported = true;
+      if (isServerRejection(cause, "session_superseded")) {
         onStateChange("superseded");
+        return;
+      }
+      if (isServerRejection(cause, "room_ownership_lost")) {
+        onStateChange("ownership-lost");
         return;
       }
       console.error("The Lounge Canvas failed.", cause);

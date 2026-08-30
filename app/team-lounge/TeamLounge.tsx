@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 import { copy } from "../content/copy";
@@ -30,16 +30,35 @@ export function TeamLounge({
   const [state, setState] = useState<LoungeCanvasState>("loading");
   const [presence, setPresence] = useState(1);
   const [canvasKey, setCanvasKey] = useState(0);
+  const ownershipRetriesRef = useRef(0);
   const [scene, setScene] = useState<"beach" | "starlight">("beach");
   const [unlockState, setUnlockState] = useState<
     "idle" | "pending" | "done" | "error"
   >("idle");
   const sceneAssets =
     scene === "starlight" ? starlightTrainingCampAssets : beachBoardwalkAssets;
-  const updateState = useCallback(
-    (next: LoungeCanvasState) => setState(next),
-    [],
-  );
+  const updateState = useCallback((next: LoungeCanvasState) => {
+    if (next === "ownership-lost") {
+      if (ownershipRetriesRef.current >= 1) {
+        setState("error");
+        return;
+      }
+      ownershipRetriesRef.current += 1;
+      setState(next);
+      return;
+    }
+    if (next === "ready") ownershipRetriesRef.current = 0;
+    setState(next);
+  }, []);
+
+  useEffect(() => {
+    if (state !== "ownership-lost") return;
+    const timer = window.setTimeout(() => {
+      setState("loading");
+      setCanvasKey((key) => key + 1);
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [state]);
 
   return (
     <section
@@ -110,7 +129,7 @@ export function TeamLounge({
         data-canvas-state={unlocked ? state : "locked"}
         data-scene={scene}
       >
-        {unlocked && state !== "superseded" ? (
+        {unlocked && state !== "superseded" && state !== "ownership-lost" ? (
           connected ? (
             <SharedLoungeCanvas
               key={canvasKey}
@@ -162,7 +181,7 @@ export function TeamLounge({
           </div>
         ) : unlocked && state !== "ready" ? (
           <p className="team-lounge__status" aria-live="polite">
-            {state === "loading"
+            {state === "loading" || state === "ownership-lost"
               ? copy.teamLounge.loading
               : copy.teamLounge.static}
           </p>
