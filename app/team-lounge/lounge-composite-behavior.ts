@@ -41,9 +41,10 @@ export type LoungeCompositeEffect =
     }
   | ({
       kind: "goal";
-      requiredTag: string;
-      resetPosition: Vec2;
-      dwellSeconds: number;
+      acceptedDefinitionIds: string[];
+      holdSeconds: number;
+      ejectOffset: Vec2;
+      ejectSpeed: number;
       cooldownSeconds: number;
     } & SensorEffect);
 
@@ -54,6 +55,7 @@ export interface LoungeCompositeConfig {
 export interface LoungeCompositeState {
   elapsedTicks: number;
   cooldownUntil: [entityId: string, tick: number][];
+  goalScore: number;
 }
 
 export const LoungeCompositeBehavior: ItemBehavior<
@@ -61,9 +63,9 @@ export const LoungeCompositeBehavior: ItemBehavior<
   LoungeCompositeState
 > = {
   behaviorType: "zoomigoLoungeComposite",
-  stateVersion: 1,
+  stateVersion: 2,
   subscribes: ["contact.enter", "contact.stay", "tick", "room.wake"],
-  initialState: () => ({ elapsedTicks: 0, cooldownUntil: [] }),
+  initialState: () => ({ elapsedTicks: 0, cooldownUntil: [], goalScore: 0 }),
   onEvent(ctx, config, state, event) {
     if (event.type === "room.wake") {
       return {
@@ -75,6 +77,7 @@ export const LoungeCompositeBehavior: ItemBehavior<
     const nextState: LoungeCompositeState = {
       elapsedTicks: state.elapsedTicks,
       cooldownUntil: [...state.cooldownUntil],
+      goalScore: state.goalScore,
     };
     const commands: BehaviorCommand[] = [];
 
@@ -176,9 +179,8 @@ function applyEffect(
         ? dampenCommands(ctx, event.other, effect)
         : [];
     case "goal":
-      return event.type === "contact.stay" &&
-        event.dwellTicks >= ctx.ticksFor(effect.dwellSeconds)
-        ? goalCommands(ctx, event.other, effect, state)
+      return event.type === "contact.stay"
+        ? goalCommands(ctx, event.other, event.dwellTicks, effect, state)
         : [];
   }
 }
@@ -296,15 +298,28 @@ function dampenCommands(
 function goalCommands(
   ctx: BehaviorContext,
   target: ContactParty,
+  dwellTicks: number,
   effect: Extract<LoungeCompositeEffect, { kind: "goal" }>,
   state: LoungeCompositeState,
 ): BehaviorCommand[] {
   if (
-    !target.tags.includes(effect.requiredTag) ||
+    !target.tags.some((tag) => effect.acceptedDefinitionIds.includes(tag)) ||
     cooldownFor(state, target.entityId) > ctx.tick
   ) {
     return [];
   }
+  if (dwellTicks < ctx.ticksFor(effect.holdSeconds)) {
+    return [
+      {
+        type: "setVelocity",
+        target: target.entityId,
+        velocity: { x: 0, y: 0 },
+        angularVelocity: 0,
+      },
+    ];
+  }
+  const goalTransform = ctx.transform();
+  if (!goalTransform) return [];
   const cooldownUntil: [string, number][] = [
     ...state.cooldownUntil.filter(([entityID]) => entityID !== target.entityId),
     [target.entityId, ctx.tick + ctx.ticksFor(effect.cooldownSeconds)],
@@ -312,19 +327,42 @@ function goalCommands(
   state.cooldownUntil = cooldownUntil.sort(([left], [right]) =>
     left.localeCompare(right),
   );
-  return [
+  state.goalScore = (state.goalScore + 1) % 100;
+  const ejectOffset = rotate(effect.ejectOffset, goalTransform.rotation);
+  const ejectVelocity = rotate(
+    { x: 0, y: effect.ejectSpeed },
+    goalTransform.rotation,
+  );
+  const commands: BehaviorCommand[] = [
     {
       type: "teleport",
       target: target.entityId,
-      position: effect.resetPosition,
-      velocity: { x: 0, y: 0 },
+      position: {
+        x: goalTransform.x + ejectOffset.x,
+        y: goalTransform.y + ejectOffset.y,
+      },
+      velocity: ejectVelocity,
+    },
+    {
+      type: "setVelocity",
+      target: target.entityId,
+      velocity: ejectVelocity,
+      angularVelocity: 0,
     },
     {
       type: "emitEffect",
       effect: "lounge.goal",
-      params: { target: target.entityId },
+      params: { target: target.entityId, score: state.goalScore },
     },
   ];
+  if (state.goalScore === 0) {
+    commands.push({
+      type: "emitEffect",
+      effect: "lounge.goal-confetti",
+      params: { score: state.goalScore },
+    });
+  }
+  return commands;
 }
 
 function idleMotionCommands(

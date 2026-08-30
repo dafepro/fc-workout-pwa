@@ -4167,6 +4167,67 @@ h2 {
   z-index: 1;
 }
 
+.team-lounge__goal-counter {
+  position: absolute;
+  top: -0.4rem;
+  left: 50%;
+  min-width: 2.1rem;
+  padding: 0.2rem 0.3rem;
+  border: 0.12rem solid #f7f2d0;
+  border-radius: 0.35rem;
+  background: #102127;
+  box-shadow: 0 0.15rem 0.25rem rgb(3 24 30 / 38%);
+  color: #ffdc3f;
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-shadow: 0 0 0.3rem rgb(255 220 63 / 72%);
+  transform: translate(-50%, -55%) rotate(var(--goal-counter-rotation));
+}
+
+.team-lounge__goal-confetti {
+  position: absolute;
+  z-index: 8;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.team-lounge__goal-confetti i {
+  position: absolute;
+  width: 0.35rem;
+  height: 0.72rem;
+  border-radius: 0.08rem;
+  background: var(--confetti-color);
+  animation: lounge-goal-confetti 1.6s cubic-bezier(0.18, 0.7, 0.3, 1) both;
+}
+
+@keyframes lounge-goal-confetti {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4) rotate(0);
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--confetti-angle)) translateY(-5.5rem) scale(1)
+      rotate(240deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .team-lounge__goal-confetti i {
+    opacity: 0;
+    animation: none;
+  }
+}
+
 .team-lounge__item-overlays {
   position: absolute;
   z-index: 3;

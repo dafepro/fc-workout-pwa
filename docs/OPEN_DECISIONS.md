@@ -446,9 +446,27 @@ to resolve, not the implementing agent's.
 - Every item combines at least two predefined Canvas behaviors. Their effects
   are playful room interactions only: they award no points, publish no player
   result, and do not change training, Momentum, or leaderboard data.
-- The mini goal recognizes only the tagged predefined Lounge ball, dampens it
-  briefly inside the goal mouth, then returns it to the boardwalk ball spawn.
-  Other player-placed items cannot trigger a score or be teleported by it.
+- The mini goal recognizes any tagged predefined Lounge ball, holds it for 0.4
+  seconds, increments its own durable two-digit counter, then launches the ball
+  eight world units out of its mouth at speed 18 along the goal's rotated axis.
+  Other player-placed items cannot trigger the counter or be teleported by it.
+
+## Canvas v15 dynamic mini goal (2026-08-30)
+
+- Canvas generation 15 is a clean cutover from generation 14. It does not
+  import the retired room snapshot; every mini goal begins at `00` in the new
+  room, while the generation-bound credit rule protects the active budget.
+- The shared composite behavior state advances to version 2 and the mini-goal
+  definition advances to version 3. A score is stored on each goal, not on a
+  player or team performance record.
+- The system and earned ball definitions advance to versions 8 and 5. Their
+  solid colliders opt into item sensors, and the goal accepts the two predefined
+  ball definition IDs because Canvas contact parties expose entity-definition
+  tags rather than collider tags.
+- Counters display `00` through `99`. The hundredth scored ball wraps `99` to
+  `00` and emits a transient, reduced-motion-safe confetti celebration.
+- The counter is playful Lounge state only. It does not award points or change
+  training, Momentum, challenges, leaderboards, or public player data.
 
 ## Canvas v14 Lounge physics bridge (2026-08-30)
 

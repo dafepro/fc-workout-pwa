@@ -9,6 +9,7 @@ import {
 } from "react";
 
 import type { TeamLoungeItemTransform } from "./lounge-gateway";
+import { copy } from "../content/copy";
 import {
   clampLoungeItemScale,
   nextLoungeItemRotation,
@@ -25,6 +26,7 @@ export interface LoungeEditableItem {
   editable: boolean;
   owner: "current" | "teammate";
   itemRevision: number;
+  goalScore?: number;
   screen: Readonly<{ x: number; y: number }>;
   transform: TeamLoungeItemTransform;
 }
@@ -177,6 +179,10 @@ export function LoungeItemEditor({
           : item.screen;
         const selectedItem = item.entityID === selectedEntityID;
         const category = item.kind === "lounge_prop" ? "item" : "stamp";
+        const goalScore =
+          item.goalScore === undefined
+            ? undefined
+            : copy.teamLounge.goalScore(item.goalScore);
         const style = {
           transform: `translate3d(${screen.x}px, ${screen.y}px, 0) translate(-50%, -50%) rotate(${item.transform.rotation}rad) scale(${item.transform.scale})`,
         } as CSSProperties;
@@ -185,13 +191,34 @@ export function LoungeItemEditor({
           : item.owner === "current"
             ? `${item.label} ${category}, yours; locked from an earlier day`
             : `${item.label} ${category} placed by a teammate`;
+        const accessibleLabel = goalScore
+          ? `${label}; score ${goalScore}`
+          : label;
+        const content = (
+          <>
+            {paintArtwork ? <LoungeItemArt item={item} decorative /> : null}
+            {goalScore ? (
+              <span
+                className="team-lounge__goal-counter"
+                aria-hidden="true"
+                style={
+                  {
+                    "--goal-counter-rotation": `${-item.transform.rotation}rad`,
+                  } as CSSProperties
+                }
+              >
+                {goalScore}
+              </span>
+            ) : null}
+          </>
+        );
         return item.editable ? (
           <button
             key={item.entityID}
             type="button"
             className={`team-lounge__placed-item team-lounge__placed-item--${category} team-lounge__placed-item--editable${selectedItem ? " team-lounge__placed-item--selected" : ""}`}
             style={style}
-            aria-label={label}
+            aria-label={accessibleLabel}
             aria-pressed={selectedItem}
             disabled={pending}
             onClick={(event) => {
@@ -230,7 +257,7 @@ export function LoungeItemEditor({
               onDragStateChange({ entityID: item.entityID, overTrash: false });
             }}
           >
-            {paintArtwork ? <LoungeItemArt item={item} decorative /> : null}
+            {content}
           </button>
         ) : (
           <span
@@ -238,9 +265,9 @@ export function LoungeItemEditor({
             className={`team-lounge__placed-item team-lounge__placed-item--${category}`}
             style={style}
             role="img"
-            aria-label={label}
+            aria-label={accessibleLabel}
           >
-            {paintArtwork ? <LoungeItemArt item={item} decorative /> : null}
+            {content}
           </span>
         );
       })}

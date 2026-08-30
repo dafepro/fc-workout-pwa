@@ -162,6 +162,23 @@ describe("development Lounge items", () => {
       return JSON.stringify(effects);
     });
     expect(new Set(combinations).size).toBe(10);
+
+    const goal = loungeItemDefinitions.find(
+      ({ definitionId }) => definitionId === "zoomigo-prop-play-mini-goal",
+    );
+    expect(goal).toMatchObject({
+      version: 3,
+      defaultConfig: {
+        effects: expect.arrayContaining([
+          expect.objectContaining({
+            kind: "goal",
+            holdSeconds: 0.4,
+            ejectOffset: { x: 0, y: 8 },
+            ejectSpeed: 18,
+          }),
+        ]),
+      },
+    });
   });
 
   it("binds every configured sensor effect to a real bounded collider", () => {

@@ -284,6 +284,69 @@ describe("canonical local Lounge simulation", () => {
     }, 5_000);
   }, 8_000);
 
+  it("holds, scores, and relaunches the system ball through a placed mini goal", async () => {
+    const { SimulationDriver } = await import("@canvas-physics/client");
+    let entities: RenderEntity[] = [];
+    let sawScoreAndRelaunch = false;
+    const goalDefinition = loungeItemDefinitions.find(
+      ({ definitionId }) => definitionId === "zoomigo-prop-play-mini-goal",
+    );
+    expect(goalDefinition).toBeDefined();
+    const simulation = startLocalBeachBoardwalkSimulation({
+      playerID: "mason",
+      driver: SimulationDriver.local([
+        LoungeBallBehavior,
+        LoungeActionBehavior,
+        LoungeCompositeBehavior,
+      ]),
+      additionalDefinitions: [goalDefinition!],
+      additionalItems: [
+        {
+          entityId: "mini-goal",
+          canvasId: "zoomigo-beach-boardwalk",
+          definitionId: goalDefinition!.definitionId,
+          definitionVersion: goalDefinition!.version,
+          ownerUserId: "mason",
+          transform: { x: 75, y: 98, rotation: Math.PI / 2, scale: 1 },
+          resolvedConfig: goalDefinition!.defaultConfig,
+          createdAt: "2026-08-30T00:00:00.000Z",
+          sceneRevision: 1,
+          itemRevision: 1,
+        },
+      ],
+      onRender(next) {
+        entities = next;
+        const goal = next.find(({ id }) => id === "mini-goal");
+        const score = (
+          goal?.behaviorState as { goalScore?: number } | undefined
+        )?.goalScore;
+        const ball = next.find(({ id }) => id === "boardwalk-beach-ball");
+        sawScoreAndRelaunch ||=
+          (score ?? 0) >= 1 && (ball?.x ?? 100) < 68 && (ball?.vx ?? 0) < -1;
+      },
+    });
+    stop = simulation.stop;
+
+    await simulation.ready;
+    await until(() => entities.some(({ id }) => id === "boardwalk-beach-ball"));
+    simulation.move({
+      direction: { x: 0, y: 0 },
+      intensity: 0,
+      held: true,
+      target: { x: 50, y: 98 },
+    });
+    await until(
+      () => (entities.find(({ id }) => id === "avatar:mason")?.y ?? 0) > 96,
+    );
+    simulation.move({
+      direction: { x: 0, y: 0 },
+      intensity: 0,
+      held: true,
+      target: { x: 59, y: 98 },
+    });
+    await until(() => sawScoreAndRelaunch, 4_000);
+  }, 6_000);
+
   it("keeps the ball on the boardwalk and bounces it off the right edge", async () => {
     const { SimulationDriver } = await import("@canvas-physics/client");
     let entities: RenderEntity[] = [];

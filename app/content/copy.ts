@@ -174,6 +174,8 @@ export const copy = {
     openElsewhereAction: "Go to Today",
     enterFullscreen: "Enter full screen",
     exitFullscreen: "Exit full screen",
+    goalScore: (score: number) => String(score).padStart(2, "0"),
+    goalCelebration: "100 goals! Counter reset to 00.",
     development: {
       label: "Lounge testing",
       beach: "Beach",

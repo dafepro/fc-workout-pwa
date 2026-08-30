@@ -71,7 +71,7 @@ const beachBallProp: LoungePropChoice = {
   glyph: "⚽",
   imageSrc: "/team-lounge/beach-ball.svg",
   definitionId: "zoomigo-prop-beach-ball",
-  definitionVersion: 4,
+  definitionVersion: 5,
   source: "earned",
   kind: "lounge_prop",
   capabilities: ["collision", "physics", "behavior"],
@@ -96,6 +96,7 @@ const starlightStamps: LoungeStampChoice[] = [
 
 interface CompositeItemSpec {
   id: string;
+  definitionVersion?: number;
   label: string;
   glyph: string;
   size: { width: number; height: number };
@@ -250,6 +251,7 @@ const compositeItemSpecs: CompositeItemSpec[] = [
   },
   {
     id: "mini-goal",
+    definitionVersion: 3,
     label: "Mini goal",
     glyph: "🥅",
     size: { width: 18, height: 11 },
@@ -271,9 +273,10 @@ const compositeItemSpecs: CompositeItemSpec[] = [
       {
         kind: "goal",
         sensorId: "mouth",
-        requiredTag: "lounge-ball",
-        resetPosition: { x: 62, y: 98 },
-        dwellSeconds: 0.05,
+        acceptedDefinitionIds: ["beach-ball", "zoomigo-prop-beach-ball"],
+        holdSeconds: 0.4,
+        ejectOffset: { x: 0, y: 8 },
+        ejectSpeed: 18,
         cooldownSeconds: 1,
       },
     ],
@@ -281,13 +284,13 @@ const compositeItemSpecs: CompositeItemSpec[] = [
 ];
 
 export const compositeLoungeItems: LoungePropChoice[] = compositeItemSpecs.map(
-  ({ id, label, glyph, capabilities }) => ({
+  ({ id, label, glyph, capabilities, definitionVersion = 2 }) => ({
     id,
     label,
     glyph,
     imageSrc: `/team-lounge/items/${id}-v1.png`,
     definitionId: `zoomigo-prop-play-${id}`,
-    definitionVersion: 2,
+    definitionVersion,
     source: "included",
     kind: "lounge_prop",
     capabilities,
@@ -322,7 +325,7 @@ export const loungeItemDefinitions: ItemDefinition[] = itemCatalog.map(
 );
 loungeItemDefinitions.push({
   definitionId: beachBallProp.definitionId,
-  version: 4,
+  version: 5,
   displayName: "Beach ball prop",
   visual: {
     size: { width: 9, height: 9 },
@@ -345,7 +348,10 @@ loungeItemDefinitions.push({
       shape: { type: "circle", radius: 4.5 },
       restitution: 0.95,
       friction: 0.05,
-      collisionMask: CollisionLayer.WORLD_STATIC | CollisionLayer.ITEM_SOLID,
+      collisionMask:
+        CollisionLayer.WORLD_STATIC |
+        CollisionLayer.ITEM_SOLID |
+        CollisionLayer.ITEM_SENSOR,
       tags: ["lounge-ball"],
     },
     { id: "kick", role: "itemSensor", shape: { type: "circle", radius: 5.8 } },
@@ -359,7 +365,7 @@ for (const spec of compositeItemSpecs) {
   const config: LoungeCompositeConfig = { effects: spec.effects };
   loungeItemDefinitions.push({
     definitionId: `zoomigo-prop-play-${spec.id}`,
-    version: 2,
+    version: spec.definitionVersion ?? 2,
     displayName: spec.label,
     visual: {
       size: spec.size,

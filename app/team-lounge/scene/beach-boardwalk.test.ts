@@ -6,8 +6,8 @@ import { beachBallDefinition, beachBoardwalkCanvas } from "./beach-boardwalk";
 
 describe("Beach Boardwalk collision contract", () => {
   it("uses explicit elastic outer boundaries", () => {
-    expect(beachBoardwalkCanvas.version).toBe(14);
-    expect(beachBallDefinition.version).toBe(7);
+    expect(beachBoardwalkCanvas.version).toBe(15);
+    expect(beachBallDefinition.version).toBe(8);
     expect(beachBoardwalkCanvas.edges).toEqual({
       top: "open",
       right: "open",
@@ -25,7 +25,10 @@ describe("Beach Boardwalk collision contract", () => {
     }
     expect(beachBallDefinition.colliders?.[0]).toMatchObject({
       id: "solid",
-      collisionMask: CollisionLayer.WORLD_STATIC | CollisionLayer.ITEM_SOLID,
+      collisionMask:
+        CollisionLayer.WORLD_STATIC |
+        CollisionLayer.ITEM_SOLID |
+        CollisionLayer.ITEM_SENSOR,
       restitution: 0.95,
       friction: 0.05,
       tags: ["lounge-ball"],
@@ -35,11 +38,14 @@ describe("Beach Boardwalk collision contract", () => {
     const catalogBall = loungeItemDefinitions.find(
       ({ definitionId }) => definitionId === "zoomigo-prop-beach-ball",
     );
-    expect(catalogBall?.version).toBe(4);
+    expect(catalogBall?.version).toBe(5);
     expect(catalogBall?.colliders).toContainEqual(
       expect.objectContaining({
         role: "itemSolid",
-        collisionMask: CollisionLayer.WORLD_STATIC | CollisionLayer.ITEM_SOLID,
+        collisionMask:
+          CollisionLayer.WORLD_STATIC |
+          CollisionLayer.ITEM_SOLID |
+          CollisionLayer.ITEM_SENSOR,
       }),
     );
   });

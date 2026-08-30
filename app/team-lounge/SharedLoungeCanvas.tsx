@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type MouseEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent,
+} from "react";
 import type {
   CanvasRuntime,
   AssetManifest,
@@ -68,6 +74,22 @@ const visitorAnchors = [
   { x: 74, y: 81 },
   { x: 48, y: 125 },
 ] as const;
+
+const MINI_GOAL_DEFINITION_ID = "zoomigo-prop-play-mini-goal";
+const GOAL_CELEBRATION_DURATION_MS = 1_800;
+const GOAL_CONFETTI_COLORS = ["#ffdc3f", "#22d3a8", "#ff617c", "#7dd3fc"];
+
+function goalScoreFor(
+  definitionID: string | undefined,
+  behaviorState: unknown,
+): number | undefined {
+  if (definitionID !== MINI_GOAL_DEFINITION_ID) return undefined;
+  if (!behaviorState || typeof behaviorState !== "object") return 0;
+  const score = (behaviorState as { goalScore?: unknown }).goalScore;
+  return typeof score === "number" && Number.isInteger(score) && score >= 0
+    ? score % 100
+    : 0;
+}
 
 function isServerRejection(cause: unknown, serverCode: string) {
   if (!cause || typeof cause !== "object") return false;
@@ -154,10 +176,16 @@ export function SharedLoungeCanvas({
       }
     | null
   >(null);
+  const [activeGoalCelebration, setActiveGoalCelebration] = useState<{
+    sequence: number;
+    entityID: string;
+  } | null>(null);
   const [reactionLocked, setReactionLocked] = useState(false);
   const reactionTimerRef = useRef<number | undefined>(undefined);
   const reactionCooldownTimerRef = useRef<number | undefined>(undefined);
   const reactionSequenceRef = useRef(0);
+  const goalCelebrationTimerRef = useRef<number | undefined>(undefined);
+  const goalCelebrationSequenceRef = useRef(0);
   useEffect(() => {
     rosterRef.current = roster;
   }, [roster]);
@@ -170,6 +198,7 @@ export function SharedLoungeCanvas({
     () => () => {
       window.clearTimeout(reactionTimerRef.current);
       window.clearTimeout(reactionCooldownTimerRef.current);
+      window.clearTimeout(goalCelebrationTimerRef.current);
     },
     [],
   );
@@ -301,6 +330,10 @@ export function SharedLoungeCanvas({
                 editableItemIDsRef.current.has(projection.entityId),
               owner: currentOwner ? "current" : "teammate",
               itemRevision: canonical.itemRevision,
+              goalScore: goalScoreFor(
+                canonical.definitionId,
+                canonical.behaviorState,
+              ),
               screen:
                 optimisticMove && !projectionCaughtUp
                   ? optimisticMove.screen
@@ -411,6 +444,18 @@ export function SharedLoungeCanvas({
         if (state === "failed") onStateChange("error");
       });
       unsubscribeEffects = runtime.subscribeEffects((effect) => {
+        if (effect.effect === "lounge.goal-confetti") {
+          setActiveGoalCelebration({
+            sequence: ++goalCelebrationSequenceRef.current,
+            entityID: effect.entityId,
+          });
+          window.clearTimeout(goalCelebrationTimerRef.current);
+          goalCelebrationTimerRef.current = window.setTimeout(
+            () => setActiveGoalCelebration(null),
+            GOAL_CELEBRATION_DURATION_MS,
+          );
+          return;
+        }
         const reactionPlayerID = effect.params?.playerId;
         if (typeof reactionPlayerID !== "string") return;
         if (effect.effect === "zoomigo.emote") {
@@ -701,6 +746,11 @@ export function SharedLoungeCanvas({
   )
     ? selectedEntityID
     : null;
+  const celebratedGoal = activeGoalCelebration
+    ? itemOverlays.find(
+        ({ entityID }) => entityID === activeGoalCelebration.entityID,
+      )
+    : undefined;
 
   return (
     <>
@@ -814,6 +864,34 @@ export function SharedLoungeCanvas({
           onFinish={() => setSelectedEntityID(null)}
           onDragStateChange={setDragState}
         />
+        {celebratedGoal && activeGoalCelebration ? (
+          <div
+            key={activeGoalCelebration.sequence}
+            className="team-lounge__goal-confetti"
+            role="status"
+            style={
+              {
+                left: `${celebratedGoal.screen.x}px`,
+                top: `${celebratedGoal.screen.y}px`,
+              } as CSSProperties
+            }
+          >
+            <span className="sr-only">{copy.teamLounge.goalCelebration}</span>
+            {Array.from({ length: 12 }, (_, index) => (
+              <i
+                key={index}
+                aria-hidden="true"
+                style={
+                  {
+                    "--confetti-angle": `${index * 30}deg`,
+                    "--confetti-color":
+                      GOAL_CONFETTI_COLORS[index % GOAL_CONFETTI_COLORS.length],
+                  } as CSSProperties
+                }
+              />
+            ))}
+          </div>
+        ) : null}
         {visitorIDs.flatMap((visitorID, index) => {
           if (overlays.some(({ player }) => player.id === visitorID)) return [];
           const visitor = roster.find(({ id }) => id === visitorID);

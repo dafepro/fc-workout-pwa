@@ -93,7 +93,7 @@ func TestDurableRoomIdentityPersistsAcrossWeekRollover(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if roomID != "team:team-one:lounge:v14" {
+	if roomID != "team:team-one:lounge:v15" {
 		t.Fatalf("room id = %q", roomID)
 	}
 	nextWeek, err := DurableRoomID("team-one", "2026-08-31")
@@ -104,7 +104,7 @@ func TestDurableRoomIdentityPersistsAcrossWeekRollover(t *testing.T) {
 	if err != nil || teamID != "team-one" {
 		t.Fatalf("parsed = %q, %v", teamID, err)
 	}
-	for _, invalid := range []string{"", "team:other", "team:team/one:lounge:v14", "team:team-one:lounge:today", "team:team-one:lounge", "team:team-one:lounge:v13"} {
+	for _, invalid := range []string{"", "team:other", "team:team/one:lounge:v15", "team:team-one:lounge:today", "team:team-one:lounge", "team:team-one:lounge:v14"} {
 		if _, err := ParseRoomID(invalid); err == nil {
 			t.Fatalf("accepted invalid room id %q", invalid)
 		}
@@ -122,8 +122,8 @@ func TestWeeklyThemeManifestOwnsTheImmutableCanvasBinding(t *testing.T) {
 	if theme.RoomGeneration != BeachBoardwalkRoomGeneration {
 		t.Fatalf("room generation = %d", theme.RoomGeneration)
 	}
-	if theme.RoomGeneration != 14 {
-		t.Fatalf("room generation = %d, want physics-bridge generation 14", theme.RoomGeneration)
+	if theme.RoomGeneration != 15 {
+		t.Fatalf("room generation = %d, want dynamic-goal generation 15", theme.RoomGeneration)
 	}
 	if theme.Template.CanvasID != BeachBoardwalkCanvasID || theme.Template.CanvasVersion != BeachBoardwalkCanvasVersion {
 		t.Fatalf("theme template = %#v", theme.Template)
@@ -142,7 +142,7 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 	if canvas.CanvasID != BeachBoardwalkCanvasID || canvas.Version != BeachBoardwalkCanvasVersion || !json.Valid(canvas.DefinitionRaw) {
 		t.Fatalf("canvas record = %#v", canvas)
 	}
-	if canvas.Version != 14 {
+	if canvas.Version != 15 {
 		t.Fatalf("canvas version = %d", canvas.Version)
 	}
 	var shape struct {
@@ -224,7 +224,7 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 	if err := json.Unmarshal(catalog.Items[0].DefinitionRaw, &ball); err != nil {
 		t.Fatal(err)
 	}
-	if ball.Version != 7 || ball.Visual.SpriteID != "lounge.ball" || len(ball.Colliders) < 1 || ball.Colliders[0].CollisionMask != 12 || ball.Colliders[0].Restitution != 0.95 || len(ball.Colliders[0].Tags) != 1 || ball.Colliders[0].Tags[0] != "lounge-ball" {
+	if ball.Version != 8 || ball.Visual.SpriteID != "lounge.ball" || len(ball.Colliders) < 1 || ball.Colliders[0].CollisionMask != 28 || ball.Colliders[0].Restitution != 0.95 || len(ball.Colliders[0].Tags) != 1 || ball.Colliders[0].Tags[0] != "lounge-ball" {
 		t.Fatalf("beach ball definition = %#v", ball)
 	}
 	var avatar struct {
@@ -283,22 +283,23 @@ func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 	}
 	wantComposite := []struct {
 		id      string
+		version uint32
 		effects []string
 	}{
-		{"boost-pad", []string{"boost", "hop"}},
-		{"bounce-drum", []string{"bounce", "wobble"}},
-		{"pinwheel", []string{"spin", "push"}},
-		{"orbit-beacon", []string{"spin", "orbit"}},
-		{"breeze-fan", []string{"spin", "push"}},
-		{"soft-sand-mat", []string{"dampen", "orbit"}},
-		{"speed-lane", []string{"boost", "push"}},
-		{"wobble-cone", []string{"bounce", "wobble"}},
-		{"swing-gate", []string{"swing", "bounce"}},
-		{"mini-goal", []string{"dampen", "goal"}},
+		{"boost-pad", 2, []string{"boost", "hop"}},
+		{"bounce-drum", 2, []string{"bounce", "wobble"}},
+		{"pinwheel", 2, []string{"spin", "push"}},
+		{"orbit-beacon", 2, []string{"spin", "orbit"}},
+		{"breeze-fan", 2, []string{"spin", "push"}},
+		{"soft-sand-mat", 2, []string{"dampen", "orbit"}},
+		{"speed-lane", 2, []string{"boost", "push"}},
+		{"wobble-cone", 2, []string{"bounce", "wobble"}},
+		{"swing-gate", 2, []string{"swing", "bounce"}},
+		{"mini-goal", 3, []string{"dampen", "goal"}},
 	}
 	for index, item := range catalog.Items[17:27] {
 		want := wantComposite[index]
-		if item.DefinitionID != "zoomigo-prop-play-"+want.id || item.Version != 2 {
+		if item.DefinitionID != "zoomigo-prop-play-"+want.id || item.Version != want.version {
 			t.Fatalf("composite Lounge item = %#v", item)
 		}
 		var definition struct {
@@ -323,6 +324,17 @@ func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 				t.Fatalf("%s effect %q is absent from the config schema", want.id, want.effects[effectIndex])
 			}
 		}
+		if want.id == "mini-goal" {
+			goal := definition.DefaultConfig.Effects[1]
+			ejectOffset, _ := goal["ejectOffset"].(map[string]any)
+			acceptedDefinitions, _ := goal["acceptedDefinitionIds"].([]any)
+			if goal["holdSeconds"] != 0.4 || goal["ejectSpeed"] != float64(18) ||
+				ejectOffset["x"] != float64(0) || ejectOffset["y"] != float64(8) ||
+				len(acceptedDefinitions) != 2 || acceptedDefinitions[0] != "beach-ball" ||
+				acceptedDefinitions[1] != "zoomigo-prop-beach-ball" {
+				t.Fatalf("mini-goal config = %#v", goal)
+			}
+		}
 		combination, err := json.Marshal(definition.DefaultConfig.Effects)
 		if err != nil {
 			t.Fatal(err)
@@ -332,7 +344,7 @@ func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 	if len(combinations) != 10 {
 		t.Fatalf("composite behavior combinations = %d", len(combinations))
 	}
-	if item := catalog.Items[27]; item.DefinitionID != "zoomigo-prop-beach-ball" || item.Version != 4 {
+	if item := catalog.Items[27]; item.DefinitionID != "zoomigo-prop-beach-ball" || item.Version != 5 {
 		t.Fatalf("development prop = %#v", item)
 	}
 }

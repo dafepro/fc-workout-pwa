@@ -26,9 +26,11 @@ const runtime = vi.hoisted(() => ({
     observer(snapshot: {
       entities: Array<{
         entityId: string;
+        definitionId?: string;
         screen: { x: number; y: number };
         world: { x: number; y: number };
         inViewport: boolean;
+        rotation?: number;
       }>;
     }): void;
     options: {
@@ -37,8 +39,28 @@ const runtime = vi.hoisted(() => ({
       maxHz?: number;
     };
   }>,
+  canonicalObserver: undefined as
+    | ((snapshot: {
+        entities: Array<{
+          id: string;
+          kind: "item";
+          definitionId: string;
+          x: number;
+          y: number;
+          rotation: number;
+          scale: number;
+          ownerUserId: string;
+          itemRevision: number;
+          behaviorState: unknown;
+        }>;
+      }) => void)
+    | undefined,
   effectObserver: undefined as
-    | ((effect: { effect: string; params?: Record<string, unknown> }) => void)
+    | ((effect: {
+        entityId?: string;
+        effect: string;
+        params?: Record<string, unknown>;
+      }) => void)
     | undefined,
   errorObserver: undefined as ((error: unknown) => void) | undefined,
 }));
@@ -57,7 +79,8 @@ vi.mock("@canvas-physics/client", () => ({
     subscribePresence() {
       return () => undefined;
     }
-    subscribeCanonicalState() {
+    subscribeCanonicalState(observer: typeof runtime.canonicalObserver) {
+      runtime.canonicalObserver = observer;
       return () => undefined;
     }
     subscribeOverlayProjection(
@@ -121,6 +144,7 @@ describe("Shared Lounge Canvas", () => {
   beforeEach(() => {
     runtime.options = undefined;
     runtime.projectionSubscriptions = [];
+    runtime.canonicalObserver = undefined;
     runtime.effectObserver = undefined;
     runtime.errorObserver = undefined;
     vi.stubGlobal("Worker", class {});
@@ -274,5 +298,77 @@ describe("Shared Lounge Canvas", () => {
     expect(
       container.querySelector(".team-lounge__avatar-phrase"),
     ).toHaveTextContent("Nice!");
+  });
+
+  it("projects the durable goal score and celebrates its hundredth goal", async () => {
+    const { container } = render(
+      <AvatarIdentityProvider
+        value={{ currentPlayerID: mason.id, avatarConfig: defaultAvatar() }}
+      >
+        <SharedLoungeCanvas
+          teamID="team-one"
+          player={mason}
+          roster={[mason]}
+          onStateChange={vi.fn()}
+          onPresenceChange={vi.fn()}
+        />
+      </AvatarIdentityProvider>,
+    );
+
+    await waitFor(() => {
+      expect(runtime.canonicalObserver).toBeDefined();
+      expect(runtime.projectionSubscriptions).toHaveLength(1);
+    });
+    act(() => {
+      runtime.canonicalObserver?.({
+        entities: [
+          {
+            id: "goal-one",
+            kind: "item",
+            definitionId: "zoomigo-prop-play-mini-goal",
+            x: 40,
+            y: 60,
+            rotation: 0,
+            scale: 1,
+            ownerUserId: mason.id,
+            itemRevision: 1,
+            behaviorState: {
+              elapsedTicks: 0,
+              cooldownUntil: [],
+              goalScore: 7,
+            },
+          },
+        ],
+      });
+      runtime.projectionSubscriptions[0]?.observer({
+        entities: [
+          {
+            entityId: "goal-one",
+            definitionId: "zoomigo-prop-play-mini-goal",
+            screen: { x: 140, y: 190 },
+            world: { x: 40, y: 60 },
+            inViewport: true,
+            rotation: 0,
+          },
+        ],
+      });
+    });
+
+    expect(
+      container.querySelector(".team-lounge__goal-counter"),
+    ).toHaveTextContent("07");
+    act(() => {
+      runtime.effectObserver?.({
+        entityId: "goal-one",
+        effect: "lounge.goal-confetti",
+        params: { score: 0 },
+      });
+    });
+    expect(
+      container.querySelector(".team-lounge__goal-confetti"),
+    ).toBeVisible();
+    expect(container.querySelector('[role="status"]')).toHaveTextContent(
+      "100 goals! Counter reset to 00.",
+    );
   });
 });

@@ -16,6 +16,39 @@ const item: LoungeEditableItem = {
 };
 
 describe("LoungeItemEditor", () => {
+  it("shows a fixed-width two-digit score on a mini goal", () => {
+    render(
+      <LoungeItemEditor
+        items={[
+          {
+            ...item,
+            label: "Mini goal",
+            kind: "lounge_prop",
+            goalScore: 7,
+          },
+        ]}
+        paintArtwork={false}
+        selectedEntityID={null}
+        pending={false}
+        dragging={null}
+        onSelect={vi.fn()}
+        onMove={vi.fn()}
+        onRotate={vi.fn()}
+        onScale={vi.fn()}
+        onDelete={vi.fn()}
+        onFinish={vi.fn()}
+        onDragStateChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("07")).toHaveClass("team-lounge__goal-counter");
+    expect(
+      screen.getByRole("button", {
+        name: /Mini goal item, yours; tap to edit; score 07/,
+      }),
+    ).toBeVisible();
+  });
+
   it("selects an owned current-day item and exposes bounded edit actions", () => {
     const onSelect = vi.fn();
     const onRotate = vi.fn();

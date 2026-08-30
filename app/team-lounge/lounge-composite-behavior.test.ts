@@ -215,20 +215,28 @@ describe("LoungeCompositeBehavior effects", () => {
     expect(subject.state.elapsedTicks).toBe(30);
   });
 
-  it("scores only a tagged ball, teleports it once, then enforces cooldown", () => {
+  it("holds a tagged ball, scores it, then launches it out along the goal axis", () => {
     const subject = harness({
       effects: [
         {
           kind: "goal",
           sensorId: "mouth",
-          requiredTag: "lounge-ball",
-          resetPosition: { x: 62, y: 98 },
-          dwellSeconds: 0.05,
+          acceptedDefinitionIds: ["beach-ball", "zoomigo-prop-beach-ball"],
+          holdSeconds: 0.4,
+          ejectOffset: { x: 0, y: 8 },
+          ejectSpeed: 18,
           cooldownSeconds: 1,
         },
       ],
     });
-    subject.host.body("ball").tags = ["lounge-ball"];
+    subject.host.body(subject.entityId).transform = {
+      x: 50,
+      y: 60,
+      rotation: Math.PI / 2,
+    };
+    subject.host.body("ball").tags = ["beach-ball"];
+    subject.host.body("ball").velocity = { x: 8, y: -4 };
+    subject.host.body("ball").angularVelocity = 3;
     subject.host.body("not-ball").tags = ["training-cone"];
 
     subject
@@ -249,30 +257,38 @@ describe("LoungeCompositeBehavior effects", () => {
           entityId: "ball",
           colliderId: "solid",
           kind: "item",
-          tags: ["lounge-ball"],
+          tags: ["beach-ball"],
         },
-        dwellTicks: 2,
+        dwellTicks: 23,
       })
       .flush();
 
     expect(subject.effects("lounge.goal")).toHaveLength(0);
-    subject
-      .send({
-        type: "contact.stay",
-        selfColliderId: "mouth",
-        other: {
-          entityId: "ball",
-          colliderId: "solid",
-          kind: "item",
-          tags: ["lounge-ball"],
-        },
-        dwellTicks: 3,
-      })
-      .flush();
-
-    expect(subject.effects("lounge.goal")).toHaveLength(1);
-    expect(subject.host.body("ball").transform).toMatchObject({ x: 62, y: 98 });
     expect(subject.host.body("ball").velocity).toEqual({ x: 0, y: 0 });
+    expect(subject.host.body("ball").angularVelocity).toBe(0);
+    expect(subject.state.goalScore).toBe(0);
+    subject
+      .send({
+        type: "contact.stay",
+        selfColliderId: "mouth",
+        other: {
+          entityId: "ball",
+          colliderId: "solid",
+          kind: "item",
+          tags: ["beach-ball"],
+        },
+        dwellTicks: 24,
+      })
+      .flush();
+
+    expect(subject.effects("lounge.goal")).toMatchObject([
+      { params: { target: "ball", score: 1 } },
+    ]);
+    expect(subject.host.body("ball").transform.x).toBeCloseTo(42, 8);
+    expect(subject.host.body("ball").transform.y).toBeCloseTo(60, 8);
+    expect(subject.host.body("ball").velocity.x).toBeCloseTo(-18, 8);
+    expect(subject.host.body("ball").velocity.y).toBeCloseTo(0, 8);
+    expect(subject.state.goalScore).toBe(1);
 
     subject
       .send({
@@ -282,28 +298,58 @@ describe("LoungeCompositeBehavior effects", () => {
           entityId: "ball",
           colliderId: "solid",
           kind: "item",
-          tags: ["lounge-ball"],
+          tags: ["beach-ball"],
         },
-        dwellTicks: 4,
+        dwellTicks: 25,
       })
       .flush();
     expect(subject.effects("lounge.goal")).toHaveLength(1);
+  });
 
-    subject.advanceSeconds(1, false);
-    subject
-      .send({
-        type: "contact.stay",
-        selfColliderId: "mouth",
-        other: {
-          entityId: "ball",
-          colliderId: "solid",
-          kind: "item",
-          tags: ["lounge-ball"],
+  it("wraps the two-digit score after the hundredth goal and emits confetti once", () => {
+    const subject = harness({
+      effects: [
+        {
+          kind: "goal",
+          sensorId: "mouth",
+          acceptedDefinitionIds: ["beach-ball", "zoomigo-prop-beach-ball"],
+          holdSeconds: 0,
+          ejectOffset: { x: 0, y: 8 },
+          ejectSpeed: 18,
+          cooldownSeconds: 0,
         },
-        dwellTicks: 3,
-      })
-      .flush();
-    expect(subject.effects("lounge.goal")).toHaveLength(2);
+      ],
+    });
+    subject.host.body(subject.entityId).transform = {
+      x: 50,
+      y: 60,
+      rotation: 0,
+    };
+    const ball = {
+      entityId: "ball",
+      colliderId: "solid",
+      kind: "item" as const,
+      tags: ["zoomigo-prop-beach-ball"],
+    };
+
+    for (let score = 1; score <= 100; score += 1) {
+      subject
+        .send({
+          type: "contact.stay",
+          selfColliderId: "mouth",
+          other: ball,
+          dwellTicks: 1,
+        })
+        .flush();
+      subject.advance(1, false);
+    }
+
+    expect(subject.state.goalScore).toBe(0);
+    expect(subject.effects("lounge.goal")).toHaveLength(100);
+    expect(subject.effects("lounge.goal-confetti")).toMatchObject([
+      { params: { score: 0 } },
+    ]);
+    expect(LoungeCompositeBehavior.stateVersion).toBe(2);
   });
 
   it("clears transient target cooldowns on room wake without resetting motion phase", () => {
