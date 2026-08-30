@@ -256,6 +256,31 @@ func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 		}
 	}
 	combinations := map[string]bool{}
+	var compositeSchema struct {
+		Properties map[string]struct {
+			Items struct {
+				Properties map[string]struct {
+					Type string   `json:"type"`
+					Enum []string `json:"enum"`
+				} `json:"properties"`
+				Required             []string `json:"required"`
+				AdditionalProperties bool     `json:"additionalProperties"`
+			} `json:"items"`
+		} `json:"properties"`
+	}
+	if err := json.Unmarshal(catalog.Items[17].ConfigSchema, &compositeSchema); err != nil {
+		t.Fatal(err)
+	}
+	effectItems := compositeSchema.Properties["effects"].Items
+	kindSchema, declaresKind := effectItems.Properties["kind"]
+	if !declaresKind || kindSchema.Type != "string" || len(kindSchema.Enum) != 10 ||
+		len(effectItems.Required) != 1 || effectItems.Required[0] != "kind" || !effectItems.AdditionalProperties {
+		t.Fatalf("composite effect config schema = %#v", effectItems)
+	}
+	allowedEffects := make(map[string]bool, len(kindSchema.Enum))
+	for _, kind := range kindSchema.Enum {
+		allowedEffects[kind] = true
+	}
 	wantComposite := []struct {
 		id      string
 		effects []string
@@ -293,6 +318,9 @@ func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 		for effectIndex, effect := range definition.DefaultConfig.Effects {
 			if effect["kind"] != want.effects[effectIndex] {
 				t.Fatalf("%s effect %d = %#v", want.id, effectIndex, effect)
+			}
+			if !allowedEffects[want.effects[effectIndex]] {
+				t.Fatalf("%s effect %q is absent from the config schema", want.id, want.effects[effectIndex])
 			}
 		}
 		combination, err := json.Marshal(definition.DefaultConfig.Effects)
