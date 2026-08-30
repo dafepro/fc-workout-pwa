@@ -71,12 +71,16 @@ func (manager *devAccessManager) CreateStaffSession(ctx context.Context, email, 
 func (manager *devAccessManager) Reset(ctx context.Context) error {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
-	if err := manager.store.ResetE2EFixtures(ctx, time.Now()); err != nil {
+	now := time.Now()
+	if err := manager.store.ResetE2EFixtures(ctx, now); err != nil {
 		return fmt.Errorf("reset fixture data: %w", err)
+	}
+	if err := manager.store.SeedDevelopmentPrizeBoxes(ctx, "player-mason", 99, now); err != nil {
+		return fmt.Errorf("seed Mason prize boxes: %w", err)
 	}
 	if _, err := manager.db.ExecContext(ctx, `INSERT INTO accounts (id, club_id, player_id, role, status, created_at)
 		VALUES ('account-noah', 'club-zoomigo', 'player-noah', 'player', 'active', ?)
-		ON CONFLICT(id) DO UPDATE SET status = 'active'`, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
+		ON CONFLICT(id) DO UPDATE SET status = 'active'`, now.UTC().Format(time.RFC3339Nano)); err != nil {
 		return fmt.Errorf("seed Noah account: %w", err)
 	}
 	for _, player := range devPlayers {

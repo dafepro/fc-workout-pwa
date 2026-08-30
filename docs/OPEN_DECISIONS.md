@@ -339,6 +339,22 @@ to resolve, not the implementing agent's.
 - Integration assumption 2026-08-27: one free sealed daily box is independent
   of training and does not change Momentum. Opening later chooses the item, so
   claiming cannot reveal or reroll a reward.
+- Decided 2026-08-30: Prize collection and chronological history browsing stay
+  inside the canonical `/prizes` route, with predefined Avatar and Team Lounge
+  filters. The retired `/prizes/all` reference route does not return. Opening an
+  unviewed item's detail attempts `markViewed`; a failure keeps both the owned
+  item and its New treatment until the server confirms the update.
+- Decided 2026-08-30: collection cards and item details identify rarity and the
+  place an item can be used, but not its acquisition source. Source remains in
+  the explicit chronological History view only.
+- Presentation assumption 2026-08-30: the four app rarities follow Rocket
+  League's ordered item-color ladder: Common/Base gray, Uncommon/Sport green,
+  Rare/Special blue, and Epic uses the Very Rare/Deluxe purple treatment because
+  Rocket League has no tier named Epic. Text labels remain present alongside
+  the gradient, so color never carries rarity by itself.
+- Development-fixture assumption 2026-08-30: an explicit disposable-dev reset
+  gives Mason 99 sealed prior-day boxes while leaving today's daily box
+  claimable. Other preview players and production builds are unchanged.
 - Integration assumption 2026-08-27: Team Rewards begin as one predefined,
   versioned celebration with bundled artwork and immutable display snapshots.
   Progress uses only qualifying team-local days at a bounded roster percentage;
