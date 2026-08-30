@@ -449,7 +449,7 @@ const loungeBallConfigSchemaJSON = `{
 
 const loungeCompositeConfigSchemaJSON = `{
   "type":"object",
-  "properties":{"effects":{"type":"array","minItems":2,"items":{"type":"object","required":["kind"]}}},
+  "properties":{"effects":{"type":"array","minItems":2,"maxItems":4,"items":{"type":"object","properties":{"kind":{"type":"string","enum":["boost","hop","bounce","wobble","spin","push","orbit","dampen","swing","goal"]}},"required":["kind"],"additionalProperties":true}}},
   "required":["effects"],"additionalProperties":false
 }`
 

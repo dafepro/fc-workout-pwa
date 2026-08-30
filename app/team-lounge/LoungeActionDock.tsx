@@ -60,6 +60,13 @@ export function LoungeActionDock({
     }, menuTransitionMs);
   };
 
+  const finishItemSelection = (item: LoungeItemChoice) => {
+    window.clearTimeout(closeTimerRef.current);
+    setTray(null);
+    setClosing(false);
+    onSelectItem(item);
+  };
+
   const toggle = (next: Exclude<Tray, null>) => {
     if (tray === next && !closing) {
       closeTray();
@@ -135,10 +142,7 @@ export function LoungeActionDock({
                   )}
                   aria-pressed={selectedItem?.id === choice.id}
                   disabled={placing || remaining === 0}
-                  onClick={() => {
-                    onSelectItem(choice);
-                    closeTray();
-                  }}
+                  onClick={() => finishItemSelection(choice)}
                 >
                   <LoungeItemArt item={choice} />
                   <strong>{choice.label}</strong>

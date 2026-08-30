@@ -105,7 +105,7 @@ describe("Lounge action dock", () => {
     expect(screen.getByText("Earned")).toBeVisible();
     fireEvent.click(beachBall);
     expect(onSelectItem).toHaveBeenCalledWith(earnedProp);
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(screen.queryByRole("dialog")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "React" }));
     expect(

@@ -527,6 +527,93 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   ).toBe(true);
 });
 
+test.describe("touch placement", () => {
+  test.use({ hasTouch: true });
+
+  test("a player places a Mini goal and can move their avatar again", async ({
+    page,
+  }) => {
+    const api = await request.newContext({ baseURL: apiBaseURL });
+    const completion = await api.post("/v1/me/training-entries", {
+      headers: {
+        Authorization: "Bearer e2e-player-mason",
+        "Idempotency-Key": "browser-lounge-touch-mini-goal",
+      },
+      data: {
+        teamId: "team-hill-striders",
+        activityDefinitionId: "hill-sprints",
+        assignmentId: "assignment-hill-sprints",
+        occurredAt: new Date(Date.now() - 60_000).toISOString(),
+        result: { kind: "repetitions", value: 8, unit: "reps" },
+        effortLevel: 4,
+        exhaustionLevel: 3,
+        completionOutcome: "as_listed",
+      },
+    });
+    expect(completion.status()).toBe(201);
+    await api.dispose();
+
+    await page.setViewportSize({ width: 320, height: 720 });
+    await openReadyPage(page, "/team");
+    const lounge = page.getByRole("region", {
+      name: "Beach Boardwalk Team Lounge",
+    });
+    const stage = lounge.getByLabel("Interactive lounge canvas");
+    await expect(lounge.locator(".team-lounge__world")).toHaveAttribute(
+      "data-canvas-state",
+      "ready",
+    );
+    await expect
+      .poll(async () => Number(await stage.getAttribute("data-player-x")))
+      .toBeGreaterThan(0);
+
+    await lounge
+      .getByRole("button", { name: /Items, \d+ placements? left/u })
+      .click();
+    await lounge.getByRole("button", { name: "Choose Mini goal item" }).click();
+    const placementSurface = lounge.getByRole("button", {
+      name: "Place Mini goal item on the boardwalk",
+    });
+    const placementBox = await placementSurface.boundingBox();
+    expect(placementBox).not.toBeNull();
+    await page.touchscreen.tap(
+      placementBox!.x + placementBox!.width * 0.7,
+      placementBox!.y + placementBox!.height * 0.72,
+    );
+
+    await expect(lounge.getByRole("status")).toHaveText("Mini goal placed.", {
+      timeout: 10_000,
+    });
+    await expect(placementSurface).toHaveCount(0);
+    await expect(
+      lounge.getByRole("button", {
+        name: "Mini goal item, yours; tap to edit",
+      }),
+    ).toBeVisible();
+
+    const playerName = lounge.getByText("You", { exact: true });
+    const canvasBox = await stage.locator("canvas").boundingBox();
+    const playerBox = await playerName.boundingBox();
+    expect(canvasBox).not.toBeNull();
+    expect(playerBox).not.toBeNull();
+    const destinationX = 35;
+    await page.mouse.move(
+      playerBox!.x + playerBox!.width / 2,
+      playerBox!.y + 30,
+    );
+    await page.mouse.down();
+    await page.mouse.move(
+      canvasBox!.x + canvasBox!.width * (destinationX / 100),
+      canvasBox!.y + canvasBox!.height * (100 / 150),
+      { steps: 24 },
+    );
+    await page.mouse.up();
+    await expect
+      .poll(async () => Number(await stage.getAttribute("data-player-x")))
+      .toBeCloseTo(destinationX, 0);
+  });
+});
+
 test("two qualified players share Lounge presence and avatar movement", async ({
   browser,
   page,
