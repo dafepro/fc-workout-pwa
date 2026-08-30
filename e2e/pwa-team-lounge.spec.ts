@@ -520,7 +520,7 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   ).toBe(true);
 });
 
-test("the ball cannon launches the system ball and the avatar crosses through the goal", async ({
+test("the ball cannon visibly fuses before its high-speed launch and the avatar crosses through the goal", async ({
   page,
 }) => {
   test.setTimeout(60_000);
@@ -588,8 +588,8 @@ test("the ball cannon launches the system ball and the avatar crosses through th
     return item;
   };
 
-  await place("Ball cannon", 75, 98);
   await place("Mini goal", 58, 80);
+  const cannon = await place("Ball cannon", 77, 98);
 
   await stage.evaluate((element) => {
     let previous = Number(element.getAttribute("data-ball-x"));
@@ -642,11 +642,16 @@ test("the ball cannon launches the system ball and the avatar crosses through th
 
   await dragSelfToWorld(48, 98);
   await dragSelfToWorld(59, 98);
+  await expect(cannon).toHaveAttribute("data-cannon-fuse", "true");
+  expect(Number(await stage.getAttribute("data-ball-x"))).toBeLessThan(84);
+  await page.waitForTimeout(250);
+  await expect(cannon).toHaveAttribute("data-cannon-fuse", "true");
+  expect(Number(await stage.getAttribute("data-ball-x"))).toBeLessThan(84);
   await expect
     .poll(async () => Number(await stage.getAttribute("data-ball-x")), {
       timeout: 10_000,
     })
-    .toBeGreaterThan(84);
+    .toBeGreaterThan(86);
   await expect
     .poll(async () =>
       Number(await stage.getAttribute("data-e2e-ball-max-step")),

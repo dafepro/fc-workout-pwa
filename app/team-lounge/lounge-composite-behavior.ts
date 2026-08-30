@@ -211,6 +211,21 @@ function applyEffect(
         ? goalCommands(ctx, event.other, event.dwellTicks, effect, state)
         : [];
     case "cannon":
+      if (
+        event.type === "contact.enter" &&
+        cooldownFor(state, event.other.entityId) <= ctx.tick
+      ) {
+        return [
+          {
+            type: "emitEffect",
+            effect: "lounge.cannon-fuse",
+            params: {
+              target: event.other.entityId,
+              durationSeconds: effect.dwellSeconds,
+            },
+          },
+        ];
+      }
       return event.type === "contact.stay" &&
         event.dwellTicks >= ctx.ticksFor(effect.dwellSeconds)
         ? cannonCommands(ctx, event.other, effect, state)

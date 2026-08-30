@@ -374,4 +374,78 @@ describe("Shared Lounge Canvas", () => {
       "100 goals! Counter reset to 00.",
     );
   });
+
+  it("shows the cannon fuse while the system ball is held for launch", async () => {
+    const { container } = render(
+      <AvatarIdentityProvider
+        value={{ currentPlayerID: mason.id, avatarConfig: defaultAvatar() }}
+      >
+        <SharedLoungeCanvas
+          teamID="team-one"
+          player={mason}
+          roster={[mason]}
+          onStateChange={vi.fn()}
+          onPresenceChange={vi.fn()}
+        />
+      </AvatarIdentityProvider>,
+    );
+
+    await waitFor(() => {
+      expect(runtime.canonicalObserver).toBeDefined();
+      expect(runtime.projectionSubscriptions).toHaveLength(1);
+    });
+    act(() => {
+      runtime.canonicalObserver?.({
+        entities: [
+          {
+            id: "cannon-one",
+            kind: "item",
+            definitionId: "zoomigo-prop-play-ball-cannon",
+            x: 75,
+            y: 98,
+            rotation: 0,
+            scale: 1,
+            ownerUserId: mason.id,
+            itemRevision: 1,
+            behaviorState: {},
+          },
+        ],
+      });
+      runtime.projectionSubscriptions[0]?.observer({
+        entities: [
+          {
+            entityId: "cannon-one",
+            definitionId: "zoomigo-prop-play-ball-cannon",
+            screen: { x: 180, y: 260 },
+            world: { x: 75, y: 98 },
+            inViewport: true,
+            rotation: 0,
+          },
+        ],
+      });
+    });
+    await waitFor(() =>
+      expect(
+        container.querySelector('[aria-label^="Ball cannon item"]'),
+      ).toBeVisible(),
+    );
+
+    act(() => {
+      runtime.effectObserver?.({
+        entityId: "cannon-one",
+        effect: "lounge.cannon-fuse",
+        params: { target: "boardwalk-beach-ball", durationSeconds: 0.8 },
+      });
+    });
+    expect(container.querySelector('[data-cannon-fuse="true"]')).toBeVisible();
+
+    act(() => {
+      runtime.effectObserver?.({
+        entityId: "cannon-one",
+        effect: "lounge.cannon",
+        params: { target: "boardwalk-beach-ball", speed: 50 },
+      });
+    });
+    expect(container.querySelector('[data-cannon-fuse="true"]')).toBeNull();
+  });
 });

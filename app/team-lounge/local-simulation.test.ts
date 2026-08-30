@@ -233,6 +233,81 @@ describe("canonical local Lounge simulation", () => {
     );
   }, 8_000);
 
+  it("stops a ball pushed into the cannon muzzle without blocking the avatar", async () => {
+    const { SimulationDriver } = await import("@canvas-physics/client");
+    let entities: RenderEntity[] = [];
+    let minimumBallX = Number.POSITIVE_INFINITY;
+    const cannonDefinition = loungeItemDefinitions.find(
+      ({ definitionId }) => definitionId === "zoomigo-prop-play-ball-cannon",
+    );
+    expect(cannonDefinition).toBeDefined();
+    const simulation = startLocalBeachBoardwalkSimulation({
+      playerID: "mason",
+      driver: SimulationDriver.local([
+        LoungeBallBehavior,
+        LoungeActionBehavior,
+        LoungeCompositeBehavior,
+      ]),
+      additionalDefinitions: [cannonDefinition!],
+      additionalItems: [
+        {
+          entityId: "ball-cannon",
+          canvasId: "zoomigo-beach-boardwalk",
+          definitionId: cannonDefinition!.definitionId,
+          definitionVersion: cannonDefinition!.version,
+          ownerUserId: "mason",
+          transform: { x: 45, y: 98, rotation: 0, scale: 1 },
+          resolvedConfig: cannonDefinition!.defaultConfig,
+          createdAt: "2026-08-30T00:00:00.000Z",
+          sceneRevision: 1,
+          itemRevision: 1,
+        },
+      ],
+      onRender(next) {
+        entities = next;
+        const ballX = next.find(({ id }) => id === "boardwalk-beach-ball")?.x;
+        if (ballX !== undefined) minimumBallX = Math.min(minimumBallX, ballX);
+      },
+    });
+    stop = simulation.stop;
+
+    await simulation.ready;
+    await until(() => entities.some(({ id }) => id === "ball-cannon"));
+    simulation.move({
+      direction: { x: 0, y: 0 },
+      intensity: 0,
+      held: true,
+      target: { x: 72, y: 84 },
+    });
+    await until(() => {
+      const avatar = entities.find(({ id }) => id === "avatar:mason");
+      return (avatar?.x ?? 0) > 68 && (avatar?.y ?? 150) < 88;
+    }, 4_000);
+    simulation.move({
+      direction: { x: 0, y: 0 },
+      intensity: 0,
+      held: true,
+      target: { x: 72, y: 98 },
+    });
+    await until(
+      () => (entities.find(({ id }) => id === "avatar:mason")?.y ?? 0) > 95,
+      4_000,
+    );
+    minimumBallX = Number.POSITIVE_INFINITY;
+    simulation.move({
+      direction: { x: 0, y: 0 },
+      intensity: 0,
+      held: true,
+      target: { x: 43, y: 98 },
+    });
+    await until(
+      () => (entities.find(({ id }) => id === "avatar:mason")?.x ?? 100) < 48,
+      4_000,
+    );
+
+    expect(minimumBallX).toBeGreaterThanOrEqual(54);
+  }, 12_000);
+
   it("turns an off-centre player contact into ball spin", async () => {
     const { SimulationDriver } = await import("@canvas-physics/client");
     let entities: RenderEntity[] = [];

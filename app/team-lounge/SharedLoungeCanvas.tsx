@@ -181,12 +181,16 @@ export function SharedLoungeCanvas({
     sequence: number;
     entityID: string;
   } | null>(null);
+  const [activeCannonEntityIDs, setActiveCannonEntityIDs] = useState(
+    new Set<string>(),
+  );
   const [reactionLocked, setReactionLocked] = useState(false);
   const reactionTimerRef = useRef<number | undefined>(undefined);
   const reactionCooldownTimerRef = useRef<number | undefined>(undefined);
   const reactionSequenceRef = useRef(0);
   const goalCelebrationTimerRef = useRef<number | undefined>(undefined);
   const goalCelebrationSequenceRef = useRef(0);
+  const cannonFuseTimerRefs = useRef(new Map<string, number>());
   useEffect(() => {
     rosterRef.current = roster;
   }, [roster]);
@@ -200,6 +204,10 @@ export function SharedLoungeCanvas({
       window.clearTimeout(reactionTimerRef.current);
       window.clearTimeout(reactionCooldownTimerRef.current);
       window.clearTimeout(goalCelebrationTimerRef.current);
+      for (const timer of cannonFuseTimerRefs.current.values()) {
+        window.clearTimeout(timer);
+      }
+      cannonFuseTimerRefs.current.clear();
     },
     [],
   );
@@ -445,6 +453,46 @@ export function SharedLoungeCanvas({
         if (state === "failed") onStateChange("error");
       });
       unsubscribeEffects = runtime.subscribeEffects((effect) => {
+        if (
+          effect.effect === "lounge.cannon-fuse" &&
+          typeof effect.entityId === "string"
+        ) {
+          const entityID = effect.entityId;
+          const requestedDuration = effect.params?.durationSeconds;
+          const durationMilliseconds =
+            typeof requestedDuration === "number" &&
+            Number.isFinite(requestedDuration)
+              ? Math.min(3_000, Math.max(200, requestedDuration * 1_000))
+              : 800;
+          window.clearTimeout(cannonFuseTimerRefs.current.get(entityID));
+          setActiveCannonEntityIDs((current) => new Set(current).add(entityID));
+          cannonFuseTimerRefs.current.set(
+            entityID,
+            window.setTimeout(() => {
+              cannonFuseTimerRefs.current.delete(entityID);
+              setActiveCannonEntityIDs((current) => {
+                const next = new Set(current);
+                next.delete(entityID);
+                return next;
+              });
+            }, durationMilliseconds),
+          );
+          return;
+        }
+        if (
+          effect.effect === "lounge.cannon" &&
+          typeof effect.entityId === "string"
+        ) {
+          const entityID = effect.entityId;
+          window.clearTimeout(cannonFuseTimerRefs.current.get(entityID));
+          cannonFuseTimerRefs.current.delete(entityID);
+          setActiveCannonEntityIDs((current) => {
+            const next = new Set(current);
+            next.delete(entityID);
+            return next;
+          });
+          return;
+        }
         if (effect.effect === "lounge.goal-confetti") {
           setActiveGoalCelebration({
             sequence: ++goalCelebrationSequenceRef.current,
@@ -805,6 +853,7 @@ export function SharedLoungeCanvas({
         <LoungeItemEditor
           items={itemOverlays}
           paintArtwork={false}
+          activeCannonEntityIDs={activeCannonEntityIDs}
           selectedEntityID={selectedEditableEntityID}
           pending={mutationPending}
           dragging={dragState}

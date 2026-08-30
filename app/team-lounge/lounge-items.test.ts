@@ -203,17 +203,26 @@ describe("development Lounge items", () => {
       ({ definitionId }) => definitionId === "zoomigo-prop-play-ball-cannon",
     );
     expect(cannon).toMatchObject({
-      version: 1,
+      version: 2,
       defaultConfig: {
         effects: expect.arrayContaining([
           expect.objectContaining({
             kind: "cannon",
             acceptedDefinitionIds: ["beach-ball", "zoomigo-prop-beach-ball"],
             exitOffset: { x: 10, y: 0 },
-            speed: 34,
+            speed: 50,
+            dwellSeconds: 0.8,
           }),
         ]),
       },
+    });
+    expect(
+      cannon?.colliders.find(({ id }) => id === "front-stop"),
+    ).toMatchObject({
+      role: "itemSolid",
+      shape: { type: "rect", width: 2, height: 8 },
+      offset: { x: 4, y: 0 },
+      collisionMask: 12,
     });
   });
 

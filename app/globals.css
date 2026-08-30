@@ -4524,6 +4524,48 @@ h2 {
   z-index: 1;
 }
 
+.team-lounge__placed-item[data-cannon-fuse="true"]::before {
+  position: absolute;
+  top: -0.3rem;
+  right: -0.15rem;
+  width: 0.72rem;
+  height: 0.72rem;
+  z-index: 2;
+  border: 0.12rem solid #fff4b5;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    #fff 0 18%,
+    #ffdc3f 20% 48%,
+    #ff6b35 52% 72%,
+    transparent 74%
+  );
+  box-shadow:
+    0 0 0.3rem #fff,
+    0 0 0.65rem #ff8a32;
+  content: "";
+  pointer-events: none;
+  transform-origin: center;
+  animation: lounge-cannon-fuse 0.18s steps(2, end) infinite alternate;
+}
+
+@keyframes lounge-cannon-fuse {
+  from {
+    opacity: 0.72;
+    transform: translate(-0.08rem, 0.08rem) scale(0.72) rotate(-12deg);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0.08rem, -0.08rem) scale(1.18) rotate(18deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .team-lounge__placed-item[data-cannon-fuse="true"]::before {
+    animation: none;
+  }
+}
+
 .team-lounge__goal-counter {
   position: absolute;
   top: -0.4rem;

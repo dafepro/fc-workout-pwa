@@ -50,6 +50,7 @@ interface TapState {
 export function LoungeItemEditor({
   items,
   paintArtwork = true,
+  activeCannonEntityIDs,
   selectedEntityID,
   pending,
   dragging,
@@ -64,6 +65,7 @@ export function LoungeItemEditor({
 }: {
   items: readonly LoungeEditableItem[];
   paintArtwork?: boolean;
+  activeCannonEntityIDs?: ReadonlySet<string>;
   selectedEntityID: string | null;
   pending: boolean;
   dragging: { entityID: string; overTrash: boolean } | null;
@@ -221,6 +223,9 @@ export function LoungeItemEditor({
             aria-label={accessibleLabel}
             aria-pressed={selectedItem}
             disabled={pending}
+            data-cannon-fuse={
+              activeCannonEntityIDs?.has(item.entityID) || undefined
+            }
             onClick={(event) => {
               event.stopPropagation();
               if (suppressedClickRef.current === item.entityID) {
@@ -266,6 +271,9 @@ export function LoungeItemEditor({
             style={style}
             role="img"
             aria-label={accessibleLabel}
+            data-cannon-fuse={
+              activeCannonEntityIDs?.has(item.entityID) || undefined
+            }
           >
             {content}
           </span>

@@ -297,7 +297,7 @@ const compositeItemSpecs: CompositeItemSpec[] = [
   },
   {
     id: "ball-cannon",
-    definitionVersion: 1,
+    definitionVersion: 2,
     label: "Ball cannon",
     glyph: "💥",
     imageSrc: "/team-lounge/items/ball-cannon-v1.svg",
@@ -307,6 +307,10 @@ const compositeItemSpecs: CompositeItemSpec[] = [
       {
         ...sensorRect("intake", 4, 7),
         offset: { x: -7, y: 0 },
+      },
+      {
+        ...solidRect("front-stop", 2, 8),
+        offset: { x: 4, y: 0 },
       },
     ],
     effects: [
@@ -323,8 +327,8 @@ const compositeItemSpecs: CompositeItemSpec[] = [
         sensorId: "intake",
         acceptedDefinitionIds: ["beach-ball", "zoomigo-prop-beach-ball"],
         exitOffset: { x: 10, y: 0 },
-        speed: 34,
-        dwellSeconds: 0.05,
+        speed: 50,
+        dwellSeconds: 0.8,
         cooldownSeconds: 0.75,
       },
     ],

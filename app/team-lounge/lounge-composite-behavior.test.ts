@@ -416,7 +416,7 @@ describe("LoungeCompositeBehavior effects", () => {
     expect(LoungeCompositeBehavior.stateVersion).toBe(2);
   });
 
-  it("takes only a predefined ball through a rotated rear intake and launches it from the muzzle", () => {
+  it("fuses, holds, and then launches only a predefined ball from the muzzle at high speed", () => {
     const subject = harness({
       effects: [
         {
@@ -424,8 +424,8 @@ describe("LoungeCompositeBehavior effects", () => {
           sensorId: "intake",
           acceptedDefinitionIds: ["beach-ball", "zoomigo-prop-beach-ball"],
           exitOffset: { x: 10, y: 0 },
-          speed: 34,
-          dwellSeconds: 0.05,
+          speed: 50,
+          dwellSeconds: 0.8,
           cooldownSeconds: 0.75,
         },
       ],
@@ -440,6 +440,16 @@ describe("LoungeCompositeBehavior effects", () => {
 
     subject
       .send({
+        type: "contact.enter",
+        selfColliderId: "intake",
+        other: {
+          entityId: "ball",
+          colliderId: "solid",
+          kind: "item",
+          tags: ["beach-ball"],
+        },
+      })
+      .send({
         type: "contact.stay",
         selfColliderId: "intake",
         other: {
@@ -448,7 +458,7 @@ describe("LoungeCompositeBehavior effects", () => {
           kind: "item",
           tags: ["zoomigo-prop-play-wobble-cone"],
         },
-        dwellTicks: 3,
+        dwellTicks: 48,
       })
       .send({
         type: "contact.stay",
@@ -459,10 +469,13 @@ describe("LoungeCompositeBehavior effects", () => {
           kind: "item",
           tags: ["beach-ball"],
         },
-        dwellTicks: 2,
+        dwellTicks: 47,
       })
       .flush();
 
+    expect(subject.effects("lounge.cannon-fuse")).toMatchObject([
+      { params: { target: "ball", durationSeconds: 0.8 } },
+    ]);
     expect(subject.effects("lounge.cannon")).toHaveLength(0);
     expect(subject.host.body("cone").transform).toMatchObject({ x: 0, y: 0 });
 
@@ -476,15 +489,15 @@ describe("LoungeCompositeBehavior effects", () => {
           kind: "item",
           tags: ["beach-ball"],
         },
-        dwellTicks: 3,
+        dwellTicks: 48,
       })
       .flush();
 
     expect(subject.host.body("ball").transform).toMatchObject({ x: 40, y: 70 });
     expect(subject.host.body("ball").velocity.x).toBeCloseTo(0, 8);
-    expect(subject.host.body("ball").velocity.y).toBeCloseTo(34, 8);
+    expect(subject.host.body("ball").velocity.y).toBeCloseTo(50, 8);
     expect(subject.effects("lounge.cannon")).toMatchObject([
-      { params: { target: "ball", speed: 34 } },
+      { params: { target: "ball", speed: 50 } },
     ]);
 
     subject
@@ -497,7 +510,7 @@ describe("LoungeCompositeBehavior effects", () => {
           kind: "item",
           tags: ["beach-ball"],
         },
-        dwellTicks: 4,
+        dwellTicks: 49,
       })
       .flush();
     expect(subject.effects("lounge.cannon")).toHaveLength(1);

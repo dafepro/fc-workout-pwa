@@ -13,7 +13,7 @@ import (
 
 const (
 	BeachBoardwalkCanvasID        = "zoomigo-beach-boardwalk"
-	BeachBoardwalkCanvasVersion   = uint32(17)
+	BeachBoardwalkCanvasVersion   = uint32(18)
 	BeachBoardwalkRoomGeneration  = BeachBoardwalkCanvasVersion
 	loungeVisualLayerDecal        = 4
 	loungeVisualLayerGroundEffect = 6
@@ -292,13 +292,14 @@ var loungeCompositeItemSpecs = []loungeCompositeItemSpec{
 		},
 	},
 	{
-		ID: "ball-cannon", Version: 1, DisplayName: "Ball cannon", Width: 18, Height: 10.5,
+		ID: "ball-cannon", Version: 2, DisplayName: "Ball cannon", Width: 18, Height: 10.5,
 		Body: loungeFixedBody(), Colliders: []map[string]any{
 			loungeOffsetCollider(loungeSensorRect("intake", 4, 7), -7, 0),
+			loungeOffsetCollider(loungeSolidRect("front-stop", 2, 8), 4, 0),
 		},
 		Effects: []map[string]any{
 			{"kind": "dampen", "sensorId": "intake", "acceptedDefinitionIds": []string{"beach-ball", "zoomigo-prop-beach-ball"}, "linearFactor": 0, "angularFactor": 0, "minimumSpeed": 0},
-			{"kind": "cannon", "sensorId": "intake", "acceptedDefinitionIds": []string{"beach-ball", "zoomigo-prop-beach-ball"}, "exitOffset": map[string]float64{"x": 10, "y": 0}, "speed": 34, "dwellSeconds": 0.05, "cooldownSeconds": 0.75},
+			{"kind": "cannon", "sensorId": "intake", "acceptedDefinitionIds": []string{"beach-ball", "zoomigo-prop-beach-ball"}, "exitOffset": map[string]float64{"x": 10, "y": 0}, "speed": 50, "dwellSeconds": 0.8, "cooldownSeconds": 0.75},
 		},
 	},
 }
@@ -417,7 +418,7 @@ func loungeStampDefinitionJSON(assetID string) json.RawMessage {
 }
 
 const beachBoardwalkCanvasJSON = `{
-  "id":"zoomigo-beach-boardwalk","version":17,
+  "id":"zoomigo-beach-boardwalk","version":18,
   "size":{"width":100,"height":150},"orientation":"topDown",
   "backgroundAssetId":"lounge.background",
   "edges":{"top":"open","right":"open","bottom":"open","left":"open"},
