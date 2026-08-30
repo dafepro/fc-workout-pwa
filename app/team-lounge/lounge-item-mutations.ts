@@ -76,5 +76,9 @@ export async function performLoungeItemMutation({
         : kind === "scale" && target
           ? runtime.scaleItem(item.entityID, target.scale, options)
           : runtime.deleteItem(item.entityID, options);
-  return receipt.settled;
+  return {
+    outcome: await receipt.settled,
+    currentTransform: authorization.currentTransform,
+    targetTransform: authorization.transform,
+  };
 }

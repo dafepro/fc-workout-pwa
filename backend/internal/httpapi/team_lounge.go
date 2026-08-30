@@ -152,10 +152,17 @@ func (service *service) reconcileTeamLoungePlacements(ctx context.Context, roomI
 }
 
 type teamLoungeItemMutationPermitRequest struct {
-	RoomID       string                   `json:"roomId"`
-	ItemRevision uint64                   `json:"itemRevision"`
-	Kind         roomsdk.MutationKind     `json:"kind"`
-	Transform    *teamLoungeItemTransform `json:"transform,omitempty"`
+	RoomID       string                        `json:"roomId"`
+	ItemRevision uint64                        `json:"itemRevision"`
+	Kind         roomsdk.MutationKind          `json:"kind"`
+	Transform    *teamLoungeItemMutationTarget `json:"transform,omitempty"`
+}
+
+type teamLoungeItemMutationTarget struct {
+	X        *float64 `json:"x,omitempty"`
+	Y        *float64 `json:"y,omitempty"`
+	Rotation *float64 `json:"rotation,omitempty"`
+	Scale    *float64 `json:"scale,omitempty"`
 }
 
 type teamLoungeItemTransform struct {
@@ -171,7 +178,15 @@ type teamLoungeItemMutationPermitResponse struct {
 	EntityID         string                   `json:"entityId"`
 	ItemRevision     uint64                   `json:"itemRevision"`
 	Kind             roomsdk.MutationKind     `json:"kind"`
+	CurrentTransform *teamLoungeItemTransform `json:"currentTransform,omitempty"`
 	Transform        *teamLoungeItemTransform `json:"transform,omitempty"`
+}
+
+type teamLoungeItemMutationRevisionResponse struct {
+	Error        errorBody               `json:"error"`
+	EntityID     string                  `json:"entityId"`
+	ItemRevision uint64                  `json:"itemRevision"`
+	Transform    teamLoungeItemTransform `json:"transform"`
 }
 
 func (service *service) issueTeamLoungeItemMutationPermit(w http.ResponseWriter, r *http.Request) {
@@ -208,13 +223,28 @@ func (service *service) issueTeamLoungeItemMutationPermit(w http.ResponseWriter,
 	permitRequest := teamlounge.ItemMutationPermitRequest{EntityID: entityID,
 		ItemRevision: request.ItemRevision, Kind: request.Kind}
 	if request.Transform != nil {
-		permitRequest.Transform = &roomsdk.Transform{X: request.Transform.X, Y: request.Transform.Y,
-			Rotation: request.Transform.Rotation, Scale: request.Transform.Scale}
+		permitRequest.Target = &teamlounge.ItemMutationTarget{
+			X: request.Transform.X, Y: request.Transform.Y,
+			Rotation: request.Transform.Rotation, Scale: request.Transform.Scale,
+		}
 	}
 	permit, err := service.teamLoungeStore.IssueItemMutationPermit(r.Context(), request.RoomID,
 		actor.PlayerID, key, permitRequest, service.now().UTC())
 	if err != nil {
+		var revisionErr *teamlounge.ItemMutationRevisionError
 		switch {
+		case errors.As(err, &revisionErr):
+			if recorder, ok := w.(interface{ SetErrorCode(string) }); ok {
+				recorder.SetErrorCode("item_revision_stale")
+			}
+			requestID, _ := r.Context().Value(requestIDKey).(string)
+			writeJSON(w, http.StatusConflict, teamLoungeItemMutationRevisionResponse{
+				Error: errorBody{Code: "item_revision_stale",
+					Message: "That item moved. Try your change again.", RequestID: requestID},
+				EntityID: entityID, ItemRevision: revisionErr.ItemRevision,
+				Transform: teamLoungeItemTransform{X: revisionErr.Transform.X, Y: revisionErr.Transform.Y,
+					Rotation: revisionErr.Transform.Rotation, Scale: revisionErr.Transform.Scale},
+			})
 		case errors.Is(err, teamlounge.ErrItemMutationNotEditable):
 			writeError(w, r, http.StatusUnprocessableEntity, "item_not_editable", "Only your own items placed today can be changed.")
 		case errors.Is(err, teamlounge.ErrItemMutationIdempotency):
@@ -235,9 +265,15 @@ func (service *service) issueTeamLoungeItemMutationPermit(w http.ResponseWriter,
 		transform = &teamLoungeItemTransform{X: permit.Transform.X, Y: permit.Transform.Y,
 			Rotation: permit.Transform.Rotation, Scale: permit.Transform.Scale}
 	}
+	var currentTransform *teamLoungeItemTransform
+	if permit.Current != nil {
+		currentTransform = &teamLoungeItemTransform{X: permit.Current.X, Y: permit.Current.Y,
+			Rotation: permit.Current.Rotation, Scale: permit.Current.Scale}
+	}
 	writeJSON(w, status, teamLoungeItemMutationPermitResponse{
 		MutationPermitID: permit.ID, Permit: permit.Permit, EntityID: permit.EntityID,
-		ItemRevision: permit.ItemRevision, Kind: permit.Kind, Transform: transform,
+		ItemRevision: permit.ItemRevision, Kind: permit.Kind, CurrentTransform: currentTransform,
+		Transform: transform,
 	})
 }
 

@@ -15,13 +15,13 @@ func TestItemMutationPermitBindsOwnerRoomGenerationRevisionOperationAndTarget(t 
 	target := roomsdk.Transform{X: 24, Y: 75, Scale: 1}
 	permit, err := store.IssueItemMutationPermit(t.Context(), loungeRoomID, "player-one", "move-one",
 		ItemMutationPermitRequest{EntityID: item.EntityID, ItemRevision: item.ItemRevision,
-			Kind: roomsdk.MutationKindTransform, Transform: &target}, now)
+			Kind: roomsdk.MutationKindTransform, Target: itemMutationTarget(roomsdk.MutationKindTransform, target)}, now)
 	if err != nil || permit.Replayed || permit.ID == "" || len(permit.Permit) != 43 {
 		t.Fatalf("issue move permit = %+v, %v", permit, err)
 	}
 	replay, err := store.IssueItemMutationPermit(t.Context(), loungeRoomID, "player-one", "move-one",
 		ItemMutationPermitRequest{EntityID: item.EntityID, ItemRevision: item.ItemRevision,
-			Kind: roomsdk.MutationKindTransform, Transform: &target}, now)
+			Kind: roomsdk.MutationKindTransform, Target: itemMutationTarget(roomsdk.MutationKindTransform, target)}, now)
 	if err != nil || !replay.Replayed || replay.ID != permit.ID {
 		t.Fatalf("replay move permit = %+v, %v", replay, err)
 	}
@@ -40,6 +40,70 @@ func TestItemMutationPermitBindsOwnerRoomGenerationRevisionOperationAndTarget(t 
 	decision, err = store.AuthorizeMutation(t.Context(), request)
 	if err != nil || decision.Authorized {
 		t.Fatalf("replayed move authorization = %+v, %v", decision, err)
+	}
+}
+
+func TestItemMutationPermitPreservesAuthoritativeDynamicFields(t *testing.T) {
+	store, item, now := editableItemAuthorityStore(t)
+	staleBrowserTarget := roomsdk.Transform{X: 28, Y: 76, Rotation: -0.75, Scale: 0.9}
+	permit, err := store.IssueItemMutationPermit(t.Context(), loungeRoomID, "player-one", "dynamic-move",
+		ItemMutationPermitRequest{EntityID: item.EntityID, ItemRevision: item.ItemRevision,
+			Kind: roomsdk.MutationKindTransform, Target: itemMutationTarget(roomsdk.MutationKindTransform, staleBrowserTarget)}, now)
+	if err != nil {
+		t.Fatalf("issue dynamic move permit = %v", err)
+	}
+	if permit.Transform == nil || permit.Transform.X != staleBrowserTarget.X || permit.Transform.Y != staleBrowserTarget.Y ||
+		permit.Transform.Rotation != item.Transform.Rotation || permit.Transform.Scale != item.Transform.Scale {
+		t.Fatalf("dynamic move target = %+v, want position from request and dynamic fields from authority", permit.Transform)
+	}
+
+	runtimeCurrent := item
+	runtimeCurrent.Transform.X = 22
+	runtimeCurrent.Transform.Rotation = 0.35
+	runtimeTarget := runtimeCurrent.Transform
+	runtimeTarget.X = permit.Transform.X
+	runtimeTarget.Y = permit.Transform.Y
+	decision, err := store.AuthorizeMutation(t.Context(), itemMutationAuthorizationRequest(
+		permit, runtimeCurrent, runtimeTarget, "player-one", loungeRoomID, "dynamic-move-runtime"))
+	if err != nil || !decision.Authorized {
+		t.Fatalf("authorize dynamic move after physics drift = %+v, %v", decision, err)
+	}
+}
+
+func TestItemMutationPermitAuthorizesRotationAfterDynamicPositionDrift(t *testing.T) {
+	store, item, now := editableItemAuthorityStore(t)
+	rotation := 0.5
+	permit, err := store.IssueItemMutationPermit(t.Context(), loungeRoomID, "player-one", "dynamic-rotation",
+		ItemMutationPermitRequest{EntityID: item.EntityID, ItemRevision: item.ItemRevision,
+			Kind: roomsdk.MutationKindRotation, Target: &ItemMutationTarget{Rotation: &rotation}}, now)
+	if err != nil {
+		t.Fatalf("issue dynamic rotation permit = %v", err)
+	}
+	runtimeCurrent := item
+	runtimeCurrent.Transform.X = 23.5
+	runtimeCurrent.Transform.Y = 74.25
+	runtimeTarget := runtimeCurrent.Transform
+	runtimeTarget.Rotation = rotation
+	decision, err := store.AuthorizeMutation(t.Context(), itemMutationAuthorizationRequest(
+		permit, runtimeCurrent, runtimeTarget, "player-one", loungeRoomID, "dynamic-rotation-runtime"))
+	if err != nil || !decision.Authorized {
+		t.Fatalf("authorize rotation after dynamic position drift = %+v, %v", decision, err)
+	}
+}
+
+func TestItemMutationPermitReturnsRecoverableStaleRevisionState(t *testing.T) {
+	store, item, now := editableItemAuthorityStore(t)
+	rotation := 0.5
+	_, err := store.IssueItemMutationPermit(t.Context(), loungeRoomID, "player-one", "stale-rotation",
+		ItemMutationPermitRequest{EntityID: item.EntityID, ItemRevision: item.ItemRevision - 1,
+			Kind: roomsdk.MutationKindRotation, Target: &ItemMutationTarget{Rotation: &rotation}}, now)
+	if !errors.Is(err, ErrItemMutationRevisionStale) {
+		t.Fatalf("stale rotation error = %v", err)
+	}
+	var revisionErr *ItemMutationRevisionError
+	if !errors.As(err, &revisionErr) || revisionErr.ItemRevision != item.ItemRevision ||
+		revisionErr.Transform != item.Transform {
+		t.Fatalf("stale rotation authority = %+v", revisionErr)
 	}
 }
 
@@ -69,7 +133,7 @@ func TestItemMutationPermitUsesCommittedLineageAheadOfSleepingSnapshot(t *testin
 	moveTarget.X = 28
 	move, err := store.IssueItemMutationPermit(t.Context(), loungeRoomID, "player-one", "live-move",
 		ItemMutationPermitRequest{EntityID: item.EntityID, ItemRevision: item.ItemRevision,
-			Kind: roomsdk.MutationKindTransform, Transform: &moveTarget}, now)
+			Kind: roomsdk.MutationKindTransform, Target: itemMutationTarget(roomsdk.MutationKindTransform, moveTarget)}, now)
 	if err != nil {
 		t.Fatalf("issue live move before snapshot sleep = %v", err)
 	}
@@ -93,7 +157,7 @@ func TestItemMutationPermitUsesCommittedLineageAheadOfSleepingSnapshot(t *testin
 	scaleTarget.Scale = 1.2
 	if _, err := store.IssueItemMutationPermit(t.Context(), loungeRoomID, "player-one", "live-scale",
 		ItemMutationPermitRequest{EntityID: item.EntityID, ItemRevision: item.ItemRevision,
-			Kind: roomsdk.MutationKindScale, Transform: &scaleTarget}, now); err != nil {
+			Kind: roomsdk.MutationKindScale, Target: itemMutationTarget(roomsdk.MutationKindScale, scaleTarget)}, now); err != nil {
 		t.Fatalf("issue chained live scale before snapshot sleep = %v", err)
 	}
 }
@@ -104,7 +168,7 @@ func TestExpiredItemMutationPermitIsRejectedBeforeConsumption(t *testing.T) {
 	target.Scale = 1.2
 	permit, err := store.IssueItemMutationPermit(t.Context(), loungeRoomID, "player-one", "expired-scale",
 		ItemMutationPermitRequest{EntityID: item.EntityID, ItemRevision: item.ItemRevision,
-			Kind: roomsdk.MutationKindScale, Transform: &target}, now)
+			Kind: roomsdk.MutationKindScale, Target: itemMutationTarget(roomsdk.MutationKindScale, target)}, now)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,7 +189,7 @@ func TestItemMutationPermitConsumptionIsAtomic(t *testing.T) {
 	target.Rotation = 0.5
 	permit, err := store.IssueItemMutationPermit(t.Context(), loungeRoomID, "player-one", "atomic-rotation",
 		ItemMutationPermitRequest{EntityID: item.EntityID, ItemRevision: item.ItemRevision,
-			Kind: roomsdk.MutationKindRotation, Transform: &target}, now)
+			Kind: roomsdk.MutationKindRotation, Target: itemMutationTarget(roomsdk.MutationKindRotation, target)}, now)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +224,7 @@ func TestItemMutationPermitRejectsWrongOwnerLockedDayAndChangedMutation(t *testi
 	store, item, now := editableItemAuthorityStore(t)
 	target := roomsdk.Transform{X: 24, Y: 75, Scale: 1}
 	request := ItemMutationPermitRequest{EntityID: item.EntityID, ItemRevision: item.ItemRevision,
-		Kind: roomsdk.MutationKindTransform, Transform: &target}
+		Kind: roomsdk.MutationKindTransform, Target: itemMutationTarget(roomsdk.MutationKindTransform, target)}
 	if _, err := store.IssueItemMutationPermit(t.Context(), loungeRoomID, "player-two", "wrong-owner", request, now); !errors.Is(err, ErrItemMutationNotEditable) {
 		t.Fatalf("wrong-owner permit error = %v", err)
 	}
@@ -237,7 +301,7 @@ func TestOwnerBoundPermitsCoverRotateScaleAndDelete(t *testing.T) {
 			permitRequest := ItemMutationPermitRequest{EntityID: item.EntityID,
 				ItemRevision: item.ItemRevision, Kind: kind}
 			if kind != roomsdk.MutationKindDelete {
-				permitRequest.Transform = &target
+				permitRequest.Target = itemMutationTarget(kind, target)
 			}
 			permit, err := store.IssueItemMutationPermit(t.Context(), loungeRoomID, "player-one",
 				"permit-"+string(kind), permitRequest, now)
@@ -299,7 +363,7 @@ func TestPlacementHoldReportIncludesPendingItemMutationPermits(t *testing.T) {
 		t.Helper()
 		permit, err := store.IssueItemMutationPermit(t.Context(), loungeRoomID, "player-one", key,
 			ItemMutationPermitRequest{EntityID: item.EntityID, ItemRevision: item.ItemRevision,
-				Kind: roomsdk.MutationKindRotation, Transform: &target}, now)
+				Kind: roomsdk.MutationKindRotation, Target: itemMutationTarget(roomsdk.MutationKindRotation, target)}, now)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -396,4 +460,17 @@ func itemMutationAuthorizationRequest(
 		Idempotency:           roomsdk.MutationIdempotencyIdentity{Key: mutationKey},
 		AuthorizationEvidence: []byte(permit.Permit), ApplicationCorrelationID: permit.ID,
 	}
+}
+
+func itemMutationTarget(kind roomsdk.MutationKind, transform roomsdk.Transform) *ItemMutationTarget {
+	target := &ItemMutationTarget{}
+	switch kind {
+	case roomsdk.MutationKindTransform:
+		target.X, target.Y = &transform.X, &transform.Y
+	case roomsdk.MutationKindRotation:
+		target.Rotation = &transform.Rotation
+	case roomsdk.MutationKindScale:
+		target.Scale = &transform.Scale
+	}
+	return target
 }

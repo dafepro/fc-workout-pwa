@@ -323,6 +323,25 @@ export interface TeamLoungeItemTransform {
   scale: number;
 }
 
+export class TeamLoungeItemRevisionError extends Error {
+  readonly entityID: string;
+  readonly itemRevision: number;
+  readonly transform: TeamLoungeItemTransform;
+
+  constructor(
+    message: string,
+    entityID: string,
+    itemRevision: number,
+    transform: TeamLoungeItemTransform,
+  ) {
+    super(message);
+    this.name = "TeamLoungeItemRevisionError";
+    this.entityID = entityID;
+    this.itemRevision = itemRevision;
+    this.transform = transform;
+  }
+}
+
 export async function requestTeamLoungeItemMutationPermit(
   teamID: string,
   roomID: string,
@@ -337,6 +356,7 @@ export async function requestTeamLoungeItemMutationPermit(
   entityID: string;
   itemRevision: number;
   kind: TeamLoungeItemMutationKind;
+  currentTransform: TeamLoungeItemTransform;
   transform: TeamLoungeItemTransform | null;
 }> {
   const validID = /^[a-zA-Z0-9_-]{1,128}$/u;
@@ -351,6 +371,7 @@ export async function requestTeamLoungeItemMutationPermit(
   ) {
     throw new Error("That Lounge item could not be changed.");
   }
+  const mutationTarget = itemMutationTarget(kind, transform);
   const response = await fetch(
     `/api/zoomigo/v1/teams/${encodeURIComponent(teamID)}/lounge/items/${encodeURIComponent(entityID)}/mutation-permits`,
     {
@@ -363,17 +384,18 @@ export async function requestTeamLoungeItemMutationPermit(
         roomId: roomID,
         itemRevision,
         kind,
-        ...(transform ? { transform } : {}),
+        ...(mutationTarget ? { transform: mutationTarget } : {}),
       }),
     },
   );
-  if (!response.ok) throw await placementError(response);
+  if (!response.ok) throw await itemMutationError(response, entityID);
   const body = (await response.json()) as Record<string, unknown>;
   const mutationPermitID = body.mutationPermitId;
   const permit = body.permit;
   const returnedEntityID = body.entityId;
   const returnedRevision = body.itemRevision;
   const returnedKind = body.kind;
+  const currentTransform = body.currentTransform;
   const returnedTransform = body.transform ?? null;
   if (
     typeof mutationPermitID !== "string" ||
@@ -383,6 +405,7 @@ export async function requestTeamLoungeItemMutationPermit(
     returnedEntityID !== entityID ||
     returnedRevision !== itemRevision ||
     returnedKind !== kind ||
+    !validTransform(currentTransform) ||
     (kind === "delete"
       ? returnedTransform !== null
       : !validTransform(returnedTransform))
@@ -395,11 +418,29 @@ export async function requestTeamLoungeItemMutationPermit(
     entityID,
     itemRevision,
     kind,
+    currentTransform: currentTransform as TeamLoungeItemTransform,
     transform:
       kind === "delete"
         ? null
         : (returnedTransform as unknown as TeamLoungeItemTransform),
   };
+}
+
+function itemMutationTarget(
+  kind: TeamLoungeItemMutationKind,
+  transform: TeamLoungeItemTransform | null,
+) {
+  if (!transform) return null;
+  switch (kind) {
+    case "transform":
+      return { x: transform.x, y: transform.y };
+    case "rotation":
+      return { rotation: transform.rotation };
+    case "scale":
+      return { scale: transform.scale };
+    case "delete":
+      return null;
+  }
 }
 
 function validTransform(value: unknown): value is TeamLoungeItemTransform {
@@ -426,6 +467,36 @@ async function placementError(response: Response): Promise<Error> {
       error?: { message?: string };
     };
     message = body.error?.message ?? message;
+  } catch {
+    // The fixed fallback is safe when an intermediary returns a non-JSON error.
+  }
+  return new Error(message);
+}
+
+async function itemMutationError(
+  response: Response,
+  expectedEntityID: string,
+): Promise<Error> {
+  let message = "That Lounge item could not be changed.";
+  try {
+    const body = (await response.json()) as Record<string, unknown>;
+    const error = body.error as Record<string, unknown> | undefined;
+    if (typeof error?.message === "string") message = error.message;
+    if (
+      response.status === 409 &&
+      error?.code === "item_revision_stale" &&
+      body.entityId === expectedEntityID &&
+      Number.isSafeInteger(body.itemRevision) &&
+      (body.itemRevision as number) > 0 &&
+      validTransform(body.transform)
+    ) {
+      return new TeamLoungeItemRevisionError(
+        message,
+        expectedEntityID,
+        body.itemRevision as number,
+        body.transform,
+      );
+    }
   } catch {
     // The fixed fallback is safe when an intermediary returns a non-JSON error.
   }

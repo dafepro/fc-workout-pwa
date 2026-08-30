@@ -20,7 +20,27 @@ type ItemMutationPermitRequest struct {
 	EntityID     string
 	ItemRevision uint64
 	Kind         roomsdk.MutationKind
-	Transform    *roomsdk.Transform
+	Target       *ItemMutationTarget
+}
+
+type ItemMutationTarget struct {
+	X        *float64
+	Y        *float64
+	Rotation *float64
+	Scale    *float64
+}
+
+type ItemMutationRevisionError struct {
+	ItemRevision uint64
+	Transform    roomsdk.Transform
+}
+
+func (err *ItemMutationRevisionError) Error() string {
+	return fmt.Sprintf("%s: current revision is %d", ErrItemMutationRevisionStale, err.ItemRevision)
+}
+
+func (err *ItemMutationRevisionError) Unwrap() error {
+	return ErrItemMutationRevisionStale
 }
 
 type ItemMutationPermit struct {
@@ -28,6 +48,7 @@ type ItemMutationPermit struct {
 	EntityID     string
 	ItemRevision uint64
 	Kind         roomsdk.MutationKind
+	Current      *roomsdk.Transform
 	Transform    *roomsdk.Transform
 	Permit       string
 	Replayed     bool
@@ -82,11 +103,11 @@ func (store *SQLiteStore) IssueItemMutationPermit(
 		request.EntityID == "" || request.ItemRevision == 0 || !supportedItemMutation(request.Kind) {
 		return ItemMutationPermit{}, ErrItemMutationUnavailable
 	}
-	if request.Kind == roomsdk.MutationKindDelete {
-		if request.Transform != nil {
-			return ItemMutationPermit{}, ErrItemMutationUnavailable
-		}
-	} else if request.Transform == nil || !validItemTransform(*request.Transform) {
+	if request.Kind == roomsdk.MutationKindDelete && request.Target != nil {
+		return ItemMutationPermit{}, ErrItemMutationUnavailable
+	}
+	request.Target = normalizedMutationRequestTarget(request.Kind, request.Target)
+	if !validItemMutationTarget(request.Kind, request.Target) {
 		return ItemMutationPermit{}, ErrItemMutationUnavailable
 	}
 
@@ -152,11 +173,14 @@ func (store *SQLiteStore) IssueItemMutationPermit(
 		return ItemMutationPermit{}, err
 	}
 	if currentRevision != request.ItemRevision {
-		return ItemMutationPermit{}, ErrItemMutationNotEditable
+		return ItemMutationPermit{}, &ItemMutationRevisionError{
+			ItemRevision: currentRevision,
+			Transform:    normalizedItemTransform(current),
+		}
 	}
-	request.Transform = normalizedMutationTarget(request.Kind, current, request.Transform)
+	target := normalizedMutationTarget(request.Kind, current, request.Target)
 	if request.Kind != roomsdk.MutationKindDelete &&
-		!mutationTargetMatchesKind(request.Kind, current, *request.Transform) {
+		(target == nil || !validItemTransform(*target) || !mutationTargetMatchesKind(request.Kind, current, *target)) {
 		return ItemMutationPermit{}, ErrItemMutationUnavailable
 	}
 	requestJSON, err := json.Marshal(struct {
@@ -164,10 +188,10 @@ func (store *SQLiteStore) IssueItemMutationPermit(
 		EntityID   string               `json:"entityId"`
 		Revision   uint64               `json:"revision"`
 		Kind       roomsdk.MutationKind `json:"kind"`
-		Transform  *roomsdk.Transform   `json:"transform,omitempty"`
+		Target     *ItemMutationTarget  `json:"target,omitempty"`
 		Definition string               `json:"definition"`
 		DefVersion uint32               `json:"definitionVersion"`
-	}{roomID, request.EntityID, request.ItemRevision, request.Kind, request.Transform,
+	}{roomID, request.EntityID, request.ItemRevision, request.Kind, request.Target,
 		definitionID, definitionVersion})
 	if err != nil {
 		return ItemMutationPermit{}, fmt.Errorf("encode Lounge item mutation request: %w", err)
@@ -199,6 +223,7 @@ func (store *SQLiteStore) IssueItemMutationPermit(
 		}
 		replay.Permit = permit
 		replay.Replayed = true
+		replay.Current = transformPointer(current)
 		replay.Transform = transformFromNullable(x, y, rotation, scale)
 		if _, err = connection.ExecContext(ctx, `UPDATE team_lounge_item_mutation_permits
 			SET permit_hash = ?, permit_expires_at = ? WHERE permit_id = ?`, permitHash,
@@ -223,9 +248,9 @@ func (store *SQLiteStore) IssueItemMutationPermit(
 		return ItemMutationPermit{}, fmt.Errorf("create Lounge item mutation permit: %w", err)
 	}
 	var xValue, yValue, rotationValue, scaleValue any
-	if request.Transform != nil {
-		xValue, yValue = request.Transform.X, request.Transform.Y
-		rotationValue, scaleValue = request.Transform.Rotation, request.Transform.Scale
+	if target != nil {
+		xValue, yValue = target.X, target.Y
+		rotationValue, scaleValue = target.Rotation, target.Scale
 	}
 	_, err = connection.ExecContext(ctx, `INSERT INTO team_lounge_item_mutation_permits (
 		permit_id, reservation_id, team_id, player_id, room_id, canvas_id, canvas_version,
@@ -245,7 +270,8 @@ func (store *SQLiteStore) IssueItemMutationPermit(
 	}
 	committed = true
 	return ItemMutationPermit{ID: permitID, EntityID: request.EntityID,
-		ItemRevision: request.ItemRevision, Kind: request.Kind, Transform: request.Transform, Permit: permit}, nil
+		ItemRevision: request.ItemRevision, Kind: request.Kind, Current: transformPointer(current),
+		Transform: target, Permit: permit}, nil
 }
 
 func itemMutationCurrentState(
@@ -411,14 +437,26 @@ func (store *SQLiteStore) authorizeItemMutation(
 		target := transformFromNullable(x, y, rotation, scale)
 		if target == nil || request.ProposedItem == nil || request.ProposedItem.OwnerUserID != playerID ||
 			request.ProposedItem.EntityID != entityID || request.ProposedItem.ItemRevision != itemRevision+1 ||
-			request.ProposedItem.Transform != *target {
+			!validItemTransform(request.ProposedItem.Transform) ||
+			!mutationTargetMatchesKind(request.Kind, current.Transform, request.ProposedItem.Transform) ||
+			!mutationTargetMatchesPermit(request.Kind, *target, request.ProposedItem.Transform) {
 			return deny("item mutation target does not match")
 		}
 	}
 	mutationHash := sha256.Sum256([]byte(request.Idempotency.Key))
-	result, err := connection.ExecContext(ctx, `UPDATE team_lounge_item_mutation_permits
-		SET mutation_key = ? WHERE permit_id = ? AND mutation_key IS NULL AND state = 'issued'`,
-		hex.EncodeToString(mutationHash[:]), request.ApplicationCorrelationID)
+	var result sql.Result
+	if request.Kind == roomsdk.MutationKindDelete {
+		result, err = connection.ExecContext(ctx, `UPDATE team_lounge_item_mutation_permits
+			SET mutation_key = ? WHERE permit_id = ? AND mutation_key IS NULL AND state = 'issued'`,
+			hex.EncodeToString(mutationHash[:]), request.ApplicationCorrelationID)
+	} else {
+		actual := request.ProposedItem.Transform
+		result, err = connection.ExecContext(ctx, `UPDATE team_lounge_item_mutation_permits
+			SET mutation_key = ?, position_x = ?, position_y = ?, rotation = ?, scale = ?
+			WHERE permit_id = ? AND mutation_key IS NULL AND state = 'issued'`,
+			hex.EncodeToString(mutationHash[:]), actual.X, actual.Y, actual.Rotation, actual.Scale,
+			request.ApplicationCorrelationID)
+	}
 	if err != nil {
 		return roomsdk.MutationAuthorizationDecision{}, fmt.Errorf("consume item mutation permit: %w", err)
 	}
@@ -557,10 +595,46 @@ func finite(value float64) bool {
 	return !math.IsNaN(value) && !math.IsInf(value, 0)
 }
 
+func normalizedMutationRequestTarget(
+	kind roomsdk.MutationKind,
+	target *ItemMutationTarget,
+) *ItemMutationTarget {
+	if kind == roomsdk.MutationKindDelete || target == nil {
+		return nil
+	}
+	normalized := &ItemMutationTarget{}
+	switch kind {
+	case roomsdk.MutationKindTransform:
+		normalized.X, normalized.Y = target.X, target.Y
+	case roomsdk.MutationKindRotation:
+		normalized.Rotation = target.Rotation
+	case roomsdk.MutationKindScale:
+		normalized.Scale = target.Scale
+	}
+	return normalized
+}
+
+func validItemMutationTarget(kind roomsdk.MutationKind, target *ItemMutationTarget) bool {
+	switch kind {
+	case roomsdk.MutationKindDelete:
+		return target == nil
+	case roomsdk.MutationKindTransform:
+		return target != nil && target.X != nil && finite(*target.X) &&
+			target.Y != nil && finite(*target.Y)
+	case roomsdk.MutationKindRotation:
+		return target != nil && target.Rotation != nil && finite(*target.Rotation)
+	case roomsdk.MutationKindScale:
+		return target != nil && target.Scale != nil && finite(*target.Scale) &&
+			*target.Scale >= 0.75 && *target.Scale <= 1.4
+	default:
+		return false
+	}
+}
+
 func normalizedMutationTarget(
 	kind roomsdk.MutationKind,
 	current roomsdk.Transform,
-	target *roomsdk.Transform,
+	target *ItemMutationTarget,
 ) *roomsdk.Transform {
 	if kind == roomsdk.MutationKindDelete || target == nil {
 		return nil
@@ -568,17 +642,31 @@ func normalizedMutationTarget(
 	normalized := current
 	switch kind {
 	case roomsdk.MutationKindTransform:
-		normalized = *target
-		normalized.X = float64(float32(normalized.X))
-		normalized.Y = float64(float32(normalized.Y))
-		normalized.Rotation = float64(float32(normalized.Rotation))
-		normalized.Scale = float64(float32(normalized.Scale))
+		normalized.X = float64(float32(*target.X))
+		normalized.Y = float64(float32(*target.Y))
 	case roomsdk.MutationKindRotation:
-		normalized.Rotation = float64(float32(target.Rotation))
+		normalized.Rotation = float64(float32(*target.Rotation))
 	case roomsdk.MutationKindScale:
-		normalized.Scale = float64(float32(target.Scale))
+		normalized.Scale = float64(float32(*target.Scale))
 	}
 	return &normalized
+}
+
+func mutationTargetMatchesPermit(kind roomsdk.MutationKind, permitted, proposed roomsdk.Transform) bool {
+	switch kind {
+	case roomsdk.MutationKindTransform:
+		return proposed.X == permitted.X && proposed.Y == permitted.Y
+	case roomsdk.MutationKindRotation:
+		return proposed.Rotation == permitted.Rotation
+	case roomsdk.MutationKindScale:
+		return proposed.Scale == permitted.Scale
+	default:
+		return false
+	}
+}
+
+func transformPointer(transform roomsdk.Transform) *roomsdk.Transform {
+	return &transform
 }
 
 func normalizedItemTransform(transform roomsdk.Transform) roomsdk.Transform {

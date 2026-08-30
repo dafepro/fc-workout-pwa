@@ -7,6 +7,7 @@ import {
   requestTeamLoungeItemMutationPermit,
   reserveTeamLoungePlacement,
   requestTeamLoungeCredential,
+  TeamLoungeItemRevisionError,
 } from "./lounge-gateway";
 
 const response = {
@@ -349,6 +350,7 @@ describe("canonical Team Lounge gateway", () => {
           entityId: "canvas-item-one",
           itemRevision: 3,
           kind: "rotation",
+          currentTransform: { x: 22, y: 72, rotation: 0.25, scale: 1 },
           transform,
           permit: "m".repeat(43),
         }),
@@ -372,6 +374,7 @@ describe("canonical Team Lounge gateway", () => {
       entityID: "canvas-item-one",
       itemRevision: 3,
       kind: "rotation",
+      currentTransform: { x: 22, y: 72, rotation: 0.25, scale: 1 },
       transform,
       permit: "m".repeat(43),
     });
@@ -386,9 +389,46 @@ describe("canonical Team Lounge gateway", () => {
           roomId: response.roomId,
           itemRevision: 3,
           kind: "rotation",
-          transform,
+          transform: { rotation: transform.rotation },
         }),
       }),
     );
+  });
+
+  it("returns authoritative item state with a recoverable stale-revision error", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            error: {
+              code: "item_revision_stale",
+              message: "That item moved. Try your change again.",
+            },
+            entityId: "canvas-item-one",
+            itemRevision: 4,
+            transform: { x: 23, y: 73, rotation: 0.25, scale: 1 },
+          }),
+          { status: 409 },
+        ),
+      ),
+    );
+
+    const request = requestTeamLoungeItemMutationPermit(
+      "team-one",
+      response.roomId,
+      "canvas-item-one",
+      3,
+      "scale",
+      { x: 20, y: 70, rotation: 0, scale: 1.2 },
+      "stale-scale",
+    );
+
+    await expect(request).rejects.toMatchObject({
+      name: TeamLoungeItemRevisionError.name,
+      entityID: "canvas-item-one",
+      itemRevision: 4,
+      transform: { x: 23, y: 73, rotation: 0.25, scale: 1 },
+    });
   });
 });

@@ -50,6 +50,7 @@ import {
   rememberPendingTeamLoungePlacement,
   requestTeamLoungeItemMutationPermit,
   reserveTeamLoungePlacement,
+  TeamLoungeItemRevisionError,
   type TeamLoungeItemMutationKind,
   type TeamLoungeItemTransform,
 } from "./lounge-gateway";
@@ -547,7 +548,7 @@ export function SharedLoungeCanvas({
     if (!runtime || !roomID || mutationPending) return;
     setMutationPending(true);
     try {
-      const outcome = await performLoungeItemMutation({
+      const mutation = await performLoungeItemMutation({
         runtime,
         requestPermit: requestTeamLoungeItemMutationPermit,
         teamID,
@@ -557,6 +558,7 @@ export function SharedLoungeCanvas({
         transform,
         idempotencyKey: crypto.randomUUID(),
       });
+      const { outcome } = mutation;
       if (outcome.status === "accepted") {
         if (kind === "delete") {
           editableItemIDsRef.current.delete(item.entityID);
@@ -573,7 +575,8 @@ export function SharedLoungeCanvas({
                 ? {
                     ...currentItem,
                     itemRevision: outcome.itemRevision,
-                    transform: transform ?? currentItem.transform,
+                    transform:
+                      mutation.targetTransform ?? currentItem.transform,
                   }
                 : currentItem,
             ),
@@ -581,6 +584,17 @@ export function SharedLoungeCanvas({
           setActionMessage(`${item.label} updated.`);
         }
       } else {
+        setItemOverlays((current) =>
+          current.map((currentItem) =>
+            currentItem.entityID === item.entityID
+              ? {
+                  ...currentItem,
+                  itemRevision: item.itemRevision,
+                  transform: mutation.currentTransform,
+                }
+              : currentItem,
+          ),
+        );
         if (rollbackScreen) {
           optimisticItemMovesRef.current.delete(item.entityID);
           setItemOverlays((current) =>
@@ -594,7 +608,23 @@ export function SharedLoungeCanvas({
         setActionMessage(itemMutationRejectionMessage(outcome.status));
       }
     } catch (error) {
-      if (rollbackScreen) {
+      if (error instanceof TeamLoungeItemRevisionError) {
+        optimisticItemMovesRef.current.delete(item.entityID);
+        const projection = runtime.projectWorldPoint(error.transform);
+        setItemOverlays((current) =>
+          current.map((currentItem) =>
+            currentItem.entityID === error.entityID
+              ? {
+                  ...currentItem,
+                  itemRevision: error.itemRevision,
+                  transform: error.transform,
+                  screen: projection?.screen ?? currentItem.screen,
+                }
+              : currentItem,
+          ),
+        );
+      }
+      if (rollbackScreen && !(error instanceof TeamLoungeItemRevisionError)) {
         optimisticItemMovesRef.current.delete(item.entityID);
         setItemOverlays((current) =>
           current.map((currentItem) =>

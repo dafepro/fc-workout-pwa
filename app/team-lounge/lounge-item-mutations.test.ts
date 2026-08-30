@@ -26,6 +26,7 @@ describe("permit-backed Lounge item mutations", () => {
           entityID: item.entityID,
           itemRevision: item.itemRevision,
           kind,
+          currentTransform: item.transform,
           transform,
         };
       });
@@ -67,7 +68,11 @@ describe("permit-backed Lounge item mutations", () => {
           transform,
           idempotencyKey: `${kind}-one`,
         }),
-      ).resolves.toMatchObject({ status: "accepted" });
+      ).resolves.toMatchObject({
+        outcome: { status: "accepted" },
+        currentTransform: item.transform,
+        targetTransform: transform,
+      });
 
       expect(events).toEqual(["permit", "canvas"]);
       expect(requestPermit).toHaveBeenCalledWith(

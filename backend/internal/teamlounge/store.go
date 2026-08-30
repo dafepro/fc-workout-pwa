@@ -24,6 +24,7 @@ var (
 	ErrPlacementIdempotency      = errors.New("lounge placement idempotency conflict")
 	ErrPlacementUnavailable      = errors.New("lounge placement unavailable")
 	ErrItemMutationNotEditable   = errors.New("lounge item is not editable")
+	ErrItemMutationRevisionStale = errors.New("lounge item revision is stale")
 	ErrItemMutationIdempotency   = errors.New("lounge item mutation idempotency conflict")
 	ErrItemMutationUnavailable   = errors.New("lounge item mutation unavailable")
 )

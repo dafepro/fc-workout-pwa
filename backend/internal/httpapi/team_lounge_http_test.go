@@ -117,7 +117,7 @@ func TestTeamLoungeIssuesOwnerBoundItemMutationPermit(t *testing.T) {
 	if len(ticket.EditableItemIDs) != 1 || ticket.EditableItemIDs[0] != item.EntityID {
 		t.Fatalf("editable item ticket = %#v", ticket)
 	}
-	body := []byte(`{"roomId":"team:team-one:lounge:v13","itemRevision":2,"kind":"rotation","transform":{"x":20,"y":70,"rotation":0.5,"scale":1}}`)
+	body := []byte(`{"roomId":"team:team-one:lounge:v13","itemRevision":2,"kind":"rotation","transform":{"rotation":0.5}}`)
 	request := httptest.NewRequest(http.MethodPost,
 		"/v1/teams/team-one/lounge/items/canvas-item-editable/mutation-permits", bytes.NewReader(body))
 	request.Header.Set("Authorization", "Bearer test-session")
@@ -134,13 +134,56 @@ func TestTeamLoungeIssuesOwnerBoundItemMutationPermit(t *testing.T) {
 		EntityID     string `json:"entityId"`
 		ItemRevision uint64 `json:"itemRevision"`
 		Kind         string `json:"kind"`
+		Current      struct {
+			X        float64 `json:"x"`
+			Y        float64 `json:"y"`
+			Rotation float64 `json:"rotation"`
+			Scale    float64 `json:"scale"`
+		} `json:"currentTransform"`
+		Transform struct {
+			X        float64 `json:"x"`
+			Y        float64 `json:"y"`
+			Rotation float64 `json:"rotation"`
+			Scale    float64 `json:"scale"`
+		} `json:"transform"`
 	}
 	if err := json.NewDecoder(response.Body).Decode(&permit); err != nil {
 		t.Fatal(err)
 	}
 	if permit.ID == "" || len(permit.Permit) != 43 || permit.EntityID != item.EntityID ||
-		permit.ItemRevision != item.ItemRevision || permit.Kind != "rotation" {
+		permit.ItemRevision != item.ItemRevision || permit.Kind != "rotation" ||
+		permit.Current.X != item.Transform.X || permit.Current.Y != item.Transform.Y ||
+		permit.Transform.Rotation != 0.5 || permit.Transform.X != item.Transform.X {
 		t.Fatalf("mutation permit = %#v", permit)
+	}
+
+	staleRequest := httptest.NewRequest(http.MethodPost,
+		"/v1/teams/team-one/lounge/items/canvas-item-editable/mutation-permits",
+		bytes.NewReader([]byte(`{"roomId":"team:team-one:lounge:v13","itemRevision":1,"kind":"scale","transform":{"scale":1.2}}`)))
+	staleRequest.Header.Set("Authorization", "Bearer test-session")
+	staleRequest.Header.Set("Content-Type", "application/json")
+	staleRequest.Header.Set("Idempotency-Key", "stale-editable")
+	staleResponse := httptest.NewRecorder()
+	handler.ServeHTTP(staleResponse, staleRequest)
+	if staleResponse.Code != http.StatusConflict {
+		t.Fatalf("stale mutation status = %d: %s", staleResponse.Code, staleResponse.Body.String())
+	}
+	var stale struct {
+		Error struct {
+			Code string `json:"code"`
+		} `json:"error"`
+		EntityID     string                 `json:"entityId"`
+		ItemRevision uint64                 `json:"itemRevision"`
+		Transform    map[string]json.Number `json:"transform"`
+	}
+	decoder := json.NewDecoder(staleResponse.Body)
+	decoder.UseNumber()
+	if err := decoder.Decode(&stale); err != nil {
+		t.Fatal(err)
+	}
+	if stale.Error.Code != "item_revision_stale" || stale.EntityID != item.EntityID ||
+		stale.ItemRevision != item.ItemRevision || stale.Transform["x"].String() != "20" {
+		t.Fatalf("stale mutation response = %#v", stale)
 	}
 }
 
