@@ -28,15 +28,17 @@ esac
 target_name="restore-drill-$(date -u +%Y%m%dT%H%M%SZ).db"
 archive_path="/backups/${archive_name}"
 target_path="/restore/${target_name}"
+media_target="/restore/${target_name%.db}-reward-media"
 identity_path="/restore/${identity_name}"
 
 compose run --rm backup "$verify_command" --archive "$archive_path" --identity "$identity_path"
-compose run --rm backup "$load_command" --archive "$archive_path" --identity "$identity_path" --target "$target_path"
+compose run --rm backup "$load_command" --archive "$archive_path" --identity "$identity_path" --target "$target_path" --media-target "$media_target"
 record_observability_gauge zoomigo_restore_drill_last_success \
 	"Whether the most recent restore drill succeeded." 1
 record_observability_gauge zoomigo_restore_drill_last_success_timestamp_seconds \
 	"Unix timestamp of the most recent successful restore drill." "$(date -u +%s)"
 
 printf '%s\n' "Restore drill passed and left the isolated database at RESTORE_DIR/$target_name."
+printf '%s\n' "Any reward images were restored beside it at ${target_name%.db}-reward-media."
 printf '%s\n' "The live database was not stopped, replaced, or modified."
 printf '%s\n' "Remove the temporarily supplied identity from RESTORE_DIR immediately."

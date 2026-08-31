@@ -16,6 +16,7 @@ The verified payload is one gzip-compressed tar archive:
 zoomigo-backup-2026-08-05T190000Z-v1.tar.gz
 ├── manifest.json
 ├── database.sqlite3
+├── reward-media.tar (when the database has reward images)
 └── SHA256SUMS
 ```
 
@@ -38,6 +39,7 @@ Plaintext commands remain available for local tests and format tooling:
 ```text
 zoomigo-backup create \
   --database-url file:/data/zoomigo.db \
+  --media-dir /data/reward-media \
   --output /backups/zoomigo-backup-2026-08-05T190000Z-v1.tar.gz \
   --app-version <deployed-version>
 
@@ -62,6 +64,7 @@ Production creation uses an age X25519 public recipient:
 ```text
 zoomigo-backup create-encrypted \
   --database-url file:/data/zoomigo.db \
+  --media-dir /data/reward-media \
   --output /backups/zoomigo-backup-2026-08-05T190000Z-v1.tar.gz.age \
   --recipient age1... \
   --app-version <deployed-version>
@@ -87,7 +90,8 @@ The wrong identity, a modified envelope, a modified inner archive, or a mismatch
 zoomigo-backup restore-encrypted \
   --archive /backups/zoomigo-backup-2026-08-05T190000Z-v1.tar.gz.age \
   --identity /restore/zoomigo-backup-identity.txt \
-  --target /restore/zoomigo-restored.db
+  --target /restore/zoomigo-restored.db \
+  --media-target /restore/zoomigo-restored-reward-media
 ```
 
 Restore is intentionally non-destructive:
@@ -124,6 +128,7 @@ Both formats are produced by the same daily job and encrypted to the same age re
 ```text
 zoomigo-export-20260808T190000Z-v1.tar.gz
 ├── manifest.json
+├── reward-media.tar (when the export has reward images)
 ├── tables/
 │   ├── clubs.jsonl
 │   ├── teams.jsonl
@@ -152,6 +157,7 @@ Adding a nullable column therefore needs only a new `nullable(...)` field. Addin
 ```text
 zoomigo-backup export-encrypted \
   --database-url file:/data/zoomigo.db \
+  --media-dir /data/reward-media \
   --output /backups/zoomigo-export-20260808T190000Z-v1.tar.gz.age \
   --recipient age1... \
   --app-version <deployed-version>
@@ -163,7 +169,8 @@ zoomigo-backup verify-export-encrypted \
 zoomigo-backup import-encrypted \
   --archive /backups/zoomigo-export-20260808T190000Z-v1.tar.gz.age \
   --identity /restore/zoomigo-backup-identity.txt \
-  --target /restore/zoomigo-imported.db
+  --target /restore/zoomigo-imported.db \
+  --media-target /restore/zoomigo-imported-reward-media
 ```
 
 `export`, `verify-export`, and `import` are the plaintext equivalents, for local tests and format tooling.
@@ -179,7 +186,13 @@ Import never touches the live database. It creates a fresh database beside the t
 
 ### What the export contains
 
-The export carries every table, including `auth_credentials` and `auth_sessions`. Those hold credential and session **hashes**, never plaintext QR secrets, PINs, or session tokens, but they are still private data. Treat a logical export exactly like a SQLite snapshot: it leaves the host only inside the age envelope.
+The export carries every table, including `auth_credentials` and `auth_sessions`,
+plus the canonical display and thumbnail files for every non-expired Team Reward
+image declared by the database. Image storage keys and display digests are
+cross-checked against the database during create, verify, and restore. Credential
+and session tables hold **hashes**, never plaintext QR secrets, PINs, or session
+tokens, but the full export is still private data and leaves the host only inside
+the age envelope.
 
 ### Proven by
 

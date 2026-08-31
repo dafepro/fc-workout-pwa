@@ -21,6 +21,7 @@ services:
       ALLOWED_ORIGIN: ${PWA_ORIGIN:?PWA_ORIGIN must be set}
       APP_ENV: ${APP_ENV:-production}
       DATABASE_URL: file:/data/zoomigo.db
+      REWARD_MEDIA_DIR: /data/reward-media
       GOMEMLIMIT: 192MiB
       GOMAXPROCS: "1"
       METRICS_PORT: "9090"

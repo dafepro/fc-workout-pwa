@@ -48,6 +48,7 @@ var exportedTables = []string{
 	"planned_rest_check_ins",
 	"prize_boxes",
 	"player_unlocks",
+	"team_reward_media",
 	"team_rewards",
 	"team_reward_events",
 	"reactions",
@@ -136,6 +137,61 @@ func TestLogicalExportAndImportPreserveEveryTableExactly(t *testing.T) {
 	}
 }
 
+func TestLogicalRoundTripIncludesCanonicalRewardMedia(t *testing.T) {
+	ctx := context.Background()
+	databaseURL := seededDatabase(t, ctx)
+	db := openDatabase(t, ctx, databaseURL)
+	if _, err := db.ExecContext(ctx, `INSERT INTO accounts (id, club_id, role, status, created_at)
+		VALUES ('account-logical-media', 'club-zoomigo', 'coach', 'active', '2026-01-01T00:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+	mediaRoot := filepath.Join(t.TempDir(), "reward-media")
+	mediaDirectory := filepath.Join(mediaRoot, "media_logical_one")
+	if err := os.MkdirAll(mediaDirectory, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	display, thumbnail := []byte("logical display"), []byte("logical thumbnail")
+	if err := os.WriteFile(filepath.Join(mediaDirectory, "display.jpg"), display, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(mediaDirectory, "thumbnail.jpg"), thumbnail, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	digest := sha256.Sum256(display)
+	if _, err := db.ExecContext(ctx, `INSERT INTO team_reward_media (
+		id, team_id, storage_key, sha256, mime_type, width, height, byte_size,
+		alt_kind, created_by_account_id, created_at
+	) VALUES ('media-logical-one', 'team-hill-striders', 'media_logical_one', ?,
+		'image/jpeg', 1200, 800, ?, 'prize_image', 'account-logical-media', '2026-08-23T00:00:00Z')`,
+		hex.EncodeToString(digest[:]), len(display)); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	archivePath := filepath.Join(t.TempDir(), "logical-media.tar.gz")
+	manifest, err := backup.ExportLogical(ctx, backup.LogicalExportOptions{
+		DatabaseURL: databaseURL, ArchivePath: archivePath, RewardMediaDirectory: mediaRoot,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if manifest.RewardMedia == nil || manifest.RewardMedia.Count != 1 {
+		t.Fatalf("logical media manifest = %+v", manifest.RewardMedia)
+	}
+	targetDatabase := filepath.Join(t.TempDir(), "logical-restored.db")
+	targetMedia := filepath.Join(t.TempDir(), "logical-restored-media")
+	if _, err = backup.ImportLogical(ctx, backup.LogicalImportOptions{
+		ArchivePath: archivePath, DatabasePath: targetDatabase, RewardMediaDirectory: targetMedia,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	contents, err := os.ReadFile(filepath.Join(targetMedia, "media_logical_one", "thumbnail.jpg"))
+	if err != nil || !bytes.Equal(contents, thumbnail) {
+		t.Fatalf("logical thumbnail = %q err=%v", contents, err)
+	}
+}
+
 func TestLogicalExportFromAnOlderSchemaImportsIntoTheCurrentSchema(t *testing.T) {
 	ctx := context.Background()
 	databaseURL := olderDatabase(t, ctx)
@@ -197,7 +253,7 @@ func TestLogicalExportFromAnOlderSchemaImportsIntoTheCurrentSchema(t *testing.T)
 	// Tables the old schema never had must import as empty, not as errors.
 	for _, table := range []string{
 		"assignments", "training_plans", "training_plan_days", "training_plan_blocks",
-		"planned_rest_check_ins", "prize_boxes", "player_unlocks",
+		"planned_rest_check_ins", "prize_boxes", "player_unlocks", "team_reward_media",
 		"team_rewards", "team_reward_events",
 		"auth_credentials", "auth_sessions", "auth_audit_events",
 	} {
@@ -494,6 +550,15 @@ func fullyPopulatedDatabase(t *testing.T, ctx context.Context) string {
 		) VALUES (
 			'player-mason', 'avatar_part', 'avatar-head-dog', 'plan_participation_3',
 			'2026-08-02T12:05:00Z', '2026-08-02T13:00:00Z'
+		)`,
+		`INSERT INTO team_reward_media (
+			id, team_id, storage_key, sha256, mime_type, width, height, byte_size,
+			alt_kind, created_by_account_id, created_at, deleted_at
+		) VALUES (
+			'reward-media-expired', 'team-hill-striders', 'media_expired_one',
+			'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+			'image/jpeg', 1200, 800, 12000, 'prize_image', 'account-coach',
+			'2026-08-01T00:00:00Z', '2026-08-02T00:00:00Z'
 		)`,
 		`INSERT INTO team_rewards (
 			id, team_id, created_by_account_id, definition_id, definition_version,

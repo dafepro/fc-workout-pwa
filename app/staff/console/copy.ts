@@ -110,10 +110,19 @@ export const consoleCopy = {
   },
   teamReward: {
     title: "Team Reward",
-    devHint:
-      "Development control — this screen is not included in production builds.",
+    rewardName: "Reward name",
+    description: "Description",
+    image: "Reward image (optional)",
+    imageHint: "JPEG or PNG, up to 3 MB. Images are cropped for display.",
+    imageGuidance:
+      "Show the prize, not players. Do not include faces, names, contact details, schedules, QR codes, or other private information.",
+    imageType: "Choose a JPEG or PNG image.",
+    imageSize: "Choose an image smaller than 3 MB.",
     startsOn: "Starts on",
     endsOn: "Ends on",
+    startRequired: "Choose a start date.",
+    endRequired: "Choose an end date.",
+    endBeforeStart: "Choose an end date on or after the start date.",
     requiredDays: "Days to earn",
     participation: "Team participation",
     participationOption: (percent: number) => `${percent}% of active players`,

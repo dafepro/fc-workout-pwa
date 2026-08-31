@@ -207,6 +207,9 @@ export interface TeamHubFocus {
   kind: "reward" | "challenge";
   id: string;
   title: string;
+  description?: string;
+  mediaId?: string;
+  imageUrl?: string;
   current: number;
   target: number;
   unit: "team_days" | "teammates";

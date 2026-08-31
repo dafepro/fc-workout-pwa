@@ -1,7 +1,10 @@
 package backup_test
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -16,7 +19,7 @@ import (
 	"github.com/dafepro/fc-workout-pwa/backend/migrations"
 )
 
-const currentSchemaMigrationCount = 20
+const currentSchemaMigrationCount = 21
 
 func TestEncryptedArchiveRequiresTheOperatorIdentityToVerifyAndRestore(t *testing.T) {
 	ctx := context.Background()
@@ -186,6 +189,63 @@ func TestCreateVerifyAndRestoreArchive(t *testing.T) {
 	}
 	if entries != 3 || migrationsApplied != currentSchemaMigrationCount {
 		t.Fatalf("restored entries=%d migrations=%d, want 3 and %d", entries, migrationsApplied, currentSchemaMigrationCount)
+	}
+}
+
+func TestArchiveRoundTripIncludesCanonicalRewardMedia(t *testing.T) {
+	ctx := context.Background()
+	databaseURL := seededDatabase(t, ctx)
+	db := openDatabase(t, ctx, databaseURL)
+	if _, err := db.ExecContext(ctx, `INSERT INTO accounts (id, club_id, role, status, created_at)
+		VALUES ('account-media-coach', 'club-zoomigo', 'coach', 'active', '2026-01-01T00:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+	mediaRoot := filepath.Join(t.TempDir(), "reward-media")
+	mediaDirectory := filepath.Join(mediaRoot, "media_backup_one")
+	if err := os.MkdirAll(mediaDirectory, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	display := []byte("canonical display bytes")
+	thumbnail := []byte("canonical thumbnail bytes")
+	if err := os.WriteFile(filepath.Join(mediaDirectory, "display.jpg"), display, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(mediaDirectory, "thumbnail.jpg"), thumbnail, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	digest := sha256.Sum256(display)
+	if _, err := db.ExecContext(ctx, `INSERT INTO team_reward_media (
+		id, team_id, storage_key, sha256, mime_type, width, height, byte_size,
+		alt_kind, created_by_account_id, created_at
+	) VALUES ('media-backup-one', 'team-hill-striders', 'media_backup_one', ?,
+		'image/jpeg', 1200, 800, ?, 'prize_image', 'account-media-coach', '2026-08-23T00:00:00Z')`,
+		hex.EncodeToString(digest[:]), len(display)); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	archivePath := filepath.Join(t.TempDir(), "media-backup.tar.gz")
+	manifest, err := backup.Create(ctx, backup.CreateOptions{
+		DatabaseURL: databaseURL, ArchivePath: archivePath,
+		RewardMediaDirectory: mediaRoot,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if manifest.RewardMedia == nil || manifest.RewardMedia.Count != 1 {
+		t.Fatalf("media manifest = %+v", manifest.RewardMedia)
+	}
+	restoredDatabase := filepath.Join(t.TempDir(), "restored.db")
+	restoredMedia := filepath.Join(t.TempDir(), "restored-media")
+	if _, err = backup.Restore(ctx, backup.RestoreOptions{
+		ArchivePath: archivePath, DatabasePath: restoredDatabase, RewardMediaDirectory: restoredMedia,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	contents, err := os.ReadFile(filepath.Join(restoredMedia, "media_backup_one", "thumbnail.jpg"))
+	if err != nil || !bytes.Equal(contents, thumbnail) {
+		t.Fatalf("restored thumbnail = %q err=%v", contents, err)
 	}
 }
 

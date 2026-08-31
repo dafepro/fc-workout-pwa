@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -17,6 +18,7 @@ func TestPublishTeamRewardIsCatalogBoundedAndIdempotent(t *testing.T) {
 	now := time.Date(2026, time.August, 20, 12, 0, 0, 0, time.UTC)
 	input := store.PublishTeamRewardInput{
 		DefinitionID: "team-celebration-v1", StartsOn: "2026-08-20", EndsOn: "2026-08-22",
+		Title: "Pizza party", Description: "Celebrate the team's consistency with pizza after practice.",
 		RequiredDays: 2, MinimumRosterPercent: 60, IdempotencyKey: "publish-one", Now: now,
 	}
 
@@ -24,7 +26,8 @@ func TestPublishTeamRewardIsCatalogBoundedAndIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if published.DefinitionVersion != 1 || published.Title != "Team celebration" ||
+	if published.DefinitionVersion != 1 || published.Title != "Pizza party" ||
+		published.Description != "Celebrate the team's consistency with pizza after practice." ||
 		published.ArtworkID != "celebration-stars" || published.Status != "active" {
 		t.Fatalf("published reward = %+v", published)
 	}
@@ -47,6 +50,8 @@ func TestPublishTeamRewardIsCatalogBoundedAndIdempotent(t *testing.T) {
 		{DefinitionID: "custom-copy", StartsOn: "2026-08-20", EndsOn: "2026-08-22", RequiredDays: 2, MinimumRosterPercent: 60, IdempotencyKey: "invalid-1", Now: now},
 		{DefinitionID: "team-celebration-v1", StartsOn: "2026-08-20", EndsOn: "2026-09-20", RequiredDays: 2, MinimumRosterPercent: 60, IdempotencyKey: "invalid-2", Now: now},
 		{DefinitionID: "team-celebration-v1", StartsOn: "2026-08-20", EndsOn: "2026-08-22", RequiredDays: 4, MinimumRosterPercent: 60, IdempotencyKey: "invalid-3", Now: now},
+		{DefinitionID: "team-celebration-v1", Title: strings.Repeat("x", 61), StartsOn: "2026-08-20", EndsOn: "2026-08-22", RequiredDays: 2, MinimumRosterPercent: 60, IdempotencyKey: "invalid-4", Now: now},
+		{DefinitionID: "team-celebration-v1", Title: "Prize", Description: strings.Repeat("x", 181), StartsOn: "2026-08-20", EndsOn: "2026-08-22", RequiredDays: 2, MinimumRosterPercent: 60, IdempotencyKey: "invalid-5", Now: now},
 	} {
 		if _, invalidErr := staff.PublishTeamReward(ctx, "account-reward-coach", teamID, invalid); !errors.Is(invalidErr, store.ErrStaffInvalid) {
 			t.Fatalf("invalid input %+v error = %v", invalid, invalidErr)

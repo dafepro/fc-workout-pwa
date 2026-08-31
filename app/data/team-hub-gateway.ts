@@ -59,6 +59,12 @@ class HTTPTeamHubGateway implements TeamHubGateway {
     const hub = (await response.json()) as APITeamHub;
     return {
       ...hub,
+      focus: hub.focus.map((item) => ({
+        ...item,
+        imageUrl: item.mediaId
+          ? `/api/zoomigo/v1/teams/${encodeURIComponent(this.teamID)}/reward-media/${encodeURIComponent(item.mediaId)}`
+          : undefined,
+      })),
       activity: hub.activity.map((row) => ({
         ...row,
         player: playerFromSocialIdentity(row.player),

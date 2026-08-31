@@ -394,6 +394,24 @@ var logicalTables = []logicalTable{
 		},
 	},
 	{
+		Name:    "team_reward_media",
+		OrderBy: []string{"id"},
+		Fields: []logicalField{
+			textField("id"),
+			textField("team_id"),
+			textField("storage_key"),
+			textField("sha256"),
+			textField("mime_type"),
+			integerField("width"),
+			integerField("height"),
+			integerField("byte_size"),
+			textField("alt_kind"),
+			textField("created_by_account_id"),
+			textField("created_at"),
+			nullable(textField("deleted_at")),
+		},
+	},
+	{
 		Name:    "team_rewards",
 		OrderBy: []string{"id"},
 		Fields: []logicalField{
@@ -417,6 +435,7 @@ var logicalTables = []logicalTable{
 			nullable(textField("cancelled_at")),
 			textField("created_at"),
 			textField("updated_at"),
+			nullable(textField("media_id")),
 		},
 	},
 	{

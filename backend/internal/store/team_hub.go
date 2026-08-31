@@ -23,14 +23,16 @@ type TeamHubAccess struct {
 }
 
 type TeamHubFocus struct {
-	Kind    string `json:"kind"`
-	ID      string `json:"id"`
-	Title   string `json:"title"`
-	Current int    `json:"current"`
-	Target  int    `json:"target"`
-	Unit    string `json:"unit"`
-	EndsOn  string `json:"endsOn,omitempty"`
-	DueOn   string `json:"dueOn,omitempty"`
+	Kind        string `json:"kind"`
+	ID          string `json:"id"`
+	Title       string `json:"title"`
+	Description string `json:"description,omitempty"`
+	MediaID     string `json:"mediaId,omitempty"`
+	Current     int    `json:"current"`
+	Target      int    `json:"target"`
+	Unit        string `json:"unit"`
+	EndsOn      string `json:"endsOn,omitempty"`
+	DueOn       string `json:"dueOn,omitempty"`
 }
 
 type TeamHubActivitySummary struct {
@@ -119,6 +121,7 @@ func (store *Store) TeamHub(ctx context.Context, actor domain.Actor, teamID stri
 	if rewardErr == nil {
 		hub.Focus = append(hub.Focus, TeamHubFocus{
 			Kind: "reward", ID: reward.ID, Title: reward.Title,
+			Description: reward.Description, MediaID: reward.MediaID,
 			Current: reward.Progress.Current, Target: reward.Progress.Target,
 			Unit: "team_days", EndsOn: reward.EndsOn,
 		})

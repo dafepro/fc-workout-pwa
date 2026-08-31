@@ -20,6 +20,9 @@ var (
 
 type PublishTeamRewardInput struct {
 	DefinitionID         string
+	Title                string
+	Description          string
+	MediaID              string
 	StartsOn             string
 	EndsOn               string
 	RequiredDays         int
@@ -36,6 +39,7 @@ type TeamReward struct {
 	Title                  string                    `json:"title"`
 	Description            string                    `json:"description"`
 	ArtworkID              string                    `json:"artworkId"`
+	MediaID                string                    `json:"mediaId,omitempty"`
 	Status                 string                    `json:"status"`
 	StartsOn               string                    `json:"startsOn"`
 	EndsOn                 string                    `json:"endsOn"`
@@ -52,7 +56,7 @@ type TeamReward struct {
 }
 
 func (staff *StaffStore) PublishTeamReward(ctx context.Context, actorAccountID, teamID string, input PublishTeamRewardInput) (TeamReward, error) {
-	definition, start, end, rule, err := prepareTeamReward(input)
+	definition, title, description, start, end, rule, err := prepareTeamReward(input)
 	if err != nil || actorAccountID == "" {
 		return TeamReward{}, ErrStaffInvalid
 	}
@@ -76,6 +80,7 @@ func (staff *StaffStore) PublishTeamReward(ctx context.Context, actorAccountID, 
 			return TeamReward{}, loadErr
 		}
 		if existing.TeamID != teamID || existing.DefinitionID != definition.ID ||
+			existing.Title != title || existing.Description != description || existing.MediaID != input.MediaID ||
 			existing.StartsOn != input.StartsOn || existing.EndsOn != input.EndsOn ||
 			existing.Rule != rule {
 			return TeamReward{}, ErrTeamRewardIdempotencyConflict
@@ -107,6 +112,16 @@ func (staff *StaffStore) PublishTeamReward(ctx context.Context, actorAccountID, 
 	if active != 0 {
 		return TeamReward{}, ErrTeamRewardActive
 	}
+	if input.MediaID != "" {
+		var mediaTeamID string
+		if err = tx.QueryRowContext(ctx, `SELECT team_id FROM team_reward_media
+			WHERE id = ? AND deleted_at IS NULL`, input.MediaID).Scan(&mediaTeamID); errors.Is(err, sql.ErrNoRows) || mediaTeamID != teamID {
+			return TeamReward{}, ErrStaffInvalid
+		}
+		if err != nil {
+			return TeamReward{}, err
+		}
+	}
 	id, err := newStaffID("reward")
 	if err != nil {
 		return TeamReward{}, err
@@ -120,12 +135,12 @@ func (staff *StaffStore) PublishTeamReward(ctx context.Context, actorAccountID, 
 		id, team_id, created_by_account_id, definition_id, definition_version,
 		prize_title, prize_description, artwork_id, status, starts_on, ends_on,
 		time_zone, rule_version, required_days, minimum_roster_percent,
-		publish_idempotency_key_hash, created_at, updated_at
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		id, teamID, actorAccountID, definition.ID, definition.Version, definition.Title,
-		definition.Description, definition.ArtworkID, start.Format("2006-01-02"),
+		publish_idempotency_key_hash, created_at, updated_at, media_id
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		id, teamID, actorAccountID, definition.ID, definition.Version, title,
+		description, definition.ArtworkID, start.Format("2006-01-02"),
 		end.Format("2006-01-02"), zone, rule.Version, rule.RequiredDays,
-		rule.MinimumRosterPercent, keyHash[:], stamp, stamp); err != nil {
+		rule.MinimumRosterPercent, keyHash[:], stamp, stamp, nullableRewardMediaID(input.MediaID)); err != nil {
 		switch {
 		case strings.Contains(err.Error(), "team_rewards.team_id"):
 			return TeamReward{}, ErrTeamRewardActive
@@ -146,10 +161,21 @@ func (staff *StaffStore) PublishTeamReward(ctx context.Context, actorAccountID, 
 	return projectTeamRewardByID(ctx, staff.db, id, input.Now, true)
 }
 
-func prepareTeamReward(input PublishTeamRewardInput) (domain.TeamRewardDefinition, time.Time, time.Time, domain.TeamRewardRule, error) {
+func prepareTeamReward(input PublishTeamRewardInput) (domain.TeamRewardDefinition, string, string, time.Time, time.Time, domain.TeamRewardRule, error) {
 	definition, found := domain.TeamRewardDefinitionByID(input.DefinitionID)
 	if !found || input.IdempotencyKey == "" || len(input.IdempotencyKey) > 128 {
-		return domain.TeamRewardDefinition{}, time.Time{}, time.Time{}, domain.TeamRewardRule{}, ErrStaffInvalid
+		return domain.TeamRewardDefinition{}, "", "", time.Time{}, time.Time{}, domain.TeamRewardRule{}, ErrStaffInvalid
+	}
+	title := strings.TrimSpace(input.Title)
+	description := strings.TrimSpace(input.Description)
+	if title == "" {
+		title = definition.Title
+	}
+	if description == "" {
+		description = definition.Description
+	}
+	if len([]rune(title)) > 60 || len([]rune(description)) > 180 {
+		return domain.TeamRewardDefinition{}, "", "", time.Time{}, time.Time{}, domain.TeamRewardRule{}, ErrStaffInvalid
 	}
 	start, startErr := time.Parse("2006-01-02", input.StartsOn)
 	end, endErr := time.Parse("2006-01-02", input.EndsOn)
@@ -158,9 +184,16 @@ func prepareTeamReward(input PublishTeamRewardInput) (domain.TeamRewardDefinitio
 	}
 	days := int(end.Sub(start).Hours()/24) + 1
 	if startErr != nil || endErr != nil || days < 1 || days > 30 || rule.RequiredDays > days || domain.ValidateTeamRewardRule(rule) != nil {
-		return domain.TeamRewardDefinition{}, time.Time{}, time.Time{}, domain.TeamRewardRule{}, ErrStaffInvalid
+		return domain.TeamRewardDefinition{}, "", "", time.Time{}, time.Time{}, domain.TeamRewardRule{}, ErrStaffInvalid
 	}
-	return definition, start, end, rule, nil
+	return definition, title, description, start, end, rule, nil
+}
+
+func nullableRewardMediaID(value string) any {
+	if value == "" {
+		return nil
+	}
+	return value
 }
 
 func (staff *StaffStore) CancelTeamReward(ctx context.Context, actorAccountID, teamID, rewardID string, now time.Time) (TeamReward, error) {
@@ -237,12 +270,13 @@ func loadTeamRewardRow(ctx context.Context, query teamRewardQueryer, id string) 
 		definition_id, definition_version, prize_title, prize_description, artwork_id,
 		status, starts_on, ends_on, time_zone, rule_version, required_days,
 		minimum_roster_percent, publish_idempotency_key_hash, achieved_at, cancelled_at,
-		created_at, updated_at FROM team_rewards WHERE id = ?`, id).Scan(
+		created_at, updated_at, COALESCE(media_id, '') FROM team_rewards WHERE id = ?`, id).Scan(
 		&reward.ID, &reward.TeamID, &reward.CreatedByAccountID, &reward.DefinitionID,
 		&reward.DefinitionVersion, &reward.Title, &reward.Description, &reward.ArtworkID,
 		&reward.Status, &reward.StartsOn, &reward.EndsOn, &reward.TimeZone,
 		&reward.Rule.Version, &reward.Rule.RequiredDays, &reward.Rule.MinimumRosterPercent,
 		&reward.PublishIdempotencyHash, &achievedAt, &cancelledAt, &reward.CreatedAt, &reward.UpdatedAt,
+		&reward.MediaID,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return TeamReward{}, ErrTeamRewardUnavailable

@@ -18,6 +18,7 @@ import (
 	"github.com/dafepro/fc-workout-pwa/backend/internal/authn"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/config"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
+	"github.com/dafepro/fc-workout-pwa/backend/internal/rewardmedia"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/store"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/teamlounge"
 )
@@ -54,6 +55,8 @@ type service struct {
 	teamLoungeStore *teamlounge.SQLiteStore
 	teamLoungeRooms http.Handler
 	teamLoungeSDK   *roomsdk.Server
+	rewardMedia     rewardmedia.Store
+	rewardImages    *rewardmedia.Processor
 	authFixtures    func(context.Context) error
 	throttles       []*loginThrottle
 	middleware      func(http.Handler) http.Handler
@@ -176,6 +179,7 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	mux.HandleFunc("DELETE /v1/training-entries/{entryId}", service.deleteTrainingEntry)
 	mux.HandleFunc("GET /v1/teams/{teamId}/activity", service.getTeamActivity)
 	mux.HandleFunc("GET /v1/teams/{teamId}/hub", service.getTeamHub)
+	mux.HandleFunc("GET /v1/teams/{teamId}/reward-media/{mediaId}", service.getPlayerTeamRewardMedia)
 	mux.HandleFunc("GET /v1/teams/{teamId}/leaderboards", service.getLeaderboard)
 	mux.HandleFunc("POST /v1/teams/{teamId}/lounge/socket-ticket", service.createTeamLoungeSocketTicket)
 	mux.HandleFunc("POST /v1/teams/{teamId}/lounge/placements", service.reserveTeamLoungePlacement)

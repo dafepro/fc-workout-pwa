@@ -6,8 +6,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/png"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/textproto"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -17,6 +21,7 @@ import (
 	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/httpapi"
+	"github.com/dafepro/fc-workout-pwa/backend/internal/rewardmedia"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/store"
 )
 
@@ -28,7 +33,7 @@ func TestTeamRewardRoutesPublishIdempotentlyAndExposeSafeAggregateReads(t *testi
 		AccountID: "account-coach", Role: domain.RoleCoach, ClubID: "club-one",
 		AssignedTeamIDs: []string{"team-one"},
 	}
-	staffHandler := httpapi.NewHandler(config.Config{EnableDevAccess: true},
+	staffHandler := httpapi.NewHandler(config.Config{},
 		httpapi.WithStore(playerStore), httpapi.WithStaffRepository(staff),
 		httpapi.WithAuthenticator(socialAuthenticator{actor: coach}),
 	)
@@ -37,11 +42,11 @@ func TestTeamRewardRoutesPublishIdempotentlyAndExposeSafeAggregateReads(t *testi
 		t.Fatalf("definitions status=%d body=%s", definitions.Code, definitions.Body.String())
 	}
 	today := time.Now().UTC().Truncate(24 * time.Hour)
-	body := fmt.Sprintf(`{"definitionId":"team-celebration-v1","startsOn":"%s","endsOn":"%s","requiredDays":2,"minimumRosterPercent":60}`,
+	body := fmt.Sprintf(`{"definitionId":"team-celebration-v1","title":"Pizza party","description":"Celebrate together after practice.","startsOn":"%s","endsOn":"%s","requiredDays":2,"minimumRosterPercent":60}`,
 		today.Format("2006-01-02"), today.AddDate(0, 0, 2).Format("2006-01-02"))
 
 	published := teamRewardRequest(staffHandler, http.MethodPost, "/v1/staff/teams/team-one/team-reward", body, "publish-key")
-	if published.Code != http.StatusCreated || !strings.Contains(published.Body.String(), `"title":"Team celebration"`) {
+	if published.Code != http.StatusCreated || !strings.Contains(published.Body.String(), `"title":"Pizza party"`) {
 		t.Fatalf("publish status=%d body=%s", published.Code, published.Body.String())
 	}
 	var publishedReward store.TeamReward
@@ -72,7 +77,7 @@ func TestTeamRewardRoutesPublishIdempotentlyAndExposeSafeAggregateReads(t *testi
 	}
 }
 
-func TestTeamRewardAuthoringRoutesAreDevelopmentOnlyAndTeamAuthorized(t *testing.T) {
+func TestTeamRewardAuthoringRoutesAreProductionAndTeamAuthorized(t *testing.T) {
 	db := teamRewardHTTPDB(t)
 	staff := store.NewStaffStore(db)
 	playerStore := store.New(db, time.UTC)
@@ -81,15 +86,9 @@ func TestTeamRewardAuthoringRoutesAreDevelopmentOnlyAndTeamAuthorized(t *testing
 			AccountID: "account-coach", Role: domain.RoleCoach, ClubID: "club-one", AssignedTeamIDs: []string{"team-one"},
 		}}),
 	)
-	for _, route := range []struct{ method, path string }{
-		{http.MethodGet, "/v1/staff/team-reward-definitions"},
-		{http.MethodPost, "/v1/staff/teams/team-one/team-reward"},
-		{http.MethodPost, "/v1/staff/teams/team-one/team-reward/reward-one/cancel"},
-	} {
-		response := teamRewardRequest(production, route.method, route.path, `{}`, "key")
-		if response.Code != http.StatusNotFound {
-			t.Fatalf("production authoring route %s status=%d body=%s", route.path, response.Code, response.Body.String())
-		}
+	definitions := teamRewardRequest(production, http.MethodGet, "/v1/staff/team-reward-definitions", "", "")
+	if definitions.Code != http.StatusOK {
+		t.Fatalf("production definitions status=%d body=%s", definitions.Code, definitions.Body.String())
 	}
 
 	unassigned := httpapi.NewHandler(config.Config{EnableDevAccess: true}, httpapi.WithStore(playerStore),
@@ -103,6 +102,68 @@ func TestTeamRewardAuthoringRoutesAreDevelopmentOnlyAndTeamAuthorized(t *testing
 	response := teamRewardRequest(unassigned, http.MethodPost, "/v1/staff/teams/team-one/team-reward", body, "key")
 	if response.Code != http.StatusForbidden {
 		t.Fatalf("unassigned publish status=%d body=%s", response.Code, response.Body.String())
+	}
+}
+
+func TestTeamRewardImageUploadIsPrivateAndVisibleWithPublishedReward(t *testing.T) {
+	db := teamRewardHTTPDB(t)
+	staff := store.NewStaffStore(db)
+	files, err := rewardmedia.NewFileStore(filepath.Join(t.TempDir(), "reward-media"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	coach := domain.Actor{AccountID: "account-coach", Role: domain.RoleCoach, ClubID: "club-one", AssignedTeamIDs: []string{"team-one"}}
+	coachHandler := httpapi.NewHandler(config.Config{}, httpapi.WithStore(store.New(db, time.UTC)),
+		httpapi.WithStaffRepository(staff), httpapi.WithAuthenticator(socialAuthenticator{actor: coach}),
+		httpapi.WithTeamRewardMedia(files, rewardmedia.NewProcessor()))
+
+	var upload bytes.Buffer
+	form := multipart.NewWriter(&upload)
+	part, err := form.CreatePart(textproto.MIMEHeader{
+		"Content-Disposition": {`form-data; name="image"; filename="prize.png"`},
+		"Content-Type":        {"image/png"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = png.Encode(part, image.NewRGBA(image.Rect(0, 0, 32, 32))); err != nil {
+		t.Fatal(err)
+	}
+	if err = form.WriteField("altKind", "prize_image"); err != nil {
+		t.Fatal(err)
+	}
+	if err = form.Close(); err != nil {
+		t.Fatal(err)
+	}
+	request := httptest.NewRequest(http.MethodPost, "/v1/staff/teams/team-one/reward-media", &upload)
+	request.Header.Set("Authorization", "Bearer test")
+	request.Header.Set("Content-Type", form.FormDataContentType())
+	response := httptest.NewRecorder()
+	coachHandler.ServeHTTP(response, request)
+	if response.Code != http.StatusCreated {
+		t.Fatalf("upload status=%d body=%s", response.Code, response.Body.String())
+	}
+	var media store.TeamRewardMedia
+	if err = json.Unmarshal(response.Body.Bytes(), &media); err != nil || media.ID == "" {
+		t.Fatalf("decode media: %+v err=%v", media, err)
+	}
+
+	today := time.Now().UTC().Format(time.DateOnly)
+	publishBody := fmt.Sprintf(`{"definitionId":"team-celebration-v1","title":"Pizza party","description":"Celebrate together.","mediaId":%q,"startsOn":%q,"endsOn":%q,"requiredDays":1,"minimumRosterPercent":60}`,
+		media.ID, today, today)
+	published := teamRewardRequest(coachHandler, http.MethodPost, "/v1/staff/teams/team-one/team-reward", publishBody, "publish-with-image")
+	if published.Code != http.StatusCreated {
+		t.Fatalf("publish status=%d body=%s", published.Code, published.Body.String())
+	}
+
+	player := domain.Actor{AccountID: "account-player", PlayerID: "player-one", Role: domain.RolePlayer, ClubID: "club-one"}
+	playerHandler := httpapi.NewHandler(config.Config{}, httpapi.WithStore(store.New(db, time.UTC)),
+		httpapi.WithStaffRepository(staff), httpapi.WithAuthenticator(socialAuthenticator{actor: player}),
+		httpapi.WithTeamRewardMedia(files, rewardmedia.NewProcessor()))
+	imageResponse := teamRewardRequest(playerHandler, http.MethodGet,
+		"/v1/teams/team-one/reward-media/"+media.ID, "", "")
+	if imageResponse.Code != http.StatusOK || imageResponse.Header().Get("Content-Type") != "image/jpeg" || imageResponse.Body.Len() == 0 {
+		t.Fatalf("player image status=%d type=%q bytes=%d", imageResponse.Code, imageResponse.Header().Get("Content-Type"), imageResponse.Body.Len())
 	}
 }
 

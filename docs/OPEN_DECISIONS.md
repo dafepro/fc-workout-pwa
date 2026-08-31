@@ -98,6 +98,20 @@ rollups and restore-safe erasure tombstones are not implemented.
 - Approve or reject the Starlight Training Camp candidate in
   [TEAM_LOUNGE_STARLIGHT_CAMP.md](TEAM_LOUNGE_STARLIGHT_CAMP.md).
 
+## Team Reward authoring
+
+**Owner:** Product and safety owner
+
+**Decision:** Authorized staff may customize a reward title and description and
+optionally upload one JPEG or PNG prize image. The server re-decodes, crops, and
+stores an immutable private JPEG; only staff for that team and players who can
+see the attached current reward may fetch it. Guidance prohibits players,
+faces, names, contact details, schedules, QR codes, and private information.
+This is the sole production upload exception and grants no upload or open-text
+control to players. New rewards default to the team-local current date through
+six days later; cleared or reversed dates are explicitly identified and
+focused. Alternate progress rules and player-level reward results remain out.
+
 ## API lifecycle and private reaction badges
 
 **Owner:** Product and engineering owner

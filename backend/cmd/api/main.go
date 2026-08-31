@@ -16,6 +16,7 @@ import (
 	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/httpapi"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/observability"
+	"github.com/dafepro/fc-workout-pwa/backend/internal/rewardmedia"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/staffauth"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/store"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/teamlounge"
@@ -49,6 +50,11 @@ func run() error {
 		return fmt.Errorf("migrate database: %w", err)
 	}
 	repository := store.New(db, cfg.TeamTimeZone)
+	staffRepository := store.NewStaffStore(db)
+	rewardMedia, err := rewardmedia.NewFileStore(cfg.RewardMediaDir)
+	if err != nil {
+		return fmt.Errorf("open reward media store: %w", err)
+	}
 	observedRepository := observability.NewObservedStore(repository, metrics)
 	sessions := authn.NewService(db)
 	// A separate Argon2 slot from the player path. Sharing one held the
@@ -70,7 +76,8 @@ func run() error {
 		httpapi.WithAuthenticator(authn.Fallback{Primary: authenticator, Secondary: staff}),
 		httpapi.WithSessionManager(sessions),
 		httpapi.WithStaffSessionManager(staff),
-		httpapi.WithStaffRepository(store.NewStaffStore(db)),
+		httpapi.WithStaffRepository(staffRepository),
+		httpapi.WithTeamRewardMedia(rewardMedia, rewardmedia.NewProcessor()),
 		httpapi.WithStaffAccountManager(staff),
 		httpapi.WithCredentialManager(sessions),
 		httpapi.WithMiddleware(observability.HTTPMiddleware(logger, metrics)),

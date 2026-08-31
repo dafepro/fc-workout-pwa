@@ -181,6 +181,7 @@ export interface StaffTeamReward {
   id: string;
   title: string;
   description: string;
+  mediaId?: string;
   status: "active" | "achieved" | "cancelled";
   startsOn: string;
   endsOn: string;

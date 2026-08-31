@@ -70,6 +70,9 @@ func (service *service) publishTeamReward(w http.ResponseWriter, r *http.Request
 	}
 	var request struct {
 		DefinitionID         string `json:"definitionId"`
+		Title                string `json:"title"`
+		Description          string `json:"description"`
+		MediaID              string `json:"mediaId"`
 		StartsOn             string `json:"startsOn"`
 		EndsOn               string `json:"endsOn"`
 		RequiredDays         int    `json:"requiredDays"`
@@ -80,7 +83,8 @@ func (service *service) publishTeamReward(w http.ResponseWriter, r *http.Request
 		return
 	}
 	reward, err := repository.PublishTeamReward(r.Context(), actor.AccountID, teamID, store.PublishTeamRewardInput{
-		DefinitionID: request.DefinitionID, StartsOn: request.StartsOn, EndsOn: request.EndsOn,
+		DefinitionID: request.DefinitionID, Title: request.Title, Description: request.Description,
+		MediaID: request.MediaID, StartsOn: request.StartsOn, EndsOn: request.EndsOn,
 		RequiredDays: request.RequiredDays, MinimumRosterPercent: request.MinimumRosterPercent,
 		IdempotencyKey: key, Now: service.now().UTC(),
 	})

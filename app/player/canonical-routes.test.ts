@@ -36,14 +36,14 @@ describe("canonical player routes", () => {
     expect(existsSync(join(routeDirectory, "route.dev.ts"))).toBe(true);
   });
 
-  it("keeps team reward authoring out of the production route graph", () => {
+  it("ships team reward authoring in the production route graph", () => {
     for (const route of [
       join("staff", "teams", "[teamId]", "rewards"),
       join("staff", "admin", "teams", "[teamId]", "rewards"),
     ]) {
       const routeDirectory = join(process.cwd(), "app", route);
-      expect(existsSync(join(routeDirectory, "page.tsx"))).toBe(false);
-      expect(existsSync(join(routeDirectory, "page.dev.tsx"))).toBe(true);
+      expect(existsSync(join(routeDirectory, "page.tsx"))).toBe(true);
+      expect(existsSync(join(routeDirectory, "page.dev.tsx"))).toBe(false);
     }
   });
 

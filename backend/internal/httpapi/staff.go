@@ -98,13 +98,15 @@ func (service *service) registerStaffRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/staff/training-plan-templates", service.listTrainingPlanTemplates)
 	mux.HandleFunc("GET /v1/staff/teams/{teamId}/training-plans", service.listTrainingPlans)
 	mux.HandleFunc("GET /v1/staff/teams/{teamId}/team-reward", service.getStaffTeamReward)
+	mux.HandleFunc("GET /v1/staff/team-reward-definitions", service.listTeamRewardDefinitions)
+	mux.HandleFunc("POST /v1/staff/teams/{teamId}/team-reward", service.publishTeamReward)
+	mux.HandleFunc("POST /v1/staff/teams/{teamId}/team-reward/{rewardId}/cancel", service.cancelTeamReward)
+	mux.HandleFunc("POST /v1/staff/teams/{teamId}/reward-media", service.uploadTeamRewardMedia)
+	mux.HandleFunc("GET /v1/staff/teams/{teamId}/reward-media/{mediaId}", service.getStaffTeamRewardMedia)
 	if service.cfg.EnableDevAccess || service.cfg.EnableE2EFixtures {
 		mux.HandleFunc("POST /v1/staff/teams/{teamId}/training-plans", service.publishTrainingPlan)
 		mux.HandleFunc("POST /v1/staff/teams/{teamId}/training-plans/{planId}/cancel", service.cancelTrainingPlan)
 		mux.HandleFunc("POST /v1/staff/teams/{teamId}/training-plans/{planId}/reschedule", service.rescheduleTrainingPlan)
-		mux.HandleFunc("GET /v1/staff/team-reward-definitions", service.listTeamRewardDefinitions)
-		mux.HandleFunc("POST /v1/staff/teams/{teamId}/team-reward", service.publishTeamReward)
-		mux.HandleFunc("POST /v1/staff/teams/{teamId}/team-reward/{rewardId}/cancel", service.cancelTeamReward)
 	}
 	mux.HandleFunc("GET /v1/staff/players/{playerId}", service.getPlayerDetail)
 	mux.HandleFunc("POST /v1/staff/players/{playerId}/credential", service.repairCredential)

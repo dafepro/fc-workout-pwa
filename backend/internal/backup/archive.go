@@ -39,24 +39,27 @@ const (
 )
 
 type CreateOptions struct {
-	DatabaseURL        string
-	ArchivePath        string
-	ApplicationVersion string
-	Now                func() time.Time
+	DatabaseURL          string
+	ArchivePath          string
+	RewardMediaDirectory string
+	ApplicationVersion   string
+	Now                  func() time.Time
 }
 
 type RestoreOptions struct {
-	ArchivePath  string
-	DatabasePath string
+	ArchivePath          string
+	DatabasePath         string
+	RewardMediaDirectory string
 }
 
 type Manifest struct {
-	FormatVersion      int              `json:"formatVersion"`
-	CreatedAt          string           `json:"createdAt"`
-	ApplicationVersion string           `json:"applicationVersion"`
-	Database           DatabaseManifest `json:"database"`
-	Counts             ValidationCounts `json:"counts"`
-	Encrypted          bool             `json:"encrypted"`
+	FormatVersion      int                  `json:"formatVersion"`
+	CreatedAt          string               `json:"createdAt"`
+	ApplicationVersion string               `json:"applicationVersion"`
+	Database           DatabaseManifest     `json:"database"`
+	Counts             ValidationCounts     `json:"counts"`
+	Encrypted          bool                 `json:"encrypted"`
+	RewardMedia        *RewardMediaManifest `json:"rewardMedia,omitempty"`
 }
 
 type DatabaseManifest struct {
@@ -77,9 +80,10 @@ type ValidationCounts struct {
 }
 
 type extractedArchive struct {
-	directory    string
-	manifest     Manifest
-	databasePath string
+	directory            string
+	manifest             Manifest
+	databasePath         string
+	rewardMediaDirectory string
 }
 
 func Create(ctx context.Context, options CreateOptions) (Manifest, error) {
@@ -128,6 +132,11 @@ func Create(ctx context.Context, options CreateOptions) (Manifest, error) {
 	if options.Now != nil {
 		now = options.Now
 	}
+	rewardMediaBundlePath := filepath.Join(workingDirectory, rewardMediaBundleName)
+	rewardMediaManifest, err := createRewardMediaBundle(ctx, snapshotPath, options.RewardMediaDirectory, rewardMediaBundlePath, now().UTC())
+	if err != nil {
+		return Manifest{}, fmt.Errorf("create reward media backup: %w", err)
+	}
 	applicationVersion := strings.TrimSpace(options.ApplicationVersion)
 	if applicationVersion == "" {
 		applicationVersion = defaultAppVersion
@@ -147,6 +156,9 @@ func Create(ctx context.Context, options CreateOptions) (Manifest, error) {
 		Counts:    snapshot.counts,
 		Encrypted: false,
 	}
+	if rewardMediaManifest.Path != "" {
+		manifest.RewardMedia = &rewardMediaManifest
+	}
 	manifestBytes, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
 		return Manifest{}, fmt.Errorf("encode backup manifest: %w", err)
@@ -159,6 +171,9 @@ func Create(ctx context.Context, options CreateOptions) (Manifest, error) {
 		hashBytes(manifestBytes),
 		manifestName,
 	))
+	if manifest.RewardMedia != nil {
+		checksums = append(checksums, []byte(fmt.Sprintf("%s  %s\n", manifest.RewardMedia.SHA256, rewardMediaBundleName))...)
+	}
 
 	temporaryArchive, err := os.CreateTemp(archiveDirectory, ".zoomigo-backup-*.tmp")
 	if err != nil {
@@ -170,11 +185,15 @@ func Create(ctx context.Context, options CreateOptions) (Manifest, error) {
 		return Manifest{}, fmt.Errorf("close temporary archive: %w", err)
 	}
 	defer os.Remove(temporaryPath)
-	if err := writeTarGzArchive(temporaryPath, []archiveEntry{
+	entries := []archiveEntry{
 		{name: manifestName, contents: manifestBytes},
 		{name: databaseName, sourcePath: snapshotPath},
 		{name: checksumsName, contents: checksums},
-	}, now().UTC()); err != nil {
+	}
+	if manifest.RewardMedia != nil {
+		entries = append(entries, archiveEntry{name: rewardMediaBundleName, sourcePath: rewardMediaBundlePath})
+	}
+	if err := writeTarGzArchive(temporaryPath, entries, now().UTC()); err != nil {
 		return Manifest{}, err
 	}
 	verified, err := extractAndVerify(ctx, temporaryPath)
@@ -206,6 +225,14 @@ func Restore(ctx context.Context, options RestoreOptions) (Manifest, error) {
 		return Manifest{}, err
 	}
 	defer os.RemoveAll(extracted.directory)
+	if extracted.manifest.RewardMedia != nil {
+		if strings.TrimSpace(options.RewardMediaDirectory) == "" {
+			return Manifest{}, errors.New("reward media restore target is required")
+		}
+		if err := requireNewPath(options.RewardMediaDirectory, "reward media restore target"); err != nil {
+			return Manifest{}, err
+		}
+	}
 
 	supported, err := supportedMigrationVersions()
 	if err != nil {
@@ -276,7 +303,17 @@ func Restore(ctx context.Context, options RestoreOptions) (Manifest, error) {
 	if err := os.Chmod(temporaryPath, archiveFileMode); err != nil {
 		return Manifest{}, fmt.Errorf("secure restored database: %w", err)
 	}
+	mediaPublished := false
+	if extracted.rewardMediaDirectory != "" {
+		if err := publishRewardMediaRestore(extracted.rewardMediaDirectory, options.RewardMediaDirectory); err != nil {
+			return Manifest{}, err
+		}
+		mediaPublished = true
+	}
 	if err := os.Rename(temporaryPath, options.DatabasePath); err != nil {
+		if mediaPublished {
+			_ = os.RemoveAll(options.RewardMediaDirectory)
+		}
 		return Manifest{}, fmt.Errorf("publish restored database: %w", err)
 	}
 	return extracted.manifest, nil
@@ -518,9 +555,10 @@ func extractAndVerify(ctx context.Context, archivePath string) (extractedArchive
 		return extractedArchive{}, errors.New("archive path is required")
 	}
 	expected := map[string]int64{
-		manifestName:  maxManifestBytes,
-		databaseName:  maxDatabaseBytes,
-		checksumsName: maxChecksumsBytes,
+		manifestName:          maxManifestBytes,
+		databaseName:          maxDatabaseBytes,
+		checksumsName:         maxChecksumsBytes,
+		rewardMediaBundleName: maxRewardMediaBundle,
 	}
 	directory, seen, err := extractTarGzArchive(archivePath, expected, nil)
 	if err != nil {
@@ -530,7 +568,7 @@ func extractAndVerify(ctx context.Context, archivePath string) (extractedArchive
 		_ = os.RemoveAll(directory)
 		return extractedArchive{}, err
 	}
-	for name := range expected {
+	for _, name := range []string{manifestName, databaseName, checksumsName} {
 		if !seen[name] {
 			return fail(fmt.Errorf("backup is missing %q", name))
 		}
@@ -569,6 +607,14 @@ func extractAndVerify(ctx context.Context, archivePath string) (extractedArchive
 	if err := validateManifest(manifest, databaseHash, databaseBytes); err != nil {
 		return fail(err)
 	}
+	if manifest.RewardMedia == nil && seen[rewardMediaBundleName] {
+		return fail(errors.New("backup has an undeclared reward media bundle"))
+	}
+	if manifest.RewardMedia != nil {
+		if !seen[rewardMediaBundleName] || checksums[rewardMediaBundleName] != manifest.RewardMedia.SHA256 {
+			return fail(errors.New("backup reward media checksum is missing or invalid"))
+		}
+	}
 	inspection, err := inspectDatabase(ctx, databasePath)
 	if err != nil {
 		return fail(fmt.Errorf("inspect backup database: %w", err))
@@ -579,7 +625,11 @@ func extractAndVerify(ctx context.Context, archivePath string) (extractedArchive
 	if inspection.counts != manifest.Counts {
 		return fail(fmt.Errorf("backup validation counts differ from manifest: got %+v, want %+v", inspection.counts, manifest.Counts))
 	}
-	return extractedArchive{directory: directory, manifest: manifest, databasePath: databasePath}, nil
+	mediaDirectory, err := verifyRewardMediaBundle(ctx, databasePath, filepath.Join(directory, rewardMediaBundleName), manifest.RewardMedia)
+	if err != nil {
+		return fail(err)
+	}
+	return extractedArchive{directory: directory, manifest: manifest, databasePath: databasePath, rewardMediaDirectory: mediaDirectory}, nil
 }
 
 func validateManifest(manifest Manifest, databaseHash string, databaseBytes int64) error {
@@ -607,6 +657,11 @@ func validateManifest(manifest Manifest, databaseHash string, databaseBytes int6
 	if !sort.IntsAreSorted(manifest.Database.SchemaMigrations) {
 		return errors.New("backup migrations are not sorted")
 	}
+	if manifest.RewardMedia != nil {
+		if manifest.RewardMedia.Path != rewardMediaBundleName || !isHexDigest(manifest.RewardMedia.SHA256) || manifest.RewardMedia.Bytes < 0 || manifest.RewardMedia.Bytes > maxRewardMediaBundle || manifest.RewardMedia.Count < 0 {
+			return errors.New("backup reward media metadata is invalid")
+		}
+	}
 	for index, version := range manifest.Database.SchemaMigrations {
 		if version <= 0 || index > 0 && version == manifest.Database.SchemaMigrations[index-1] {
 			return errors.New("backup migration ledger is invalid")
@@ -616,10 +671,10 @@ func validateManifest(manifest Manifest, databaseHash string, databaseBytes int6
 }
 
 func parseChecksums(contents []byte) (map[string]string, error) {
-	checksums := make(map[string]string, 2)
+	checksums := make(map[string]string, 3)
 	for _, line := range strings.Split(strings.TrimSpace(string(contents)), "\n") {
 		fields := strings.Fields(line)
-		if len(fields) != 2 || (fields[1] != databaseName && fields[1] != manifestName) {
+		if len(fields) != 2 || (fields[1] != databaseName && fields[1] != manifestName && fields[1] != rewardMediaBundleName) {
 			return nil, errors.New("backup checksum file is invalid")
 		}
 		if !isHexDigest(fields[0]) {
@@ -630,7 +685,7 @@ func parseChecksums(contents []byte) (map[string]string, error) {
 		}
 		checksums[fields[1]] = strings.ToLower(fields[0])
 	}
-	if len(checksums) != 2 {
+	if len(checksums) < 2 || len(checksums) > 3 || checksums[databaseName] == "" || checksums[manifestName] == "" {
 		return nil, errors.New("backup checksum file is incomplete")
 	}
 	return checksums, nil

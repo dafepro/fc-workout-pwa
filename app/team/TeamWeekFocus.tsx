@@ -36,6 +36,18 @@ export function TeamWeekFocus({ focus }: { focus: TeamHubFocus[] }) {
                     : copy.teamHub.challenge}
                 </span>
                 <strong>{item.title}</strong>
+                {item.kind === "reward" && item.imageUrl ? (
+                  // The private route needs the signed-in browser's player cookie.
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    className="team-week-focus__reward-image"
+                    src={item.imageUrl}
+                    alt="Prize for the team"
+                  />
+                ) : null}
+                {item.kind === "reward" && item.description ? (
+                  <p>{item.description}</p>
+                ) : null}
                 <div className="team-week-focus__progress-copy">
                   <span>{progressCopy(item)}</span>
                   <small>{dateCopy(item)}</small>

@@ -131,8 +131,17 @@ export async function limitedBody(
 }
 
 export function forwardedHeaders(response: Response): Headers {
-  const headers = new Headers({ "Cache-Control": "no-store" });
-  for (const name of ["content-type", "x-request-id", "retry-after"]) {
+  const cacheControl = response.headers.get("cache-control") ?? "no-store";
+  const headers = new Headers({ "Cache-Control": cacheControl });
+  for (const name of [
+    "content-type",
+    "content-length",
+    "content-disposition",
+    "etag",
+    "vary",
+    "x-request-id",
+    "retry-after",
+  ]) {
     const value = response.headers.get(name);
     if (value) headers.set(name, value);
   }

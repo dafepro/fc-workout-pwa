@@ -77,6 +77,7 @@ small validated configuration for the current player.
 GET /v1/teams/{teamId}/activity
 GET /v1/teams/{teamId}/hub
 GET /v1/teams/{teamId}/leaderboards
+GET /v1/teams/{teamId}/reward-media/{mediaId}
 POST /v1/reactions
 POST /v1/teams/{teamId}/lounge/socket-ticket
 POST /v1/teams/{teamId}/lounge/placements
@@ -119,6 +120,11 @@ POST /v1/staff/teams/{teamId}/assignments/{assignmentId}/end
 GET /v1/staff/training-plan-templates
 GET /v1/staff/teams/{teamId}/training-plans
 GET /v1/staff/teams/{teamId}/team-reward
+GET /v1/staff/team-reward-definitions
+POST /v1/staff/teams/{teamId}/team-reward
+POST /v1/staff/teams/{teamId}/team-reward/{rewardId}/cancel
+POST /v1/staff/teams/{teamId}/reward-media
+GET /v1/staff/teams/{teamId}/reward-media/{mediaId}
 GET /v1/staff/players/{playerId}
 POST /v1/staff/players/{playerId}/credential
 POST /v1/staff/players/{playerId}/deactivate
@@ -134,6 +140,11 @@ Every handler derives the actor from the staff session and checks platform,
 club, or active-team authority. Credential repair, deactivation, staff-account
 changes, and other sensitive writes require step-up and audit.
 
+Team Reward authoring accepts bounded custom title and description snapshots
+and an optional previously uploaded media ID from the same team. Reward media
+is re-decoded and stored as private JPEG renditions. A player can fetch only the
+image attached to that team's currently visible reward.
+
 These routes exist only in explicitly enabled development/E2E builds until the
 associated production gates are approved:
 
@@ -141,9 +152,6 @@ associated production gates are approved:
 POST /v1/staff/teams/{teamId}/training-plans
 POST /v1/staff/teams/{teamId}/training-plans/{planId}/cancel
 POST /v1/staff/teams/{teamId}/training-plans/{planId}/reschedule
-GET /v1/staff/team-reward-definitions
-POST /v1/staff/teams/{teamId}/team-reward
-POST /v1/staff/teams/{teamId}/team-reward/{rewardId}/cancel
 ```
 
 ## Test/development-only routes and metrics

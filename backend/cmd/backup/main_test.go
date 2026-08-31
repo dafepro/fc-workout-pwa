@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -15,11 +16,16 @@ func TestLogicalExportCommandsRoundTrip(t *testing.T) {
 	directory := t.TempDir()
 	archivePath := filepath.Join(directory, "export.tar.gz")
 	targetPath := filepath.Join(directory, "imported.db")
+	mediaDirectory := filepath.Join(directory, "reward-media")
+	mediaTarget := filepath.Join(directory, "restored-reward-media")
+	if err := os.Mkdir(mediaDirectory, 0o700); err != nil {
+		t.Fatal(err)
+	}
 
 	for _, arguments := range [][]string{
-		{"export", "--database-url", seededDatabaseURL(t), "--output", archivePath, "--app-version", "cli-test"},
+		{"export", "--database-url", seededDatabaseURL(t), "--media-dir", mediaDirectory, "--output", archivePath, "--app-version", "cli-test"},
 		{"verify-export", "--archive", archivePath},
-		{"import", "--archive", archivePath, "--target", targetPath},
+		{"import", "--archive", archivePath, "--target", targetPath, "--media-target", mediaTarget},
 	} {
 		if err := run(arguments); err != nil {
 			t.Fatalf("%v: %v", arguments, err)
@@ -37,6 +43,9 @@ func TestLogicalExportCommandsRoundTrip(t *testing.T) {
 	}
 	if players == 0 {
 		t.Fatal("import produced an empty database")
+	}
+	if info, statErr := os.Stat(mediaTarget); statErr != nil || !info.IsDir() {
+		t.Fatalf("imported media target was not created: %v", statErr)
 	}
 	if err := run([]string{"import", "--archive", archivePath, "--target", targetPath}); err == nil {
 		t.Fatal("import overwrote an existing target")
@@ -83,6 +92,12 @@ func TestReadIdentityRequiresPrivateRegularFile(t *testing.T) {
 	if _, err := readIdentity(path); err == nil {
 		t.Fatal("readIdentity accepted a group/world-readable identity")
 	}
+	if _, err := readIdentity(t.TempDir()); err == nil {
+		t.Fatal("readIdentity accepted a directory")
+	}
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows does not apply Unix permission bits changed by chmod")
+	}
 
 	if err := os.Chmod(path, 0o600); err != nil {
 		t.Fatal(err)
@@ -95,7 +110,4 @@ func TestReadIdentityRequiresPrivateRegularFile(t *testing.T) {
 		t.Fatalf("readIdentity returned %q", contents)
 	}
 
-	if _, err := readIdentity(t.TempDir()); err == nil {
-		t.Fatal("readIdentity accepted a directory")
-	}
 }

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { TeamRewardPanel } from "./TeamRewardPanel.dev";
+import { TeamRewardPanel } from "./TeamRewardPanel";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn() }),
@@ -9,13 +9,16 @@ vi.mock("next/navigation", () => ({
 
 afterEach(() => vi.unstubAllGlobals());
 
-describe("development team reward panel", () => {
-  it("publishes only the predefined reward through structured controls", async () => {
+describe("team reward panel", () => {
+  it("defaults dates and publishes editable reward copy", async () => {
     const calls: { url: string; init: RequestInit }[] = [];
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string, init: RequestInit = {}) => {
         calls.push({ url, init });
+        if (url.endsWith("v1/staff/teams/team-1")) {
+          return Response.json({ timeZone: "America/Chicago" });
+        }
         if (url.endsWith("team-reward-definitions")) {
           return Response.json({
             definitions: [
@@ -57,15 +60,30 @@ describe("development team reward panel", () => {
       }),
     );
 
-    render(<TeamRewardPanel teamId="team-1" />);
+    render(
+      <TeamRewardPanel
+        teamId="team-1"
+        now={new Date("2026-08-30T18:00:00Z")}
+      />,
+    );
 
-    expect(await screen.findByText("Team celebration")).toBeInTheDocument();
-    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Starts on"), {
-      target: { value: "2026-09-01" },
+    expect(await screen.findByLabelText("Reward name")).toHaveValue(
+      "Team celebration",
+    );
+    expect(screen.getByLabelText("Description")).toHaveValue(
+      "Celebrate together at a future team gathering.",
+    );
+    expect(screen.getByLabelText("Starts on")).toHaveValue("2026-08-30");
+    expect(screen.getByLabelText("Ends on")).toHaveValue("2026-09-05");
+    expect(screen.getByLabelText("Reward image (optional)")).toHaveAttribute(
+      "accept",
+      "image/png,image/jpeg",
+    );
+    fireEvent.change(screen.getByLabelText("Reward name"), {
+      target: { value: "Pizza party" },
     });
-    fireEvent.change(screen.getByLabelText("Ends on"), {
-      target: { value: "2026-09-07" },
+    fireEvent.change(screen.getByLabelText("Description"), {
+      target: { value: "Celebrate together after practice." },
     });
     fireEvent.change(screen.getByLabelText("Days to earn"), {
       target: { value: "4" },
@@ -79,8 +97,10 @@ describe("development team reward panel", () => {
     const published = calls.find(({ init }) => init.method === "POST");
     expect(JSON.parse(String(published?.init.body))).toEqual({
       definitionId: "team-celebration-v1",
-      startsOn: "2026-09-01",
-      endsOn: "2026-09-07",
+      title: "Pizza party",
+      description: "Celebrate together after practice.",
+      startsOn: "2026-08-30",
+      endsOn: "2026-09-05",
       requiredDays: 4,
       minimumRosterPercent: 80,
     });
@@ -89,11 +109,55 @@ describe("development team reward panel", () => {
     ).toBeTruthy();
   });
 
+  it("identifies and focuses a missing required date", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init: RequestInit = {}) => {
+        if (url.endsWith("v1/staff/teams/team-1")) {
+          return Response.json({ timeZone: "America/Chicago" });
+        }
+        if (url.endsWith("team-reward-definitions")) {
+          return Response.json({
+            definitions: [
+              {
+                id: "team-celebration-v1",
+                version: 1,
+                title: "Team celebration",
+                description: "Celebrate together at a future team gathering.",
+                artworkId: "celebration-stars",
+              },
+            ],
+          });
+        }
+        if (url.endsWith("/team-reward") && init.method === "GET") {
+          return Response.json({}, { status: 404 });
+        }
+        return Response.json({});
+      }),
+    );
+    render(
+      <TeamRewardPanel
+        teamId="team-1"
+        now={new Date("2026-08-30T18:00:00Z")}
+      />,
+    );
+    const start = await screen.findByLabelText("Starts on");
+    fireEvent.change(start, { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "Publish reward" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Choose a start date.",
+    );
+    expect(start).toHaveFocus();
+  });
+
   it("shows aggregate progress and can cancel the active reward", async () => {
     let cancelled = false;
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string, init: RequestInit = {}) => {
+        if (url.endsWith("v1/staff/teams/team-1")) {
+          return Response.json({ timeZone: "America/Chicago" });
+        }
         if (url.endsWith("team-reward-definitions")) {
           return Response.json({ definitions: [] });
         }
@@ -123,7 +187,12 @@ describe("development team reward panel", () => {
       }),
     );
 
-    render(<TeamRewardPanel teamId="team-1" />);
+    render(
+      <TeamRewardPanel
+        teamId="team-1"
+        now={new Date("2026-08-30T18:00:00Z")}
+      />,
+    );
     expect(
       await screen.findByText("2 of 4 qualifying days"),
     ).toBeInTheDocument();

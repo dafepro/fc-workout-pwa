@@ -1,4 +1,4 @@
-import { TeamRewardPanel } from "../../../console/team/TeamRewardPanel.dev";
+import { TeamRewardPanel } from "../../../console/team/TeamRewardPanel";
 
 export default async function CoachTeamRewardPage({
   params,

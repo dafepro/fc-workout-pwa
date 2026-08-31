@@ -28,6 +28,11 @@ interface RequestOptions {
   idempotencyKey?: string;
 }
 
+interface FormRequestOptions {
+  method?: string;
+  body: FormData;
+}
+
 /**
  * Every console request goes through a same-origin gateway under `/staff/`,
  * which is the only thing that holds the session token. Which of the two it
@@ -43,6 +48,19 @@ export async function consoleRequest<T>(
   return send<T>(`${gateway}${path}${queryString(options.query)}`, options);
 }
 
+export async function consoleFormRequest<T>(
+  path: string,
+  options: FormRequestOptions,
+): Promise<T> {
+  const method = options.method ?? "POST";
+  const gateway = gatewayFor(method, path);
+  return sendRequest<T>(`${gateway}${path}`, {
+    method,
+    cache: "no-store",
+    body: options.body,
+  });
+}
+
 /** The auth routes sit beside the gateway rather than behind it, because they
  * are the ones that write and clear the session cookie. */
 export async function consoleAuthRequest<T>(
@@ -53,15 +71,18 @@ export async function consoleAuthRequest<T>(
 }
 
 async function send<T>(url: string, options: RequestOptions): Promise<T> {
+  return sendRequest<T>(url, {
+    method: options.method ?? "GET",
+    cache: "no-store",
+    headers: requestHeaders(options),
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+  });
+}
+
+async function sendRequest<T>(url: string, init: RequestInit): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(url, {
-      method: options.method ?? "GET",
-      cache: "no-store",
-      headers: requestHeaders(options),
-      body:
-        options.body === undefined ? undefined : JSON.stringify(options.body),
-    });
+    response = await fetch(url, init);
   } catch {
     throw new ConsoleError(0, "unreachable", consoleCopy.loadFailed);
   }

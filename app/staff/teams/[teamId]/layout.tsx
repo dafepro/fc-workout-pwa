@@ -1,6 +1,5 @@
 import { ReactNode } from "react";
 
-import { developmentBuild } from "../../../build-profile";
 import { requireStaffSession } from "../../guard";
 import { routes } from "../../../content/routes";
 import { consoleCopy } from "../../console/copy";
@@ -20,7 +19,7 @@ export default async function CoachTeamLayout({
     <TeamShell
       teamId={teamId}
       back={{ href: routes.staffConsoleHome, label: consoleCopy.home.teams }}
-      sections={coachSections(teamId, developmentBuild)}
+      sections={coachSections(teamId)}
     >
       {children}
     </TeamShell>

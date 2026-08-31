@@ -806,6 +806,15 @@
   white-space: nowrap;
 }
 
+.team-week-focus__reward-image {
+  width: 100%;
+  max-height: 12rem;
+  margin-top: 0.65rem;
+  border-radius: 0.85rem;
+  object-fit: cover;
+  aspect-ratio: 3 / 2;
+}
+
 .team-week-focus__progress-copy {
   display: flex;
   min-width: 0;

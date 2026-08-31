@@ -2,7 +2,6 @@ import {
   backendHeaders,
   forwardedHeaders,
   jsonError,
-  limitedBody,
   sameOrigin,
 } from "../../api/backend";
 import { readStaffCookie } from "./staff-cookie";
@@ -60,10 +59,16 @@ export async function proxyToBackend(
   if (contentType) headers.set("Content-Type", contentType);
   const idempotencyKey = request.headers.get("idempotency-key");
   if (idempotencyKey) headers.set("Idempotency-Key", idempotencyKey);
-  let body: string | undefined;
+  let body: ArrayBuffer | undefined;
   if (request.method !== "GET" && request.method !== "DELETE") {
     try {
-      body = await limitedBody(request, 32 * 1024);
+      const maximum = contentType?.startsWith("multipart/form-data")
+        ? 3 * 1024 * 1024 + 64 * 1024
+        : 32 * 1024;
+      const declared = Number(request.headers.get("content-length") ?? 0);
+      if (declared > maximum) throw new Error("request_too_large");
+      body = await request.arrayBuffer();
+      if (body.byteLength > maximum) throw new Error("request_too_large");
     } catch {
       return jsonError(413, "request_too_large", "The request is too large.");
     }
@@ -78,8 +83,12 @@ export async function proxyToBackend(
   } catch {
     return unavailable();
   }
-  const text = await response.text();
-  return new Response(text || null, {
+  const responseBody = response.headers
+    .get("content-type")
+    ?.startsWith("image/")
+    ? await response.arrayBuffer()
+    : await response.text();
+  return new Response(responseBody || null, {
     status: response.status,
     headers: forwardedHeaders(response),
   });

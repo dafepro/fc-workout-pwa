@@ -29,6 +29,10 @@ const allowed = [
   { method: "DELETE", pattern: /^v1\/training-entries\/[^/]+$/ },
   { method: "GET", pattern: /^v1\/teams\/[^/]+\/activity$/ },
   { method: "GET", pattern: /^v1\/teams\/[^/]+\/hub$/ },
+  {
+    method: "GET",
+    pattern: /^v1\/teams\/[^/]+\/reward-media\/[^/]+$/,
+  },
   { method: "GET", pattern: /^v1\/teams\/[^/]+\/leaderboards$/ },
   { method: "POST", pattern: /^v1\/teams\/[^/]+\/lounge\/socket-ticket$/ },
   { method: "POST", pattern: /^v1\/teams\/[^/]+\/lounge\/placements$/ },
@@ -110,11 +114,16 @@ async function proxy(request: Request) {
       "ZoomiGo is temporarily unavailable.",
     );
   }
-  let responseBody = await response.text();
-  if (response.ok && /\/lounge\/socket-ticket$/u.test(path)) {
+  const mediaResponse = response.headers
+    .get("content-type")
+    ?.startsWith("image/");
+  let responseBody: string | ArrayBuffer = mediaResponse
+    ? await response.arrayBuffer()
+    : await response.text();
+  if (!mediaResponse && response.ok && /\/lounge\/socket-ticket$/u.test(path)) {
     try {
       responseBody = JSON.stringify({
-        ...(JSON.parse(responseBody) as Record<string, unknown>),
+        ...(JSON.parse(responseBody as string) as Record<string, unknown>),
         serverUrl: baseURL,
       });
     } catch {

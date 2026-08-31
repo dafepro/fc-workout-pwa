@@ -67,8 +67,8 @@ func TestFinalFeatureMigrationsUpgradePopulatedMainSchema(t *testing.T) {
 	if err = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM schema_migrations`).Scan(&migrationsApplied); err != nil {
 		t.Fatal(err)
 	}
-	if entries != 1 || migrationsApplied != 20 {
-		t.Fatalf("entries=%d migrations=%d, want 1 and 20", entries, migrationsApplied)
+	if entries != 1 || migrationsApplied != 21 {
+		t.Fatalf("entries=%d migrations=%d, want 1 and 21", entries, migrationsApplied)
 	}
 
 	for _, table := range []string{

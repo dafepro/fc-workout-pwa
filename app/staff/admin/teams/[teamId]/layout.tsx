@@ -1,6 +1,5 @@
 import { ReactNode } from "react";
 
-import { developmentBuild } from "../../../../build-profile";
 import { requireOperator } from "../../guard";
 import { routes } from "../../../../content/routes";
 import { consoleCopy } from "../../../console/copy";
@@ -20,7 +19,7 @@ export default async function OperatorTeamLayout({
     <TeamShell
       teamId={teamId}
       back={{ href: routes.staffAdminTeams, label: consoleCopy.teams.title }}
-      sections={operatorSections(teamId, developmentBuild)}
+      sections={operatorSections(teamId)}
     >
       {children}
     </TeamShell>
