@@ -132,7 +132,24 @@ describe("Avatar with a configuration", () => {
       "avatar-art__layer avatar-art__layer--head",
       "avatar-art__layer avatar-art__layer--hat",
       "avatar-art__layer avatar-art__layer--eyewear",
+      "avatar-art__layer avatar-art__layer--border",
     ]);
+  });
+
+  it("clips every icon layer to the circular portrait boundary", () => {
+    const { container } = render(<AvatarArt config={defaultAvatar()} />);
+
+    expect(container.querySelector("clipPath circle")).toHaveAttribute(
+      "r",
+      "32",
+    );
+    expect(container.querySelector(".avatar-art__crop")).toHaveAttribute(
+      "clip-path",
+      expect.stringMatching(/^url\(#.+\)$/u),
+    );
+    expect(
+      container.querySelector(".avatar-art__crop .avatar-kit__body"),
+    ).toBeInTheDocument();
   });
 
   it("uses a taller crop for the Studio without changing icon framing", () => {
@@ -288,11 +305,12 @@ describe("the catalog and the art registry", () => {
     expect(AVATAR_LAYERS.some((layer) => layer.kind === "eyewear")).toBe(true);
   });
 
-  it("has one solid background style and an animated effect", () => {
+  it("has one solid background style, animated effects, and two border styles", () => {
     const background = AVATAR_LAYERS.find(
       (layer) => layer.kind === "background",
     )!;
     const effect = AVATAR_LAYERS.find((layer) => layer.kind === "effect")!;
+    const border = AVATAR_LAYERS.find((layer) => layer.kind === "border")!;
     expect(background.options.map(({ id }) => id)).toEqual(["solid"]);
     expect(effect.options.map(({ id }) => id)).toEqual([
       "none",
@@ -302,6 +320,27 @@ describe("the catalog and the art registry", () => {
       "aurora",
       "meteor-shower",
     ]);
+    expect(border.options.map(({ id }) => id)).toEqual([
+      "none",
+      "plain",
+      "running-gradient",
+    ]);
+
+    const { container } = render(
+      <AvatarArt
+        config={normalizeAvatar({
+          border: "running-gradient",
+          borderPalette: "#112233:#abcdef",
+        })}
+      />,
+    );
+    expect(container.querySelector(".avatar-border--running")).toBeVisible();
+    expect(
+      container.querySelector('.avatar-border [stroke="#112233"]'),
+    ).toBeInTheDocument();
+    expect(
+      container.querySelector('.avatar-border [stroke="#abcdef"]'),
+    ).toBeInTheDocument();
   });
 
   it("uses a symmetric kit shoulder path", () => {

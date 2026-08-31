@@ -15,7 +15,7 @@ function byKind(config: Parameters<typeof resolveAvatar>[0]) {
 }
 
 describe("isAvatarConfiguration", () => {
-  it("accepts only a complete version 4 catalog configuration", () => {
+  it("accepts only a complete version 5 catalog configuration", () => {
     expect(isAvatarConfiguration(defaultAvatar())).toBe(true);
   });
 
@@ -36,7 +36,7 @@ describe("isAvatarConfiguration", () => {
 });
 
 describe("resolveAvatar", () => {
-  it("resolves every version 4 layer", () => {
+  it("resolves every version 5 layer", () => {
     const layers = byKind(defaultAvatar());
     expect(layers.background.id).toBe("solid");
     expect(layers.effect.id).toBe("none");
@@ -44,6 +44,7 @@ describe("resolveAvatar", () => {
     expect(layers.head.id).toBe("person-round");
     expect(layers.hat.id).toBe("none");
     expect(layers.eyewear.id).toBe("none");
+    expect(layers.border.id).toBe("none");
   });
 
   it("uses the stored solid background color", () => {
@@ -75,7 +76,7 @@ describe("resolveAvatar", () => {
 });
 
 describe("normalizeAvatar", () => {
-  it("creates the canonical version 4 shape within the server key limit", () => {
+  it("creates the canonical version 5 shape within the server key limit", () => {
     expect(normalizeAvatar({ head: "person-tall" })).toEqual({
       version: AVATAR_CONFIG_VERSION,
       background: "solid",
@@ -84,13 +85,15 @@ describe("normalizeAvatar", () => {
       head: "person-tall",
       hat: "none",
       eyewear: "none",
+      border: "none",
       headPalette: "#66d0ff:#302c61",
       kitPalette: "#6954ee:#c8f52a",
       hatPalette: "#302c61:#66d0ff",
       eyewearPalette: "#f3ad16:#241d3d",
+      borderPalette: "#c8f52a:#66d0ff",
       backgroundColor: "#755ee8",
     });
-    expect(Object.keys(defaultAvatar())).toHaveLength(12);
+    expect(Object.keys(defaultAvatar())).toHaveLength(14);
   });
 
   it("drops unknown keys and replaces unknown ids with defaults", () => {
@@ -114,6 +117,7 @@ describe("layerPalette", () => {
     const config = normalizeAvatar({
       headPalette: "#112233:#445566",
       kitPalette: "#abcdef:#123456",
+      borderPalette: "#112233:#abcdef",
     });
     expect(layerPalette(config, "headPalette")).toEqual({
       color: "#112233",
@@ -122,6 +126,10 @@ describe("layerPalette", () => {
     expect(layerPalette(config, "kitPalette")).toEqual({
       color: "#abcdef",
       accent: "#123456",
+    });
+    expect(layerPalette(config, "borderPalette")).toEqual({
+      color: "#112233",
+      accent: "#abcdef",
     });
   });
 });

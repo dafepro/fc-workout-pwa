@@ -20,7 +20,7 @@ func TestNormalizeAvatarConfiguration(t *testing.T) {
 		{name: "empty configuration keeps an object", raw: map[string]string{}, want: "{}", valid: true},
 		{name: "nil configuration keeps an object", raw: nil, want: "{}", valid: true},
 		{name: "unknown but well-formed slug is stored", raw: map[string]string{"head": "future-part"}, want: `{"head":"future-part"}`, valid: true},
-		{name: "v4 client configuration", raw: v4AvatarConfiguration(), valid: true},
+		{name: "v5 client configuration", raw: v5AvatarConfiguration(), valid: true},
 		{name: "camel case color key", raw: map[string]string{"backgroundColor": "#755ee8"}, want: `{"backgroundColor":"#755ee8"}`, valid: true},
 		{name: "two color palette", raw: map[string]string{"headPalette": "#66d0ff:#302c61"}, want: `{"headPalette":"#66d0ff:#302c61"}`, valid: true},
 		{name: "value with uppercase", raw: map[string]string{"head": "Cheetah"}},
@@ -32,8 +32,8 @@ func TestNormalizeAvatarConfiguration(t *testing.T) {
 		{name: "key with a hyphen", raw: map[string]string{"head-part": "cheetah"}},
 		{name: "key starting with a digit", raw: map[string]string{"1head": "cheetah"}},
 		{name: "empty key", raw: map[string]string{"": "cheetah"}},
-		{name: "too many layers", raw: manyAvatarLayers(13)},
-		{name: "at the layer ceiling", raw: manyAvatarLayers(12), valid: true},
+		{name: "too many layers", raw: manyAvatarLayers(15)},
+		{name: "at the layer ceiling", raw: manyAvatarLayers(14), valid: true},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			stored, err := domain.NormalizeAvatarConfiguration(testCase.raw)
@@ -56,19 +56,21 @@ func TestNormalizeAvatarConfiguration(t *testing.T) {
 	}
 }
 
-func v4AvatarConfiguration() map[string]string {
+func v5AvatarConfiguration() map[string]string {
 	return map[string]string{
-		"version":         "4",
+		"version":         "5",
 		"background":      "solid",
 		"effect":          "pulse",
 		"kit":             "violet",
 		"head":            "person-round",
 		"hat":             "cap",
 		"eyewear":         "round",
+		"border":          "running-gradient",
 		"headPalette":     "#66d0ff:#302c61",
 		"kitPalette":      "#6954ee:#c8f52a",
 		"hatPalette":      "#302c61:#66d0ff",
 		"eyewearPalette":  "#f3ad16:#241d3d",
+		"borderPalette":   "#c8f52a:#66d0ff",
 		"backgroundColor": "#755ee8",
 	}
 }
@@ -77,7 +79,7 @@ func v4AvatarConfiguration() map[string]string {
 // individually legal, so this uses the longest permitted key and value.
 func TestNormalizeAvatarConfigurationRejectsAnOversizeDocument(t *testing.T) {
 	raw := map[string]string{}
-	for index := range 12 {
+	for index := range 14 {
 		raw[string(rune('a'+index))+strings.Repeat("q", 23)] = strings.Repeat("z", 24)
 	}
 	if _, err := domain.NormalizeAvatarConfiguration(raw); !errors.Is(err, domain.ErrInvalidAvatarConfiguration) {

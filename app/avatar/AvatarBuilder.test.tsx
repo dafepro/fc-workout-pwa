@@ -155,17 +155,19 @@ describe("AvatarBuilder", () => {
     fireEvent.click(screen.getByRole("button", { name: copy.avatar.save }));
 
     expect(onSave).toHaveBeenCalledWith({
-      version: "4",
+      version: "5",
       background: "solid",
       effect: "none",
       kit: "violet",
       head: "person-round",
       hat: "cap",
       eyewear: "round",
+      border: "none",
       headPalette: "#66d0ff:#302c61",
       kitPalette: "#6954ee:#c8f52a",
       hatPalette: "#302c61:#66d0ff",
       eyewearPalette: "#f3ad16:#241d3d",
+      borderPalette: "#c8f52a:#66d0ff",
       backgroundColor: "#755ee8",
     });
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
@@ -215,7 +217,7 @@ describe("AvatarBuilder", () => {
     expect(screen.queryByRole("dialog", { name: "Person color" })).toBeNull();
   });
 
-  it("groups Color and FX under Background and applies pulse", () => {
+  it("groups Color, FX, and Border under Background", () => {
     const { container } = renderBuilder();
     openCategory(copy.avatar.categories.background);
     expect(
@@ -224,9 +226,18 @@ describe("AvatarBuilder", () => {
     expect(
       screen.getByRole("group", { name: copy.avatar.legends.effect }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("group", { name: copy.avatar.legends.border }),
+    ).toBeInTheDocument();
     pick(copy.avatar.options.effect.pulse);
     expect(
       container.querySelector(".avatar-builder__preview .avatar-effect--pulse"),
+    ).toBeInTheDocument();
+    pick(copy.avatar.options.border.runningGradient);
+    expect(
+      container.querySelector(
+        ".avatar-builder__preview .avatar-border--running",
+      ),
     ).toBeInTheDocument();
   });
 

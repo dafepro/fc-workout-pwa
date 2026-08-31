@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	maxAvatarLayers    = 12
+	maxAvatarLayers    = 14
 	maxAvatarJSONBytes = 512
 )
 

@@ -1,0 +1,16 @@
+export const animatedBorderAvatar = {
+  version: "5",
+  background: "solid",
+  effect: "orbit",
+  kit: "violet",
+  head: "person-round",
+  hat: "none",
+  eyewear: "none",
+  border: "running-gradient",
+  headPalette: "#66d0ff:#302c61",
+  kitPalette: "#6954ee:#c8f52a",
+  hatPalette: "#302c61:#66d0ff",
+  eyewearPalette: "#f3ad16:#241d3d",
+  borderPalette: "#22aacc:#f3ad16",
+  backgroundColor: "#755ee8",
+} as const;

@@ -1,3 +1,5 @@
+import { useId } from "react";
+
 import { LAYER_ART } from "./art";
 import { resolveAvatar } from "./config";
 import type {
@@ -10,14 +12,25 @@ export function AvatarArt({
   config,
   framing = "icon",
   background = "configured",
+  layerKinds,
 }: {
   config: AvatarConfiguration;
   framing?: "icon" | "studio";
   background?: "configured" | "transparent";
+  layerKinds?: readonly AvatarLayerKind[];
 }) {
+  const clipPathID = `avatar-crop-${useId().replaceAll(":", "")}`;
   const layers = resolveAvatar(config).filter(
-    ({ kind }) => background === "configured" || kind !== "background",
+    ({ kind }) =>
+      (background === "configured" || kind !== "background") &&
+      (!layerKinds || layerKinds.includes(kind)),
   );
+
+  const artwork = layers.map(({ kind, option }) => (
+    <g key={kind} className={`avatar-art__layer avatar-art__layer--${kind}`}>
+      {LAYER_ART[kind](option, config)}
+    </g>
+  ));
 
   return (
     <svg
@@ -26,14 +39,20 @@ export function AvatarArt({
       aria-hidden="true"
       focusable="false"
     >
-      {layers.map(({ kind, option }) => (
-        <g
-          key={kind}
-          className={`avatar-art__layer avatar-art__layer--${kind}`}
-        >
-          {LAYER_ART[kind](option, config)}
-        </g>
-      ))}
+      {framing === "icon" ? (
+        <>
+          <defs>
+            <clipPath id={clipPathID}>
+              <circle cx="32" cy="32" r="32" />
+            </clipPath>
+          </defs>
+          <g className="avatar-art__crop" clipPath={`url(#${clipPathID})`}>
+            {artwork}
+          </g>
+        </>
+      ) : (
+        artwork
+      )}
     </svg>
   );
 }
@@ -45,6 +64,7 @@ const PART_VIEW_BOX: Record<AvatarLayerKind, string> = {
   head: "8 7 48 49",
   hat: "8 5 48 30",
   eyewear: "10 20 44 26",
+  border: "0 0 64 64",
 };
 
 export function AvatarPartArt({

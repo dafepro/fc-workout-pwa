@@ -397,12 +397,14 @@ export const copy = {
       eyewear: "Glasses",
       background: "Color",
       effect: "FX",
+      border: "Border",
     },
     palette: {
       head: "Person",
       kit: "Kit",
       hat: "Hats",
       eyewear: "Glasses",
+      border: "Border",
       background: "Background",
       done: "Done",
       custom: (target: string) => `Custom ${target}`,
@@ -434,6 +436,11 @@ export const copy = {
       },
       background: {
         solid: "Solid",
+      },
+      border: {
+        none: "No border",
+        plain: "Plain color",
+        runningGradient: "Running gradient",
       },
       head: {
         dog: "Rover the dog",

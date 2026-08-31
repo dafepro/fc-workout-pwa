@@ -16,7 +16,7 @@ test.beforeEach(async () => {
   await api.dispose();
 });
 
-test("a player equips an owned Prize Box part in a v4 look", async ({
+test("a player equips an owned Prize Box part in a v5 look", async ({
   page,
 }) => {
   await openReadyPage(page, "/me");
@@ -67,6 +67,12 @@ test("a player equips an owned Prize Box part in a v4 look", async ({
   await page.getByRole("button", { name: "Background color" }).click();
   await page.getByRole("button", { name: "Gold" }).click();
   await page.getByRole("radio", { name: "Pulse effect" }).check();
+  await page.getByRole("radio", { name: "Running gradient" }).check();
+  await page.getByRole("button", { name: "Border color" }).click();
+  await page.getByRole("button", { name: "Aqua" }).click();
+  await page.getByRole("button", { name: "Done" }).click();
+  await page.getByRole("button", { name: "Border accent" }).click();
+  await page.getByRole("button", { name: "Sky" }).click();
   await expect(
     page.locator(".avatar-builder__preview .avatar-effect--pulse"),
   ).toBeVisible();
@@ -96,6 +102,9 @@ test("a player equips an owned Prize Box part in a v4 look", async ({
   ).toBeChecked();
   await page.getByRole("button", { name: "Background" }).click();
   await expect(page.getByRole("radio", { name: "Pulse effect" })).toBeChecked();
+  await expect(
+    page.getByRole("radio", { name: "Running gradient" }),
+  ).toBeChecked();
 });
 
 test("the Studio uses compact accessible controls without open text or upload", async ({

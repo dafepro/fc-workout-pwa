@@ -241,6 +241,7 @@ function BackgroundControls({
   onChange(key: string, value: string): void;
 }) {
   const effect = AVATAR_LAYERS.find(({ kind }) => kind === "effect")!;
+  const border = AVATAR_LAYERS.find(({ kind }) => kind === "border")!;
   return (
     <>
       <fieldset className="avatar-builder__sublayer">
@@ -260,6 +261,14 @@ function BackgroundControls({
         showLegend
         onChange={onChange}
         onChoose={(optionID) => onChange("effect", optionID)}
+      />
+      <LayerPicker
+        layer={border}
+        draft={draft}
+        unlockedOptionIDs={unlockedOptionIDs}
+        showLegend
+        onChange={onChange}
+        onChoose={(optionID) => onChange("border", optionID)}
       />
     </>
   );
@@ -411,6 +420,7 @@ function paletteName(key: AvatarPaletteKey): string {
     kitPalette: names.kit,
     hatPalette: names.hat,
     eyewearPalette: names.eyewear,
+    borderPalette: names.border,
   }[key];
 }
 

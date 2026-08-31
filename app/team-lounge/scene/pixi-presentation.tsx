@@ -118,7 +118,10 @@ function CurrentPlayerAvatar({ config }: { config: AvatarConfiguration }) {
       <circle cx="32" cy="32" r="35" fill="white" />
       <circle cx="32" cy="32" r="32.5" fill="#c8f52a" />
       <svg x="2" y="2" width="60" height="60" viewBox="0 0 64 64">
-        <AvatarArt config={config} background="transparent" />
+        <AvatarArt
+          config={config}
+          layerKinds={["background", "kit", "head", "hat", "eyewear"]}
+        />
       </svg>
     </svg>
   );

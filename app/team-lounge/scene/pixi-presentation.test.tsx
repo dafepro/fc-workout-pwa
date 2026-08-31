@@ -50,7 +50,10 @@ describe("Lounge Pixi presentation", () => {
     );
     const currentAvatarSVG = decodeSVG(currentSource?.src);
     expect(currentAvatarSVG).toContain("avatar-art__layer");
-    expect(currentAvatarSVG).not.toContain("avatar-art__layer--background");
+    expect(currentAvatarSVG).toContain("avatar-art__layer--background");
+    expect(currentAvatarSVG).not.toContain("avatar-art__layer--effect");
+    expect(currentAvatarSVG).not.toContain("avatar-art__layer--border");
+    expect(currentAvatarSVG).toContain("avatar-art__crop");
     expect(decodeSVG(teammateSource?.src)).toContain(">AR<");
   });
 

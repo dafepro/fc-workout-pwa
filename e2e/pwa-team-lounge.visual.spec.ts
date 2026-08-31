@@ -1,6 +1,7 @@
 import { expect, request, test } from "@playwright/test";
 
 import { openReadyPage } from "./app-ready";
+import { animatedBorderAvatar } from "./avatar-fixtures";
 
 const apiBaseURL = process.env.E2E_API_BASE_URL ?? "http://api:8080";
 const resetKey = process.env.E2E_RESET_KEY ?? "local-e2e-reset-only";
@@ -28,6 +29,11 @@ test.beforeEach(async () => {
     },
   });
   expect(completion.status()).toBe(201);
+  const avatar = await api.put("/v1/me/avatar", {
+    headers: { Authorization: "Bearer e2e-player-mason" },
+    data: { configuration: animatedBorderAvatar },
+  });
+  expect(avatar.status()).toBe(200);
   await api.dispose();
 });
 
@@ -56,7 +62,7 @@ test("the 320px Lounge keeps its approved visual states", async ({ page }) => {
 
   await expect(lounge).toHaveScreenshot("team-lounge-idle.png", {
     animations: "disabled",
-    maxDiffPixels: 4_000,
+    maxDiffPixels: 1_000,
   });
   await expect(
     lounge.getByRole("button", { name: "Mason C., you" }),
@@ -89,7 +95,7 @@ test("the 320px Lounge keeps its approved visual states", async ({ page }) => {
   });
   await expect(lounge).toHaveScreenshot("team-lounge-fullscreen.png", {
     animations: "disabled",
-    maxDiffPixels: 4_000,
+    maxDiffPixels: 1_000,
   });
   await lounge.getByRole("button", { name: "Exit full screen" }).click();
   await expect(lounge).not.toHaveAttribute("data-fullscreen");
@@ -100,7 +106,7 @@ test("the 320px Lounge keeps its approved visual states", async ({ page }) => {
   ).toBeVisible();
   await expect(lounge).toHaveScreenshot("team-lounge-react.png", {
     animations: "disabled",
-    maxDiffPixels: 4_000,
+    maxDiffPixels: 1_000,
   });
 
   await lounge.getByRole("button", { name: "Chat" }).click();
@@ -109,7 +115,7 @@ test("the 320px Lounge keeps its approved visual states", async ({ page }) => {
   ).toBeVisible();
   await expect(lounge).toHaveScreenshot("team-lounge-chat-sets.png", {
     animations: "disabled",
-    maxDiffPixels: 4_000,
+    maxDiffPixels: 1_000,
   });
 
   await lounge.getByRole("button", { name: "Standard" }).click();
@@ -118,7 +124,7 @@ test("the 320px Lounge keeps its approved visual states", async ({ page }) => {
   ).toBeVisible();
   await expect(lounge).toHaveScreenshot("team-lounge-chat-standard.png", {
     animations: "disabled",
-    maxDiffPixels: 4_000,
+    maxDiffPixels: 1_000,
   });
 
   await lounge.getByRole("button", { name: /^Items,/u }).click();
@@ -133,7 +139,7 @@ test("the 320px Lounge keeps its approved visual states", async ({ page }) => {
   );
   await expect(lounge).toHaveScreenshot("team-lounge-items-cannon.png", {
     animations: "disabled",
-    maxDiffPixels: 4_000,
+    maxDiffPixels: 1_000,
   });
   await lounge
     .getByRole("button", { name: "Close item picker" })
@@ -161,6 +167,6 @@ test("the 320px Lounge keeps its approved visual states", async ({ page }) => {
   await revealDock();
   await expect(lounge).toHaveScreenshot("team-lounge-stamp-editor.png", {
     animations: "disabled",
-    maxDiffPixels: 4_000,
+    maxDiffPixels: 1_000,
   });
 });
