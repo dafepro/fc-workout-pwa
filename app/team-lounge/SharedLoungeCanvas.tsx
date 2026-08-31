@@ -60,7 +60,10 @@ import {
   type TeamLoungeItemMutationKind,
   type TeamLoungeItemTransform,
 } from "./lounge-gateway";
-import { preserveNativeCanvasScroll } from "./native-canvas-scroll";
+import {
+  preserveNativeCanvasScroll,
+  relayAvatarPointerDown,
+} from "./native-canvas-scroll";
 import { beachBoardwalkAssets } from "./scene/assets";
 import {
   beachBoardwalkCanvas,
@@ -403,10 +406,11 @@ export function SharedLoungeCanvas({
           projectEntityVisual: presentation.projectEntityVisual,
         },
         spawnPointId: "arrival",
+        rates: { inputHz: 60 },
         pointer: {
           mode: "avatarDrag",
           deadZonePx: 2,
-          grabRadiusPx: 36,
+          grabRadiusPx: 44,
           flick: false,
         },
         hideDisabledAvatars: false,
@@ -443,7 +447,7 @@ export function SharedLoungeCanvas({
           );
           publishOverlays();
         },
-        { kinds: ["avatar", "item"], maxEntities: 200, maxHz: 30 },
+        { kinds: ["avatar", "item"], maxEntities: 200, maxHz: 60 },
       );
       unsubscribeLifecycle = runtime.subscribeLifecycle(({ state }) => {
         if (state === "reconnecting") onStateChange("loading");
@@ -814,12 +818,29 @@ export function SharedLoungeCanvas({
             className="team-lounge__shared-avatar"
             data-current={current || undefined}
             key={player.id}
-            role="img"
-            aria-label={`${player.firstName} ${player.lastInitial}${current ? ", you" : ""}`}
+            role={current ? undefined : "img"}
+            aria-label={
+              current ? undefined : `${player.firstName} ${player.lastInitial}`
+            }
             style={{
               transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
             }}
           >
+            {current ? (
+              <button
+                type="button"
+                className="team-lounge__avatar-grab-target"
+                aria-label={`${player.firstName} ${player.lastInitial}, you`}
+                title={copy.teamLounge.avatarMoveHint}
+                data-canvas-pointer-ignore="true"
+                onPointerDown={(event) => {
+                  const canvas = mountRef.current?.querySelector("canvas");
+                  if (canvas) {
+                    relayAvatarPointerDown(canvas, event.nativeEvent);
+                  }
+                }}
+              />
+            ) : null}
             <span>{current ? "You" : player.firstName}</span>
             {activeReaction?.playerID === player.id &&
             activeReaction.kind === "emote" ? (

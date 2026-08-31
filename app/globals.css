@@ -4393,24 +4393,32 @@ h2 {
   pointer-events: none;
 }
 
-.team-lounge__shared-avatar .avatar {
+.team-lounge__avatar-grab-target {
   position: absolute;
   top: 0;
   left: 0;
-  width: 2.85rem;
-  height: 2.85rem;
-  border: 0.18rem solid white;
-  box-shadow: 0 0.35rem 0.9rem rgb(7 28 37 / 34%);
+  width: 5.5rem;
+  height: 5.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
   transform: translate(-50%, -50%);
-}
-
-.team-lounge__shared-avatar[data-current="true"] .avatar {
   pointer-events: auto;
   touch-action: none;
+  cursor: grab;
 }
 
-.team-lounge__avatar-fallback .avatar__self-marker,
-.team-lounge__shared-avatar .avatar__self-marker {
+.team-lounge__avatar-grab-target:active {
+  cursor: grabbing;
+}
+
+.team-lounge__avatar-grab-target:focus-visible {
+  outline: 0.2rem solid #c8f52a;
+  outline-offset: -0.35rem;
+}
+
+.team-lounge__avatar-fallback .avatar__self-marker {
   display: none;
 }
 

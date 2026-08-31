@@ -48,7 +48,9 @@ describe("Lounge Pixi presentation", () => {
     const teammateSource = presentation.assets.sources.find(
       ({ id }) => id === "lounge-avatar-source-1",
     );
-    expect(decodeSVG(currentSource?.src)).toContain("avatar-art__layer");
+    const currentAvatarSVG = decodeSVG(currentSource?.src);
+    expect(currentAvatarSVG).toContain("avatar-art__layer");
+    expect(currentAvatarSVG).not.toContain("avatar-art__layer--background");
     expect(decodeSVG(teammateSource?.src)).toContain(">AR<");
   });
 

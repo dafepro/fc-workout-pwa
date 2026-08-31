@@ -58,6 +58,12 @@ test("the 320px Lounge keeps its approved visual states", async ({ page }) => {
     animations: "disabled",
     maxDiffPixels: 4_000,
   });
+  await expect(
+    lounge.getByRole("button", { name: "Mason C., you" }),
+  ).toHaveScreenshot("team-lounge-avatar.png", {
+    animations: "disabled",
+    maxDiffPixels: 100,
+  });
 
   await lounge.getByRole("button", { name: "Enter full screen" }).click();
   await expect(lounge).toHaveAttribute("data-fullscreen", "true");

@@ -711,6 +711,22 @@ test.describe("touch placement", () => {
     );
     await expect(currentAvatar.getByText("You")).toBeVisible();
     await expect(currentAvatar.locator(".avatar")).toHaveCount(0);
+    const avatarHandle = currentAvatar.getByRole("button", {
+      name: "Ava R., you",
+    });
+    await expect(avatarHandle).toBeVisible();
+    await expect
+      .poll(() =>
+        avatarHandle.evaluate((node) => {
+          const bounds = node.getBoundingClientRect();
+          return {
+            width: Math.round(bounds.width),
+            height: Math.round(bounds.height),
+            touchAction: getComputedStyle(node).touchAction,
+          };
+        }),
+      )
+      .toEqual({ width: 88, height: 88, touchAction: "none" });
     await expect
       .poll(() =>
         stage.locator("canvas").evaluate((node) => ({
@@ -814,12 +830,13 @@ test.describe("touch placement", () => {
     );
 
     const canvasBox = await stage.locator("canvas").boundingBox();
-    const playerBox = await currentAvatar.boundingBox();
+    const playerBox = await avatarHandle.boundingBox();
     expect(canvasBox).not.toBeNull();
     expect(playerBox).not.toBeNull();
     const destinationX = 35;
     const origin = {
-      x: playerBox!.x + playerBox!.width / 2,
+      // Start outside the visible sprite but within its thumb-sized handle.
+      x: playerBox!.x + playerBox!.width * 0.8,
       y: playerBox!.y + playerBox!.height / 2,
     };
     const destination = {

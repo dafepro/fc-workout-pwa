@@ -9,10 +9,16 @@ import type {
 export function AvatarArt({
   config,
   framing = "icon",
+  background = "configured",
 }: {
   config: AvatarConfiguration;
   framing?: "icon" | "studio";
+  background?: "configured" | "transparent";
 }) {
+  const layers = resolveAvatar(config).filter(
+    ({ kind }) => background === "configured" || kind !== "background",
+  );
+
   return (
     <svg
       viewBox={framing === "studio" ? "0 0 64 82" : "0 0 64 64"}
@@ -20,7 +26,7 @@ export function AvatarArt({
       aria-hidden="true"
       focusable="false"
     >
-      {resolveAvatar(config).map(({ kind, option }) => (
+      {layers.map(({ kind, option }) => (
         <g
           key={kind}
           className={`avatar-art__layer avatar-art__layer--${kind}`}

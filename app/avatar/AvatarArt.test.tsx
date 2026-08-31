@@ -148,6 +148,17 @@ describe("Avatar with a configuration", () => {
     expect(studio).toHaveClass("avatar-art--studio");
   });
 
+  it("can omit the profile-card background when art is embedded in a scene", () => {
+    const { container } = render(
+      <AvatarArt config={defaultAvatar()} background="transparent" />,
+    );
+
+    expect(
+      container.querySelector(".avatar-art__layer--background"),
+    ).toBeNull();
+    expect(container.querySelector(".avatar-art__layer--head")).not.toBeNull();
+  });
+
   it("renders an isolated part without the rest of the avatar", () => {
     const head = AVATAR_LAYERS.find((layer) => layer.kind === "head")!;
     const { container } = render(

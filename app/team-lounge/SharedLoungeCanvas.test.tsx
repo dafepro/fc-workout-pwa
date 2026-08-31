@@ -26,6 +26,8 @@ const runtime = vi.hoisted(() => ({
             userId?: string;
           }) => unknown;
         };
+        rates?: { inputHz?: number };
+        pointer?: { grabRadiusPx?: number };
       }
     | undefined,
   projectionSubscriptions: [] as Array<{
@@ -228,7 +230,7 @@ describe("Shared Lounge Canvas", () => {
     expect(onStateChange).toHaveBeenLastCalledWith("ownership-lost");
   });
 
-  it("uses the bounded projection only for UI overlays", async () => {
+  it("keeps local motion and its grab overlay at 60 Hz", async () => {
     const { container } = render(
       <AvatarIdentityProvider
         value={{ currentPlayerID: mason.id, avatarConfig: defaultAvatar() }}
@@ -248,7 +250,11 @@ describe("Shared Lounge Canvas", () => {
     );
     expect(
       runtime.projectionSubscriptions.map(({ options }) => options),
-    ).toEqual([expect.objectContaining({ maxEntities: 200, maxHz: 30 })]);
+    ).toEqual([expect.objectContaining({ maxEntities: 200, maxHz: 60 })]);
+    expect(runtime.options?.rates).toEqual({ inputHz: 60 });
+    expect(runtime.options?.pointer).toEqual(
+      expect.objectContaining({ grabRadiusPx: 44 }),
+    );
     await waitFor(() =>
       expect(
         container.querySelector(".team-lounge__shared-avatar"),
@@ -257,6 +263,52 @@ describe("Shared Lounge Canvas", () => {
     expect(
       container.querySelector(".team-lounge__shared-avatar .avatar"),
     ).toBeNull();
+    expect(
+      container.querySelector(".team-lounge__avatar-grab-target"),
+    ).toHaveAccessibleName("Mason C., you");
+    expect(
+      container.querySelector(".team-lounge__avatar-grab-target"),
+    ).toHaveAttribute("title", "Drag to move your avatar");
+  });
+
+  it("relays the larger avatar handle to Canvas without making the stage unscrollable", async () => {
+    const { container } = render(
+      <AvatarIdentityProvider
+        value={{ currentPlayerID: mason.id, avatarConfig: defaultAvatar() }}
+      >
+        <SharedLoungeCanvas
+          teamID="team-one"
+          player={mason}
+          roster={[mason]}
+          onStateChange={vi.fn()}
+          onPresenceChange={vi.fn()}
+        />
+      </AvatarIdentityProvider>,
+    );
+
+    await waitFor(() => expect(runtime.options).toBeDefined());
+    const stage = container.querySelector(".team-lounge__stage");
+    const canvas = document.createElement("canvas");
+    const received = vi.fn();
+    canvas.addEventListener("pointerdown", received);
+    stage?.appendChild(canvas);
+
+    const handle = await screen.findByRole("button", {
+      name: "Mason C., you",
+    });
+    const pointerDown = new PointerEvent("pointerdown", {
+      pointerId: 12,
+      pointerType: "touch",
+      clientX: 30,
+      clientY: 40,
+      bubbles: true,
+      cancelable: true,
+    });
+    handle.dispatchEvent(pointerDown);
+
+    expect(pointerDown.defaultPrevented).toBe(true);
+    expect(received).toHaveBeenCalledTimes(1);
+    expect(canvas.style.touchAction).toBe("pan-y");
   });
 
   it("gives participant and item artwork to the Pixi renderer", async () => {
