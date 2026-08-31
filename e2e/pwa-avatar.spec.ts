@@ -46,7 +46,7 @@ test("a player equips an owned Prize Box part in a v4 look", async ({
   await page.getByRole("button", { name: "Kit" }).click();
   await expect(
     page.getByRole("group", { name: "Kits" }).getByRole("radio"),
-  ).toHaveCount(10);
+  ).toHaveCount(12);
   await expect(
     page.locator(".avatar-builder__preview .avatar-art"),
   ).toHaveAttribute("viewBox", "0 0 64 82");
@@ -111,7 +111,7 @@ test("the Studio uses compact accessible controls without open text or upload", 
   await expect(builder.locator(".avatar-builder__tray")).toBeVisible();
 });
 
-test("the development Studio grants, equips, and persists the complete new reward pack", async ({
+test("the development Studio grants, equips, and persists the complete reward catalog", async ({
   page,
 }) => {
   const unlockResponsePromise = page.waitForResponse(
@@ -125,13 +125,19 @@ test("the development Studio grants, equips, and persists the complete new rewar
   for (const name of ["Night owl", "Piper the panda", "Leo the lion"]) {
     await expect(page.getByRole("radio", { name })).toBeEnabled();
   }
-  await page.getByRole("radio", { name: "Night owl" }).check();
+  for (const name of ["Prism dragon", "Moonlit axolotl"]) {
+    await expect(page.getByRole("radio", { name })).toBeEnabled();
+  }
+  await page.getByRole("radio", { name: "Moonlit axolotl" }).check();
 
   await page.getByRole("button", { name: "Kit" }).click();
   for (const name of ["Checkerboard kit", "Starburst kit"]) {
     await expect(page.getByRole("radio", { name })).toBeEnabled();
   }
-  await page.getByRole("radio", { name: "Starburst kit" }).check();
+  for (const name of ["Nebula armor kit", "Phoenix flight kit"]) {
+    await expect(page.getByRole("radio", { name })).toBeEnabled();
+  }
+  await page.getByRole("radio", { name: "Nebula armor kit" }).check();
 
   await page.getByRole("button", { name: "Gear" }).click();
   for (const name of [
@@ -139,36 +145,47 @@ test("the development Studio grants, equips, and persists the complete new rewar
     "Wizard hat",
     "Lightning glasses",
     "Heart glasses",
+    "Astronaut helmet",
+    "Crystal antler crown",
+    "Hologram visor",
+    "Clockwork goggles",
   ]) {
     await expect(page.getByRole("radio", { name })).toBeEnabled();
   }
-  await page.getByRole("radio", { name: "Wizard hat" }).check();
-  await page.getByRole("radio", { name: "Heart glasses" }).check();
+  await page.getByRole("radio", { name: "Astronaut helmet" }).check();
+  await page.getByRole("radio", { name: "Hologram visor" }).check();
 
   await page.getByRole("button", { name: "Background" }).click();
   await expect(
     page.getByRole("radio", { name: "Confetti effect" }),
   ).toBeEnabled();
-  await page.getByRole("radio", { name: "Confetti effect" }).check();
+  for (const name of ["Aurora ribbons", "Meteor shower"]) {
+    await expect(page.getByRole("radio", { name })).toBeEnabled();
+  }
+  await page.getByRole("radio", { name: "Aurora ribbons" }).check();
   await expect(
-    page.locator(".avatar-builder__preview .avatar-effect--animated rect"),
-  ).toHaveCount(6);
+    page.locator(".avatar-builder__preview .avatar-effect--aurora path"),
+  ).toHaveCount(4);
   await page.getByRole("button", { name: "Save" }).click();
 
   await expect(page).toHaveURL(/\/me$/);
   await page.getByRole("link", { name: "Customize avatar" }).click();
-  await expect(page.getByRole("radio", { name: "Night owl" })).toBeChecked();
+  await expect(
+    page.getByRole("radio", { name: "Moonlit axolotl" }),
+  ).toBeChecked();
   await page.getByRole("button", { name: "Kit" }).click();
   await expect(
-    page.getByRole("radio", { name: "Starburst kit" }),
+    page.getByRole("radio", { name: "Nebula armor kit" }),
   ).toBeChecked();
   await page.getByRole("button", { name: "Gear" }).click();
-  await expect(page.getByRole("radio", { name: "Wizard hat" })).toBeChecked();
   await expect(
-    page.getByRole("radio", { name: "Heart glasses" }),
+    page.getByRole("radio", { name: "Astronaut helmet" }),
+  ).toBeChecked();
+  await expect(
+    page.getByRole("radio", { name: "Hologram visor" }),
   ).toBeChecked();
   await page.getByRole("button", { name: "Background" }).click();
   await expect(
-    page.getByRole("radio", { name: "Confetti effect" }),
+    page.getByRole("radio", { name: "Aurora ribbons" }),
   ).toBeChecked();
 });

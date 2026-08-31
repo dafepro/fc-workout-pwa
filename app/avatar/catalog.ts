@@ -25,6 +25,12 @@ export const AVATAR_LAYERS: readonly AvatarLayerDefinition[] = [
         label: labels.effect.confetti,
         unlock: "advancement",
       },
+      { id: "aurora", label: labels.effect.aurora, unlock: "advancement" },
+      {
+        id: "meteor-shower",
+        label: labels.effect.meteorShower,
+        unlock: "advancement",
+      },
     ],
   },
   {
@@ -52,6 +58,16 @@ export const AVATAR_LAYERS: readonly AvatarLayerDefinition[] = [
         label: labels.kit.starburst,
         unlock: "advancement",
       },
+      {
+        id: "nebula-armor",
+        label: labels.kit.nebulaArmor,
+        unlock: "advancement",
+      },
+      {
+        id: "phoenix-flight",
+        label: labels.kit.phoenixFlight,
+        unlock: "advancement",
+      },
     ],
   },
   {
@@ -70,6 +86,16 @@ export const AVATAR_LAYERS: readonly AvatarLayerDefinition[] = [
       { id: "owl", label: labels.head.owl, unlock: "advancement" },
       { id: "panda", label: labels.head.panda, unlock: "advancement" },
       { id: "lion", label: labels.head.lion, unlock: "advancement" },
+      {
+        id: "prism-dragon",
+        label: labels.head.prismDragon,
+        unlock: "advancement",
+      },
+      {
+        id: "moon-axolotl",
+        label: labels.head.moonAxolotl,
+        unlock: "advancement",
+      },
     ],
   },
   {
@@ -86,6 +112,16 @@ export const AVATAR_LAYERS: readonly AvatarLayerDefinition[] = [
       { id: "crown", label: labels.hat.crown },
       { id: "bucket", label: labels.hat.bucket, unlock: "advancement" },
       { id: "wizard", label: labels.hat.wizard, unlock: "advancement" },
+      {
+        id: "astronaut",
+        label: labels.hat.astronaut,
+        unlock: "advancement",
+      },
+      {
+        id: "crystal-antlers",
+        label: labels.hat.crystalAntlers,
+        unlock: "advancement",
+      },
     ],
   },
   {
@@ -108,6 +144,16 @@ export const AVATAR_LAYERS: readonly AvatarLayerDefinition[] = [
       {
         id: "hearts",
         label: labels.eyewear.hearts,
+        unlock: "advancement",
+      },
+      {
+        id: "hologram-visor",
+        label: labels.eyewear.hologramVisor,
+        unlock: "advancement",
+      },
+      {
+        id: "clockwork",
+        label: labels.eyewear.clockwork,
         unlock: "advancement",
       },
     ],

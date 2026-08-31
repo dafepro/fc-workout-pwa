@@ -91,14 +91,14 @@ describe("AvatarBuilder", () => {
     expect(
       screen.getByRole("radio", { name: /Rover the dog.*locked/i }),
     ).toBeDisabled();
-    expect(screen.getAllByText("🔒")).toHaveLength(6);
+    expect(screen.getAllByText("🔒")).toHaveLength(8);
 
     openCategory(copy.avatar.categories.kit);
-    expect(screen.getAllByText("🔒")).toHaveLength(2);
-    openCategory(copy.avatar.categories.gear);
     expect(screen.getAllByText("🔒")).toHaveLength(4);
+    openCategory(copy.avatar.categories.gear);
+    expect(screen.getAllByText("🔒")).toHaveLength(8);
     openCategory(copy.avatar.categories.background);
-    expect(screen.getAllByText("🔒")).toHaveLength(1);
+    expect(screen.getAllByText("🔒")).toHaveLength(3);
   });
 
   it("enables only the advancement part present in Prize Box inventory", () => {
@@ -108,7 +108,7 @@ describe("AvatarBuilder", () => {
     expect(
       screen.getByRole("radio", { name: /Zoomi the cheetah.*locked/i }),
     ).toBeDisabled();
-    expect(screen.getAllByText("🔒")).toHaveLength(5);
+    expect(screen.getAllByText("🔒")).toHaveLength(7);
   });
 
   it("enables all ten new rewards when their Prize Box assets are owned", () => {

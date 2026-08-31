@@ -190,6 +190,19 @@ describe("the catalog and the art registry", () => {
     ["effect", "confetti"],
   ] as const;
 
+  const rareUnlocks = [
+    ["head", "prism-dragon"],
+    ["head", "moon-axolotl"],
+    ["kit", "nebula-armor"],
+    ["kit", "phoenix-flight"],
+    ["hat", "astronaut"],
+    ["hat", "crystal-antlers"],
+    ["eyewear", "hologram-visor"],
+    ["eyewear", "clockwork"],
+    ["effect", "aurora"],
+    ["effect", "meteor-shower"],
+  ] as const;
+
   it("has art for every catalog option", () => {
     for (const layer of AVATAR_LAYERS) {
       for (const option of layer.options) {
@@ -217,7 +230,16 @@ describe("the catalog and the art registry", () => {
     expect(people.options.filter((option) => !option.unlock)).toHaveLength(3);
     expect(
       people.options.filter((option) => option.unlock).map(({ id }) => id),
-    ).toEqual(["dog", "cheetah", "fox", "owl", "panda", "lion"]);
+    ).toEqual([
+      "dog",
+      "cheetah",
+      "fox",
+      "owl",
+      "panda",
+      "lion",
+      "prism-dragon",
+      "moon-axolotl",
+    ]);
   });
 
   it("registers ten distinct advancement rewards with non-empty vector art", () => {
@@ -240,6 +262,27 @@ describe("the catalog and the art registry", () => {
     expect(new Set(signatures)).toHaveProperty("size", newUnlocks.length);
   });
 
+  it("registers ten highly detailed rare rewards with distinct vector art", () => {
+    const signatures = rareUnlocks.map(([kind, id]) => {
+      const layer = AVATAR_LAYERS.find((candidate) => candidate.kind === kind)!;
+      const option = layer.options.find((candidate) => candidate.id === id)!;
+      expect(option.unlock, `${kind}/${id}`).toBe("advancement");
+      const { container, unmount } = render(
+        <AvatarPartArt kind={kind} option={option} config={defaultAvatar()} />,
+      );
+      const signature = container.innerHTML;
+      expect(
+        container.querySelectorAll("path, circle, ellipse, rect, polygon, line")
+          .length,
+        `${kind}/${id}`,
+      ).toBeGreaterThanOrEqual(8);
+      unmount();
+      return signature;
+    });
+
+    expect(new Set(signatures)).toHaveProperty("size", rareUnlocks.length);
+  });
+
   it("keeps hats and glasses as independent paint layers", () => {
     expect(AVATAR_LAYERS.some((layer) => layer.kind === "hat")).toBe(true);
     expect(AVATAR_LAYERS.some((layer) => layer.kind === "eyewear")).toBe(true);
@@ -256,6 +299,8 @@ describe("the catalog and the art registry", () => {
       "orbit",
       "pulse",
       "confetti",
+      "aurora",
+      "meteor-shower",
     ]);
   });
 
