@@ -11,7 +11,9 @@ type KitPattern =
   | "hoops"
   | "keeper"
   | "split"
-  | "classic";
+  | "classic"
+  | "checkers"
+  | "starburst";
 
 function Kit({
   body,
@@ -94,6 +96,22 @@ function KitPatternArt({
       </>
     );
   }
+  if (pattern === "checkers") {
+    return (
+      <g fill={accent} opacity="0.9">
+        <path d="M17 57h8v8h-8zm16 0h8v8h-8zm-8 8h8v8h-8zm16 0h8v8h-8zm-24 8h8v8h-8zm16 0h8v8h-8z" />
+      </g>
+    );
+  }
+  if (pattern === "starburst") {
+    return (
+      <path
+        d="m32 56 2.6 7 7.4-2.4-4.2 6.4 6.2 4.5-7.7.2L36 79l-4-6.2-4 6.2-.3-7.3-7.7-.2 6.2-4.5-4.2-6.4 7.4 2.4z"
+        fill={accent}
+        opacity="0.92"
+      />
+    );
+  }
   return (
     <path d="m32 57-3.6 5.2h3.2L30 68l6-7.5h-3.4l1.6-3.5z" fill={accent} />
   );
@@ -116,4 +134,6 @@ export const KIT_ART: Record<
   keeper: (config) => renderKit(config, "keeper"),
   sunset: (config) => renderKit(config, "split"),
   classic: (config) => renderKit(config, "classic"),
+  checkers: (config) => renderKit(config, "checkers"),
+  starburst: (config) => renderKit(config, "starburst"),
 };

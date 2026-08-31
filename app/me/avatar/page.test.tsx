@@ -9,11 +9,18 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { defaultAvatar } from "../../avatar/config";
 import AvatarStudioPage from "./page";
 
-const { push, saveAvatar, inventory, markViewed } = vi.hoisted(() => ({
+const {
+  push,
+  saveAvatar,
+  inventory,
+  markViewed,
+  unlockDevelopmentCatalogItems,
+} = vi.hoisted(() => ({
   push: vi.fn(),
   saveAvatar: vi.fn().mockResolvedValue(undefined),
   inventory: vi.fn().mockResolvedValue([]),
   markViewed: vi.fn().mockResolvedValue(undefined),
+  unlockDevelopmentCatalogItems: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
@@ -25,6 +32,10 @@ vi.mock("../../state/auth-context", () => ({
     runtime: { prizeBoxes: { inventory, markViewed } },
   }),
 }));
+vi.mock("../../build-profile", () => ({ developmentBuild: true }));
+vi.mock("../../development/catalog-unlocks", () => ({
+  unlockDevelopmentCatalogItems,
+}));
 
 afterEach(() => {
   cleanup();
@@ -32,6 +43,7 @@ afterEach(() => {
   saveAvatar.mockClear();
   inventory.mockReset().mockResolvedValue([]);
   markViewed.mockReset().mockResolvedValue(undefined);
+  unlockDevelopmentCatalogItems.mockReset().mockResolvedValue(undefined);
 });
 
 describe("AvatarStudioPage", () => {
@@ -71,5 +83,9 @@ describe("AvatarStudioPage", () => {
       expect(markViewed).toHaveBeenCalledWith("avatar-head-dog"),
     );
     expect(inventory).toHaveBeenCalledWith(["avatar_part"]);
+    expect(unlockDevelopmentCatalogItems).toHaveBeenCalledTimes(1);
+    expect(
+      unlockDevelopmentCatalogItems.mock.invocationCallOrder[0],
+    ).toBeLessThan(inventory.mock.invocationCallOrder[0]!);
   });
 });

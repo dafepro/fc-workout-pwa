@@ -112,7 +112,11 @@ function AvatarBuilderEditor({
 
       <div className="avatar-builder__layer">
         {activeCategory === "background" ? (
-          <BackgroundControls draft={draft} onChange={update} />
+          <BackgroundControls
+            draft={draft}
+            unlockedOptionIDs={unlockedOptionIDs}
+            onChange={update}
+          />
         ) : (
           category.layerKinds.map((kind) => {
             const layer = AVATAR_LAYERS.find(
@@ -229,9 +233,11 @@ function LayerPaletteControl({
 
 function BackgroundControls({
   draft,
+  unlockedOptionIDs,
   onChange,
 }: {
   draft: AvatarConfiguration;
+  unlockedOptionIDs: ReadonlySet<string>;
   onChange(key: string, value: string): void;
 }) {
   const effect = AVATAR_LAYERS.find(({ kind }) => kind === "effect")!;
@@ -250,7 +256,7 @@ function BackgroundControls({
       <LayerPicker
         layer={effect}
         draft={draft}
-        unlockedOptionIDs={EMPTY_UNLOCKS}
+        unlockedOptionIDs={unlockedOptionIDs}
         showLegend
         onChange={onChange}
         onChoose={(optionID) => onChange("effect", optionID)}

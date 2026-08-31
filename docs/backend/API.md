@@ -159,8 +159,9 @@ POST /v1/staff/teams/{teamId}/training-plans/{planId}/reschedule
 
 `POST /__e2e/reset` requires the E2E-tagged build plus explicit configuration.
 `GET /__dev/access`, `POST /__dev/staff-session`, `POST /__dev/reset`, and
-`POST /__dev/me/lounge-unlocks` require development access. Production builds
-must not expose these capabilities.
+`POST /__dev/me/unlocks` grants the complete predefined catalog and requires
+development access or E2E fixture mode. Production builds must not expose these
+capabilities.
 
 Prometheus metrics use a separate private listener and `/metrics`; it is not a
 public API route.

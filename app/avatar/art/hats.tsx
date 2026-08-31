@@ -65,4 +65,50 @@ export const HAT_ART: Record<
       />
     );
   },
+  bucket: (config) => {
+    const { color, accent } = layerPalette(config, "hatPalette");
+    return (
+      <>
+        <path
+          d="M19 12h26l4 16H15z"
+          fill={color}
+          stroke={INK}
+          strokeWidth="1.4"
+          strokeLinejoin="round"
+        />
+        <path d="M18 20h28l1.5 6h-31z" fill={accent} opacity="0.9" />
+        <path
+          d="M11 28q21-7 42 0-2 6-21 3T11 28z"
+          fill={color}
+          stroke={INK}
+          strokeWidth="1.4"
+        />
+      </>
+    );
+  },
+  wizard: (config) => {
+    const { color, accent } = layerPalette(config, "hatPalette");
+    return (
+      <>
+        <path
+          d="m16 27 19-22 12 24z"
+          fill={color}
+          stroke={INK}
+          strokeWidth="1.4"
+          strokeLinejoin="round"
+        />
+        <path
+          d="m34 13 1.5 3 3.5.5-2.5 2.4.6 3.5-3.1-1.7-3.1 1.7.6-3.5-2.5-2.4 3.5-.5z"
+          fill={accent}
+        />
+        <circle cx="40" cy="24" r="2" fill={accent} />
+        <path
+          d="M11 29q21-7 42 0-3 6-21 3t-21-3z"
+          fill={accent}
+          stroke={INK}
+          strokeWidth="1.3"
+        />
+      </>
+    );
+  },
 };

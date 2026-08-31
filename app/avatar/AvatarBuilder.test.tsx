@@ -86,12 +86,19 @@ describe("AvatarBuilder", () => {
     ).toBeInTheDocument();
   });
 
-  it("disables advancement-locked animals", () => {
+  it("disables every advancement reward without inventory ownership", () => {
     renderBuilder();
     expect(
       screen.getByRole("radio", { name: /Rover the dog.*locked/i }),
     ).toBeDisabled();
-    expect(screen.getAllByText("🔒")).toHaveLength(3);
+    expect(screen.getAllByText("🔒")).toHaveLength(6);
+
+    openCategory(copy.avatar.categories.kit);
+    expect(screen.getAllByText("🔒")).toHaveLength(2);
+    openCategory(copy.avatar.categories.gear);
+    expect(screen.getAllByText("🔒")).toHaveLength(4);
+    openCategory(copy.avatar.categories.background);
+    expect(screen.getAllByText("🔒")).toHaveLength(1);
   });
 
   it("enables only the advancement part present in Prize Box inventory", () => {
@@ -101,7 +108,43 @@ describe("AvatarBuilder", () => {
     expect(
       screen.getByRole("radio", { name: /Zoomi the cheetah.*locked/i }),
     ).toBeDisabled();
-    expect(screen.getAllByText("🔒")).toHaveLength(2);
+    expect(screen.getAllByText("🔒")).toHaveLength(5);
+  });
+
+  it("enables all ten new rewards when their Prize Box assets are owned", () => {
+    renderBuilderWithUnlocks(
+      "owl",
+      "panda",
+      "lion",
+      "checkers",
+      "starburst",
+      "bucket",
+      "wizard",
+      "lightning",
+      "hearts",
+      "confetti",
+    );
+
+    for (const name of ["Night owl", "Piper the panda", "Leo the lion"]) {
+      expect(screen.getByRole("radio", { name })).toBeEnabled();
+    }
+    openCategory(copy.avatar.categories.kit);
+    for (const name of ["Checkerboard kit", "Starburst kit"]) {
+      expect(screen.getByRole("radio", { name })).toBeEnabled();
+    }
+    openCategory(copy.avatar.categories.gear);
+    for (const name of [
+      "Bucket hat",
+      "Wizard hat",
+      "Lightning glasses",
+      "Heart glasses",
+    ]) {
+      expect(screen.getByRole("radio", { name })).toBeEnabled();
+    }
+    openCategory(copy.avatar.categories.background);
+    expect(
+      screen.getByRole("radio", { name: "Confetti effect" }),
+    ).toBeEnabled();
   });
 
   it("equips a hat and glasses simultaneously", async () => {

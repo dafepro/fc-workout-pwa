@@ -76,7 +76,10 @@ Me owns private history and identity:
 
 Avatar Studio previews each layer independently, supports reviewed preset or
 custom colors within the validated shape, and saves the whole configuration.
-No profile field accepts free-form content.
+No profile field accepts free-form content. Advancement rewards remain disabled
+until owned through the Prize Box catalog. A development build grants the full
+catalog before loading the Studio so every reviewed part can be exercised on
+the disposable dev environment without changing production ownership.
 
 ## Authentication
 

@@ -86,22 +86,20 @@ func TestPrizeBoxesClaimSealedAndOpenWithoutRerolling(t *testing.T) {
 	}
 }
 
-func TestDevelopmentLoungeUnlockGrantIsPredefinedAndIdempotent(t *testing.T) {
+func TestDevelopmentCatalogUnlockGrantIsCompletePredefinedAndIdempotent(t *testing.T) {
 	repository, db := socialProjectionStore(t)
 	now := time.Date(2026, time.August, 29, 12, 0, 0, 0, time.UTC)
 	seedSocialProjection(t, db, now)
-	loungeCatalog := make(map[string]bool)
+	catalog := make(map[string]bool)
 	for _, item := range domain.PrizeCatalogItems() {
-		if item.Destination == domain.PrizeDestinationTeamLounge {
-			loungeCatalog[item.ID] = true
-		}
+		catalog[item.ID] = true
 	}
 
-	granted, err := repository.GrantDevelopmentLoungeUnlocks(t.Context(), "player-mason", now)
-	if err != nil || granted != len(loungeCatalog) {
+	granted, err := repository.GrantDevelopmentCatalogUnlocks(t.Context(), "player-mason", now)
+	if err != nil || granted != len(catalog) {
 		t.Fatalf("first development grant = %d, %v", granted, err)
 	}
-	granted, err = repository.GrantDevelopmentLoungeUnlocks(t.Context(), "player-mason", now.Add(time.Minute))
+	granted, err = repository.GrantDevelopmentCatalogUnlocks(t.Context(), "player-mason", now.Add(time.Minute))
 	if err != nil || granted != 0 {
 		t.Fatalf("replayed development grant = %d, %v", granted, err)
 	}
@@ -117,20 +115,20 @@ func TestDevelopmentLoungeUnlockGrantIsPredefinedAndIdempotent(t *testing.T) {
 		if err = rows.Scan(&itemID, &kind); err != nil {
 			t.Fatal(err)
 		}
-		if kind != "lounge_stamp" && kind != "lounge_prop" {
-			t.Fatalf("development Lounge grant included %s item %s", kind, itemID)
+		if kind != "avatar_part" && kind != "lounge_stamp" && kind != "lounge_prop" {
+			t.Fatalf("development catalog grant included %s item %s", kind, itemID)
 		}
 		grantedIDs[itemID] = true
 	}
 	if err = rows.Err(); err != nil {
 		t.Fatal(err)
 	}
-	if len(grantedIDs) != len(loungeCatalog) {
-		t.Fatalf("granted Lounge catalog = %v, want %v", grantedIDs, loungeCatalog)
+	if len(grantedIDs) != len(catalog) {
+		t.Fatalf("granted catalog = %v, want %v", grantedIDs, catalog)
 	}
-	for itemID := range loungeCatalog {
+	for itemID := range catalog {
 		if !grantedIDs[itemID] {
-			t.Fatalf("development Lounge grant omitted %s", itemID)
+			t.Fatalf("development catalog grant omitted %s", itemID)
 		}
 	}
 }

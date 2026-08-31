@@ -1,7 +1,9 @@
 export type PrizeBoxSource =
   | "daily_check_in"
   | "plan_participation_3"
-  | "plan_completion_7";
+  | "plan_completion_7"
+  | "included"
+  | "staff_grant";
 export type PrizeItemKind = "avatar_part" | "lounge_stamp" | "lounge_prop";
 export type PrizeRarity = "common" | "uncommon" | "rare" | "epic";
 

@@ -5,10 +5,10 @@ import Link from "next/link";
 
 import { copy } from "../content/copy";
 import { developmentBuild } from "../build-profile";
+import { unlockDevelopmentCatalogItems } from "../development/catalog-unlocks";
 import type { Player } from "../domain/types";
 import { LocalLoungeCanvas, type LoungeCanvasState } from "./LocalLoungeCanvas";
 import { SharedLoungeCanvas } from "./SharedLoungeCanvas";
-import { unlockDevelopmentLoungeItems } from "./lounge-development";
 import {
   beachBoardwalkAssets,
   starlightTrainingCampAssets,
@@ -132,7 +132,7 @@ export function TeamLounge({
             disabled={unlockState === "pending"}
             onClick={() => {
               setUnlockState("pending");
-              void unlockDevelopmentLoungeItems()
+              void unlockDevelopmentCatalogItems()
                 .then(() => {
                   setUnlockState("done");
                   setCanvasKey((key) => key + 1);

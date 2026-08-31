@@ -19,23 +19,23 @@ type prizeBoxRepository interface {
 	MarkPlayerUnlockViewed(context.Context, string, string, time.Time) (store.PlayerUnlock, error)
 }
 
-type developmentLoungeUnlockRepository interface {
-	GrantDevelopmentLoungeUnlocks(context.Context, string, time.Time) (int, error)
+type developmentCatalogUnlockRepository interface {
+	GrantDevelopmentCatalogUnlocks(context.Context, string, time.Time) (int, error)
 }
 
-func (service *service) grantDevelopmentLoungeUnlocks(w http.ResponseWriter, r *http.Request) {
+func (service *service) grantDevelopmentCatalogUnlocks(w http.ResponseWriter, r *http.Request) {
 	actor, ok := service.authenticate(w, r)
 	if !ok {
 		return
 	}
-	repository, ready := service.store.(developmentLoungeUnlockRepository)
+	repository, ready := service.store.(developmentCatalogUnlockRepository)
 	if actor.Role != domain.RolePlayer || actor.PlayerID == "" || !ready {
 		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
 		return
 	}
-	granted, err := repository.GrantDevelopmentLoungeUnlocks(r.Context(), actor.PlayerID, service.now().UTC())
+	granted, err := repository.GrantDevelopmentCatalogUnlocks(r.Context(), actor.PlayerID, service.now().UTC())
 	if err != nil {
-		writeError(w, r, http.StatusInternalServerError, "internal_error", "Development Lounge items could not be unlocked.")
+		writeError(w, r, http.StatusInternalServerError, "internal_error", "Development items could not be unlocked.")
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]int{"granted": granted})

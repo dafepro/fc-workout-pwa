@@ -32,21 +32,20 @@ afterEach(() => {
 });
 
 describe("Zoomigo API proxy", () => {
-  it("forwards the development Lounge catalog-unlock action", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(Response.json({ granted: 7 }));
+  it("forwards the complete development catalog-unlock action", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ granted: 20 }));
     vi.stubGlobal("fetch", fetchMock);
 
     const response = await POST(
-      new Request(
-        "https://dev.zoomigo.example/api/zoomigo/__dev/me/lounge-unlocks",
-        { method: "POST" },
-      ),
+      new Request("https://dev.zoomigo.example/api/zoomigo/__dev/me/unlocks", {
+        method: "POST",
+      }),
     );
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ granted: 7 });
+    expect(await response.json()).toEqual({ granted: 20 });
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://api:8080/__dev/me/lounge-unlocks",
+      "http://api:8080/__dev/me/unlocks",
       expect.objectContaining({
         method: "POST",
         headers: expect.any(Headers),

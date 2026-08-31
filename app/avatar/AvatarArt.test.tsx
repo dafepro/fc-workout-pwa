@@ -177,6 +177,19 @@ describe("Avatar with a configuration", () => {
 });
 
 describe("the catalog and the art registry", () => {
+  const newUnlocks = [
+    ["head", "owl"],
+    ["head", "panda"],
+    ["head", "lion"],
+    ["kit", "checkers"],
+    ["kit", "starburst"],
+    ["hat", "bucket"],
+    ["hat", "wizard"],
+    ["eyewear", "lightning"],
+    ["eyewear", "hearts"],
+    ["effect", "confetti"],
+  ] as const;
+
   it("has art for every catalog option", () => {
     for (const layer of AVATAR_LAYERS) {
       for (const option of layer.options) {
@@ -199,12 +212,32 @@ describe("the catalog and the art registry", () => {
     }
   });
 
-  it("starts with three people and advancement-locks animals", () => {
+  it("starts with three people and advancement-locks every reward head", () => {
     const people = AVATAR_LAYERS.find((layer) => layer.kind === "head")!;
     expect(people.options.filter((option) => !option.unlock)).toHaveLength(3);
     expect(
       people.options.filter((option) => option.unlock).map(({ id }) => id),
-    ).toEqual(["dog", "cheetah", "fox"]);
+    ).toEqual(["dog", "cheetah", "fox", "owl", "panda", "lion"]);
+  });
+
+  it("registers ten distinct advancement rewards with non-empty vector art", () => {
+    const signatures = newUnlocks.map(([kind, id]) => {
+      const layer = AVATAR_LAYERS.find((candidate) => candidate.kind === kind)!;
+      const option = layer.options.find((candidate) => candidate.id === id)!;
+      expect(option.unlock, `${kind}/${id}`).toBe("advancement");
+      const { container, unmount } = render(
+        <AvatarPartArt kind={kind} option={option} config={defaultAvatar()} />,
+      );
+      const signature = container.innerHTML;
+      expect(
+        container.querySelector("path, circle, ellipse, rect, polygon"),
+        `${kind}/${id}`,
+      ).toBeInTheDocument();
+      unmount();
+      return signature;
+    });
+
+    expect(new Set(signatures)).toHaveProperty("size", newUnlocks.length);
   });
 
   it("keeps hats and glasses as independent paint layers", () => {
@@ -222,6 +255,7 @@ describe("the catalog and the art registry", () => {
       "none",
       "orbit",
       "pulse",
+      "confetti",
     ]);
   });
 
