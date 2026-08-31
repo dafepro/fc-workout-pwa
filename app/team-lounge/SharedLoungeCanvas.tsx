@@ -406,7 +406,12 @@ export function SharedLoungeCanvas({
           projectEntityVisual: presentation.projectEntityVisual,
         },
         spawnPointId: "arrival",
-        rates: { inputHz: 60 },
+        rates: {
+          inputHz: 60,
+          deltaHz: 30,
+          keyframeHz: 2,
+          checkpointHz: 1,
+        },
         pointer: {
           mode: "avatarDrag",
           deadZonePx: 2,

@@ -26,7 +26,12 @@ const runtime = vi.hoisted(() => ({
             userId?: string;
           }) => unknown;
         };
-        rates?: { inputHz?: number };
+        rates?: {
+          inputHz?: number;
+          deltaHz?: number;
+          keyframeHz?: number;
+          checkpointHz?: number;
+        };
         pointer?: { grabRadiusPx?: number };
       }
     | undefined,
@@ -253,7 +258,12 @@ describe("Shared Lounge Canvas", () => {
     expect(
       runtime.projectionSubscriptions.map(({ options }) => options),
     ).toEqual([expect.objectContaining({ maxEntities: 200, maxHz: 60 })]);
-    expect(runtime.options?.rates).toEqual({ inputHz: 60 });
+    expect(runtime.options?.rates).toEqual({
+      inputHz: 60,
+      deltaHz: 30,
+      keyframeHz: 2,
+      checkpointHz: 1,
+    });
     expect(runtime.options?.pointer).toEqual(
       expect.objectContaining({ grabRadiusPx: 44 }),
     );

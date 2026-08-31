@@ -1,4 +1,4 @@
-import { expect, request, test } from "@playwright/test";
+import { expect, request, test, type Locator } from "@playwright/test";
 
 import { loginAsAva, openReadyPage } from "./app-ready";
 import {
@@ -9,6 +9,32 @@ import { loungePerformanceBudget } from "./lounge-performance-budget";
 
 const apiBaseURL = process.env.E2E_API_BASE_URL ?? "http://api:8080";
 const resetKey = process.env.E2E_RESET_KEY ?? "local-e2e-reset-only";
+
+function sampleAvatarXMotion(avatar: Locator, durationMs: number) {
+  return avatar.evaluate(
+    (node, duration) =>
+      new Promise<Array<{ elapsedMs: number; x: number }>>((resolve) => {
+        const samples: Array<{ elapsedMs: number; x: number }> = [];
+        const startedAt = performance.now();
+        const sample = () => {
+          const match = node
+            .getAttribute("style")
+            ?.match(/translate3d\(([-\d.]+)px/u);
+          samples.push({
+            elapsedMs: performance.now() - startedAt,
+            x: Number(match?.[1]),
+          });
+          if (performance.now() - startedAt >= duration) {
+            resolve(samples);
+            return;
+          }
+          requestAnimationFrame(sample);
+        };
+        sample();
+      }),
+    durationMs,
+  );
+}
 
 test.beforeEach(async () => {
   const api = await request.newContext({ baseURL: apiBaseURL });
@@ -1175,17 +1201,40 @@ test("two qualified players share Lounge presence and avatar movement", async ({
       });
     const startRemoteX = await overlayX(masonOnAvaPage);
 
+    const remoteMotion = sampleAvatarXMotion(masonOnAvaPage, 1_400);
+
     await page.mouse.move(
       masonCanvasBox!.x + masonCanvasBox!.width * (startWorldX / 100),
       masonCanvasBox!.y + masonCanvasBox!.height * (startWorldY / 150),
     );
     await page.mouse.down();
-    await page.mouse.move(
-      masonCanvasBox!.x + masonCanvasBox!.width * (targetWorldX / 100),
-      masonCanvasBox!.y + masonCanvasBox!.height * (startWorldY / 150),
-      { steps: 18 },
-    );
+    for (let step = 1; step <= 30; step += 1) {
+      const progress = step / 30;
+      await page.mouse.move(
+        masonCanvasBox!.x +
+          masonCanvasBox!.width *
+            ((startWorldX + (targetWorldX - startWorldX) * progress) / 100),
+        masonCanvasBox!.y + masonCanvasBox!.height * (startWorldY / 150),
+      );
+      await page.waitForTimeout(30);
+    }
     await page.mouse.up();
+
+    const remoteSamples = await remoteMotion;
+    const remoteChanges = remoteSamples.filter(
+      (sample, index) =>
+        index > 0 && Math.abs(sample.x - remoteSamples[index - 1]!.x) >= 0.05,
+    );
+    const longestRemoteFreeze = Math.max(
+      0,
+      ...remoteChanges
+        .slice(1)
+        .map(
+          (sample, index) => sample.elapsedMs - remoteChanges[index]!.elapsedMs,
+        ),
+    );
+    expect(longestRemoteFreeze).toBeLessThan(200);
+    expect(remoteChanges.length).toBeGreaterThanOrEqual(20);
 
     await expect
       .poll(async () =>
@@ -1204,6 +1253,61 @@ test("two qualified players share Lounge presence and avatar movement", async ({
     await expect
       .poll(async () => Number(await avaStage.getAttribute("data-ball-x")))
       .toBeGreaterThan(0);
+
+    const avaSelf = avaLounge
+      .locator(".team-lounge__shared-avatar")
+      .filter({ hasText: "You" });
+    const avaCanvas = avaStage.locator("canvas");
+    const avaCanvasBox = await avaCanvas.boundingBox();
+    expect(avaCanvasBox).not.toBeNull();
+    const avaStartWorldX = Number(await avaStage.getAttribute("data-player-x"));
+    const avaStartWorldY = Number(await avaStage.getAttribute("data-player-y"));
+    const avaTargetWorldX = Math.min(80, avaStartWorldX + 15);
+    const avaLocalMotion = sampleAvatarXMotion(avaSelf, 1_000);
+
+    await avaPage.mouse.move(
+      avaCanvasBox!.x + avaCanvasBox!.width * (avaStartWorldX / 100),
+      avaCanvasBox!.y + avaCanvasBox!.height * (avaStartWorldY / 150),
+    );
+    await avaPage.mouse.down();
+    for (let step = 1; step <= 30; step += 1) {
+      const progress = step / 30;
+      await avaPage.mouse.move(
+        avaCanvasBox!.x +
+          avaCanvasBox!.width *
+            ((avaStartWorldX + (avaTargetWorldX - avaStartWorldX) * progress) /
+              100),
+        avaCanvasBox!.y + avaCanvasBox!.height * (avaStartWorldY / 150),
+      );
+      await avaPage.waitForTimeout(30);
+    }
+    await avaPage.mouse.up();
+
+    const avaLocalSamples = await avaLocalMotion;
+    const activePeerSamples = avaLocalSamples.filter(
+      ({ elapsedMs }) => elapsedMs >= 100 && elapsedMs <= 900,
+    );
+    const activePeerSteps = activePeerSamples
+      .slice(1)
+      .map((sample, index) => sample.x - activePeerSamples[index]!.x);
+    const peerMotionSummary = JSON.stringify({
+      samples: activePeerSamples.length,
+      distance: activePeerSamples.at(-1)!.x - activePeerSamples[0]!.x,
+      slowestStep: Math.min(...activePeerSteps),
+      fastestStep: Math.max(...activePeerSteps),
+    });
+    expect(activePeerSamples.length, peerMotionSummary).toBeGreaterThanOrEqual(
+      40,
+    );
+    expect(
+      activePeerSamples.at(-1)!.x - activePeerSamples[0]!.x,
+      peerMotionSummary,
+    ).toBeGreaterThan(6);
+    expect(Math.min(...activePeerSteps), peerMotionSummary).toBeGreaterThan(
+      -0.08,
+    );
+    expect(Math.max(...activePeerSteps), peerMotionSummary).toBeLessThan(2.25);
+
     const dragMasonToWorld = async (x: number, y: number) => {
       const currentX = Number(await masonStage.getAttribute("data-player-x"));
       const currentY = Number(await masonStage.getAttribute("data-player-y"));
