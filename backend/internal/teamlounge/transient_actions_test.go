@@ -27,9 +27,9 @@ func TestTransientReactionsRequireMembershipClosedPayloadAndSharedCooldown(t *te
 	if _, err := reopened.ResolveTransientAction(t.Context(), quickPhrase); !errors.Is(err, roomsdk.ErrTransientActionUnauthorized) {
 		t.Fatalf("shared cooldown error = %v", err)
 	}
-	store.now = func() time.Time { return now.Add(LoungeReactionCooldown) }
+	store.now = func() time.Time { return now.Add(LoungeReactionCooldown + time.Millisecond) }
 	if _, err := store.ResolveTransientAction(t.Context(), quickPhrase); err != nil {
-		t.Fatalf("quick phrase after cooldown: %v", err)
+		t.Fatalf("quick phrase after tap debounce: %v", err)
 	}
 
 	cases := []struct {

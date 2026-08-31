@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  LOUNGE_REACTION_COOLDOWN_MS,
-  LOUNGE_REACTION_DURATION_MS,
-  loungeEmotes,
-} from "./lounge-emotes";
+import { LOUNGE_REACTION_DURATION_MS, loungeEmotes } from "./lounge-emotes";
 
 describe("Lounge emotes", () => {
   it("keeps the predefined, short-lived V2 action set", () => {
@@ -15,7 +11,6 @@ describe("Lounge emotes", () => {
       "Star",
       "Laugh",
     ]);
-    expect(LOUNGE_REACTION_COOLDOWN_MS).toBe(2_000);
     expect(LOUNGE_REACTION_DURATION_MS).toBe(2_400);
   });
 });

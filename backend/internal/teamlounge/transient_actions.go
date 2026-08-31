@@ -13,7 +13,7 @@ import (
 
 const (
 	LoungeActionRouterEntityID = "lounge-action-router"
-	LoungeReactionCooldown     = 2 * time.Second
+	LoungeReactionCooldown     = 100 * time.Millisecond
 )
 
 var loungeEmoteIDs = map[string]struct{}{
@@ -59,7 +59,7 @@ func (store *SQLiteStore) ResolveTransientAction(
 		AND membership.active_from <= ?
 		AND (membership.active_to IS NULL OR membership.active_to >= ?)
 		ON CONFLICT(room_id, player_id) DO UPDATE SET available_at = excluded.available_at
-		WHERE team_lounge_emote_cooldowns.available_at <= ?`,
+		WHERE julianday(team_lounge_emote_cooldowns.available_at) <= julianday(?)`,
 		now.Add(LoungeReactionCooldown).Format(time.RFC3339Nano), action.RoomID, teamID,
 		action.ParticipantID, today, today, now.Format(time.RFC3339Nano))
 	if err != nil {

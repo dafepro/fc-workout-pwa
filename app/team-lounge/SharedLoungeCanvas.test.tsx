@@ -1,4 +1,10 @@
-import { act, render, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { defaultAvatar } from "../avatar/config";
@@ -63,6 +69,11 @@ const runtime = vi.hoisted(() => ({
       }) => void)
     | undefined,
   errorObserver: undefined as ((error: unknown) => void) | undefined,
+  transientActions: [] as Array<{
+    action: string;
+    target: string;
+    payload: Record<string, string>;
+  }>,
 }));
 
 vi.mock("@canvas-physics/client", () => ({
@@ -106,6 +117,14 @@ vi.mock("@canvas-physics/client", () => ({
     async start() {}
     async stopGracefully() {}
     stop() {}
+    submitTransientAction(action: {
+      action: string;
+      target: string;
+      payload: Record<string, string>;
+    }) {
+      runtime.transientActions.push(action);
+      return { result: Promise.resolve({ accepted: true }) };
+    }
   },
   SimulationDriver: class {},
 }));
@@ -147,6 +166,7 @@ describe("Shared Lounge Canvas", () => {
     runtime.canonicalObserver = undefined;
     runtime.effectObserver = undefined;
     runtime.errorObserver = undefined;
+    runtime.transientActions = [];
     vi.stubGlobal("Worker", class {});
   });
 
@@ -298,6 +318,55 @@ describe("Shared Lounge Canvas", () => {
     expect(
       container.querySelector(".team-lounge__avatar-phrase"),
     ).toHaveTextContent("Nice!");
+  });
+
+  it("sends a new quick phrase as soon as the previous send is accepted", async () => {
+    const { container } = render(
+      <AvatarIdentityProvider
+        value={{ currentPlayerID: mason.id, avatarConfig: defaultAvatar() }}
+      >
+        <SharedLoungeCanvas
+          teamID="team-one"
+          player={mason}
+          roster={[mason]}
+          onStateChange={vi.fn()}
+          onPresenceChange={vi.fn()}
+        />
+      </AvatarIdentityProvider>,
+    );
+
+    await waitFor(() => expect(runtime.effectObserver).toBeDefined());
+    fireEvent.click(screen.getByRole("button", { name: "Chat" }));
+    fireEvent.click(screen.getByRole("button", { name: "Standard" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Send Hi! quick message" }),
+    );
+    await act(async () => undefined);
+    act(() => {
+      runtime.effectObserver?.({
+        effect: "zoomigo.quickPhrase",
+        params: { playerId: mason.id, phrase: "hi" },
+      });
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Chat" }));
+    fireEvent.click(screen.getByRole("button", { name: "Standard" }));
+    const nextPhrase = screen.getByRole("button", {
+      name: "Send Bye! quick message",
+    });
+    expect(nextPhrase).toBeEnabled();
+    fireEvent.click(nextPhrase);
+    expect(runtime.transientActions).toHaveLength(2);
+
+    act(() => {
+      runtime.effectObserver?.({
+        effect: "zoomigo.quickPhrase",
+        params: { playerId: mason.id, phrase: "bye" },
+      });
+    });
+    expect(
+      container.querySelector(".team-lounge__avatar-phrase"),
+    ).toHaveTextContent("Bye!");
   });
 
   it("projects the durable goal score and celebrates its hundredth goal", async () => {

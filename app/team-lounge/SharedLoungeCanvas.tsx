@@ -29,7 +29,6 @@ import { LoungeItemArt } from "./LoungeItemArt";
 import { loungeBallEntityID, publishLoungeBallPosition } from "./ball-position";
 import { loungeWorldPoint } from "./lounge-editor-geometry";
 import {
-  LOUNGE_REACTION_COOLDOWN_MS,
   LOUNGE_REACTION_DURATION_MS,
   loungeEmotes,
   type LoungeEmote,
@@ -186,7 +185,6 @@ export function SharedLoungeCanvas({
   );
   const [reactionLocked, setReactionLocked] = useState(false);
   const reactionTimerRef = useRef<number | undefined>(undefined);
-  const reactionCooldownTimerRef = useRef<number | undefined>(undefined);
   const reactionSequenceRef = useRef(0);
   const goalCelebrationTimerRef = useRef<number | undefined>(undefined);
   const goalCelebrationSequenceRef = useRef(0);
@@ -202,7 +200,6 @@ export function SharedLoungeCanvas({
   useEffect(
     () => () => {
       window.clearTimeout(reactionTimerRef.current);
-      window.clearTimeout(reactionCooldownTimerRef.current);
       window.clearTimeout(goalCelebrationTimerRef.current);
       for (const timer of cannonFuseTimerRefs.current.values()) {
         window.clearTimeout(timer);
@@ -759,11 +756,6 @@ export function SharedLoungeCanvas({
     const runtime = runtimeRef.current;
     if (!runtime || reactionLocked) return;
     setReactionLocked(true);
-    window.clearTimeout(reactionCooldownTimerRef.current);
-    reactionCooldownTimerRef.current = window.setTimeout(
-      () => setReactionLocked(false),
-      LOUNGE_REACTION_COOLDOWN_MS,
-    );
     try {
       const result = await runtime.submitTransientAction({
         action,
@@ -777,6 +769,8 @@ export function SharedLoungeCanvas({
       );
     } catch {
       setActionMessage("That reaction could not be sent.");
+    } finally {
+      setReactionLocked(false);
     }
   };
 
