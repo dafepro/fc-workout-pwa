@@ -194,8 +194,8 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 		mux.HandleFunc("POST /__dev/staff-session", service.createDevStaffSession)
 		mux.HandleFunc("POST /__dev/reset", service.resetDevAccess)
 	}
-	if cfg.EnableDevAccess {
-		mux.HandleFunc("POST /__dev/me/lounge-unlocks", service.grantDevelopmentLoungeUnlocks)
+	if cfg.EnableDevAccess || cfg.EnableE2EFixtures {
+		mux.HandleFunc("POST /__dev/me/unlocks", service.grantDevelopmentCatalogUnlocks)
 	}
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")

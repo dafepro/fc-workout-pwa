@@ -94,6 +94,43 @@ function Stars({ color, accent }: Palette) {
   );
 }
 
+function Lightning({ color, accent }: Palette) {
+  return (
+    <>
+      <path d={`M17 ${EYE_LINE - 1}h30`} stroke={accent} strokeWidth="2" />
+      {[LEFT_EYE_X, RIGHT_EYE_X].map((x) => (
+        <path
+          key={x}
+          d="m-5-6 11 1-5 5 4 1-10 7 3-6-5-1z"
+          transform={`translate(${x} ${EYE_LINE})`}
+          fill={color}
+          stroke={accent}
+          strokeWidth="1"
+          strokeLinejoin="round"
+        />
+      ))}
+    </>
+  );
+}
+
+function Hearts({ color, accent }: Palette) {
+  return (
+    <>
+      <path d={`M17 ${EYE_LINE - 1}h30`} stroke={accent} strokeWidth="2" />
+      {[LEFT_EYE_X, RIGHT_EYE_X].map((x) => (
+        <path
+          key={x}
+          d="M0 6C-10 0-7-8 0-4 7-8 10 0 0 6Z"
+          transform={`translate(${x} ${EYE_LINE})`}
+          fill={color}
+          stroke={accent}
+          strokeWidth="1.1"
+        />
+      ))}
+    </>
+  );
+}
+
 interface Palette {
   color: string;
   accent: string;
@@ -112,4 +149,6 @@ export const EYEWEAR_ART: Record<
   round: (config) => <RoundGlasses {...palette(config)} />,
   goggles: (config) => <Goggles {...palette(config)} />,
   stars: (config) => <Stars {...palette(config)} />,
+  lightning: (config) => <Lightning {...palette(config)} />,
+  hearts: (config) => <Hearts {...palette(config)} />,
 };

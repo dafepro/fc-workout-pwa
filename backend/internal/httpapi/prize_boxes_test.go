@@ -87,6 +87,14 @@ func TestPrizeBoxRoutesKeepSealedClaimsPrivateAndOpenIdempotently(t *testing.T) 
 	}
 }
 
+func TestDevelopmentCatalogGrantIsAbsentFromProductionHandler(t *testing.T) {
+	handler := httpapi.NewHandler(config.Config{})
+	response := prizeRequest(handler, http.MethodPost, "/__dev/me/unlocks", "")
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("production catalog grant status=%d body=%s", response.Code, response.Body.String())
+	}
+}
+
 func prizeRequest(handler http.Handler, method, path, key string) *httptest.ResponseRecorder {
 	request := httptest.NewRequest(method, path, nil)
 	request.Header.Set("Authorization", "Bearer player")

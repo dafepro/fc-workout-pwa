@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AvatarBuilder } from "../../avatar/AvatarBuilder";
 import { copy } from "../../content/copy";
+import { developmentBuild } from "../../build-profile";
+import { unlockDevelopmentCatalogItems } from "../../development/catalog-unlocks";
 import { useAuth } from "../../state/auth-context";
 
 export default function AvatarStudioPage() {
@@ -17,8 +19,13 @@ export default function AvatarStudioPage() {
 
   useEffect(() => {
     let active = true;
-    gateway
-      .inventory(["avatar_part"])
+    const inventory = async () => {
+      if (developmentBuild) {
+        await unlockDevelopmentCatalogItems().catch(() => undefined);
+      }
+      return gateway.inventory(["avatar_part"]);
+    };
+    void inventory()
       .then((items) => {
         if (!active) return;
         setUnlockedOptionIDs(new Set(items.map(({ item }) => item.assetId)));

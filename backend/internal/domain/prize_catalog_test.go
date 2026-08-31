@@ -38,3 +38,34 @@ func TestPrizeCatalogSelectsOnlyUnownedPredefinedItems(t *testing.T) {
 		t.Fatalf("complete collection selected %+v", item)
 	}
 }
+
+func TestPrizeCatalogIncludesTheTenPartAvatarRewardPack(t *testing.T) {
+	want := map[string]struct {
+		slot, asset string
+	}{
+		"avatar-head-owl":          {slot: "head", asset: "owl"},
+		"avatar-head-panda":        {slot: "head", asset: "panda"},
+		"avatar-head-lion":         {slot: "head", asset: "lion"},
+		"avatar-kit-checkers":      {slot: "kit", asset: "checkers"},
+		"avatar-kit-starburst":     {slot: "kit", asset: "starburst"},
+		"avatar-hat-bucket":        {slot: "hat", asset: "bucket"},
+		"avatar-hat-wizard":        {slot: "hat", asset: "wizard"},
+		"avatar-eyewear-lightning": {slot: "eyewear", asset: "lightning"},
+		"avatar-eyewear-hearts":    {slot: "eyewear", asset: "hearts"},
+		"avatar-effect-confetti":   {slot: "effect", asset: "confetti"},
+	}
+
+	for _, item := range domain.PrizeCatalogItems() {
+		expected, found := want[item.ID]
+		if !found {
+			continue
+		}
+		if item.Kind != domain.PrizeAvatarPart || item.Destination != domain.PrizeDestinationAvatar || item.Slot != expected.slot || item.AssetID != expected.asset || item.Label == "" {
+			t.Fatalf("avatar reward %s = %+v", item.ID, item)
+		}
+		delete(want, item.ID)
+	}
+	if len(want) != 0 {
+		t.Fatalf("avatar rewards missing from catalog: %v", want)
+	}
+}

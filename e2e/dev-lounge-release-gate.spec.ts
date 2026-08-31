@@ -84,7 +84,7 @@ test("a qualified player enters the Lounge and sees their own avatar", async ({
     );
     const unlockResponsePromise = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/zoomigo/__dev/me/lounge-unlocks") &&
+        response.url().includes("/api/zoomigo/__dev/me/unlocks") &&
         response.request().method() === "POST",
     );
     await lounge.getByRole("button", { name: "Unlock test items" }).click();

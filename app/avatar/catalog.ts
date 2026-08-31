@@ -20,6 +20,11 @@ export const AVATAR_LAYERS: readonly AvatarLayerDefinition[] = [
       { id: "none", label: labels.effect.none },
       { id: "orbit", label: labels.effect.orbit },
       { id: "pulse", label: labels.effect.pulse },
+      {
+        id: "confetti",
+        label: labels.effect.confetti,
+        unlock: "advancement",
+      },
     ],
   },
   {
@@ -37,6 +42,16 @@ export const AVATAR_LAYERS: readonly AvatarLayerDefinition[] = [
       { id: "keeper", label: labels.kit.keeper },
       { id: "sunset", label: labels.kit.sunset },
       { id: "classic", label: labels.kit.classic },
+      {
+        id: "checkers",
+        label: labels.kit.checkers,
+        unlock: "advancement",
+      },
+      {
+        id: "starburst",
+        label: labels.kit.starburst,
+        unlock: "advancement",
+      },
     ],
   },
   {
@@ -52,6 +67,9 @@ export const AVATAR_LAYERS: readonly AvatarLayerDefinition[] = [
       { id: "dog", label: labels.head.dog, unlock: "advancement" },
       { id: "cheetah", label: labels.head.cheetah, unlock: "advancement" },
       { id: "fox", label: labels.head.fox, unlock: "advancement" },
+      { id: "owl", label: labels.head.owl, unlock: "advancement" },
+      { id: "panda", label: labels.head.panda, unlock: "advancement" },
+      { id: "lion", label: labels.head.lion, unlock: "advancement" },
     ],
   },
   {
@@ -66,6 +84,8 @@ export const AVATAR_LAYERS: readonly AvatarLayerDefinition[] = [
       { id: "beanie", label: labels.hat.beanie },
       { id: "headband", label: labels.hat.headband },
       { id: "crown", label: labels.hat.crown },
+      { id: "bucket", label: labels.hat.bucket, unlock: "advancement" },
+      { id: "wizard", label: labels.hat.wizard, unlock: "advancement" },
     ],
   },
   {
@@ -80,6 +100,16 @@ export const AVATAR_LAYERS: readonly AvatarLayerDefinition[] = [
       { id: "round", label: labels.eyewear.round },
       { id: "goggles", label: labels.eyewear.goggles },
       { id: "stars", label: labels.eyewear.stars },
+      {
+        id: "lightning",
+        label: labels.eyewear.lightning,
+        unlock: "advancement",
+      },
+      {
+        id: "hearts",
+        label: labels.eyewear.hearts,
+        unlock: "advancement",
+      },
     ],
   },
 ];

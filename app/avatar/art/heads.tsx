@@ -120,6 +120,93 @@ function Fox({ primary, accent }: Palette) {
   );
 }
 
+function Owl({ primary, accent }: Palette) {
+  return (
+    <>
+      <path d="M15 28 18 12l11 10zM49 28 46 12 35 22z" fill={accent} />
+      <ellipse cx="32" cy="35" rx="18" ry="17.5" fill={primary} />
+      <path d="M17 25q15-12 30 0l-6 9H23z" fill={accent} opacity="0.9" />
+      {[24, 40].map((x) => (
+        <g key={x}>
+          <circle cx={x} cy="33" r="7" fill="white" opacity="0.9" />
+          <circle cx={x} cy="33" r="3" fill={INK} />
+          <circle cx={x + 1} cy="32" r="0.9" fill="white" />
+        </g>
+      ))}
+      <path d="m28 40 4 5 4-5-4-2z" fill={accent} />
+      <path
+        d="M21 47q11 7 22 0"
+        fill="none"
+        stroke={accent}
+        strokeWidth="1.5"
+      />
+    </>
+  );
+}
+
+function Panda({ primary, accent }: Palette) {
+  return (
+    <>
+      <circle cx="18" cy="21" r="7" fill={accent} />
+      <circle cx="46" cy="21" r="7" fill={accent} />
+      <ellipse cx="32" cy="35" rx="18" ry="17.5" fill={primary} />
+      <g fill={accent} transform="rotate(-12 24 33)">
+        <ellipse cx="24" cy="33" rx="6" ry="8" />
+      </g>
+      <g fill={accent} transform="rotate(12 40 33)">
+        <ellipse cx="40" cy="33" rx="6" ry="8" />
+      </g>
+      <circle cx="24" cy="33" r="2.5" fill="white" />
+      <circle cx="40" cy="33" r="2.5" fill="white" />
+      <ellipse cx="32" cy="44" rx="8" ry="6" fill="white" opacity="0.82" />
+      <path d="m28.5 42 3.5 3 3.5-3z" fill={INK} />
+      <path
+        d="M32 45v3m0 0q-4 2-6 0m6 0q4 2 6 0"
+        fill="none"
+        stroke={INK}
+        strokeWidth="1.2"
+        strokeLinecap="round"
+      />
+    </>
+  );
+}
+
+function Lion({ primary, accent }: Palette) {
+  const mane = [
+    [32, 17],
+    [21, 20],
+    [14, 29],
+    [14, 40],
+    [22, 49],
+    [32, 52],
+    [42, 49],
+    [50, 40],
+    [50, 29],
+    [43, 20],
+  ] as const;
+  return (
+    <>
+      <g fill={accent}>
+        {mane.map(([x, y]) => (
+          <circle key={`${x}-${y}`} cx={x} cy={y} r="8" />
+        ))}
+      </g>
+      <ellipse cx="32" cy="35" rx="16.5" ry="17" fill={primary} />
+      <path d="M18 28q14-10 28 0-14-5-28 0z" fill={accent} opacity="0.72" />
+      <Eyes />
+      <ellipse cx="32" cy="44" rx="8.5" ry="6.5" fill="white" opacity="0.76" />
+      <path d="m28.5 42 3.5 3 3.5-3z" fill={INK} />
+      <path
+        d="M32 45v3m0 0q-4 2-6 0m6 0q4 2 6 0"
+        fill="none"
+        stroke={INK}
+        strokeWidth="1.2"
+        strokeLinecap="round"
+      />
+    </>
+  );
+}
+
 interface Palette {
   primary: string;
   accent: string;
@@ -143,4 +230,7 @@ export const HEAD_ART: Record<
   dog: (config) => <Dog {...palette(config)} />,
   cheetah: (config) => <Cheetah {...palette(config)} />,
   fox: (config) => <Fox {...palette(config)} />,
+  owl: (config) => <Owl {...palette(config)} />,
+  panda: (config) => <Panda {...palette(config)} />,
+  lion: (config) => <Lion {...palette(config)} />,
 };

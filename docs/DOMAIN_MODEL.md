@@ -58,6 +58,8 @@ server-generated. Rate limits and idempotency are authoritative across devices.
   owner opens it.
 - **Player unlock** is one owned item from the versioned avatar or Lounge
   catalogs, including source, rarity, unlock time, and optional viewed time.
+  Avatar unlocks can target head, kit, hat, eyewear, or effect slots; their
+  predefined asset identifiers are shared by the reward catalog and Studio.
 - **Team reward** is a coach-selected predefined reward and its lifecycle
   events. It carries no athletic value.
 
