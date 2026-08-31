@@ -237,7 +237,7 @@ export const consoleCopy = {
     to: "To",
     endMembership: "End membership",
     endMembershipConfirm:
-      "Ending this membership takes the player off this team's roster, leaderboards, and team activity. Their account and their own history stay. Continue?",
+      "Ending this membership takes the player off this team's roster and team activity. Their account and their own history stay. Continue?",
     events: "Recent sign-in events",
     noEvents: "No sign-in events recorded.",
     deactivateHeading: "Deactivate account",

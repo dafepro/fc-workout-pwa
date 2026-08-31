@@ -460,7 +460,6 @@ var logicalTables = []logicalTable{
 			textField("reaction_type"),
 			textField("context_type"),
 			nullable(textField("context_period")),
-			nullable(textField("context_metric")),
 			nullable(textField("context_assignment_id")),
 			textField("team_day"),
 			textField("idempotency_key"),

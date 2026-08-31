@@ -11,7 +11,7 @@ and possession of a resource ID do not grant access.
 | Training detail for managed scope              | —                         | Assigned team                          | Own club               | Any club               |
 | Delete through player window                   | Own entry before deadline | —                                      | —                      | —                      |
 | Own reaction inbox/avatar/inventory            | Read/write as defined     | —                                      | —                      | —                      |
-| Safe Team/leaderboard/Lounge projection        | Active team membership    | Assigned team where staff route exists | Own club               | Any club               |
+| Safe Team/Lounge projection                    | Active team membership    | Assigned team where staff route exists | Own club               | Any club               |
 | Manage team, roster, assignment                | —                         | Assigned team                          | Own club               | Any club               |
 | Provision player                               | —                         | Assigned team and production-data gate | Own club and gate      | Any club and gate      |
 | Deactivate player/account                      | —                         | —                                      | Own club               | Any club               |

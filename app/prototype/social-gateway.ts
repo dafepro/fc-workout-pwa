@@ -1,8 +1,4 @@
 import type {
-  LeaderboardItem,
-  LeaderboardProjection,
-  ReactionMetric,
-  ReactionPeriod,
   TeamActivityProjection,
   TeamGoalStatus,
   TeamMemberProjection,
@@ -51,57 +47,6 @@ class UnhostedPrototypeSocialGateway implements SocialGateway {
           .length,
       },
       members,
-    };
-  }
-
-  async leaderboard(
-    period: ReactionPeriod,
-    metric: ReactionMetric,
-  ): Promise<LeaderboardProjection> {
-    const items = players
-      .map<LeaderboardItem>((player) => ({
-        ...player,
-        rank: 0,
-        value:
-          metric === "effort"
-            ? player.effortPoints
-            : metric === "streaks"
-              ? player.currentStreak
-              : player.consistency,
-        sessions: player.weeklySessions,
-        streakDays: player.currentStreak,
-        consistencyDays: player.consistency,
-      }))
-      .sort(
-        (left, right) =>
-          right.value - left.value ||
-          right.consistencyDays - left.consistencyDays ||
-          left.firstName.localeCompare(right.firstName),
-      )
-      .map((player, index) => ({ ...player, rank: index + 1 }));
-    const today = new Date();
-    return {
-      team: {
-        id: "team-hill-striders",
-        name: TEAM_NAME,
-        weeklyGoal: WEEKLY_GOAL,
-      },
-      period,
-      metric,
-      periodStart: localDate(
-        period === "weekly"
-          ? daysFromMonday(today)
-          : period === "thirty_days"
-            ? addDays(today, -29)
-            : new Date(today.getFullYear(), 0, 1),
-      ),
-      periodEnd: localDate(today),
-      teamSessions: items.reduce((total, player) => total + player.sessions, 0),
-      teamEffortPoints: items.reduce(
-        (total, player) => total + player.effortPoints,
-        0,
-      ),
-      items,
     };
   }
 }

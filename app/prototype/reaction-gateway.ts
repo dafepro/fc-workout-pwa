@@ -82,22 +82,6 @@ class UnhostedPrototypeReactionGateway implements ReactionGateway {
           createdAt: new Date(Date.now() - 60_000).toISOString(),
           readAt: null,
         },
-        {
-          id: "local-badge-ava-effort",
-          sender: { id: "ava", displayName: "Ava R." },
-          reactionType: "fire",
-          emoji: "🔥",
-          message:
-            "Ava R. saw you on the Weekly Effort leaderboard and sent you 🔥.",
-          context: {
-            type: "leaderboard",
-            teamId: "team-hill-striders",
-            period: "weekly",
-            metric: "effort",
-          },
-          createdAt: new Date().toISOString(),
-          readAt: null,
-        },
       ],
       nextCursor: null,
     };

@@ -26,8 +26,8 @@ or inferred athletic ability.
 
 Team surfaces may show participation, safe effort points, weekly completion,
 streaks, consistency, challenge completion, predefined reactions, and reviewed
-rewards. The server owns every team projection; clients must not rebuild a
-leaderboard from private entries.
+rewards. The server owns every team projection; clients must not derive
+comparative rankings from private entries.
 
 ## Effort, recovery, and workload
 

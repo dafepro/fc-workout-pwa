@@ -10,7 +10,7 @@ const (
 	participationEffortCap        = 5
 )
 
-var ErrInvalidLeaderboardPeriod = errors.New("leaderboard period is not approved")
+var ErrInvalidParticipationPeriod = errors.New("participation period is not approved")
 
 type ProjectionEntry struct {
 	PlayerID    string
@@ -26,21 +26,19 @@ type PlayerParticipation struct {
 	ConsistencyDays int
 }
 
-func LeaderboardPeriodStart(period LeaderboardPeriod, now, seasonStart time.Time, location *time.Location) (time.Time, error) {
+func ParticipationPeriodStart(period ParticipationPeriod, now, seasonStart time.Time, location *time.Location) (time.Time, error) {
 	today := localMidnight(now, location)
 	switch period {
 	case PeriodWeekly:
 		daysFromMonday := (int(today.Weekday()) + 6) % 7
 		return today.AddDate(0, 0, -daysFromMonday), nil
-	case PeriodThirtyDays:
-		return today.AddDate(0, 0, -29), nil
 	case PeriodSeason:
 		if seasonStart.IsZero() {
 			return time.Time{}, nil
 		}
 		return localMidnight(seasonStart, location), nil
 	default:
-		return time.Time{}, ErrInvalidLeaderboardPeriod
+		return time.Time{}, ErrInvalidParticipationPeriod
 	}
 }
 

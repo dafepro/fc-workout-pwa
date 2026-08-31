@@ -56,8 +56,8 @@ Team is a bounded hub rather than an endless feed. It combines:
 
 The hub never renders raw training results, exhaustion, assessments, exact
 timestamps, or a least-active ordering. The older standalone activity-board and
-Leaders screens are retired; approved leaderboards, where present, are a bounded
-Team view rather than primary navigation.
+Leaders screens are retired. No player route or API exposes a comparative
+ranking; Team shows only bounded participation groups and aggregate progress.
 
 The Lounge uses authenticated transient reactions and server-authorized Canvas
 state. Placement/edit controls expose only owned current-generation items and

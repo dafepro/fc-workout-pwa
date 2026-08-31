@@ -43,10 +43,9 @@ func TestContextualReactionIsIdempotentRateLimitedAndPrivate(t *testing.T) {
 		"recipientPlayerId": "player-liam",
 		"reactionType":      "fire",
 		"context": map[string]any{
-			"type":   "leaderboard",
+			"type":   "team_progress",
 			"teamId": "team-hill-striders",
 			"period": "weekly",
-			"metric": "effort",
 		},
 	}
 
@@ -153,14 +152,25 @@ func TestReactionRejectsMissingAuthAndPlayerAuthoredFields(t *testing.T) {
 		"reactionType":      "fire",
 		"message":           "player supplied text",
 		"context": map[string]any{
-			"type":   "leaderboard",
+			"type":   "team_progress",
 			"teamId": "team-hill-striders",
 			"period": "weekly",
-			"metric": "effort",
 		},
 	})
 	assertStatus(t, unsafe, http.StatusBadRequest)
 	_ = unsafe.Body.Close()
+
+	retired := api.do(t, http.MethodPost, "/v1/reactions", avaToken, "retired-context", map[string]any{
+		"recipientPlayerId": "player-liam",
+		"reactionType":      "fire",
+		"context": map[string]any{
+			"type":   "leaderboard",
+			"teamId": "team-hill-striders",
+			"period": "weekly",
+		},
+	})
+	assertStatus(t, retired, http.StatusUnprocessableEntity)
+	_ = retired.Body.Close()
 }
 
 func TestReactionInboxPagesTheLastSevenDaysTwentyAtATime(t *testing.T) {
@@ -372,10 +382,9 @@ func TestBrowserFixturePlayerCanSendAndReceiveReactions(t *testing.T) {
 		"recipientPlayerId": "player-mason",
 		"reactionType":      "fire",
 		"context": map[string]any{
-			"type":   "leaderboard",
+			"type":   "team_progress",
 			"teamId": "team-hill-striders",
 			"period": "weekly",
-			"metric": "effort",
 		},
 	})
 	assertStatus(t, inbound, http.StatusCreated)
@@ -383,7 +392,7 @@ func TestBrowserFixturePlayerCanSendAndReceiveReactions(t *testing.T) {
 
 	inbox := api.do(t, http.MethodGet, "/v1/me/reaction-badges", masonToken, "", nil)
 	assertStatus(t, inbox, http.StatusOK)
-	if body := readBody(inbox); !strings.Contains(body, "Ava R.") || !strings.Contains(body, "Weekly Effort") {
+	if body := readBody(inbox); !strings.Contains(body, "Ava R.") || !strings.Contains(body, "weekly Team progress") {
 		t.Fatalf("Mason inbox did not contain the safe contextual badge: %s", body)
 	}
 	_ = inbox.Body.Close()

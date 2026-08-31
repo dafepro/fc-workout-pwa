@@ -8,14 +8,13 @@ import (
 	"testing"
 )
 
-func TestTeamAndLeaderboardProjectionsArePrivateAndAuthorized(t *testing.T) {
+func TestTeamProjectionsArePrivateAndAuthorized(t *testing.T) {
 	api := newAPIClient(t)
 	api.reset(t)
 
 	for _, path := range []string{
 		"/v1/teams/team-hill-striders/activity",
 		"/v1/teams/team-hill-striders/hub",
-		"/v1/teams/team-hill-striders/leaderboards?period=weekly&metric=effort",
 	} {
 		response := api.do(t, http.MethodGet, path, masonToken, "", nil)
 		assertStatus(t, response, http.StatusOK)
@@ -44,7 +43,7 @@ func TestTeamAndLeaderboardProjectionsArePrivateAndAuthorized(t *testing.T) {
 	assertStatus(t, concealedHub, http.StatusNotFound)
 	_ = concealedHub.Body.Close()
 
-	invalid := api.do(t, http.MethodGet, "/v1/teams/team-hill-striders/leaderboards?period=weekly&metric=speed", masonToken, "", nil)
-	assertStatus(t, invalid, http.StatusBadRequest)
-	_ = invalid.Body.Close()
+	retired := api.do(t, http.MethodGet, "/v1/teams/team-hill-striders/leaderboards?period=weekly&metric=effort", masonToken, "", nil)
+	assertStatus(t, retired, http.StatusNotFound)
+	_ = retired.Body.Close()
 }

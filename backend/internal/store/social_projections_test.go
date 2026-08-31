@@ -76,24 +76,11 @@ func TestTeamActivityDoesNotPublishExplicitPartialAsChallengeCompletion(t *testi
 	}
 }
 
-func TestLeaderboardSortsAuthoritativeSafeMetricsAndConcealsOtherTeams(t *testing.T) {
+func TestTeamActivityConcealsOtherTeams(t *testing.T) {
 	repository, db := socialProjectionStore(t)
 	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
 	seedSocialProjection(t, db, now)
-	actor := domain.Actor{Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-one"}
-
-	projection, err := repository.Leaderboard(context.Background(), actor, "team-one", domain.PeriodWeekly, domain.MetricEffort, now)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if projection.TeamSessions != 4 || projection.TeamEffortPoints != 43 {
-		t.Fatalf("unexpected summary: %+v", projection)
-	}
-	if len(projection.Items) != 2 || projection.Items[0].PlayerID != "player-ava" || projection.Items[0].Rank != 1 || projection.Items[0].Value != 28 {
-		t.Fatalf("unexpected ranking: %+v", projection.Items)
-	}
-
-	_, err = repository.TeamActivity(context.Background(), domain.Actor{
+	_, err := repository.TeamActivity(context.Background(), domain.Actor{
 		Role: domain.RolePlayer, PlayerID: "player-outsider", ClubID: "club-one",
 	}, "team-one", now)
 	if !errors.Is(err, store.ErrSocialTeamUnavailable) {

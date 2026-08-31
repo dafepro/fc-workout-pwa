@@ -2,7 +2,6 @@ package httpapi_test
 
 import (
 	"context"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -57,7 +56,6 @@ func TestSocialProjectionRoutesAreAuthenticatedSafeAndValidated(t *testing.T) {
 	for _, path := range []string{
 		"/v1/teams/team-one/activity",
 		"/v1/teams/team-one/hub",
-		"/v1/teams/team-one/leaderboards?period=weekly&metric=effort",
 	} {
 		request := httptest.NewRequest(http.MethodGet, path, nil)
 		request.Header.Set("Authorization", "Bearer test-session")
@@ -74,12 +72,11 @@ func TestSocialProjectionRoutesAreAuthenticatedSafeAndValidated(t *testing.T) {
 		}
 	}
 
-	invalid := httptest.NewRequest(http.MethodGet, "/v1/teams/team-one/leaderboards?period=forever&metric=speed", nil)
-	invalid.Header.Set("Authorization", "Bearer test-session")
-	invalidResponse := httptest.NewRecorder()
-	handler.ServeHTTP(invalidResponse, invalid)
-	if invalidResponse.Code != http.StatusBadRequest {
-		body, _ := io.ReadAll(invalidResponse.Result().Body)
-		t.Fatalf("invalid query status = %d, body = %s", invalidResponse.Code, body)
+	retired := httptest.NewRequest(http.MethodGet, "/v1/teams/team-one/leaderboards?period=weekly&metric=effort", nil)
+	retired.Header.Set("Authorization", "Bearer test-session")
+	retiredResponse := httptest.NewRecorder()
+	handler.ServeHTTP(retiredResponse, retired)
+	if retiredResponse.Code != http.StatusNotFound {
+		t.Fatalf("retired route status = %d, body = %s", retiredResponse.Code, retiredResponse.Body.String())
 	}
 }

@@ -27,7 +27,7 @@ Real-player collection remains an owner decision in
 
 [../lib/analytics/catalog.ts](../lib/analytics/catalog.ts) is the executable
 allowlist. Client events cover visit, bounded route summary, connectivity,
-install, training-entry intent/activity selection, leaderboard filter, avatar,
+install, training-entry intent/activity selection, avatar,
 reaction picker, session history, cheer inbox, and challenge action.
 
 Server-side proxy instrumentation records approved authentication, training

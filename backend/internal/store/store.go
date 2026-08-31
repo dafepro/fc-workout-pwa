@@ -158,10 +158,6 @@ func (store *Store) CreateReaction(ctx context.Context, input CreateReactionInpu
 		ID:                          newID("reaction"),
 		RemainingForRecipientWindow: domain.MaxReactionsPerRecipient - count - 1,
 	}
-	var metric any
-	if input.Request.Context.Metric != "" {
-		metric = input.Request.Context.Metric
-	}
 	var period any
 	if input.Request.Context.Period != "" {
 		period = input.Request.Context.Period
@@ -173,11 +169,11 @@ func (store *Store) CreateReaction(ctx context.Context, input CreateReactionInpu
 	_, err = connection.ExecContext(ctx, `
 		INSERT INTO reactions (
 			id, sender_player_id, recipient_player_id, team_id, reaction_type,
-			context_type, context_period, context_metric, context_assignment_id, team_day, idempotency_key,
+			context_type, context_period, context_assignment_id, team_day, idempotency_key,
 			remaining_after_send, created_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		result.ID, input.SenderPlayerID, input.Request.RecipientPlayerID, input.Request.Context.TeamID,
-		input.Request.ReactionType, input.Request.Context.Type, period, metric, assignmentID,
+		input.Request.ReactionType, input.Request.Context.Type, period, assignmentID,
 		teamDay, input.IdempotencyKey, result.RemainingForRecipientWindow, input.Now.UTC().Format(time.RFC3339Nano),
 	)
 	if err != nil {
@@ -192,26 +188,25 @@ func (store *Store) CreateReaction(ctx context.Context, input CreateReactionInpu
 func findIdempotentReaction(ctx context.Context, connection *sql.Conn, input CreateReactionInput) (CreateReactionResult, bool, error) {
 	var (
 		id, recipient, reactionType, teamID, contextType string
-		period, metric, assignmentID                     sql.NullString
+		period, assignmentID                             sql.NullString
 		remaining                                        int
 	)
 	err := connection.QueryRowContext(ctx, `
 		SELECT id, recipient_player_id, reaction_type, team_id, context_type, context_period,
-		       context_metric, context_assignment_id, remaining_after_send
+		       context_assignment_id, remaining_after_send
 		FROM reactions WHERE sender_player_id = ? AND idempotency_key = ?`,
 		input.SenderPlayerID, input.IdempotencyKey,
-	).Scan(&id, &recipient, &reactionType, &teamID, &contextType, &period, &metric, &assignmentID, &remaining)
+	).Scan(&id, &recipient, &reactionType, &teamID, &contextType, &period, &assignmentID, &remaining)
 	if errors.Is(err, sql.ErrNoRows) {
 		return CreateReactionResult{}, false, nil
 	}
 	if err != nil {
 		return CreateReactionResult{}, false, fmt.Errorf("find idempotent reaction: %w", err)
 	}
-	requestMetric := string(input.Request.Context.Metric)
 	requestPeriod := string(input.Request.Context.Period)
 	if recipient != input.Request.RecipientPlayerID || reactionType != string(input.Request.ReactionType) ||
 		teamID != input.Request.Context.TeamID || contextType != string(input.Request.Context.Type) ||
-		period.String != requestPeriod || metric.String != requestMetric ||
+		period.String != requestPeriod ||
 		assignmentID.String != input.Request.Context.AssignmentID {
 		return CreateReactionResult{}, false, ErrIdempotencyConflict
 	}
@@ -224,7 +219,7 @@ func (store *Store) ListReactionBadges(ctx context.Context, input ListReactionBa
 	}
 	query := `
 		SELECT r.id, r.reaction_type, r.context_type, r.team_id, r.context_period,
-		       r.context_metric, r.context_assignment_id, d.name, r.created_at, r.read_at,
+		       r.context_assignment_id, d.name, r.created_at, r.read_at,
 		       p.id, p.first_name, p.last_initial
 		FROM reactions r
 		JOIN players p ON p.id = r.sender_player_id
@@ -251,11 +246,11 @@ func (store *Store) ListReactionBadges(ctx context.Context, input ListReactionBa
 	badges := make([]ReactionBadge, 0)
 	for rows.Next() {
 		var (
-			badge                                              ReactionBadge
-			contextType, teamID, first, last                   string
-			period, metric, assignmentID, activityName, readAt sql.NullString
+			badge                                      ReactionBadge
+			contextType, teamID, first, last           string
+			period, assignmentID, activityName, readAt sql.NullString
 		)
-		if err := rows.Scan(&badge.ID, &badge.ReactionType, &contextType, &teamID, &period, &metric,
+		if err := rows.Scan(&badge.ID, &badge.ReactionType, &contextType, &teamID, &period,
 			&assignmentID, &activityName,
 			&badge.CreatedAt, &readAt, &badge.Sender.ID, &first, &last); err != nil {
 			return nil, fmt.Errorf("scan reaction badge: %w", err)
@@ -263,7 +258,7 @@ func (store *Store) ListReactionBadges(ctx context.Context, input ListReactionBa
 		badge.Sender.DisplayName = fmt.Sprintf("%s %s.", first, last)
 		badge.Context = domain.ReactionContext{
 			Type: domain.ReactionContextType(contextType), TeamID: teamID,
-			Period: domain.LeaderboardPeriod(period.String), Metric: domain.LeaderboardMetric(metric.String),
+			Period:       domain.ParticipationPeriod(period.String),
 			AssignmentID: assignmentID.String, ActivityName: activityName.String,
 		}
 		badge.Emoji, err = domain.ReactionEmoji(badge.ReactionType)
@@ -392,7 +387,7 @@ func (store *Store) ResetE2EFixtures(ctx context.Context, now time.Time) error {
 	// measured back from now walks out of the week every Monday — clamp both
 	// occurrences into the current week. What the entries suite reads is the
 	// delete deadline, which stays measured from now.
-	weekStart, err := domain.LeaderboardPeriodStart(domain.PeriodWeekly, now, time.Time{}, store.location)
+	weekStart, err := domain.ParticipationPeriodStart(domain.PeriodWeekly, now, time.Time{}, store.location)
 	if err != nil {
 		return fmt.Errorf("seed e2e training entry: %w", err)
 	}

@@ -582,30 +582,30 @@ func fullyPopulatedDatabase(t *testing.T, ctx context.Context) string {
 		`UPDATE training_entries SET deleted_at = '2026-08-01T00:00:00Z' WHERE id = 'entry-mason-expired'`,
 		`INSERT INTO reactions (
 			id, sender_player_id, recipient_player_id, team_id, reaction_type,
-			context_type, context_period, context_metric, team_day, idempotency_key,
+			context_type, context_period, team_day, idempotency_key,
 			created_at, read_at, deleted_at, remaining_after_send
 		) VALUES (
 			'reaction-read', 'player-ava', 'player-mason', 'team-hill-striders', 'clap',
-			'team_progress', 'weekly', NULL, '2026-08-01', 'reaction-key-1',
+			'team_progress', 'weekly', '2026-08-01', 'reaction-key-1',
 			'2026-08-01T12:00:00Z', '2026-08-01T13:00:00Z', NULL, 3
 		)`,
 		`INSERT INTO reactions (
 			id, sender_player_id, recipient_player_id, team_id, reaction_type,
-			context_type, context_period, context_metric, team_day, idempotency_key,
+			context_type, context_period, team_day, idempotency_key,
 			created_at, read_at, deleted_at, remaining_after_send
 		) VALUES (
 			'reaction-deleted', 'player-liam', 'player-mason', 'team-hill-striders', 'fire',
-			'leaderboard', 'season', 'effort', '2026-08-02', 'reaction-key-2',
+			'team_progress', 'weekly', '2026-08-02', 'reaction-key-2',
 			'2026-08-02T12:00:00Z', NULL, '2026-08-03T00:00:00Z', 0
 		)`,
 		`INSERT INTO reactions (
 			id, sender_player_id, recipient_player_id, team_id, reaction_type,
-			context_type, context_period, context_metric, context_assignment_id,
+			context_type, context_period, context_assignment_id,
 			team_day, idempotency_key, created_at, read_at, deleted_at,
 			remaining_after_send
 		) VALUES (
 			'reaction-challenge', 'player-ava', 'player-mason', 'team-hill-striders', 'strong',
-			'challenge', NULL, NULL, 'assignment-hill-sprints',
+			'challenge', NULL, 'assignment-hill-sprints',
 			'2026-08-02', 'reaction-key-3', '2026-08-02T13:00:00Z', NULL, NULL, 4
 		)`,
 		`INSERT INTO auth_credentials (

@@ -112,13 +112,19 @@ control to players. New rewards default to the team-local current date through
 six days later; cleared or reversed dates are explicitly identified and
 focused. Alternate progress rules and player-level reward results remain out.
 
-## API lifecycle and private reaction badges
+## Retired ranking projection and private reaction badges
 
 **Owner:** Product and engineering owner
 
-**Needed before:** A breaking API revision or reaction-moderation work
+**Decision:** The standalone ranking projection and its reaction context are
+retired. The API, player proxy, client gateway, prototype fixtures, analytics,
+and current database schema expose only Team progress and challenge contexts.
+Migration 22 deletes existing ranking-context reactions rather than relabeling
+them because Team progress has different semantics; supported reactions remain
+intact. Logical backups omit the retired metric field.
 
-Decide whether a private reaction badge may name an exact placement on an
-approved participation leaderboard, and define API versioning/deprecation plus
-final opaque cursor encoding. The current safe default omits raw performance
-and does not provide an audited moderation endpoint.
+**Needed before:** Reintroducing any comparative ranking or placement language
+
+Define a new safety-reviewed projection, API lifecycle, and reaction badge copy.
+The current safe default omits raw performance and does not provide an audited
+moderation endpoint.

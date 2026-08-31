@@ -350,7 +350,6 @@ export const copy = {
     contextLabels: {
       challenge: "Challenge",
       team_progress: "Team progress",
-      leaderboard: "Leaderboard",
     },
     options: [
       { type: "clap", emoji: "👏", label: "Clap" },

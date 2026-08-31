@@ -243,25 +243,6 @@ export interface TeamHubProjection {
   };
 }
 
-export interface LeaderboardItem extends Player {
-  rank: number;
-  value: number;
-  sessions: number;
-  streakDays: number;
-  consistencyDays: number;
-}
-
-export interface LeaderboardProjection {
-  team: SocialTeam;
-  period: ReactionPeriod;
-  metric: ReactionMetric;
-  periodStart: string;
-  periodEnd: string;
-  teamSessions: number;
-  teamEffortPoints: number;
-  items: LeaderboardItem[];
-}
-
 export type ReactionType =
   | "clap"
   | "fire"
@@ -280,9 +261,6 @@ export interface Reaction {
   createdAt: string;
 }
 
-export type ReactionPeriod = "weekly" | "thirty_days" | "season";
-export type ReactionMetric = "effort" | "streaks" | "consistency";
-
 export type ReactionContext =
   | {
       type: "team_progress";
@@ -294,12 +272,6 @@ export type ReactionContext =
       teamId: string;
       assignmentId: string;
       activityName?: string;
-    }
-  | {
-      type: "leaderboard";
-      teamId: string;
-      period: ReactionPeriod;
-      metric: ReactionMetric;
     };
 
 export interface ReactionBadge {

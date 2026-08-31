@@ -27,13 +27,9 @@ export interface ProductEventProperties {
     activity: ActivityName;
     defaulted_activity: boolean;
   };
-  leaderboard_filter_selected: {
-    period: "weekly" | "rolling-30" | "season";
-    metric: "effort" | "streaks" | "consistency";
-  };
   avatar_builder_opened: EmptyProperties;
   reaction_picker_opened: {
-    context: "challenge" | "team_progress" | "leaderboard";
+    context: "challenge" | "team_progress";
   };
   session_history_opened: EmptyProperties;
   cheer_inbox_opened: EmptyProperties;
@@ -55,7 +51,7 @@ export interface ProductEventProperties {
     age_bucket: "under_hour" | "same_day" | "next_day" | "unknown";
   };
   reaction_created: {
-    context: "challenge" | "team_progress" | "leaderboard";
+    context: "challenge" | "team_progress";
     reaction:
       | "clap"
       | "fire"
@@ -83,7 +79,6 @@ export const clientEventNames = [
   "app_installed",
   "training_entry_started",
   "training_activity_selected",
-  "leaderboard_filter_selected",
   "avatar_builder_opened",
   "reaction_picker_opened",
   "session_history_opened",
@@ -237,26 +232,12 @@ function propertiesFor(
           "defaulted_activity",
         ),
       };
-    case "leaderboard_filter_selected":
-      exactKeys(value, ["period", "metric"], name);
-      return {
-        period: oneOf(
-          value.period,
-          ["weekly", "rolling-30", "season"],
-          "period",
-        ),
-        metric: oneOf(
-          value.metric,
-          ["effort", "streaks", "consistency"],
-          "metric",
-        ),
-      };
     case "reaction_picker_opened":
       exactKeys(value, ["context"], name);
       return {
         context: oneOf(
           value.context,
-          ["challenge", "team_progress", "leaderboard"],
+          ["challenge", "team_progress"],
           "context",
         ),
       };
@@ -314,7 +295,7 @@ function propertiesFor(
       return {
         context: oneOf(
           value.context,
-          ["challenge", "team_progress", "leaderboard"],
+          ["challenge", "team_progress"],
           "context",
         ),
         reaction: oneOf(

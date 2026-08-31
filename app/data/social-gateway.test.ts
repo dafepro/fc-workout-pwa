@@ -58,47 +58,4 @@ describe("connected social gateway", () => {
       completedCount: 1,
     });
   });
-
-  it("requests the selected safe leaderboard and preserves server rank", async () => {
-    const fetch = vi.fn().mockResolvedValue(
-      Response.json({
-        team: { id: "team-one", name: "Trailblazers", weeklyGoal: 3 },
-        period: "thirty_days",
-        metric: "consistency",
-        periodStart: "2026-07-14",
-        periodEnd: "2026-08-12",
-        teamSessions: 4,
-        teamEffortPoints: 43,
-        items: [
-          {
-            rank: 1,
-            playerId: "player-ava",
-            firstName: "Ava",
-            lastInitial: "R",
-            value: 2,
-            effortPoints: 28,
-            sessions: 3,
-            streakDays: 2,
-            consistencyDays: 2,
-          },
-        ],
-      }),
-    );
-    vi.stubGlobal("fetch", fetch);
-
-    const result = await createConnectedSocialGateway("team-one").leaderboard(
-      "thirty_days",
-      "consistency",
-    );
-
-    expect(fetch).toHaveBeenCalledWith(
-      "/api/zoomigo/v1/teams/team-one/leaderboards?period=thirty_days&metric=consistency",
-      { cache: "no-store" },
-    );
-    expect(result.items[0]).toMatchObject({
-      id: "player-ava",
-      rank: 1,
-      value: 2,
-    });
-  });
 });

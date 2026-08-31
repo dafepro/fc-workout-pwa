@@ -199,10 +199,9 @@ test("received contextual reactions appear privately on Me", async ({
       recipientPlayerId: "player-mason",
       reactionType: "fire",
       context: {
-        type: "leaderboard",
+        type: "team_progress",
         teamId: "team-hill-striders",
         period: "weekly",
-        metric: "effort",
       },
     },
   });
@@ -239,10 +238,10 @@ test("received contextual reactions appear privately on Me", async ({
     page.getByRole("heading", { name: "Cheers for you" }),
   ).toBeVisible();
   await expect(
-    page.getByText(/Ava R\. saw you on the Weekly Effort leaderboard/),
+    page.getByText(/Ava R\. cheered your weekly Team progress/),
   ).toBeVisible();
   await expect(page.getByText("🔥", { exact: true })).toBeVisible();
-  await expect(page.getByText("Leaderboard", { exact: true })).toBeVisible();
+  await expect(page.getByText("Team progress", { exact: true })).toBeVisible();
   await expect(
     page.getByText("Hill Sprints challenge", { exact: true }),
   ).toBeVisible();

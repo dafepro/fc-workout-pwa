@@ -33,7 +33,6 @@ const allowed = [
     method: "GET",
     pattern: /^v1\/teams\/[^/]+\/reward-media\/[^/]+$/,
   },
-  { method: "GET", pattern: /^v1\/teams\/[^/]+\/leaderboards$/ },
   { method: "POST", pattern: /^v1\/teams\/[^/]+\/lounge\/socket-ticket$/ },
   { method: "POST", pattern: /^v1\/teams\/[^/]+\/lounge\/placements$/ },
   {

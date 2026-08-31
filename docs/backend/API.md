@@ -76,7 +76,6 @@ small validated configuration for the current player.
 ```text
 GET /v1/teams/{teamId}/activity
 GET /v1/teams/{teamId}/hub
-GET /v1/teams/{teamId}/leaderboards
 GET /v1/teams/{teamId}/reward-media/{mediaId}
 POST /v1/reactions
 POST /v1/teams/{teamId}/lounge/socket-ticket

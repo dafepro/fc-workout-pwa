@@ -78,7 +78,6 @@ type Repository interface {
 	CreateReaction(context.Context, store.CreateReactionInput) (store.CreateReactionResult, error)
 	ListReactionBadges(context.Context, store.ListReactionBadgesInput) ([]store.ReactionBadge, error)
 	TeamActivity(context.Context, domain.Actor, string, time.Time) (store.TeamActivityProjection, error)
-	Leaderboard(context.Context, domain.Actor, string, domain.LeaderboardPeriod, domain.LeaderboardMetric, time.Time) (store.LeaderboardProjection, error)
 	TrainingDashboard(context.Context, domain.Actor, string, time.Time) (store.TrainingDashboardProjection, error)
 	UpdatePlayerAvatarConfiguration(context.Context, string, string) error
 }
@@ -180,7 +179,6 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	mux.HandleFunc("GET /v1/teams/{teamId}/activity", service.getTeamActivity)
 	mux.HandleFunc("GET /v1/teams/{teamId}/hub", service.getTeamHub)
 	mux.HandleFunc("GET /v1/teams/{teamId}/reward-media/{mediaId}", service.getPlayerTeamRewardMedia)
-	mux.HandleFunc("GET /v1/teams/{teamId}/leaderboards", service.getLeaderboard)
 	mux.HandleFunc("POST /v1/teams/{teamId}/lounge/socket-ticket", service.createTeamLoungeSocketTicket)
 	mux.HandleFunc("POST /v1/teams/{teamId}/lounge/placements", service.reserveTeamLoungePlacement)
 	mux.HandleFunc("DELETE /v1/teams/{teamId}/lounge/placements/pending", service.releasePendingTeamLoungePlacement)
@@ -280,33 +278,6 @@ func (service *service) getTeamActivity(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	projection, err := service.store.TeamActivity(r.Context(), actor, r.PathValue("teamId"), service.now().UTC())
-	if errors.Is(err, store.ErrSocialTeamUnavailable) {
-		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
-		return
-	}
-	if err != nil {
-		writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")
-		return
-	}
-	writeJSON(w, http.StatusOK, projection)
-}
-
-func (service *service) getLeaderboard(w http.ResponseWriter, r *http.Request) {
-	actor, ok := service.authenticate(w, r)
-	if !ok {
-		return
-	}
-	if service.store == nil {
-		writeError(w, r, http.StatusServiceUnavailable, "not_ready", "The service is not ready.")
-		return
-	}
-	period := domain.LeaderboardPeriod(r.URL.Query().Get("period"))
-	metric := domain.LeaderboardMetric(r.URL.Query().Get("metric"))
-	projection, err := service.store.Leaderboard(r.Context(), actor, r.PathValue("teamId"), period, metric, service.now().UTC())
-	if errors.Is(err, store.ErrSocialProjectionInvalid) {
-		writeError(w, r, http.StatusBadRequest, "invalid_leaderboard", "Choose an approved leaderboard period and category.")
-		return
-	}
 	if errors.Is(err, store.ErrSocialTeamUnavailable) {
 		writeError(w, r, http.StatusNotFound, "not_found", "The requested resource was not found.")
 		return

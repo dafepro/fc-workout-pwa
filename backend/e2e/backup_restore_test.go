@@ -35,10 +35,9 @@ func TestBackupRestorePreservesPrivateAPIProjections(t *testing.T) {
 		"recipientPlayerId": "player-mason",
 		"reactionType":      "fire",
 		"context": map[string]any{
-			"type":   "leaderboard",
+			"type":   "team_progress",
 			"teamId": "team-hill-striders",
 			"period": "weekly",
-			"metric": "effort",
 		},
 	})
 	assertStatus(t, reaction, http.StatusCreated)

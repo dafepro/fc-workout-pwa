@@ -75,12 +75,6 @@ func (observed *ObservedStore) TeamHub(ctx context.Context, actor domain.Actor, 
 	})
 }
 
-func (observed *ObservedStore) Leaderboard(ctx context.Context, actor domain.Actor, teamID string, period domain.LeaderboardPeriod, metric domain.LeaderboardMetric, now time.Time) (store.LeaderboardProjection, error) {
-	return observeValue(observed.metrics, "social_projection", func() (store.LeaderboardProjection, error) {
-		return observed.Store.Leaderboard(ctx, actor, teamID, period, metric, now)
-	})
-}
-
 func (observed *ObservedStore) TrainingDashboard(ctx context.Context, actor domain.Actor, teamID string, now time.Time) (store.TrainingDashboardProjection, error) {
 	return observeValue(observed.metrics, "social_projection", func() (store.TrainingDashboardProjection, error) {
 		return observed.Store.TrainingDashboard(ctx, actor, teamID, now)

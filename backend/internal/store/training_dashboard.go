@@ -152,7 +152,7 @@ func (store *Store) TrainingDashboard(ctx context.Context, actor domain.Actor, t
 	if err != nil {
 		return TrainingDashboardProjection{}, err
 	}
-	weekStart, _ := domain.LeaderboardPeriodStart(domain.PeriodWeekly, now, team.CreatedAt, location)
+	weekStart, _ := domain.ParticipationPeriodStart(domain.PeriodWeekly, now, team.CreatedAt, location)
 	seasonMetrics := domain.ParticipationMetrics(entries, now, team.CreatedAt, location)[actor.PlayerID]
 	weekMetrics := domain.ParticipationMetrics(entries, now, weekStart, location)[actor.PlayerID]
 	momentumCredits := weeklyMomentumCredits(entries, restDays, weekStart, now, location)

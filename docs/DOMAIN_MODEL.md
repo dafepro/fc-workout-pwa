@@ -44,9 +44,9 @@ plan block even if its numeric value reaches a target.
 
 ## Progress and social projections
 
-Momentum, streaks, consistency, weekly completion, challenge groups, and
-leaderboards are derived projections. The server calculates them from accepted,
-non-deleted records and exposes only the fields approved for each audience.
+Momentum, streaks, consistency, weekly completion, and challenge groups are
+derived projections. The server calculates them from accepted, non-deleted
+records and exposes only the fields approved for each audience.
 
 A **reaction** binds an authenticated sender to another active teammate, one
 predefined reaction, and a bounded context. The private badge message is
@@ -77,8 +77,8 @@ Unknown and expired outcomes stay held for operator reconciliation. A generation
 cutover starts a clean room and does not import retired state or debit the new
 generation's budget.
 
-Lounge state is play state only. It cannot create training credit, Momentum,
-leaderboard value, or a public performance result.
+Lounge state is play state only. It cannot create training credit, Momentum, or
+a public performance result.
 
 ## Analytics and operations
 

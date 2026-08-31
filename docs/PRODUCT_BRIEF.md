@@ -35,7 +35,7 @@ A player should be able to:
 3. see private Momentum, session history, plan progress, and earned items;
 4. see privacy-safe team participation and send predefined supportive reactions;
 5. enter a shared Lounge whose objects and interactions cannot change training
-   or leaderboard results;
+   or participation results;
 6. customize an avatar using only the reviewed catalog.
 
 ## Training and plans

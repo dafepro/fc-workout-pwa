@@ -35,7 +35,7 @@ func TestReactionValidationAndSafeBadgeCopy(t *testing.T) {
 		RecipientPlayerID: "recipient",
 		ReactionType:      ReactionFire,
 		Context: ReactionContext{
-			Type: ContextLeaderboard, TeamID: "team-1", Period: PeriodWeekly, Metric: MetricEffort,
+			Type: ContextTeamProgress, TeamID: "team-1", Period: PeriodWeekly,
 		},
 	}
 	if err := ValidateReactionRequest("sender", request); err != nil {
@@ -45,13 +45,26 @@ func TestReactionValidationAndSafeBadgeCopy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if message != "Ava R. saw you on the Weekly Effort leaderboard and sent you 🔥." {
+	if message != "Ava R. cheered your weekly Team progress and sent you 🔥." {
 		t.Fatalf("unexpected message: %q", message)
 	}
 	for _, prohibited := range []string{"bottom", "distance", "exhaustion", "pace", "reps"} {
 		if strings.Contains(strings.ToLower(message), prohibited) {
 			t.Fatalf("message contains prohibited context %q", prohibited)
 		}
+	}
+}
+
+func TestReactionValidationRejectsRetiredLeaderboardContext(t *testing.T) {
+	request := ReactionRequest{
+		RecipientPlayerID: "recipient",
+		ReactionType:      ReactionFire,
+		Context: ReactionContext{
+			Type: ReactionContextType("leaderboard"), TeamID: "team-1", Period: PeriodWeekly,
+		},
+	}
+	if !errors.Is(ValidateReactionRequest("sender", request), ErrInvalidContext) {
+		t.Fatal("the retired leaderboard reaction context must be rejected")
 	}
 }
 
@@ -66,9 +79,9 @@ func TestReactionValidationRejectsSelfAndUnapprovedContext(t *testing.T) {
 	}
 	unsafe := self
 	unsafe.RecipientPlayerID = "other"
-	unsafe.Context.Metric = MetricEffort
+	unsafe.Context.AssignmentID = "assignment-not-allowed"
 	if !errors.Is(ValidateReactionRequest("sender", unsafe), ErrInvalidContext) {
-		t.Fatal("team progress context must not carry leaderboard metric data")
+		t.Fatal("team progress context must not carry assignment data")
 	}
 }
 

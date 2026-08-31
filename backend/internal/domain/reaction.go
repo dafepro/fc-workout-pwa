@@ -21,8 +21,7 @@ var (
 
 type ReactionType string
 type ReactionContextType string
-type LeaderboardPeriod string
-type LeaderboardMetric string
+type ParticipationPeriod string
 
 const (
 	ReactionClap     ReactionType = "clap"
@@ -35,23 +34,16 @@ const (
 	ReactionDoIt     ReactionType = "do_it"
 
 	ContextTeamProgress ReactionContextType = "team_progress"
-	ContextLeaderboard  ReactionContextType = "leaderboard"
 	ContextChallenge    ReactionContextType = "challenge"
 
-	PeriodWeekly     LeaderboardPeriod = "weekly"
-	PeriodThirtyDays LeaderboardPeriod = "thirty_days"
-	PeriodSeason     LeaderboardPeriod = "season"
-
-	MetricEffort      LeaderboardMetric = "effort"
-	MetricStreaks     LeaderboardMetric = "streaks"
-	MetricConsistency LeaderboardMetric = "consistency"
+	PeriodWeekly ParticipationPeriod = "weekly"
+	PeriodSeason ParticipationPeriod = "season"
 )
 
 type ReactionContext struct {
 	Type         ReactionContextType `json:"type"`
 	TeamID       string              `json:"teamId"`
-	Period       LeaderboardPeriod   `json:"period,omitempty"`
-	Metric       LeaderboardMetric   `json:"metric,omitempty"`
+	Period       ParticipationPeriod `json:"period,omitempty"`
 	AssignmentID string              `json:"assignmentId,omitempty"`
 	ActivityName string              `json:"activityName,omitempty"`
 }
@@ -81,15 +73,11 @@ func ValidateReactionRequest(senderPlayerID string, request ReactionRequest) err
 	}
 	switch request.Context.Type {
 	case ContextTeamProgress:
-		if request.Context.Period != PeriodWeekly || request.Context.Metric != "" || request.Context.AssignmentID != "" || request.Context.ActivityName != "" {
-			return ErrInvalidContext
-		}
-	case ContextLeaderboard:
-		if !validPeriod(request.Context.Period) || !validMetric(request.Context.Metric) || request.Context.AssignmentID != "" || request.Context.ActivityName != "" {
+		if request.Context.Period != PeriodWeekly || request.Context.AssignmentID != "" || request.Context.ActivityName != "" {
 			return ErrInvalidContext
 		}
 	case ContextChallenge:
-		if request.Context.AssignmentID == "" || request.Context.Period != "" || request.Context.Metric != "" || request.Context.ActivityName != "" {
+		if request.Context.AssignmentID == "" || request.Context.Period != "" || request.Context.ActivityName != "" {
 			return ErrInvalidContext
 		}
 	default:
@@ -129,17 +117,12 @@ func BadgeMessage(senderDisplayName string, reactionType ReactionType, context R
 	}
 	switch context.Type {
 	case ContextTeamProgress:
-		if context.Period != PeriodWeekly || context.Metric != "" {
+		if context.Period != PeriodWeekly {
 			return "", ErrInvalidContext
 		}
 		return fmt.Sprintf("%s cheered your weekly Team progress and sent you %s.", senderDisplayName, emoji), nil
-	case ContextLeaderboard:
-		if !validPeriod(context.Period) || !validMetric(context.Metric) {
-			return "", ErrInvalidContext
-		}
-		return fmt.Sprintf("%s saw you on the %s %s leaderboard and sent you %s.", senderDisplayName, periodLabel(context.Period), metricLabel(context.Metric), emoji), nil
 	case ContextChallenge:
-		if context.AssignmentID == "" || strings.TrimSpace(context.ActivityName) == "" || context.Period != "" || context.Metric != "" {
+		if context.AssignmentID == "" || strings.TrimSpace(context.ActivityName) == "" || context.Period != "" {
 			return "", ErrInvalidContext
 		}
 		return fmt.Sprintf("%s cheered your %s challenge and sent you %s.", senderDisplayName, context.ActivityName, emoji), nil
@@ -159,34 +142,4 @@ func ReactionEmoji(reactionType ReactionType) (string, error) {
 var reactionEmoji = map[ReactionType]string{
 	ReactionClap: "👏", ReactionFire: "🔥", ReactionStrong: "💪", ReactionHustle: "⚡",
 	ReactionRunner: "🏃", ReactionWind: "💨", ReactionRobotLeg: "🦿", ReactionDoIt: "✓",
-}
-
-func validPeriod(value LeaderboardPeriod) bool {
-	return value == PeriodWeekly || value == PeriodThirtyDays || value == PeriodSeason
-}
-
-func validMetric(value LeaderboardMetric) bool {
-	return value == MetricEffort || value == MetricStreaks || value == MetricConsistency
-}
-
-func periodLabel(value LeaderboardPeriod) string {
-	switch value {
-	case PeriodThirtyDays:
-		return "30-day"
-	case PeriodSeason:
-		return "Season"
-	default:
-		return "Weekly"
-	}
-}
-
-func metricLabel(value LeaderboardMetric) string {
-	switch value {
-	case MetricStreaks:
-		return "Streaks"
-	case MetricConsistency:
-		return "Consistency"
-	default:
-		return "Effort"
-	}
 }

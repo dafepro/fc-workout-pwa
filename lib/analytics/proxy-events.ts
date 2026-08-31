@@ -13,7 +13,7 @@ const activities = new Set([
   "distance-run",
   "recovery-walk-jog",
 ]);
-const reactionContexts = new Set(["challenge", "team_progress", "leaderboard"]);
+const reactionContexts = new Set(["challenge", "team_progress"]);
 const reactions = new Set([
   "clap",
   "fire",

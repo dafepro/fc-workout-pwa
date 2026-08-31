@@ -24,7 +24,7 @@ vi.mock("../../../../lib/analytics/server", () => ({
   recordServerEventsForRequest,
 }));
 
-import { POST } from "./route";
+import { GET, POST } from "./route";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -65,6 +65,20 @@ describe("Zoomigo API proxy", () => {
       new Request("https://dev.zoomigo.example/api/zoomigo/__dev/reset", {
         method: "POST",
       }),
+    );
+
+    expect(response.status).toBe(404);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps the retired leaderboard endpoint outside the player proxy", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await GET(
+      new Request(
+        "https://zoomigo.example/api/zoomigo/v1/teams/team-one/leaderboards?period=weekly&metric=effort",
+      ),
     );
 
     expect(response.status).toBe(404);

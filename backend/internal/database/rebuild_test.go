@@ -4,6 +4,7 @@ import (
 	"context"
 	"io/fs"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/dafepro/fc-workout-pwa/backend/migrations"
@@ -251,5 +252,83 @@ func TestForeignKeysAreEnforcedAfterARebuildMigration(t *testing.T) {
 	if _, err = db.ExecContext(ctx, `INSERT INTO accounts (id, club_id, player_id, role, status, created_at)
 		VALUES ('account-orphan', 'club-does-not-exist', NULL, 'coach', 'active', '2026-08-08T00:00:00Z')`); err == nil {
 		t.Fatal("a row pointing at a missing club must be refused")
+	}
+}
+
+func TestMigrateRetiresOnlyLeaderboardReactionsFromAPopulatedDatabase(t *testing.T) {
+	ctx := context.Background()
+	databaseURL := "file:" + filepath.ToSlash(filepath.Join(t.TempDir(), "retire-leaderboards.db"))
+	db, err := Open(ctx, databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if _, err = db.ExecContext(ctx, `CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)`); err != nil {
+		t.Fatal(err)
+	}
+	entries, err := fs.ReadDir(migrations.Files, ".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		name := entry.Name()
+		if entry.IsDir() || !strings.HasSuffix(name, ".up.sql") || name[:6] > "000021" {
+			continue
+		}
+		if err = applyMigration(ctx, db, name); err != nil {
+			t.Fatalf("apply %s: %v", name, err)
+		}
+	}
+
+	for _, statement := range []string{
+		`INSERT INTO clubs (id, name, created_at) VALUES ('club-r', 'Club', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO teams (id, club_id, name, season_id, weekly_default_goal, time_zone, created_at)
+		 VALUES ('team-r', 'club-r', 'Team', 'season-2026', 3, 'UTC', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at)
+		 VALUES ('sender-r', 'club-r', 'Sender', 'A', '{}', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at)
+		 VALUES ('recipient-r', 'club-r', 'Recipient', 'B', '{}', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO assignments (id, team_id, activity_definition_id, catalog_key, target_value, target_unit, starts_on, due_on, created_at)
+		 VALUES ('assignment-r', 'team-r', 'hill-sprints', 'hill_sprints_8x6', 6, 'reps', '2026-01-01', '2026-01-07', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO reactions (id, sender_player_id, recipient_player_id, team_id, reaction_type,
+		 context_type, context_period, context_metric, context_assignment_id, team_day, idempotency_key, created_at)
+		 VALUES ('reaction-progress', 'sender-r', 'recipient-r', 'team-r', 'clap',
+		 'team_progress', 'weekly', NULL, NULL, '2026-01-02', 'idem-progress', '2026-01-02T00:00:00Z')`,
+		`INSERT INTO reactions (id, sender_player_id, recipient_player_id, team_id, reaction_type,
+		 context_type, context_period, context_metric, context_assignment_id, team_day, idempotency_key, created_at)
+		 VALUES ('reaction-leaderboard', 'sender-r', 'recipient-r', 'team-r', 'fire',
+		 'leaderboard', 'season', 'effort', NULL, '2026-01-02', 'idem-leaderboard', '2026-01-02T00:01:00Z')`,
+		`INSERT INTO reactions (id, sender_player_id, recipient_player_id, team_id, reaction_type,
+		 context_type, context_period, context_metric, context_assignment_id, team_day, idempotency_key, created_at)
+		 VALUES ('reaction-challenge', 'sender-r', 'recipient-r', 'team-r', 'strong',
+		 'challenge', NULL, NULL, 'assignment-r', '2026-01-02', 'idem-challenge', '2026-01-02T00:02:00Z')`,
+	} {
+		if _, err = db.ExecContext(ctx, statement); err != nil {
+			t.Fatalf("seed %q: %v", statement, err)
+		}
+	}
+
+	if err = Migrate(ctx, db); err != nil {
+		t.Fatalf("retire leaderboard reactions: %v", err)
+	}
+	var contexts string
+	if err = db.QueryRowContext(ctx, `SELECT group_concat(context_type, ',') FROM reactions ORDER BY created_at`).Scan(&contexts); err != nil {
+		t.Fatal(err)
+	}
+	if contexts != "team_progress,challenge" {
+		t.Fatalf("surviving contexts = %q, want team_progress,challenge", contexts)
+	}
+	var metricColumns int
+	if err = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM pragma_table_info('reactions') WHERE name = 'context_metric'`).Scan(&metricColumns); err != nil {
+		t.Fatal(err)
+	}
+	if metricColumns != 0 {
+		t.Fatalf("context_metric column count = %d, want 0", metricColumns)
+	}
+	if _, err = db.ExecContext(ctx, `INSERT INTO reactions (id, sender_player_id, recipient_player_id, team_id,
+		reaction_type, context_type, context_period, context_assignment_id, team_day, idempotency_key, created_at)
+		VALUES ('reaction-invalid', 'sender-r', 'recipient-r', 'team-r', 'fire', 'leaderboard', 'weekly', NULL,
+		'2026-01-02', 'idem-invalid', '2026-01-02T00:03:00Z')`); err == nil {
+		t.Fatal("the retired leaderboard context must be rejected by the database")
 	}
 }

@@ -33,7 +33,7 @@ describe("proxyEvents", () => {
     );
   });
 
-  it("normalizes reactions and failure reasons", () => {
+  it("normalizes supported reactions and drops the retired context", () => {
     expect(
       proxyEvents(
         "POST",
@@ -41,7 +41,7 @@ describe("proxyEvents", () => {
         JSON.stringify({
           recipientPlayerId: "private-player",
           reactionType: "robot_leg",
-          context: "leaderboard",
+          context: "team_progress",
         }),
         201,
         20,
@@ -49,10 +49,32 @@ describe("proxyEvents", () => {
     ).toEqual({
       name: "reaction_created",
       properties: {
-        context: "leaderboard",
+        context: "team_progress",
         reaction: "robot-leg",
       },
     });
+    expect(
+      proxyEvents(
+        "POST",
+        "v1/reactions",
+        JSON.stringify({
+          recipientPlayerId: "private-player",
+          reactionType: "fire",
+          context: "leaderboard",
+        }),
+        201,
+        20,
+      ),
+    ).toEqual([
+      {
+        name: "product_operation_completed",
+        properties: {
+          operation: "reaction",
+          outcome: "success",
+          latency: "under_250ms",
+        },
+      },
+    ]);
     expect(
       proxyEvents("POST", "v1/me/training-entries", "{}", 409, 20)[0],
     ).toEqual({

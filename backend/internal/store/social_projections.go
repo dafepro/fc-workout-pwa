@@ -5,16 +5,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"sort"
-	"strings"
 	"time"
 
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 )
 
 var (
-	ErrSocialTeamUnavailable   = errors.New("social team is unavailable")
-	ErrSocialProjectionInvalid = errors.New("social projection request is invalid")
+	ErrSocialTeamUnavailable = errors.New("social team is unavailable")
 )
 
 type SocialTeam struct {
@@ -56,29 +53,6 @@ type TeamActivityProjection struct {
 	Members            []TeamMemberProjection   `json:"members"`
 }
 
-type LeaderboardItem struct {
-	Rank            int    `json:"rank"`
-	PlayerID        string `json:"playerId"`
-	FirstName       string `json:"firstName"`
-	LastInitial     string `json:"lastInitial"`
-	Value           int    `json:"value"`
-	EffortPoints    int    `json:"effortPoints"`
-	Sessions        int    `json:"sessions"`
-	StreakDays      int    `json:"streakDays"`
-	ConsistencyDays int    `json:"consistencyDays"`
-}
-
-type LeaderboardProjection struct {
-	Team             SocialTeam               `json:"team"`
-	Period           domain.LeaderboardPeriod `json:"period"`
-	Metric           domain.LeaderboardMetric `json:"metric"`
-	PeriodStart      string                   `json:"periodStart"`
-	PeriodEnd        string                   `json:"periodEnd"`
-	TeamSessions     int                      `json:"teamSessions"`
-	TeamEffortPoints int                      `json:"teamEffortPoints"`
-	Items            []LeaderboardItem        `json:"items"`
-}
-
 type socialTeamRecord struct {
 	SocialTeam
 	ClubID    string
@@ -105,9 +79,9 @@ func (store *Store) teamActivity(ctx context.Context, team socialTeamRecord, loc
 	if err != nil {
 		return TeamActivityProjection{}, err
 	}
-	weekStart, _ := domain.LeaderboardPeriodStart(domain.PeriodWeekly, now, team.CreatedAt, location)
+	weekStart, _ := domain.ParticipationPeriodStart(domain.PeriodWeekly, now, team.CreatedAt, location)
 	weekMetrics := domain.ParticipationMetrics(entries, now, weekStart, location)
-	seasonStart, _ := domain.LeaderboardPeriodStart(domain.PeriodSeason, now, team.CreatedAt, location)
+	seasonStart, _ := domain.ParticipationPeriodStart(domain.PeriodSeason, now, team.CreatedAt, location)
 	seasonMetrics := domain.ParticipationMetrics(entries, now, seasonStart, location)
 	teamDay := now.In(location).Format("2006-01-02")
 	assignment, err := store.activeAssignment(ctx, team.ID, teamDay)
@@ -181,65 +155,6 @@ func (store *Store) assignmentCompletions(ctx context.Context, assignment Assign
 		return nil, fmt.Errorf("iterate assignment completions: %w", err)
 	}
 	return completed, nil
-}
-
-func (store *Store) Leaderboard(ctx context.Context, actor domain.Actor, teamID string, period domain.LeaderboardPeriod, metric domain.LeaderboardMetric, now time.Time) (LeaderboardProjection, error) {
-	if metric != domain.MetricEffort && metric != domain.MetricStreaks && metric != domain.MetricConsistency {
-		return LeaderboardProjection{}, ErrSocialProjectionInvalid
-	}
-	team, location, err := store.authorizedSocialTeam(ctx, actor, teamID, now)
-	if err != nil {
-		return LeaderboardProjection{}, err
-	}
-	start, err := domain.LeaderboardPeriodStart(period, now, team.CreatedAt, location)
-	if err != nil {
-		return LeaderboardProjection{}, ErrSocialProjectionInvalid
-	}
-	members, entries, err := store.socialProjectionData(ctx, team.ID, now, location)
-	if err != nil {
-		return LeaderboardProjection{}, err
-	}
-	metrics := domain.ParticipationMetrics(entries, now, start, location)
-	projection := LeaderboardProjection{
-		Team: team.SocialTeam, Period: period, Metric: metric,
-		PeriodStart: start.Format("2006-01-02"), PeriodEnd: now.In(location).Format("2006-01-02"),
-		Items: make([]LeaderboardItem, 0, len(members)),
-	}
-	for _, member := range members {
-		value := metrics[member.PlayerID]
-		item := LeaderboardItem{
-			PlayerID: member.PlayerID, FirstName: member.FirstName, LastInitial: member.LastInitial,
-			EffortPoints: value.EffortPoints, Sessions: value.Sessions,
-			StreakDays: value.StreakDays, ConsistencyDays: value.ConsistencyDays,
-		}
-		switch metric {
-		case domain.MetricEffort:
-			item.Value = item.EffortPoints
-		case domain.MetricStreaks:
-			item.Value = item.StreakDays
-		case domain.MetricConsistency:
-			item.Value = value.ActiveDays
-		}
-		projection.TeamSessions += value.Sessions
-		projection.TeamEffortPoints += value.EffortPoints
-		projection.Items = append(projection.Items, item)
-	}
-	sort.SliceStable(projection.Items, func(i, j int) bool {
-		left, right := projection.Items[i], projection.Items[j]
-		if left.Value != right.Value {
-			return left.Value > right.Value
-		}
-		if left.ConsistencyDays != right.ConsistencyDays {
-			return left.ConsistencyDays > right.ConsistencyDays
-		}
-		leftName := strings.ToLower(left.FirstName + " " + left.LastInitial)
-		rightName := strings.ToLower(right.FirstName + " " + right.LastInitial)
-		return leftName < rightName
-	})
-	for index := range projection.Items {
-		projection.Items[index].Rank = index + 1
-	}
-	return projection, nil
 }
 
 func (store *Store) authorizedSocialTeam(ctx context.Context, actor domain.Actor, teamID string, now time.Time) (socialTeamRecord, *time.Location, error) {
