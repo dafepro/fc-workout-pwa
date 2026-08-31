@@ -1,11 +1,4 @@
-import type {
-  ReactionContext,
-  TeamHubActivity,
-  TeamHubProjection,
-  TeamPulseActivity,
-  TrainingDashboard,
-} from "../domain/types";
-import { createSocialGateway } from "./social-gateway";
+import type { TeamHubActivity, TeamHubProjection } from "../domain/types";
 import { playerFromSocialIdentity } from "./social-identity";
 
 export interface TeamHubGateway {
@@ -29,12 +22,7 @@ interface APITeamHub extends Omit<TeamHubProjection, "activity"> {
   >;
 }
 
-export interface LocalTeamHubInput {
-  currentPlayerID: string;
-  dashboard: TrainingDashboard | null;
-}
-
-class HTTPTeamHubGateway implements TeamHubGateway {
+class ConnectedTeamHubGateway implements TeamHubGateway {
   constructor(private readonly teamID: string) {}
 
   async current(): Promise<TeamHubProjection> {
@@ -73,108 +61,6 @@ class HTTPTeamHubGateway implements TeamHubGateway {
   }
 }
 
-class LocalTeamHubGateway implements TeamHubGateway {
-  constructor(
-    private readonly teamID: string,
-    private readonly input?: LocalTeamHubInput,
-  ) {}
-
-  async current(): Promise<TeamHubProjection> {
-    const projection = await createSocialGateway(
-      false,
-      this.teamID,
-    ).teamActivity();
-    const dashboard = this.input?.dashboard;
-    const unlocked = dashboard?.teamPulse.unlocked ?? false;
-    const challenge = projection.currentChallenge;
-    const members = new Map(
-      projection.members.map((member) => [member.id, member]),
-    );
-    const activity = unlocked
-      ? (dashboard?.teamPulse.recentActivities ?? [])
-          .filter((item) => item.playerId !== this.input?.currentPlayerID)
-          .slice(0, 5)
-          .map((item) =>
-            localActivity(
-              item,
-              members.get(item.playerId),
-              challenge?.id,
-              this.teamID,
-            ),
-          )
-      : [];
-    return {
-      team: {
-        id: projection.team.id,
-        name: projection.team.name,
-        weekStart: projection.weekStart,
-        weekEnd: projection.weekEnd,
-      },
-      access: { activityUnlocked: unlocked, loungeUnlocked: unlocked },
-      focus: challenge
-        ? [
-            {
-              kind: "challenge",
-              id: challenge.id,
-              title: challenge.activityName,
-              current: challenge.completedCount,
-              target: projection.members.length,
-              unit: "teammates",
-              dueOn: challenge.dueOn,
-            },
-          ]
-        : [],
-      activitySummary: {
-        activeThisWeek: dashboard?.teamPulse.activeThisWeek ?? 0,
-      },
-      activity,
-      lounge: { themeId: "beach-boardwalk", title: "Team Lounge" },
-    };
-  }
-}
-
-export function createTeamHubGateway(
-  connected: boolean,
-  teamID: string,
-  localInput?: LocalTeamHubInput,
-): TeamHubGateway {
-  return connected
-    ? new HTTPTeamHubGateway(teamID)
-    : new LocalTeamHubGateway(teamID, localInput);
-}
-
-function localActivity(
-  item: TeamPulseActivity,
-  member: { challengeCompleted: boolean; goalStatus: string } | undefined,
-  assignmentID: string | undefined,
-  teamID: string,
-): TeamHubActivity {
-  const signals: TeamHubActivity["signals"] = [
-    { kind: item.recency === "Today" ? "active_today" : "active_this_week" },
-  ];
-  let reactionContext: ReactionContext = {
-    type: "team_progress",
-    teamId: teamID,
-    period: "weekly",
-  };
-  if (member?.challengeCompleted && assignmentID) {
-    signals.push({ kind: "challenge_complete" });
-    reactionContext = {
-      type: "challenge",
-      teamId: teamID,
-      assignmentId: assignmentID,
-    };
-  }
-  if (member?.goalStatus === "completed") {
-    signals.push({ kind: "weekly_goal_complete" });
-  }
-  return {
-    player: playerFromSocialIdentity({
-      id: item.playerId,
-      firstName: item.firstName,
-      lastInitial: item.lastInitial,
-    }),
-    signals,
-    reactionContext,
-  };
+export function createConnectedTeamHubGateway(teamID: string): TeamHubGateway {
+  return new ConnectedTeamHubGateway(teamID);
 }

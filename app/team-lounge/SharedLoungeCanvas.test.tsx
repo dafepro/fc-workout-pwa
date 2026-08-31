@@ -146,7 +146,9 @@ vi.mock("./lounge-gateway", () => ({
 }));
 
 vi.mock("../data/prize-box-gateway", () => ({
-  createPrizeBoxGateway: () => ({ inventory: vi.fn().mockResolvedValue([]) }),
+  createConnectedPrizeBoxGateway: () => ({
+    inventory: vi.fn().mockResolvedValue([]),
+  }),
 }));
 
 const mason: Player = {

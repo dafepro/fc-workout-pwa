@@ -1,4 +1,3 @@
-import { createDeleteDeadline } from "../domain/rules";
 import type {
   ActivityId,
   CompletionOutcome,
@@ -6,7 +5,6 @@ import type {
   TrainingEntryInput,
   TrainingPlanProvenance,
 } from "../domain/types";
-import { CURRENT_PLAYER_ID, initialEntries } from "./mockData";
 
 export interface TrainingEntryGateway {
   list(): Promise<TrainingEntry[]>;
@@ -44,9 +42,7 @@ interface APITrainingEntry {
   deleteEligibleUntil: string;
 }
 
-const LOCAL_ENTRIES_KEY = "zoomigo-milestone-1";
-
-class HTTPTrainingEntryGateway implements TrainingEntryGateway {
+class ConnectedTrainingEntryGateway implements TrainingEntryGateway {
   constructor(private readonly teamID: string) {}
 
   async list(): Promise<TrainingEntry[]> {
@@ -108,50 +104,10 @@ class HTTPTrainingEntryGateway implements TrainingEntryGateway {
   }
 }
 
-class LocalTrainingEntryGateway implements TrainingEntryGateway {
-  async list(): Promise<TrainingEntry[]> {
-    return readLocalEntries();
-  }
-
-  async get(entryID: string): Promise<TrainingEntry | null> {
-    return readLocalEntries().find((entry) => entry.id === entryID) ?? null;
-  }
-
-  async create(input: TrainingEntryInput): Promise<TrainingEntry> {
-    const now = new Date();
-    const entry: TrainingEntry = {
-      id: crypto.randomUUID(),
-      playerId: CURRENT_PLAYER_ID,
-      activityId: input.activityId,
-      occurredAt: input.occurredAt,
-      value: input.value,
-      unit: input.unit,
-      effortLevel: input.effortLevel,
-      exhaustionLevel: input.exhaustionLevel,
-      completionOutcome: input.completionOutcome,
-      assignmentId: input.assignmentId,
-      plan: input.plan,
-      createdAt: now.toISOString(),
-      deleteEligibleUntil: createDeleteDeadline(now),
-    };
-    writeLocalEntries([entry, ...readLocalEntries()]);
-    return entry;
-  }
-
-  async delete(entryID: string): Promise<void> {
-    writeLocalEntries(
-      readLocalEntries().filter((entry) => entry.id !== entryID),
-    );
-  }
-}
-
-export function createTrainingEntryGateway(
-  connected = false,
-  teamID = "team-hill-striders",
+export function createConnectedTrainingEntryGateway(
+  teamID: string,
 ): TrainingEntryGateway {
-  return connected
-    ? new HTTPTrainingEntryGateway(teamID)
-    : new LocalTrainingEntryGateway();
+  return new ConnectedTrainingEntryGateway(teamID);
 }
 
 async function throwForError(response: Response): Promise<void> {
@@ -186,32 +142,4 @@ function fromAPIEntry(entry: APITrainingEntry): TrainingEntry {
     assignmentId: entry.assignmentId ?? undefined,
     plan: entry.plan ?? undefined,
   };
-}
-
-function readLocalEntries(): TrainingEntry[] {
-  try {
-    const stored = window.localStorage.getItem(LOCAL_ENTRIES_KEY);
-    if (!stored) return initialEntries;
-    const parsed = JSON.parse(stored) as {
-      entries?: TrainingEntry[];
-    };
-    return Array.isArray(parsed.entries) ? parsed.entries : initialEntries;
-  } catch {
-    return initialEntries;
-  }
-}
-
-function writeLocalEntries(entries: TrainingEntry[]): void {
-  try {
-    const stored = window.localStorage.getItem(LOCAL_ENTRIES_KEY);
-    const current = stored
-      ? (JSON.parse(stored) as Record<string, unknown>)
-      : {};
-    window.localStorage.setItem(
-      LOCAL_ENTRIES_KEY,
-      JSON.stringify({ ...current, entries }),
-    );
-  } catch {
-    // The in-memory provider still updates when browser storage is unavailable.
-  }
 }

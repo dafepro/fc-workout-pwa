@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createReactionGateway } from "./reaction-gateway";
+import { createConnectedReactionGateway } from "./reaction-gateway";
+import { createUnhostedPrototypeReactionGateway } from "../prototype/reaction-gateway";
 
 afterEach(() => {
   vi.useRealTimers();
@@ -15,7 +16,7 @@ describe("connected reaction gateway", () => {
       );
     vi.stubGlobal("fetch", fetch);
 
-    await createReactionGateway(true).send({
+    await createConnectedReactionGateway().send({
       recipientPlayerId: "player_opaque_123",
       reactionType: "clap",
       context: {
@@ -40,7 +41,7 @@ describe("connected reaction gateway", () => {
     );
     vi.stubGlobal("fetch", fetch);
 
-    const page = await createReactionGateway(true).listReceived(
+    const page = await createConnectedReactionGateway().listReceived(
       "opaque-current-page",
     );
 
@@ -62,7 +63,7 @@ describe("local reaction gateway", () => {
         setItem: (key: string, value: string) => values.set(key, value),
       },
     });
-    const gateway = createReactionGateway(false);
+    const gateway = createUnhostedPrototypeReactionGateway();
     const input = {
       recipientPlayerId: "player-liam",
       reactionType: "clap" as const,

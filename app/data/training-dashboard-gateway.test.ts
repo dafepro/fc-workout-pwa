@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createTrainingDashboardGateway } from "./training-dashboard-gateway";
+import { createConnectedTrainingDashboardGateway } from "./training-dashboard-gateway";
 
 describe("connected training dashboard gateway", () => {
   beforeEach(() => vi.restoreAllMocks());
@@ -46,7 +46,7 @@ describe("connected training dashboard gateway", () => {
     );
 
     await expect(
-      createTrainingDashboardGateway(true, "team-real").get(),
+      createConnectedTrainingDashboardGateway("team-real").get(),
     ).resolves.toMatchObject({
       team: { id: "team-real", weeklyGoal: 4 },
       activities: [{ id: "hill-sprints", min: 1, max: 20, defaultValue: 8 }],
@@ -75,10 +75,9 @@ describe("connected training dashboard gateway", () => {
       ),
     );
 
-    await createTrainingDashboardGateway(true, "team-real").recordPlannedRest(
-      "plan-one",
-      3,
-    );
+    await createConnectedTrainingDashboardGateway(
+      "team-real",
+    ).recordPlannedRest("plan-one", 3);
 
     expect(fetch).toHaveBeenCalledWith(
       "/api/zoomigo/v1/me/planned-rest-check-ins",

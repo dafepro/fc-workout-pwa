@@ -6,7 +6,6 @@ import { SessionList } from "../components/SessionList";
 import { TransientQueryToast } from "../components/TransientQueryToast";
 import { copy } from "../content/copy";
 import { routes } from "../content/routes";
-import { TEAM_NAME } from "../data/mockData";
 import type { ReactionBadge } from "../domain/types";
 import { useTraining } from "../state/training-context";
 import { useAuth } from "../state/auth-context";
@@ -19,7 +18,7 @@ export default function MePage() {
     signOut,
     currentPlayer: player,
     currentPlayerID,
-    session,
+    runtime,
   } = useAuth();
   const {
     entries,
@@ -36,7 +35,7 @@ export default function MePage() {
   const personalEntries = entries.filter(
     (entry) => entry.playerId === currentPlayerID,
   );
-  const teamName = session?.player?.teams[0]?.name ?? TEAM_NAME;
+  const teamName = runtime.currentTeam.name;
 
   return (
     <div className="page page--me">

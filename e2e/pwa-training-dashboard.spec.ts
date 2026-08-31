@@ -34,6 +34,47 @@ test.beforeEach(async () => {
   await api.dispose();
 });
 
+test("connected failures never fall through to prototype identity or progress", async ({
+  page,
+}) => {
+  const serverSummary = await playerDashboardSummary();
+  await page.setViewportSize({ width: 320, height: 700 });
+  await openReadyPage(page, "/");
+  await expect(
+    page.getByText(`${serverSummary.momentumScore} Momentum`, { exact: true }),
+  ).toBeVisible();
+
+  await page.route("**/api/zoomigo/v1/me/training-dashboard?*", async (route) =>
+    route.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({ error: { code: "dashboard_unavailable" } }),
+    }),
+  );
+  await page.reload();
+  await expect(
+    page.getByRole("heading", {
+      name: "Your training plan could not be loaded",
+    }),
+  ).toBeVisible();
+  await expect(page.getByText("68 Momentum", { exact: true })).toHaveCount(0);
+  await page.unroute("**/api/zoomigo/v1/me/training-dashboard?*");
+
+  await page.route("**/api/auth/session", async (route) => {
+    if (route.request().method() !== "GET") return route.continue();
+    return route.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({ error: { code: "session_unavailable" } }),
+    });
+  });
+  await page.reload();
+  await expect(page.getByRole("alert")).toContainText(
+    "ZoomiGo is taking a breather",
+  );
+  await expect(page.getByText(/Mason|Hill Striders/u)).toHaveCount(0);
+});
+
 test("Today logs the coach-plan duration instead of the catalog default", async ({
   page,
 }) => {
@@ -67,19 +108,27 @@ test("Today logs the coach-plan duration instead of the catalog default", async 
 test("connected Today and activity logging use the server assignment", async ({
   page,
 }) => {
+  const serverSummary = await playerDashboardSummary();
   await page.setViewportSize({ width: 320, height: 700 });
   await openReadyPage(page, "/");
   await expect(
     page.getByRole("heading", { name: "Hill Sprints" }),
   ).toBeVisible();
   await expect(page.getByRole("heading", { name: "Started" })).toBeVisible();
-  await expect(page.getByText("8 Momentum", { exact: true })).toBeVisible();
   await expect(
-    page.getByText("2-day check-in streak", { exact: true }),
+    page.getByText(`${serverSummary.momentumScore} Momentum`, { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("progressbar", { name: "Momentum: 8 out of 100" }),
-  ).toHaveAttribute("aria-valuenow", "8");
+    page.getByText(
+      `${serverSummary.currentCheckInStreak}-day check-in streak`,
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("progressbar", {
+      name: `Momentum: ${serverSummary.momentumScore} out of 100`,
+    }),
+  ).toHaveAttribute("aria-valuenow", String(serverSummary.momentumScore));
   await expect(page.getByRole("heading", { name: "My Sessions" })).toHaveCount(
     0,
   );
@@ -96,7 +145,9 @@ test("connected Today and activity logging use the server assignment", async ({
     page.getByRole("heading", { name: "Your momentum" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("progressbar", { name: "Momentum: 8 out of 100" }),
+    page.getByRole("progressbar", {
+      name: `Momentum: ${serverSummary.momentumScore} out of 100`,
+    }),
   ).toBeVisible();
   await page.getByRole("link", { name: "Today" }).click();
 
@@ -233,6 +284,23 @@ async function publishPlan(templateId: string, startsOn: string) {
   );
   expect(response.status()).toBe(201);
   await api.dispose();
+}
+
+async function playerDashboardSummary(): Promise<{
+  momentumScore: number;
+  currentCheckInStreak: number;
+}> {
+  const api = await request.newContext({ baseURL: apiBaseURL });
+  const response = await api.get(
+    "/v1/me/training-dashboard?teamId=team-hill-striders",
+    { headers: { Authorization: "Bearer e2e-player-mason" } },
+  );
+  expect(response.ok()).toBe(true);
+  const dashboard = (await response.json()) as {
+    summary: { momentumScore: number; currentCheckInStreak: number };
+  };
+  await api.dispose();
+  return dashboard.summary;
 }
 
 function teamDate(offsetDays: number): string {

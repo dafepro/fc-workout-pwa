@@ -8,10 +8,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import { CURRENT_PLAYER_ID } from "../data/mockData";
-import { createReactionGateway } from "../data/reaction-gateway";
-import { createTrainingEntryGateway } from "../data/training-entry-gateway";
-import { createTrainingDashboardGateway } from "../data/training-dashboard-gateway";
+import type { PlayerRuntimeAdapter } from "../data/player-runtime";
 import type {
   Reaction,
   ReactionBadge,
@@ -53,15 +50,13 @@ const TrainingContext = createContext<TrainingState | null>(null);
 
 export function TrainingProvider({
   children,
-  connected = false,
-  currentPlayerID = CURRENT_PLAYER_ID,
-  currentTeamID = "team-hill-striders",
+  runtime,
 }: {
   children: React.ReactNode;
-  connected?: boolean;
-  currentPlayerID?: string;
-  currentTeamID?: string;
+  runtime: PlayerRuntimeAdapter;
 }) {
+  const connected = runtime.mode === "connected";
+  const currentPlayerID = runtime.currentPlayerID;
   const [entries, setEntries] = useState<TrainingEntry[]>([]);
   const [entriesStatus, setEntriesStatus] = useState<
     "loading" | "ready" | "error"
@@ -81,13 +76,9 @@ export function TrainingProvider({
   const [dashboardStatus, setDashboardStatus] = useState<
     "loading" | "ready" | "error"
   >("loading");
-  const [reactionGateway] = useState(() => createReactionGateway(connected));
-  const [trainingEntryGateway] = useState(() =>
-    createTrainingEntryGateway(connected, currentTeamID),
-  );
-  const [trainingDashboardGateway] = useState(() =>
-    createTrainingDashboardGateway(connected, currentTeamID),
-  );
+  const reactionGateway = runtime.reactions;
+  const trainingEntryGateway = runtime.trainingEntries;
+  const trainingDashboardGateway = runtime.trainingDashboard;
 
   const refreshDashboard = useCallback(async () => {
     try {

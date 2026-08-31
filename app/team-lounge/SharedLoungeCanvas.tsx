@@ -19,7 +19,7 @@ import { TransientActionRejectCode } from "@canvas-physics/protocol";
 
 import { PlayerAvatar } from "../components/PlayerAvatar";
 import { copy } from "../content/copy";
-import { createPrizeBoxGateway } from "../data/prize-box-gateway";
+import { createConnectedPrizeBoxGateway } from "../data/prize-box-gateway";
 import type { Player } from "../domain/types";
 import { useAvatarIdentity } from "../state/avatar-identity-context";
 import type { LoungeCanvasState } from "./LocalLoungeCanvas";
@@ -375,7 +375,7 @@ export function SharedLoungeCanvas({
         currentPlayerID: playerID,
         avatarConfig,
       });
-      void createPrizeBoxGateway(true)
+      void createConnectedPrizeBoxGateway()
         .inventory(["lounge_stamp", "lounge_prop"])
         .then((inventory) => {
           if (!disposed) setChoices(loungeItemChoices(inventory));

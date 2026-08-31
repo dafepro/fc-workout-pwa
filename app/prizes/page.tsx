@@ -1,13 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { createPrizeBoxGateway } from "../data/prize-box-gateway";
 import { useAuth } from "../state/auth-context";
 import { PrizeBoxesExperience } from "./PrizeBoxesExperience";
 
 export default function PrizeBoxesPage() {
-  const { connected } = useAuth();
-  const [gateway] = useState(() => createPrizeBoxGateway(connected));
+  const { runtime } = useAuth();
+  const [gateway] = useState(() => runtime.prizeBoxes);
 
   return (
     <div className="page prize-page">

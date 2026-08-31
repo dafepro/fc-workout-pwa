@@ -88,6 +88,12 @@ gateway.
 Development-only access routes may expose disposable credentials or catalog
 grants, but must be absent from production builds.
 
+The device-local unhosted prototype is a separate runtime adapter and opens only
+when the session gateway explicitly reports `backend_not_configured`. A failed,
+malformed, empty, or unauthorized connected response never falls through to
+prototype identity, team, training, reaction, reward, or progress data; it uses
+the existing sign-in or unavailable state.
+
 ## Staff shell
 
 `/staff/sign-in` handles password and TOTP. `/staff/setup` consumes a one-time

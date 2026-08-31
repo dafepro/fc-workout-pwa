@@ -3,10 +3,13 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { PlayerShell } from "../player/PlayerShell";
-import { playerColor } from "../avatar/color";
 import type { AvatarConfiguration } from "../avatar/types";
-import { createAvatarGateway } from "../data/avatar-gateway";
-import { CURRENT_PLAYER_ID, players } from "../data/mockData";
+import {
+  createConnectedPlayerRuntime,
+  parseConnectedSession,
+  type PlayerRuntimeAdapter,
+  type SessionProfile,
+} from "../data/player-runtime";
 import type { Player } from "../domain/types";
 import { TrainingProvider } from "./training-context";
 import { copy } from "../content/copy";
@@ -14,21 +17,10 @@ import { routes } from "../content/routes";
 import { AnalyticsProvider } from "../../lib/analytics/AnalyticsProvider";
 import { AvatarIdentityProvider } from "./avatar-identity-context";
 
-interface SessionProfile {
-  accountId: string;
-  role: string;
-  player: {
-    id: string;
-    firstName: string;
-    lastInitial: string;
-    teams: { id: string; name: string; timeZone: string }[];
-    avatarConfiguration?: AvatarConfiguration;
-  } | null;
-}
-
 interface AuthState {
   connected: boolean;
   session: SessionProfile | null;
+  runtime: PlayerRuntimeAdapter;
   currentPlayerID: string;
   currentPlayer: Player;
   avatarConfig: AvatarConfiguration;
@@ -43,8 +35,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [state, setState] = useState<
     | { status: "checking" }
-    | { status: "local" }
-    | { status: "connected"; session: SessionProfile }
+    | { status: "ready"; runtime: PlayerRuntimeAdapter }
     | { status: "unavailable" }
   >({ status: "checking" });
   const [avatarConfig, setAvatarConfig] = useState<AvatarConfiguration>({});
@@ -54,14 +45,22 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       return;
     }
     let active = true;
-    void fetch("/api/auth/session", { cache: "no-store" }).then(
-      async (response) => {
+    void (async () => {
+      try {
+        const response = await fetch("/api/auth/session", {
+          cache: "no-store",
+        });
         if (!active) return;
         if (response.ok) {
-          setState({
-            status: "connected",
-            session: (await response.json()) as SessionProfile,
-          });
+          const session = parseConnectedSession(await response.json());
+          setState(
+            session
+              ? {
+                  status: "ready",
+                  runtime: createConnectedPlayerRuntime(session),
+                }
+              : { status: "unavailable" },
+          );
           return;
         }
         const body = (await response.json().catch(() => ({}))) as {
@@ -71,30 +70,35 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           response.status === 503 &&
           body.error?.code === "backend_not_configured"
         ) {
-          setState({ status: "local" });
+          const { createUnhostedPrototypeRuntime } = await import(
+            "../prototype/unhosted-player-runtime"
+          );
+          if (active) {
+            setState({
+              status: "ready",
+              runtime: createUnhostedPrototypeRuntime(),
+            });
+          }
         } else if (response.status === 401) {
           router.replace(routes.playerSignIn);
         } else {
           setState({ status: "unavailable" });
         }
-      },
-      () => active && setState({ status: "unavailable" }),
-    );
+      } catch {
+        if (active) setState({ status: "unavailable" });
+      }
+    })();
     return () => {
       active = false;
     };
   }, [pathname, router]);
 
   useEffect(() => {
-    if (state.status !== "connected" && state.status !== "local") return;
-    const gateway = createAvatarGateway(
-      state.status === "connected",
-      state.status === "connected"
-        ? (state.session.player?.avatarConfiguration ?? {})
-        : {},
-    );
+    if (state.status !== "ready") return;
     let active = true;
-    void gateway.load().then((config) => active && setAvatarConfig(config));
+    void state.runtime.avatar
+      .load()
+      .then((config) => active && setAvatarConfig(config));
     return () => {
       active = false;
     };
@@ -118,35 +122,18 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       </main>
     );
   }
-  const connected = state.status === "connected";
-  const session = connected ? state.session : null;
-  const currentPlayerID = session?.player?.id ?? CURRENT_PLAYER_ID;
-  const prototypePlayer = players.find(
-    (player) => player.id === CURRENT_PLAYER_ID,
-  )!;
-  const currentPlayer: Player = session?.player
-    ? {
-        id: currentPlayerID,
-        firstName: session.player.firstName,
-        lastInitial: `${session.player.lastInitial.replace(/\.$/, "")}.`,
-        initials:
-          `${session.player.firstName[0] ?? ""}${session.player.lastInitial[0] ?? ""}`.toUpperCase(),
-        avatarColor: playerColor(currentPlayerID),
-        weeklySessions: 0,
-        effortPoints: 0,
-        currentStreak: 0,
-        consistency: 0,
-      }
-    : prototypePlayer;
-  const currentTeamID = session?.player?.teams[0]?.id ?? "team-hill-striders";
+  const runtime = state.runtime;
+  const connected = runtime.mode === "connected";
+  const { session, currentPlayerID, currentPlayer } = runtime;
   const auth: AuthState = {
     connected,
     session,
+    runtime,
     currentPlayerID,
     currentPlayer,
     avatarConfig,
     async saveAvatar(config) {
-      setAvatarConfig(await createAvatarGateway(connected).save(config));
+      setAvatarConfig(await runtime.avatar.save(config));
     },
     async signOut() {
       await fetch("/api/auth/session", { method: "DELETE" });
@@ -157,11 +144,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider value={auth}>
       <AnalyticsProvider enabled={connected}>
         <AvatarIdentityProvider value={{ currentPlayerID, avatarConfig }}>
-          <TrainingProvider
-            connected={connected}
-            currentPlayerID={currentPlayerID}
-            currentTeamID={currentTeamID}
-          >
+          <TrainingProvider runtime={runtime}>
             <PlayerShell>{children}</PlayerShell>
           </TrainingProvider>
         </AvatarIdentityProvider>

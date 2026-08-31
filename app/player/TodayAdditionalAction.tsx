@@ -1,13 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAnalytics } from "../../lib/analytics/AnalyticsProvider";
 import { copy } from "../content/copy";
-import {
-  createPrizeBoxGateway,
-  type PrizeBoxGateway,
-} from "../data/prize-box-gateway";
+import type { PrizeBoxGateway } from "../data/prize-box-gateway";
 
 export function TodayAdditionalAction({
   teamLocked,
@@ -19,18 +16,13 @@ export function TodayAdditionalAction({
   prizeBoxGateway?: PrizeBoxGateway;
 }) {
   const analytics = useAnalytics();
-  const defaultPrizeBoxGateway = useMemo(
-    () => createPrizeBoxGateway(prizeBoxesConnected),
-    [prizeBoxesConnected],
-  );
-  const gateway = prizeBoxGateway ?? defaultPrizeBoxGateway;
   const [unopenedPrizeBoxes, setUnopenedPrizeBoxes] = useState(0);
   const [pendingPlanBoxes, setPendingPlanBoxes] = useState(0);
 
   useEffect(() => {
-    if (!prizeBoxesConnected) return;
+    if (!prizeBoxesConnected || !prizeBoxGateway) return;
     let active = true;
-    void gateway.overview().then(
+    void prizeBoxGateway.overview().then(
       (overview) => {
         if (!active) return;
         setUnopenedPrizeBoxes(overview.readyCount);
@@ -48,7 +40,7 @@ export function TodayAdditionalAction({
     return () => {
       active = false;
     };
-  }, [gateway, prizeBoxesConnected]);
+  }, [prizeBoxGateway, prizeBoxesConnected]);
 
   const actions = [
     {

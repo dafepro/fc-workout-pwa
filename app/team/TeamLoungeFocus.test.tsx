@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Player, TeamActivityProjection } from "../domain/types";
 import { TeamLoungeFocus } from "./TeamLoungeFocus";
 
@@ -7,8 +7,13 @@ const mocks = vi.hoisted(() => ({
   teamActivity: vi.fn<() => Promise<TeamActivityProjection>>(),
 }));
 
-vi.mock("../data/social-gateway", () => ({
-  createSocialGateway: () => ({ teamActivity: mocks.teamActivity }),
+vi.mock("../state/auth-context", () => ({
+  useAuth: () => ({
+    connected: true,
+    runtime: {
+      social: () => ({ teamActivity: mocks.teamActivity }),
+    },
+  }),
 }));
 
 vi.mock("../team-lounge/TeamLounge", () => ({
@@ -30,10 +35,11 @@ const player: Player = {
 };
 
 describe("TeamLoungeFocus", () => {
+  beforeEach(() => mocks.teamActivity.mockReset());
+
   it("does not request the full roster while Lounge access is locked", async () => {
     render(
       <TeamLoungeFocus
-        connected
         player={player}
         teamID="team-one"
         unlocked={false}
@@ -46,7 +52,7 @@ describe("TeamLoungeFocus", () => {
   });
 
   it("loads the full roster only for an unlocked Lounge", async () => {
-    mocks.teamActivity.mockResolvedValueOnce({
+    mocks.teamActivity.mockResolvedValue({
       team: { id: "team-one", name: "Hill Striders", weeklyGoal: 3 },
       weekStart: "2026-08-24",
       weekEnd: "2026-08-30",
@@ -58,7 +64,6 @@ describe("TeamLoungeFocus", () => {
 
     render(
       <TeamLoungeFocus
-        connected
         player={player}
         teamID="team-one"
         unlocked

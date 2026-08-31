@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createTrainingEntryGateway } from "./training-entry-gateway";
+import { createConnectedTrainingEntryGateway } from "./training-entry-gateway";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -29,10 +29,8 @@ describe("connected training-entry gateway", () => {
       ),
     );
 
-    const entries = await createTrainingEntryGateway(
-      true,
-      "team_opaque_456",
-    ).list();
+    const entries =
+      await createConnectedTrainingEntryGateway("team_opaque_456").list();
 
     expect(entries[0].playerId).toBe("player_opaque_123");
     expect(entries[0].completionOutcome).toBe("as_listed");
@@ -60,7 +58,7 @@ describe("connected training-entry gateway", () => {
     );
     vi.stubGlobal("fetch", fetch);
 
-    await createTrainingEntryGateway(true, "team-1").create({
+    await createConnectedTrainingEntryGateway("team-1").create({
       activityId: "hill-sprints",
       inputKind: "repetitions",
       occurredAt: "2026-08-06T12:00:00Z",

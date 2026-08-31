@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 import { copy } from "./content/copy";
 import { useTraining } from "./state/training-context";
+import { useAuth } from "./state/auth-context";
 import { MomentumStatus } from "./player/MomentumStatus";
 import { TodayAdditionalAction } from "./player/TodayAdditionalAction";
 import { TodayPrimaryAction } from "./player/TodayPrimaryAction";
 import { PlanWeekStrip } from "./player/PlanWeekStrip";
 
 export default function HomePage() {
+  const { runtime } = useAuth();
   const {
     connected,
     dashboard,
@@ -95,6 +97,7 @@ export default function HomePage() {
       <TodayAdditionalAction
         teamLocked={!(dashboard?.teamPulse.unlocked ?? false)}
         prizeBoxesConnected={connected}
+        prizeBoxGateway={runtime.prizeBoxes}
       />
     </div>
   );

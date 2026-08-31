@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { ActivityId } from "../domain/types";
 import { ActivitySpecificFields } from "./ActivityFields";
 import { WorkoutSelect } from "./WorkoutSelect";
-import { activities } from "../data/mockData";
+import { activities } from "../prototype/data";
 
 function Harness() {
   const [activity, setActivity] = useState<ActivityId>("hill-sprints");
