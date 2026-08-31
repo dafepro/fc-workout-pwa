@@ -1,6 +1,9 @@
 import type { ReactNode } from "react";
 import { layerPalette } from "../config";
 import type { AvatarConfiguration } from "../types";
+
+export const KIT_BODY_PATH =
+  "M3 82V61Q3 52 21 47L27 45.5Q32 51 37 45.5L43 47Q61 52 61 61V82Z";
 import { INK } from "./geometry";
 
 type KitPattern =
@@ -28,7 +31,7 @@ function Kit({
     <>
       <path
         className="avatar-kit__body"
-        d="M3 82V61Q3 52 21 47L27 45.5Q32 51 37 45.5L43 47Q61 52 61 61V82Z"
+        d={KIT_BODY_PATH}
         fill={body}
         stroke={INK}
         strokeWidth="1.5"

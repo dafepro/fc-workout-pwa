@@ -69,3 +69,34 @@ func TestPrizeCatalogIncludesTheTenPartAvatarRewardPack(t *testing.T) {
 		t.Fatalf("avatar rewards missing from catalog: %v", want)
 	}
 }
+
+func TestPrizeCatalogIncludesTheTenRareDetailedAvatarRewards(t *testing.T) {
+	want := map[string]struct {
+		slot, asset string
+	}{
+		"avatar-head-prism-dragon":      {slot: "head", asset: "prism-dragon"},
+		"avatar-head-moon-axolotl":      {slot: "head", asset: "moon-axolotl"},
+		"avatar-kit-nebula-armor":       {slot: "kit", asset: "nebula-armor"},
+		"avatar-kit-phoenix-flight":     {slot: "kit", asset: "phoenix-flight"},
+		"avatar-hat-astronaut":          {slot: "hat", asset: "astronaut"},
+		"avatar-hat-crystal-antlers":    {slot: "hat", asset: "crystal-antlers"},
+		"avatar-eyewear-hologram-visor": {slot: "eyewear", asset: "hologram-visor"},
+		"avatar-eyewear-clockwork":      {slot: "eyewear", asset: "clockwork"},
+		"avatar-effect-aurora":          {slot: "effect", asset: "aurora"},
+		"avatar-effect-meteor-shower":   {slot: "effect", asset: "meteor-shower"},
+	}
+
+	for _, item := range domain.PrizeCatalogItems() {
+		expected, found := want[item.ID]
+		if !found {
+			continue
+		}
+		if item.Kind != domain.PrizeAvatarPart || item.Destination != domain.PrizeDestinationAvatar || item.Slot != expected.slot || item.AssetID != expected.asset || item.Label == "" || item.Rarity != domain.PrizeRare {
+			t.Fatalf("rare avatar reward %s = %+v", item.ID, item)
+		}
+		delete(want, item.ID)
+	}
+	if len(want) != 0 {
+		t.Fatalf("rare avatar rewards missing from catalog: %v", want)
+	}
+}
