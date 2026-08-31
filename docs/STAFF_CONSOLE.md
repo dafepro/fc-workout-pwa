@@ -43,7 +43,7 @@ Coach team pages provide:
 - safe team progress plus authorized private player drill-down;
 - roster membership and player provisioning for managed teams;
 - immutable training-plan history and development-gated plan authoring;
-- current team reward and development-gated reward authoring.
+- current team reward and reward authoring.
 
 Platform operator pages provide club/team management, player search and
 credential repair/deactivation, staff account setup/reset/team assignment,
@@ -53,6 +53,9 @@ administrative audit, and a privacy-safe product-analytics overview.
 
 - Player-facing content remains predefined; the console does not add coach
   announcements, notes, arbitrary workout names, URLs, or uploads.
+- Team Reward images are the sole staff-upload exception. The console previews
+  them in a bounded 3:2 thumbnail and reduces large JPEG/PNG phone photos before
+  transfer; the backend still re-decodes, validates, crops, and stores them.
 - Coaches may see raw training values only for players on teams they currently
   manage. Those values never enter team projections.
 - Existing assignments and plans retain immutable history. Deleting a future
@@ -65,8 +68,8 @@ administrative audit, and a privacy-safe product-analytics overview.
 
 ## Known boundaries
 
-- Production plan/reward write routes remain disabled until their respective
-  approval gates are satisfied.
+- Production training-plan write routes remain disabled until their workload
+  approval gate is satisfied.
 - Guardian credential delivery, post-window training-entry moderation, privacy
   export/deletion, and assessment recording need explicit policy/product work.
 - The CLI remains the break-glass path for supported administrative and recovery

@@ -113,11 +113,16 @@ export const consoleCopy = {
     rewardName: "Reward name",
     description: "Description",
     image: "Reward image (optional)",
-    imageHint: "JPEG or PNG, up to 3 MB. Images are cropped for display.",
+    imageHint:
+      "JPEG or PNG. Large phone photos are resized before upload and cropped for display.",
     imageGuidance:
       "Show the prize, not players. Do not include faces, names, contact details, schedules, QR codes, or other private information.",
     imageType: "Choose a JPEG or PNG image.",
-    imageSize: "Choose an image smaller than 3 MB.",
+    imageSize: "Choose a JPEG or PNG smaller than 12 MB.",
+    imagePreparing: "Preparing image…",
+    imagePreviewAlt: "Selected reward preview",
+    imageReadFailed:
+      "That image could not be read. Choose another JPEG or PNG.",
     startsOn: "Starts on",
     endsOn: "Ends on",
     startRequired: "Choose a start date.",

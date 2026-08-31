@@ -87,7 +87,58 @@ test("a coach works through the console at 320 pixels", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Team Reward" }),
   ).toBeVisible();
-  await expect(page.getByText("Team celebration")).toBeVisible();
+  await expectNoOverflow(page);
+
+  const cancelReward = page.getByRole("button", { name: "Cancel reward" });
+  if (await cancelReward.isVisible()) {
+    await cancelReward.click();
+    await page.getByRole("button", { name: "Yes, cancel reward" }).click();
+    await expect(page.getByText("Reward cancelled.")).toBeVisible();
+  }
+  await expect(page.getByLabel("Reward name")).toHaveValue("Team celebration");
+  const generatedPhoto = await page.evaluate(async () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 2400;
+    canvas.height = 1800;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("2D canvas unavailable");
+    for (let y = 0; y < canvas.height; y += 120) {
+      context.fillStyle = y % 240 === 0 ? "#ffdc3f" : "#6842c2";
+      context.fillRect(0, y, canvas.width, 120);
+    }
+    const blob = await new Promise<Blob>((resolve, reject) =>
+      canvas.toBlob(
+        (value) =>
+          value ? resolve(value) : reject(new Error("PNG encoding failed")),
+        "image/png",
+      ),
+    );
+    return Array.from(new Uint8Array(await blob.arrayBuffer()));
+  });
+  await page.getByLabel("Reward image (optional)").setInputFiles({
+    name: "oversized-phone-photo.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(generatedPhoto),
+  });
+  const selectedPreview = page.getByRole("img", {
+    name: "Selected reward preview",
+  });
+  await expect(selectedPreview).toBeVisible();
+  const previewBox = await selectedPreview.boundingBox();
+  expect(previewBox).not.toBeNull();
+  expect(previewBox!.width).toBeLessThanOrEqual(192);
+  expect(previewBox!.height).toBeLessThanOrEqual(128);
+  await page.getByRole("button", { name: "Publish reward" }).click();
+  await expect(page.getByText("Reward published.")).toBeVisible();
+  const publishedImage = page.getByRole("img", {
+    name: "Prize for the team",
+  });
+  await expect(publishedImage).toBeVisible();
+  await expect(publishedImage).toHaveAttribute("src", /variant=thumbnail/u);
+  const publishedBox = await publishedImage.boundingBox();
+  expect(publishedBox).not.toBeNull();
+  expect(publishedBox!.width).toBeLessThanOrEqual(192);
+  expect(publishedBox!.height).toBeLessThanOrEqual(128);
   await expectNoOverflow(page);
 
   await page.getByRole("link", { name: "Progress" }).click();

@@ -3642,6 +3642,16 @@ h2 {
   justify-self: start;
 }
 
+.team-reward-image {
+  display: block;
+  width: min(100%, 12rem);
+  aspect-ratio: 3 / 2;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: #f5f7ff;
+  object-fit: cover;
+}
+
 .console-actions {
   display: flex;
   flex-wrap: wrap;
