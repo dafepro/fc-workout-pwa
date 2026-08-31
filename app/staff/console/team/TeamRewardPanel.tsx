@@ -11,6 +11,11 @@ import {
 import { ConfirmButton } from "../ConfirmButton";
 import { consoleCopy, staffCopy } from "../copy";
 import type { StaffTeamReward, TeamRewardDefinition } from "../types";
+import {
+  prepareRewardImage,
+  type PreparedRewardImage,
+  RewardImagePreparationError,
+} from "./reward-image-preparation";
 
 export function TeamRewardPanel({
   teamId,
@@ -25,7 +30,9 @@ export function TeamRewardPanel({
   const [description, setDescription] = useState("");
   const [startsOn, setStartsOn] = useState("");
   const [endsOn, setEndsOn] = useState("");
-  const [image, setImage] = useState<File | null>(null);
+  const [preparedImage, setPreparedImage] =
+    useState<PreparedRewardImage | null>(null);
+  const [imagePreparing, setImagePreparing] = useState(false);
   const [requiredDays, setRequiredDays] = useState("3");
   const [minimumRosterPercent, setMinimumRosterPercent] = useState("70");
   const [busy, setBusy] = useState(false);
@@ -35,6 +42,7 @@ export function TeamRewardPanel({
   const publishKey = useRef("");
   const startsOnRef = useRef<HTMLInputElement>(null);
   const endsOnRef = useRef<HTMLInputElement>(null);
+  const imageSelectionRef = useRef(0);
 
   useEffect(() => {
     let active = true;
@@ -71,6 +79,20 @@ export function TeamRewardPanel({
     };
   }, [now, teamId]);
 
+  useEffect(
+    () => () => {
+      preparedImage?.dispose();
+    },
+    [preparedImage],
+  );
+
+  useEffect(
+    () => () => {
+      imageSelectionRef.current += 1;
+    },
+    [],
+  );
+
   async function publish(event: FormEvent) {
     event.preventDefault();
     const definition = definitions[0];
@@ -97,9 +119,9 @@ export function TeamRewardPanel({
     publishKey.current ||= crypto.randomUUID();
     try {
       let mediaId: string | undefined;
-      if (image) {
+      if (preparedImage) {
         const form = new FormData();
-        form.set("image", image);
+        form.set("image", preparedImage.file);
         form.set("altKind", "prize_image");
         const uploaded = await consoleFormRequest<{ id: string }>(
           `v1/staff/teams/${teamId}/reward-media`,
@@ -126,6 +148,7 @@ export function TeamRewardPanel({
       );
       publishKey.current = "";
       setReward(created);
+      setPreparedImage(null);
       setNotice(consoleCopy.teamReward.published);
     } catch (caught) {
       setError(messageFor(caught));
@@ -134,26 +157,43 @@ export function TeamRewardPanel({
     }
   }
 
-  function chooseImage(event: ChangeEvent<HTMLInputElement>) {
+  async function chooseImage(event: ChangeEvent<HTMLInputElement>) {
+    const selection = ++imageSelectionRef.current;
     const selected = event.target.files?.[0] ?? null;
     if (!selected) {
-      setImage(null);
+      setImagePreparing(false);
+      setPreparedImage(null);
       return;
     }
     if (!["image/jpeg", "image/png"].includes(selected.type)) {
       event.target.value = "";
-      setImage(null);
+      setImagePreparing(false);
+      setPreparedImage(null);
       setError(consoleCopy.teamReward.imageType);
       return;
     }
-    if (selected.size > 3 * 1024 * 1024) {
-      event.target.value = "";
-      setImage(null);
-      setError(consoleCopy.teamReward.imageSize);
-      return;
-    }
     setError("");
-    setImage(selected);
+    setImagePreparing(true);
+    try {
+      const next = await prepareRewardImage(selected);
+      if (selection !== imageSelectionRef.current) {
+        next.dispose();
+        return;
+      }
+      setPreparedImage(next);
+    } catch (caught) {
+      if (selection !== imageSelectionRef.current) return;
+      event.target.value = "";
+      setPreparedImage(null);
+      setError(
+        caught instanceof RewardImagePreparationError &&
+          caught.code === "too_large"
+          ? consoleCopy.teamReward.imageSize
+          : consoleCopy.teamReward.imageReadFailed,
+      );
+    } finally {
+      if (selection === imageSelectionRef.current) setImagePreparing(false);
+    }
   }
 
   async function cancel() {
@@ -195,7 +235,7 @@ export function TeamRewardPanel({
             // eslint-disable-next-line @next/next/no-img-element
             <img
               className="team-reward-image"
-              src={`/staff/api/backend/v1/staff/teams/${encodeURIComponent(teamId)}/reward-media/${encodeURIComponent(reward.mediaId)}`}
+              src={`/staff/api/backend/v1/staff/teams/${encodeURIComponent(teamId)}/reward-media/${encodeURIComponent(reward.mediaId)}?variant=thumbnail`}
               alt="Prize for the team"
             />
           ) : null}
@@ -256,9 +296,24 @@ export function TeamRewardPanel({
                 id="reward-image"
                 type="file"
                 accept="image/png,image/jpeg"
-                onChange={chooseImage}
+                disabled={imagePreparing}
+                onChange={(event) => void chooseImage(event)}
               />
               <p className="console-hint">{consoleCopy.teamReward.imageHint}</p>
+              {imagePreparing ? (
+                <p className="console-hint" role="status">
+                  {consoleCopy.teamReward.imagePreparing}
+                </p>
+              ) : null}
+              {preparedImage ? (
+                // The browser-owned blob URL is released when it is replaced.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  className="team-reward-image"
+                  src={preparedImage.previewURL}
+                  alt={consoleCopy.teamReward.imagePreviewAlt}
+                />
+              ) : null}
               <label htmlFor="reward-starts-on">
                 {consoleCopy.teamReward.startsOn}
               </label>
@@ -331,7 +386,7 @@ export function TeamRewardPanel({
               </select>
               <button
                 className="button button--lime"
-                disabled={busy || !title.trim()}
+                disabled={busy || imagePreparing || !title.trim()}
               >
                 {busy ? staffCopy.working : consoleCopy.teamReward.publish}
               </button>

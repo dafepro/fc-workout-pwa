@@ -143,7 +143,9 @@ changes, and other sensitive writes require step-up and audit.
 Team Reward authoring accepts bounded custom title and description snapshots
 and an optional previously uploaded media ID from the same team. Reward media
 is re-decoded and stored as private JPEG renditions. A player can fetch only the
-image attached to that team's currently visible reward.
+image attached to that team's currently visible reward. Staff image responses
+accept `variant=display` or `variant=thumbnail`; the authoring UI uses the
+thumbnail and bounds its layout even though both variants remain private.
 
 These routes exist only in explicitly enabled development/E2E builds until the
 associated production gates are approved:
