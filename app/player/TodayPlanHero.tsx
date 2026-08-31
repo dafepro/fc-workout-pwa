@@ -27,6 +27,11 @@ export function TodayPlanHero({
   const [error, setError] = useState<string | null>(null);
   const nextBlock =
     day.blocks.find((block) => !block.completed) ?? day.blocks[0] ?? null;
+  const nextBlockPosition = nextBlock
+    ? day.blocks.findIndex(
+        ({ blockIndex }) => blockIndex === nextBlock.blockIndex,
+      ) + 1
+    : 0;
   const activityAvailable =
     nextBlock === null ||
     activities.some(
@@ -68,7 +73,13 @@ export function TodayPlanHero({
       <header className="today-plan-hero__header">
         <div>
           <span className="today-plan-hero__today">Today</span>
-          <small>{complete ? "Complete" : "Coach plan"}</small>
+          <small>
+            {complete
+              ? "Complete"
+              : day.blocks.length > 1
+                ? `Coach plan · Block ${nextBlockPosition} of ${day.blocks.length}`
+                : "Coach plan"}
+          </small>
         </div>
         {complete ? (
           <span className="today-plan-hero__complete-mark" aria-hidden="true">

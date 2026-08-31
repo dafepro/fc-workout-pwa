@@ -9,7 +9,7 @@ import type {
 import { TodayPrimaryAction } from "./TodayPrimaryAction";
 
 describe("Today primary action", () => {
-  it("puts an incomplete assignment ahead of a completed rest day", () => {
+  it("keeps a completed plan day complete when an assignment remains", () => {
     render(
       <TodayPrimaryAction
         day={{ ...restDay(), completed: true }}
@@ -20,11 +20,15 @@ describe("Today primary action", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "Hill Sprints" })).toBeVisible();
     expect(
-      screen.getByRole("link", { name: /record this workout/i }),
-    ).toHaveAttribute("href", "/log");
-    expect(screen.queryByText("Today complete")).not.toBeInTheDocument();
+      screen.getByRole("heading", { name: "Done for today!" }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("link", { name: "See team progress" }),
+    ).toHaveAttribute("href", "/team");
+    expect(
+      screen.queryByRole("link", { name: /record this workout/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("keeps an unfinished plan day as the primary action", () => {

@@ -84,6 +84,102 @@ test("Today logs the coach-plan duration instead of the catalog default", async 
   });
 });
 
+test("Today keeps an overlapping assignment optional and settles its completion card", async ({
+  page,
+}) => {
+  await publishPlan("quick-check-in-v1", teamDate(0));
+  await page.setViewportSize({ width: 320, height: 700 });
+  await openReadyPage(page, "/");
+
+  await expect(
+    page.getByRole("heading", { name: "Timed Run / Walk" }),
+  ).toBeVisible();
+  const secondaryActions = page.getByRole("list", {
+    name: "Other things you can do",
+  });
+  const teamWorkout = secondaryActions.getByRole("link", {
+    name: /Team workout.*Hill Sprints.*8 reps/u,
+  });
+  await expect(teamWorkout).toHaveAttribute("href", "/log");
+  await expect(secondaryActions.getByRole("listitem").first()).toContainText(
+    "Team workout",
+  );
+
+  await page.getByRole("link", { name: /Record this workout/i }).click();
+  await page.locator(".selected-activity").click();
+  const choices = page.locator(".activity-options");
+  await expect(choices.getByLabel("Coach pick")).toHaveCount(1);
+  await expect(
+    choices
+      .locator(".activity-choice")
+      .filter({ hasText: "Timed Run / Walk" })
+      .getByLabel("Coach pick"),
+  ).toHaveCount(1);
+  await expect(
+    choices
+      .locator(".activity-choice")
+      .filter({ hasText: "Hill Sprints" })
+      .getByLabel("Coach pick"),
+  ).toHaveCount(0);
+  await page.locator(".selected-activity").click();
+
+  const created = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/zoomigo/v1/me/training-entries") &&
+      response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Save" }).click();
+  expect((await created).status()).toBe(201);
+
+  const completion = page.locator(".today-completion");
+  await expect(completion).toHaveClass(/is-celebrating/u);
+  await expect
+    .poll(() =>
+      completion.evaluate((element) =>
+        Math.round(element.getBoundingClientRect().height),
+      ),
+    )
+    .toBeGreaterThan(140);
+  const expandedMetrics = await completion.evaluate((element) => ({
+    className: element.className,
+    height: Math.round(element.getBoundingClientRect().height),
+    minHeight: getComputedStyle(element).minHeight,
+  }));
+  await expect
+    .poll(() =>
+      completion.evaluate((element) => getComputedStyle(element).animationName),
+    )
+    .toBe("today-completion-settle");
+  await expect(teamWorkout).toBeVisible();
+
+  await expect(completion).not.toHaveClass(/is-celebrating/u, {
+    timeout: 6_000,
+  });
+  await expect
+    .poll(() =>
+      completion.evaluate((element) =>
+        Math.round(element.getBoundingClientRect().height),
+      ),
+    )
+    .toBeLessThanOrEqual(96);
+  const compactMetrics = await completion.evaluate((element) => ({
+    className: element.className,
+    height: Math.round(element.getBoundingClientRect().height),
+    minHeight: getComputedStyle(element).minHeight,
+  }));
+  const collapseSummary = JSON.stringify({ expandedMetrics, compactMetrics });
+  expect(
+    expandedMetrics.height - compactMetrics.height,
+    collapseSummary,
+  ).toBeGreaterThan(20);
+  const compactHeight = compactMetrics.height;
+  expect(compactHeight).toBeLessThanOrEqual(96);
+  await expect(completion.locator(".today-completion__detail")).toHaveAttribute(
+    "aria-hidden",
+    "true",
+  );
+});
+
 test("connected Today and activity logging use the server assignment", async ({
   page,
 }) => {
@@ -178,14 +274,13 @@ test("connected Today and activity logging use the server assignment", async ({
   await expect(
     page.getByRole("heading", { name: "Done for today!" }),
   ).toBeVisible();
-  await expect(page.getByText("Hill Sprints complete")).toBeVisible();
   await expect(
     page.getByText("Nice work—your effort helped Hill Striders move forward."),
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "See team progress" }),
   ).toBeVisible();
-  await expect(page.locator(".today-plan-hero.is-celebrating")).toBeVisible();
+  await expect(page.locator(".today-completion.is-celebrating")).toBeVisible();
 
   await page.getByRole("link", { name: "See team progress" }).click();
   await expect(
@@ -231,11 +326,11 @@ test("connected Today and activity logging use the server assignment", async ({
   await expect(
     page.getByRole("heading", { name: "Done for today!" }),
   ).toBeVisible();
-  await expect(page.locator(".today-plan-hero.is-celebrating")).toHaveCount(0);
+  await expect(page.locator(".today-completion.is-celebrating")).toHaveCount(0);
 
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/?saved=1&completed=1");
-  const completionHero = page.locator(".today-plan-hero.is-celebrating");
+  const completionHero = page.locator(".today-completion.is-celebrating");
   await expect(completionHero).toBeVisible();
   await expect
     .poll(() =>

@@ -46,4 +46,27 @@ describe("TodayAdditionalAction", () => {
       screen.getByRole("link", { name: /Team lounge/i }),
     ).toHaveTextContent("Complete today’s plan to enter.");
   });
+
+  it("puts an overlapping team workout first among the optional actions", () => {
+    render(
+      <TodayAdditionalAction
+        teamLocked={false}
+        teamWorkout={{
+          activityName: "Hill Sprints",
+          targetValue: 8,
+          targetUnit: "reps",
+          dueOn: "2026-09-02",
+        }}
+      />,
+    );
+
+    const list = screen.getByRole("list", {
+      name: "Other things you can do",
+    });
+    const links = within(list).getAllByRole("link");
+    expect(links).toHaveLength(5);
+    expect(links[0]).toHaveAttribute("href", "/log");
+    expect(links[0]).toHaveTextContent("Team workout");
+    expect(links[0]).toHaveTextContent("Hill Sprints · 8 reps · Due Sep 2");
+  });
 });

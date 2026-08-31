@@ -32,6 +32,7 @@ export function TodayPrimaryAction({
       nextPlanBlock &&
         activities.some(({ id }) => id === nextPlanBlock.activityDefinitionId),
     );
+  const planOwnsToday = Boolean(day && plan);
   if (day && plan && !day.completed && planIsActionable) {
     return (
       <TodayPlanHero
@@ -48,36 +49,36 @@ export function TodayPrimaryAction({
   const assignmentActivity = activities.find(
     ({ id }) => id === assignment?.activityDefinitionId,
   );
-  const hasAssignment = Boolean(assignment && !assignment.completed);
+  const hasAssignment = Boolean(
+    !planOwnsToday && assignment && !assignment.completed,
+  );
 
-  if (assignment?.completed || (day?.completed && !hasAssignment)) {
-    const completedActivity = assignmentActivity?.name;
+  if (
+    (planOwnsToday && day?.completed) ||
+    (!planOwnsToday && assignment?.completed)
+  ) {
     return (
       <section
-        className={`today-plan-hero today-plan-hero--complete${celebrating ? " is-celebrating" : ""}`}
+        className={`today-completion${celebrating ? " is-celebrating" : ""}`}
         aria-labelledby="today-action-title"
         aria-live="polite"
       >
-        <header className="today-plan-hero__header">
-          <div>
-            <span className="today-plan-hero__today">Today</span>
-            <small>{copy.completion.eyebrow}</small>
-          </div>
-          <span className="today-plan-hero__complete-mark" aria-hidden="true">
-            ✓
-          </span>
-        </header>
-        <h1 id="today-action-title">{copy.completion.title}</h1>
-        {completedActivity ? (
-          <p className="today-plan-hero__goal">
-            {copy.completion.activity(completedActivity)}
+        <span className="today-completion__mark" aria-hidden="true">
+          ✓
+        </span>
+        <div className="today-completion__body">
+          <small>{copy.completion.eyebrow}</small>
+          <h1 id="today-action-title">{copy.completion.title}</h1>
+          <p className="today-completion__detail" aria-hidden={!celebrating}>
+            {copy.completion.teamContribution(teamName)}
           </p>
-        ) : null}
-        <p className="today-plan-hero__fallback">
-          {copy.completion.teamContribution(teamName)}
-        </p>
-        <Link className="today-plan-hero__primary" href="/team">
-          {copy.completion.action} <span aria-hidden="true">→</span>
+        </div>
+        <Link
+          className="today-completion__action"
+          href="/team"
+          aria-label={copy.completion.action}
+        >
+          {copy.completion.compactAction} <span aria-hidden="true">→</span>
         </Link>
       </section>
     );

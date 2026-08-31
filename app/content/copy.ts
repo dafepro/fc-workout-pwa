@@ -15,6 +15,7 @@ export const copy = {
     teamContribution: (teamName: string) =>
       `Nice work—your effort helped ${teamName} move forward.`,
     action: "See team progress",
+    compactAction: "Team",
   },
   feelingQuestions: {
     effort: "How hard did you work?",
@@ -47,6 +48,13 @@ export const copy = {
     teamLoungeLocked: "Complete today’s plan to enter.",
     logAnother: "Log another activity",
     logAnotherDetail: "Record something outside the planned workout.",
+    teamWorkout: "Team workout",
+    teamWorkoutDetail: (
+      activityName: string,
+      targetValue: number,
+      targetUnit: string,
+      dueOn: string,
+    ) => `${activityName} · ${targetValue} ${targetUnit} · Due ${dueOn}`,
     prizeBoxes: "View prize boxes",
     prizeBoxesDetail: "See available, earned, or unopened rewards.",
     prizeBoxesUnopened: (count: number) => `${count} unopened`,

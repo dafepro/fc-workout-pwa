@@ -23,6 +23,13 @@ Today answers one question first: what is the next useful action?
 - prize-box status and links to private progress or plan detail;
 - one primary action into structured training.
 
+When a published plan and an active assignment overlap, the plan owns the
+primary action. The incomplete assignment remains visible as the first optional
+action rather than replacing a completed plan day. Without a current plan, the
+assignment is primary. The record-training picker marks only that entry route's
+single recommended workout. Multiple plan blocks read as progress through one
+session, not separate recommendations.
+
 `/plan` shows the read-only full plan and `/plan/[dayIndex]` shows one day.
 Future work is visible but cannot be started early. `/progress` shows private
 Momentum detail. `/prizes` shows sealed and opened prize boxes plus owned

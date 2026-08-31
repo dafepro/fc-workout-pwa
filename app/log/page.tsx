@@ -93,6 +93,9 @@ export default function LogPage() {
       ) ??
       activities.find((item) => item.id === assignment?.activityDefinitionId) ??
       activities[0]);
+  const recommendedActivityId =
+    requestedPlanBlock?.activityDefinitionId ??
+    assignment?.activityDefinitionId;
   const activityId = selection?.activityId ?? suggestedActivity?.id ?? "";
   const value =
     selection?.value ??
@@ -249,9 +252,7 @@ export default function LogPage() {
             description: activity.description,
             icon: activity.icon,
             instructions: activity.instructions,
-            recommended:
-              activity.id === requestedPlanBlock?.activityDefinitionId ||
-              activity.id === assignment?.activityDefinitionId,
+            recommended: activity.id === recommendedActivityId,
           }))}
         />
         {selectedActivity ? (

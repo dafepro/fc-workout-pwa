@@ -63,6 +63,40 @@ describe("canonical Today plan", () => {
     expect(screen.queryByText(/tired/i)).not.toBeInTheDocument();
   });
 
+  it("presents multiple blocks as progress through one session", () => {
+    const day = trainingDay();
+    day.blocks = [
+      { ...day.blocks[0], completed: true },
+      {
+        blockIndex: 1,
+        activityDefinitionId: "recovery-walk-jog",
+        label: "Recovery walk",
+        durationMinutes: 8,
+        completed: false,
+      },
+    ];
+    render(
+      <TodayPlanHero
+        day={day}
+        dayNumber={2}
+        dayCount={7}
+        activities={[
+          { id: "hill-sprints", name: "Hill Sprints" },
+          { id: "recovery-walk-jog", name: "Recovery Walk / Jog" },
+        ]}
+        onRecordRest={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Coach plan · Block 2 of 2")).toBeVisible();
+    expect(
+      screen.getByRole("link", { name: /Record this workout/i }),
+    ).toHaveAttribute(
+      "href",
+      "/log?planId=plan-one&dayIndex=1&blockIndex=1&activityId=recovery-walk-jog",
+    );
+  });
+
   it("keeps the plan summary on Today and links to the safe read-only overview", () => {
     const plan: TrainingPlanWindow = {
       planId: "plan-one",

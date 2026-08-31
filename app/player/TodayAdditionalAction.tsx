@@ -8,10 +8,17 @@ import type { PrizeBoxGateway } from "../data/prize-box-gateway";
 
 export function TodayAdditionalAction({
   teamLocked,
+  teamWorkout = null,
   prizeBoxesConnected = false,
   prizeBoxGateway,
 }: {
   teamLocked: boolean;
+  teamWorkout?: {
+    activityName: string;
+    targetValue: number;
+    targetUnit: string;
+    dueOn: string;
+  } | null;
   prizeBoxesConnected?: boolean;
   prizeBoxGateway?: PrizeBoxGateway;
 }) {
@@ -43,6 +50,23 @@ export function TodayAdditionalAction({
   }, [prizeBoxGateway, prizeBoxesConnected]);
 
   const actions = [
+    ...(teamWorkout
+      ? [
+          {
+            href: "/log",
+            icon: "★",
+            title: copy.today.teamWorkout,
+            detail: copy.today.teamWorkoutDetail(
+              teamWorkout.activityName,
+              teamWorkout.targetValue,
+              teamWorkout.targetUnit,
+              formatDueDate(teamWorkout.dueOn),
+            ),
+            badge: 0,
+            track: true,
+          },
+        ]
+      : []),
     {
       href: "/team",
       icon: "●●",
@@ -129,4 +153,12 @@ export function TodayAdditionalAction({
       </ul>
     </section>
   );
+}
+
+function formatDueDate(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${value}T12:00:00Z`));
 }

@@ -26,13 +26,23 @@ export default function HomePage() {
   const assignmentComplete = assignment?.completed ?? false;
   const planDay = dashboard?.currentPlanDay ?? null;
   const currentPlan = dashboard?.currentPlan ?? null;
-  const primaryComplete =
-    planDay && !planDay.completed
-      ? false
-      : assignment && !assignmentComplete
-        ? false
-        : Boolean(planDay?.completed || assignmentComplete);
+  const planOwnsToday = Boolean(planDay && currentPlan);
+  const primaryComplete = planOwnsToday
+    ? Boolean(planDay?.completed)
+    : assignmentComplete;
   const isCelebrating = primaryComplete && celebrateCompletion;
+  const assignmentActivity = dashboard?.activities.find(
+    ({ id }) => id === assignment?.activityDefinitionId,
+  );
+  const teamWorkout =
+    planOwnsToday && assignment && !assignment.completed && assignmentActivity
+      ? {
+          activityName: assignmentActivity.name,
+          targetValue: assignment.targetValue,
+          targetUnit: assignment.targetUnit,
+          dueOn: assignment.dueOn,
+        }
+      : null;
 
   useEffect(() => {
     const parameters = new URLSearchParams(window.location.search);
@@ -40,13 +50,18 @@ export default function HomePage() {
       return;
     }
     window.history.replaceState(null, "", "/");
+    const completed = parameters.get("completed") === "1";
     const showTimer = window.setTimeout(() => {
       setShowSavedToast(true);
-      setCelebrateCompletion(parameters.get("completed") === "1");
+      setCelebrateCompletion(completed);
     }, 0);
+    const settleTimer = completed
+      ? window.setTimeout(() => setCelebrateCompletion(false), 3600)
+      : undefined;
     const hideTimer = window.setTimeout(() => setShowSavedToast(false), 4200);
     return () => {
       window.clearTimeout(showTimer);
+      if (settleTimer) window.clearTimeout(settleTimer);
       window.clearTimeout(hideTimer);
     };
   }, []);
@@ -96,6 +111,7 @@ export default function HomePage() {
 
       <TodayAdditionalAction
         teamLocked={!(dashboard?.teamPulse.unlocked ?? false)}
+        teamWorkout={teamWorkout}
         prizeBoxesConnected={connected}
         prizeBoxGateway={runtime.prizeBoxes}
       />
