@@ -19,6 +19,7 @@ import { TransientActionRejectCode } from "@canvas-physics/protocol";
 
 import { PlayerAvatar } from "../components/PlayerAvatar";
 import { AvatarArt } from "../avatar/AvatarArt";
+import { normalizeAvatar } from "../avatar/config";
 import { copy } from "../content/copy";
 import { createConnectedPrizeBoxGateway } from "../data/prize-box-gateway";
 import type { Player } from "../domain/types";
@@ -83,6 +84,21 @@ const GOAL_CELEBRATION_DURATION_MS = 2_800;
 const GOAL_CONFETTI_PARTICLE_COUNT = 100;
 const GOAL_CONFETTI_COLORS = ["#ffdc3f", "#22d3a8", "#ff617c", "#7dd3fc"];
 const LOUNGE_AVATAR_DIAMETER_WORLD = 18;
+const LOUNGE_BENCH_AVATAR_DIAMETER_WORLD = 12;
+const LOUNGE_BENCH_ANCHORS = [
+  { x: 16, y: 106 },
+  { x: 10.5, y: 106.5 },
+  { x: 21.5, y: 106 },
+  { x: 5, y: 107 },
+  { x: 27, y: 106.5 },
+  { x: 32.5, y: 107 },
+  { x: 16, y: 114 },
+  { x: 10.5, y: 113.5 },
+  { x: 21.5, y: 114 },
+  { x: 5, y: 113 },
+  { x: 27, y: 113.5 },
+  { x: 32.5, y: 113 },
+] as const;
 const LOUNGE_DECORATION_LAYERS = ["effect", "border"] as const;
 
 function goalScoreFor(
@@ -191,6 +207,7 @@ export function SharedLoungeCanvas({
   );
   const [reactionLocked, setReactionLocked] = useState(false);
   const [avatarDiameter, setAvatarDiameter] = useState<number>();
+  const [benchAvatarDiameter, setBenchAvatarDiameter] = useState<number>();
   const reactionTimerRef = useRef<number | undefined>(undefined);
   const reactionSequenceRef = useRef(0);
   const goalCelebrationTimerRef = useRef<number | undefined>(undefined);
@@ -289,6 +306,10 @@ export function SharedLoungeCanvas({
           roster: rosterRef.current,
           participants,
           projections,
+          benchProjections: LOUNGE_BENCH_ANCHORS.flatMap((anchor) => {
+            const projection = runtime?.projectWorldPoint(anchor);
+            return projection ? [projection] : [];
+          }),
           currentAvatarProjection:
             localProjection ??
             (canonicalProjection
@@ -422,7 +443,7 @@ export function SharedLoungeCanvas({
           grabRadiusPx: 44,
           flick: false,
         },
-        hideDisabledAvatars: false,
+        hideDisabledAvatars: true,
         onError: failCanvas,
       });
       runtimeRef.current = runtime;
@@ -449,6 +470,15 @@ export function SharedLoungeCanvas({
             ) / 10;
           setAvatarDiameter((current) =>
             current === nextAvatarDiameter ? current : nextAvatarDiameter,
+          );
+          const nextBenchAvatarDiameter =
+            Math.round(
+              snapshot.viewport.scale * LOUNGE_BENCH_AVATAR_DIAMETER_WORLD * 10,
+            ) / 10;
+          setBenchAvatarDiameter((current) =>
+            current === nextBenchAvatarDiameter
+              ? current
+              : nextBenchAvatarDiameter,
           );
           projectionFrameRef.current = {
             canvasSize: snapshot.canvasSize,
@@ -829,22 +859,34 @@ export function SharedLoungeCanvas({
           aria-label="Interactive lounge canvas"
           tabIndex={0}
         />
-        {overlays.map(({ player, position, current }) => (
+        {overlays.map(({ player, position, current, state }) => (
           <div
             className="team-lounge__shared-avatar"
             data-current={current || undefined}
+            data-presence={state}
             key={player.id}
             role={current ? undefined : "img"}
             aria-label={
-              current ? undefined : `${player.firstName} ${player.lastInitial}`
+              current
+                ? undefined
+                : state === "bench"
+                  ? copy.teamLounge.benchAvatarLabel(
+                      player.firstName,
+                      player.lastInitial,
+                    )
+                  : `${player.firstName} ${player.lastInitial}`
             }
             style={{
               transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
-              ...(avatarDiameter
+              ...(state === "bench" && benchAvatarDiameter
                 ? ({
-                    "--lounge-avatar-size": `${avatarDiameter}px`,
+                    "--lounge-avatar-size": `${benchAvatarDiameter}px`,
                   } as CSSProperties)
-                : undefined),
+                : avatarDiameter
+                  ? ({
+                      "--lounge-avatar-size": `${avatarDiameter}px`,
+                    } as CSSProperties)
+                  : undefined),
             }}
           >
             {current ? (
@@ -856,6 +898,15 @@ export function SharedLoungeCanvas({
                   config={avatarConfig}
                   background="transparent"
                   layerKinds={LOUNGE_DECORATION_LAYERS}
+                />
+              </div>
+            ) : state === "bench" ? (
+              <div
+                className="team-lounge__avatar-decoration team-lounge__avatar-decoration--bench"
+                aria-hidden="true"
+              >
+                <AvatarArt
+                  config={normalizeAvatar(player.avatarConfiguration ?? {})}
                 />
               </div>
             ) : null}
@@ -874,7 +925,9 @@ export function SharedLoungeCanvas({
                 }}
               />
             ) : null}
-            <span>{current ? "You" : player.firstName}</span>
+            <span aria-hidden={state === "bench" || undefined}>
+              {current ? "You" : state === "bench" ? "✓" : player.firstName}
+            </span>
             {activeReaction?.playerID === player.id &&
             activeReaction.kind === "emote" ? (
               <b

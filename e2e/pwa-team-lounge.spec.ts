@@ -130,6 +130,146 @@ test("the Lounge doubles, clips, and animates the configured avatar presentation
   await expect(stage.locator("canvas")).toBeVisible();
 });
 
+test("a completed offline teammate rests on the bench with a drained, paused avatar", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  const api = await request.newContext({ baseURL: apiBaseURL });
+  for (const player of ["mason", "ava"]) {
+    const completion = await api.post("/v1/me/training-entries", {
+      headers: {
+        Authorization: `Bearer e2e-player-${player}`,
+        "Idempotency-Key": `browser-lounge-bench-${player}`,
+      },
+      data: {
+        teamId: "team-hill-striders",
+        activityDefinitionId: "hill-sprints",
+        assignmentId: "assignment-hill-sprints",
+        occurredAt: new Date(Date.now() - 60_000).toISOString(),
+        result: { kind: "repetitions", value: 8, unit: "reps" },
+        effortLevel: 4,
+        exhaustionLevel: 3,
+        completionOutcome: "as_listed",
+      },
+    });
+    expect(completion.status()).toBe(201);
+  }
+  const avatar = await api.put("/v1/me/avatar", {
+    headers: { Authorization: "Bearer e2e-player-ava" },
+    data: {
+      configuration: {
+        ...animatedBorderAvatar,
+        head: "cheetah",
+      },
+    },
+  });
+  expect(avatar.status()).toBe(200);
+  await api.dispose();
+
+  await page.setViewportSize({ width: 320, height: 720 });
+  await openReadyPage(page, "/team?view=lounge");
+  const lounge = page.getByRole("region", {
+    name: "Beach Boardwalk Team Lounge",
+  });
+  await expect(lounge.locator(".team-lounge__world")).toHaveAttribute(
+    "data-canvas-state",
+    "ready",
+  );
+  await expect(lounge.getByText("1 here")).toBeVisible();
+  const benchAvatar = lounge.getByRole("img", {
+    name: "Ava R., finished and resting on the bench",
+  });
+  await expect(benchAvatar).toBeVisible();
+  await expect(benchAvatar).toHaveAttribute("data-presence", "bench");
+  await expect(benchAvatar.locator("span")).toHaveText("✓");
+  const presentation = await benchAvatar
+    .locator(".team-lounge__avatar-decoration--bench")
+    .evaluate((node) => ({
+      filter: getComputedStyle(node).filter,
+      animationStates: node
+        .getAnimations({ subtree: true })
+        .map((animation) => animation.playState),
+      hasConfiguredEffect: Boolean(
+        node.querySelector(".avatar-effect--animated"),
+      ),
+    }));
+  expect(presentation.filter).toContain("grayscale");
+  expect(presentation.filter).toContain("saturate");
+  expect(presentation.hasConfiguredEffect).toBe(true);
+  expect(presentation.animationStates.length).toBeGreaterThan(0);
+  expect(
+    presentation.animationStates.every((state) => state === "paused"),
+  ).toBe(true);
+});
+
+test("a placed stamp keeps the exact artwork promised by the picker", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  const api = await request.newContext({ baseURL: apiBaseURL });
+  const completion = await api.post("/v1/me/training-entries", {
+    headers: {
+      Authorization: "Bearer e2e-player-mason",
+      "Idempotency-Key": "browser-lounge-stamp-parity",
+    },
+    data: {
+      teamId: "team-hill-striders",
+      activityDefinitionId: "hill-sprints",
+      assignmentId: "assignment-hill-sprints",
+      occurredAt: new Date(Date.now() - 60_000).toISOString(),
+      result: { kind: "repetitions", value: 8, unit: "reps" },
+      effortLevel: 4,
+      exhaustionLevel: 3,
+      completionOutcome: "as_listed",
+    },
+  });
+  expect(completion.status()).toBe(201);
+  await api.dispose();
+
+  await page.setViewportSize({ width: 320, height: 720 });
+  await openReadyPage(page, "/team?view=lounge");
+  const lounge = page.getByRole("region", {
+    name: "Beach Boardwalk Team Lounge",
+  });
+  await expect(lounge.locator(".team-lounge__world")).toHaveAttribute(
+    "data-canvas-state",
+    "ready",
+  );
+  await lounge.getByRole("button", { name: "Stamps" }).click();
+  const soccerStampChoice = lounge.getByRole("button", {
+    name: "Choose Soccer ball stamp",
+  });
+  const promised = await soccerStampChoice
+    .locator(".team-lounge__item-art--stamp")
+    .evaluate((node) => ({
+      filter: getComputedStyle(node).filter,
+      text: node.textContent,
+    }));
+  await soccerStampChoice.click();
+  await lounge
+    .getByRole("button", {
+      name: "Place Soccer ball stamp on the boardwalk",
+    })
+    .click({ position: { x: 90, y: 140 } });
+  await expect(lounge.getByRole("status")).toHaveText("Soccer ball placed.", {
+    timeout: 10_000,
+  });
+  const placed = lounge
+    .getByRole("button", {
+      name: "Soccer ball stamp, yours; tap to edit",
+    })
+    .locator(".team-lounge__item-art--stamp");
+  await expect(placed).toBeVisible();
+  await expect
+    .poll(() =>
+      placed.evaluate((node) => ({
+        filter: getComputedStyle(node).filter,
+        text: node.textContent,
+      })),
+    )
+    .toEqual(promised);
+});
+
 test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels", async ({
   page,
 }) => {
@@ -423,9 +563,16 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
       "0",
     10,
   );
-  await lounge
-    .getByRole("button", { name: "Choose Soccer ball stamp" })
-    .click();
+  const soccerStampChoice = lounge.getByRole("button", {
+    name: "Choose Soccer ball stamp",
+  });
+  const promisedStampStyle = await soccerStampChoice
+    .locator(".team-lounge__item-art--stamp")
+    .evaluate((node) => ({
+      filter: getComputedStyle(node).filter,
+      text: node.textContent,
+    }));
+  await soccerStampChoice.click();
   const placementSurface = lounge.getByRole("button", {
     name: "Place Soccer ball stamp on the boardwalk",
   });
@@ -453,7 +600,16 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
     });
   const stampBox = await editableStamp.boundingBox();
   expect(stampBox).not.toBeNull();
-  await expect(editableStamp.locator(".team-lounge__item-art")).toHaveCount(0);
+  const placedStampArt = editableStamp.locator(".team-lounge__item-art--stamp");
+  await expect(placedStampArt).toHaveCount(1);
+  await expect
+    .poll(() =>
+      placedStampArt.evaluate((node) => ({
+        filter: getComputedStyle(node).filter,
+        text: node.textContent,
+      })),
+    )
+    .toEqual(promisedStampStyle);
   const boltBeforeIgnoredSlide = await editableStamp.boundingBox();
   expect(boltBeforeIgnoredSlide).not.toBeNull();
   await page.mouse.move(

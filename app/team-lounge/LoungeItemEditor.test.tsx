@@ -16,6 +16,29 @@ const item: LoungeEditableItem = {
 };
 
 describe("LoungeItemEditor", () => {
+  it("paints a placed stamp with the same shared stamp artwork as the picker", () => {
+    const { container } = render(
+      <LoungeItemEditor
+        items={[item]}
+        paintArtwork={false}
+        selectedEntityID={null}
+        pending={false}
+        dragging={null}
+        onSelect={vi.fn()}
+        onMove={vi.fn()}
+        onRotate={vi.fn()}
+        onScale={vi.fn()}
+        onDelete={vi.fn()}
+        onFinish={vi.fn()}
+        onDragStateChange={vi.fn()}
+      />,
+    );
+
+    expect(
+      container.querySelector(".team-lounge__item-art--stamp"),
+    ).toHaveTextContent("⚡");
+  });
+
   it("shows a fixed-width two-digit score on a mini goal", () => {
     render(
       <LoungeItemEditor
@@ -225,7 +248,14 @@ describe("LoungeItemEditor", () => {
   it("disables the browser's native drag gesture for image-backed items", () => {
     render(
       <LoungeItemEditor
-        items={[{ ...item, imageSrc: "/team-lounge/items/wobble-cone-v1.png" }]}
+        items={[
+          {
+            ...item,
+            label: "Wobble cone",
+            kind: "lounge_prop",
+            imageSrc: "/team-lounge/items/wobble-cone-v1.png",
+          },
+        ]}
         selectedEntityID={null}
         pending={false}
         dragging={null}
@@ -247,7 +277,14 @@ describe("LoungeItemEditor", () => {
   it("can leave painting to Pixi while preserving the edit hit target", () => {
     render(
       <LoungeItemEditor
-        items={[{ ...item, imageSrc: "/team-lounge/items/wobble-cone-v1.png" }]}
+        items={[
+          {
+            ...item,
+            label: "Wobble cone",
+            kind: "lounge_prop",
+            imageSrc: "/team-lounge/items/wobble-cone-v1.png",
+          },
+        ]}
         paintArtwork={false}
         selectedEntityID={null}
         pending={false}
@@ -263,7 +300,9 @@ describe("LoungeItemEditor", () => {
     );
 
     expect(
-      screen.getByRole("button", { name: "Bolt stamp, yours; tap to edit" }),
+      screen.getByRole("button", {
+        name: "Wobble cone item, yours; tap to edit",
+      }),
     ).toBeVisible();
     expect(document.querySelector(".team-lounge__item-art")).toBeNull();
   });

@@ -41,6 +41,9 @@ func TestTeamActivityUsesActiveRosterAndSafeParticipationOnly(t *testing.T) {
 	if projection.Members[0].PlayerID != "player-ava" || projection.Members[0].WeeklySessions != 3 || projection.Members[0].GoalStatus != "completed" || !projection.Members[0].ChallengeCompleted {
 		t.Fatalf("unexpected first member: %+v", projection.Members[0])
 	}
+	if string(projection.Members[0].AvatarConfiguration) != `{"version":"5","head":"cheetah"}` {
+		t.Fatalf("teammate avatar = %s", projection.Members[0].AvatarConfiguration)
+	}
 	if projection.Members[1].ChallengeCompleted {
 		t.Fatalf("incomplete member marked complete: %+v", projection.Members[1])
 	}
@@ -110,7 +113,7 @@ func seedSocialProjection(t *testing.T, db *sql.DB, now time.Time) {
 		`INSERT INTO clubs (id, name, created_at) VALUES ('club-one', 'ZoomiGo Club', '2026-01-01T00:00:00Z')`,
 		`INSERT INTO teams (id, club_id, name, season_id, weekly_default_goal, time_zone, created_at) VALUES ('team-one', 'club-one', 'Trailblazers', 'season-2026', 3, 'America/Chicago', '2026-08-01T00:00:00Z')`,
 		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-mason', 'club-one', 'Mason', 'C', '{}', '2026-01-01T00:00:00Z')`,
-		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-ava', 'club-one', 'Ava', 'R', '{}', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-ava', 'club-one', 'Ava', 'R', '{"version":"5","head":"cheetah"}', '2026-01-01T00:00:00Z')`,
 		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-former', 'club-one', 'Former', 'P', '{}', '2026-01-01T00:00:00Z')`,
 		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at) VALUES ('player-outsider', 'club-one', 'Other', 'P', '{}', '2026-01-01T00:00:00Z')`,
 		`INSERT INTO team_memberships (team_id, player_id, active_from) VALUES ('team-one', 'player-mason', '2026-01-01')`,

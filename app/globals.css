@@ -4418,6 +4418,41 @@ h2 {
   transform: translate(-50%, -50%);
 }
 
+.team-lounge__shared-avatar[data-presence="bench"] {
+  z-index: 3;
+  width: var(--lounge-avatar-size);
+  height: var(--lounge-avatar-size);
+}
+
+.team-lounge__avatar-decoration--bench {
+  box-sizing: border-box;
+  border: 2px solid rgb(255 255 255 / 74%);
+  background: #718184;
+  box-shadow: 0 0.15rem 0.32rem rgb(7 28 37 / 34%);
+  filter: grayscale(0.72) saturate(0.38) brightness(0.92) opacity(0.9);
+}
+
+.team-lounge__avatar-decoration--bench .avatar-art,
+.team-lounge__avatar-decoration--bench .avatar-art * {
+  animation-play-state: paused !important;
+}
+
+.team-lounge__shared-avatar[data-presence="bench"] span {
+  top: calc(var(--lounge-avatar-size) * 0.12);
+  bottom: auto;
+  left: calc(var(--lounge-avatar-size) * 0.12);
+  display: grid;
+  width: clamp(0.72rem, calc(var(--lounge-avatar-size) * 0.32), 1rem);
+  height: clamp(0.72rem, calc(var(--lounge-avatar-size) * 0.32), 1rem);
+  padding: 0;
+  border: 0.08rem solid rgb(255 255 255 / 82%);
+  background: rgb(20 39 42 / 82%);
+  font-size: clamp(0.48rem, calc(var(--lounge-avatar-size) * 0.2), 0.68rem);
+  line-height: 1;
+  place-items: center;
+  transform: none;
+}
+
 .team-lounge__avatar-grab-target {
   position: absolute;
   top: 0;
