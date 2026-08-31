@@ -22,10 +22,8 @@ vi.mock("../../state/auth-context", () => ({
     connected: true,
     avatarConfig: defaultAvatar(),
     saveAvatar,
+    runtime: { prizeBoxes: { inventory, markViewed } },
   }),
-}));
-vi.mock("../../data/prize-box-gateway", () => ({
-  createPrizeBoxGateway: () => ({ inventory, markViewed }),
 }));
 
 afterEach(() => {

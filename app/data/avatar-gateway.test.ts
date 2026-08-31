@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { normalizeAvatar } from "../avatar/config";
 import type { AvatarConfiguration } from "../avatar/types";
-import { AvatarGatewayError, createAvatarGateway } from "./avatar-gateway";
+import {
+  AvatarGatewayError,
+  createConnectedAvatarGateway,
+} from "./avatar-gateway";
+import { createUnhostedPrototypeAvatarGateway } from "../prototype/avatar-gateway";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -22,7 +26,7 @@ describe("connected avatar gateway", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const saved = await createAvatarGateway(true, {}).save({
+    const saved = await createConnectedAvatarGateway({}).save({
       head: "person-tall",
     });
 
@@ -43,7 +47,7 @@ describe("connected avatar gateway", () => {
       .fn()
       .mockImplementation(async () => Response.json({ configuration: {} }));
     vi.stubGlobal("fetch", fetchMock);
-    const gateway = createAvatarGateway(true, {});
+    const gateway = createConnectedAvatarGateway({});
 
     const inputs: AvatarConfiguration[] = [
       {},
@@ -66,7 +70,9 @@ describe("connected avatar gateway", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
-    const loaded = await createAvatarGateway(true, { head: "player" }).load();
+    const loaded = await createConnectedAvatarGateway({
+      head: "player",
+    }).load();
 
     expect(loaded).toEqual({ head: "player" });
     expect(fetchMock).not.toHaveBeenCalled();
@@ -89,7 +95,7 @@ describe("connected avatar gateway", () => {
     );
 
     await expect(
-      createAvatarGateway(true, {}).save({ head: "dog" }),
+      createConnectedAvatarGateway({}).save({ head: "dog" }),
     ).rejects.toMatchObject({
       code: "invalid_avatar_configuration",
       message: "That look is not allowed.",
@@ -105,21 +111,21 @@ describe("connected avatar gateway", () => {
     );
 
     await expect(
-      createAvatarGateway(true, {}).save({ head: "dog" }),
+      createConnectedAvatarGateway({}).save({ head: "dog" }),
     ).rejects.toBeInstanceOf(AvatarGatewayError);
   });
 });
 
 describe("local avatar gateway", () => {
   it("round-trips through localStorage", async () => {
-    const gateway = createAvatarGateway(false, {});
+    const gateway = createUnhostedPrototypeAvatarGateway();
 
     await gateway.save({
       head: "person-curls",
       backgroundColor: "#112233",
     });
 
-    expect(await createAvatarGateway(false, {}).load()).toEqual(
+    expect(await createUnhostedPrototypeAvatarGateway().load()).toEqual(
       normalizeAvatar({
         head: "person-curls",
         backgroundColor: "#112233",
@@ -128,7 +134,7 @@ describe("local avatar gateway", () => {
   });
 
   it("leaves an empty store invalid so the UI renders initials", async () => {
-    expect(await createAvatarGateway(false, {}).load()).toEqual({});
+    expect(await createUnhostedPrototypeAvatarGateway().load()).toEqual({});
   });
 
   it("uses its own key so the training-entry store cannot clobber it", async () => {
@@ -137,7 +143,7 @@ describe("local avatar gateway", () => {
       JSON.stringify({ entries: [] }),
     );
 
-    await createAvatarGateway(false, {}).save({ head: "person-curls" });
+    await createUnhostedPrototypeAvatarGateway().save({ head: "person-curls" });
 
     expect(
       JSON.parse(window.localStorage.getItem("zoomigo-milestone-1")!),
@@ -150,6 +156,6 @@ describe("local avatar gateway", () => {
   it("leaves a corrupt stored value invalid so the UI renders initials", async () => {
     window.localStorage.setItem("zoomigo-avatar", "{not json");
 
-    expect(await createAvatarGateway(false, {}).load()).toEqual({});
+    expect(await createUnhostedPrototypeAvatarGateway().load()).toEqual({});
   });
 });

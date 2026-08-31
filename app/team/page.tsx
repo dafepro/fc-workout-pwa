@@ -4,7 +4,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ReactionPicker } from "../components/ReactionPicker";
 import { copy } from "../content/copy";
-import { createTeamHubGateway } from "../data/team-hub-gateway";
 import type {
   ReactionType,
   TeamHubActivity,
@@ -21,15 +20,15 @@ export default function TeamPage() {
   const focused = searchParameters.get("view") === "lounge";
   const wasFocused = useRef(focused);
   const { dashboard, sendReaction } = useTraining();
-  const { connected, currentPlayer, currentPlayerID, session } = useAuth();
-  const teamID = session?.player?.teams[0]?.id ?? "team-hill-striders";
+  const { currentPlayer, currentPlayerID, runtime } = useAuth();
+  const teamID = runtime.currentTeam.id;
   const gateway = useMemo(
     () =>
-      createTeamHubGateway(connected, teamID, {
+      runtime.teamHub({
         currentPlayerID,
         dashboard,
       }),
-    [connected, currentPlayerID, dashboard, teamID],
+    [currentPlayerID, dashboard, runtime],
   );
   const [hub, setHub] = useState<TeamHubProjection | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
@@ -92,7 +91,6 @@ export default function TeamPage() {
     return (
       <div className="page player-page player-page--team page--team">
         <TeamLoungeFocus
-          connected={connected}
           player={currentPlayer}
           teamID={teamID}
           unlocked={hub.access.loungeUnlocked}

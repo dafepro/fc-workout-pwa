@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activities } from "../data/mockData";
+import { activities } from "../prototype/data";
 import {
   activityDays,
   canDeleteEntry,

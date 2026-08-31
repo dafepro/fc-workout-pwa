@@ -96,6 +96,11 @@ The initial deployment is one Go API writer over a local SQLite file. Repository
 interfaces keep business rules outside SQLite-specific SQL. A move to managed
 Postgres is trigger-based future work, not a partially supported second path.
 
+The connected player runtime is composed only from the authenticated session
+and connected HTTP gateways. Device-local prototype fixtures and persistence
+live behind a separately loaded unhosted-prototype adapter; connected failures
+cannot select or inherit that adapter.
+
 Backup snapshots and logical exports contain private hashed credentials and
 sessions as well as product data. They receive the same protection as the live
 database and leave the host only inside an age-encrypted envelope.

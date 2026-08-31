@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createPrizeBoxGateway } from "./prize-box-gateway";
+import { createConnectedPrizeBoxGateway } from "./prize-box-gateway";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -23,7 +23,7 @@ describe("connected Prize Box gateway", () => {
     const fetchMock = vi.fn().mockResolvedValue(Response.json(overview));
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(createPrizeBoxGateway(true).overview()).resolves.toEqual(
+    await expect(createConnectedPrizeBoxGateway().overview()).resolves.toEqual(
       overview,
     );
     expect(fetchMock).toHaveBeenCalledWith(
@@ -65,7 +65,7 @@ describe("connected Prize Box gateway", () => {
         ),
       );
     vi.stubGlobal("fetch", fetchMock);
-    const gateway = createPrizeBoxGateway(true);
+    const gateway = createConnectedPrizeBoxGateway();
 
     await expect(gateway.claimDaily("claim-key")).resolves.toEqual(box);
     await expect(gateway.open(box.id, "open-key")).resolves.toMatchObject({
@@ -90,7 +90,7 @@ describe("connected Prize Box gateway", () => {
       .mockImplementation(async () => Response.json({ items: [] }));
     vi.stubGlobal("fetch", fetchMock);
 
-    await createPrizeBoxGateway(true).inventory();
+    await createConnectedPrizeBoxGateway().inventory();
 
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
       "/api/zoomigo/v1/me/unlocks?kind=avatar_part",
@@ -120,7 +120,7 @@ describe("connected Prize Box gateway", () => {
       .mockResolvedValueOnce(Response.json({ items: [item] }))
       .mockResolvedValueOnce(Response.json(item));
     vi.stubGlobal("fetch", fetchMock);
-    const gateway = createPrizeBoxGateway(true);
+    const gateway = createConnectedPrizeBoxGateway();
 
     await expect(gateway.inventory(["avatar_part"])).resolves.toEqual([item]);
     await expect(gateway.markViewed(item.item.id)).resolves.toEqual(item);

@@ -15,9 +15,7 @@ export class AvatarGatewayError extends Error {
   }
 }
 
-const LOCAL_AVATAR_KEY = "zoomigo-avatar";
-
-class HTTPAvatarGateway implements AvatarGateway {
+class ConnectedAvatarGateway implements AvatarGateway {
   constructor(private readonly fromSession: AvatarConfiguration) {}
 
   /** GET /v1/auth/session already carried the configuration, so this keeps the
@@ -40,34 +38,10 @@ class HTTPAvatarGateway implements AvatarGateway {
   }
 }
 
-class LocalAvatarGateway implements AvatarGateway {
-  async load(): Promise<AvatarConfiguration> {
-    try {
-      const stored = window.localStorage.getItem(LOCAL_AVATAR_KEY);
-      return stored ? (JSON.parse(stored) as AvatarConfiguration) : {};
-    } catch {
-      return {};
-    }
-  }
-
-  async save(config: AvatarConfiguration): Promise<AvatarConfiguration> {
-    const normalized = normalizeAvatar(config);
-    try {
-      window.localStorage.setItem(LOCAL_AVATAR_KEY, JSON.stringify(normalized));
-    } catch {
-      // The provider still updates when browser storage is unavailable.
-    }
-    return normalized;
-  }
-}
-
-export function createAvatarGateway(
-  connected: boolean,
+export function createConnectedAvatarGateway(
   fromSession: AvatarConfiguration = {},
 ): AvatarGateway {
-  return connected
-    ? new HTTPAvatarGateway(fromSession)
-    : new LocalAvatarGateway();
+  return new ConnectedAvatarGateway(fromSession);
 }
 
 async function throwForError(response: Response): Promise<void> {

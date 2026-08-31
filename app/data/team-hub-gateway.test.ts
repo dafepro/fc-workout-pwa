@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createTeamHubGateway } from "./team-hub-gateway";
+import { createConnectedTeamHubGateway } from "./team-hub-gateway";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -35,7 +35,7 @@ describe("connected Team Hub gateway", () => {
     const fetch = vi.fn().mockResolvedValue(Response.json(response));
     vi.stubGlobal("fetch", fetch);
 
-    const hub = await createTeamHubGateway(true, "team-one").current();
+    const hub = await createConnectedTeamHubGateway("team-one").current();
 
     expect(fetch).toHaveBeenCalledWith("/api/zoomigo/v1/teams/team-one/hub", {
       cache: "no-store",
@@ -62,7 +62,7 @@ describe("connected Team Hub gateway", () => {
     );
 
     await expect(
-      createTeamHubGateway(true, "team-one").current(),
+      createConnectedTeamHubGateway("team-one").current(),
     ).rejects.toMatchObject({ code: "not_ready", message: "Try later." });
   });
 });

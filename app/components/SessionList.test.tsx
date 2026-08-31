@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { activities, initialEntries } from "../data/mockData";
+import { activities, initialEntries } from "../prototype/data";
 import { SessionList } from "./SessionList";
 
 describe("shared session list", () => {

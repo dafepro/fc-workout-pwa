@@ -6,12 +6,11 @@ import { useEffect, useState } from "react";
 import { AvatarBuilder } from "../../avatar/AvatarBuilder";
 import { copy } from "../../content/copy";
 import { useAuth } from "../../state/auth-context";
-import { createPrizeBoxGateway } from "../../data/prize-box-gateway";
 
 export default function AvatarStudioPage() {
-  const { connected, avatarConfig, saveAvatar } = useAuth();
+  const { avatarConfig, runtime, saveAvatar } = useAuth();
   const router = useRouter();
-  const [gateway] = useState(() => createPrizeBoxGateway(connected));
+  const [gateway] = useState(() => runtime.prizeBoxes);
   const [unlockedOptionIDs, setUnlockedOptionIDs] = useState(
     () => new Set<string>(),
   );

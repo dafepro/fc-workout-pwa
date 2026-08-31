@@ -9,8 +9,8 @@ import {
   useState,
 } from "react";
 import { copy } from "../content/copy";
-import { createSocialGateway } from "../data/social-gateway";
 import type { Player, TeamMemberProjection } from "../domain/types";
+import { useAuth } from "../state/auth-context";
 
 const LazyTeamLounge = lazy(() =>
   import("../team-lounge/TeamLounge").then((module) => ({
@@ -19,22 +19,18 @@ const LazyTeamLounge = lazy(() =>
 );
 
 export function TeamLoungeFocus({
-  connected,
   player,
   teamID,
   unlocked,
   onBack,
 }: {
-  connected: boolean;
   player: Player;
   teamID: string;
   unlocked: boolean;
   onBack: () => void;
 }) {
-  const gateway = useMemo(
-    () => createSocialGateway(connected, teamID),
-    [connected, teamID],
-  );
+  const { connected, runtime } = useAuth();
+  const gateway = useMemo(() => runtime.social(), [runtime]);
   const [roster, setRoster] = useState<TeamMemberProjection[] | null>(null);
   const [failed, setFailed] = useState(false);
   const loadRoster = useCallback(async () => {

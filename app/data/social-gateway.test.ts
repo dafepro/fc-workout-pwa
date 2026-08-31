@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createSocialGateway } from "./social-gateway";
+import { createConnectedSocialGateway } from "./social-gateway";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -39,7 +39,8 @@ describe("connected social gateway", () => {
     );
     vi.stubGlobal("fetch", fetch);
 
-    const result = await createSocialGateway(true, "team-one").teamActivity();
+    const result =
+      await createConnectedSocialGateway("team-one").teamActivity();
 
     expect(fetch).toHaveBeenCalledWith(
       "/api/zoomigo/v1/teams/team-one/activity",
@@ -85,7 +86,7 @@ describe("connected social gateway", () => {
     );
     vi.stubGlobal("fetch", fetch);
 
-    const result = await createSocialGateway(true, "team-one").leaderboard(
+    const result = await createConnectedSocialGateway("team-one").leaderboard(
       "thirty_days",
       "consistency",
     );
