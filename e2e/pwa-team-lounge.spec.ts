@@ -1,6 +1,7 @@
 import { expect, request, test, type Locator } from "@playwright/test";
 
 import { loginAsAva, openReadyPage } from "./app-ready";
+import { animatedBorderAvatar } from "./avatar-fixtures";
 import {
   loungeNetworkBudget,
   observeLoungeNetwork,
@@ -43,6 +44,90 @@ test.beforeEach(async () => {
   });
   expect(response.status()).toBe(204);
   await api.dispose();
+});
+
+test("the Lounge doubles, clips, and animates the configured avatar presentation", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  const api = await request.newContext({ baseURL: apiBaseURL });
+  const completion = await api.post("/v1/me/training-entries", {
+    headers: {
+      Authorization: "Bearer e2e-player-mason",
+      "Idempotency-Key": "browser-lounge-avatar-presentation",
+    },
+    data: {
+      teamId: "team-hill-striders",
+      activityDefinitionId: "hill-sprints",
+      assignmentId: "assignment-hill-sprints",
+      occurredAt: new Date(Date.now() - 60_000).toISOString(),
+      result: { kind: "repetitions", value: 8, unit: "reps" },
+      effortLevel: 4,
+      exhaustionLevel: 3,
+      completionOutcome: "as_listed",
+    },
+  });
+  expect(completion.status()).toBe(201);
+  const avatar = await api.put("/v1/me/avatar", {
+    headers: { Authorization: "Bearer e2e-player-mason" },
+    data: { configuration: animatedBorderAvatar },
+  });
+  expect(avatar.status()).toBe(200);
+  await api.dispose();
+
+  await page.setViewportSize({ width: 320, height: 720 });
+  await openReadyPage(page, "/team?view=lounge");
+  const lounge = page.getByRole("region", {
+    name: "Beach Boardwalk Team Lounge",
+  });
+  const stage = lounge.getByLabel("Interactive lounge canvas");
+  await expect(lounge.locator(".team-lounge__world")).toHaveAttribute(
+    "data-canvas-state",
+    "ready",
+  );
+  const currentAvatar = lounge.locator(
+    ".team-lounge__shared-avatar[data-current='true']",
+  );
+  const decoration = currentAvatar.locator(".team-lounge__avatar-decoration");
+  await expect(decoration).toBeVisible();
+  await expect(decoration.locator(".avatar-effect--animated")).toBeVisible();
+  await expect(decoration.locator(".avatar-border--running")).toBeVisible();
+
+  const metrics = await decoration.evaluate((node) => {
+    const bounds = node.getBoundingClientRect();
+    const canvas = node
+      .closest(".team-lounge__playfield")
+      ?.querySelector("canvas")
+      ?.getBoundingClientRect();
+    const style = getComputedStyle(node);
+    return {
+      width: bounds.width,
+      expectedWidth: (canvas?.width ?? 0) * 0.18,
+      overflow: style.overflow,
+      borderRadius: style.borderRadius,
+      animationCount: node.getAnimations({ subtree: true }).length,
+    };
+  });
+  expect(metrics.width).toBeCloseTo(metrics.expectedWidth, 0);
+  expect(metrics.width).toBeGreaterThan(50);
+  expect(metrics.overflow).toBe("hidden");
+  expect(metrics.borderRadius).toBe("50%");
+  expect(metrics.animationCount).toBeGreaterThanOrEqual(2);
+
+  const runner = decoration.locator(".avatar-border__runner--primary");
+  const firstTime = await runner.evaluate(
+    (node) => node.getAnimations()[0]?.currentTime ?? 0,
+  );
+  await page.waitForTimeout(150);
+  const secondTime = await runner.evaluate(
+    (node) => node.getAnimations()[0]?.currentTime ?? 0,
+  );
+  expect(Number(secondTime)).toBeGreaterThan(Number(firstTime));
+
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(
+    320,
+  );
+  await expect(stage.locator("canvas")).toBeVisible();
 });
 
 test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels", async ({

@@ -7,13 +7,14 @@ import type {
   ResolvedLayer,
 } from "./types";
 
-export const AVATAR_CONFIG_VERSION = "4";
+export const AVATAR_CONFIG_VERSION = "5";
 
 export const DEFAULT_AVATAR_PALETTES = {
   headPalette: "#66d0ff:#302c61",
   kitPalette: "#6954ee:#c8f52a",
   hatPalette: "#302c61:#66d0ff",
   eyewearPalette: "#f3ad16:#241d3d",
+  borderPalette: "#c8f52a:#66d0ff",
 } as const;
 
 export const DEFAULT_BACKGROUND_COLOR = "#755ee8";

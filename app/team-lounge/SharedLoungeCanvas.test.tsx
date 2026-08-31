@@ -7,7 +7,7 @@ import {
 } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { defaultAvatar } from "../avatar/config";
+import { defaultAvatar, normalizeAvatar } from "../avatar/config";
 import type { Player } from "../domain/types";
 import { AvatarIdentityProvider } from "../state/avatar-identity-context";
 import { SharedLoungeCanvas } from "./SharedLoungeCanvas";
@@ -37,6 +37,14 @@ const runtime = vi.hoisted(() => ({
     | undefined,
   projectionSubscriptions: [] as Array<{
     observer(snapshot: {
+      canvasSize: { width: number; height: number };
+      viewport: {
+        width: number;
+        height: number;
+        scale: number;
+        offsetX: number;
+        offsetY: number;
+      };
       entities: Array<{
         entityId: string;
         definitionId?: string;
@@ -283,6 +291,63 @@ describe("Shared Lounge Canvas", () => {
     ).toHaveAttribute("title", "Drag to move your avatar");
   });
 
+  it("renders the current player's animated decoration at twice the Canvas avatar size", async () => {
+    const { container } = render(
+      <AvatarIdentityProvider
+        value={{
+          currentPlayerID: mason.id,
+          avatarConfig: normalizeAvatar({
+            effect: "orbit",
+            border: "running-gradient",
+          }),
+        }}
+      >
+        <SharedLoungeCanvas
+          teamID="team-one"
+          player={mason}
+          roster={[mason]}
+          onStateChange={vi.fn()}
+          onPresenceChange={vi.fn()}
+        />
+      </AvatarIdentityProvider>,
+    );
+
+    await waitFor(() =>
+      expect(runtime.projectionSubscriptions).toHaveLength(1),
+    );
+    act(() => {
+      runtime.projectionSubscriptions[0]?.observer({
+        canvasSize: { width: 100, height: 150 },
+        viewport: {
+          width: 100,
+          height: 150,
+          scale: 6.4,
+          offsetX: 0,
+          offsetY: 0,
+        },
+        entities: [
+          {
+            entityId: `avatar:${mason.id}`,
+            definitionId: "avatar",
+            screen: { x: 120, y: 240 },
+            world: { x: 20, y: 40 },
+            inViewport: true,
+          },
+        ],
+      });
+    });
+
+    const overlay = container.querySelector(
+      ".team-lounge__shared-avatar[data-current='true']",
+    );
+    expect(overlay).toHaveStyle({ "--lounge-avatar-size": "115.2px" });
+    expect(
+      overlay?.querySelector(".team-lounge__avatar-decoration"),
+    ).toBeVisible();
+    expect(overlay?.querySelector(".avatar-effect--animated")).toBeVisible();
+    expect(overlay?.querySelector(".avatar-border--running")).toBeVisible();
+  });
+
   it("relays the larger avatar handle to Canvas without making the stage unscrollable", async () => {
     const { container } = render(
       <AvatarIdentityProvider
@@ -474,6 +539,14 @@ describe("Shared Lounge Canvas", () => {
         ],
       });
       runtime.projectionSubscriptions[0]?.observer({
+        canvasSize: { width: 100, height: 150 },
+        viewport: {
+          width: 320,
+          height: 480,
+          scale: 3.2,
+          offsetX: 0,
+          offsetY: 0,
+        },
         entities: [
           {
             entityId: "goal-one",
@@ -545,6 +618,14 @@ describe("Shared Lounge Canvas", () => {
         ],
       });
       runtime.projectionSubscriptions[0]?.observer({
+        canvasSize: { width: 100, height: 150 },
+        viewport: {
+          width: 320,
+          height: 480,
+          scale: 3.2,
+          offsetX: 0,
+          offsetY: 0,
+        },
         entities: [
           {
             entityId: "cannon-one",

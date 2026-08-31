@@ -51,7 +51,7 @@ export const loungeAvatarDefinition: ItemDefinition = {
   version: 2,
   displayName: "Player avatar",
   visual: {
-    size: { width: 9, height: 9 },
+    size: { width: 18, height: 18 },
     spriteId: "lounge.avatar",
     placeholder: { shape: "circle", color: 0x1d5a87 },
     zIndex: LoungeVisualLayer.AVATAR,

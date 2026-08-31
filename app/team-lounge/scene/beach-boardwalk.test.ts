@@ -40,6 +40,10 @@ describe("Beach Boardwalk collision contract", () => {
     expect(beachBallDefinition.body?.linearDamping).toBe(0.05);
     expect(beachBallDefinition.visual.zIndex).toBe(LoungeVisualLayer.BALL);
     expect(loungeAvatarDefinition.visual.zIndex).toBe(LoungeVisualLayer.AVATAR);
+    expect(loungeAvatarDefinition.visual.size).toEqual({
+      width: 18,
+      height: 18,
+    });
     expect(beachBoardwalkCanvas.environment.base.linearDrag).toBe(0.03);
     const catalogBall = loungeItemDefinitions.find(
       ({ definitionId }) => definitionId === "zoomigo-prop-beach-ball",

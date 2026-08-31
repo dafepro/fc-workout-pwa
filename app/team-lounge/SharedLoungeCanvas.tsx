@@ -18,6 +18,7 @@ import type {
 import { TransientActionRejectCode } from "@canvas-physics/protocol";
 
 import { PlayerAvatar } from "../components/PlayerAvatar";
+import { AvatarArt } from "../avatar/AvatarArt";
 import { copy } from "../content/copy";
 import { createConnectedPrizeBoxGateway } from "../data/prize-box-gateway";
 import type { Player } from "../domain/types";
@@ -81,6 +82,8 @@ const MINI_GOAL_DEFINITION_ID = "zoomigo-prop-play-mini-goal";
 const GOAL_CELEBRATION_DURATION_MS = 2_800;
 const GOAL_CONFETTI_PARTICLE_COUNT = 100;
 const GOAL_CONFETTI_COLORS = ["#ffdc3f", "#22d3a8", "#ff617c", "#7dd3fc"];
+const LOUNGE_AVATAR_DIAMETER_WORLD = 18;
+const LOUNGE_DECORATION_LAYERS = ["effect", "border"] as const;
 
 function goalScoreFor(
   definitionID: string | undefined,
@@ -187,6 +190,7 @@ export function SharedLoungeCanvas({
     new Set<string>(),
   );
   const [reactionLocked, setReactionLocked] = useState(false);
+  const [avatarDiameter, setAvatarDiameter] = useState<number>();
   const reactionTimerRef = useRef<number | undefined>(undefined);
   const reactionSequenceRef = useRef(0);
   const goalCelebrationTimerRef = useRef<number | undefined>(undefined);
@@ -439,6 +443,13 @@ export function SharedLoungeCanvas({
       unsubscribeProjection = runtime.subscribeOverlayProjection(
         (snapshot) => {
           projections = snapshot.entities;
+          const nextAvatarDiameter =
+            Math.round(
+              snapshot.viewport.scale * LOUNGE_AVATAR_DIAMETER_WORLD * 10,
+            ) / 10;
+          setAvatarDiameter((current) =>
+            current === nextAvatarDiameter ? current : nextAvatarDiameter,
+          );
           projectionFrameRef.current = {
             canvasSize: snapshot.canvasSize,
             viewport: snapshot.viewport,
@@ -829,8 +840,25 @@ export function SharedLoungeCanvas({
             }
             style={{
               transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
+              ...(avatarDiameter
+                ? ({
+                    "--lounge-avatar-size": `${avatarDiameter}px`,
+                  } as CSSProperties)
+                : undefined),
             }}
           >
+            {current ? (
+              <div
+                className="team-lounge__avatar-decoration"
+                aria-hidden="true"
+              >
+                <AvatarArt
+                  config={avatarConfig}
+                  background="transparent"
+                  layerKinds={LOUNGE_DECORATION_LAYERS}
+                />
+              </div>
+            ) : null}
             {current ? (
               <button
                 type="button"

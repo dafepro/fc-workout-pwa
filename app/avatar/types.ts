@@ -4,7 +4,8 @@ export type AvatarLayerKind =
   | "kit"
   | "head"
   | "hat"
-  | "eyewear";
+  | "eyewear"
+  | "border";
 
 export type AvatarCategoryKind = "head" | "kit" | "gear" | "background";
 
@@ -12,7 +13,8 @@ export type AvatarPaletteKey =
   | "headPalette"
   | "kitPalette"
   | "hatPalette"
-  | "eyewearPalette";
+  | "eyewearPalette"
+  | "borderPalette";
 
 export interface AvatarOption {
   id: string;

@@ -5,6 +5,7 @@ import type {
   AvatarOption,
 } from "../types";
 import { renderBackground } from "./backgrounds";
+import { BORDER_ART } from "./borders";
 import { EFFECT_ART } from "./effects";
 import { EYEWEAR_ART } from "./eyewear";
 import { HAT_ART } from "./hats";
@@ -31,4 +32,5 @@ export const LAYER_ART: Record<
   head: (option, config) => HEADS[option.id]?.(config) ?? null,
   hat: (option, config) => HATS[option.id]?.(config) ?? null,
   eyewear: (option, config) => EYEWEAR[option.id]?.(config) ?? null,
+  border: (option, config) => BORDER_ART[option.id]?.(config) ?? null,
 };

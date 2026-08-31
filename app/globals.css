@@ -2771,6 +2771,15 @@ h2 {
 .avatar-effect--pulse {
   animation: avatar-pulse 2.4s ease-in-out infinite;
 }
+.avatar-border__runner {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: avatar-border-run 3.6s linear infinite;
+}
+.avatar-border__runner--accent {
+  animation-direction: reverse;
+  animation-duration: 5.4s;
+}
 @keyframes avatar-orbit {
   to {
     transform: rotate(360deg);
@@ -2783,6 +2792,11 @@ h2 {
   }
   50% {
     opacity: 0.24;
+  }
+}
+@keyframes avatar-border-run {
+  to {
+    stroke-dashoffset: -185.4;
   }
 }
 .avatar-builder__preview {
@@ -3375,7 +3389,8 @@ h2 {
 
 @media (prefers-reduced-motion: reduce) {
   .avatar-effect--animated,
-  .avatar-effect--pulse {
+  .avatar-effect--pulse,
+  .avatar-border__runner {
     animation: none;
   }
 }
@@ -4380,6 +4395,8 @@ h2 {
 }
 
 .team-lounge__shared-avatar {
+  --lounge-avatar-size: 3.6rem;
+
   position: absolute;
   top: 0;
   left: 0;
@@ -4389,12 +4406,24 @@ h2 {
   pointer-events: none;
 }
 
+.team-lounge__avatar-decoration {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--lounge-avatar-size);
+  height: var(--lounge-avatar-size);
+  overflow: hidden;
+  border-radius: 50%;
+  filter: drop-shadow(0 0.3rem 0.45rem rgb(7 28 37 / 30%));
+  transform: translate(-50%, -50%);
+}
+
 .team-lounge__avatar-grab-target {
   position: absolute;
   top: 0;
   left: 0;
-  width: 5.5rem;
-  height: 5.5rem;
+  width: max(5.5rem, var(--lounge-avatar-size));
+  height: max(5.5rem, var(--lounge-avatar-size));
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -4420,7 +4449,7 @@ h2 {
 
 .team-lounge__shared-avatar span {
   position: absolute;
-  bottom: 1.65rem;
+  bottom: calc(var(--lounge-avatar-size) / 2 + 0.2rem);
   left: 0;
   padding: 0.15rem 0.4rem;
   border-radius: 999px;
@@ -4436,7 +4465,7 @@ h2 {
   --lounge-reaction-x: -50%;
 
   position: absolute;
-  bottom: 3.1rem;
+  bottom: calc(var(--lounge-avatar-size) / 2 + 1.65rem);
   left: 0;
   display: grid;
   width: 2.3rem;
@@ -4454,7 +4483,7 @@ h2 {
   --lounge-reaction-x: -18%;
 
   position: absolute;
-  bottom: 3.2rem;
+  bottom: calc(var(--lounge-avatar-size) / 2 + 1.7rem);
   left: 0;
   width: max-content;
   max-width: 8.5rem;

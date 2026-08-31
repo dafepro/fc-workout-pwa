@@ -158,6 +158,21 @@ export const AVATAR_LAYERS: readonly AvatarLayerDefinition[] = [
       },
     ],
   },
+  {
+    kind: "border",
+    legend: copy.avatar.legends.border,
+    z: 40,
+    defaultOptionID: "none",
+    paletteKey: "borderPalette",
+    options: [
+      { id: "none", label: labels.border.none },
+      { id: "plain", label: labels.border.plain },
+      {
+        id: "running-gradient",
+        label: labels.border.runningGradient,
+      },
+    ],
+  },
 ];
 
 export const AVATAR_CATEGORIES: readonly AvatarCategoryDefinition[] = [
@@ -171,6 +186,6 @@ export const AVATAR_CATEGORIES: readonly AvatarCategoryDefinition[] = [
   {
     id: "background",
     label: copy.avatar.categories.background,
-    layerKinds: ["background", "effect"],
+    layerKinds: ["background", "effect", "border"],
   },
 ];
