@@ -33,6 +33,7 @@ const runtime = vi.hoisted(() => ({
           checkpointHz?: number;
         };
         pointer?: { grabRadiusPx?: number };
+        hideDisabledAvatars?: boolean;
       }
     | undefined,
   projectionSubscriptions: [] as Array<{
@@ -84,6 +85,15 @@ const runtime = vi.hoisted(() => ({
       }) => void)
     | undefined,
   errorObserver: undefined as ((error: unknown) => void) | undefined,
+  presenceObserver: undefined as
+    | ((snapshot: {
+        participants: Array<{
+          userId: string;
+          avatarEntityId: string;
+          status: "active" | "inactive" | "disconnected";
+        }>;
+      }) => void)
+    | undefined,
   transientActions: [] as Array<{
     action: string;
     target: string;
@@ -102,7 +112,8 @@ vi.mock("@canvas-physics/client", () => ({
       const { onError } = options;
       runtime.errorObserver = onError;
     }
-    subscribePresence() {
+    subscribePresence(observer: typeof runtime.presenceObserver) {
+      runtime.presenceObserver = observer;
       return () => undefined;
     }
     subscribeCanonicalState(observer: typeof runtime.canonicalObserver) {
@@ -183,6 +194,7 @@ describe("Shared Lounge Canvas", () => {
     runtime.canonicalObserver = undefined;
     runtime.effectObserver = undefined;
     runtime.errorObserver = undefined;
+    runtime.presenceObserver = undefined;
     runtime.transientActions = [];
     vi.stubGlobal("Worker", class {});
   });
@@ -275,6 +287,7 @@ describe("Shared Lounge Canvas", () => {
     expect(runtime.options?.pointer).toEqual(
       expect.objectContaining({ grabRadiusPx: 44 }),
     );
+    expect(runtime.options?.hideDisabledAvatars).toBe(true);
     await waitFor(() =>
       expect(
         container.querySelector(".team-lounge__shared-avatar"),
@@ -289,6 +302,73 @@ describe("Shared Lounge Canvas", () => {
     expect(
       container.querySelector(".team-lounge__avatar-grab-target"),
     ).toHaveAttribute("title", "Drag to move your avatar");
+  });
+
+  it("renders completed offline teammates as drained, paused avatars on the bench", async () => {
+    const ava: Player = {
+      ...mason,
+      id: "player-ava",
+      firstName: "Ava",
+      lastInitial: "R.",
+      initials: "AR",
+      avatarConfiguration: normalizeAvatar({
+        head: "prism-dragon",
+        effect: "orbit",
+      }),
+      goalStatus: "completed",
+      challengeCompleted: true,
+    } as Player;
+    const { container } = render(
+      <AvatarIdentityProvider
+        value={{ currentPlayerID: mason.id, avatarConfig: defaultAvatar() }}
+      >
+        <SharedLoungeCanvas
+          teamID="team-one"
+          player={mason}
+          roster={[mason, ava]}
+          onStateChange={vi.fn()}
+          onPresenceChange={vi.fn()}
+        />
+      </AvatarIdentityProvider>,
+    );
+
+    await waitFor(() =>
+      expect(runtime.projectionSubscriptions).toHaveLength(1),
+    );
+    act(() => {
+      runtime.projectionSubscriptions[0]?.observer({
+        canvasSize: { width: 100, height: 150 },
+        viewport: {
+          width: 100,
+          height: 150,
+          scale: 6.4,
+          offsetX: 0,
+          offsetY: 0,
+        },
+        entities: [
+          {
+            entityId: `avatar:${mason.id}`,
+            definitionId: "avatar",
+            screen: { x: 120, y: 240 },
+            world: { x: 20, y: 40 },
+            inViewport: true,
+          },
+        ],
+      });
+      runtime.presenceObserver?.({ participants: [] });
+    });
+
+    const benchAvatar = await screen.findByRole("img", {
+      name: "Ava R., finished and resting on the bench",
+    });
+    expect(benchAvatar).toHaveAttribute("data-presence", "bench");
+    expect(benchAvatar).toHaveStyle({ "--lounge-avatar-size": "76.8px" });
+    expect(
+      benchAvatar.querySelector(".avatar-head--prism-dragon"),
+    ).toBeVisible();
+    expect(
+      container.querySelector(".team-lounge__avatar-decoration--bench"),
+    ).toBeVisible();
   });
 
   it("renders the current player's animated decoration at twice the Canvas avatar size", async () => {

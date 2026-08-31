@@ -1,15 +1,21 @@
 import { describe, expect, it } from "vitest";
 
-import { defaultAvatar } from "../../avatar/config";
+import { defaultAvatar, normalizeAvatar } from "../../avatar/config";
 import type { Player } from "../../domain/types";
-import { loungeItemDefinitions } from "../lounge-items";
+import {
+  loungeItemDefinitions,
+  loungeItemForDefinition,
+} from "../lounge-items";
 import { beachBoardwalkAssets } from "./assets";
 import { beachBoardwalkDefinitions } from "./beach-boardwalk";
 import { createLoungePixiPresentation } from "./pixi-presentation";
 
 const players: Player[] = [
   player("player-mason", "Mason", "C."),
-  player("player-ava", "Ava", "R."),
+  {
+    ...player("player-ava", "Ava", "R."),
+    avatarConfiguration: normalizeAvatar({ head: "prism-dragon" }),
+  },
 ];
 
 describe("Lounge Pixi presentation", () => {
@@ -54,10 +60,13 @@ describe("Lounge Pixi presentation", () => {
     expect(currentAvatarSVG).not.toContain("avatar-art__layer--effect");
     expect(currentAvatarSVG).not.toContain("avatar-art__layer--border");
     expect(currentAvatarSVG).toContain("avatar-art__crop");
-    expect(decodeSVG(teammateSource?.src)).toContain(">AR<");
+    expect(decodeSVG(teammateSource?.src)).toContain("avatar-art__layer--head");
+    expect(decodeSVG(teammateSource?.src)).toContain(
+      "avatar-head--prism-dragon",
+    );
   });
 
-  it("gives every placed item a real Pixi texture while preserving its definition", () => {
+  it("leaves stamps transparent for the shared DOM art while Pixi paints props", () => {
     const presentation = createLoungePixiPresentation({
       assets: beachBoardwalkAssets,
       definitions: [...beachBoardwalkDefinitions, ...loungeItemDefinitions],
@@ -70,16 +79,27 @@ describe("Lounge Pixi presentation", () => {
       const presented = presentation.definitions.find(
         ({ definitionId }) => definitionId === original.definitionId,
       );
+      const isStamp =
+        loungeItemForDefinition(original.definitionId)?.kind === "lounge_stamp";
       expect(presented?.visual.spriteId).toBe(
-        `lounge.item.${original.definitionId}`,
+        isStamp
+          ? "lounge.stamp.transparent"
+          : `lounge.item.${original.definitionId}`,
       );
       expect(presented?.body).toEqual(original.body);
       expect(presented?.colliders).toEqual(original.colliders);
       expect(presented?.behaviorType).toBe(original.behaviorType);
-      expect(presentation.assets.textures).toContainEqual({
-        id: `lounge.item.${original.definitionId}`,
-        sourceId: `lounge-item-source-${original.definitionId}`,
-      });
+      if (isStamp) {
+        expect(presentation.assets.textures).not.toContainEqual({
+          id: `lounge.item.${original.definitionId}`,
+          sourceId: `lounge-item-source-${original.definitionId}`,
+        });
+      } else {
+        expect(presentation.assets.textures).toContainEqual({
+          id: `lounge.item.${original.definitionId}`,
+          sourceId: `lounge-item-source-${original.definitionId}`,
+        });
+      }
     }
   });
 });

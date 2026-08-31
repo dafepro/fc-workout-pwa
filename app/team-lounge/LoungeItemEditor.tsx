@@ -198,7 +198,9 @@ export function LoungeItemEditor({
           : label;
         const content = (
           <>
-            {paintArtwork ? <LoungeItemArt item={item} decorative /> : null}
+            {paintArtwork || item.kind === "lounge_stamp" ? (
+              <LoungeItemArt item={item} decorative />
+            ) : null}
             {goalScore ? (
               <span
                 className="team-lounge__goal-counter"

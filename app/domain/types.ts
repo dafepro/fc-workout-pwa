@@ -1,3 +1,5 @@
+import type { AvatarConfiguration } from "../avatar/types";
+
 export type ActivityId =
   | "hill-sprints"
   | "timed-run-walk"
@@ -160,6 +162,7 @@ export interface Player {
   effortPoints: number;
   currentStreak: number;
   consistency: number;
+  avatarConfiguration?: AvatarConfiguration;
 }
 
 export interface SocialTeam {

@@ -68,7 +68,12 @@ ranking; Team shows only bounded participation groups and aggregate progress.
 
 The Lounge uses authenticated transient reactions and server-authorized Canvas
 state. Placement/edit controls expose only owned current-generation items and
-must preserve keyboard, touch, reduced-motion, and 320 px behavior.
+must preserve keyboard, touch, reduced-motion, and 320 px behavior. Teammates
+who have completed the current weekly goal or challenge but are not actively in
+the room appear as compact, desaturated portraits on the illustrated bench;
+their avatar effects remain visible but paused, and they do not count as present
+or become physics entities. Stamp placement uses the same artwork and white
+stamp-edge treatment promised by the picker.
 
 ## Me (`/me` and `/me/avatar`)
 

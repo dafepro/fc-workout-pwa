@@ -6,7 +6,7 @@ import type { ItemDefinition } from "@canvas-physics/core";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { AvatarArt } from "../../avatar/AvatarArt";
-import { playerColor } from "../../avatar/color";
+import { normalizeAvatar } from "../../avatar/config";
 import type { AvatarConfiguration } from "../../avatar/types";
 import type { Player } from "../../domain/types";
 import { loungeItemForDefinition } from "../lounge-items";
@@ -37,7 +37,7 @@ export function createLoungePixiPresentation({
 
   sources.push({
     id: "lounge-avatar-source-unknown",
-    src: svgDataURI(<InitialsAvatar initials="?" color="#1d5a87" />),
+    src: svgDataURI(<CurrentPlayerAvatar config={normalizeAvatar({})} />),
     required: true,
   });
   textures.push({
@@ -49,15 +49,15 @@ export function createLoungePixiPresentation({
     const variant = `participant-${index}`;
     const sourceId = `lounge-avatar-source-${index}`;
     const textureId = `lounge.avatar.${variant}`;
-    const initials =
-      `${player.firstName[0] ?? ""}${player.lastInitial[0] ?? ""}`.toUpperCase();
     sources.push({
       id: sourceId,
       src: svgDataURI(
         player.id === currentPlayerID ? (
           <CurrentPlayerAvatar config={avatarConfig} />
         ) : (
-          <InitialsAvatar initials={initials} color={playerColor(player.id)} />
+          <CurrentPlayerAvatar
+            config={normalizeAvatar(player.avatarConfiguration ?? {})}
+          />
         ),
       ),
       required: true,
@@ -80,12 +80,14 @@ export function createLoungePixiPresentation({
     }
     const item = loungeItemForDefinition(definition.definitionId);
     if (!item) return definition;
+    if (item.kind === "lounge_stamp") return definition;
+    if (!item.imageSrc) return definition;
 
     const sourceId = `lounge-item-source-${definition.definitionId}`;
     const textureId = `lounge.item.${definition.definitionId}`;
     sources.push({
       id: sourceId,
-      src: item.imageSrc ?? svgDataURI(<StampGlyph glyph={item.glyph} />),
+      src: item.imageSrc,
       required: true,
     });
     textures.push({ id: textureId, sourceId });
@@ -123,54 +125,6 @@ function CurrentPlayerAvatar({ config }: { config: AvatarConfiguration }) {
           layerKinds={["background", "kit", "head", "hat", "eyewear"]}
         />
       </svg>
-    </svg>
-  );
-}
-
-function InitialsAvatar({
-  initials,
-  color,
-}: {
-  initials: string;
-  color: string;
-}) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="-4 -4 72 72">
-      <circle cx="32" cy="32" r="35" fill="white" />
-      <circle cx="32" cy="32" r="31.5" fill={color} />
-      <text
-        x="32"
-        y="34"
-        fill="#092a2d"
-        fontFamily="Arial, sans-serif"
-        fontSize="23"
-        fontWeight="900"
-        textAnchor="middle"
-        dominantBaseline="middle"
-      >
-        {initials}
-      </text>
-    </svg>
-  );
-}
-
-function StampGlyph({ glyph }: { glyph: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
-      <text
-        x="48"
-        y="52"
-        fill="white"
-        stroke="white"
-        strokeWidth="7"
-        paintOrder="stroke"
-        fontFamily="Apple Color Emoji, Segoe UI Emoji, sans-serif"
-        fontSize="58"
-        textAnchor="middle"
-        dominantBaseline="middle"
-      >
-        {glyph}
-      </text>
     </svg>
   );
 }

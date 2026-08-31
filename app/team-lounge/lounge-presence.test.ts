@@ -54,20 +54,33 @@ describe("Lounge presence projection", () => {
         player: mason,
         position: { x: 120, y: 240 },
         current: true,
+        state: "current",
       },
       {
         player: ava,
         position: { x: 80, y: 180 },
         current: false,
+        state: "active",
       },
     ]);
   });
 
-  it("does not show a disconnected teammate from a retained avatar entity", () => {
+  it("moves a completed disconnected teammate to a stable bench position", () => {
     expect(
       resolveLoungeAvatarOverlays({
         currentPlayer: mason,
-        roster: [mason, ava],
+        roster: [
+          mason,
+          {
+            ...ava,
+            weeklySessions: 3,
+            goalStatus: "completed",
+            challengeCompleted: true,
+          } as Player & {
+            goalStatus: "completed";
+            challengeCompleted: true;
+          },
+        ],
         participants: [
           {
             userId: ava.id,
@@ -87,12 +100,45 @@ describe("Lounge presence projection", () => {
             inViewport: true,
           },
         ],
+        benchProjections: [{ screen: { x: 32, y: 312 }, inViewport: true }],
       }),
     ).toEqual([
       {
         player: mason,
         position: { x: 120, y: 240 },
         current: true,
+        state: "current",
+      },
+      {
+        player: expect.objectContaining({ id: ava.id }),
+        position: { x: 32, y: 312 },
+        current: false,
+        state: "bench",
+      },
+    ]);
+  });
+
+  it("does not bench a teammate who has not completed the work", () => {
+    expect(
+      resolveLoungeAvatarOverlays({
+        currentPlayer: mason,
+        roster: [mason, ava],
+        participants: [],
+        projections: [
+          {
+            entityId: `avatar:${mason.id}`,
+            screen: { x: 120, y: 240 },
+            inViewport: true,
+          },
+        ],
+        benchProjections: [{ screen: { x: 32, y: 312 }, inViewport: true }],
+      }),
+    ).toEqual([
+      {
+        player: mason,
+        position: { x: 120, y: 240 },
+        current: true,
+        state: "current",
       },
     ]);
   });
@@ -114,6 +160,7 @@ describe("Lounge presence projection", () => {
         player: mason,
         position: { x: 128, y: 256 },
         current: true,
+        state: "current",
       },
     ]);
   });

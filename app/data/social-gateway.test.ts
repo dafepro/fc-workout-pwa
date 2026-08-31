@@ -33,6 +33,11 @@ describe("connected social gateway", () => {
             consistencyDays: 2,
             goalStatus: "completed",
             challengeCompleted: true,
+            avatarConfiguration: {
+              version: "5",
+              head: "cheetah",
+              effect: "orbit",
+            },
           },
         ],
       }),
@@ -52,6 +57,11 @@ describe("connected social gateway", () => {
       initials: "AR",
       goalStatus: "completed",
       challengeCompleted: true,
+      avatarConfiguration: expect.objectContaining({
+        version: "5",
+        head: "cheetah",
+        effect: "orbit",
+      }),
     });
     expect(result.currentChallenge).toMatchObject({
       activityName: "Hill Sprints",

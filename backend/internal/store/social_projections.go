@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -21,15 +22,16 @@ type SocialTeam struct {
 }
 
 type TeamMemberProjection struct {
-	PlayerID           string `json:"playerId"`
-	FirstName          string `json:"firstName"`
-	LastInitial        string `json:"lastInitial"`
-	WeeklySessions     int    `json:"weeklySessions"`
-	EffortPoints       int    `json:"effortPoints"`
-	CurrentStreak      int    `json:"currentStreak"`
-	ConsistencyDays    int    `json:"consistencyDays"`
-	GoalStatus         string `json:"goalStatus"`
-	ChallengeCompleted bool   `json:"challengeCompleted"`
+	PlayerID            string          `json:"playerId"`
+	FirstName           string          `json:"firstName"`
+	LastInitial         string          `json:"lastInitial"`
+	AvatarConfiguration json.RawMessage `json:"avatarConfiguration"`
+	WeeklySessions      int             `json:"weeklySessions"`
+	EffortPoints        int             `json:"effortPoints"`
+	CurrentStreak       int             `json:"currentStreak"`
+	ConsistencyDays     int             `json:"consistencyDays"`
+	GoalStatus          string          `json:"goalStatus"`
+	ChallengeCompleted  bool            `json:"challengeCompleted"`
 }
 
 type TeamChallengeProjection struct {
@@ -61,9 +63,10 @@ type socialTeamRecord struct {
 }
 
 type socialMemberRecord struct {
-	PlayerID    string
-	FirstName   string
-	LastInitial string
+	PlayerID            string
+	FirstName           string
+	LastInitial         string
+	AvatarConfiguration string
 }
 
 func (store *Store) TeamActivity(ctx context.Context, actor domain.Actor, teamID string, now time.Time) (TeamActivityProjection, error) {
@@ -119,9 +122,14 @@ func (store *Store) teamActivity(ctx context.Context, team socialTeamRecord, loc
 			status = "one_away"
 		}
 		projection.TeamSessions += value.Sessions
+		avatarConfiguration := json.RawMessage(member.AvatarConfiguration)
+		if !json.Valid(avatarConfiguration) {
+			avatarConfiguration = json.RawMessage(`{}`)
+		}
 		projection.Members = append(projection.Members, TeamMemberProjection{
 			PlayerID: member.PlayerID, FirstName: member.FirstName, LastInitial: member.LastInitial,
-			WeeklySessions: value.Sessions, EffortPoints: value.EffortPoints,
+			AvatarConfiguration: avatarConfiguration,
+			WeeklySessions:      value.Sessions, EffortPoints: value.EffortPoints,
 			CurrentStreak: longTerm.StreakDays, ConsistencyDays: longTerm.ConsistencyDays, GoalStatus: status,
 			ChallengeCompleted: challengeCompletions[member.PlayerID],
 		})
@@ -214,7 +222,7 @@ func (store *Store) authorizedSocialTeam(ctx context.Context, actor domain.Actor
 func (store *Store) socialProjectionData(ctx context.Context, teamID string, now time.Time, location *time.Location) ([]socialMemberRecord, []domain.ProjectionEntry, error) {
 	teamDay := now.In(location).Format("2006-01-02")
 	rows, err := store.db.QueryContext(ctx, `
-		SELECT DISTINCT p.id, p.first_name, p.last_initial
+		SELECT DISTINCT p.id, p.first_name, p.last_initial, p.avatar_configuration_json
 		FROM team_memberships m
 		JOIN players p ON p.id = m.player_id
 		WHERE m.team_id = ? AND m.active_from <= ?
@@ -228,7 +236,7 @@ func (store *Store) socialProjectionData(ctx context.Context, teamID string, now
 	memberIDs := make(map[string]struct{})
 	for rows.Next() {
 		var member socialMemberRecord
-		if err := rows.Scan(&member.PlayerID, &member.FirstName, &member.LastInitial); err != nil {
+		if err := rows.Scan(&member.PlayerID, &member.FirstName, &member.LastInitial, &member.AvatarConfiguration); err != nil {
 			return nil, nil, fmt.Errorf("scan active team member: %w", err)
 		}
 		members = append(members, member)

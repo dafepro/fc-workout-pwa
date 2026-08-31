@@ -1,3 +1,5 @@
+import { normalizeAvatar } from "../avatar/config";
+import type { AvatarConfiguration } from "../avatar/types";
 import type {
   TeamActivityProjection,
   TeamGoalStatus,
@@ -28,6 +30,7 @@ interface APITeamMember {
   consistencyDays: number;
   goalStatus: TeamGoalStatus;
   challengeCompleted: boolean;
+  avatarConfiguration?: AvatarConfiguration;
 }
 
 interface APITeamActivity extends Omit<TeamActivityProjection, "members"> {
@@ -77,5 +80,6 @@ function fromAPITeamMember(member: APITeamMember): TeamMemberProjection {
     consistencyDays: member.consistencyDays,
     goalStatus: member.goalStatus,
     challengeCompleted: member.challengeCompleted,
+    avatarConfiguration: normalizeAvatar(member.avatarConfiguration ?? {}),
   };
 }

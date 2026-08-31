@@ -224,6 +224,8 @@ export const copy = {
     enterFullscreen: "Enter full screen",
     exitFullscreen: "Exit full screen",
     avatarMoveHint: "Drag to move your avatar",
+    benchAvatarLabel: (firstName: string, lastInitial: string) =>
+      `${firstName} ${lastInitial}, finished and resting on the bench`,
     goalScore: (score: number) => String(score).padStart(2, "0"),
     goalCelebration: "100 goals! Counter reset to 00.",
     development: {

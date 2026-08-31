@@ -29,11 +29,35 @@ test.beforeEach(async () => {
     },
   });
   expect(completion.status()).toBe(201);
+  const teammateCompletion = await api.post("/v1/me/training-entries", {
+    headers: {
+      Authorization: "Bearer e2e-player-ava",
+      "Idempotency-Key": "browser-lounge-visual-bench",
+    },
+    data: {
+      teamId: "team-hill-striders",
+      activityDefinitionId: "hill-sprints",
+      assignmentId: "assignment-hill-sprints",
+      occurredAt: new Date(Date.now() - 60_000).toISOString(),
+      result: { kind: "repetitions", value: 8, unit: "reps" },
+      effortLevel: 4,
+      exhaustionLevel: 3,
+      completionOutcome: "as_listed",
+    },
+  });
+  expect(teammateCompletion.status()).toBe(201);
   const avatar = await api.put("/v1/me/avatar", {
     headers: { Authorization: "Bearer e2e-player-mason" },
     data: { configuration: animatedBorderAvatar },
   });
   expect(avatar.status()).toBe(200);
+  const teammateAvatar = await api.put("/v1/me/avatar", {
+    headers: { Authorization: "Bearer e2e-player-ava" },
+    data: {
+      configuration: { ...animatedBorderAvatar, head: "cheetah" },
+    },
+  });
+  expect(teammateAvatar.status()).toBe(200);
   await api.dispose();
 });
 
@@ -53,6 +77,34 @@ test("the 320px Lounge keeps its approved visual states", async ({ page }) => {
   );
   await expect(lounge.getByLabel("Mason C., you")).toHaveCount(1);
   await expect(lounge.getByText("You", { exact: true })).toBeVisible();
+  const benchAvatar = lounge.getByRole("img", {
+    name: "Ava R., finished and resting on the bench",
+  });
+  await expect(benchAvatar).toBeVisible();
+  const originalBenchStyle = await benchAvatar.evaluate((node) => ({
+    size: (node as HTMLElement).style.getPropertyValue("--lounge-avatar-size"),
+    transform: (node as HTMLElement).style.transform,
+  }));
+  await benchAvatar.evaluate((node) => {
+    const element = node as HTMLElement;
+    element.style.setProperty("--lounge-avatar-size", "36px");
+    element.style.transform = "translate3d(80px, 320px, 0)";
+    for (const animation of element.getAnimations({ subtree: true })) {
+      animation.pause();
+      animation.currentTime = 0;
+    }
+  });
+  await expect(
+    benchAvatar.locator(".team-lounge__avatar-decoration--bench"),
+  ).toHaveScreenshot("team-lounge-bench-avatar.png", {
+    animations: "disabled",
+    maxDiffPixels: 50,
+  });
+  await benchAvatar.evaluate((node, original) => {
+    const element = node as HTMLElement;
+    element.style.setProperty("--lounge-avatar-size", original.size);
+    element.style.transform = original.transform;
+  }, originalBenchStyle);
   const dock = lounge.getByRole("navigation", { name: "Lounge actions" });
   const revealDock = async () => {
     await dock.scrollIntoViewIfNeeded();
