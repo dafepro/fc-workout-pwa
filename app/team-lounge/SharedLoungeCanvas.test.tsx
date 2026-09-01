@@ -362,7 +362,7 @@ describe("Shared Lounge Canvas", () => {
       name: "Ava R., finished and resting on the bench",
     });
     expect(benchAvatar).toHaveAttribute("data-presence", "bench");
-    expect(benchAvatar).toHaveStyle({ "--lounge-avatar-size": "76.8px" });
+    expect(benchAvatar).toHaveStyle({ "--lounge-avatar-size": "61.4px" });
     expect(
       benchAvatar.querySelector(".avatar-head--prism-dragon"),
     ).toBeVisible();

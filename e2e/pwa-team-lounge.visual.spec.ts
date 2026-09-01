@@ -81,15 +81,8 @@ test("the 320px Lounge keeps its approved visual states", async ({ page }) => {
     name: "Ava R., finished and resting on the bench",
   });
   await expect(benchAvatar).toBeVisible();
-  const originalBenchStyle = await benchAvatar.evaluate((node) => ({
-    size: (node as HTMLElement).style.getPropertyValue("--lounge-avatar-size"),
-    transform: (node as HTMLElement).style.transform,
-  }));
   await benchAvatar.evaluate((node) => {
-    const element = node as HTMLElement;
-    element.style.setProperty("--lounge-avatar-size", "36px");
-    element.style.transform = "translate3d(80px, 320px, 0)";
-    for (const animation of element.getAnimations({ subtree: true })) {
+    for (const animation of node.getAnimations({ subtree: true })) {
       animation.pause();
       animation.currentTime = 0;
     }
@@ -100,11 +93,6 @@ test("the 320px Lounge keeps its approved visual states", async ({ page }) => {
     animations: "disabled",
     maxDiffPixels: 50,
   });
-  await benchAvatar.evaluate((node, original) => {
-    const element = node as HTMLElement;
-    element.style.setProperty("--lounge-avatar-size", original.size);
-    element.style.transform = original.transform;
-  }, originalBenchStyle);
   const dock = lounge.getByRole("navigation", { name: "Lounge actions" });
   const revealDock = async () => {
     await dock.scrollIntoViewIfNeeded();
