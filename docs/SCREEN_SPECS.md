@@ -72,8 +72,11 @@ must preserve keyboard, touch, reduced-motion, and 320 px behavior. Teammates
 who have completed the current weekly goal or challenge but are not actively in
 the room appear as compact, desaturated portraits on the illustrated bench;
 their avatar effects remain visible but paused, and they do not count as present
-or become physics entities. Stamp placement uses the same artwork and white
-stamp-edge treatment promised by the picker.
+or become physics entities. Each live avatar renders as one clipped visual stack
+at three-quarters of the earlier enlarged size, and the signed-in player's
+complete stack always paints above teammate avatars when they overlap. Stamp
+placement uses the same artwork and white stamp-edge treatment promised by the
+picker.
 
 ## Me (`/me` and `/me/avatar`)
 

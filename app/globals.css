@@ -4403,7 +4403,12 @@ h2 {
   z-index: 4;
   width: 0;
   height: 0;
+  isolation: isolate;
   pointer-events: none;
+}
+
+.team-lounge__shared-avatar[data-current="true"] {
+  z-index: 5;
 }
 
 .team-lounge__avatar-decoration {

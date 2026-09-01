@@ -1,6 +1,6 @@
 import { expect, request, test } from "@playwright/test";
 
-import { openReadyPage } from "./app-ready";
+import { loginAsAva, openReadyPage } from "./app-ready";
 import { animatedBorderAvatar } from "./avatar-fixtures";
 
 const apiBaseURL = process.env.E2E_API_BASE_URL ?? "http://api:8080";
@@ -221,4 +221,44 @@ test("the 320px Lounge keeps its approved visual states", async ({ page }) => {
     animations: "disabled",
     maxDiffPixels: 1_000,
   });
+});
+
+test("overlapping live avatars preserve one complete local stack", async ({
+  browser,
+  page,
+}) => {
+  const avaContext = await browser.newContext({
+    baseURL: process.env.E2E_PWA_BASE_URL ?? "http://pwa:3000",
+  });
+  const avaPage = await avaContext.newPage();
+  try {
+    await Promise.all([
+      page.setViewportSize({ width: 320, height: 720 }),
+      avaPage.setViewportSize({ width: 320, height: 720 }),
+    ]);
+    await openReadyPage(page, "/team?view=lounge");
+    await loginAsAva(avaPage);
+    await avaPage.goto("/team?view=lounge");
+    await avaPage.locator("html[data-app-ready='true']").waitFor();
+
+    const lounge = page.getByRole("region", {
+      name: "Beach Boardwalk Team Lounge",
+    });
+    await expect(lounge.getByText("2 here")).toBeVisible({ timeout: 15_000 });
+    await expect(
+      lounge.locator(".team-lounge__shared-avatar[data-current='true']"),
+    ).toHaveCSS("z-index", "5");
+    await expect(
+      lounge.locator(".team-lounge__shared-avatar[data-presence='active']"),
+    ).toHaveCSS("z-index", "4");
+    await expect(lounge.locator(".team-lounge__playfield")).toHaveScreenshot(
+      "team-lounge-avatar-overlap.png",
+      {
+        animations: "disabled",
+        maxDiffPixels: 1_000,
+      },
+    );
+  } finally {
+    await avaContext.close();
+  }
 });

@@ -83,7 +83,7 @@ const MINI_GOAL_DEFINITION_ID = "zoomigo-prop-play-mini-goal";
 const GOAL_CELEBRATION_DURATION_MS = 2_800;
 const GOAL_CONFETTI_PARTICLE_COUNT = 100;
 const GOAL_CONFETTI_COLORS = ["#ffdc3f", "#22d3a8", "#ff617c", "#7dd3fc"];
-const LOUNGE_AVATAR_DIAMETER_WORLD = 18;
+const LOUNGE_AVATAR_DIAMETER_WORLD = 13.5;
 const LOUNGE_BENCH_AVATAR_DIAMETER_WORLD = 12;
 const LOUNGE_BENCH_ANCHORS = [
   { x: 16, y: 106 },
@@ -99,7 +99,6 @@ const LOUNGE_BENCH_ANCHORS = [
   { x: 27, y: 113.5 },
   { x: 32.5, y: 113 },
 ] as const;
-const LOUNGE_DECORATION_LAYERS = ["effect", "border"] as const;
 
 function goalScoreFor(
   definitionID: string | undefined,
@@ -396,9 +395,6 @@ export function SharedLoungeCanvas({
       const presentation = createLoungePixiPresentation({
         assets,
         definitions: [...beachBoardwalkDefinitions, ...loungeItemDefinitions],
-        roster: rosterRef.current,
-        currentPlayerID: playerID,
-        avatarConfig,
       });
       void createConnectedPrizeBoxGateway()
         .inventory(["lounge_stamp", "lounge_prop"])
@@ -864,6 +860,9 @@ export function SharedLoungeCanvas({
             className="team-lounge__shared-avatar"
             data-current={current || undefined}
             data-presence={state}
+            data-avatar-stack={
+              current ? "local" : state === "active" ? "teammate" : "bench"
+            }
             key={player.id}
             role={current ? undefined : "img"}
             aria-label={
@@ -889,27 +888,22 @@ export function SharedLoungeCanvas({
                   : undefined),
             }}
           >
-            {current ? (
-              <div
-                className="team-lounge__avatar-decoration"
-                aria-hidden="true"
-              >
-                <AvatarArt
-                  config={avatarConfig}
-                  background="transparent"
-                  layerKinds={LOUNGE_DECORATION_LAYERS}
-                />
-              </div>
-            ) : state === "bench" ? (
-              <div
-                className="team-lounge__avatar-decoration team-lounge__avatar-decoration--bench"
-                aria-hidden="true"
-              >
-                <AvatarArt
-                  config={normalizeAvatar(player.avatarConfiguration ?? {})}
-                />
-              </div>
-            ) : null}
+            <div
+              className={`team-lounge__avatar-decoration${
+                state === "bench"
+                  ? " team-lounge__avatar-decoration--bench"
+                  : ""
+              }`}
+              aria-hidden="true"
+            >
+              <AvatarArt
+                config={
+                  current
+                    ? avatarConfig
+                    : normalizeAvatar(player.avatarConfiguration ?? {})
+                }
+              />
+            </div>
             {current ? (
               <button
                 type="button"

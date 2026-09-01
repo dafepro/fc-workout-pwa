@@ -46,7 +46,7 @@ test.beforeEach(async () => {
   await api.dispose();
 });
 
-test("the Lounge doubles, clips, and animates the configured avatar presentation", async ({
+test("the Lounge clips and animates the configured avatar at the reduced size", async ({
   page,
 }) => {
   test.setTimeout(90_000);
@@ -102,14 +102,14 @@ test("the Lounge doubles, clips, and animates the configured avatar presentation
     const style = getComputedStyle(node);
     return {
       width: bounds.width,
-      expectedWidth: (canvas?.width ?? 0) * 0.18,
+      expectedWidth: (canvas?.width ?? 0) * 0.135,
       overflow: style.overflow,
       borderRadius: style.borderRadius,
       animationCount: node.getAnimations({ subtree: true }).length,
     };
   });
   expect(metrics.width).toBeCloseTo(metrics.expectedWidth, 0);
-  expect(metrics.width).toBeGreaterThan(50);
+  expect(metrics.width).toBeGreaterThan(35);
   expect(metrics.overflow).toBe("hidden");
   expect(metrics.borderRadius).toBe("50%");
   expect(metrics.animationCount).toBeGreaterThanOrEqual(2);
@@ -128,6 +128,126 @@ test("the Lounge doubles, clips, and animates the configured avatar presentation
     320,
   );
   await expect(stage.locator("canvas")).toBeVisible();
+});
+
+test("overlapping avatars remain atomic with the local player always on top", async ({
+  browser,
+  page,
+}) => {
+  test.setTimeout(90_000);
+  const api = await request.newContext({ baseURL: apiBaseURL });
+  for (const player of ["mason", "ava"]) {
+    const completion = await api.post("/v1/me/training-entries", {
+      headers: {
+        Authorization: `Bearer e2e-player-${player}`,
+        "Idempotency-Key": `browser-lounge-avatar-overlap-${player}`,
+      },
+      data: {
+        teamId: "team-hill-striders",
+        activityDefinitionId: "hill-sprints",
+        assignmentId: "assignment-hill-sprints",
+        occurredAt: new Date(Date.now() - 60_000).toISOString(),
+        result: { kind: "repetitions", value: 8, unit: "reps" },
+        effortLevel: 4,
+        exhaustionLevel: 3,
+        completionOutcome: "as_listed",
+      },
+    });
+    expect(completion.status()).toBe(201);
+  }
+  for (const [player, head] of [
+    ["mason", "prism-dragon"],
+    ["ava", "cheetah"],
+  ] as const) {
+    const avatar = await api.put("/v1/me/avatar", {
+      headers: { Authorization: `Bearer e2e-player-${player}` },
+      data: { configuration: { ...animatedBorderAvatar, head } },
+    });
+    expect(avatar.status()).toBe(200);
+  }
+  await api.dispose();
+
+  const avaContext = await browser.newContext({
+    baseURL: process.env.E2E_PWA_BASE_URL ?? "http://pwa:3000",
+  });
+  const avaPage = await avaContext.newPage();
+  try {
+    await Promise.all([
+      page.setViewportSize({ width: 320, height: 720 }),
+      avaPage.setViewportSize({ width: 320, height: 720 }),
+    ]);
+    await openReadyPage(page, "/team?view=lounge");
+    await loginAsAva(avaPage);
+    await avaPage.goto("/team?view=lounge");
+    await avaPage.locator("html[data-app-ready='true']").waitFor();
+
+    const lounge = page.getByRole("region", {
+      name: "Beach Boardwalk Team Lounge",
+    });
+    await expect(lounge.getByText("2 here")).toBeVisible({ timeout: 15_000 });
+    const local = lounge.locator(
+      ".team-lounge__shared-avatar[data-current='true']",
+    );
+    const teammate = lounge.locator(
+      ".team-lounge__shared-avatar[data-presence='active']",
+    );
+    await expect(
+      local.locator(".team-lounge__avatar-decoration"),
+    ).toBeVisible();
+    await expect(
+      teammate.locator(".team-lounge__avatar-decoration"),
+    ).toBeVisible();
+    await expect(local.locator(".avatar-art")).toHaveCount(1);
+    await expect(teammate.locator(".avatar-art")).toHaveCount(1);
+    await expect(local.locator(".avatar-art__layer--background")).toBeVisible();
+    await expect(local.locator(".avatar-art__layer--head")).toBeVisible();
+    await expect(local.locator(".avatar-art__layer--kit")).toBeVisible();
+    await expect(local.locator(".avatar-effect--animated")).toBeVisible();
+    await expect(teammate.locator(".avatar-effect--animated")).toBeVisible();
+
+    const layering = await lounge.evaluate((root) => {
+      const current = root.querySelector<HTMLElement>(
+        ".team-lounge__shared-avatar[data-current='true']",
+      );
+      const peer = root.querySelector<HTMLElement>(
+        ".team-lounge__shared-avatar[data-presence='active']",
+      );
+      const canvas = root.querySelector("canvas");
+      if (!current || !peer || !canvas) return null;
+      const currentBounds = current
+        .querySelector(".team-lounge__avatar-decoration")
+        ?.getBoundingClientRect();
+      const peerBounds = peer
+        .querySelector(".team-lounge__avatar-decoration")
+        ?.getBoundingClientRect();
+      const canvasBounds = canvas.getBoundingClientRect();
+      if (!currentBounds || !peerBounds) return null;
+      const overlapWidth = Math.max(
+        0,
+        Math.min(currentBounds.right, peerBounds.right) -
+          Math.max(currentBounds.left, peerBounds.left),
+      );
+      const overlapHeight = Math.max(
+        0,
+        Math.min(currentBounds.bottom, peerBounds.bottom) -
+          Math.max(currentBounds.top, peerBounds.top),
+      );
+      return {
+        currentZ: Number(getComputedStyle(current).zIndex),
+        peerZ: Number(getComputedStyle(peer).zIndex),
+        currentWidth: currentBounds.width,
+        expectedWidth: canvasBounds.width * 0.135,
+        overlapArea: overlapWidth * overlapHeight,
+        avatarArea: currentBounds.width * currentBounds.height,
+      };
+    });
+    expect(layering).not.toBeNull();
+    expect(layering!.currentZ).toBeGreaterThan(layering!.peerZ);
+    expect(layering!.currentWidth).toBeCloseTo(layering!.expectedWidth, 0);
+    expect(layering!.overlapArea / layering!.avatarArea).toBeGreaterThan(0.5);
+  } finally {
+    await avaContext.close();
+  }
 });
 
 test("a completed offline teammate rests on the bench with a drained, paused avatar", async ({

@@ -371,7 +371,7 @@ describe("Shared Lounge Canvas", () => {
     ).toBeVisible();
   });
 
-  it("renders the current player's animated decoration at twice the Canvas avatar size", async () => {
+  it("renders the current player's complete animated avatar at 75% of its current size", async () => {
     const { container } = render(
       <AvatarIdentityProvider
         value={{
@@ -420,12 +420,110 @@ describe("Shared Lounge Canvas", () => {
     const overlay = container.querySelector(
       ".team-lounge__shared-avatar[data-current='true']",
     );
-    expect(overlay).toHaveStyle({ "--lounge-avatar-size": "115.2px" });
+    expect(overlay).toHaveStyle({ "--lounge-avatar-size": "86.4px" });
     expect(
       overlay?.querySelector(".team-lounge__avatar-decoration"),
     ).toBeVisible();
     expect(overlay?.querySelector(".avatar-effect--animated")).toBeVisible();
     expect(overlay?.querySelector(".avatar-border--running")).toBeVisible();
+    expect(
+      overlay?.querySelector(".avatar-art__layer--background"),
+    ).toBeVisible();
+    expect(overlay?.querySelector(".avatar-art__layer--head")).toBeVisible();
+    expect(overlay?.querySelector(".avatar-art__layer--kit")).toBeVisible();
+  });
+
+  it("keeps overlapping live avatars atomic and marks the local stack as topmost", async () => {
+    const ava: Player = {
+      ...mason,
+      id: "player-ava",
+      firstName: "Ava",
+      lastInitial: "R.",
+      initials: "AR",
+      avatarConfiguration: normalizeAvatar({
+        head: "prism-dragon",
+        effect: "orbit",
+        border: "running-gradient",
+      }),
+    };
+    const { container } = render(
+      <AvatarIdentityProvider
+        value={{
+          currentPlayerID: mason.id,
+          avatarConfig: normalizeAvatar({
+            head: "cheetah",
+            effect: "pulse",
+            border: "plain",
+          }),
+        }}
+      >
+        <SharedLoungeCanvas
+          teamID="team-one"
+          player={mason}
+          roster={[mason, ava]}
+          onStateChange={vi.fn()}
+          onPresenceChange={vi.fn()}
+        />
+      </AvatarIdentityProvider>,
+    );
+
+    await waitFor(() =>
+      expect(runtime.projectionSubscriptions).toHaveLength(1),
+    );
+    act(() => {
+      runtime.projectionSubscriptions[0]?.observer({
+        canvasSize: { width: 100, height: 150 },
+        viewport: {
+          width: 100,
+          height: 150,
+          scale: 6.4,
+          offsetX: 0,
+          offsetY: 0,
+        },
+        entities: [
+          {
+            entityId: `avatar:${mason.id}`,
+            definitionId: "avatar",
+            screen: { x: 120, y: 240 },
+            world: { x: 20, y: 40 },
+            inViewport: true,
+          },
+          {
+            entityId: `avatar:${ava.id}`,
+            definitionId: "avatar",
+            screen: { x: 120, y: 240 },
+            world: { x: 20, y: 40 },
+            inViewport: true,
+          },
+        ],
+      });
+      runtime.presenceObserver?.({
+        participants: [
+          {
+            userId: ava.id,
+            avatarEntityId: `avatar:${ava.id}`,
+            status: "active",
+          },
+        ],
+      });
+    });
+
+    const local = container.querySelector(
+      ".team-lounge__shared-avatar[data-current='true']",
+    );
+    const teammate = container.querySelector(
+      ".team-lounge__shared-avatar[data-presence='active']",
+    );
+    expect(local).toHaveAttribute("data-avatar-stack", "local");
+    expect(teammate).toHaveAttribute("data-avatar-stack", "teammate");
+    expect(local).toHaveStyle({ "--lounge-avatar-size": "86.4px" });
+    expect(teammate).toHaveStyle({ "--lounge-avatar-size": "86.4px" });
+    expect(local?.querySelectorAll(".avatar-art")).toHaveLength(1);
+    expect(teammate?.querySelectorAll(".avatar-art")).toHaveLength(1);
+    expect(local?.querySelector(".avatar-art__layer--head")).toBeVisible();
+    expect(local?.querySelector(".avatar-effect--pulse")).toBeVisible();
+    expect(teammate?.querySelector(".avatar-head--prism-dragon")).toBeVisible();
+    expect(teammate?.querySelector(".avatar-effect--animated")).toBeVisible();
   });
 
   it("relays the larger avatar handle to Canvas without making the stage unscrollable", async () => {
@@ -468,7 +566,7 @@ describe("Shared Lounge Canvas", () => {
     expect(canvas.style.touchAction).toBe("pan-y");
   });
 
-  it("gives participant and item artwork to the Pixi renderer", async () => {
+  it("keeps avatar artwork in DOM while Pixi paints item artwork", async () => {
     const { container } = render(
       <AvatarIdentityProvider
         value={{ currentPlayerID: mason.id, avatarConfig: defaultAvatar() }}
@@ -491,14 +589,19 @@ describe("Shared Lounge Canvas", () => {
       )?.visual.spriteId,
     ).toBe("lounge.item.zoomigo-prop-play-wobble-cone");
     expect(
+      runtime.options?.definitions?.find(
+        ({ definitionId }) => definitionId === "avatar",
+      )?.visual.spriteId,
+    ).toBe("lounge.avatar");
+    expect(
       runtime.options?.scene?.projectEntityVisual?.({
         kind: "avatar",
         userId: mason.id,
       }),
-    ).toEqual({ variant: "participant-0" });
+    ).toBeUndefined();
     expect(
-      container.querySelector(".team-lounge__shared-avatar .avatar"),
-    ).toBeNull();
+      container.querySelector(".team-lounge__shared-avatar .avatar-art"),
+    ).toBeVisible();
   });
 
   it("shows an allowlisted quick phrase as a transient sender bubble", async () => {

@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import { defaultAvatar, normalizeAvatar } from "../../avatar/config";
-import type { Player } from "../../domain/types";
 import {
   loungeItemDefinitions,
   loungeItemForDefinition,
@@ -10,29 +8,17 @@ import { beachBoardwalkAssets } from "./assets";
 import { beachBoardwalkDefinitions } from "./beach-boardwalk";
 import { createLoungePixiPresentation } from "./pixi-presentation";
 
-const players: Player[] = [
-  player("player-mason", "Mason", "C."),
-  {
-    ...player("player-ava", "Ava", "R."),
-    avatarConfiguration: normalizeAvatar({ head: "prism-dragon" }),
-  },
-];
-
 describe("Lounge Pixi presentation", () => {
-  it("gives Pixi participant-specific avatar textures without changing authority", () => {
+  it("keeps Pixi avatars transparent so the DOM owns each complete avatar stack", () => {
     const presentation = createLoungePixiPresentation({
       assets: beachBoardwalkAssets,
       definitions: [...beachBoardwalkDefinitions, ...loungeItemDefinitions],
-      roster: players,
-      currentPlayerID: "player-mason",
-      avatarConfig: defaultAvatar(),
     });
     const avatar = presentation.definitions.find(
       ({ definitionId }) => definitionId === "avatar",
     );
-    const variants = avatar?.visual.variants ?? {};
-
-    expect(Object.keys(variants)).toEqual(["participant-0", "participant-1"]);
+    expect(avatar?.visual.spriteId).toBe("lounge.avatar");
+    expect(avatar?.visual.variants).toBeUndefined();
     expect(
       presentation.projectEntityVisual({
         id: "avatar:player-ava",
@@ -46,33 +32,18 @@ describe("Lounge Pixi presentation", () => {
         angularVelocity: 0,
         userId: "player-ava",
       }),
-    ).toEqual({ variant: "participant-1" });
-
-    const currentSource = presentation.assets.sources.find(
-      ({ id }) => id === "lounge-avatar-source-0",
-    );
-    const teammateSource = presentation.assets.sources.find(
-      ({ id }) => id === "lounge-avatar-source-1",
-    );
-    const currentAvatarSVG = decodeSVG(currentSource?.src);
-    expect(currentAvatarSVG).toContain("avatar-art__layer");
-    expect(currentAvatarSVG).toContain("avatar-art__layer--background");
-    expect(currentAvatarSVG).not.toContain("avatar-art__layer--effect");
-    expect(currentAvatarSVG).not.toContain("avatar-art__layer--border");
-    expect(currentAvatarSVG).toContain("avatar-art__crop");
-    expect(decodeSVG(teammateSource?.src)).toContain("avatar-art__layer--head");
-    expect(decodeSVG(teammateSource?.src)).toContain(
-      "avatar-head--prism-dragon",
-    );
+    ).toBeUndefined();
+    expect(
+      presentation.assets.sources.some(({ id }) =>
+        id.startsWith("lounge-avatar-source-"),
+      ),
+    ).toBe(false);
   });
 
   it("leaves stamps transparent for the shared DOM art while Pixi paints props", () => {
     const presentation = createLoungePixiPresentation({
       assets: beachBoardwalkAssets,
       definitions: [...beachBoardwalkDefinitions, ...loungeItemDefinitions],
-      roster: players,
-      currentPlayerID: "player-mason",
-      avatarConfig: defaultAvatar(),
     });
 
     for (const original of loungeItemDefinitions) {
@@ -103,22 +74,3 @@ describe("Lounge Pixi presentation", () => {
     }
   });
 });
-
-function decodeSVG(source: string | undefined): string {
-  expect(source).toMatch(/^data:image\/svg\+xml,/u);
-  return decodeURIComponent(source!.slice(source!.indexOf(",") + 1));
-}
-
-function player(id: string, firstName: string, lastInitial: string): Player {
-  return {
-    id,
-    firstName,
-    lastInitial,
-    initials: `${firstName[0]}${lastInitial[0]}`,
-    avatarColor: "#6e56cf",
-    weeklySessions: 1,
-    effortPoints: 4,
-    currentStreak: 1,
-    consistency: 1,
-  };
-}
