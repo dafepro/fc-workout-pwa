@@ -4569,9 +4569,11 @@ h2 {
   position: absolute;
   top: 0;
   left: 0;
+  display: grid;
   width: 3.5rem;
   height: 3.5rem;
   z-index: 3;
+  place-items: center;
   font-size: clamp(1.8rem, 9vw, 2.8rem);
   line-height: 1;
   pointer-events: none;

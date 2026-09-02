@@ -61,6 +61,57 @@ test.beforeEach(async () => {
   await api.dispose();
 });
 
+test("the moving system ball spins around its own visual center", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 720 });
+  await openReadyPage(page, "/team?view=lounge");
+
+  const lounge = page.getByRole("region", {
+    name: "Beach Boardwalk Team Lounge",
+  });
+  await expect(lounge.locator(".team-lounge__world")).toHaveAttribute(
+    "data-canvas-state",
+    "ready",
+  );
+  const ball = lounge.getByRole("img", { name: "Beach ball item" });
+  await expect(ball).toBeVisible();
+
+  const pivotErrors = await ball.evaluate(async (wrapper) => {
+    const artwork = wrapper.querySelector<HTMLElement>(
+      ".team-lounge__item-art",
+    );
+    if (!artwork) return [];
+
+    const originalTransform = wrapper.style.transform;
+    const errors: number[] = [];
+    for (const rotation of [0, Math.PI / 4, Math.PI / 2, Math.PI]) {
+      wrapper.style.transform = originalTransform.replace(
+        /rotate\([^)]*\)/u,
+        `rotate(${rotation}rad)`,
+      );
+      await new Promise(requestAnimationFrame);
+      const wrapperBounds = wrapper.getBoundingClientRect();
+      const artworkBounds = artwork.getBoundingClientRect();
+      errors.push(
+        Math.hypot(
+          wrapperBounds.left +
+            wrapperBounds.width / 2 -
+            (artworkBounds.left + artworkBounds.width / 2),
+          wrapperBounds.top +
+            wrapperBounds.height / 2 -
+            (artworkBounds.top + artworkBounds.height / 2),
+        ),
+      );
+    }
+    wrapper.style.transform = originalTransform;
+    return errors;
+  });
+
+  expect(pivotErrors).toHaveLength(4);
+  expect(Math.max(...pivotErrors)).toBeLessThan(1);
+});
+
 test("the 320px Lounge keeps its approved visual states", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 720 });
   await openReadyPage(page, "/team?view=lounge");
