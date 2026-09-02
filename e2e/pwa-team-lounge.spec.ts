@@ -91,9 +91,7 @@ test("development exposes the prize props and nearby avatars scatter the pond du
     ).toBeAttached();
   }
 
-  await lounge
-    .getByRole("button", { name: "Choose Duck pond item" })
-    .click();
+  await lounge.getByRole("button", { name: "Choose Duck pond item" }).click();
   const surface = lounge.getByRole("button", {
     name: "Place Duck pond item on the boardwalk",
   });
