@@ -115,7 +115,7 @@ func TestDevelopmentCatalogUnlockGrantIsCompletePredefinedAndIdempotent(t *testi
 		if err = rows.Scan(&itemID, &kind); err != nil {
 			t.Fatal(err)
 		}
-		if kind != "avatar_part" && kind != "lounge_stamp" && kind != "lounge_prop" {
+		if kind != "avatar_part" && kind != "lounge_stamp" && kind != "lounge_prop" && kind != "lounge_chat_pack" {
 			t.Fatalf("development catalog grant included %s item %s", kind, itemID)
 		}
 		grantedIDs[itemID] = true

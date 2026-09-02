@@ -46,6 +46,88 @@ test.beforeEach(async () => {
   await api.dispose();
 });
 
+test("development exposes the prize props and nearby avatars scatter the pond ducks", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  const api = await request.newContext({ baseURL: apiBaseURL });
+  const completion = await api.post("/v1/me/training-entries", {
+    headers: {
+      Authorization: "Bearer e2e-player-mason",
+      "Idempotency-Key": "browser-lounge-earned-fun-props",
+    },
+    data: {
+      teamId: "team-hill-striders",
+      activityDefinitionId: "hill-sprints",
+      assignmentId: "assignment-hill-sprints",
+      occurredAt: new Date(Date.now() - 60_000).toISOString(),
+      result: { kind: "repetitions", value: 8, unit: "reps" },
+      effortLevel: 4,
+      exhaustionLevel: 3,
+      completionOutcome: "as_listed",
+    },
+  });
+  expect(completion.status()).toBe(201);
+  await api.dispose();
+
+  await page.setViewportSize({ width: 320, height: 720 });
+  await openReadyPage(page, "/team?view=lounge");
+  const lounge = page.getByRole("region", {
+    name: "Beach Boardwalk Team Lounge",
+  });
+  await expect(lounge.locator(".team-lounge__world")).toHaveAttribute(
+    "data-canvas-state",
+    "ready",
+  );
+  await lounge.getByRole("button", { name: /^Items,/u }).click();
+  for (const label of [
+    "Duck pond",
+    "Hammock",
+    "Robot goalie",
+    "Pinball bumper",
+  ]) {
+    await expect(
+      lounge.getByRole("button", { name: `Choose ${label} item` }),
+    ).toBeAttached();
+  }
+
+  await lounge
+    .getByRole("button", { name: "Choose Duck pond item" })
+    .click();
+  const surface = lounge.getByRole("button", {
+    name: "Place Duck pond item on the boardwalk",
+  });
+  const bounds = await surface.boundingBox();
+  expect(bounds).not.toBeNull();
+  await surface.click({
+    position: { x: bounds!.width * 0.43, y: bounds!.height * (92 / 150) },
+  });
+  await expect(lounge.getByRole("status")).toHaveText("Duck pond placed.", {
+    timeout: 10_000,
+  });
+
+  const pond = lounge.getByRole("button", {
+    name: "Duck pond item, yours; tap to edit",
+  });
+  await expect(pond.locator("[data-duck]")).toHaveCount(3);
+  await expect
+    .poll(
+      () =>
+        pond.locator(".team-lounge__duck-pond").evaluate((node) => {
+          const style = (node as HTMLElement).style;
+          return (
+            Math.abs(Number(style.getPropertyValue("--duck-flee-x"))) +
+            Math.abs(Number(style.getPropertyValue("--duck-flee-y")))
+          );
+        }),
+      { timeout: 10_000 },
+    )
+    .toBeGreaterThan(0.05);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(
+    320,
+  );
+});
+
 test("the Lounge clips and animates the configured avatar at the reduced size", async ({
   page,
 }) => {
@@ -638,34 +720,50 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   await expect
     .poll(() => wave.evaluate((node) => getComputedStyle(node).animationName))
     .toBe("lounge-avatar-reaction");
+  const settingsWheel = lounge.getByRole("button", {
+    name: "Quick-message pack settings",
+  });
+  const settingsWheelBox = await settingsWheel.boundingBox();
+  expect(settingsWheelBox?.width).toBeGreaterThanOrEqual(44);
+  expect(settingsWheelBox?.height).toBeGreaterThanOrEqual(44);
+  await settingsWheel.click();
+  const chatSettings = lounge.getByRole("dialog", {
+    name: "Choose chat packs",
+  });
+  await expect(chatSettings).toBeVisible();
+  await expect(chatSettings.getByText("3 of 3 selected")).toBeVisible();
+  await expect(chatSettings.getByLabel("Locked Prize Box reward")).toHaveCount(
+    0,
+  );
+  await expect(
+    chatSettings.getByRole("checkbox", { name: /Space Cadet/u }),
+  ).toBeDisabled();
+  await chatSettings.getByRole("checkbox", { name: /Pirate 1/u }).uncheck();
+  await chatSettings.getByRole("checkbox", { name: /Space Cadet/u }).check();
+  await chatSettings
+    .getByRole("button", { name: "Close chat settings" })
+    .click();
   await lounge.getByRole("button", { name: "Chat" }).click();
   const chatSets = lounge.getByRole("dialog", { name: "Choose a chat set" });
   await expect(chatSets).toHaveAttribute("data-anchor", "chat");
+  await expect(lounge.getByRole("button", { name: "Pirate 1" })).toHaveCount(0);
+  await lounge.getByRole("button", { name: "Space Cadet" }).click();
   await expect(
-    lounge.getByRole("button", { name: "Set 2, locked" }),
-  ).toBeDisabled();
-  await expect(
-    lounge.getByRole("button", { name: "Set 3, locked" }),
-  ).toBeDisabled();
-  await lounge.getByRole("button", { name: "Standard" }).click();
-  await expect(
-    lounge.getByRole("dialog", { name: "Choose a Standard message" }),
+    lounge.getByRole("dialog", { name: "Choose a Space Cadet message" }),
   ).toBeVisible();
   await expect(
     lounge.getByRole("button", { name: / quick message$/u }),
   ).toHaveCount(10);
-  await expect(
-    lounge.getByRole("button", { name: "Send Nice! quick message" }),
-  ).toBeDisabled();
-  const niceQuickMessage = lounge.getByRole("button", {
-    name: "Send Nice! quick message",
+  const spaceQuickMessage = lounge.getByRole("button", {
+    name: "Send Blast off! quick message",
   });
-  await expect(niceQuickMessage).toBeDisabled();
-  await expect(niceQuickMessage).toBeEnabled({ timeout: 3_000 });
-  await niceQuickMessage.click();
-  await expect(lounge.getByRole("status").last()).toHaveText("Nice! sent.");
+  await expect(spaceQuickMessage).toBeEnabled({ timeout: 3_000 });
+  await spaceQuickMessage.click();
+  await expect(lounge.getByRole("status").last()).toHaveText(
+    "Blast off! sent.",
+  );
   await expect(lounge.locator(".team-lounge__avatar-phrase")).toHaveText(
-    "Nice!",
+    "Blast off!",
   );
   await expect
     .poll(() =>
@@ -683,27 +781,32 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
       "0",
     10,
   );
-  const soccerStampChoice = lounge.getByRole("button", {
-    name: "Choose Soccer ball stamp",
+  const phraseStampChoice = lounge.getByRole("button", {
+    name: "Choose Certified silly goose stamp",
   });
-  const promisedStampStyle = await soccerStampChoice
+  const promisedStampStyle = await phraseStampChoice
     .locator(".team-lounge__item-art--stamp")
     .evaluate((node) => ({
       filter: getComputedStyle(node).filter,
       text: node.textContent,
     }));
-  await soccerStampChoice.click();
+  await expect(phraseStampChoice.locator("img")).toHaveAttribute(
+    "src",
+    "/team-lounge/stamps/silly-goose-v1.svg",
+  );
+  await phraseStampChoice.click();
   const placementSurface = lounge.getByRole("button", {
-    name: "Place Soccer ball stamp on the boardwalk",
+    name: "Place Certified silly goose stamp on the boardwalk",
   });
   await placementSurface.click({ position: { x: 90, y: 140 } });
-  await expect(lounge.getByRole("status")).toHaveText("Soccer ball placed.", {
-    timeout: 10_000,
-  });
+  await expect(lounge.getByRole("status")).toHaveText(
+    "Certified silly goose placed.",
+    { timeout: 10_000 },
+  );
   const editableStamp = lounge.locator(".team-lounge__placed-item--editable");
   await expect(editableStamp).toBeVisible({ timeout: 10_000 });
   await expect(editableStamp).toHaveAccessibleName(
-    "Soccer ball stamp, yours; tap to edit",
+    "Certified silly goose stamp, yours; tap to edit",
   );
   await expect
     .poll(() =>
@@ -744,7 +847,7 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   );
   await page.mouse.up();
   await expect(editableStamp).toHaveAccessibleName(
-    "Soccer ball stamp, yours; tap to edit",
+    "Certified silly goose stamp, yours; tap to edit",
   );
   const boltAfterIgnoredSlide = await editableStamp.boundingBox();
   expect(boltAfterIgnoredSlide?.x).toBeCloseTo(boltBeforeIgnoredSlide!.x, 0);
@@ -757,7 +860,7 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   await expect(radialEditor).toBeVisible();
   await expect(radialEditor).toHaveAttribute("data-layout", "radial");
   await expect(editableStamp).toHaveAccessibleName(
-    "Soccer ball stamp, yours; drag to move",
+    "Certified silly goose stamp, yours; drag to move",
   );
   const radialEditorBox = await radialEditor
     .locator(".team-lounge__item-editor-ring")
@@ -821,9 +924,10 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   expect(boltDuringMove).not.toBeNull();
   expect(boltAfterRelease?.x).toBeCloseTo(boltDuringMove!.x, 0);
   expect(boltAfterRelease?.y).toBeCloseTo(boltDuringMove!.y, 0);
-  await expect(lounge.getByRole("status")).toHaveText("Soccer ball updated.", {
-    timeout: 10_000,
-  });
+  await expect(lounge.getByRole("status")).toHaveText(
+    "Certified silly goose updated.",
+    { timeout: 10_000 },
+  );
   const boltAfterMove = await editableStamp.boundingBox();
   expect(boltAfterMove).not.toBeNull();
   expect(boltAfterMove!.y).toBeGreaterThanOrEqual(movePlayfieldBox!.y);
@@ -848,9 +952,10 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
     { steps: 8 },
   );
   await page.mouse.up();
-  await expect(lounge.getByRole("status")).toHaveText("Soccer ball removed.", {
-    timeout: 10_000,
-  });
+  await expect(lounge.getByRole("status")).toHaveText(
+    "Certified silly goose removed.",
+    { timeout: 10_000 },
+  );
   await expect(editableStamp).toHaveCount(0);
   const networkUsage = await network.finish();
   const committedMutations = 4;

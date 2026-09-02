@@ -5,9 +5,10 @@ type PrizeRarity string
 type PrizeDestination string
 
 const (
-	PrizeAvatarPart  PrizeItemKind = "avatar_part"
-	PrizeLoungeStamp PrizeItemKind = "lounge_stamp"
-	PrizeLoungeProp  PrizeItemKind = "lounge_prop"
+	PrizeAvatarPart     PrizeItemKind = "avatar_part"
+	PrizeLoungeStamp    PrizeItemKind = "lounge_stamp"
+	PrizeLoungeProp     PrizeItemKind = "lounge_prop"
+	PrizeLoungeChatPack PrizeItemKind = "lounge_chat_pack"
 
 	PrizeCommon   PrizeRarity = "common"
 	PrizeUncommon PrizeRarity = "uncommon"
@@ -60,6 +61,15 @@ var prizeCatalog = []PrizeItem{
 	{ID: "lounge-stamp-rocket", Kind: PrizeLoungeStamp, Slot: "stamp", AssetID: "rocket", Label: "Rocket stamp", CatalogVersion: 1, Rarity: PrizeUncommon, Destination: PrizeDestinationTeamLounge},
 	{ID: "lounge-stamp-sparkles", Kind: PrizeLoungeStamp, Slot: "stamp", AssetID: "sparkles", Label: "Sparkles stamp", CatalogVersion: 1, Rarity: PrizeUncommon, Destination: PrizeDestinationTeamLounge},
 	{ID: "lounge-prop-beach-ball", Kind: PrizeLoungeProp, Slot: "prop", AssetID: "beach-ball", Label: "Beach ball", CatalogVersion: 1, Rarity: PrizeUncommon, Destination: PrizeDestinationTeamLounge},
+	{ID: "lounge-prop-duck-pond", Kind: PrizeLoungeProp, Slot: "prop", AssetID: "duck-pond", Label: "Duck pond", CatalogVersion: 1, Rarity: PrizeRare, Destination: PrizeDestinationTeamLounge},
+	{ID: "lounge-prop-hammock", Kind: PrizeLoungeProp, Slot: "prop", AssetID: "hammock", Label: "Hammock", CatalogVersion: 1, Rarity: PrizeUncommon, Destination: PrizeDestinationTeamLounge},
+	{ID: "lounge-prop-robot-goalie", Kind: PrizeLoungeProp, Slot: "prop", AssetID: "robot-goalie", Label: "Robot goalie", CatalogVersion: 1, Rarity: PrizeEpic, Destination: PrizeDestinationTeamLounge},
+	{ID: "lounge-prop-pinball-bumper", Kind: PrizeLoungeProp, Slot: "prop", AssetID: "pinball-bumper", Label: "Pinball bumper", CatalogVersion: 1, Rarity: PrizeRare, Destination: PrizeDestinationTeamLounge},
+	{ID: "lounge-chat-pack-pirate-1", Kind: PrizeLoungeChatPack, Slot: "quick_message_pack", AssetID: "pirate-1", Label: "Pirate 1 chat pack", CatalogVersion: 1, Rarity: PrizeCommon, Destination: PrizeDestinationTeamLounge},
+	{ID: "lounge-chat-pack-gen-alpha", Kind: PrizeLoungeChatPack, Slot: "quick_message_pack", AssetID: "gen-alpha", Label: "Gen Alpha chat pack", CatalogVersion: 1, Rarity: PrizeUncommon, Destination: PrizeDestinationTeamLounge},
+	{ID: "lounge-chat-pack-space-cadet", Kind: PrizeLoungeChatPack, Slot: "quick_message_pack", AssetID: "space-cadet", Label: "Space Cadet chat pack", CatalogVersion: 1, Rarity: PrizeRare, Destination: PrizeDestinationTeamLounge},
+	{ID: "lounge-chat-pack-sideline", Kind: PrizeLoungeChatPack, Slot: "quick_message_pack", AssetID: "sideline", Label: "Sideline chat pack", CatalogVersion: 1, Rarity: PrizeCommon, Destination: PrizeDestinationTeamLounge},
+	{ID: "lounge-chat-pack-snack-attack", Kind: PrizeLoungeChatPack, Slot: "quick_message_pack", AssetID: "snack-attack", Label: "Snack Attack chat pack", CatalogVersion: 1, Rarity: PrizeRare, Destination: PrizeDestinationTeamLounge},
 }
 
 func PrizeCatalogItems() []PrizeItem {

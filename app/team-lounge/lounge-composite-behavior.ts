@@ -57,6 +57,20 @@ export type LoungeCompositeEffect =
       speed: number;
       dwellSeconds: number;
       cooldownSeconds: number;
+    } & SensorEffect)
+  | ({
+      kind: "flock";
+      radius: number;
+      lookAheadSeconds: number;
+      relaxSeconds: number;
+    } & SensorEffect)
+  | ({
+      kind: "goalie";
+      acceptedDefinitionIds: string[];
+      travel: number;
+      maxSpeed: number;
+      trackingGain: number;
+      returnGain: number;
     } & SensorEffect);
 
 export interface LoungeCompositeConfig {
@@ -67,6 +81,13 @@ export interface LoungeCompositeState {
   elapsedTicks: number;
   cooldownUntil: [entityId: string, tick: number][];
   goalScore: number;
+  flockHeading: number;
+  flockIntensity: number;
+  flockAlarmUntil: number;
+  flockTick: number;
+  flockVector: Vec2;
+  motionAnchor?: Vec2;
+  goalieActiveUntil: number;
 }
 
 export const LoungeCompositeBehavior: ItemBehavior<
@@ -74,7 +95,7 @@ export const LoungeCompositeBehavior: ItemBehavior<
   LoungeCompositeState
 > = {
   behaviorType: "zoomigoLoungeComposite",
-  stateVersion: 2,
+  stateVersion: 3,
   subscribes: [
     "contact.enter",
     "contact.stay",
@@ -82,11 +103,31 @@ export const LoungeCompositeBehavior: ItemBehavior<
     "tick",
     "room.wake",
   ],
-  initialState: () => ({ elapsedTicks: 0, cooldownUntil: [], goalScore: 0 }),
+  initialState: () => ({
+    elapsedTicks: 0,
+    cooldownUntil: [],
+    goalScore: 0,
+    flockHeading: 0,
+    flockIntensity: 0,
+    flockAlarmUntil: 0,
+    flockTick: -1,
+    flockVector: { x: 0, y: 0 },
+    goalieActiveUntil: 0,
+  }),
   onEvent(ctx, config, state, event) {
     if (event.type === "room.wake") {
+      const transform = ctx.transform();
+      const hasGoalie = config.effects.some(({ kind }) => kind === "goalie");
       return {
-        state: { ...state, cooldownUntil: [] },
+        state: {
+          ...state,
+          cooldownUntil: [],
+          goalieActiveUntil: 0,
+          motionAnchor:
+            hasGoalie && transform
+              ? { x: transform.x, y: transform.y }
+              : state.motionAnchor,
+        },
         commands: idleMotionCommands(ctx, config.effects, state.elapsedTicks),
       };
     }
@@ -95,7 +136,23 @@ export const LoungeCompositeBehavior: ItemBehavior<
       elapsedTicks: state.elapsedTicks,
       cooldownUntil: [...state.cooldownUntil],
       goalScore: state.goalScore,
+      flockHeading: state.flockHeading,
+      flockIntensity: state.flockIntensity,
+      flockAlarmUntil: state.flockAlarmUntil,
+      flockTick: state.flockTick,
+      flockVector: { ...state.flockVector },
+      motionAnchor: state.motionAnchor ? { ...state.motionAnchor } : undefined,
+      goalieActiveUntil: state.goalieActiveUntil,
     };
+    if (
+      event.type === "tick" &&
+      !nextState.motionAnchor &&
+      config.effects.some(({ kind }) => kind === "goalie")
+    ) {
+      const transform = ctx.transform();
+      if (transform)
+        nextState.motionAnchor = { x: transform.x, y: transform.y };
+    }
     const commands: BehaviorCommand[] = [];
 
     if (event.type === "contact.exit") {
@@ -143,6 +200,13 @@ function applyEffect(
           Math.cos((Math.PI * 2 * elapsedTicks) / periodTicks),
       },
     ];
+  }
+  if (effect.kind === "goalie" && event.type === "tick") {
+    return goalieReturnCommands(ctx, effect, state);
+  }
+  if (effect.kind === "flock" && event.type === "tick") {
+    relaxFlock(ctx, effect, state);
+    return [];
   }
   if (
     (event.type !== "contact.enter" && event.type !== "contact.stay") ||
@@ -230,7 +294,123 @@ function applyEffect(
         event.dwellTicks >= ctx.ticksFor(effect.dwellSeconds)
         ? cannonCommands(ctx, event.other, effect, state)
         : [];
+    case "flock":
+      updateFlock(ctx, event.other, effect, state);
+      return [];
+    case "goalie":
+      return event.type === "contact.stay"
+        ? goalieTrackCommands(ctx, event.other, effect, state)
+        : [];
   }
+}
+
+function updateFlock(
+  ctx: BehaviorContext,
+  threat: ContactParty,
+  effect: Extract<LoungeCompositeEffect, { kind: "flock" }>,
+  state: LoungeCompositeState,
+) {
+  const self = ctx.transform();
+  const other = ctx.transform(threat.entityId);
+  if (!self || !other || effect.radius <= 0) return;
+  const velocity = ctx.velocity(threat.entityId) ?? { x: 0, y: 0 };
+  const predicted = {
+    x: other.x + velocity.x * effect.lookAheadSeconds,
+    y: other.y + velocity.y * effect.lookAheadSeconds,
+  };
+  const offset = sub(self, predicted);
+  const distance = Math.hypot(offset.x, offset.y);
+  if (distance >= effect.radius) return;
+  const away = distance > 0 ? normalize(offset) : { x: 1, y: 0 };
+  const strength = (1 - distance / effect.radius) ** 2;
+  if (state.flockTick !== ctx.tick) {
+    state.flockTick = ctx.tick;
+    state.flockVector = { x: 0, y: 0 };
+  }
+  state.flockVector = {
+    x: state.flockVector.x + away.x * strength,
+    y: state.flockVector.y + away.y * strength,
+  };
+  state.flockHeading = Math.atan2(state.flockVector.y, state.flockVector.x);
+  state.flockIntensity = clamp(
+    Math.hypot(state.flockVector.x, state.flockVector.y),
+    0,
+    1,
+  );
+  state.flockAlarmUntil = ctx.tick + ctx.ticksFor(effect.relaxSeconds);
+}
+
+function relaxFlock(
+  ctx: BehaviorContext,
+  effect: Extract<LoungeCompositeEffect, { kind: "flock" }>,
+  state: LoungeCompositeState,
+) {
+  if (ctx.tick <= state.flockAlarmUntil || state.flockIntensity <= 0) return;
+  const relaxTicks = Math.max(1, ctx.ticksFor(effect.relaxSeconds));
+  state.flockIntensity = Math.max(0, state.flockIntensity - 1 / relaxTicks);
+}
+
+function goalieTrackCommands(
+  ctx: BehaviorContext,
+  target: ContactParty,
+  effect: Extract<LoungeCompositeEffect, { kind: "goalie" }>,
+  state: LoungeCompositeState,
+): BehaviorCommand[] {
+  const self = ctx.transform();
+  const other = ctx.transform(target.entityId);
+  const anchor = state.motionAnchor;
+  if (!self || !other || !anchor) return [];
+  const localTarget = rotate(sub(other, anchor), -self.rotation);
+  const localSelf = rotate(sub(self, anchor), -self.rotation);
+  const desired = clamp(localTarget.x, -effect.travel, effect.travel);
+  const railSpeed = clamp(
+    (desired - localSelf.x) * effect.trackingGain,
+    -effect.maxSpeed,
+    effect.maxSpeed,
+  );
+  state.goalieActiveUntil = ctx.tick + 1;
+  return [
+    {
+      type: "setVelocity",
+      velocity: rotate(
+        { x: railSpeed, y: -localSelf.y * effect.returnGain },
+        self.rotation,
+      ),
+      angularVelocity: 0,
+    },
+  ];
+}
+
+function goalieReturnCommands(
+  ctx: BehaviorContext,
+  effect: Extract<LoungeCompositeEffect, { kind: "goalie" }>,
+  state: LoungeCompositeState,
+): BehaviorCommand[] {
+  const self = ctx.transform();
+  const anchor = state.motionAnchor;
+  if (!self || !anchor || state.goalieActiveUntil >= ctx.tick) return [];
+  const localSelf = rotate(sub(self, anchor), -self.rotation);
+  return [
+    {
+      type: "setVelocity",
+      velocity: rotate(
+        {
+          x: clamp(
+            -localSelf.x * effect.returnGain,
+            -effect.maxSpeed,
+            effect.maxSpeed,
+          ),
+          y: clamp(
+            -localSelf.y * effect.returnGain,
+            -effect.maxSpeed,
+            effect.maxSpeed,
+          ),
+        },
+        self.rotation,
+      ),
+      angularVelocity: 0,
+    },
+  ];
 }
 
 function boostCommands(

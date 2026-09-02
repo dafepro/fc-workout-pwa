@@ -82,6 +82,27 @@ picker. Every interactive visual follows one explicit paint contract: stamps
 remain behind ground effects, props, moving balls, and every player avatar,
 including while an owned stamp is selected or dragged.
 
+The in-playfield settings wheel controls a device-local selection of one to
+three reviewed quick-chat packs. Production includes Standard and shows Pirate
+1, Gen Alpha, Space Cadet, Sideline, and Snack Attack with lock icons until each
+is owned through its Prize Box catalog item. Development grants the full catalog
+and starts with Standard, Pirate 1, and Gen Alpha selected for testing. Only
+selected, currently owned pack IDs persist on that device. Every message
+remains a server-allowlisted transient room action with no transcript, and the
+server rejects reward-pack phrases without the sender's matching unlock. Phrase stamps are
+included decorative decals with bounded transparent artwork, predefined silly
+copy, no physics, and the same placement budget and paint-order contract as
+other stamps.
+
+Duck pond, hammock, robot goalie, and pinball bumper are interactive Prize Box
+props. Production omits each from the picker until owned, and the placement API
+checks the matching unlock. Development grants all four. Nearby avatars and
+items steer the pond's three ducks away with a deterministic, distance-weighted
+response; the hammock gently centers and slows an occupant while swaying; the
+goalie follows tagged balls only along its bounded rail; and the bumper launches
+tagged balls with a stronger impulse than the avatar kick cap. Reduced-motion
+mode removes decorative interpolation without changing authoritative physics.
+
 ## Me (`/me` and `/me/avatar`)
 
 Me owns private history and identity:

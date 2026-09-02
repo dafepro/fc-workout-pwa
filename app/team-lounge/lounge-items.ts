@@ -85,6 +85,27 @@ const beachBallProp: LoungePropChoice = {
   capabilities: ["collision", "physics", "behavior"],
 };
 
+const sillyStamps: LoungeStampChoice[] = [
+  ["silly-goose", "Certified silly goose", "GOOSE"],
+  ["zoomies", "Oops! All zoomies", "ZOOM"],
+  ["running-on-pickles", "Running on pickles", "PICKLE"],
+  ["just-goals", "No thoughts, just goals", "GOALS"],
+  ["professional-cone", "Professional cone", "CONE"],
+  ["snack-attack", "Snack attack", "SNACK"],
+  ["tiny-mighty", "Tiny but mighty", "MIGHTY"],
+  ["water-you-doing", "Water you doing?", "WATER"],
+].map(([id, label, glyph]) => ({
+  id,
+  label,
+  glyph,
+  imageSrc: `/team-lounge/stamps/${id}-v1.svg`,
+  definitionId: `zoomigo-stamp-silly-${id}`,
+  definitionVersion: 1,
+  source: "included",
+  kind: "lounge_stamp",
+  capabilities: [],
+}));
+
 const systemBeachBall: LoungePropChoice = {
   ...beachBallProp,
   id: "system-beach-ball",
@@ -114,6 +135,7 @@ const starlightStamps: LoungeStampChoice[] = [
 
 interface CompositeItemSpec {
   id: string;
+  source?: LoungePropChoice["source"];
   definitionVersion?: number;
   label: string;
   glyph: string;
@@ -343,32 +365,144 @@ const compositeItemSpecs: CompositeItemSpec[] = [
       },
     ],
   },
+  {
+    id: "duck-pond",
+    source: "earned",
+    label: "Duck pond",
+    glyph: "🦆",
+    size: { width: 18, height: 14 },
+    visualLayer: LoungeVisualLayer.GROUND_EFFECT,
+    capabilities: ["collision", "behavior"],
+    colliders: [sensorCircle("shore", 10), sensorRect("water", 16, 12)],
+    effects: [
+      {
+        kind: "flock",
+        sensorId: "shore",
+        radius: 10,
+        lookAheadSeconds: 0.2,
+        relaxSeconds: 0.8,
+      },
+      {
+        kind: "dampen",
+        sensorId: "water",
+        linearFactor: 0.94,
+        angularFactor: 0.9,
+        minimumSpeed: 0.4,
+      },
+    ],
+  },
+  {
+    id: "hammock",
+    source: "earned",
+    label: "Hammock",
+    glyph: "🌴",
+    size: { width: 20, height: 12 },
+    capabilities: ["collision", "physics", "behavior"],
+    body: kinematicBody(),
+    colliders: [sensorRect("bed", 14, 6)],
+    effects: [
+      { kind: "swing", amplitudeRadians: 0.16, periodSeconds: 4.2 },
+      {
+        kind: "dampen",
+        sensorId: "bed",
+        linearFactor: 0.82,
+        angularFactor: 0.7,
+        minimumSpeed: 0.35,
+      },
+      {
+        kind: "orbit",
+        sensorId: "bed",
+        radialForce: 1.8,
+        tangentialForce: 0,
+        maxForce: 1.8,
+      },
+    ],
+  },
+  {
+    id: "robot-goalie",
+    source: "earned",
+    label: "Robot goalie",
+    glyph: "🤖",
+    size: { width: 18, height: 14 },
+    capabilities: ["collision", "physics", "behavior"],
+    body: kinematicBody(),
+    colliders: [solidRect("keeper", 12, 3), sensorCircle("save-zone", 10)],
+    effects: [
+      {
+        kind: "goalie",
+        sensorId: "save-zone",
+        acceptedDefinitionIds: ["beach-ball", "zoomigo-prop-beach-ball"],
+        travel: 8,
+        maxSpeed: 18,
+        trackingGain: 5,
+        returnGain: 3,
+      },
+      {
+        kind: "bounce",
+        sensorId: "save-zone",
+        acceptedDefinitionIds: ["beach-ball", "zoomigo-prop-beach-ball"],
+        impulse: 10,
+      },
+    ],
+  },
+  {
+    id: "pinball-bumper",
+    source: "earned",
+    label: "Pinball bumper",
+    glyph: "🔴",
+    size: { width: 11, height: 11 },
+    capabilities: ["collision", "behavior"],
+    colliders: [solidCircle("solid", 4.5), sensorCircle("bumper", 5.5)],
+    effects: [
+      {
+        kind: "bounce",
+        sensorId: "bumper",
+        acceptedDefinitionIds: ["beach-ball", "zoomigo-prop-beach-ball"],
+        impulse: 56,
+      },
+      {
+        kind: "hop",
+        sensorId: "bumper",
+        acceptedDefinitionIds: ["beach-ball", "zoomigo-prop-beach-ball"],
+        elevationSpeed: 9,
+      },
+    ],
+  },
 ];
 
 export const compositeLoungeItems: LoungePropChoice[] = compositeItemSpecs.map(
-  ({ id, label, glyph, imageSrc, capabilities, definitionVersion = 3 }) => ({
+  ({
+    id,
+    label,
+    glyph,
+    imageSrc,
+    capabilities,
+    definitionVersion = 3,
+    source = "included",
+  }) => ({
     id,
     label,
     glyph,
     imageSrc: imageSrc ?? `/team-lounge/items/${id}-v1.png`,
     definitionId: `zoomigo-prop-play-${id}`,
     definitionVersion,
-    source: "included",
+    source,
     kind: "lounge_prop",
     capabilities,
   }),
 );
 
-const includedCompositeLoungeItems = [...compositeLoungeItems].sort(
-  (left, right) => {
+const includedCompositeLoungeItems = compositeLoungeItems
+  .filter(({ source }) => source === "included")
+  .sort((left, right) => {
     if (left.id === "ball-cannon") return -1;
     if (right.id === "ball-cannon") return 1;
     return 0;
-  },
-);
+  });
 
 export const includedLoungeItems: LoungeItemChoice[] = [
   ...itemCatalog.slice(0, 4).map((item) => stampChoice(item, "included")),
+  ...sillyStamps,
   ...starlightStamps,
   ...includedCompositeLoungeItems,
 ];
@@ -393,6 +527,26 @@ export const loungeItemDefinitions: ItemDefinition[] = itemCatalog.map(
     complexity: "simple",
   }),
 );
+for (const item of sillyStamps) {
+  loungeItemDefinitions.push({
+    definitionId: item.definitionId,
+    version: item.definitionVersion,
+    displayName: item.label,
+    visual: {
+      size: { width: 18, height: 12 },
+      spriteId: "lounge.stamp.transparent",
+      zIndex: LoungeVisualLayer.DECAL,
+    },
+    colliders: [],
+    defaultConfig: {},
+    persistence: {
+      transform: true,
+      behaviorState: false,
+      onRoomSleep: "pause",
+    },
+    complexity: "simple",
+  });
+}
 loungeItemDefinitions.push({
   definitionId: beachBallProp.definitionId,
   version: 6,
@@ -483,6 +637,11 @@ export function loungeItemChoices(
       .filter(({ item }) => item.kind === "lounge_stamp")
       .map(({ item }) => item.assetId),
   );
+  const earnedProps = new Set(
+    inventory
+      .filter(({ item }) => item.kind === "lounge_prop")
+      .map(({ item }) => item.assetId),
+  );
   return [
     ...includedLoungeItems,
     ...itemCatalog
@@ -496,6 +655,9 @@ export function loungeItemChoices(
     )
       ? [beachBallProp]
       : []),
+    ...compositeLoungeItems.filter(
+      ({ id, source }) => source === "earned" && earnedProps.has(id),
+    ),
   ];
 }
 
@@ -503,7 +665,10 @@ export function loungePrizeItem(
   item: Pick<PrizeItem, "assetId" | "kind">,
 ): LoungeItemChoice | undefined {
   if (item.kind === "lounge_prop") {
-    return item.assetId === beachBallProp.id ? beachBallProp : undefined;
+    if (item.assetId === beachBallProp.id) return beachBallProp;
+    return compositeLoungeItems.find(
+      ({ id, source }) => id === item.assetId && source === "earned",
+    );
   }
   if (item.kind !== "lounge_stamp") return undefined;
 
@@ -521,6 +686,10 @@ export function loungeItemForDefinition(definitionId: string) {
     (candidate) => candidate.definitionId === definitionId,
   );
   if (prop) return prop;
+  const sillyStamp = sillyStamps.find(
+    (candidate) => candidate.definitionId === definitionId,
+  );
+  if (sillyStamp) return sillyStamp;
   const composite = compositeLoungeItems.find(
     (candidate) => candidate.definitionId === definitionId,
   );

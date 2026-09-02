@@ -53,3 +53,35 @@ func TestTransientReactionsRequireMembershipClosedPayloadAndSharedCooldown(t *te
 		})
 	}
 }
+
+func TestReviewedQuickPhrasePacksStayClosedAndComplete(t *testing.T) {
+	if len(loungeQuickPhraseIDs) != 60 {
+		t.Fatalf("quick phrase IDs = %d, want 60", len(loungeQuickPhraseIDs))
+	}
+	for _, phraseID := range []string{
+		"thanks-bromigo", "pirate-ahoy", "alpha-big-w", "space-blast-off", "side-great-pass", "snack-pickle",
+	} {
+		if _, ok := loungeQuickPhraseIDs[phraseID]; !ok {
+			t.Fatalf("quick phrase %q is not allowlisted", phraseID)
+		}
+	}
+}
+
+func TestRewardQuickPhrasesRequireThePlayersPrizeBoxUnlock(t *testing.T) {
+	store, _ := placementAuthorityStore(t, 1)
+	request := roomsdk.TransientActionContext{
+		RoomID: loungeRoomID, ParticipantID: "player-one", Action: "zoomigo.quickPhrase",
+		Target: roomsdk.TransientActionTargetRoom, Payload: []byte(`{"phrase":"pirate-ahoy"}`),
+	}
+	if _, err := store.ResolveTransientAction(t.Context(), request); !errors.Is(err, roomsdk.ErrTransientActionUnauthorized) {
+		t.Fatalf("locked Pirate phrase error = %v", err)
+	}
+	if _, err := store.db.ExecContext(t.Context(), `INSERT INTO player_unlocks
+		(player_id, item_kind, item_id, source, unlocked_at)
+		VALUES ('player-one', 'lounge_chat_pack', 'lounge-chat-pack-pirate-1', 'daily_check_in', '2026-09-02T12:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.ResolveTransientAction(t.Context(), request); err != nil {
+		t.Fatalf("owned Pirate phrase error = %v", err)
+	}
+}

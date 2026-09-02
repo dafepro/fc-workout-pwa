@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="No thoughts, just goals">
+  <path fill="#bfa7ff" stroke="#2f245b" stroke-width="8" d="M45 47c19-26 57-30 81-9 28-19 67-7 78 24 30 6 42 43 22 66 13 29-10 61-41 62-18 25-57 28-78 6-29 15-62-3-66-35-30-9-38-49-14-69-5-18 2-34 18-45z"/>
+  <circle cx="59" cy="207" r="15" fill="#bfa7ff" stroke="#2f245b" stroke-width="7"/>
+  <circle cx="34" cy="232" r="8" fill="#bfa7ff" stroke="#2f245b" stroke-width="5"/>
+  <circle cx="173" cy="119" r="42" fill="#fff" stroke="#2f245b" stroke-width="7"/>
+  <path fill="#2f245b" d="M173 78l13 10-5 16 14 10-5 16 8 13-17 1-8 16-9-16-18-1 9-14-5-16 15-9-5-16z" opacity=".92"/>
+  <text x="104" y="77" fill="#2f245b" font-family="Arial, sans-serif" font-size="23" font-weight="900" text-anchor="middle">NO THOUGHTS</text>
+  <text x="103" y="110" fill="#2f245b" font-family="Arial, sans-serif" font-size="21" font-weight="900" text-anchor="middle">JUST</text>
+  <text x="103" y="145" fill="#2f245b" font-family="Arial, sans-serif" font-size="29" font-weight="900" text-anchor="middle">GOALS</text>
+</svg>

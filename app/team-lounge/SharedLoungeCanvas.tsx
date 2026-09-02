@@ -20,12 +20,15 @@ import { TransientActionRejectCode } from "@canvas-physics/protocol";
 import { PlayerAvatar } from "../components/PlayerAvatar";
 import { AvatarArt } from "../avatar/AvatarArt";
 import { normalizeAvatar } from "../avatar/config";
+import { developmentBuild } from "../build-profile";
 import { copy } from "../content/copy";
 import { createConnectedPrizeBoxGateway } from "../data/prize-box-gateway";
+import { unlockDevelopmentCatalogItems } from "../development/catalog-unlocks";
 import type { Player } from "../domain/types";
 import { useAvatarIdentity } from "../state/avatar-identity-context";
 import type { LoungeCanvasState } from "./LocalLoungeCanvas";
 import { LoungeActionDock } from "./LoungeActionDock";
+import { LoungeChatSettings } from "./LoungeChatSettings";
 import { LoungeItemEditor, type LoungeEditableItem } from "./LoungeItemEditor";
 import { LoungeItemArt } from "./LoungeItemArt";
 import { loungeBallEntityID, publishLoungeBallPosition } from "./ball-position";
@@ -36,9 +39,17 @@ import {
   type LoungeEmote,
 } from "./lounge-emotes";
 import {
+  defaultDevelopmentLoungeChatPackIDs,
+  includedLoungeChatPackIDs,
   loungeQuickPhrases,
+  unlockedLoungeChatPackIDs,
+  type LoungeChatPackID,
   type LoungeQuickPhrase,
 } from "./lounge-quick-phrases";
+import {
+  loadLoungeChatPackIDs,
+  saveLoungeChatPackIDs,
+} from "./lounge-chat-preferences";
 import { performLoungeItemMutation } from "./lounge-item-mutations";
 import {
   includedLoungeItems,
@@ -80,6 +91,7 @@ const visitorAnchors = [
 ] as const;
 
 const MINI_GOAL_DEFINITION_ID = "zoomigo-prop-play-mini-goal";
+const DUCK_POND_DEFINITION_ID = "zoomigo-prop-play-duck-pond";
 const GOAL_CELEBRATION_DURATION_MS = 2_800;
 const GOAL_CONFETTI_PARTICLE_COUNT = 100;
 const GOAL_CONFETTI_COLORS = ["#ffdc3f", "#22d3a8", "#ff617c", "#7dd3fc"];
@@ -99,6 +111,20 @@ const LOUNGE_BENCH_ANCHORS = [
   { x: 27, y: 113.5 },
   { x: 32.5, y: 113 },
 ] as const;
+const INITIAL_UNLOCKED_CHAT_PACK_IDS = unlockedLoungeChatPackIDs(
+  [],
+  developmentBuild,
+);
+const DEFAULT_ACTIVE_CHAT_PACK_IDS = developmentBuild
+  ? defaultDevelopmentLoungeChatPackIDs
+  : includedLoungeChatPackIDs;
+
+function loadSavedChatPacks(
+  storage: Storage,
+  unlocked: readonly LoungeChatPackID[],
+) {
+  return loadLoungeChatPackIDs(storage, unlocked, DEFAULT_ACTIVE_CHAT_PACK_IDS);
+}
 
 function goalScoreFor(
   definitionID: string | undefined,
@@ -110,6 +136,35 @@ function goalScoreFor(
   return typeof score === "number" && Number.isInteger(score) && score >= 0
     ? score % 100
     : 0;
+}
+
+function duckFlockFor(
+  definitionID: string | undefined,
+  behaviorState: unknown,
+): { heading: number; intensity: number } | undefined {
+  if (
+    definitionID !== DUCK_POND_DEFINITION_ID ||
+    !behaviorState ||
+    typeof behaviorState !== "object"
+  ) {
+    return undefined;
+  }
+  const flock = behaviorState as {
+    flockHeading?: unknown;
+    flockIntensity?: unknown;
+  };
+  return {
+    heading:
+      typeof flock.flockHeading === "number" &&
+      Number.isFinite(flock.flockHeading)
+        ? flock.flockHeading
+        : 0,
+    intensity:
+      typeof flock.flockIntensity === "number" &&
+      Number.isFinite(flock.flockIntensity)
+        ? Math.max(0, Math.min(1, flock.flockIntensity))
+        : 0,
+  };
 }
 
 function isServerRejection(cause: unknown, serverCode: string) {
@@ -205,6 +260,12 @@ export function SharedLoungeCanvas({
     new Set<string>(),
   );
   const [reactionLocked, setReactionLocked] = useState(false);
+  const [unlockedChatPackIDs, setUnlockedChatPackIDs] = useState<
+    LoungeChatPackID[]
+  >(INITIAL_UNLOCKED_CHAT_PACK_IDS);
+  const [activeChatPackIDs, setActiveChatPackIDs] = useState<
+    LoungeChatPackID[]
+  >([...DEFAULT_ACTIVE_CHAT_PACK_IDS]);
   const [avatarDiameter, setAvatarDiameter] = useState<number>();
   const [benchAvatarDiameter, setBenchAvatarDiameter] = useState<number>();
   const reactionTimerRef = useRef<number | undefined>(undefined);
@@ -393,6 +454,10 @@ export function SharedLoungeCanvas({
                 canonical.definitionId,
                 canonical.behaviorState,
               ),
+              duckFlock: duckFlockFor(
+                canonical.definitionId,
+                canonical.behaviorState,
+              ),
               screen:
                 optimisticMove && !projectionCaughtUp
                   ? optimisticMove.screen
@@ -422,12 +487,39 @@ export function SharedLoungeCanvas({
         assets,
         definitions: [...beachBoardwalkDefinitions, ...loungeItemDefinitions],
       });
-      void createConnectedPrizeBoxGateway()
-        .inventory(["lounge_stamp", "lounge_prop"])
+      const inventoryGateway = createConnectedPrizeBoxGateway();
+      const loadInventory = async () => {
+        if (developmentBuild) {
+          await unlockDevelopmentCatalogItems().catch(() => undefined);
+        }
+        return inventoryGateway.inventory([
+          "lounge_stamp",
+          "lounge_prop",
+          "lounge_chat_pack",
+        ]);
+      };
+      void loadInventory()
         .then((inventory) => {
-          if (!disposed) setChoices(loungeItemChoices(inventory));
+          if (disposed) return;
+          setChoices(loungeItemChoices(inventory));
+          const unlocked = unlockedLoungeChatPackIDs(
+            inventory,
+            developmentBuild,
+          );
+          setUnlockedChatPackIDs(unlocked);
+          setActiveChatPackIDs(
+            loadSavedChatPacks(window.localStorage, unlocked),
+          );
         })
-        .catch(() => undefined);
+        .catch(() => {
+          if (disposed) return;
+          setActiveChatPackIDs(
+            loadSavedChatPacks(
+              window.localStorage,
+              INITIAL_UNLOCKED_CHAT_PACK_IDS,
+            ),
+          );
+        });
       const { CanvasRuntime: Runtime, SimulationDriver } = await import(
         "@canvas-physics/client"
       );
@@ -881,6 +973,18 @@ export function SharedLoungeCanvas({
           aria-label="Interactive lounge canvas"
           tabIndex={0}
         />
+        <LoungeChatSettings
+          activePackIDs={activeChatPackIDs}
+          unlockedPackIDs={unlockedChatPackIDs}
+          onChange={(packIDs) => {
+            setActiveChatPackIDs(packIDs);
+            saveLoungeChatPackIDs(
+              window.localStorage,
+              packIDs,
+              unlockedChatPackIDs,
+            );
+          }}
+        />
         {overlays.map(({ player, position, current, state }) => (
           <div
             className="team-lounge__shared-avatar"
@@ -1124,6 +1228,7 @@ export function SharedLoungeCanvas({
           capacity={placementCapacity}
           placing={placing}
           reactionLocked={reactionLocked}
+          activePackIDs={activeChatPackIDs}
           onSelectItem={(item) => {
             setSelectedEntityID(null);
             setSelectedItem(item);

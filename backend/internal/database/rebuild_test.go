@@ -332,3 +332,63 @@ func TestMigrateRetiresOnlyLeaderboardReactionsFromAPopulatedDatabase(t *testing
 		t.Fatal("the retired leaderboard context must be rejected by the database")
 	}
 }
+
+func TestMigrateAddsChatPackPrizeKindToPopulatedInventory(t *testing.T) {
+	ctx := context.Background()
+	databaseURL := "file:" + filepath.ToSlash(filepath.Join(t.TempDir(), "chat-pack-prizes.db"))
+	db, err := Open(ctx, databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if _, err = db.ExecContext(ctx, `CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)`); err != nil {
+		t.Fatal(err)
+	}
+	entries, err := fs.ReadDir(migrations.Files, ".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		name := entry.Name()
+		if entry.IsDir() || !strings.HasSuffix(name, ".up.sql") || name[:6] > "000022" {
+			continue
+		}
+		if err = applyMigration(ctx, db, name); err != nil {
+			t.Fatalf("apply %s: %v", name, err)
+		}
+	}
+	for _, statement := range []string{
+		`INSERT INTO clubs (id, name, created_at) VALUES ('club-p', 'Club', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO players (id, club_id, first_name, last_initial, avatar_configuration_json, created_at)
+		 VALUES ('player-p', 'club-p', 'Player', 'P', '{}', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO player_unlocks (player_id, item_kind, item_id, source, unlocked_at)
+		 VALUES ('player-p', 'lounge_stamp', 'lounge-stamp-shield', 'daily_check_in', '2026-01-02T00:00:00Z')`,
+		`INSERT INTO prize_boxes (id, player_id, source, daily_day, daily_time_zone, catalog_version,
+		 earned_at, earned_idempotency_key_hash, opened_at, open_idempotency_key_hash, item_kind, item_id)
+		 VALUES ('box-p', 'player-p', 'daily_check_in', '2026-01-02', 'UTC', 1,
+		 '2026-01-02T00:00:00Z', randomblob(32), '2026-01-02T00:01:00Z', randomblob(32),
+		 'lounge_stamp', 'lounge-stamp-shield')`,
+	} {
+		if _, err = db.ExecContext(ctx, statement); err != nil {
+			t.Fatalf("seed %q: %v", statement, err)
+		}
+	}
+
+	if err = Migrate(ctx, db); err != nil {
+		t.Fatalf("add chat pack prize kind: %v", err)
+	}
+	var existing int
+	if err = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM player_unlocks
+		WHERE player_id = 'player-p' AND item_kind = 'lounge_stamp'`).Scan(&existing); err != nil || existing != 1 {
+		t.Fatalf("existing unlock count = %d, %v", existing, err)
+	}
+	if _, err = db.ExecContext(ctx, `INSERT INTO player_unlocks
+		(player_id, item_kind, item_id, source, unlocked_at)
+		VALUES ('player-p', 'lounge_chat_pack', 'lounge-chat-pack-pirate-1', 'daily_check_in', '2026-01-03T00:00:00Z')`); err != nil {
+		t.Fatalf("insert chat pack unlock: %v", err)
+	}
+	var violations int
+	if err = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM pragma_foreign_key_check`).Scan(&violations); err != nil || violations != 0 {
+		t.Fatalf("foreign key violations = %d, %v", violations, err)
+	}
+}

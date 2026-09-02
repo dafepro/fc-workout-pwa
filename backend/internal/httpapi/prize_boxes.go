@@ -122,8 +122,8 @@ func (service *service) listPlayerUnlocks(w http.ResponseWriter, r *http.Request
 		return
 	}
 	kind := domain.PrizeItemKind(r.URL.Query().Get("kind"))
-	if kind != domain.PrizeAvatarPart && kind != domain.PrizeLoungeStamp && kind != domain.PrizeLoungeProp {
-		writeError(w, r, http.StatusBadRequest, "invalid_unlock_kind", "Choose Avatar parts, Team Lounge stamps, or Team Lounge props.")
+	if kind != domain.PrizeAvatarPart && kind != domain.PrizeLoungeStamp && kind != domain.PrizeLoungeProp && kind != domain.PrizeLoungeChatPack {
+		writeError(w, r, http.StatusBadRequest, "invalid_unlock_kind", "Choose Avatar parts, Team Lounge stamps, props, or chat packs.")
 		return
 	}
 	items, err := repository.ListPlayerUnlocks(r.Context(), actor.PlayerID, kind)

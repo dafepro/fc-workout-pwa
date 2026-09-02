@@ -4,6 +4,7 @@ import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import {
+  compositeLoungeItems,
   includedLoungeItems,
   LoungeVisualLayer,
   loungeItemChoices,
@@ -25,6 +26,13 @@ describe("development Lounge items", () => {
     "wobble-cone",
     "swing-gate",
     "mini-goal",
+  ];
+
+  const prizePropIDs = [
+    "duck-pond",
+    "hammock",
+    "robot-goalie",
+    "pinball-bumper",
   ];
 
   it("keeps the included ball cannon above the scroll fold", () => {
@@ -115,12 +123,77 @@ describe("development Lounge items", () => {
     ]);
   });
 
+  it("keeps fun props prize-box gated while exposing owned props", () => {
+    expect(includedLoungeItems.map(({ id }) => id)).not.toEqual(
+      expect.arrayContaining(prizePropIDs),
+    );
+    expect(loungeItemChoices([]).map(({ id }) => id)).not.toEqual(
+      expect.arrayContaining(prizePropIDs),
+    );
+
+    const choices = loungeItemChoices(
+      prizePropIDs.map((assetId) => ({
+        item: {
+          id: `lounge-prop-${assetId}`,
+          kind: "lounge_prop" as const,
+          slot: "prop",
+          assetId,
+          label: assetId,
+          catalogVersion: 1,
+          rarity: "rare" as const,
+          destination: "team_lounge" as const,
+        },
+        source: "daily_check_in" as const,
+        unlockedAt: "2026-09-02T12:00:00Z",
+      })),
+    );
+
+    expect(choices.filter(({ id }) => prizePropIDs.includes(id))).toMatchObject(
+      prizePropIDs.map((id) => ({ id, source: "earned", kind: "lounge_prop" })),
+    );
+  });
+
+  it("ships eight included phrase stamps as bounded transparent vector art", () => {
+    const phrases = includedLoungeItems.filter(({ definitionId }) =>
+      definitionId.startsWith("zoomigo-stamp-silly-"),
+    );
+
+    expect(phrases.map(({ label }) => label)).toEqual([
+      "Certified silly goose",
+      "Oops! All zoomies",
+      "Running on pickles",
+      "No thoughts, just goals",
+      "Professional cone",
+      "Snack attack",
+      "Tiny but mighty",
+      "Water you doing?",
+    ]);
+    for (const phrase of phrases) {
+      expect(phrase).toMatchObject({
+        kind: "lounge_stamp",
+        source: "included",
+        capabilities: [],
+        imageSrc: expect.stringMatching(
+          /^\/team-lounge\/stamps\/[a-z-]+-v1\.svg$/u,
+        ),
+      });
+      const art = readFileSync(
+        join(process.cwd(), "public", phrase.imageSrc!.replace(/^\//, "")),
+        "utf8",
+      );
+      expect(art).toContain('viewBox="0 0 256 256"');
+      expect(art).toContain("<text");
+      expect(art).not.toMatch(/<script|(?:href|src)=["'](?:https?:|data:)/iu);
+      expect(art).not.toMatch(/<rect[^>]+(?:width="256"|height="256")/iu);
+    }
+  });
+
   it("gives every placeable item a durable transparent definition", () => {
-    expect(loungeItemDefinitions).toHaveLength(26);
+    expect(loungeItemDefinitions).toHaveLength(38);
     expect(
       new Set(loungeItemDefinitions.map(({ definitionId }) => definitionId))
         .size,
-    ).toBe(26);
+    ).toBe(38);
     expect(
       loungeItemDefinitions.every(({ persistence }) => persistence?.transform),
     ).toBe(true);
@@ -226,12 +299,61 @@ describe("development Lounge items", () => {
     });
   });
 
+  it("defines the four earned props with distinctive bounded mechanics", () => {
+    expect(
+      compositeLoungeItems
+        .filter(({ source }) => source === "earned")
+        .map(({ id }) => id),
+    ).toEqual(prizePropIDs);
+
+    const definition = (id: string) =>
+      loungeItemDefinitions.find(
+        ({ definitionId }) => definitionId === `zoomigo-prop-play-${id}`,
+      );
+    expect(definition("duck-pond")).toMatchObject({
+      visual: { zIndex: LoungeVisualLayer.GROUND_EFFECT },
+      defaultConfig: {
+        effects: expect.arrayContaining([
+          expect.objectContaining({ kind: "flock", radius: 10 }),
+        ]),
+      },
+    });
+    expect(definition("hammock")).toMatchObject({
+      defaultConfig: {
+        effects: expect.arrayContaining([
+          expect.objectContaining({ kind: "swing" }),
+          expect.objectContaining({ kind: "dampen", sensorId: "bed" }),
+          expect.objectContaining({ kind: "orbit", sensorId: "bed" }),
+        ]),
+      },
+    });
+    expect(definition("robot-goalie")).toMatchObject({
+      defaultConfig: {
+        effects: expect.arrayContaining([
+          expect.objectContaining({
+            kind: "goalie",
+            acceptedDefinitionIds: ["beach-ball", "zoomigo-prop-beach-ball"],
+            travel: 8,
+          }),
+        ]),
+      },
+    });
+    expect(definition("pinball-bumper")).toMatchObject({
+      defaultConfig: {
+        effects: expect.arrayContaining([
+          expect.objectContaining({ kind: "bounce", impulse: 56 }),
+        ]),
+      },
+    });
+    expect(56).toBeGreaterThan(48);
+  });
+
   it("binds every configured sensor effect to a real bounded collider", () => {
     const definitions = loungeItemDefinitions.filter(({ definitionId }) =>
       definitionId.startsWith("zoomigo-prop-play-"),
     );
 
-    expect(definitions).toHaveLength(11);
+    expect(definitions).toHaveLength(15);
     for (const definition of definitions) {
       const colliderIDs = new Set(definition.colliders.map(({ id }) => id));
       const config = definition.defaultConfig as {
@@ -299,6 +421,7 @@ describe("development Lounge items", () => {
       "zoomigo-prop-play-boost-pad",
       "zoomigo-prop-play-soft-sand-mat",
       "zoomigo-prop-play-speed-lane",
+      "zoomigo-prop-play-duck-pond",
     ]);
 
     expect(LoungeVisualLayer).toEqual({
@@ -341,7 +464,7 @@ describe("development Lounge items", () => {
   });
 
   it("stores every generated PNG sprite as bounded RGBA art", () => {
-    for (const item of includedLoungeItems.filter(
+    for (const item of compositeLoungeItems.filter(
       ({ definitionId, imageSrc }) =>
         definitionId.startsWith("zoomigo-prop-play-") &&
         imageSrc?.endsWith(".png"),

@@ -92,7 +92,6 @@ rollups and restore-safe erasure tombstones are not implemented.
 **Needed before:** Shipping the related content
 
 - Approve final Zoomi/Rover hero, loading, and celebration art.
-- Approve content and unlock rules for Lounge quick-message Set 2/Set 3.
 - Approve or reject the Starlight Training Camp candidate in
   [TEAM_LOUNGE_STARLIGHT_CAMP.md](TEAM_LOUNGE_STARLIGHT_CAMP.md).
 

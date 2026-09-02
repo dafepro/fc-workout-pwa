@@ -13,6 +13,7 @@ const kindByGoName: Record<string, PrizeItemKind> = {
   PrizeAvatarPart: "avatar_part",
   PrizeLoungeStamp: "lounge_stamp",
   PrizeLoungeProp: "lounge_prop",
+  PrizeLoungeChatPack: "lounge_chat_pack",
 };
 
 const rarityByGoName: Record<string, PrizeRarity> = {
@@ -58,6 +59,11 @@ describe("PrizeItemArt", () => {
       expect(artwork, item.id).not.toBeNull();
       if (item.kind === "avatar_part") {
         expect(artwork?.querySelector("svg"), item.id).not.toBeNull();
+      } else if (item.kind === "lounge_chat_pack") {
+        expect(
+          artwork?.querySelector(".prize-item-art__chat-pack"),
+          item.id,
+        ).not.toBeNull();
       } else {
         expect(
           artwork?.querySelector(".team-lounge__item-art"),

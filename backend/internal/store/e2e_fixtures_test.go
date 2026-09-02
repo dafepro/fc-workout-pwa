@@ -96,6 +96,7 @@ func TestResetE2EFixturesClearsPrizeBoxesAndInventory(t *testing.T) {
 	}
 	for _, kind := range []domain.PrizeItemKind{
 		domain.PrizeAvatarPart, domain.PrizeLoungeStamp, domain.PrizeLoungeProp,
+		domain.PrizeLoungeChatPack,
 	} {
 		items, listErr := repository.ListPlayerUnlocks(ctx, "player-mason", kind)
 		if listErr != nil {

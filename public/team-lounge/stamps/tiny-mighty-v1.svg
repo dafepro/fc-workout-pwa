@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Tiny but mighty">
+  <path fill="#65d8bd" stroke="#123f3a" stroke-width="8" stroke-linejoin="round" d="M128 15l27 40 47-12-3 49 42 24-33 36 27 41-47 16-8 48-46-18-32 37-30-39-47 15-6-49-46-19 29-39-31-38 44-22 1-49 47 10z"/>
+  <path fill="#ffe04f" stroke="#123f3a" stroke-width="7" stroke-linejoin="round" d="M139 65l-45 66h34l-12 62 51-81h-35z"/>
+  <circle cx="52" cy="120" r="13" fill="#ff6f91" stroke="#123f3a" stroke-width="6"/>
+  <text x="128" y="52" fill="#123f3a" font-family="Arial, sans-serif" font-size="23" font-weight="900" text-anchor="middle">TINY BUT</text>
+  <text x="128" y="228" fill="#123f3a" font-family="Arial, sans-serif" font-size="30" font-weight="900" text-anchor="middle">MIGHTY</text>
+</svg>

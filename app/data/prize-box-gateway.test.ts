@@ -84,7 +84,7 @@ describe("connected Prize Box gateway", () => {
     });
   });
 
-  it("combines only the three final inventory kinds", async () => {
+  it("combines the four final inventory kinds", async () => {
     const fetchMock = vi
       .fn()
       .mockImplementation(async () => Response.json({ items: [] }));
@@ -96,6 +96,7 @@ describe("connected Prize Box gateway", () => {
       "/api/zoomigo/v1/me/unlocks?kind=avatar_part",
       "/api/zoomigo/v1/me/unlocks?kind=lounge_stamp",
       "/api/zoomigo/v1/me/unlocks?kind=lounge_prop",
+      "/api/zoomigo/v1/me/unlocks?kind=lounge_chat_pack",
     ]);
   });
 

@@ -209,6 +209,21 @@ test("the 320px Lounge keeps its approved visual states", async ({ page }) => {
     maxDiffPixels: 1_000,
   });
 
+  await lounge.getByRole("button", { name: "Chat" }).click();
+  await lounge
+    .getByRole("button", { name: "Quick-message pack settings" })
+    .click();
+  await expect(
+    lounge.getByRole("dialog", { name: "Choose chat packs" }),
+  ).toBeVisible();
+  await expect(lounge.getByLabel("Locked Prize Box reward")).toHaveCount(0);
+  await expect(lounge).toHaveScreenshot("team-lounge-chat-settings.png", {
+    animations: "disabled",
+    maxDiffPixels: 1_000,
+  });
+  await lounge.getByRole("button", { name: "Close chat settings" }).click();
+
+  await lounge.getByRole("button", { name: "Chat" }).click();
   await lounge.getByRole("button", { name: "Standard" }).click();
   await expect(
     lounge.getByRole("dialog", { name: "Choose a Standard message" }),
@@ -257,18 +272,31 @@ test("the 320px Lounge keeps its approved visual states", async ({ page }) => {
 
   await lounge.getByRole("button", { name: "Stamps" }).click();
   await lounge
-    .getByRole("button", { name: "Choose Soccer ball stamp" })
+    .getByRole("button", { name: "Choose Certified silly goose stamp" })
     .click();
   await lounge
     .getByRole("button", {
-      name: "Place Soccer ball stamp on the boardwalk",
+      name: "Place Certified silly goose stamp on the boardwalk",
     })
-    .click({ position: { x: 160, y: 185 } });
-  await expect(lounge.getByRole("status")).toHaveText("Soccer ball placed.", {
-    timeout: 10_000,
-  });
+    .click({ position: { x: 225, y: 185 } });
+  await expect(lounge.getByRole("status")).toHaveText(
+    "Certified silly goose placed.",
+    {
+      timeout: 10_000,
+    },
+  );
   const stamp = lounge.locator(".team-lounge__placed-item--editable");
   await expect(stamp).toBeVisible();
+  const stampArt = stamp.getByRole("presentation");
+  await expect(stampArt).toHaveAttribute(
+    "src",
+    "/team-lounge/stamps/silly-goose-v1.svg",
+  );
+  await expect
+    .poll(() =>
+      stampArt.evaluate((image: HTMLImageElement) => image.naturalWidth),
+    )
+    .toBeGreaterThan(0);
   await stamp.click();
   await expect(
     lounge.getByRole("group", { name: "Edit selected stamp" }),

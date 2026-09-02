@@ -60,6 +60,9 @@ server-generated. Rate limits and idempotency are authoritative across devices.
   catalogs, including source, rarity, unlock time, and optional viewed time.
   Avatar unlocks can target head, kit, hat, eyewear, or effect slots; their
   predefined asset identifiers are shared by the reward catalog and Studio.
+  Lounge unlocks can target a stamp, interactive prop, or reviewed quick-chat
+  pack. Standard chat is included; each additional pack is one independently
+  owned catalog item.
 - **Team reward** is a coach-selected predefined reward and its lifecycle
   events. It carries no athletic value.
 
@@ -81,6 +84,12 @@ generation's budget.
 
 Lounge state is play state only. It cannot create training credit, Momentum, or
 a public performance result.
+
+Interactive Lounge Prize Box props use the existing `lounge_prop` unlock kind.
+Their item definition is always present in the trusted Canvas catalog, while
+inventory ownership controls picker visibility and server placement authority.
+Transient flock and movement state may be replicated as Canvas behavior state;
+it is not a player record or reward signal.
 
 ## Analytics and operations
 

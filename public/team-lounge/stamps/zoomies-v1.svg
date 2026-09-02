@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Oops! All zoomies">
+  <path fill="#ff6f8f" stroke="#4b1730" stroke-width="8" stroke-linejoin="round" d="M54 58c16-27 47-31 68-13 21-23 59-15 68 15 33-3 52 31 34 56 25 20 14 59-17 66-3 32-40 47-64 27-21 25-61 20-74-10-32 4-53-28-38-55-27-17-18-58 13-68-1-7 2-13 10-18z"/>
+  <path fill="none" stroke="#fff" stroke-width="11" stroke-linecap="round" d="M17 89h55M9 119h46M22 149h60"/>
+  <path fill="#fff" stroke="#4b1730" stroke-width="6" stroke-linejoin="round" d="M158 83l18 24 31 2-20 23 7 30-29-12-27 17 3-31-24-20 31-7z"/>
+  <text x="126" y="96" fill="#4b1730" font-family="Arial, sans-serif" font-size="27" font-weight="900" text-anchor="middle">OOPS!</text>
+  <text x="126" y="130" fill="#4b1730" font-family="Arial, sans-serif" font-size="22" font-weight="900" text-anchor="middle">ALL</text>
+  <text x="126" y="169" fill="#4b1730" font-family="Arial, sans-serif" font-size="30" font-weight="900" text-anchor="middle">ZOOMIES</text>
+</svg>

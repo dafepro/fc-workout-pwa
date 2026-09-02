@@ -100,3 +100,48 @@ func TestPrizeCatalogIncludesTheTenRareDetailedAvatarRewards(t *testing.T) {
 		t.Fatalf("rare avatar rewards missing from catalog: %v", want)
 	}
 }
+
+func TestPrizeCatalogIncludesLoungeChatPackRewards(t *testing.T) {
+	want := map[string]string{
+		"lounge-chat-pack-pirate-1":     "pirate-1",
+		"lounge-chat-pack-gen-alpha":    "gen-alpha",
+		"lounge-chat-pack-space-cadet":  "space-cadet",
+		"lounge-chat-pack-sideline":     "sideline",
+		"lounge-chat-pack-snack-attack": "snack-attack",
+	}
+	for _, item := range domain.PrizeCatalogItems() {
+		asset, found := want[item.ID]
+		if !found {
+			continue
+		}
+		if item.Kind != domain.PrizeLoungeChatPack || item.Slot != "quick_message_pack" || item.AssetID != asset || item.Destination != domain.PrizeDestinationTeamLounge {
+			t.Fatalf("chat pack reward %s = %+v", item.ID, item)
+		}
+		delete(want, item.ID)
+	}
+	if len(want) != 0 {
+		t.Fatalf("chat pack rewards missing from catalog: %v", want)
+	}
+}
+
+func TestPrizeCatalogIncludesInteractiveLoungePropRewards(t *testing.T) {
+	want := map[string]string{
+		"lounge-prop-duck-pond":      "duck-pond",
+		"lounge-prop-hammock":        "hammock",
+		"lounge-prop-robot-goalie":   "robot-goalie",
+		"lounge-prop-pinball-bumper": "pinball-bumper",
+	}
+	for _, item := range domain.PrizeCatalogItems() {
+		asset, found := want[item.ID]
+		if !found {
+			continue
+		}
+		if item.Kind != domain.PrizeLoungeProp || item.Slot != "prop" || item.AssetID != asset || item.Destination != domain.PrizeDestinationTeamLounge {
+			t.Fatalf("Lounge prop reward %s = %+v", item.ID, item)
+		}
+		delete(want, item.ID)
+	}
+	if len(want) != 0 {
+		t.Fatalf("Lounge prop rewards missing from catalog: %v", want)
+	}
+}
