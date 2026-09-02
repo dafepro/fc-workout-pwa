@@ -8,6 +8,7 @@ import { developmentBuild } from "../build-profile";
 import { unlockDevelopmentCatalogItems } from "../development/catalog-unlocks";
 import type { Player } from "../domain/types";
 import { LocalLoungeCanvas, type LoungeCanvasState } from "./LocalLoungeCanvas";
+import { LoungeLoading } from "./LoungeLoading";
 import { SharedLoungeCanvas } from "./SharedLoungeCanvas";
 import {
   beachBoardwalkAssets,
@@ -207,11 +208,15 @@ export function TeamLounge({
               {copy.teamLounge.retry}
             </button>
           </div>
+        ) : unlocked && (state === "loading" || state === "ownership-lost") ? (
+          <LoungeLoading
+            label={copy.teamLounge.loading}
+            overlay
+            scene={scene}
+          />
         ) : unlocked && state !== "ready" ? (
           <p className="team-lounge__status" aria-live="polite">
-            {state === "loading" || state === "ownership-lost"
-              ? copy.teamLounge.loading
-              : copy.teamLounge.static}
+            {copy.teamLounge.static}
           </p>
         ) : null}
       </div>

@@ -11,6 +11,7 @@ import {
 import { copy } from "../content/copy";
 import type { Player, TeamMemberProjection } from "../domain/types";
 import { useAuth } from "../state/auth-context";
+import { LoungeLoading } from "../team-lounge/LoungeLoading";
 
 const LazyTeamLounge = lazy(() =>
   import("../team-lounge/TeamLounge").then((module) => ({
@@ -68,9 +69,7 @@ export function TeamLoungeFocus({
         </div>
       </header>
       {unlocked && !roster && !failed ? (
-        <section className="card notice" role="status">
-          {copy.teamHub.rosterLoading}
-        </section>
+        <LoungeLoading label={copy.teamHub.rosterLoading} />
       ) : null}
       {unlocked && failed ? (
         <section className="notice notice--error" role="alert">
@@ -81,13 +80,7 @@ export function TeamLoungeFocus({
         </section>
       ) : null}
       {!unlocked || roster ? (
-        <Suspense
-          fallback={
-            <section className="card notice" role="status">
-              {copy.teamLounge.loading}
-            </section>
-          }
-        >
+        <Suspense fallback={<LoungeLoading label={copy.teamLounge.loading} />}>
           <LazyTeamLounge
             player={player}
             unlocked={unlocked}

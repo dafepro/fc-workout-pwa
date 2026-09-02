@@ -82,6 +82,12 @@ picker. Every interactive visual follows one explicit paint contract: stamps
 remain behind ground effects, props, moving balls, and every player avatar,
 including while an owned stamp is selected or dragged.
 
+While the Lounge roster, lazy client bundle, or Canvas assets are loading, the
+scene stays covered by a blurred Lounge preview and the predefined twelve-frame
+ZoomiGo loader. The loader is announced as status text, and reduced-motion mode
+holds a single frame instead of animating it. Partially loaded Canvas artwork is
+never presented as an interactive room.
+
 After a presented Lounge loses its realtime connection, the existing Canvas
 stays mounted and continues local avatar movement and physics collisions. A
 compact tray warning explains that movement is local while reconnecting, and

@@ -74,4 +74,38 @@ describe("TeamLoungeFocus", () => {
     await waitFor(() => expect(mocks.teamActivity).toHaveBeenCalledTimes(1));
     expect(await screen.findByTestId("lounge")).toHaveTextContent("unlocked");
   });
+
+  it("covers the Lounge with the animated loader while the roster loads", async () => {
+    let finishLoading!: (projection: TeamActivityProjection) => void;
+    mocks.teamActivity.mockReturnValue(
+      new Promise((resolve) => {
+        finishLoading = resolve;
+      }),
+    );
+
+    const { container } = render(
+      <TeamLoungeFocus
+        player={player}
+        teamID="team-one"
+        unlocked
+        onBack={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Gathering your teammates…",
+    );
+    expect(container.querySelector(".team-lounge-loading")).toBeVisible();
+
+    finishLoading({
+      team: { id: "team-one", name: "Hill Striders", weeklyGoal: 3 },
+      weekStart: "2026-08-24",
+      weekEnd: "2026-08-30",
+      teamSessions: 0,
+      membersMeetingGoal: 0,
+      currentChallenge: null,
+      members: [],
+    });
+    await screen.findByTestId("lounge");
+  });
 });

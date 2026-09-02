@@ -4352,6 +4352,103 @@ h2 {
   background-image: url("/team-lounge/starlight-training-camp-v1.png");
 }
 
+.team-lounge-loading {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  overflow: hidden;
+  aspect-ratio: 2 / 3;
+  place-content: center;
+  justify-items: center;
+  gap: 0.7rem;
+  border-radius: 1rem;
+  color: white;
+}
+
+.team-lounge-loading::before,
+.team-lounge-loading::after {
+  position: absolute;
+  z-index: -2;
+  content: "";
+  inset: 0;
+}
+
+.team-lounge-loading::before {
+  background: #63c9dc url("/team-lounge/beach-boardwalk-v1.png") center / cover;
+  filter: blur(0.7rem);
+  transform: scale(1.08);
+}
+
+.team-lounge-loading[data-scene="starlight"]::before {
+  background-image: url("/team-lounge/starlight-training-camp-v1.png");
+}
+
+.team-lounge-loading::after {
+  z-index: -1;
+  background: rgb(4 30 38 / 34%);
+}
+
+.team-lounge-loading--overlay {
+  position: absolute;
+  z-index: 50;
+  border-radius: 0;
+  aspect-ratio: auto;
+  inset: 0;
+}
+
+.team-lounge-loading--overlay::before {
+  background: rgb(4 30 38 / 18%);
+  backdrop-filter: blur(0.7rem);
+  filter: none;
+  transform: none;
+}
+
+.team-lounge-loading__sprite {
+  width: clamp(5.75rem, 30vw, 7.5rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: white url("/team-lounge/zoomigo-loader-12-frame.png") 0 0 / 600%
+    200% no-repeat;
+  box-shadow: 0 0.75rem 2rem rgb(3 24 30 / 32%);
+  animation:
+    lounge-loader-column 0.6s steps(6, jump-none) infinite,
+    lounge-loader-row 1.2s steps(1, end) infinite;
+}
+
+.team-lounge-loading__label {
+  padding: 0.45rem 0.7rem;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 999px;
+  background: rgb(7 28 37 / 82%);
+  box-shadow: 0 0.35rem 1rem rgb(3 24 30 / 24%);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+@keyframes lounge-loader-column {
+  to {
+    background-position-x: 100%;
+  }
+}
+
+@keyframes lounge-loader-row {
+  0%,
+  49.999% {
+    background-position-y: 0;
+  }
+  50%,
+  100% {
+    background-position-y: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .team-lounge-loading__sprite {
+    background-position: 60% 100%;
+    animation: none;
+  }
+}
+
 .team-lounge__dev-tools {
   display: flex;
   flex-wrap: wrap;

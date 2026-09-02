@@ -11,9 +11,14 @@ vi.mock("./LocalLoungeCanvas", () => ({
     player: { firstName: string };
     onStateChange(state: string): void;
   }) => (
-    <button type="button" onClick={() => onStateChange("error")}>
-      {player.firstName}&apos;s interactive lounge canvas
-    </button>
+    <>
+      <button type="button" onClick={() => onStateChange("ready")}>
+        {player.firstName}&apos;s interactive lounge canvas
+      </button>
+      <button type="button" onClick={() => onStateChange("error")}>
+        Fail local lounge
+      </button>
+    </>
   ),
 }));
 
@@ -70,7 +75,12 @@ describe("canonical Team Lounge", () => {
       }),
     ).toBeVisible();
     expect(screen.queryByRole("combobox")).toBeNull();
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Setting up the boardwalk…",
+    );
+    expect(
+      document.querySelector(".team-lounge-loading--overlay"),
+    ).toBeVisible();
     expect(
       screen.getByRole("button", { name: "Enter full screen" }),
     ).toBeVisible();
@@ -83,6 +93,7 @@ describe("canonical Team Lounge", () => {
         name: "Mason's interactive lounge canvas",
       }),
     );
+    expect(screen.queryByRole("status")).toBeNull();
     expect(screen.queryByText(/drag to move/i)).not.toBeInTheDocument();
   });
 
@@ -134,7 +145,7 @@ describe("canonical Team Lounge", () => {
     const canvas = screen.getByRole("button", {
       name: "Mason's interactive lounge canvas",
     });
-    fireEvent.click(canvas);
+    fireEvent.click(screen.getByRole("button", { name: "Fail local lounge" }));
     fireEvent.click(screen.getByRole("button", { name: "Reconnect canvas" }));
 
     expect(
