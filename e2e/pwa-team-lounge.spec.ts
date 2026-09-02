@@ -923,9 +923,32 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   const settingsWheel = lounge.getByRole("button", {
     name: "Quick-message pack settings",
   });
+  await expect(
+    lounge
+      .locator(".team-lounge__header")
+      .getByRole("button", { name: "Quick-message pack settings" }),
+  ).toHaveCount(1);
+  await expect(
+    lounge
+      .locator(".team-lounge__world")
+      .getByRole("button", { name: "Quick-message pack settings" }),
+  ).toHaveCount(0);
   const settingsWheelBox = await settingsWheel.boundingBox();
+  const loungeHeaderBox = await lounge
+    .locator(".team-lounge__header")
+    .boundingBox();
+  const loungeWorldBox = await lounge
+    .locator(".team-lounge__world")
+    .boundingBox();
   expect(settingsWheelBox?.width).toBeGreaterThanOrEqual(44);
   expect(settingsWheelBox?.height).toBeGreaterThanOrEqual(44);
+  expect(settingsWheelBox!.x).toBeGreaterThanOrEqual(loungeHeaderBox!.x);
+  expect(settingsWheelBox!.x + settingsWheelBox!.width).toBeLessThanOrEqual(
+    loungeHeaderBox!.x + loungeHeaderBox!.width,
+  );
+  expect(settingsWheelBox!.y + settingsWheelBox!.height).toBeLessThanOrEqual(
+    loungeWorldBox!.y,
+  );
   await settingsWheel.click();
   const chatSettings = lounge.getByRole("dialog", {
     name: "Choose chat packs",

@@ -4200,6 +4200,8 @@ h2 {
 }
 
 .team-lounge__header {
+  position: relative;
+  z-index: 50;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -4231,6 +4233,10 @@ h2 {
 .team-lounge__header h2 span {
   color: rgb(247 250 242 / 70%);
   font-size: 0.68rem;
+}
+
+.team-lounge__header > div:first-child {
+  min-width: 0;
 }
 
 .team-lounge__presence {
@@ -4496,10 +4502,7 @@ h2 {
 }
 
 .team-lounge__chat-settings {
-  position: absolute;
-  top: 0.65rem;
-  right: 0.65rem;
-  z-index: 46;
+  position: static;
 }
 
 .team-lounge__settings-wheel {
@@ -4509,9 +4512,8 @@ h2 {
   margin-left: auto;
   place-items: center;
   border: 1px solid rgb(255 255 255 / 36%);
-  border-radius: 50%;
-  background: rgb(3 28 34 / 88%);
-  box-shadow: 0 0.45rem 1rem rgb(1 18 23 / 28%);
+  border-radius: 0.72rem;
+  background: rgb(255 255 255 / 10%);
   color: white;
   font: inherit;
   backdrop-filter: blur(0.35rem);
@@ -4540,9 +4542,12 @@ h2 {
 }
 
 .team-lounge__chat-settings-panel {
-  width: min(18rem, calc(100vw - 2rem));
+  position: absolute;
+  z-index: 1;
+  top: calc(100% + 0.45rem);
+  right: 0.75rem;
+  width: min(18rem, calc(100% - 1.5rem));
   max-height: min(24rem, calc(100dvh - 10rem));
-  margin-top: 0.45rem;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 0.65rem;
@@ -5841,6 +5846,23 @@ h2 {
 }
 
 @media (max-width: 360px) {
+  .team-lounge__header {
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+
+  .team-lounge__header h2 {
+    font-size: 1rem;
+  }
+
+  .team-lounge__header-actions {
+    gap: 0.25rem;
+  }
+
+  .team-lounge__presence {
+    padding-inline: 0.45rem;
+  }
+
   .team-lounge__item-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }

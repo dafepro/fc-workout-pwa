@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { createPortal } from "react-dom";
 import { describe, expect, it, vi } from "vitest";
 
 import { TeamLounge } from "./TeamLounge";
@@ -26,11 +27,19 @@ vi.mock("./SharedLoungeCanvas", () => ({
   SharedLoungeCanvas: ({
     onStateChange,
     onPresenceChange,
+    settingsContainer,
   }: {
     onStateChange(state: string): void;
     onPresenceChange(count: number): void;
+    settingsContainer?: Element | null;
   }) => (
     <>
+      {settingsContainer
+        ? createPortal(
+            <button type="button">Quick-message pack settings</button>,
+            settingsContainer,
+          )
+        : null}
       <button
         type="button"
         onClick={() => {
@@ -138,6 +147,12 @@ describe("canonical Team Lounge", () => {
         name: "Mason's interactive lounge canvas",
       }),
     ).not.toBeInTheDocument();
+
+    const settings = screen.getByRole("button", {
+      name: "Quick-message pack settings",
+    });
+    expect(settings.closest(".team-lounge__header-actions")).not.toBeNull();
+    expect(settings.closest(".team-lounge__world")).toBeNull();
   });
 
   it("remounts a Lounge that reports an error", () => {

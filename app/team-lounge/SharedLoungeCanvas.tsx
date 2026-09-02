@@ -7,6 +7,7 @@ import {
   type CSSProperties,
   type MouseEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import type {
   CanvasRuntime,
   AssetManifest,
@@ -217,6 +218,7 @@ export function SharedLoungeCanvas({
   player,
   roster,
   assets = beachBoardwalkAssets,
+  settingsContainer,
   onStateChange,
   onPresenceChange,
 }: {
@@ -224,6 +226,7 @@ export function SharedLoungeCanvas({
   player: Player;
   roster: readonly Player[];
   assets?: AssetManifest;
+  settingsContainer?: Element | null;
   onStateChange(state: LoungeCanvasState): void;
   onPresenceChange(count: number): void;
 }) {
@@ -999,18 +1002,23 @@ export function SharedLoungeCanvas({
           aria-label="Interactive lounge canvas"
           tabIndex={0}
         />
-        <LoungeChatSettings
-          activePackIDs={activeChatPackIDs}
-          unlockedPackIDs={unlockedChatPackIDs}
-          onChange={(packIDs) => {
-            setActiveChatPackIDs(packIDs);
-            saveLoungeChatPackIDs(
-              window.localStorage,
-              packIDs,
-              unlockedChatPackIDs,
-            );
-          }}
-        />
+        {settingsContainer
+          ? createPortal(
+              <LoungeChatSettings
+                activePackIDs={activeChatPackIDs}
+                unlockedPackIDs={unlockedChatPackIDs}
+                onChange={(packIDs) => {
+                  setActiveChatPackIDs(packIDs);
+                  saveLoungeChatPackIDs(
+                    window.localStorage,
+                    packIDs,
+                    unlockedChatPackIDs,
+                  );
+                }}
+              />,
+              settingsContainer,
+            )
+          : null}
         {overlays.map(({ player, position, current, state }) => (
           <div
             className="team-lounge__shared-avatar"

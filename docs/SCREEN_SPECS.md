@@ -97,8 +97,9 @@ without terminating the local scene. An initial connection failure instead
 uses the general `Canvas connection error` state with an explicit reconnect
 action; connection copy must not name a particular scene.
 
-The in-playfield settings wheel controls a device-local selection of one to
-three reviewed quick-chat packs. Production includes Standard and shows Pirate
+The Lounge header settings control sits beside presence and full-screen controls
+so it never permanently covers playfield space. It controls a device-local
+selection of one to three reviewed quick-chat packs. Production includes Standard and shows Pirate
 1, Gen Alpha, Space Cadet, Sideline, and Snack Attack with lock icons until each
 is owned through its Prize Box catalog item. Development grants the full catalog
 and starts with Standard, Pirate 1, and Gen Alpha selected for testing. Only
