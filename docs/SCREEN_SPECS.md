@@ -83,10 +83,13 @@ remain behind ground effects, props, moving balls, and every player avatar,
 including while an owned stamp is selected or dragged.
 
 The in-playfield settings wheel controls a device-local selection of one to
-three reviewed quick-chat packs. Standard, Pirate 1, and Gen Alpha are the
-defaults; Space Cadet, Sideline, and Snack Attack are available alternatives.
-Only the selected pack IDs persist on that device. Every message remains a
-server-allowlisted transient room action with no transcript. Phrase stamps are
+three reviewed quick-chat packs. Production includes Standard and shows Pirate
+1, Gen Alpha, Space Cadet, Sideline, and Snack Attack with lock icons until each
+is owned through its Prize Box catalog item. Development grants the full catalog
+and starts with Standard, Pirate 1, and Gen Alpha selected for testing. Only
+selected, currently owned pack IDs persist on that device. Every message
+remains a server-allowlisted transient room action with no transcript, and the
+server rejects reward-pack phrases without the sender's matching unlock. Phrase stamps are
 included decorative decals with bounded transparent artwork, predefined silly
 copy, no physics, and the same placement budget and paint-order contract as
 other stamps.

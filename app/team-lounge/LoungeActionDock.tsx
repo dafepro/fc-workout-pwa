@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { copy } from "../content/copy";
 import { loungeEmotes, type LoungeEmote } from "./lounge-emotes";
 import {
-  defaultLoungeChatPackIDs,
+  includedLoungeChatPackIDs,
   loungeChatPacks,
   type LoungeChatPackID,
   type LoungeQuickPhrase,
@@ -25,7 +25,7 @@ export function LoungeActionDock({
   capacity,
   placing,
   reactionLocked,
-  activePackIDs = defaultLoungeChatPackIDs,
+  activePackIDs = includedLoungeChatPackIDs,
   onSelectItem,
   onSendEmote,
   onSendQuickPhrase,

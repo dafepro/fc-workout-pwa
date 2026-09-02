@@ -72,5 +72,7 @@ the current week.
 Quick chat remains transient closed-catalog play state. The settings wheel
 stores one to three selected pack IDs on the current device; it does not store
 messages, identity, or room history. The server separately allowlists every
-phrase ID. Standard, Pirate 1, and Gen Alpha are the defaults, with Space Cadet,
-Sideline, and Snack Attack available from the same settings panel.
+phrase ID and verifies reward-pack ownership when routing a message. Production
+includes Standard and displays the five additional Prize Box packs as locked
+until owned. Development grants all six and initially selects Standard, Pirate
+1, and Gen Alpha so the full interaction remains easy to exercise.

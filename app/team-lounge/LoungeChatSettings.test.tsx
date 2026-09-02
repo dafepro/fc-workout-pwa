@@ -9,6 +9,14 @@ describe("Lounge chat settings", () => {
     const { rerender } = render(
       <LoungeChatSettings
         activePackIDs={["standard", "pirate-1", "gen-alpha"]}
+        unlockedPackIDs={[
+          "standard",
+          "pirate-1",
+          "gen-alpha",
+          "space-cadet",
+          "sideline",
+          "snack-attack",
+        ]}
         onChange={onChange}
       />,
     );
@@ -31,6 +39,14 @@ describe("Lounge chat settings", () => {
     rerender(
       <LoungeChatSettings
         activePackIDs={["standard", "gen-alpha"]}
+        unlockedPackIDs={[
+          "standard",
+          "pirate-1",
+          "gen-alpha",
+          "space-cadet",
+          "sideline",
+          "snack-attack",
+        ]}
         onChange={onChange}
       />,
     );
@@ -45,13 +61,20 @@ describe("Lounge chat settings", () => {
   it("keeps one pack active and provides a labeled close control", () => {
     const onChange = vi.fn();
     render(
-      <LoungeChatSettings activePackIDs={["standard"]} onChange={onChange} />,
+      <LoungeChatSettings
+        activePackIDs={["standard"]}
+        unlockedPackIDs={["standard"]}
+        onChange={onChange}
+      />,
     );
 
     fireEvent.click(
       screen.getByRole("button", { name: "Quick-message pack settings" }),
     );
     expect(screen.getByRole("checkbox", { name: /Standard/u })).toBeDisabled();
+    expect(screen.getByRole("checkbox", { name: /Pirate 1/u })).toBeDisabled();
+    expect(screen.getByRole("checkbox", { name: /Gen Alpha/u })).toBeDisabled();
+    expect(screen.getAllByLabelText("Locked Prize Box reward")).toHaveLength(5);
     fireEvent.click(
       screen.getByRole("button", { name: "Close chat settings" }),
     );

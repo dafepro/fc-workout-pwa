@@ -3,11 +3,13 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import {
-  defaultLoungeChatPackIDs,
+  defaultDevelopmentLoungeChatPackIDs,
+  includedLoungeChatPackIDs,
   loungeChatPacks,
   loungeQuickPhrases,
   MAX_ACTIVE_LOUNGE_CHAT_PACKS,
   normalizeLoungeChatPackIDs,
+  unlockedLoungeChatPackIDs,
   toggleLoungeChatPack,
 } from "./lounge-quick-phrases";
 
@@ -28,26 +30,56 @@ describe("Lounge quick phrases", () => {
     expect(new Set(loungeQuickPhrases.map(({ id }) => id))).toHaveLength(60);
   });
 
-  it("defaults to the requested three packs and sanitizes stored choices", () => {
+  it("keeps Standard included while development previews the requested three packs", () => {
     expect(MAX_ACTIVE_LOUNGE_CHAT_PACKS).toBe(3);
-    expect(defaultLoungeChatPackIDs).toEqual([
+    expect(includedLoungeChatPackIDs).toEqual(["standard"]);
+    expect(defaultDevelopmentLoungeChatPackIDs).toEqual([
       "standard",
       "pirate-1",
       "gen-alpha",
     ]);
     expect(
-      normalizeLoungeChatPackIDs([
-        "snack-attack",
-        "unknown",
-        "snack-attack",
-        "space-cadet",
-        "sideline",
-        "pirate-1",
-      ]),
+      normalizeLoungeChatPackIDs(
+        [
+          "snack-attack",
+          "unknown",
+          "snack-attack",
+          "space-cadet",
+          "sideline",
+          "pirate-1",
+        ],
+        ["standard", "snack-attack", "space-cadet", "sideline"],
+      ),
     ).toEqual(["snack-attack", "space-cadet", "sideline"]);
-    expect(normalizeLoungeChatPackIDs([])).toEqual(defaultLoungeChatPackIDs);
-    expect(normalizeLoungeChatPackIDs("standard")).toEqual(
-      defaultLoungeChatPackIDs,
+    expect(normalizeLoungeChatPackIDs([], ["standard"])).toEqual(["standard"]);
+    expect(normalizeLoungeChatPackIDs("standard", ["standard"])).toEqual(
+      includedLoungeChatPackIDs,
+    );
+  });
+
+  it("derives production packs from Prize Box ownership and unlocks all in development", () => {
+    const pirateUnlock = {
+      item: {
+        id: "lounge-chat-pack-pirate-1",
+        kind: "lounge_chat_pack" as const,
+        slot: "quick_message_pack",
+        assetId: "pirate-1",
+        label: "Pirate 1 chat pack",
+        catalogVersion: 1,
+        rarity: "common" as const,
+        destination: "team_lounge" as const,
+      },
+      source: "daily_check_in" as const,
+      unlockedAt: "2026-09-02T12:00:00Z",
+    };
+
+    expect(unlockedLoungeChatPackIDs([], false)).toEqual(["standard"]);
+    expect(unlockedLoungeChatPackIDs([pirateUnlock], false)).toEqual([
+      "standard",
+      "pirate-1",
+    ]);
+    expect(unlockedLoungeChatPackIDs([], true)).toEqual(
+      loungeChatPacks.map(({ id }) => id),
     );
   });
 

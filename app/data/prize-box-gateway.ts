@@ -4,7 +4,11 @@ export type PrizeBoxSource =
   | "plan_completion_7"
   | "included"
   | "staff_grant";
-export type PrizeItemKind = "avatar_part" | "lounge_stamp" | "lounge_prop";
+export type PrizeItemKind =
+  | "avatar_part"
+  | "lounge_stamp"
+  | "lounge_prop"
+  | "lounge_chat_pack";
 export type PrizeRarity = "common" | "uncommon" | "rare" | "epic";
 
 export interface PrizeItem {
@@ -77,6 +81,7 @@ class ConnectedPrizeBoxGateway implements PrizeBoxGateway {
       "avatar_part",
       "lounge_stamp",
       "lounge_prop",
+      "lounge_chat_pack",
     ],
   ): Promise<PrizeUnlock[]> {
     const groups = await Promise.all(

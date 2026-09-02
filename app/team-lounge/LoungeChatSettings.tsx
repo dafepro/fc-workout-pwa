@@ -12,9 +12,11 @@ import {
 
 export function LoungeChatSettings({
   activePackIDs,
+  unlockedPackIDs,
   onChange,
 }: {
   activePackIDs: readonly LoungeChatPackID[];
+  unlockedPackIDs: readonly LoungeChatPackID[];
   onChange(packIDs: LoungeChatPackID[]): void;
 }) {
   const [open, setOpen] = useState(false);
@@ -65,12 +67,14 @@ export function LoungeChatSettings({
           <div className="team-lounge__chat-pack-options">
             {loungeChatPacks.map((pack) => {
               const checked = activePackIDs.includes(pack.id);
+              const unlocked = unlockedPackIDs.includes(pack.id);
               return (
-                <label key={pack.id}>
+                <label key={pack.id} data-locked={!unlocked || undefined}>
                   <input
                     type="checkbox"
                     checked={checked}
                     disabled={
+                      !unlocked ||
                       (checked && activePackIDs.length === 1) ||
                       (!checked && atLimit)
                     }
@@ -82,6 +86,14 @@ export function LoungeChatSettings({
                     <strong>{pack.label}</strong>
                     <small>{pack.description}</small>
                   </span>
+                  {!unlocked ? (
+                    <span
+                      className="team-lounge__chat-pack-lock"
+                      aria-label={actions.chatPackLocked}
+                    >
+                      <span aria-hidden="true">🔒</span>
+                    </span>
+                  ) : null}
                 </label>
               );
             })}

@@ -36,6 +36,7 @@ describe("Lounge action dock", () => {
         capacity={3}
         placing={false}
         reactionLocked={false}
+        activePackIDs={["standard", "pirate-1", "gen-alpha"]}
         onSelectItem={onSelectItem}
         onSendEmote={onSendEmote}
         onSendQuickPhrase={onSendQuickPhrase}

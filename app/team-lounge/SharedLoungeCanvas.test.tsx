@@ -100,6 +100,7 @@ const runtime = vi.hoisted(() => ({
     payload: Record<string, string>;
   }>,
 }));
+const prizeInventory = vi.hoisted(() => vi.fn().mockResolvedValue([]));
 
 vi.mock("@canvas-physics/client", () => ({
   CanvasRuntime: class {
@@ -171,7 +172,7 @@ vi.mock("./lounge-gateway", () => ({
 
 vi.mock("../data/prize-box-gateway", () => ({
   createConnectedPrizeBoxGateway: () => ({
-    inventory: vi.fn().mockResolvedValue([]),
+    inventory: prizeInventory,
   }),
 }));
 
@@ -196,6 +197,7 @@ describe("Shared Lounge Canvas", () => {
     runtime.errorObserver = undefined;
     runtime.presenceObserver = undefined;
     runtime.transientActions = [];
+    prizeInventory.mockReset().mockResolvedValue([]);
     window.localStorage.clear();
     vi.stubGlobal("Worker", class {});
   });
@@ -750,6 +752,22 @@ describe("Shared Lounge Canvas", () => {
   });
 
   it("loads the device chat packs into the in-canvas settings wheel and dock", async () => {
+    prizeInventory.mockResolvedValue([
+      {
+        item: {
+          id: "lounge-chat-pack-space-cadet",
+          kind: "lounge_chat_pack",
+          slot: "quick_message_pack",
+          assetId: "space-cadet",
+          label: "Space Cadet chat pack",
+          catalogVersion: 1,
+          rarity: "rare",
+          destination: "team_lounge",
+        },
+        source: "daily_check_in",
+        unlockedAt: "2026-09-02T12:00:00Z",
+      },
+    ]);
     window.localStorage.setItem(
       "zoomigo:lounge-chat-packs:v1",
       JSON.stringify(["space-cadet"]),
@@ -776,6 +794,11 @@ describe("Shared Lounge Canvas", () => {
         screen.getByRole("checkbox", { name: /Space Cadet/u }),
       ).toBeChecked(),
     );
+    expect(prizeInventory).toHaveBeenCalledWith([
+      "lounge_stamp",
+      "lounge_prop",
+      "lounge_chat_pack",
+    ]);
     expect(screen.getByText("1 of 3 selected")).toBeVisible();
     fireEvent.click(
       screen.getByRole("button", { name: "Close chat settings" }),

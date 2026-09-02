@@ -60,6 +60,9 @@ server-generated. Rate limits and idempotency are authoritative across devices.
   catalogs, including source, rarity, unlock time, and optional viewed time.
   Avatar unlocks can target head, kit, hat, eyewear, or effect slots; their
   predefined asset identifiers are shared by the reward catalog and Studio.
+  Lounge unlocks can target a stamp, interactive prop, or reviewed quick-chat
+  pack. Standard chat is included; each additional pack is one independently
+  owned catalog item.
 - **Team reward** is a coach-selected predefined reward and its lifecycle
   events. It carries no athletic value.
 

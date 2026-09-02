@@ -1468,6 +1468,31 @@ h2 {
   height: 92%;
 }
 
+.prize-item-art__chat-pack {
+  display: grid;
+  gap: 0.1rem;
+  place-items: center;
+  color: #30245e;
+  font-size: 1.15rem;
+  line-height: 1;
+  text-align: center;
+}
+
+.prize-item-art__chat-pack strong {
+  max-width: 3rem;
+  font-size: 0.5rem;
+  line-height: 1.05;
+}
+
+.prize-item-art--featured .prize-item-art__chat-pack {
+  font-size: 2.4rem;
+}
+
+.prize-item-art--featured .prize-item-art__chat-pack strong {
+  max-width: 6rem;
+  font-size: 0.85rem;
+}
+
 .prize-item-art--featured {
   width: 7rem;
   margin: 0 auto;
@@ -4483,7 +4508,7 @@ h2 {
 
 .team-lounge__chat-pack-options label {
   display: grid;
-  grid-template-columns: 1.35rem 1fr;
+  grid-template-columns: 1.35rem minmax(0, 1fr) auto;
   align-items: center;
   min-height: 3.35rem;
   gap: 0.55rem;
@@ -4491,6 +4516,15 @@ h2 {
   border: 1px solid rgb(255 255 255 / 12%);
   border-radius: 0.75rem;
   background: rgb(255 255 255 / 7%);
+}
+
+.team-lounge__chat-pack-options label[data-locked="true"] {
+  border-style: dashed;
+}
+
+.team-lounge__chat-pack-lock {
+  color: #c9f31d;
+  font-size: 0.85rem;
 }
 
 .team-lounge__chat-pack-options label:has(input:checked) {

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/dafepro/canvas/server/pkg/roomsdk"
@@ -65,6 +66,10 @@ func (store *SQLiteStore) ResolveTransientAction(
 	}
 	now := store.now().UTC()
 	today := now.Format(time.DateOnly)
+	requiredPrizeItemID := ""
+	if action.Action == "zoomigo.quickPhrase" {
+		requiredPrizeItemID = loungeQuickPhrasePrizeItemID(payload["phrase"])
+	}
 	result, err := store.db.ExecContext(ctx, `INSERT INTO team_lounge_emote_cooldowns
 		(room_id, player_id, available_at)
 		SELECT room.room_id, membership.player_id, ?
@@ -73,10 +78,16 @@ func (store *SQLiteStore) ResolveTransientAction(
 		WHERE room.room_id = ? AND room.team_id = ? AND membership.player_id = ?
 		AND membership.active_from <= ?
 		AND (membership.active_to IS NULL OR membership.active_to >= ?)
+		AND (? = '' OR EXISTS (
+			SELECT 1 FROM player_unlocks AS unlock
+			WHERE unlock.player_id = membership.player_id
+			AND unlock.item_kind = 'lounge_chat_pack' AND unlock.item_id = ?
+		))
 		ON CONFLICT(room_id, player_id) DO UPDATE SET available_at = excluded.available_at
 		WHERE julianday(team_lounge_emote_cooldowns.available_at) <= julianday(?)`,
 		now.Add(LoungeReactionCooldown).Format(time.RFC3339Nano), action.RoomID, teamID,
-		action.ParticipantID, today, today, now.Format(time.RFC3339Nano))
+		action.ParticipantID, today, today, requiredPrizeItemID, requiredPrizeItemID,
+		now.Format(time.RFC3339Nano))
 	if err != nil {
 		return roomsdk.TransientActionRoute{}, fmt.Errorf("authorize lounge reaction: %w", err)
 	}
@@ -88,6 +99,22 @@ func (store *SQLiteStore) ResolveTransientAction(
 		return roomsdk.TransientActionRoute{}, roomsdk.ErrTransientActionUnauthorized
 	}
 	return roomsdk.TransientActionRoute{DispatchEntityID: LoungeActionRouterEntityID}, nil
+}
+
+func loungeQuickPhrasePrizeItemID(phraseID string) string {
+	switch {
+	case strings.HasPrefix(phraseID, "pirate-"):
+		return "lounge-chat-pack-pirate-1"
+	case strings.HasPrefix(phraseID, "alpha-"):
+		return "lounge-chat-pack-gen-alpha"
+	case strings.HasPrefix(phraseID, "space-"):
+		return "lounge-chat-pack-space-cadet"
+	case strings.HasPrefix(phraseID, "side-"):
+		return "lounge-chat-pack-sideline"
+	case strings.HasPrefix(phraseID, "snack-"):
+		return "lounge-chat-pack-snack-attack"
+	}
+	return ""
 }
 
 func validLoungeReactionPayload(action string, payload map[string]string) bool {

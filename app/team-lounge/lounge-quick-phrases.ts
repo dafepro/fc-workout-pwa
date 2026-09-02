@@ -1,3 +1,5 @@
+import type { PrizeUnlock } from "../data/prize-box-gateway";
+
 export interface LoungeQuickPhrase {
   id: string;
   text: string;
@@ -7,6 +9,7 @@ interface LoungeChatPackDefinition {
   id: string;
   label: string;
   description: string;
+  prizeItemID?: string;
   phrases: readonly LoungeQuickPhrase[];
 }
 
@@ -34,6 +37,7 @@ export const loungeChatPacks = [
     id: "pirate-1",
     label: "Pirate 1",
     description: "Shipshape shouts for a very good crew.",
+    prizeItemID: "lounge-chat-pack-pirate-1",
     phrases: [
       { id: "pirate-ahoy", text: "Ahoy!" },
       { id: "pirate-aye-aye", text: "Aye aye!" },
@@ -51,6 +55,7 @@ export const loungeChatPacks = [
     id: "gen-alpha",
     label: "Gen Alpha",
     description: "Current slang, safely locked to positive vibes.",
+    prizeItemID: "lounge-chat-pack-gen-alpha",
     phrases: [
       { id: "alpha-w", text: "W" },
       { id: "alpha-big-w", text: "Big W" },
@@ -68,6 +73,7 @@ export const loungeChatPacks = [
     id: "space-cadet",
     label: "Space Cadet",
     description: "Mission-control messages from way out there.",
+    prizeItemID: "lounge-chat-pack-space-cadet",
     phrases: [
       { id: "space-earthling", text: "Hi, Earthling!" },
       { id: "space-blast-off", text: "Blast off!" },
@@ -85,6 +91,7 @@ export const loungeChatPacks = [
     id: "sideline",
     label: "Sideline",
     description: "Short soccer calls for playing together.",
+    prizeItemID: "lounge-chat-pack-sideline",
     phrases: [
       { id: "side-great-pass", text: "Great pass!" },
       { id: "side-nice-move", text: "Nice move!" },
@@ -102,6 +109,7 @@ export const loungeChatPacks = [
     id: "snack-attack",
     label: "Snack Attack",
     description: "Extremely serious messages about snacks.",
+    prizeItemID: "lounge-chat-pack-snack-attack",
     phrases: [
       { id: "snack-attack", text: "Snack attack!" },
       { id: "snack-pickle", text: "Pickle power!" },
@@ -120,11 +128,12 @@ export const loungeChatPacks = [
 export type LoungeChatPack = (typeof loungeChatPacks)[number];
 export type LoungeChatPackID = LoungeChatPack["id"];
 
-export const defaultLoungeChatPackIDs: readonly LoungeChatPackID[] = [
+export const includedLoungeChatPackIDs: readonly LoungeChatPackID[] = [
   "standard",
-  "pirate-1",
-  "gen-alpha",
 ];
+
+export const defaultDevelopmentLoungeChatPackIDs: readonly LoungeChatPackID[] =
+  ["standard", "pirate-1", "gen-alpha"];
 
 export const loungeQuickPhrases: readonly LoungeQuickPhrase[] =
   loungeChatPacks.flatMap<LoungeQuickPhrase>(
@@ -135,13 +144,20 @@ const loungeChatPackIDSet = new Set<string>(
   loungeChatPacks.map(({ id }) => id),
 );
 
-export function normalizeLoungeChatPackIDs(value: unknown): LoungeChatPackID[] {
-  if (!Array.isArray(value)) return [...defaultLoungeChatPackIDs];
+export function normalizeLoungeChatPackIDs(
+  value: unknown,
+  unlockedPackIDs: readonly LoungeChatPackID[] = includedLoungeChatPackIDs,
+  fallbackPackIDs: readonly LoungeChatPackID[] = includedLoungeChatPackIDs,
+): LoungeChatPackID[] {
+  const unlocked = new Set(unlockedPackIDs);
+  const fallback = fallbackPackIDs.filter((id) => unlocked.has(id));
+  if (!Array.isArray(value)) return [...fallback];
   const normalized: LoungeChatPackID[] = [];
   for (const candidate of value) {
     if (
       typeof candidate !== "string" ||
       !loungeChatPackIDSet.has(candidate) ||
+      !unlocked.has(candidate as LoungeChatPackID) ||
       normalized.includes(candidate as LoungeChatPackID)
     ) {
       continue;
@@ -149,7 +165,23 @@ export function normalizeLoungeChatPackIDs(value: unknown): LoungeChatPackID[] {
     normalized.push(candidate as LoungeChatPackID);
     if (normalized.length === MAX_ACTIVE_LOUNGE_CHAT_PACKS) break;
   }
-  return normalized.length > 0 ? normalized : [...defaultLoungeChatPackIDs];
+  return normalized.length > 0 ? normalized : [...fallback];
+}
+
+export function unlockedLoungeChatPackIDs(
+  inventory: readonly PrizeUnlock[],
+  development: boolean,
+): LoungeChatPackID[] {
+  if (development) return loungeChatPacks.map(({ id }) => id);
+  const owned = new Set(
+    inventory
+      .filter(({ item }) => item.kind === "lounge_chat_pack")
+      .map(({ item }) => item.id),
+  );
+  return loungeChatPacks.flatMap((pack) => {
+    const prizeItemID = "prizeItemID" in pack ? pack.prizeItemID : undefined;
+    return !prizeItemID || owned.has(prizeItemID) ? [pack.id] : [];
+  });
 }
 
 export function toggleLoungeChatPack(

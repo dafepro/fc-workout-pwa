@@ -216,6 +216,7 @@ test("the 320px Lounge keeps its approved visual states", async ({ page }) => {
   await expect(
     lounge.getByRole("dialog", { name: "Choose chat packs" }),
   ).toBeVisible();
+  await expect(lounge.getByLabel("Locked Prize Box reward")).toHaveCount(0);
   await expect(lounge).toHaveScreenshot("team-lounge-chat-settings.png", {
     animations: "disabled",
     maxDiffPixels: 1_000,

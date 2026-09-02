@@ -9,16 +9,22 @@ import {
 describe("Lounge chat pack preferences", () => {
   it("loads only normalized catalog IDs and falls back safely", () => {
     expect(
-      loadLoungeChatPackIDs({
-        getItem: () =>
-          JSON.stringify(["snack-attack", "unknown", "space-cadet"]),
-      }),
-    ).toEqual(["snack-attack", "space-cadet"]);
+      loadLoungeChatPackIDs(
+        {
+          getItem: () =>
+            JSON.stringify(["snack-attack", "unknown", "space-cadet"]),
+        },
+        ["standard", "space-cadet"],
+      ),
+    ).toEqual(["space-cadet"]);
     expect(
-      loadLoungeChatPackIDs({
-        getItem: () => "not-json",
-      }),
-    ).toEqual(["standard", "pirate-1", "gen-alpha"]);
+      loadLoungeChatPackIDs(
+        {
+          getItem: () => "not-json",
+        },
+        ["standard"],
+      ),
+    ).toEqual(["standard"]);
   });
 
   it("stores only the bounded ID array under a versioned device key", () => {
@@ -27,6 +33,7 @@ describe("Lounge chat pack preferences", () => {
       {
         setItem: (key, value) => written.push([key, value]),
       },
+      ["standard", "space-cadet"],
       ["standard", "space-cadet"],
     );
     expect(written).toEqual([

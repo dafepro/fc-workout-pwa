@@ -295,7 +295,7 @@ func (store *Store) OpenPrizeBox(ctx context.Context, input OpenPrizeBoxInput) (
 }
 
 func (store *Store) ListPlayerUnlocks(ctx context.Context, playerID string, kind domain.PrizeItemKind) ([]PlayerUnlock, error) {
-	if kind != domain.PrizeAvatarPart && kind != domain.PrizeLoungeStamp && kind != domain.PrizeLoungeProp {
+	if kind != domain.PrizeAvatarPart && kind != domain.PrizeLoungeStamp && kind != domain.PrizeLoungeProp && kind != domain.PrizeLoungeChatPack {
 		return nil, ErrPlayerUnlockNotFound
 	}
 	rows, err := store.db.QueryContext(ctx, `SELECT item_id, source, unlocked_at, viewed_at

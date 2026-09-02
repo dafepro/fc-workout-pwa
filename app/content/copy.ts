@@ -252,6 +252,7 @@ export const copy = {
       chatPackLimit: "Keep one to three packs ready in Chat.",
       chatPacksSelected: (selected: number, limit: number) =>
         `${selected} of ${limit} selected`,
+      chatPackLocked: "Locked Prize Box reward",
       closeChatSettings: "Close chat settings",
       sendQuickMessage: (message: string) => `Send ${message} quick message`,
       stamps: "Stamps",

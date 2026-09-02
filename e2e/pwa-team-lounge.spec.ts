@@ -650,6 +650,9 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   });
   await expect(chatSettings).toBeVisible();
   await expect(chatSettings.getByText("3 of 3 selected")).toBeVisible();
+  await expect(chatSettings.getByLabel("Locked Prize Box reward")).toHaveCount(
+    0,
+  );
   await expect(
     chatSettings.getByRole("checkbox", { name: /Space Cadet/u }),
   ).toBeDisabled();
