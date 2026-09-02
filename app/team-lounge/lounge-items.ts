@@ -20,6 +20,8 @@ interface LoungeItemChoiceBase {
   definitionId: string;
   definitionVersion: number;
   source: "included" | "earned";
+  maxScale?: number;
+  artOffset?: Readonly<{ xPercent: number; yPercent: number }>;
 }
 
 export type LoungeItemCapability = "collision" | "physics" | "behavior";
@@ -131,6 +133,9 @@ const starlightStamps: LoungeStampChoice[] = [
   source: "included",
   kind: "lounge_stamp",
   capabilities: [],
+  ...(id === "water-cooler"
+    ? { artOffset: { xPercent: -1.5, yPercent: 0 } }
+    : undefined),
 }));
 
 interface CompositeItemSpec {
@@ -141,6 +146,8 @@ interface CompositeItemSpec {
   glyph: string;
   size: { width: number; height: number };
   imageSrc?: string;
+  maxScale?: number;
+  artOffset?: Readonly<{ xPercent: number; yPercent: number }>;
   visualLayer?: number;
   capabilities: LoungePropChoice["capabilities"];
   body?: RigidBodyDefinition;
@@ -300,6 +307,7 @@ const compositeItemSpecs: CompositeItemSpec[] = [
     label: "Mini goal",
     glyph: "🥅",
     size: { width: 18, height: 11 },
+    artOffset: { xPercent: -3, yPercent: 0 },
     capabilities: ["collision", "behavior"],
     colliders: [
       { ...solidRect("left-post", 2, 10), offset: { x: -7.5, y: 0 } },
@@ -367,10 +375,12 @@ const compositeItemSpecs: CompositeItemSpec[] = [
   },
   {
     id: "duck-pond",
+    definitionVersion: 4,
     source: "earned",
     label: "Duck pond",
     glyph: "🦆",
     size: { width: 18, height: 14 },
+    maxScale: 2.4,
     visualLayer: LoungeVisualLayer.GROUND_EFFECT,
     capabilities: ["collision", "behavior"],
     colliders: [sensorCircle("shore", 10), sensorRect("water", 16, 12)],
@@ -385,45 +395,41 @@ const compositeItemSpecs: CompositeItemSpec[] = [
       {
         kind: "dampen",
         sensorId: "water",
-        linearFactor: 0.94,
-        angularFactor: 0.9,
-        minimumSpeed: 0.4,
+        linearFactor: 0.995,
+        angularFactor: 0.98,
+        minimumSpeed: 0,
       },
     ],
   },
   {
     id: "hammock",
+    definitionVersion: 4,
     source: "earned",
     label: "Hammock",
     glyph: "🌴",
+    imageSrc: "/team-lounge/items/hammock-sprite-v2.png",
     size: { width: 20, height: 12 },
     capabilities: ["collision", "physics", "behavior"],
     body: kinematicBody(),
     colliders: [sensorRect("bed", 14, 6)],
     effects: [
-      { kind: "swing", amplitudeRadians: 0.16, periodSeconds: 4.2 },
       {
-        kind: "dampen",
+        kind: "rest",
         sensorId: "bed",
-        linearFactor: 0.82,
-        angularFactor: 0.7,
-        minimumSpeed: 0.35,
-      },
-      {
-        kind: "orbit",
-        sensorId: "bed",
-        radialForce: 1.8,
-        tangentialForce: 0,
-        maxForce: 1.8,
+        engageMaxSpeed: 2,
+        settleSpeed: 1.6,
+        animationSeconds: 0.5,
       },
     ],
   },
   {
     id: "robot-goalie",
+    definitionVersion: 4,
     source: "earned",
     label: "Robot goalie",
     glyph: "🤖",
     size: { width: 18, height: 14 },
+    artOffset: { xPercent: -2, yPercent: 0 },
     capabilities: ["collision", "physics", "behavior"],
     body: kinematicBody(),
     colliders: [solidRect("keeper", 12, 3), sensorCircle("save-zone", 10)],
@@ -447,18 +453,24 @@ const compositeItemSpecs: CompositeItemSpec[] = [
   },
   {
     id: "pinball-bumper",
+    definitionVersion: 4,
     source: "earned",
     label: "Pinball bumper",
     glyph: "🔴",
+    imageSrc: "/team-lounge/items/pinball-bumper-sprite-v2.png",
     size: { width: 11, height: 11 },
     capabilities: ["collision", "behavior"],
-    colliders: [solidCircle("solid", 4.5), sensorCircle("bumper", 5.5)],
+    colliders: [
+      { ...solidCircle("solid", 4.5), restitution: 0.1, friction: 0.45 },
+      sensorCircle("bumper", 5.5),
+    ],
     effects: [
       {
         kind: "bounce",
         sensorId: "bumper",
         acceptedDefinitionIds: ["beach-ball", "zoomigo-prop-beach-ball"],
         impulse: 56,
+        directionRadians: -Math.PI / 2,
       },
       {
         kind: "hop",
@@ -476,6 +488,8 @@ export const compositeLoungeItems: LoungePropChoice[] = compositeItemSpecs.map(
     label,
     glyph,
     imageSrc,
+    maxScale,
+    artOffset,
     capabilities,
     definitionVersion = 3,
     source = "included",
@@ -489,6 +503,8 @@ export const compositeLoungeItems: LoungePropChoice[] = compositeItemSpecs.map(
     source,
     kind: "lounge_prop",
     capabilities,
+    maxScale,
+    artOffset,
   }),
 );
 

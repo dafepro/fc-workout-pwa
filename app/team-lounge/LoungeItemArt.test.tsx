@@ -28,4 +28,72 @@ describe("LoungeItemArt", () => {
       "--duck-heading": `${Math.PI / 2}rad`,
     });
   });
+
+  it("animates the hammock only while an avatar is settled in it", () => {
+    const { container, rerender } = render(
+      <LoungeItemArt
+        item={{
+          glyph: "🌴",
+          imageSrc: "/team-lounge/items/hammock-sprite-v2.png",
+          kind: "lounge_prop",
+          label: "Hammock",
+          hammockOccupied: false,
+        }}
+      />,
+    );
+    expect(container.firstElementChild).toHaveAttribute(
+      "data-hammock-occupied",
+      "false",
+    );
+
+    rerender(
+      <LoungeItemArt
+        item={{
+          glyph: "🌴",
+          imageSrc: "/team-lounge/items/hammock-sprite-v2.png",
+          kind: "lounge_prop",
+          label: "Hammock",
+          hammockOccupied: true,
+        }}
+      />,
+    );
+    expect(container.firstElementChild).toHaveAttribute(
+      "data-hammock-occupied",
+      "true",
+    );
+  });
+
+  it("restarts the bumper pop sprite when its impact sequence changes", () => {
+    const { container, rerender } = render(
+      <LoungeItemArt
+        item={{
+          glyph: "🔴",
+          imageSrc: "/team-lounge/items/pinball-bumper-sprite-v2.png",
+          kind: "lounge_prop",
+          label: "Pinball bumper",
+          bumperSequence: 1,
+        }}
+      />,
+    );
+    expect(container.querySelector("[data-bumper-frame]")).toHaveAttribute(
+      "data-bumper-frame",
+      "1",
+    );
+
+    rerender(
+      <LoungeItemArt
+        item={{
+          glyph: "🔴",
+          imageSrc: "/team-lounge/items/pinball-bumper-sprite-v2.png",
+          kind: "lounge_prop",
+          label: "Pinball bumper",
+          bumperSequence: 2,
+        }}
+      />,
+    );
+    expect(container.querySelector("[data-bumper-frame]")).toHaveAttribute(
+      "data-bumper-frame",
+      "2",
+    );
+  });
 });

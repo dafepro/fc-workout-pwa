@@ -84,6 +84,42 @@ describe("LoungeCompositeBehavior effects", () => {
     expect(subject.commands("applyTorque")[0]).toMatchObject({ torque: 5 });
   });
 
+  it("launches a directional bumper along its rotated forward axis", () => {
+    const subject = harness({
+      effects: [
+        {
+          kind: "bounce",
+          sensorId: "bumper",
+          impulse: 56,
+          directionRadians: -Math.PI / 2,
+        },
+      ],
+    });
+    subject.host.body(subject.entityId).transform = {
+      x: 50,
+      y: 60,
+      rotation: Math.PI / 2,
+    };
+    subject.host.body("ball").transform = { x: 44, y: 65, rotation: 0 };
+
+    subject
+      .send({
+        type: "contact.enter",
+        selfColliderId: "bumper",
+        other: {
+          entityId: "ball",
+          colliderId: "solid",
+          kind: "item",
+          tags: ["beach-ball"],
+        },
+      })
+      .flush();
+
+    expect(subject.commands("applyImpulse")[0]?.impulse.x).toBeCloseTo(56, 8);
+    expect(subject.commands("applyImpulse")[0]?.impulse.y).toBeCloseTo(0, 8);
+    expect(subject.state.bumperSequence).toBe(1);
+  });
+
   it("pushes along the prop's rotated forward axis on sustained contact", () => {
     const subject = harness({
       effects: [
@@ -276,6 +312,52 @@ describe("LoungeCompositeBehavior effects", () => {
     expect(subject.state.flockAlarmUntil).toBeGreaterThan(avatarAlarm);
   });
 
+  it("settles only an uncontrolled avatar into an occupied hammock", () => {
+    const subject = harness({
+      effects: [
+        {
+          kind: "rest",
+          sensorId: "bed",
+          engageMaxSpeed: 2,
+          settleSpeed: 2.4,
+          animationSeconds: 0.5,
+        },
+      ],
+    });
+    subject.host.body(subject.entityId).transform = {
+      x: 50,
+      y: 50,
+      rotation: 0,
+    };
+    const avatar = subject.host.body("avatar-1");
+    avatar.transform = { x: 56, y: 52, rotation: 0 };
+    avatar.velocity = { x: 0.5, y: 0 };
+
+    subject
+      .send({
+        type: "contact.stay",
+        selfColliderId: "bed",
+        other: avatarParty("avatar-1"),
+        dwellTicks: 2,
+      })
+      .flush();
+
+    expect(avatar.velocity.x).toBeLessThan(0);
+    expect(avatar.velocity.y).toBeLessThan(0);
+    expect(subject.state.hammockOccupied).toBe(true);
+
+    avatar.velocity = { x: 4, y: 0 };
+    subject
+      .send({
+        type: "contact.stay",
+        selfColliderId: "bed",
+        other: avatarParty("avatar-1"),
+        dwellTicks: 3,
+      })
+      .flush();
+    expect(avatar.velocity).toEqual({ x: 4, y: 0 });
+  });
+
   it("tracks a tagged ball along a bounded goalie rail and returns to its anchor", () => {
     const subject = harness({
       effects: [
@@ -317,10 +399,41 @@ describe("LoungeCompositeBehavior effects", () => {
       y: 0,
     });
     expect(subject.state.motionAnchor).toEqual({ x: 40, y: 60 });
+  });
 
-    subject.host.body(subject.entityId).transform.x = 46;
-    subject.advance(3);
-    expect(subject.host.body(subject.entityId).velocity.x).toBeLessThan(0);
+  it("adopts an externally moved goalie position as its new home", () => {
+    const subject = harness({
+      effects: [
+        {
+          kind: "goalie",
+          sensorId: "save-zone",
+          acceptedDefinitionIds: ["beach-ball"],
+          travel: 8,
+          maxSpeed: 18,
+          trackingGain: 5,
+          returnGain: 3,
+        },
+      ],
+    });
+    subject.host.body(subject.entityId).transform = {
+      x: 40,
+      y: 60,
+      rotation: 0,
+    };
+    subject.send({ type: "tick", dt: 1 / 60 }).flush();
+    subject.host.body(subject.entityId).transform = {
+      x: 70,
+      y: 90,
+      rotation: 0,
+    };
+
+    subject.send({ type: "tick", dt: 1 / 60 }).flush();
+
+    expect(subject.state.motionAnchor).toEqual({ x: 70, y: 90 });
+    expect(subject.host.body(subject.entityId).velocity).toEqual({
+      x: 0,
+      y: 0,
+    });
   });
 
   it("holds a tagged ball, scores it, then launches it out along the goal axis", () => {
@@ -521,7 +634,7 @@ describe("LoungeCompositeBehavior effects", () => {
     expect(subject.effects("lounge.goal-confetti")).toMatchObject([
       { params: { score: 0 } },
     ]);
-    expect(LoungeCompositeBehavior.stateVersion).toBe(3);
+    expect(LoungeCompositeBehavior.stateVersion).toBe(4);
   });
 
   it("fuses, holds, and then launches only a predefined ball from the muzzle at high speed", () => {

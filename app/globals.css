@@ -4782,7 +4782,95 @@ h2 {
   line-height: 1;
   object-fit: contain;
   object-position: center;
+  transform: translate(
+    var(--lounge-art-offset-x, 0),
+    var(--lounge-art-offset-y, 0)
+  );
   transform-origin: center;
+}
+
+.team-lounge__sprite {
+  position: relative;
+  overflow: visible;
+  background-position: 0 center;
+  background-repeat: no-repeat;
+  background-size: 400% 100%;
+}
+
+.team-lounge__hammock-sprite {
+  background-image: url("/team-lounge/items/hammock-sprite-v2.png");
+}
+
+.team-lounge__hammock-sprite[data-hammock-occupied="true"] {
+  animation: lounge-hammock-settle 1.8s steps(1, end) infinite;
+}
+
+.team-lounge__bumper-sprite > i {
+  position: absolute;
+  inset: 0;
+  background-image: url("/team-lounge/items/pinball-bumper-sprite-v2.png");
+  background-position: 0 center;
+  background-repeat: no-repeat;
+  background-size: 400% 100%;
+  animation: lounge-bumper-idle 2.8s steps(1, end) infinite;
+}
+
+.team-lounge__bumper-sprite
+  > i[data-bumper-frame]:not([data-bumper-frame="0"]) {
+  animation:
+    lounge-bumper-pop 0.42s steps(1, end),
+    lounge-bumper-idle 2.8s steps(1, end) 0.42s infinite;
+}
+
+@keyframes lounge-hammock-settle {
+  0%,
+  100% {
+    background-position: 0 center;
+  }
+
+  28% {
+    background-position: 33.333% center;
+  }
+
+  56% {
+    background-position: 66.667% center;
+  }
+
+  78% {
+    background-position: 100% center;
+  }
+}
+
+@keyframes lounge-bumper-idle {
+  0%,
+  100% {
+    background-position: 0 center;
+  }
+
+  44% {
+    background-position: 33.333% center;
+  }
+
+  72% {
+    background-position: 66.667% center;
+  }
+}
+
+@keyframes lounge-bumper-pop {
+  0%,
+  35% {
+    background-position: 66.667% center;
+  }
+
+  36%,
+  78% {
+    background-position: 100% center;
+  }
+
+  79%,
+  100% {
+    background-position: 0 center;
+  }
 }
 
 .team-lounge__item-art--stamp {
@@ -4865,7 +4953,10 @@ h2 {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .team-lounge__hammock-sprite[data-hammock-occupied="true"],
+  .team-lounge__bumper-sprite > i,
   .team-lounge__duck-pond [data-duck] {
+    animation: none;
     transition: none;
   }
 }

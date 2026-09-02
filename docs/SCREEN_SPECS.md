@@ -107,10 +107,14 @@ Duck pond, hammock, robot goalie, and pinball bumper are interactive Prize Box
 props. Production omits each from the picker until owned, and the placement API
 checks the matching unlock. Development grants all four. Nearby avatars and
 items steer the pond's three ducks away with a deterministic, distance-weighted
-response; the hammock gently centers and slows an occupant while swaying; the
-goalie follows tagged balls only along its bounded rail; and the bumper launches
-tagged balls with a stronger impulse than the avatar kick cap. Reduced-motion
-mode removes decorative interpolation without changing authoritative physics.
+response. The pond may be enlarged to 2.4× and mildly slows a ball without
+stopping it. The hammock animates only while it settles an uncontrolled,
+low-speed avatar into its bed. The goalie follows tagged balls only along its
+bounded rail and resets that rail around a player-moved placement. The bumper
+slowly compresses while idle, visibly pops on contact, and launches tagged balls
+only along its rotated forward axis with a stronger impulse than the avatar kick
+cap. Reduced-motion mode removes decorative interpolation without changing
+authoritative physics.
 
 ## Me (`/me` and `/me/avatar`)
 

@@ -112,6 +112,35 @@ describe("LoungeItemEditor", () => {
     expect(onFinish).toHaveBeenCalled();
   });
 
+  it("lets the duck pond grow to its larger item-specific limit", () => {
+    const onScale = vi.fn();
+    const pond = {
+      ...item,
+      label: "Duck pond",
+      kind: "lounge_prop" as const,
+      maxScale: 2.4,
+      transform: { ...item.transform, scale: 2.3 },
+    };
+    render(
+      <LoungeItemEditor
+        items={[pond]}
+        selectedEntityID={pond.entityID}
+        pending={false}
+        dragging={null}
+        onSelect={vi.fn()}
+        onMove={vi.fn()}
+        onRotate={vi.fn()}
+        onScale={onScale}
+        onDelete={vi.fn()}
+        onFinish={vi.fn()}
+        onDragStateChange={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Make item larger" }));
+    expect(onScale).toHaveBeenCalledWith(pond, 2.4);
+  });
+
   it("moves the radial controls with the selected item projection", () => {
     const props = {
       selectedEntityID: item.entityID,

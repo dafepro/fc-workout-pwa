@@ -43,6 +43,66 @@ function sampleAvatarXMotion(avatar: Locator, durationMs: number) {
   );
 }
 
+async function expectArtworkAlphaCentered(artwork: Locator) {
+  const measurements = await artwork.evaluateAll(async (nodes) =>
+    Promise.all(
+      nodes.map(async (node) => {
+        const image = node as HTMLImageElement;
+        await image.decode();
+        const canvas = document.createElement("canvas");
+        canvas.width = image.naturalWidth;
+        canvas.height = image.naturalHeight;
+        const context = canvas.getContext("2d", { willReadFrequently: true });
+        if (!context) throw new Error("Canvas 2D context unavailable");
+        context.drawImage(image, 0, 0);
+        const pixels = context.getImageData(
+          0,
+          0,
+          canvas.width,
+          canvas.height,
+        ).data;
+        let minX = canvas.width;
+        let maxX = -1;
+        let minY = canvas.height;
+        let maxY = -1;
+        for (let y = 0; y < canvas.height; y += 1) {
+          for (let x = 0; x < canvas.width; x += 1) {
+            if (pixels[(y * canvas.width + x) * 4 + 3]! <= 8) continue;
+            minX = Math.min(minX, x);
+            maxX = Math.max(maxX, x);
+            minY = Math.min(minY, y);
+            maxY = Math.max(maxY, y);
+          }
+        }
+        const bounds = image.getBoundingClientRect();
+        const transform = new DOMMatrixReadOnly(
+          getComputedStyle(image).transform,
+        );
+        return {
+          name: image.alt || new URL(image.src).pathname,
+          xPercent:
+            (((minX + maxX) / 2 - canvas.width / 2) / canvas.width) * 100 +
+            (transform.e / bounds.width) * 100,
+          yPercent:
+            (((minY + maxY) / 2 - canvas.height / 2) / canvas.height) * 100 +
+            (transform.f / bounds.height) * 100,
+        };
+      }),
+    ),
+  );
+  expect(measurements.length).toBeGreaterThan(0);
+  for (const measurement of measurements) {
+    expect(
+      Math.abs(measurement.xPercent),
+      `${measurement.name} horizontal alpha center`,
+    ).toBeLessThanOrEqual(6);
+    expect(
+      Math.abs(measurement.yPercent),
+      `${measurement.name} vertical alpha center`,
+    ).toBeLessThanOrEqual(12);
+  }
+}
+
 test.beforeEach(async () => {
   const api = await request.newContext({ baseURL: apiBaseURL });
   const response = await api.post("/__e2e/reset", {
@@ -211,6 +271,18 @@ test("development exposes the prize props and nearby avatars scatter the pond du
       lounge.getByRole("button", { name: `Choose ${label} item` }),
     ).toBeAttached();
   }
+  await expectArtworkAlphaCentered(
+    lounge
+      .getByRole("dialog", { name: "Choose a Lounge item" })
+      .locator(".team-lounge__item-art[src]"),
+  );
+  await lounge.getByRole("button", { name: /^Stamps,/u }).click();
+  await expectArtworkAlphaCentered(
+    lounge
+      .getByRole("dialog", { name: "Choose a Lounge item" })
+      .locator(".team-lounge__item-art[src]"),
+  );
+  await lounge.getByRole("button", { name: /^Items,/u }).click();
 
   await lounge.getByRole("button", { name: "Choose Duck pond item" }).click();
   const surface = lounge.getByRole("button", {
@@ -218,8 +290,17 @@ test("development exposes the prize props and nearby avatars scatter the pond du
   });
   const bounds = await surface.boundingBox();
   expect(bounds).not.toBeNull();
+  const placementRequest = page.waitForRequest(
+    (candidate) =>
+      candidate.method() === "POST" &&
+      candidate.url().endsWith("/lounge/placements"),
+  );
   await surface.click({
     position: { x: bounds!.width * 0.43, y: bounds!.height * (92 / 150) },
+  });
+  expect((await placementRequest).postDataJSON()).toMatchObject({
+    definitionId: "zoomigo-prop-play-duck-pond",
+    definitionVersion: 4,
   });
   await expect(lounge.getByRole("status")).toHaveText("Duck pond placed.", {
     timeout: 10_000,

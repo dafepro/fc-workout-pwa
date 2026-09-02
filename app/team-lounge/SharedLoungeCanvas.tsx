@@ -90,6 +90,8 @@ const visitorAnchors = [
 
 const MINI_GOAL_DEFINITION_ID = "zoomigo-prop-play-mini-goal";
 const DUCK_POND_DEFINITION_ID = "zoomigo-prop-play-duck-pond";
+const HAMMOCK_DEFINITION_ID = "zoomigo-prop-play-hammock";
+const PINBALL_BUMPER_DEFINITION_ID = "zoomigo-prop-play-pinball-bumper";
 const GOAL_CELEBRATION_DURATION_MS = 2_800;
 const GOAL_CONFETTI_PARTICLE_COUNT = 100;
 const GOAL_CONFETTI_COLORS = ["#ffdc3f", "#22d3a8", "#ff617c", "#7dd3fc"];
@@ -163,6 +165,30 @@ function duckFlockFor(
         ? Math.max(0, Math.min(1, flock.flockIntensity))
         : 0,
   };
+}
+
+function hammockOccupiedFor(
+  definitionID: string | undefined,
+  behaviorState: unknown,
+): boolean | undefined {
+  if (definitionID !== HAMMOCK_DEFINITION_ID) return undefined;
+  if (!behaviorState || typeof behaviorState !== "object") return false;
+  return (
+    (behaviorState as { hammockOccupied?: unknown }).hammockOccupied === true
+  );
+}
+
+function bumperSequenceFor(
+  definitionID: string | undefined,
+  behaviorState: unknown,
+): number | undefined {
+  if (definitionID !== PINBALL_BUMPER_DEFINITION_ID) return undefined;
+  if (!behaviorState || typeof behaviorState !== "object") return 0;
+  const sequence = (behaviorState as { bumperSequence?: unknown })
+    .bumperSequence;
+  return typeof sequence === "number" && Number.isSafeInteger(sequence)
+    ? Math.max(0, sequence)
+    : 0;
 }
 
 function isServerRejection(cause: unknown, serverCode: string) {
@@ -410,6 +436,8 @@ export function SharedLoungeCanvas({
               label: item.label,
               glyph: item.glyph,
               imageSrc: item.imageSrc,
+              maxScale: item.maxScale,
+              artOffset: item.artOffset,
               kind: item.kind,
               editable:
                 currentOwner &&
@@ -438,6 +466,14 @@ export function SharedLoungeCanvas({
                 canonical.behaviorState,
               ),
               duckFlock: duckFlockFor(
+                canonical.definitionId,
+                canonical.behaviorState,
+              ),
+              hammockOccupied: hammockOccupiedFor(
+                canonical.definitionId,
+                canonical.behaviorState,
+              ),
+              bumperSequence: bumperSequenceFor(
                 canonical.definitionId,
                 canonical.behaviorState,
               ),

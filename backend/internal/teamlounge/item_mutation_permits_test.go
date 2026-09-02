@@ -10,6 +10,16 @@ import (
 	"github.com/dafepro/canvas/server/pkg/roomsdk"
 )
 
+func TestValidItemTransformUsesDefinitionScaleLimit(t *testing.T) {
+	large := roomsdk.Transform{X: 50, Y: 70, Rotation: 0, Scale: 2.4}
+	if !validItemTransformForDefinition(large, "zoomigo-prop-play-duck-pond") {
+		t.Fatal("large duck pond transform should be valid")
+	}
+	if validItemTransformForDefinition(large, "zoomigo-prop-play-robot-goalie") {
+		t.Fatal("large robot goalie transform should be rejected")
+	}
+}
+
 func TestItemMutationPermitBindsOwnerRoomGenerationRevisionOperationAndTarget(t *testing.T) {
 	store, item, now := editableItemAuthorityStore(t)
 	target := roomsdk.Transform{X: 24, Y: 75, Scale: 1}

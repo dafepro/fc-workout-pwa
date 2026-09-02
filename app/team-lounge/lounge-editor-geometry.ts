@@ -34,8 +34,8 @@ export function loungeWorldPoint(
     : null;
 }
 
-export function clampLoungeItemScale(scale: number): number {
-  return Math.min(1.4, Math.max(0.75, Math.round(scale * 10) / 10));
+export function clampLoungeItemScale(scale: number, maximum = 1.4): number {
+  return Math.min(maximum, Math.max(0.75, Math.round(scale * 10) / 10));
 }
 
 export function nextLoungeItemRotation(

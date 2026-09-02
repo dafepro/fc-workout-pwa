@@ -13,7 +13,7 @@ import (
 
 const (
 	BeachBoardwalkCanvasID        = "zoomigo-beach-boardwalk"
-	BeachBoardwalkCanvasVersion   = uint32(18)
+	BeachBoardwalkCanvasVersion   = uint32(19)
 	BeachBoardwalkRoomGeneration  = BeachBoardwalkCanvasVersion
 	loungeVisualLayerDecal        = 4
 	loungeVisualLayerGroundEffect = 6
@@ -318,27 +318,25 @@ var loungeCompositeItemSpecs = []loungeCompositeItemSpec{
 		},
 	},
 	{
-		ID: "duck-pond", PrizeID: "lounge-prop-duck-pond", DisplayName: "Duck pond", Width: 18, Height: 14,
+		ID: "duck-pond", PrizeID: "lounge-prop-duck-pond", Version: 4, DisplayName: "Duck pond", Width: 18, Height: 14,
 		VisualLayer: loungeVisualLayerGroundEffect,
 		Body:        loungeFixedBody(), Colliders: []map[string]any{
 			loungeSensorCircle("shore", 10), loungeSensorRect("water", 16, 12),
 		},
 		Effects: []map[string]any{
 			{"kind": "flock", "sensorId": "shore", "radius": 10, "lookAheadSeconds": 0.2, "relaxSeconds": 0.8},
-			{"kind": "dampen", "sensorId": "water", "linearFactor": 0.94, "angularFactor": 0.9, "minimumSpeed": 0.4},
+			{"kind": "dampen", "sensorId": "water", "linearFactor": 0.995, "angularFactor": 0.98, "minimumSpeed": 0},
 		},
 	},
 	{
-		ID: "hammock", PrizeID: "lounge-prop-hammock", DisplayName: "Hammock", Width: 20, Height: 12,
+		ID: "hammock", PrizeID: "lounge-prop-hammock", Version: 4, DisplayName: "Hammock", Width: 20, Height: 12,
 		Body: loungeKinematicBody(), Colliders: []map[string]any{loungeSensorRect("bed", 14, 6)},
 		Effects: []map[string]any{
-			{"kind": "swing", "amplitudeRadians": 0.16, "periodSeconds": 4.2},
-			{"kind": "dampen", "sensorId": "bed", "linearFactor": 0.82, "angularFactor": 0.7, "minimumSpeed": 0.35},
-			{"kind": "orbit", "sensorId": "bed", "radialForce": 1.8, "tangentialForce": 0, "maxForce": 1.8},
+			{"kind": "rest", "sensorId": "bed", "engageMaxSpeed": 2, "settleSpeed": 1.6, "animationSeconds": 0.5},
 		},
 	},
 	{
-		ID: "robot-goalie", PrizeID: "lounge-prop-robot-goalie", DisplayName: "Robot goalie", Width: 18, Height: 14,
+		ID: "robot-goalie", PrizeID: "lounge-prop-robot-goalie", Version: 4, DisplayName: "Robot goalie", Width: 18, Height: 14,
 		Body: loungeKinematicBody(), Colliders: []map[string]any{
 			loungeSolidRect("keeper", 12, 3), loungeSensorCircle("save-zone", 10),
 		},
@@ -348,12 +346,12 @@ var loungeCompositeItemSpecs = []loungeCompositeItemSpec{
 		},
 	},
 	{
-		ID: "pinball-bumper", PrizeID: "lounge-prop-pinball-bumper", DisplayName: "Pinball bumper", Width: 11, Height: 11,
+		ID: "pinball-bumper", PrizeID: "lounge-prop-pinball-bumper", Version: 4, DisplayName: "Pinball bumper", Width: 11, Height: 11,
 		Body: loungeFixedBody(), Colliders: []map[string]any{
-			loungeSolidCircle("solid", 4.5), loungeSensorCircle("bumper", 5.5),
+			loungePinballBumperCollider(), loungeSensorCircle("bumper", 5.5),
 		},
 		Effects: []map[string]any{
-			{"kind": "bounce", "sensorId": "bumper", "acceptedDefinitionIds": []string{"beach-ball", "zoomigo-prop-beach-ball"}, "impulse": 56},
+			{"kind": "bounce", "sensorId": "bumper", "acceptedDefinitionIds": []string{"beach-ball", "zoomigo-prop-beach-ball"}, "impulse": 56, "directionRadians": -1.5707963267948966},
 			{"kind": "hop", "sensorId": "bumper", "acceptedDefinitionIds": []string{"beach-ball", "zoomigo-prop-beach-ball"}, "elevationSpeed": 9},
 		},
 	},
@@ -431,6 +429,13 @@ func loungeSolidCircle(id string, radius float64) map[string]any {
 	}
 }
 
+func loungePinballBumperCollider() map[string]any {
+	collider := loungeSolidCircle("solid", 4.5)
+	collider["restitution"] = 0.1
+	collider["friction"] = 0.45
+	return collider
+}
+
 func loungeOffsetCollider(collider map[string]any, x, y float64) map[string]any {
 	collider["offset"] = map[string]float64{"x": x, "y": y}
 	return collider
@@ -491,7 +496,7 @@ func loungeSillyStampDefinitionJSON(assetID string) json.RawMessage {
 }
 
 const beachBoardwalkCanvasJSON = `{
-  "id":"zoomigo-beach-boardwalk","version":18,
+  "id":"zoomigo-beach-boardwalk","version":19,
   "size":{"width":100,"height":150},"orientation":"topDown",
   "backgroundAssetId":"lounge.background",
   "edges":{"top":"open","right":"open","bottom":"open","left":"open"},
@@ -557,7 +562,7 @@ const loungeBallConfigSchemaJSON = `{
 
 const loungeCompositeConfigSchemaJSON = `{
   "type":"object",
-  "properties":{"effects":{"type":"array","minItems":2,"maxItems":4,"items":{"type":"object","properties":{"kind":{"type":"string","enum":["boost","hop","bounce","wobble","spin","push","orbit","dampen","swing","goal","cannon","flock","goalie"]}},"required":["kind"],"additionalProperties":true}}},
+  "properties":{"effects":{"type":"array","minItems":1,"maxItems":4,"items":{"type":"object","properties":{"kind":{"type":"string","enum":["boost","hop","bounce","wobble","spin","push","orbit","dampen","swing","goal","cannon","flock","rest","goalie"]}},"required":["kind"],"additionalProperties":true}}},
   "required":["effects"],"additionalProperties":false
 }`
 

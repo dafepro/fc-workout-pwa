@@ -180,7 +180,7 @@ func (store *SQLiteStore) IssueItemMutationPermit(
 	}
 	target := normalizedMutationTarget(request.Kind, current, request.Target)
 	if request.Kind != roomsdk.MutationKindDelete &&
-		(target == nil || !validItemTransform(*target) || !mutationTargetMatchesKind(request.Kind, current, *target)) {
+		(target == nil || !validItemTransformForDefinition(*target, definitionID) || !mutationTargetMatchesKind(request.Kind, current, *target)) {
 		return ItemMutationPermit{}, ErrItemMutationUnavailable
 	}
 	requestJSON, err := json.Marshal(struct {
@@ -437,7 +437,7 @@ func (store *SQLiteStore) authorizeItemMutation(
 		target := transformFromNullable(x, y, rotation, scale)
 		if target == nil || request.ProposedItem == nil || request.ProposedItem.OwnerUserID != playerID ||
 			request.ProposedItem.EntityID != entityID || request.ProposedItem.ItemRevision != itemRevision+1 ||
-			!validItemTransform(request.ProposedItem.Transform) ||
+			!validItemTransformForDefinition(request.ProposedItem.Transform, definitionID) ||
 			!mutationTargetMatchesKind(request.Kind, current.Transform, request.ProposedItem.Transform) ||
 			!mutationTargetMatchesPermit(request.Kind, *target, request.ProposedItem.Transform) {
 			return deny("item mutation target does not match")
@@ -587,8 +587,19 @@ func supportedItemMutation(kind roomsdk.MutationKind) bool {
 
 func validItemTransform(transform roomsdk.Transform) bool {
 	return finite(transform.X) && finite(transform.Y) && finite(transform.Rotation) &&
-		finite(transform.Scale) && transform.Scale >= 0.75 && transform.Scale <= 1.4 &&
+		finite(transform.Scale) && transform.Scale >= 0.75 && transform.Scale <= 2.4 &&
 		transform.Z == nil
+}
+
+func validItemTransformForDefinition(transform roomsdk.Transform, definitionID string) bool {
+	if !validItemTransform(transform) {
+		return false
+	}
+	maximum := 1.4
+	if definitionID == "zoomigo-prop-play-duck-pond" {
+		maximum = 2.4
+	}
+	return transform.Scale <= maximum
 }
 
 func finite(value float64) bool {
@@ -625,7 +636,7 @@ func validItemMutationTarget(kind roomsdk.MutationKind, target *ItemMutationTarg
 		return target != nil && target.Rotation != nil && finite(*target.Rotation)
 	case roomsdk.MutationKindScale:
 		return target != nil && target.Scale != nil && finite(*target.Scale) &&
-			*target.Scale >= 0.75 && *target.Scale <= 1.4
+			*target.Scale >= 0.75 && *target.Scale <= 2.4
 	default:
 		return false
 	}

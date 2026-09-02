@@ -18,7 +18,11 @@ type SensorEffect = {
 export type LoungeCompositeEffect =
   | ({ kind: "boost"; speed: number; directionRadians?: number } & SensorEffect)
   | ({ kind: "hop"; elevationSpeed: number } & SensorEffect)
-  | ({ kind: "bounce"; impulse: number } & SensorEffect)
+  | ({
+      kind: "bounce";
+      impulse: number;
+      directionRadians?: number;
+    } & SensorEffect)
   | ({ kind: "wobble"; torque: number } & SensorEffect)
   | ({ kind: "push"; force: number; directionRadians?: number } & SensorEffect)
   | {
@@ -65,6 +69,12 @@ export type LoungeCompositeEffect =
       relaxSeconds: number;
     } & SensorEffect)
   | ({
+      kind: "rest";
+      engageMaxSpeed: number;
+      settleSpeed: number;
+      animationSeconds: number;
+    } & SensorEffect)
+  | ({
       kind: "goalie";
       acceptedDefinitionIds: string[];
       travel: number;
@@ -87,7 +97,12 @@ export interface LoungeCompositeState {
   flockTick: number;
   flockVector: Vec2;
   motionAnchor?: Vec2;
+  motionPosition?: Vec2;
+  motionVelocity?: Vec2;
   goalieActiveUntil: number;
+  hammockOccupied: boolean;
+  hammockOccupiedUntil: number;
+  bumperSequence: number;
 }
 
 export const LoungeCompositeBehavior: ItemBehavior<
@@ -95,7 +110,7 @@ export const LoungeCompositeBehavior: ItemBehavior<
   LoungeCompositeState
 > = {
   behaviorType: "zoomigoLoungeComposite",
-  stateVersion: 3,
+  stateVersion: 4,
   subscribes: [
     "contact.enter",
     "contact.stay",
@@ -113,6 +128,9 @@ export const LoungeCompositeBehavior: ItemBehavior<
     flockTick: -1,
     flockVector: { x: 0, y: 0 },
     goalieActiveUntil: 0,
+    hammockOccupied: false,
+    hammockOccupiedUntil: 0,
+    bumperSequence: 0,
   }),
   onEvent(ctx, config, state, event) {
     if (event.type === "room.wake") {
@@ -127,6 +145,13 @@ export const LoungeCompositeBehavior: ItemBehavior<
             hasGoalie && transform
               ? { x: transform.x, y: transform.y }
               : state.motionAnchor,
+          motionPosition:
+            hasGoalie && transform
+              ? { x: transform.x, y: transform.y }
+              : state.motionPosition,
+          motionVelocity: hasGoalie ? { x: 0, y: 0 } : state.motionVelocity,
+          hammockOccupied: false,
+          hammockOccupiedUntil: 0,
         },
         commands: idleMotionCommands(ctx, config.effects, state.elapsedTicks),
       };
@@ -142,16 +167,27 @@ export const LoungeCompositeBehavior: ItemBehavior<
       flockTick: state.flockTick,
       flockVector: { ...state.flockVector },
       motionAnchor: state.motionAnchor ? { ...state.motionAnchor } : undefined,
+      motionPosition: state.motionPosition
+        ? { ...state.motionPosition }
+        : undefined,
+      motionVelocity: state.motionVelocity
+        ? { ...state.motionVelocity }
+        : undefined,
       goalieActiveUntil: state.goalieActiveUntil,
+      hammockOccupied: state.hammockOccupied ?? false,
+      hammockOccupiedUntil: state.hammockOccupiedUntil ?? 0,
+      bumperSequence: state.bumperSequence ?? 0,
     };
-    if (
-      event.type === "tick" &&
-      !nextState.motionAnchor &&
-      config.effects.some(({ kind }) => kind === "goalie")
-    ) {
-      const transform = ctx.transform();
-      if (transform)
-        nextState.motionAnchor = { x: transform.x, y: transform.y };
+    if (event.type === "tick") {
+      if (config.effects.some(({ kind }) => kind === "goalie")) {
+        adoptExternalGoalieMove(ctx, nextState, event.dt);
+      }
+      if (
+        nextState.hammockOccupied &&
+        ctx.tick > nextState.hammockOccupiedUntil
+      ) {
+        nextState.hammockOccupied = false;
+      }
     }
     const commands: BehaviorCommand[] = [];
 
@@ -241,9 +277,14 @@ function applyEffect(
           ]
         : [];
     case "bounce":
-      return event.type === "contact.enter"
-        ? bounceCommands(ctx, event.other, effect.impulse)
-        : [];
+      if (event.type !== "contact.enter") return [];
+      if (effect.directionRadians !== undefined) state.bumperSequence += 1;
+      return bounceCommands(
+        ctx,
+        event.other,
+        effect.impulse,
+        effect.directionRadians,
+      );
     case "wobble":
       return event.type === "contact.enter"
         ? wobbleCommands(ctx, event.other, effect.torque)
@@ -297,6 +338,10 @@ function applyEffect(
     case "flock":
       updateFlock(ctx, event.other, effect, state);
       return [];
+    case "rest":
+      return event.type === "contact.stay"
+        ? restCommands(ctx, event.other, effect, state)
+        : [];
     case "goalie":
       return event.type === "contact.stay"
         ? goalieTrackCommands(ctx, event.other, effect, state)
@@ -350,6 +395,60 @@ function relaxFlock(
   state.flockIntensity = Math.max(0, state.flockIntensity - 1 / relaxTicks);
 }
 
+function restCommands(
+  ctx: BehaviorContext,
+  target: ContactParty,
+  effect: Extract<LoungeCompositeEffect, { kind: "rest" }>,
+  state: LoungeCompositeState,
+): BehaviorCommand[] {
+  if (target.kind !== "avatar") return [];
+  const velocity = ctx.velocity(target.entityId) ?? { x: 0, y: 0 };
+  if (Math.hypot(velocity.x, velocity.y) > effect.engageMaxSpeed) return [];
+  const self = ctx.transform();
+  const other = ctx.transform(target.entityId);
+  if (!self || !other) return [];
+  const towardCenter = sub(self, other);
+  const distance = Math.hypot(towardCenter.x, towardCenter.y);
+  const speed = Math.min(effect.settleSpeed, distance * 1.5);
+  const direction = distance > 0.05 ? normalize(towardCenter) : { x: 0, y: 0 };
+  state.hammockOccupied = true;
+  state.hammockOccupiedUntil = ctx.tick + ctx.ticksFor(effect.animationSeconds);
+  return [
+    {
+      type: "setVelocity",
+      target: target.entityId,
+      velocity: { x: direction.x * speed, y: direction.y * speed },
+      angularVelocity: 0,
+    },
+  ];
+}
+
+function adoptExternalGoalieMove(
+  ctx: BehaviorContext,
+  state: LoungeCompositeState,
+  dt: number,
+) {
+  const transform = ctx.transform();
+  if (!transform) return;
+  if (!state.motionAnchor || !state.motionPosition) {
+    state.motionAnchor = { x: transform.x, y: transform.y };
+    state.motionPosition = { x: transform.x, y: transform.y };
+    state.motionVelocity = { x: 0, y: 0 };
+    return;
+  }
+  const velocity = state.motionVelocity ?? { x: 0, y: 0 };
+  const expected = {
+    x: state.motionPosition.x + velocity.x * dt,
+    y: state.motionPosition.y + velocity.y * dt,
+  };
+  if (Math.hypot(transform.x - expected.x, transform.y - expected.y) > 0.75) {
+    state.motionAnchor = { x: transform.x, y: transform.y };
+    state.motionVelocity = { x: 0, y: 0 };
+    state.goalieActiveUntil = 0;
+  }
+  state.motionPosition = { x: transform.x, y: transform.y };
+}
+
 function goalieTrackCommands(
   ctx: BehaviorContext,
   target: ContactParty,
@@ -369,13 +468,15 @@ function goalieTrackCommands(
     effect.maxSpeed,
   );
   state.goalieActiveUntil = ctx.tick + 1;
+  const velocity = rotate(
+    { x: railSpeed, y: -localSelf.y * effect.returnGain },
+    self.rotation,
+  );
+  state.motionVelocity = velocity;
   return [
     {
       type: "setVelocity",
-      velocity: rotate(
-        { x: railSpeed, y: -localSelf.y * effect.returnGain },
-        self.rotation,
-      ),
+      velocity,
       angularVelocity: 0,
     },
   ];
@@ -390,24 +491,26 @@ function goalieReturnCommands(
   const anchor = state.motionAnchor;
   if (!self || !anchor || state.goalieActiveUntil >= ctx.tick) return [];
   const localSelf = rotate(sub(self, anchor), -self.rotation);
+  const velocity = rotate(
+    {
+      x: clamp(
+        -localSelf.x * effect.returnGain,
+        -effect.maxSpeed,
+        effect.maxSpeed,
+      ),
+      y: clamp(
+        -localSelf.y * effect.returnGain,
+        -effect.maxSpeed,
+        effect.maxSpeed,
+      ),
+    },
+    self.rotation,
+  );
+  state.motionVelocity = velocity;
   return [
     {
       type: "setVelocity",
-      velocity: rotate(
-        {
-          x: clamp(
-            -localSelf.x * effect.returnGain,
-            -effect.maxSpeed,
-            effect.maxSpeed,
-          ),
-          y: clamp(
-            -localSelf.y * effect.returnGain,
-            -effect.maxSpeed,
-            effect.maxSpeed,
-          ),
-        },
-        self.rotation,
-      ),
+      velocity,
       angularVelocity: 0,
     },
   ];
@@ -437,11 +540,15 @@ function bounceCommands(
   ctx: BehaviorContext,
   target: ContactParty,
   impulse: number,
+  directionRadians?: number,
 ): BehaviorCommand[] {
   const self = ctx.transform();
   const other = ctx.transform(target.entityId);
   if (!self || !other) return [];
-  const direction = normalize(sub(other, self));
+  const direction =
+    directionRadians === undefined
+      ? normalize(sub(other, self))
+      : rotate({ x: 1, y: 0 }, self.rotation + directionRadians);
   return [
     {
       type: "applyImpulse",

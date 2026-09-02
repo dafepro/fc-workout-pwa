@@ -28,6 +28,10 @@ export interface LoungeEditableItem {
   itemRevision: number;
   goalScore?: number;
   duckFlock?: Readonly<{ heading: number; intensity: number }>;
+  hammockOccupied?: boolean;
+  bumperSequence?: number;
+  maxScale?: number;
+  artOffset?: Readonly<{ xPercent: number; yPercent: number }>;
   visualLayer: number;
   visualSize?: Readonly<{ width: number; height: number }>;
   screen: Readonly<{ x: number; y: number }>;
@@ -333,11 +337,17 @@ export function LoungeItemEditor({
               type="button"
               className="team-lounge__item-editor-control team-lounge__item-editor-control--larger"
               aria-label={`Make ${selected.kind === "lounge_prop" ? "item" : "stamp"} larger`}
-              disabled={pending || selected.transform.scale >= 1.4}
+              disabled={
+                pending ||
+                selected.transform.scale >= (selected.maxScale ?? 1.4)
+              }
               onClick={() =>
                 onScale(
                   selected,
-                  clampLoungeItemScale(selected.transform.scale + 0.1),
+                  clampLoungeItemScale(
+                    selected.transform.scale + 0.1,
+                    selected.maxScale,
+                  ),
                 )
               }
             >

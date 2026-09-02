@@ -456,7 +456,7 @@ function validTransform(value: unknown): value is TeamLoungeItemTransform {
     typeof transform.scale === "number" &&
     Number.isFinite(transform.scale) &&
     transform.scale >= 0.75 &&
-    transform.scale <= 1.4
+    transform.scale <= 2.4
   );
 }
 

@@ -315,16 +315,26 @@ describe("development Lounge items", () => {
       defaultConfig: {
         effects: expect.arrayContaining([
           expect.objectContaining({ kind: "flock", radius: 10 }),
+          expect.objectContaining({
+            kind: "dampen",
+            linearFactor: 0.995,
+            minimumSpeed: 0,
+          }),
         ]),
       },
     });
+    expect(
+      compositeLoungeItems.find(({ id }) => id === "duck-pond"),
+    ).toMatchObject({ maxScale: 2.4 });
     expect(definition("hammock")).toMatchObject({
       defaultConfig: {
-        effects: expect.arrayContaining([
-          expect.objectContaining({ kind: "swing" }),
-          expect.objectContaining({ kind: "dampen", sensorId: "bed" }),
-          expect.objectContaining({ kind: "orbit", sensorId: "bed" }),
-        ]),
+        effects: [
+          expect.objectContaining({
+            kind: "rest",
+            sensorId: "bed",
+            engageMaxSpeed: 2,
+          }),
+        ],
       },
     });
     expect(definition("robot-goalie")).toMatchObject({
@@ -341,7 +351,11 @@ describe("development Lounge items", () => {
     expect(definition("pinball-bumper")).toMatchObject({
       defaultConfig: {
         effects: expect.arrayContaining([
-          expect.objectContaining({ kind: "bounce", impulse: 56 }),
+          expect.objectContaining({
+            kind: "bounce",
+            impulse: 56,
+            directionRadians: -Math.PI / 2,
+          }),
         ]),
       },
     });
@@ -475,7 +489,10 @@ describe("development Lounge items", () => {
       expect(bytes.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
       const width = bytes.readUInt32BE(16);
       const height = bytes.readUInt32BE(20);
-      expect(Math.max(width, height)).toBeLessThanOrEqual(384);
+      expect(width).toBeLessThanOrEqual(
+        item.imageSrc!.includes("-sprite-") ? 1024 : 384,
+      );
+      expect(height).toBeLessThanOrEqual(384);
       expect(Math.min(width, height)).toBeGreaterThanOrEqual(96);
       expect(bytes[25]).toBe(6);
     }

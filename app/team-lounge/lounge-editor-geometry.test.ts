@@ -28,6 +28,8 @@ describe("Lounge item editor geometry", () => {
     expect(clampLoungeItemScale(0.7)).toBe(0.75);
     expect(clampLoungeItemScale(1.13)).toBe(1.1);
     expect(clampLoungeItemScale(1.5)).toBe(1.4);
+    expect(clampLoungeItemScale(2.37, 2.4)).toBe(2.4);
+    expect(clampLoungeItemScale(2.8, 2.4)).toBe(2.4);
   });
 
   it("rotates in normalized 15 degree steps", () => {

@@ -93,7 +93,7 @@ func TestDurableRoomIdentityPersistsAcrossWeekRollover(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if roomID != "team:team-one:lounge:v18" {
+	if roomID != "team:team-one:lounge:v19" {
 		t.Fatalf("room id = %q", roomID)
 	}
 	nextWeek, err := DurableRoomID("team-one", "2026-08-31")
@@ -104,7 +104,7 @@ func TestDurableRoomIdentityPersistsAcrossWeekRollover(t *testing.T) {
 	if err != nil || teamID != "team-one" {
 		t.Fatalf("parsed = %q, %v", teamID, err)
 	}
-	for _, invalid := range []string{"", "team:other", "team:team/one:lounge:v18", "team:team-one:lounge:today", "team:team-one:lounge", "team:team-one:lounge:v16"} {
+	for _, invalid := range []string{"", "team:other", "team:team/one:lounge:v19", "team:team-one:lounge:today", "team:team-one:lounge", "team:team-one:lounge:v18"} {
 		if _, err := ParseRoomID(invalid); err == nil {
 			t.Fatalf("accepted invalid room id %q", invalid)
 		}
@@ -122,8 +122,8 @@ func TestWeeklyThemeManifestOwnsTheImmutableCanvasBinding(t *testing.T) {
 	if theme.RoomGeneration != BeachBoardwalkRoomGeneration {
 		t.Fatalf("room generation = %d", theme.RoomGeneration)
 	}
-	if theme.RoomGeneration != 18 {
-		t.Fatalf("room generation = %d, want fused cannon generation 18", theme.RoomGeneration)
+	if theme.RoomGeneration != 19 {
+		t.Fatalf("room generation = %d, want interactive prop generation 19", theme.RoomGeneration)
 	}
 	if theme.Template.CanvasID != BeachBoardwalkCanvasID || theme.Template.CanvasVersion != BeachBoardwalkCanvasVersion {
 		t.Fatalf("theme template = %#v", theme.Template)
@@ -142,7 +142,7 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 	if canvas.CanvasID != BeachBoardwalkCanvasID || canvas.Version != BeachBoardwalkCanvasVersion || !json.Valid(canvas.DefinitionRaw) {
 		t.Fatalf("canvas record = %#v", canvas)
 	}
-	if canvas.Version != 18 {
+	if canvas.Version != 19 {
 		t.Fatalf("canvas version = %d", canvas.Version)
 	}
 	var shape struct {
@@ -281,7 +281,7 @@ func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 	}
 	effectItems := compositeSchema.Properties["effects"].Items
 	kindSchema, declaresKind := effectItems.Properties["kind"]
-	if !declaresKind || kindSchema.Type != "string" || len(kindSchema.Enum) != 13 ||
+	if !declaresKind || kindSchema.Type != "string" || len(kindSchema.Enum) != 14 ||
 		len(effectItems.Required) != 1 || effectItems.Required[0] != "kind" || !effectItems.AdditionalProperties {
 		t.Fatalf("composite effect config schema = %#v", effectItems)
 	}
@@ -305,10 +305,10 @@ func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 		{"swing-gate", 3, []string{"swing", "bounce"}},
 		{"mini-goal", 5, []string{"dampen", "goal"}},
 		{"ball-cannon", 2, []string{"dampen", "cannon"}},
-		{"duck-pond", 3, []string{"flock", "dampen"}},
-		{"hammock", 3, []string{"swing", "dampen", "orbit"}},
-		{"robot-goalie", 3, []string{"goalie", "bounce"}},
-		{"pinball-bumper", 3, []string{"bounce", "hop"}},
+		{"duck-pond", 4, []string{"flock", "dampen"}},
+		{"hammock", 4, []string{"rest"}},
+		{"robot-goalie", 4, []string{"goalie", "bounce"}},
+		{"pinball-bumper", 4, []string{"bounce", "hop"}},
 	}
 	for index, item := range catalog.Items[25:40] {
 		want := wantComposite[index]
@@ -329,7 +329,7 @@ func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 		if err := json.Unmarshal(item.DefinitionRaw, &definition); err != nil {
 			t.Fatal(err)
 		}
-		if definition.BehaviorType != "zoomigoLoungeComposite" || len(definition.Colliders) == 0 || len(definition.DefaultConfig.Effects) < 2 {
+		if definition.BehaviorType != "zoomigoLoungeComposite" || len(definition.Colliders) == 0 || len(definition.DefaultConfig.Effects) < 1 {
 			t.Fatalf("composite Lounge definition = %#v", definition)
 		}
 		wantZIndex := 10
@@ -395,7 +395,7 @@ func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 		}
 		if want.id == "pinball-bumper" {
 			bumper := definition.DefaultConfig.Effects[0]
-			if bumper["impulse"] != float64(56) {
+			if bumper["impulse"] != float64(56) || bumper["directionRadians"] != -1.5707963267948966 {
 				t.Fatalf("pinball bumper config = %#v", bumper)
 			}
 		}

@@ -44,15 +44,18 @@ Canvas before the catalog exposes them.
 - Duck pond, hammock, robot goalie, and pinball bumper are Prize Box items.
   Development grants them with the rest of the catalog; production placement
   requires the matching server-verified unlock. Pond ducks use replicated
-  inverse-distance threat steering with velocity look-ahead, the hammock sways
-  while gently settling occupants, the goalie tracks tagged balls on a bounded
-  rail, and the bumper's 56-unit ball impulse exceeds the 48-unit avatar cap.
+  inverse-distance threat steering with velocity look-ahead. The pond can scale
+  to 2.4× and only mildly dampens a rolling ball. The hammock uses an
+  occupant-triggered fabric sprite and moves only low-speed avatars toward its
+  center. The goalie tracks tagged balls on a bounded rail and adopts a moved
+  placement as its new home. The directional bumper idles through compressed
+  sprite frames and pops forward with a 56-unit impulse, above the 48-unit
+  avatar cap.
 
 The four Starlight definition IDs retain their existing `zoomigo-prop-` names.
-Generation 18 is a clean room cutover following the mini-goal v4 capture
-geometry; no
-compatibility import or destructive migration is needed. Their typed catalog
-kind and capability contract are authoritative.
+Generation 19 is a clean room cutover for the revised interactive prop
+definitions; no compatibility import or destructive migration is needed. Their
+typed catalog kind and capability contract are authoritative.
 
 The mini goal captures any tagged Lounge ball only after it reaches the back of
 the net, holds it for 0.4 seconds, increments a goal-owned `00`–`99` counter,
