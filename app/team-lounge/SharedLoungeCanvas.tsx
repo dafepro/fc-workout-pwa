@@ -78,10 +78,7 @@ import {
   relayAvatarPointerDown,
 } from "./native-canvas-scroll";
 import { beachBoardwalkAssets } from "./scene/assets";
-import {
-  beachBoardwalkCanvas,
-  beachBoardwalkDefinitions,
-} from "./scene/beach-boardwalk";
+import { beachBoardwalkDefinitions } from "./scene/beach-boardwalk";
 import { createLoungePixiPresentation } from "./scene/pixi-presentation";
 
 const visitorAnchors = [
@@ -306,7 +303,6 @@ export function SharedLoungeCanvas({
         (definition) => [definition.definitionId, definition.visual] as const,
       ),
     );
-    let presented = false;
     let failureReported = false;
     let unsubscribePresence: () => void = () => undefined;
     let unsubscribeProjection: () => void = () => undefined;
@@ -341,26 +337,12 @@ export function SharedLoungeCanvas({
           id === localAvatarEntityID ||
           (kind === "avatar" && userId === playerID),
       );
-      const canonicalProjection =
-        !localProjection && localCanonical
-          ? runtime?.projectWorldPoint(localCanonical)
-          : undefined;
-      const arrival = beachBoardwalkCanvas.spawnPoints.find(
-        ({ id }) => id === "arrival",
-      )?.position;
-      const arrivalProjection =
-        presented && !localProjection && !canonicalProjection && arrival
-          ? runtime?.projectWorldPoint(arrival)
-          : undefined;
       if (localProjection) {
         mount.dataset.playerX = localProjection.world.x.toFixed(3);
         mount.dataset.playerY = localProjection.world.y.toFixed(3);
       } else if (localCanonical) {
         mount.dataset.playerX = localCanonical.x.toFixed(3);
         mount.dataset.playerY = localCanonical.y.toFixed(3);
-      } else if (arrivalProjection && arrival) {
-        mount.dataset.playerX = arrival.x.toFixed(3);
-        mount.dataset.playerY = arrival.y.toFixed(3);
       } else {
         delete mount.dataset.playerX;
         delete mount.dataset.playerY;
@@ -375,19 +357,6 @@ export function SharedLoungeCanvas({
             const projection = runtime?.projectWorldPoint(anchor);
             return projection ? [projection] : [];
           }),
-          currentAvatarProjection:
-            localProjection ??
-            (canonicalProjection
-              ? {
-                  screen: canonicalProjection.screen,
-                  inViewport: canonicalProjection.inViewport,
-                }
-              : arrivalProjection
-                ? {
-                    screen: arrivalProjection.screen,
-                    inViewport: arrivalProjection.inViewport,
-                  }
-                : undefined),
         }),
       );
       setItemOverlays(
@@ -557,7 +526,7 @@ export function SharedLoungeCanvas({
           grabRadiusPx: 44,
           flick: false,
         },
-        hideDisabledAvatars: true,
+        hideDisabledAvatars: false,
         onError: failCanvas,
       });
       runtimeRef.current = runtime;
@@ -701,7 +670,6 @@ export function SharedLoungeCanvas({
       });
       await runtime.start({ until: "presented" });
       if (!disposed) {
-        presented = true;
         publishOverlays();
         onStateChange("ready");
       }

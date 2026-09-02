@@ -141,7 +141,29 @@ vi.mock("@canvas-physics/client", () => ({
         inViewport: true,
       };
     }
-    async start() {}
+    async start() {
+      runtime.projectionSubscriptions.forEach(({ observer }) =>
+        observer({
+          canvasSize: { width: 100, height: 150 },
+          viewport: {
+            width: 100,
+            height: 150,
+            scale: 6.4,
+            offsetX: 0,
+            offsetY: 0,
+          },
+          entities: [
+            {
+              entityId: "avatar:player-mason",
+              definitionId: "avatar",
+              screen: { x: 120, y: 240 },
+              world: { x: 20, y: 40 },
+              inViewport: true,
+            },
+          ],
+        }),
+      );
+    }
     async stopGracefully() {}
     stop() {}
     submitTransientAction(action: {
@@ -290,7 +312,7 @@ describe("Shared Lounge Canvas", () => {
     expect(runtime.options?.pointer).toEqual(
       expect.objectContaining({ grabRadiusPx: 44 }),
     );
-    expect(runtime.options?.hideDisabledAvatars).toBe(true);
+    expect(runtime.options?.hideDisabledAvatars).toBe(false);
     await waitFor(() =>
       expect(
         container.querySelector(".team-lounge__shared-avatar"),

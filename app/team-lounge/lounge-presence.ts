@@ -24,17 +24,12 @@ export function resolveLoungeAvatarOverlays({
   roster,
   participants,
   projections,
-  currentAvatarProjection,
   benchProjections = [],
 }: {
   currentPlayer: Player;
   roster: readonly Player[];
   participants: readonly LoungePresenceParticipant[];
   projections: readonly LoungeAvatarProjection[];
-  currentAvatarProjection?: Pick<
-    LoungeAvatarProjection,
-    "screen" | "inViewport"
-  >;
   benchProjections?: readonly Pick<
     LoungeAvatarProjection,
     "screen" | "inViewport"
@@ -43,15 +38,15 @@ export function resolveLoungeAvatarOverlays({
   const projectionByEntity = new Map(
     projections.map((projection) => [projection.entityId, projection]),
   );
-  const stableCurrentProjection =
-    currentAvatarProjection ??
-    projectionByEntity.get(`avatar:${currentPlayer.id}`);
+  const currentProjection = projectionByEntity.get(
+    `avatar:${currentPlayer.id}`,
+  );
   const overlays: LoungeAvatarOverlay[] = [];
 
-  if (stableCurrentProjection?.inViewport) {
+  if (currentProjection?.inViewport) {
     overlays.push({
       player: currentPlayer,
-      position: stableCurrentProjection.screen,
+      position: currentProjection.screen,
       current: true,
       state: "current",
     });

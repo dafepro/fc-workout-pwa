@@ -143,25 +143,14 @@ describe("Lounge presence projection", () => {
     ]);
   });
 
-  it("uses the current-player fallback while Canvas rebuilds local projection", () => {
+  it("does not invent a current-player overlay without a Canvas projection", () => {
     expect(
       resolveLoungeAvatarOverlays({
         currentPlayer: mason,
         roster: [mason],
         participants: [],
         projections: [],
-        currentAvatarProjection: {
-          screen: { x: 128, y: 256 },
-          inViewport: true,
-        },
       }),
-    ).toEqual([
-      {
-        player: mason,
-        position: { x: 128, y: 256 },
-        current: true,
-        state: "current",
-      },
-    ]);
+    ).toEqual([]);
   });
 });
