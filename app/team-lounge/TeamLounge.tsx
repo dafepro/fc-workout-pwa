@@ -16,8 +16,6 @@ import {
 } from "./scene/assets";
 import { useLoungeFullscreen } from "./use-lounge-fullscreen";
 
-const DEVELOPMENT_LOADING_DURATION_MS = 5_000;
-
 export function TeamLounge({
   player,
   unlocked,
@@ -43,8 +41,6 @@ export function TeamLounge({
     exit: exitFullscreen,
   } = useLoungeFullscreen<HTMLElement>();
   const ownershipRetriesRef = useRef(0);
-  const [developmentDelayElapsed, setDevelopmentDelayElapsed] =
-    useState(!developmentBuild);
   const [scene, setScene] = useState<"beach" | "starlight">("beach");
   const [unlockState, setUnlockState] = useState<
     "idle" | "pending" | "done" | "error"
@@ -52,7 +48,6 @@ export function TeamLounge({
   const sceneAssets =
     scene === "starlight" ? starlightTrainingCampAssets : beachBoardwalkAssets;
   const restartCanvas = useCallback(() => {
-    if (developmentBuild) setDevelopmentDelayElapsed(false);
     setState("loading");
     setCanvasKey((key) => key + 1);
   }, []);
@@ -71,24 +66,10 @@ export function TeamLounge({
   }, []);
 
   useEffect(() => {
-    if (!developmentBuild) return;
-    const timer = window.setTimeout(
-      () => setDevelopmentDelayElapsed(true),
-      DEVELOPMENT_LOADING_DURATION_MS,
-    );
-    return () => window.clearTimeout(timer);
-  }, [canvasKey]);
-
-  useEffect(() => {
     if (state !== "ownership-lost") return;
     const timer = window.setTimeout(restartCanvas, 250);
     return () => window.clearTimeout(timer);
   }, [restartCanvas, state]);
-
-  const presentedState =
-    developmentBuild && state === "ready" && !developmentDelayElapsed
-      ? "loading"
-      : state;
 
   return (
     <section
@@ -183,7 +164,7 @@ export function TeamLounge({
       ) : null}
       <div
         className={`team-lounge__world${unlocked ? "" : " team-lounge__world--locked"}`}
-        data-canvas-state={unlocked ? presentedState : "locked"}
+        data-canvas-state={unlocked ? state : "locked"}
         data-scene={scene}
       >
         {unlocked && state !== "superseded" && state !== "ownership-lost" ? (
@@ -218,28 +199,26 @@ export function TeamLounge({
             <Link href="/">{copy.teamLounge.lockedAction}</Link>
           </div>
         ) : null}
-        {unlocked && presentedState === "superseded" ? (
+        {unlocked && state === "superseded" ? (
           <div className="team-lounge__status" role="status">
             <p>{copy.teamLounge.openElsewhere}</p>
             <p>{copy.teamLounge.openElsewhereDetail}</p>
             <Link href="/">{copy.teamLounge.openElsewhereAction}</Link>
           </div>
-        ) : unlocked && presentedState === "error" ? (
+        ) : unlocked && state === "error" ? (
           <div className="team-lounge__status" role="alert">
             <p>{copy.teamLounge.unavailable}</p>
             <button type="button" onClick={restartCanvas}>
               {copy.teamLounge.retry}
             </button>
           </div>
-        ) : unlocked &&
-          (presentedState === "loading" ||
-            presentedState === "ownership-lost") ? (
+        ) : unlocked && (state === "loading" || state === "ownership-lost") ? (
           <LoungeLoading
             label={copy.teamLounge.loading}
             overlay
             scene={scene}
           />
-        ) : unlocked && presentedState !== "ready" ? (
+        ) : unlocked && state !== "ready" ? (
           <p className="team-lounge__status" aria-live="polite">
             {copy.teamLounge.static}
           </p>

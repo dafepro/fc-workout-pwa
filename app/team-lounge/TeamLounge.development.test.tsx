@@ -1,5 +1,5 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { TeamLounge } from "./TeamLounge";
 
@@ -32,19 +32,10 @@ const player = {
 };
 
 describe("development Lounge loading preview", () => {
-  afterEach(() => vi.useRealTimers());
-
-  it("keeps the loading cover visible for five seconds", () => {
-    vi.useFakeTimers();
+  it("reveals the Lounge as soon as the Canvas is ready", () => {
     render(<TeamLounge player={player} unlocked />);
 
     fireEvent.click(screen.getByRole("button", { name: "Finish loading" }));
-    act(() => vi.advanceTimersByTime(4_999));
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Setting up the boardwalk…",
-    );
-
-    act(() => vi.advanceTimersByTime(1));
     expect(screen.queryByRole("status")).toBeNull();
   });
 });

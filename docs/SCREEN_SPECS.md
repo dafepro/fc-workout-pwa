@@ -86,8 +86,7 @@ While the Lounge roster, lazy client bundle, or Canvas assets are loading, the
 scene stays covered by a blurred Lounge preview and the predefined twelve-frame
 ZoomiGo loader. The loader is announced as status text, and reduced-motion mode
 holds a single frame instead of animating it. Partially loaded Canvas artwork is
-never presented as an interactive room. Development builds hold this loading
-cover for at least five seconds so the state can be reviewed reliably.
+never presented as an interactive room.
 
 After a presented Lounge loses its realtime connection, the existing Canvas
 stays mounted and continues local avatar movement and physics collisions. A
