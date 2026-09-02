@@ -217,8 +217,10 @@ export const copy = {
     lockedAction: "Go to Today",
     loading: "Setting up the boardwalk…",
     static: "The room is ready. Movement needs a supported browser.",
-    unavailable: "The boardwalk could not open.",
-    retry: "Try the boardwalk again",
+    unavailable: "Canvas connection error.",
+    retry: "Reconnect canvas",
+    reconnecting: "Canvas connection interrupted.",
+    reconnectingDetail: "Movement stays local while we reconnect.",
     openElsewhere: "The boardwalk is open in another tab.",
     openElsewhereDetail:
       "Keep playing there, or close that tab before coming back here.",

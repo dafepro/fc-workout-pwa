@@ -25,6 +25,7 @@ export function LoungeActionDock({
   capacity,
   placing,
   reactionLocked,
+  connectionState = "online",
   activePackIDs = includedLoungeChatPackIDs,
   onSelectItem,
   onSendEmote,
@@ -36,6 +37,7 @@ export function LoungeActionDock({
   capacity: number;
   placing: boolean;
   reactionLocked: boolean;
+  connectionState?: "online" | "reconnecting";
   activePackIDs?: readonly LoungeChatPackID[];
   onSelectItem(item: LoungeItemChoice): void;
   onSendEmote(emote: LoungeEmote): void;
@@ -176,6 +178,15 @@ export function LoungeActionDock({
         aria-label={actions.navigation}
         data-canvas-pointer-ignore="true"
       >
+        {connectionState === "reconnecting" ? (
+          <p className="team-lounge__connection-status" role="status">
+            <span aria-hidden="true" />
+            <span>
+              <strong>{copy.teamLounge.reconnecting}</strong>{" "}
+              {copy.teamLounge.reconnectingDetail}
+            </span>
+          </p>
+        ) : null}
         {tray === "emotes" || tray === "quick-phrases" ? (
           <div
             className="team-lounge__reaction-popover"
@@ -265,6 +276,7 @@ export function LoungeActionDock({
         ) : null}
         <button
           type="button"
+          disabled={connectionState === "reconnecting"}
           aria-label={actions.actionPlacements(actions.stamps, remaining)}
           aria-pressed={tray === "stamps"}
           onClick={() => toggle("stamps")}
@@ -279,6 +291,7 @@ export function LoungeActionDock({
         </button>
         <button
           type="button"
+          disabled={connectionState === "reconnecting"}
           aria-label={actions.actionPlacements(actions.items, remaining)}
           aria-pressed={tray === "items"}
           onClick={() => toggle("items")}
@@ -293,6 +306,7 @@ export function LoungeActionDock({
         </button>
         <button
           type="button"
+          disabled={connectionState === "reconnecting"}
           aria-pressed={tray === "quick-phrases"}
           onClick={() => toggle("quick-phrases")}
         >
@@ -301,6 +315,7 @@ export function LoungeActionDock({
         </button>
         <button
           type="button"
+          disabled={connectionState === "reconnecting"}
           aria-pressed={tray === "emotes"}
           onClick={() => toggle("emotes")}
         >

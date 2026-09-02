@@ -79,9 +79,7 @@ test("a qualified player enters the Lounge and sees their own avatar", async ({
     await expect(stage.locator("canvas")).toBeVisible({ timeout: 15_000 });
     await expect(ownAvatar.getByText("You")).toBeVisible({ timeout: 15_000 });
     await expect(ownAvatar.locator(".avatar")).toHaveCount(0);
-    await expect(lounge.getByText("The boardwalk could not open.")).toHaveCount(
-      0,
-    );
+    await expect(lounge.getByText("Canvas connection error.")).toHaveCount(0);
     const unlockResponsePromise = page.waitForResponse(
       (response) =>
         response.url().includes("/api/zoomigo/__dev/me/unlocks") &&

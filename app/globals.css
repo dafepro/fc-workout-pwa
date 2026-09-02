@@ -5268,6 +5268,44 @@ h2 {
   color: #092a2d;
 }
 
+.team-lounge__actions > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.team-lounge__connection-status {
+  position: absolute;
+  right: 0.7rem;
+  bottom: calc(100% + 0.35rem);
+  left: 0.7rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0.48rem 0.65rem;
+  border: 1px solid rgb(255 213 79 / 62%);
+  border-radius: 0.75rem;
+  background: rgb(45 34 8 / 94%);
+  box-shadow: 0 0.35rem 0.8rem rgb(1 25 31 / 28%);
+  color: #fff4c2;
+  font-size: 0.68rem;
+  line-height: 1.25;
+}
+
+.team-lounge__connection-status > span:first-child {
+  width: 0.52rem;
+  height: 0.52rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #ffd54f;
+  box-shadow: 0 0 0 0.2rem rgb(255 213 79 / 18%);
+}
+
+.team-lounge__connection-status strong {
+  color: #ffe57f;
+}
+
 .team-lounge__reaction-popover {
   --button-center: 87.5%;
   --menu-width: min(13.75rem, calc(100% - 1.4rem));

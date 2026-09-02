@@ -1,4 +1,10 @@
-import { expect, request, test, type Locator } from "@playwright/test";
+import {
+  expect,
+  request,
+  test,
+  type Locator,
+  type WebSocketRoute,
+} from "@playwright/test";
 
 import { loginAsAva, openReadyPage } from "./app-ready";
 import { animatedBorderAvatar } from "./avatar-fixtures";
@@ -44,6 +50,121 @@ test.beforeEach(async () => {
   });
   expect(response.status()).toBe(204);
   await api.dispose();
+});
+
+test("an interrupted Canvas connection keeps local movement and collisions alive", async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  let connectionAvailable = true;
+  let activeSocket: WebSocketRoute | undefined;
+  await page.routeWebSocket(/\/v1\/realtime\/rooms\//u, async (socket) => {
+    activeSocket = socket;
+    if (!connectionAvailable) {
+      await socket.close({ code: 1012, reason: "offline regression" });
+      return;
+    }
+    socket.connectToServer();
+  });
+  const api = await request.newContext({ baseURL: apiBaseURL });
+  const completion = await api.post("/v1/me/training-entries", {
+    headers: {
+      Authorization: "Bearer e2e-player-mason",
+      "Idempotency-Key": "browser-lounge-offline-local-physics",
+    },
+    data: {
+      teamId: "team-hill-striders",
+      activityDefinitionId: "hill-sprints",
+      assignmentId: "assignment-hill-sprints",
+      occurredAt: new Date(Date.now() - 60_000).toISOString(),
+      result: { kind: "repetitions", value: 8, unit: "reps" },
+      effortLevel: 4,
+      exhaustionLevel: 3,
+      completionOutcome: "as_listed",
+    },
+  });
+  expect(completion.status()).toBe(201);
+  await api.dispose();
+
+  await page.setViewportSize({ width: 320, height: 720 });
+  await openReadyPage(page, "/team?view=lounge");
+  const lounge = page.getByRole("region", {
+    name: "Beach Boardwalk Team Lounge",
+  });
+  const world = lounge.locator(".team-lounge__world");
+  const stage = lounge.getByLabel("Interactive lounge canvas");
+  await expect(world).toHaveAttribute("data-canvas-state", "ready");
+  const canvasBounds = await stage.locator("canvas").boundingBox();
+  expect(canvasBounds).not.toBeNull();
+
+  const dragSelfToWorld = async (x: number, y: number) => {
+    const currentX = Number(await stage.getAttribute("data-player-x"));
+    const currentY = Number(await stage.getAttribute("data-player-y"));
+    await page.mouse.move(
+      canvasBounds!.x + canvasBounds!.width * (currentX / 100),
+      canvasBounds!.y + canvasBounds!.height * (currentY / 150),
+    );
+    await page.mouse.down();
+    await page.mouse.move(
+      canvasBounds!.x + canvasBounds!.width * (x / 100),
+      canvasBounds!.y + canvasBounds!.height * (y / 150),
+      { steps: 24 },
+    );
+    await page.mouse.up();
+  };
+
+  await dragSelfToWorld(45, 98);
+  await expect
+    .poll(async () => Number(await stage.getAttribute("data-player-x")))
+    .toBeCloseTo(45, 0);
+  const startingBallX = Number(await stage.getAttribute("data-ball-x"));
+  await stage.evaluate((element, initialBallX) => {
+    element.setAttribute("data-e2e-offline-ball-max-x", String(initialBallX));
+    new MutationObserver(() => {
+      element.setAttribute(
+        "data-e2e-offline-ball-max-x",
+        String(
+          Math.max(
+            Number(element.getAttribute("data-e2e-offline-ball-max-x")),
+            Number(element.getAttribute("data-ball-x")),
+          ),
+        ),
+      );
+    }).observe(element, {
+      attributes: true,
+      attributeFilter: ["data-ball-x"],
+    });
+  }, startingBallX);
+
+  connectionAvailable = false;
+  await activeSocket?.close({ code: 1012, reason: "offline regression" });
+  const connectionStatus = lounge.locator(".team-lounge__connection-status");
+  await expect(connectionStatus).toContainText(
+    "Canvas connection interrupted.",
+  );
+  await expect(connectionStatus).toContainText(
+    "Movement stays local while we reconnect.",
+  );
+  await expect(connectionStatus).toHaveScreenshot(
+    "team-lounge-connection-interrupted.png",
+    { animations: "disabled", maxDiffPixels: 50 },
+  );
+  await expect(world).toHaveAttribute("data-canvas-state", "ready");
+  await expect(lounge.getByRole("button", { name: /^Items,/u })).toBeDisabled();
+
+  await dragSelfToWorld(55, 98);
+  await expect
+    .poll(async () => Number(await stage.getAttribute("data-player-x")))
+    .toBeCloseTo(55, 0);
+  await expect
+    .poll(async () =>
+      Number(await stage.getAttribute("data-e2e-offline-ball-max-x")),
+    )
+    .toBeGreaterThan(startingBallX + 1);
+
+  connectionAvailable = true;
+  await expect(connectionStatus).toHaveCount(0, { timeout: 15_000 });
+  await expect(world).toHaveAttribute("data-canvas-state", "ready");
 });
 
 test("development exposes the prize props and nearby avatars scatter the pond ducks", async ({
@@ -1536,7 +1657,7 @@ test("opening the same player Lounge in another tab retires the first tab cleanl
       firstLounge.getByLabel("Interactive lounge canvas"),
     ).toHaveCount(0);
     await expect(
-      firstLounge.getByRole("button", { name: "Try the boardwalk again" }),
+      firstLounge.getByRole("button", { name: "Reconnect canvas" }),
     ).toHaveCount(0);
   } finally {
     await secondPage.close();

@@ -82,6 +82,15 @@ picker. Every interactive visual follows one explicit paint contract: stamps
 remain behind ground effects, props, moving balls, and every player avatar,
 including while an owned stamp is selected or dragged.
 
+After a presented Lounge loses its realtime connection, the existing Canvas
+stays mounted and continues local avatar movement and physics collisions. A
+compact tray warning explains that movement is local while reconnecting, and
+network-authorized placement, edit, reaction, and chat controls pause until a
+new connection rejoins the authoritative room. Exhausted sockets are replaced
+without terminating the local scene. An initial connection failure instead
+uses the general `Canvas connection error` state with an explicit reconnect
+action; connection copy must not name a particular scene.
+
 The in-playfield settings wheel controls a device-local selection of one to
 three reviewed quick-chat packs. Production includes Standard and shows Pirate
 1, Gen Alpha, Space Cadet, Sideline, and Snack Attack with lock icons until each

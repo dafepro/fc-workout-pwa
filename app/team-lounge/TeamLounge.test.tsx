@@ -135,9 +135,7 @@ describe("canonical Team Lounge", () => {
       name: "Mason's interactive lounge canvas",
     });
     fireEvent.click(canvas);
-    fireEvent.click(
-      screen.getByRole("button", { name: "Try the boardwalk again" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Reconnect canvas" }));
 
     expect(
       screen.getByRole("button", {
@@ -170,7 +168,7 @@ describe("canonical Team Lounge", () => {
       screen.queryByRole("button", { name: "Shared weekly lounge" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Try the boardwalk again" }),
+      screen.queryByRole("button", { name: "Reconnect canvas" }),
     ).not.toBeInTheDocument();
   });
 
@@ -202,9 +200,9 @@ describe("canonical Team Lounge", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Lose shared room ownership" }),
     );
-    expect(screen.getByText("The boardwalk could not open.")).toBeVisible();
+    expect(screen.getByText("Canvas connection error.")).toBeVisible();
     expect(
-      screen.getByRole("button", { name: "Try the boardwalk again" }),
+      screen.getByRole("button", { name: "Reconnect canvas" }),
     ).toBeVisible();
   });
 });

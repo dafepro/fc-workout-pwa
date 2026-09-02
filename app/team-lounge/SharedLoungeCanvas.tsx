@@ -80,6 +80,7 @@ import {
 import { beachBoardwalkAssets } from "./scene/assets";
 import { beachBoardwalkDefinitions } from "./scene/beach-boardwalk";
 import { createLoungePixiPresentation } from "./scene/pixi-presentation";
+import { createPersistentLoungeTransport } from "./lounge-room-transport";
 
 const visitorAnchors = [
   { x: 8, y: 74 },
@@ -265,6 +266,9 @@ export function SharedLoungeCanvas({
   >([...DEFAULT_ACTIVE_CHAT_PACK_IDS]);
   const [avatarDiameter, setAvatarDiameter] = useState<number>();
   const [benchAvatarDiameter, setBenchAvatarDiameter] = useState<number>();
+  const [connectionState, setConnectionState] = useState<
+    "online" | "reconnecting"
+  >("online");
   const reactionTimerRef = useRef<number | undefined>(undefined);
   const reactionSequenceRef = useRef(0);
   const goalCelebrationTimerRef = useRef<number | undefined>(undefined);
@@ -311,6 +315,16 @@ export function SharedLoungeCanvas({
     let unsubscribeEffects: () => void = () => undefined;
     const stopPreservingNativeScroll = preserveNativeCanvasScroll(mount);
     const localAvatarEntityID = `avatar:${playerID}`;
+    const updateConnectionState = (next: "online" | "reconnecting") => {
+      if (disposed) return;
+      setConnectionState(next);
+      if (next === "reconnecting") {
+        setSelectedItem(null);
+        setSelectedEntityID(null);
+        setDragState(null);
+        runtime?.clearItemEditSelection();
+      }
+    };
 
     const failCanvas = (cause: unknown) => {
       if (disposed || failureReported) return;
@@ -503,7 +517,10 @@ export function SharedLoungeCanvas({
       runtime = new Runtime({
         roomId: join.roomID,
         serverUrl: join.serverURL,
-        credentialProvider: join.credentialProvider,
+        transport: createPersistentLoungeTransport(
+          join.credentialProvider,
+          updateConnectionState,
+        ),
         mount,
         driver: new SimulationDriver(worker),
         definitions: presentation.definitions,
@@ -579,7 +596,12 @@ export function SharedLoungeCanvas({
         { kinds: ["avatar", "item"], maxEntities: 200, maxHz: 60 },
       );
       unsubscribeLifecycle = runtime.subscribeLifecycle(({ state }) => {
-        if (state === "reconnecting") onStateChange("loading");
+        if (state === "reconnecting") {
+          updateConnectionState("reconnecting");
+        }
+        if (state === "active" || state === "backgrounded") {
+          updateConnectionState("online");
+        }
         if (state === "failed") onStateChange("error");
       });
       unsubscribeEffects = runtime.subscribeEffects((effect) => {
@@ -1190,12 +1212,14 @@ export function SharedLoungeCanvas({
         </div>
       ) : (
         <LoungeActionDock
+          key={connectionState}
           choices={choices}
           selectedItem={selectedItem}
           remaining={remainingPlacements}
           capacity={placementCapacity}
           placing={placing}
           reactionLocked={reactionLocked}
+          connectionState={connectionState}
           activePackIDs={activeChatPackIDs}
           onSelectItem={(item) => {
             setSelectedEntityID(null);

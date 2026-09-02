@@ -24,6 +24,30 @@ const earnedProp: LoungeItemChoice = {
 };
 
 describe("Lounge action dock", () => {
+  it("keeps reconnecting feedback in the tray and pauses network actions", () => {
+    render(
+      <LoungeActionDock
+        choices={includedLoungeItems}
+        selectedItem={null}
+        remaining={2}
+        capacity={3}
+        placing={false}
+        reactionLocked={false}
+        connectionState="reconnecting"
+        onSelectItem={vi.fn()}
+        onSendEmote={vi.fn()}
+        onSendQuickPhrase={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Canvas connection interrupted. Movement stays local while we reconnect.",
+    );
+    for (const button of screen.getAllByRole("button")) {
+      expect(button).toBeDisabled();
+    }
+  });
+
   it("uses the consolidated V2 action bar and categorized item sheet", async () => {
     const onSelectItem = vi.fn();
     const onSendEmote = vi.fn();

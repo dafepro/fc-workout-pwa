@@ -94,6 +94,11 @@ const runtime = vi.hoisted(() => ({
         }>;
       }) => void)
     | undefined,
+  lifecycleObserver: undefined as
+    | ((snapshot: {
+        state: "active" | "backgrounded" | "reconnecting" | "failed";
+      }) => void)
+    | undefined,
   transientActions: [] as Array<{
     action: string;
     target: string;
@@ -128,7 +133,8 @@ vi.mock("@canvas-physics/client", () => ({
       runtime.projectionSubscriptions.push({ observer, options });
       return () => undefined;
     }
-    subscribeLifecycle() {
+    subscribeLifecycle(observer: typeof runtime.lifecycleObserver) {
+      runtime.lifecycleObserver = observer;
       return () => undefined;
     }
     subscribeEffects(observer: typeof runtime.effectObserver) {
@@ -166,6 +172,7 @@ vi.mock("@canvas-physics/client", () => ({
     }
     async stopGracefully() {}
     stop() {}
+    clearItemEditSelection() {}
     submitTransientAction(action: {
       action: string;
       target: string;
@@ -176,6 +183,10 @@ vi.mock("@canvas-physics/client", () => ({
     }
   },
   SimulationDriver: class {},
+}));
+
+vi.mock("./lounge-room-transport", () => ({
+  createPersistentLoungeTransport: () => ({}),
 }));
 
 vi.mock("./lounge-gateway", () => ({
@@ -218,10 +229,43 @@ describe("Shared Lounge Canvas", () => {
     runtime.effectObserver = undefined;
     runtime.errorObserver = undefined;
     runtime.presenceObserver = undefined;
+    runtime.lifecycleObserver = undefined;
     runtime.transientActions = [];
     prizeInventory.mockReset().mockResolvedValue([]);
     window.localStorage.clear();
     vi.stubGlobal("Worker", class {});
+  });
+
+  it("keeps the interactive canvas mounted and reports reconnecting in its tray", async () => {
+    const { container } = render(
+      <AvatarIdentityProvider
+        value={{ currentPlayerID: mason.id, avatarConfig: defaultAvatar() }}
+      >
+        <SharedLoungeCanvas
+          teamID="team-one"
+          player={mason}
+          roster={[mason]}
+          onStateChange={vi.fn()}
+          onPresenceChange={vi.fn()}
+        />
+      </AvatarIdentityProvider>,
+    );
+
+    await waitFor(() => expect(runtime.lifecycleObserver).toBeDefined());
+    const stage = screen.getByLabelText("Interactive lounge canvas");
+    act(() => runtime.lifecycleObserver?.({ state: "reconnecting" }));
+
+    expect(
+      container.querySelector(".team-lounge__connection-status"),
+    ).toHaveTextContent(
+      "Canvas connection interrupted. Movement stays local while we reconnect.",
+    );
+    expect(screen.getByLabelText("Interactive lounge canvas")).toBe(stage);
+    expect(container.querySelector(".team-lounge__playfield")).toBeVisible();
+
+    act(() => runtime.lifecycleObserver?.({ state: "active" }));
+    expect(screen.queryByText(/connection interrupted/i)).toBeNull();
+    expect(screen.getByLabelText("Interactive lounge canvas")).toBe(stage);
   });
 
   it("reports a superseded participant session separately from a canvas failure", async () => {
