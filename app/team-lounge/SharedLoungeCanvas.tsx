@@ -91,6 +91,7 @@ const visitorAnchors = [
 ] as const;
 
 const MINI_GOAL_DEFINITION_ID = "zoomigo-prop-play-mini-goal";
+const DUCK_POND_DEFINITION_ID = "zoomigo-prop-play-duck-pond";
 const GOAL_CELEBRATION_DURATION_MS = 2_800;
 const GOAL_CONFETTI_PARTICLE_COUNT = 100;
 const GOAL_CONFETTI_COLORS = ["#ffdc3f", "#22d3a8", "#ff617c", "#7dd3fc"];
@@ -135,6 +136,35 @@ function goalScoreFor(
   return typeof score === "number" && Number.isInteger(score) && score >= 0
     ? score % 100
     : 0;
+}
+
+function duckFlockFor(
+  definitionID: string | undefined,
+  behaviorState: unknown,
+): { heading: number; intensity: number } | undefined {
+  if (
+    definitionID !== DUCK_POND_DEFINITION_ID ||
+    !behaviorState ||
+    typeof behaviorState !== "object"
+  ) {
+    return undefined;
+  }
+  const flock = behaviorState as {
+    flockHeading?: unknown;
+    flockIntensity?: unknown;
+  };
+  return {
+    heading:
+      typeof flock.flockHeading === "number" &&
+      Number.isFinite(flock.flockHeading)
+        ? flock.flockHeading
+        : 0,
+    intensity:
+      typeof flock.flockIntensity === "number" &&
+      Number.isFinite(flock.flockIntensity)
+        ? Math.max(0, Math.min(1, flock.flockIntensity))
+        : 0,
+  };
 }
 
 function isServerRejection(cause: unknown, serverCode: string) {
@@ -421,6 +451,10 @@ export function SharedLoungeCanvas({
                     }
                   : undefined,
               goalScore: goalScoreFor(
+                canonical.definitionId,
+                canonical.behaviorState,
+              ),
+              duckFlock: duckFlockFor(
                 canonical.definitionId,
                 canonical.behaviorState,
               ),

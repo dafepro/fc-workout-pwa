@@ -94,6 +94,15 @@ included decorative decals with bounded transparent artwork, predefined silly
 copy, no physics, and the same placement budget and paint-order contract as
 other stamps.
 
+Duck pond, hammock, robot goalie, and pinball bumper are interactive Prize Box
+props. Production omits each from the picker until owned, and the placement API
+checks the matching unlock. Development grants all four. Nearby avatars and
+items steer the pond's three ducks away with a deterministic, distance-weighted
+response; the hammock gently centers and slows an occupant while swaying; the
+goalie follows tagged balls only along its bounded rail; and the bumper launches
+tagged balls with a stronger impulse than the avatar kick cap. Reduced-motion
+mode removes decorative interpolation without changing authoritative physics.
+
 ## Me (`/me` and `/me/avatar`)
 
 Me owns private history and identity:

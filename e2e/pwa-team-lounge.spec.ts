@@ -46,6 +46,88 @@ test.beforeEach(async () => {
   await api.dispose();
 });
 
+test("development exposes the prize props and nearby avatars scatter the pond ducks", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  const api = await request.newContext({ baseURL: apiBaseURL });
+  const completion = await api.post("/v1/me/training-entries", {
+    headers: {
+      Authorization: "Bearer e2e-player-mason",
+      "Idempotency-Key": "browser-lounge-earned-fun-props",
+    },
+    data: {
+      teamId: "team-hill-striders",
+      activityDefinitionId: "hill-sprints",
+      assignmentId: "assignment-hill-sprints",
+      occurredAt: new Date(Date.now() - 60_000).toISOString(),
+      result: { kind: "repetitions", value: 8, unit: "reps" },
+      effortLevel: 4,
+      exhaustionLevel: 3,
+      completionOutcome: "as_listed",
+    },
+  });
+  expect(completion.status()).toBe(201);
+  await api.dispose();
+
+  await page.setViewportSize({ width: 320, height: 720 });
+  await openReadyPage(page, "/team?view=lounge");
+  const lounge = page.getByRole("region", {
+    name: "Beach Boardwalk Team Lounge",
+  });
+  await expect(lounge.locator(".team-lounge__world")).toHaveAttribute(
+    "data-canvas-state",
+    "ready",
+  );
+  await lounge.getByRole("button", { name: /^Items,/u }).click();
+  for (const label of [
+    "Duck pond",
+    "Hammock",
+    "Robot goalie",
+    "Pinball bumper",
+  ]) {
+    await expect(
+      lounge.getByRole("button", { name: `Choose ${label} item` }),
+    ).toBeAttached();
+  }
+
+  await lounge
+    .getByRole("button", { name: "Choose Duck pond item" })
+    .click();
+  const surface = lounge.getByRole("button", {
+    name: "Place Duck pond item on the boardwalk",
+  });
+  const bounds = await surface.boundingBox();
+  expect(bounds).not.toBeNull();
+  await surface.click({
+    position: { x: bounds!.width * 0.43, y: bounds!.height * (92 / 150) },
+  });
+  await expect(lounge.getByRole("status")).toHaveText("Duck pond placed.", {
+    timeout: 10_000,
+  });
+
+  const pond = lounge.getByRole("button", {
+    name: "Duck pond item, yours; tap to edit",
+  });
+  await expect(pond.locator("[data-duck]")).toHaveCount(3);
+  await expect
+    .poll(
+      () =>
+        pond.locator(".team-lounge__duck-pond").evaluate((node) => {
+          const style = (node as HTMLElement).style;
+          return (
+            Math.abs(Number(style.getPropertyValue("--duck-flee-x"))) +
+            Math.abs(Number(style.getPropertyValue("--duck-flee-y")))
+          );
+        }),
+      { timeout: 10_000 },
+    )
+    .toBeGreaterThan(0.05);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(
+    320,
+  );
+});
+
 test("the Lounge clips and animates the configured avatar at the reduced size", async ({
   page,
 }) => {

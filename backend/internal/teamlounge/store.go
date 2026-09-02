@@ -884,6 +884,9 @@ func loungePlacementItem(definitionID string) (string, bool) {
 	}
 	for _, spec := range loungeCompositeItemSpecs {
 		if definitionID == "zoomigo-prop-play-"+spec.ID {
+			if spec.PrizeID != "" {
+				return spec.PrizeID, false
+			}
 			return definitionID, true
 		}
 	}

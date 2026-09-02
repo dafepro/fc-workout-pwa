@@ -220,11 +220,11 @@ func TestReservePlacementRequiresOwnedEarnedItem(t *testing.T) {
 	store := NewSQLiteStore(db, BeachBoardwalkLoungeCatalog())
 	bindPlacementRoom(t, store)
 	now := time.Date(2026, time.August, 26, 18, 0, 0, 0, time.UTC)
-	request := PlacementRequest{DefinitionID: "zoomigo-stamp-shield", DefinitionVersion: 3, X: 40, Y: 70}
+	request := PlacementRequest{DefinitionID: "zoomigo-prop-play-duck-pond", DefinitionVersion: 3, X: 40, Y: 70}
 	if _, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:v18", "player-one", "locked-item", request, now); !errors.Is(err, ErrPlacementItemUnavailable) {
 		t.Fatalf("unowned reservation error = %v", err)
 	}
-	if _, err := db.ExecContext(t.Context(), `INSERT INTO player_unlocks (player_id, item_kind, item_id, source, unlocked_at) VALUES ('player-one', 'lounge_stamp', 'lounge-stamp-shield', 'daily_check_in', '2026-08-26T17:30:00Z')`); err != nil {
+	if _, err := db.ExecContext(t.Context(), `INSERT INTO player_unlocks (player_id, item_kind, item_id, source, unlocked_at) VALUES ('player-one', 'lounge_prop', 'lounge-prop-duck-pond', 'daily_check_in', '2026-08-26T17:30:00Z')`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := store.ReservePlacement(t.Context(), "team:team-one:lounge:v18", "player-one", "owned-item", request, now); err != nil {

@@ -215,6 +215,114 @@ describe("LoungeCompositeBehavior effects", () => {
     expect(subject.state.elapsedTicks).toBe(30);
   });
 
+  it("steers a duck flock away from nearby avatars and items with distance falloff", () => {
+    const subject = harness({
+      effects: [
+        {
+          kind: "flock",
+          sensorId: "shore",
+          radius: 10,
+          lookAheadSeconds: 0.2,
+          relaxSeconds: 0.8,
+        },
+      ],
+    });
+    subject.host.body(subject.entityId).transform = {
+      x: 50,
+      y: 50,
+      rotation: 0,
+    };
+    subject.host.body("avatar-1").transform = {
+      x: 54,
+      y: 50,
+      rotation: 0,
+    };
+    subject.host.body("avatar-1").velocity = { x: -2, y: 0 };
+
+    subject
+      .send({
+        type: "contact.stay",
+        selfColliderId: "shore",
+        other: avatarParty("avatar-1"),
+        dwellTicks: 1,
+      })
+      .flush();
+
+    expect(subject.state.flockHeading).toBeCloseTo(Math.PI, 6);
+    expect(subject.state.flockIntensity).toBeGreaterThan(0.25);
+    const avatarAlarm = subject.state.flockAlarmUntil;
+
+    subject.advance(1, false);
+    subject.host.body("cone-1").transform = {
+      x: 50,
+      y: 56,
+      rotation: 0,
+    };
+    subject
+      .send({
+        type: "contact.stay",
+        selfColliderId: "shore",
+        other: {
+          entityId: "cone-1",
+          colliderId: "solid",
+          kind: "item",
+          tags: ["zoomigo-prop-play-wobble-cone"],
+        },
+        dwellTicks: 1,
+      })
+      .flush();
+
+    expect(subject.state.flockHeading).toBeCloseTo(-Math.PI / 2, 6);
+    expect(subject.state.flockAlarmUntil).toBeGreaterThan(avatarAlarm);
+  });
+
+  it("tracks a tagged ball along a bounded goalie rail and returns to its anchor", () => {
+    const subject = harness({
+      effects: [
+        {
+          kind: "goalie",
+          sensorId: "save-zone",
+          acceptedDefinitionIds: ["beach-ball"],
+          travel: 8,
+          maxSpeed: 18,
+          trackingGain: 5,
+          returnGain: 3,
+        },
+      ],
+    });
+    subject.host.body(subject.entityId).transform = {
+      x: 40,
+      y: 60,
+      rotation: 0,
+    };
+    subject.send({ type: "tick", dt: 1 / 60 }).flush();
+    subject.host.body("ball").transform = { x: 55, y: 60, rotation: 0 };
+
+    subject
+      .send({
+        type: "contact.stay",
+        selfColliderId: "save-zone",
+        other: {
+          entityId: "ball",
+          colliderId: "solid",
+          kind: "item",
+          tags: ["beach-ball"],
+        },
+        dwellTicks: 1,
+      })
+      .flush();
+
+    expect(subject.host.body(subject.entityId).velocity).toEqual({
+      x: 18,
+      y: 0,
+    });
+    expect(subject.state.motionAnchor).toEqual({ x: 40, y: 60 });
+
+    subject.host.body(subject.entityId).transform.x = 46;
+    subject.advance(3);
+    expect(subject.host.body(subject.entityId).velocity.x).toBeLessThan(0);
+  });
+
   it("holds a tagged ball, scores it, then launches it out along the goal axis", () => {
     const subject = harness({
       effects: [
@@ -413,7 +521,7 @@ describe("LoungeCompositeBehavior effects", () => {
     expect(subject.effects("lounge.goal-confetti")).toMatchObject([
       { params: { score: 0 } },
     ]);
-    expect(LoungeCompositeBehavior.stateVersion).toBe(2);
+    expect(LoungeCompositeBehavior.stateVersion).toBe(3);
   });
 
   it("fuses, holds, and then launches only a predefined ball from the muzzle at high speed", () => {

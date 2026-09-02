@@ -41,9 +41,15 @@ Canvas before the catalog exposes them.
   speed lane, wobble cone, swing gate, mini goal, and ball cannon are included
   items. Each declares two compatible effects through the shared deterministic
   composite behavior and exposes matching solid or sensor collider geometry.
+- Duck pond, hammock, robot goalie, and pinball bumper are Prize Box items.
+  Development grants them with the rest of the catalog; production placement
+  requires the matching server-verified unlock. Pond ducks use replicated
+  inverse-distance threat steering with velocity look-ahead, the hammock sways
+  while gently settling occupants, the goalie tracks tagged balls on a bounded
+  rail, and the bumper's 56-unit ball impulse exceeds the 48-unit avatar cap.
 
 The four Starlight definition IDs retain their existing `zoomigo-prop-` names.
-Generation 17 is a clean room cutover following the mini-goal v4 capture
+Generation 18 is a clean room cutover following the mini-goal v4 capture
 geometry; no
 compatibility import or destructive migration is needed. Their typed catalog
 kind and capability contract are authoritative.

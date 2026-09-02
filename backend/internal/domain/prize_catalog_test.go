@@ -123,3 +123,25 @@ func TestPrizeCatalogIncludesLoungeChatPackRewards(t *testing.T) {
 		t.Fatalf("chat pack rewards missing from catalog: %v", want)
 	}
 }
+
+func TestPrizeCatalogIncludesInteractiveLoungePropRewards(t *testing.T) {
+	want := map[string]string{
+		"lounge-prop-duck-pond":      "duck-pond",
+		"lounge-prop-hammock":        "hammock",
+		"lounge-prop-robot-goalie":   "robot-goalie",
+		"lounge-prop-pinball-bumper": "pinball-bumper",
+	}
+	for _, item := range domain.PrizeCatalogItems() {
+		asset, found := want[item.ID]
+		if !found {
+			continue
+		}
+		if item.Kind != domain.PrizeLoungeProp || item.Slot != "prop" || item.AssetID != asset || item.Destination != domain.PrizeDestinationTeamLounge {
+			t.Fatalf("Lounge prop reward %s = %+v", item.ID, item)
+		}
+		delete(want, item.ID)
+	}
+	if len(want) != 0 {
+		t.Fatalf("Lounge prop rewards missing from catalog: %v", want)
+	}
+}

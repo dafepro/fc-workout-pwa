@@ -27,6 +27,7 @@ export interface LoungeEditableItem {
   owner: "current" | "teammate" | "system";
   itemRevision: number;
   goalScore?: number;
+  duckFlock?: Readonly<{ heading: number; intensity: number }>;
   visualLayer: number;
   visualSize?: Readonly<{ width: number; height: number }>;
   screen: Readonly<{ x: number; y: number }>;

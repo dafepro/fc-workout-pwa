@@ -245,7 +245,7 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 
 func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 	catalog := BeachBoardwalkLoungeCatalog()
-	if len(catalog.Items) != 37 {
+	if len(catalog.Items) != 41 {
 		t.Fatalf("development item count = %d", len(catalog.Items))
 	}
 	for _, item := range catalog.Items[3:13] {
@@ -281,7 +281,7 @@ func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 	}
 	effectItems := compositeSchema.Properties["effects"].Items
 	kindSchema, declaresKind := effectItems.Properties["kind"]
-	if !declaresKind || kindSchema.Type != "string" || len(kindSchema.Enum) != 11 ||
+	if !declaresKind || kindSchema.Type != "string" || len(kindSchema.Enum) != 13 ||
 		len(effectItems.Required) != 1 || effectItems.Required[0] != "kind" || !effectItems.AdditionalProperties {
 		t.Fatalf("composite effect config schema = %#v", effectItems)
 	}
@@ -305,8 +305,12 @@ func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 		{"swing-gate", 3, []string{"swing", "bounce"}},
 		{"mini-goal", 5, []string{"dampen", "goal"}},
 		{"ball-cannon", 2, []string{"dampen", "cannon"}},
+		{"duck-pond", 3, []string{"flock", "dampen"}},
+		{"hammock", 3, []string{"swing", "dampen", "orbit"}},
+		{"robot-goalie", 3, []string{"goalie", "bounce"}},
+		{"pinball-bumper", 3, []string{"bounce", "hop"}},
 	}
-	for index, item := range catalog.Items[25:36] {
+	for index, item := range catalog.Items[25:40] {
 		want := wantComposite[index]
 		if item.DefinitionID != "zoomigo-prop-play-"+want.id || item.Version != want.version {
 			t.Fatalf("composite Lounge item = %#v", item)
@@ -329,7 +333,7 @@ func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 			t.Fatalf("composite Lounge definition = %#v", definition)
 		}
 		wantZIndex := 10
-		if want.id == "boost-pad" || want.id == "soft-sand-mat" || want.id == "speed-lane" {
+		if want.id == "boost-pad" || want.id == "soft-sand-mat" || want.id == "speed-lane" || want.id == "duck-pond" {
 			wantZIndex = 6
 		}
 		if definition.Visual.ZIndex != wantZIndex {
@@ -383,16 +387,28 @@ func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 				t.Fatalf("ball-cannon launch config = %#v", cannon)
 			}
 		}
+		if want.id == "robot-goalie" {
+			goalie := definition.DefaultConfig.Effects[0]
+			if goalie["travel"] != float64(8) || goalie["maxSpeed"] != float64(18) {
+				t.Fatalf("robot goalie config = %#v", goalie)
+			}
+		}
+		if want.id == "pinball-bumper" {
+			bumper := definition.DefaultConfig.Effects[0]
+			if bumper["impulse"] != float64(56) {
+				t.Fatalf("pinball bumper config = %#v", bumper)
+			}
+		}
 		combination, err := json.Marshal(definition.DefaultConfig.Effects)
 		if err != nil {
 			t.Fatal(err)
 		}
 		combinations[string(combination)] = true
 	}
-	if len(combinations) != 11 {
+	if len(combinations) != 15 {
 		t.Fatalf("composite behavior combinations = %d", len(combinations))
 	}
-	if item := catalog.Items[36]; item.DefinitionID != "zoomigo-prop-beach-ball" || item.Version != 6 {
+	if item := catalog.Items[40]; item.DefinitionID != "zoomigo-prop-beach-ball" || item.Version != 6 {
 		t.Fatalf("development prop = %#v", item)
 	}
 }
@@ -404,6 +420,9 @@ func TestCompositeLoungeItemsAreIncludedButUnrecognizedDefinitionsStayLocked(t *
 	}
 	if itemID, included := loungePlacementItem("zoomigo-prop-play-custom"); itemID != "" || included {
 		t.Fatalf("unknown composite placement item = %q, included %v", itemID, included)
+	}
+	if itemID, included := loungePlacementItem("zoomigo-prop-play-duck-pond"); itemID != "lounge-prop-duck-pond" || included {
+		t.Fatalf("earned composite placement item = %q, included %v", itemID, included)
 	}
 	if itemID, included := loungePlacementItem("zoomigo-stamp-silly-silly-goose"); itemID != "zoomigo-stamp-silly-silly-goose" || !included {
 		t.Fatalf("silly stamp placement item = %q, included %v", itemID, included)
