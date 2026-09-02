@@ -82,6 +82,15 @@ picker. Every interactive visual follows one explicit paint contract: stamps
 remain behind ground effects, props, moving balls, and every player avatar,
 including while an owned stamp is selected or dragged.
 
+The in-playfield settings wheel controls a device-local selection of one to
+three reviewed quick-chat packs. Standard, Pirate 1, and Gen Alpha are the
+defaults; Space Cadet, Sideline, and Snack Attack are available alternatives.
+Only the selected pack IDs persist on that device. Every message remains a
+server-allowlisted transient room action with no transcript. Phrase stamps are
+included decorative decals with bounded transparent artwork, predefined silly
+copy, no physics, and the same placement budget and paint-order contract as
+other stamps.
+
 ## Me (`/me` and `/me/avatar`)
 
 Me owns private history and identity:

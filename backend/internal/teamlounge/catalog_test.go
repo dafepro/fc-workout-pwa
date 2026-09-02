@@ -245,7 +245,7 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 
 func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 	catalog := BeachBoardwalkLoungeCatalog()
-	if len(catalog.Items) != 29 {
+	if len(catalog.Items) != 37 {
 		t.Fatalf("development item count = %d", len(catalog.Items))
 	}
 	for _, item := range catalog.Items[3:13] {
@@ -253,7 +253,12 @@ func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 			t.Fatalf("development item = %#v", item)
 		}
 	}
-	for _, item := range catalog.Items[13:17] {
+	for _, item := range catalog.Items[13:21] {
+		if !strings.HasPrefix(item.DefinitionID, "zoomigo-stamp-silly-") || item.Version != 1 {
+			t.Fatalf("included silly stamp = %#v", item)
+		}
+	}
+	for _, item := range catalog.Items[21:25] {
 		if !strings.HasPrefix(item.DefinitionID, "zoomigo-prop-starlight-") || item.Version != 3 {
 			t.Fatalf("included Starlight item = %#v", item)
 		}
@@ -271,7 +276,7 @@ func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 			} `json:"items"`
 		} `json:"properties"`
 	}
-	if err := json.Unmarshal(catalog.Items[17].ConfigSchema, &compositeSchema); err != nil {
+	if err := json.Unmarshal(catalog.Items[25].ConfigSchema, &compositeSchema); err != nil {
 		t.Fatal(err)
 	}
 	effectItems := compositeSchema.Properties["effects"].Items
@@ -301,7 +306,7 @@ func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 		{"mini-goal", 5, []string{"dampen", "goal"}},
 		{"ball-cannon", 2, []string{"dampen", "cannon"}},
 	}
-	for index, item := range catalog.Items[17:28] {
+	for index, item := range catalog.Items[25:36] {
 		want := wantComposite[index]
 		if item.DefinitionID != "zoomigo-prop-play-"+want.id || item.Version != want.version {
 			t.Fatalf("composite Lounge item = %#v", item)
@@ -387,7 +392,7 @@ func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 	if len(combinations) != 11 {
 		t.Fatalf("composite behavior combinations = %d", len(combinations))
 	}
-	if item := catalog.Items[28]; item.DefinitionID != "zoomigo-prop-beach-ball" || item.Version != 6 {
+	if item := catalog.Items[36]; item.DefinitionID != "zoomigo-prop-beach-ball" || item.Version != 6 {
 		t.Fatalf("development prop = %#v", item)
 	}
 }
@@ -399,5 +404,8 @@ func TestCompositeLoungeItemsAreIncludedButUnrecognizedDefinitionsStayLocked(t *
 	}
 	if itemID, included := loungePlacementItem("zoomigo-prop-play-custom"); itemID != "" || included {
 		t.Fatalf("unknown composite placement item = %q, included %v", itemID, included)
+	}
+	if itemID, included := loungePlacementItem("zoomigo-stamp-silly-silly-goose"); itemID != "zoomigo-stamp-silly-silly-goose" || !included {
+		t.Fatalf("silly stamp placement item = %q, included %v", itemID, included)
 	}
 }

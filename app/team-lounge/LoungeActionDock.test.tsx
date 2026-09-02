@@ -8,7 +8,7 @@ import {
 import { describe, expect, it, vi } from "vitest";
 
 import { loungeEmotes } from "./lounge-emotes";
-import { loungeQuickPhrases } from "./lounge-quick-phrases";
+import { loungeChatPacks, loungeQuickPhrases } from "./lounge-quick-phrases";
 import { includedLoungeItems, type LoungeItemChoice } from "./lounge-items";
 import { LoungeActionDock } from "./LoungeActionDock";
 
@@ -124,15 +124,11 @@ describe("Lounge action dock", () => {
         chatSets.querySelectorAll(".team-lounge__chat-sets > button"),
         (button) => button.textContent,
       ),
-    ).toEqual(["Set 3", "Set 2", "Standard"]);
+    ).toEqual(["Standard", "Pirate 1", "Gen Alpha"]);
     expect(screen.getByRole("button", { name: "Standard" })).toBeEnabled();
     expect(screen.queryByText("10 messages")).toBeNull();
-    expect(
-      screen.getByRole("button", { name: "Set 2, locked" }),
-    ).toBeDisabled();
-    expect(
-      screen.getByRole("button", { name: "Set 3, locked" }),
-    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Pirate 1" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Gen Alpha" })).toBeEnabled();
     expect(
       screen.queryByRole("button", { name: "Send Nice! quick message" }),
     ).toBeNull();
@@ -162,6 +158,18 @@ describe("Lounge action dock", () => {
       screen.getByRole("button", { name: "Send Hi! quick message" }),
     );
     expect(onSendQuickPhrase).toHaveBeenCalledWith(loungeQuickPhrases[0]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Chat" }));
+    fireEvent.click(screen.getByRole("button", { name: "Pirate 1" }));
+    expect(
+      screen.getByRole("dialog", { name: "Choose a Pirate 1 message" }),
+    ).toBeVisible();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Send Ahoy! quick message" }),
+    );
+    expect(onSendQuickPhrase).toHaveBeenCalledWith(
+      loungeChatPacks[1].phrases[0],
+    );
   });
 
   it("slides an open tray down before removing it", () => {

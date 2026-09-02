@@ -5,14 +5,16 @@ import { useEffect, useRef, useState } from "react";
 import { copy } from "../content/copy";
 import { loungeEmotes, type LoungeEmote } from "./lounge-emotes";
 import {
-  loungeQuickPhrases,
+  defaultLoungeChatPackIDs,
+  loungeChatPacks,
+  type LoungeChatPackID,
   type LoungeQuickPhrase,
 } from "./lounge-quick-phrases";
 import type { LoungeItemChoice } from "./lounge-items";
 import { LoungeItemArt } from "./LoungeItemArt";
 
 type Tray = "emotes" | "quick-phrases" | "stamps" | "items" | null;
-type ChatLayer = "sets" | "standard";
+type ChatLayer = "sets" | LoungeChatPackID;
 
 const menuTransitionMs = 160;
 
@@ -23,6 +25,7 @@ export function LoungeActionDock({
   capacity,
   placing,
   reactionLocked,
+  activePackIDs = defaultLoungeChatPackIDs,
   onSelectItem,
   onSendEmote,
   onSendQuickPhrase,
@@ -33,6 +36,7 @@ export function LoungeActionDock({
   capacity: number;
   placing: boolean;
   reactionLocked: boolean;
+  activePackIDs?: readonly LoungeChatPackID[];
   onSelectItem(item: LoungeItemChoice): void;
   onSendEmote(emote: LoungeEmote): void;
   onSendQuickPhrase(phrase: LoungeQuickPhrase): void;
@@ -43,6 +47,15 @@ export function LoungeActionDock({
   const closeTimerRef = useRef<number | undefined>(undefined);
   const actions = copy.teamLounge.actions;
   const openInventory = tray === "stamps" || tray === "items";
+  const activePacks = activePackIDs.flatMap((packID) => {
+    const pack = loungeChatPacks.find(({ id }) => id === packID);
+    return pack ? [pack] : [];
+  });
+  const selectedPack =
+    chatLayer === "sets"
+      ? null
+      : (activePacks.find(({ id }) => id === chatLayer) ?? null);
+  const visibleChatLayer = selectedPack ? chatLayer : "sets";
   const filteredChoices = choices.filter(({ kind }) =>
     tray === "items" ? kind === "lounge_prop" : kind === "lounge_stamp",
   );
@@ -170,15 +183,15 @@ export function LoungeActionDock({
             aria-label={
               tray === "emotes"
                 ? actions.chooseEmote
-                : chatLayer === "sets"
+                : visibleChatLayer === "sets"
                   ? actions.chooseQuickMessage
-                  : actions.chooseStandardChat
+                  : actions.chooseChatPack(selectedPack?.label ?? "chat pack")
             }
             data-anchor={tray === "emotes" ? "react" : "chat"}
-            data-layer={tray === "quick-phrases" ? chatLayer : undefined}
+            data-layer={tray === "quick-phrases" ? visibleChatLayer : undefined}
             data-layout={
               tray === "quick-phrases"
-                ? chatLayer === "sets"
+                ? visibleChatLayer === "sets"
                   ? "compact"
                   : "expanded"
                 : undefined
@@ -204,9 +217,9 @@ export function LoungeActionDock({
               </div>
             ) : (
               <div className="team-lounge__chat-menu">
-                {chatLayer === "standard" ? (
+                {selectedPack ? (
                   <div className="team-lounge__chat-wing">
-                    {loungeQuickPhrases.slice(0, 5).map((phrase) => (
+                    {selectedPack.phrases.slice(0, 5).map((phrase) => (
                       <QuickPhraseButton
                         key={phrase.id}
                         phrase={phrase}
@@ -220,28 +233,20 @@ export function LoungeActionDock({
                   </div>
                 ) : null}
                 <div className="team-lounge__chat-sets">
-                  {[3, 2].map((set) => (
+                  {activePacks.map((pack) => (
                     <button
-                      key={set}
+                      key={pack.id}
                       type="button"
-                      aria-label={actions.lockedChatSet(set)}
-                      disabled
+                      aria-pressed={visibleChatLayer === pack.id}
+                      onClick={() => setChatLayer(pack.id)}
                     >
-                      <strong>Set {set}</strong>
+                      <strong>{pack.label}</strong>
                     </button>
                   ))}
-                  <button
-                    type="button"
-                    aria-label={actions.standardChats}
-                    aria-pressed={chatLayer === "standard"}
-                    onClick={() => setChatLayer("standard")}
-                  >
-                    <strong>{actions.standardChats}</strong>
-                  </button>
                 </div>
-                {chatLayer === "standard" ? (
+                {selectedPack ? (
                   <div className="team-lounge__chat-wing">
-                    {loungeQuickPhrases.slice(5).map((phrase) => (
+                    {selectedPack.phrases.slice(5).map((phrase) => (
                       <QuickPhraseButton
                         key={phrase.id}
                         phrase={phrase}

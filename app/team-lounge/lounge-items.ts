@@ -85,6 +85,27 @@ const beachBallProp: LoungePropChoice = {
   capabilities: ["collision", "physics", "behavior"],
 };
 
+const sillyStamps: LoungeStampChoice[] = [
+  ["silly-goose", "Certified silly goose", "GOOSE"],
+  ["zoomies", "Oops! All zoomies", "ZOOM"],
+  ["running-on-pickles", "Running on pickles", "PICKLE"],
+  ["just-goals", "No thoughts, just goals", "GOALS"],
+  ["professional-cone", "Professional cone", "CONE"],
+  ["snack-attack", "Snack attack", "SNACK"],
+  ["tiny-mighty", "Tiny but mighty", "MIGHTY"],
+  ["water-you-doing", "Water you doing?", "WATER"],
+].map(([id, label, glyph]) => ({
+  id,
+  label,
+  glyph,
+  imageSrc: `/team-lounge/stamps/${id}-v1.svg`,
+  definitionId: `zoomigo-stamp-silly-${id}`,
+  definitionVersion: 1,
+  source: "included",
+  kind: "lounge_stamp",
+  capabilities: [],
+}));
+
 const systemBeachBall: LoungePropChoice = {
   ...beachBallProp,
   id: "system-beach-ball",
@@ -369,6 +390,7 @@ const includedCompositeLoungeItems = [...compositeLoungeItems].sort(
 
 export const includedLoungeItems: LoungeItemChoice[] = [
   ...itemCatalog.slice(0, 4).map((item) => stampChoice(item, "included")),
+  ...sillyStamps,
   ...starlightStamps,
   ...includedCompositeLoungeItems,
 ];
@@ -393,6 +415,26 @@ export const loungeItemDefinitions: ItemDefinition[] = itemCatalog.map(
     complexity: "simple",
   }),
 );
+for (const item of sillyStamps) {
+  loungeItemDefinitions.push({
+    definitionId: item.definitionId,
+    version: item.definitionVersion,
+    displayName: item.label,
+    visual: {
+      size: { width: 18, height: 12 },
+      spriteId: "lounge.stamp.transparent",
+      zIndex: LoungeVisualLayer.DECAL,
+    },
+    colliders: [],
+    defaultConfig: {},
+    persistence: {
+      transform: true,
+      behaviorState: false,
+      onRoomSleep: "pause",
+    },
+    complexity: "simple",
+  });
+}
 loungeItemDefinitions.push({
   definitionId: beachBallProp.definitionId,
   version: 6,
@@ -521,6 +563,10 @@ export function loungeItemForDefinition(definitionId: string) {
     (candidate) => candidate.definitionId === definitionId,
   );
   if (prop) return prop;
+  const sillyStamp = sillyStamps.find(
+    (candidate) => candidate.definitionId === definitionId,
+  );
+  if (sillyStamp) return sillyStamp;
   const composite = compositeLoungeItems.find(
     (candidate) => candidate.definitionId === definitionId,
   );

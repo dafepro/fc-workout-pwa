@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Water you doing">
+  <path fill="#55c9f2" stroke="#083c5a" stroke-width="8" d="M128 15c31 44 78 91 78 143 0 43-35 78-78 78s-78-35-78-78c0-52 47-99 78-143z"/>
+  <path fill="#b9efff" d="M89 92c-18 25-27 47-24 68 2 12 7 22 15 30-4-35 13-56 35-84 9-12-17-26-26-14z"/>
+  <circle cx="103" cy="148" r="6" fill="#083c5a"/><circle cx="153" cy="148" r="6" fill="#083c5a"/>
+  <path fill="none" stroke="#083c5a" stroke-width="7" stroke-linecap="round" d="M105 174c15 11 31 11 46 0"/>
+  <path fill="#c9f31d" stroke="#083c5a" stroke-width="6" stroke-linejoin="round" d="M37 59l22 7 12 20-20 12-23-6-8-21zM198 63l20-9 20 11-1 23-20 9-20-12z"/>
+  <text x="128" y="72" fill="#083c5a" font-family="Arial, sans-serif" font-size="23" font-weight="900" text-anchor="middle">WATER YOU</text>
+  <text x="128" y="218" fill="#083c5a" font-family="Arial, sans-serif" font-size="28" font-weight="900" text-anchor="middle">DOING?</text>
+</svg>

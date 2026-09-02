@@ -874,6 +874,11 @@ func loungePlacementItem(definitionID string) (string, bool) {
 	case "zoomigo-prop-beach-ball":
 		return "lounge-prop-beach-ball", false
 	}
+	for _, assetID := range loungeSillyStampIDs {
+		if definitionID == "zoomigo-stamp-silly-"+assetID {
+			return definitionID, true
+		}
+	}
 	if strings.HasPrefix(definitionID, "zoomigo-prop-starlight-") {
 		return definitionID, true
 	}

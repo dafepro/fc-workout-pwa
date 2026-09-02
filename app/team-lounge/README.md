@@ -33,7 +33,8 @@ Canvas before the catalog exposes them.
 ## Current classification
 
 - Bolt, fire, star, soccer, shield, target, rainbow, lion, rocket, sparkles,
-  camp lantern, pennant flag, water cooler, and training cone are stamps.
+  camp lantern, pennant flag, water cooler, training cone, and the eight
+  predefined silly phrase decals are stamps.
 - The earned beach ball is an item because it has a dynamic body, solid and kick
   colliders, and the Lounge ball behavior.
 - Boost pad, bounce drum, pinwheel, orbit beacon, breeze fan, soft sand mat,
@@ -65,3 +66,11 @@ Stamps and items consume the same weekly placement budget and the same
 owner-bound one-use placement and mutation permits. The action buttons show the
 remaining shared count, and the picker shows placed versus earned capacity for
 the current week.
+
+## Quick-chat packs
+
+Quick chat remains transient closed-catalog play state. The settings wheel
+stores one to three selected pack IDs on the current device; it does not store
+messages, identity, or room history. The server separately allowlists every
+phrase ID. Standard, Pirate 1, and Gen Alpha are the defaults, with Space Cadet,
+Sideline, and Snack Attack available from the same settings panel.

@@ -23,6 +23,21 @@ var loungeEmoteIDs = map[string]struct{}{
 var loungeQuickPhraseIDs = map[string]struct{}{
 	"hi": {}, "bye": {}, "lets-go": {}, "nice": {}, "ok": {}, "oops": {},
 	"no": {}, "yep": {}, "huh": {}, "thanks-bromigo": {},
+	"pirate-ahoy": {}, "pirate-aye-aye": {}, "pirate-arrr": {}, "pirate-full-speed": {},
+	"pirate-good-crew": {}, "pirate-raise-flag": {}, "pirate-treasure": {}, "pirate-shipshape": {},
+	"pirate-cleats": {}, "pirate-crew-goals": {},
+	"alpha-w": {}, "alpha-big-w": {}, "alpha-locked-in": {}, "alpha-let-cook": {},
+	"alpha-aura": {}, "alpha-no-cap": {}, "alpha-fire": {}, "alpha-goated": {},
+	"alpha-say-less": {}, "alpha-side-quest": {},
+	"space-earthling": {}, "space-blast-off": {}, "space-cosmic": {}, "space-orbit": {},
+	"space-mission-go": {}, "space-meteor": {}, "space-moon-bounce": {}, "space-star-power": {},
+	"space-approved": {}, "space-beam-in": {},
+	"side-great-pass": {}, "side-nice-move": {}, "side-im-open": {}, "side-your-ball": {},
+	"side-one-more": {}, "side-team-up": {}, "side-goal-time": {}, "side-defense": {},
+	"side-reset": {}, "side-hustle": {},
+	"snack-attack": {}, "snack-pickle": {}, "snack-nacho": {}, "snack-waffle": {},
+	"snack-banana": {}, "snack-juice": {}, "snack-pretzel": {}, "snack-cheese": {},
+	"snack-taco": {}, "snack-cookie": {},
 }
 
 func (store *SQLiteStore) ResolveTransientAction(

@@ -115,12 +115,47 @@ describe("development Lounge items", () => {
     ]);
   });
 
+  it("ships eight included phrase stamps as bounded transparent vector art", () => {
+    const phrases = includedLoungeItems.filter(({ definitionId }) =>
+      definitionId.startsWith("zoomigo-stamp-silly-"),
+    );
+
+    expect(phrases.map(({ label }) => label)).toEqual([
+      "Certified silly goose",
+      "Oops! All zoomies",
+      "Running on pickles",
+      "No thoughts, just goals",
+      "Professional cone",
+      "Snack attack",
+      "Tiny but mighty",
+      "Water you doing?",
+    ]);
+    for (const phrase of phrases) {
+      expect(phrase).toMatchObject({
+        kind: "lounge_stamp",
+        source: "included",
+        capabilities: [],
+        imageSrc: expect.stringMatching(
+          /^\/team-lounge\/stamps\/[a-z-]+-v1\.svg$/u,
+        ),
+      });
+      const art = readFileSync(
+        join(process.cwd(), "public", phrase.imageSrc!.replace(/^\//, "")),
+        "utf8",
+      );
+      expect(art).toContain('viewBox="0 0 256 256"');
+      expect(art).toContain("<text");
+      expect(art).not.toMatch(/<script|(?:href|src)=["'](?:https?:|data:)/iu);
+      expect(art).not.toMatch(/<rect[^>]+(?:width="256"|height="256")/iu);
+    }
+  });
+
   it("gives every placeable item a durable transparent definition", () => {
-    expect(loungeItemDefinitions).toHaveLength(26);
+    expect(loungeItemDefinitions).toHaveLength(34);
     expect(
       new Set(loungeItemDefinitions.map(({ definitionId }) => definitionId))
         .size,
-    ).toBe(26);
+    ).toBe(34);
     expect(
       loungeItemDefinitions.every(({ persistence }) => persistence?.transform),
     ).toBe(true);

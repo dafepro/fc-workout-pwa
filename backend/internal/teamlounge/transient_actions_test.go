@@ -53,3 +53,16 @@ func TestTransientReactionsRequireMembershipClosedPayloadAndSharedCooldown(t *te
 		})
 	}
 }
+
+func TestReviewedQuickPhrasePacksStayClosedAndComplete(t *testing.T) {
+	if len(loungeQuickPhraseIDs) != 60 {
+		t.Fatalf("quick phrase IDs = %d, want 60", len(loungeQuickPhraseIDs))
+	}
+	for _, phraseID := range []string{
+		"thanks-bromigo", "pirate-ahoy", "alpha-big-w", "space-blast-off", "side-great-pass", "snack-pickle",
+	} {
+		if _, ok := loungeQuickPhraseIDs[phraseID]; !ok {
+			t.Fatalf("quick phrase %q is not allowlisted", phraseID)
+		}
+	}
+}

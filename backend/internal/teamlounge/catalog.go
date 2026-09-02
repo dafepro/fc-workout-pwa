@@ -45,6 +45,11 @@ var platformThemeSchedule = []ThemeScheduleEntry{{
 	},
 }}
 
+var loungeSillyStampIDs = []string{
+	"silly-goose", "zoomies", "running-on-pickles", "just-goals",
+	"professional-cone", "snack-attack", "tiny-mighty", "water-you-doing",
+}
+
 func WeeklyTheme(weekKey string) (ThemeManifest, error) {
 	return themeForWeek(platformThemeSchedule, weekKey)
 }
@@ -154,6 +159,15 @@ func BeachBoardwalkLoungeCatalog() Catalog {
 			Complexity:    roomsdk.ItemComplexitySimple,
 			ConfigSchema:  json.RawMessage(emptyConfigSchemaJSON),
 			DefinitionRaw: loungeStampDefinitionJSON(assetID),
+		})
+	}
+	for _, assetID := range loungeSillyStampIDs {
+		catalog.Items = append(catalog.Items, roomsdk.ItemDefinitionRecord{
+			DefinitionID:  "zoomigo-stamp-silly-" + assetID,
+			Version:       1,
+			Complexity:    roomsdk.ItemComplexitySimple,
+			ConfigSchema:  json.RawMessage(emptyConfigSchemaJSON),
+			DefinitionRaw: loungeSillyStampDefinitionJSON(assetID),
 		})
 	}
 	for _, assetID := range []string{"camp-lantern", "pennant-flag", "water-cooler", "training-cone"} {
@@ -406,6 +420,24 @@ func loungeStampDefinitionJSON(assetID string) json.RawMessage {
 		"displayName":  assetID + " stamp",
 		"visual": map[string]any{
 			"size": map[string]float64{"width": 10, "height": 10}, "spriteId": "lounge.stamp.transparent", "zIndex": loungeVisualLayerDecal,
+		},
+		"colliders": []any{}, "defaultConfig": map[string]any{},
+		"persistence": map[string]any{"transform": true, "behaviorState": false, "onRoomSleep": "pause"},
+		"complexity":  "simple",
+	})
+	if err != nil {
+		panic(err)
+	}
+	return raw
+}
+
+func loungeSillyStampDefinitionJSON(assetID string) json.RawMessage {
+	raw, err := json.Marshal(map[string]any{
+		"definitionId": "zoomigo-stamp-silly-" + assetID,
+		"version":      1,
+		"displayName":  strings.ReplaceAll(assetID, "-", " ") + " stamp",
+		"visual": map[string]any{
+			"size": map[string]float64{"width": 18, "height": 12}, "spriteId": "lounge.stamp.transparent", "zIndex": loungeVisualLayerDecal,
 		},
 		"colliders": []any{}, "defaultConfig": map[string]any{},
 		"persistence": map[string]any{"transform": true, "behaviorState": false, "onRoomSleep": "pause"},

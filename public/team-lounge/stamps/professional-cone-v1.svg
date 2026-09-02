@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Professional cone">
+  <path fill="#ffd44f" stroke="#553313" stroke-width="8" stroke-linejoin="round" d="M128 11l20 23 29-5 8 29 28 11-8 28 18 23-18 23 8 28-28 11-8 29-29-5-20 23-20-23-29 5-8-29-28-11 8-28-18-23 18-23-8-28 28-11 8-29 29 5z"/>
+  <path fill="#ff7a32" stroke="#553313" stroke-width="8" stroke-linejoin="round" d="M106 67h44l28 103H78z"/>
+  <path fill="#fff3d1" stroke="#553313" stroke-width="6" d="M93 119h72l9 31H84z"/>
+  <path fill="#ff7a32" stroke="#553313" stroke-width="8" stroke-linejoin="round" d="M57 169h142l14 27H43z"/>
+  <circle cx="128" cy="96" r="6" fill="#553313"/>
+  <text x="128" y="50" fill="#553313" font-family="Arial, sans-serif" font-size="20" font-weight="900" text-anchor="middle">PROFESSIONAL</text>
+  <text x="128" y="229" fill="#553313" font-family="Arial, sans-serif" font-size="27" font-weight="900" text-anchor="middle">CONE</text>
+</svg>

@@ -4373,6 +4373,167 @@ h2 {
   touch-action: pan-y !important;
 }
 
+.team-lounge__chat-settings {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  z-index: 46;
+}
+
+.team-lounge__settings-wheel {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin-left: auto;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 36%);
+  border-radius: 50%;
+  background: rgb(3 28 34 / 88%);
+  box-shadow: 0 0.45rem 1rem rgb(1 18 23 / 28%);
+  color: white;
+  font: inherit;
+  backdrop-filter: blur(0.35rem);
+}
+
+.team-lounge__settings-wheel > span {
+  display: block;
+  font-size: 1.25rem;
+  line-height: 1;
+  transition: transform 180ms ease;
+}
+
+.team-lounge__settings-wheel[aria-expanded="true"] {
+  border-color: #c9f31d;
+  background: #c9f31d;
+  color: #092a2d;
+}
+
+.team-lounge__settings-wheel[aria-expanded="true"] > span {
+  transform: rotate(45deg);
+}
+
+.team-lounge__settings-wheel:focus-visible {
+  outline: 3px solid rgb(201 243 29 / 62%);
+  outline-offset: 2px;
+}
+
+.team-lounge__chat-settings-panel {
+  width: min(18rem, calc(100vw - 2rem));
+  max-height: min(24rem, calc(100dvh - 10rem));
+  margin-top: 0.45rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.65rem;
+  border: 1px solid rgb(165 239 218 / 30%);
+  border-radius: 1rem;
+  background: linear-gradient(155deg, rgb(10 48 52 / 98%), #071c25 72%);
+  box-shadow: 0 1rem 2.2rem rgb(1 15 19 / 45%);
+  color: white;
+  animation: lounge-settings-unfold 180ms ease-out both;
+}
+
+.team-lounge__chat-settings-panel header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.team-lounge__chat-settings-panel header div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.team-lounge__chat-settings-panel header strong {
+  font-size: 0.84rem;
+}
+
+.team-lounge__chat-settings-panel header small {
+  color: rgb(255 255 255 / 68%);
+  font-size: 0.66rem;
+  line-height: 1.25;
+}
+
+.team-lounge__chat-settings-panel header button {
+  display: grid;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 9%);
+  color: white;
+  font: inherit;
+  font-size: 1.2rem;
+}
+
+.team-lounge__chat-settings-panel > p {
+  margin: 0.55rem 0 0.45rem;
+  color: #c9f31d;
+  font-size: 0.67rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.team-lounge__chat-pack-options {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.team-lounge__chat-pack-options label {
+  display: grid;
+  grid-template-columns: 1.35rem 1fr;
+  align-items: center;
+  min-height: 3.35rem;
+  gap: 0.55rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 0.75rem;
+  background: rgb(255 255 255 / 7%);
+}
+
+.team-lounge__chat-pack-options label:has(input:checked) {
+  border-color: rgb(201 243 29 / 48%);
+  background: rgb(201 243 29 / 11%);
+}
+
+.team-lounge__chat-pack-options label:has(input:disabled) {
+  opacity: 0.55;
+}
+
+.team-lounge__chat-pack-options input {
+  width: 1.15rem;
+  height: 1.15rem;
+  accent-color: #c9f31d;
+}
+
+.team-lounge__chat-pack-options span {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.team-lounge__chat-pack-options strong {
+  font-size: 0.72rem;
+}
+
+.team-lounge__chat-pack-options small {
+  color: rgb(255 255 255 / 66%);
+  font-size: 0.62rem;
+  line-height: 1.2;
+}
+
+@keyframes lounge-settings-unfold {
+  from {
+    opacity: 0;
+    transform: translateY(-0.3rem) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .team-lounge__avatar-fallback {
   position: absolute;
   top: 61%;
@@ -5187,8 +5348,13 @@ h2 {
 
 @media (prefers-reduced-motion: reduce) {
   .team-lounge__reaction-popover,
-  .team-lounge__menu-sheet {
+  .team-lounge__menu-sheet,
+  .team-lounge__chat-settings-panel {
     animation: none;
+  }
+
+  .team-lounge__settings-wheel > span {
+    transition: none;
   }
 }
 

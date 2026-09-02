@@ -196,6 +196,7 @@ describe("Shared Lounge Canvas", () => {
     runtime.errorObserver = undefined;
     runtime.presenceObserver = undefined;
     runtime.transientActions = [];
+    window.localStorage.clear();
     vi.stubGlobal("Worker", class {});
   });
 
@@ -746,6 +747,53 @@ describe("Shared Lounge Canvas", () => {
     expect(
       container.querySelector(".team-lounge__avatar-phrase"),
     ).toHaveTextContent("Nice!");
+  });
+
+  it("loads the device chat packs into the in-canvas settings wheel and dock", async () => {
+    window.localStorage.setItem(
+      "zoomigo:lounge-chat-packs:v1",
+      JSON.stringify(["space-cadet"]),
+    );
+    render(
+      <AvatarIdentityProvider
+        value={{ currentPlayerID: mason.id, avatarConfig: defaultAvatar() }}
+      >
+        <SharedLoungeCanvas
+          teamID="team-one"
+          player={mason}
+          roster={[mason]}
+          onStateChange={vi.fn()}
+          onPresenceChange={vi.fn()}
+        />
+      </AvatarIdentityProvider>,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Quick-message pack settings" }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole("checkbox", { name: /Space Cadet/u }),
+      ).toBeChecked(),
+    );
+    expect(screen.getByText("1 of 3 selected")).toBeVisible();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Close chat settings" }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Chat" }));
+    expect(screen.getByRole("button", { name: "Space Cadet" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Standard" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Space Cadet" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Send Blast off! quick message" }),
+    );
+    await waitFor(() =>
+      expect(runtime.transientActions.at(-1)).toMatchObject({
+        action: "zoomigo.quickPhrase",
+        payload: { phrase: "space-blast-off" },
+      }),
+    );
   });
 
   it("sends a new quick phrase as soon as the previous send is accepted", async () => {

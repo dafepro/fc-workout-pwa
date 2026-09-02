@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Certified silly goose">
+  <path fill="#57d4df" stroke="#083d49" stroke-width="8" stroke-linejoin="round" d="M128 12l22 20 30-6 10 29 29 10-6 30 20 22-20 22 6 30-29 10-10 29-30-6-22 20-22-20-30 6-10-29-29-10 6-30-20-22 20-22-6-30 29-10 10-29 30 6z"/>
+  <path fill="#fff" stroke="#083d49" stroke-width="7" d="M94 116c-22 5-34 22-28 39 8 22 45 29 72 14 19-10 21-31 8-41-10-8-29-15-52-12z"/>
+  <path fill="#fff" stroke="#083d49" stroke-width="7" d="M132 128c-2-25 0-46 11-56 16-14 39-5 40 12 1 16-15 23-28 20l-2 31"/>
+  <path fill="#ffc94c" stroke="#083d49" stroke-width="6" stroke-linejoin="round" d="M181 86l31 10-29 13z"/>
+  <circle cx="166" cy="84" r="4" fill="#083d49"/>
+  <path fill="none" stroke="#083d49" stroke-width="7" stroke-linecap="round" d="M98 171l-7 16m42-17 7 17"/>
+  <path fill="#fff" stroke="#083d49" stroke-width="5" d="M72 32h112a10 10 0 0 1 10 10v20H62V42a10 10 0 0 1 10-10z"/>
+  <path fill="#fff" stroke="#083d49" stroke-width="5" d="M48 190h160a10 10 0 0 1 10 10v20a10 10 0 0 1-10 10H48a10 10 0 0 1-10-10v-20a10 10 0 0 1 10-10z"/>
+  <text x="128" y="54" fill="#083d49" font-family="Arial, sans-serif" font-size="18" font-weight="900" text-anchor="middle" textLength="108" lengthAdjust="spacingAndGlyphs">CERTIFIED</text>
+  <text x="128" y="217" fill="#083d49" font-family="Arial, sans-serif" font-size="21" font-weight="900" text-anchor="middle" textLength="142" lengthAdjust="spacingAndGlyphs">SILLY GOOSE</text>
+</svg>

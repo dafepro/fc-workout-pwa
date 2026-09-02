@@ -26,6 +26,7 @@ import type { Player } from "../domain/types";
 import { useAvatarIdentity } from "../state/avatar-identity-context";
 import type { LoungeCanvasState } from "./LocalLoungeCanvas";
 import { LoungeActionDock } from "./LoungeActionDock";
+import { LoungeChatSettings } from "./LoungeChatSettings";
 import { LoungeItemEditor, type LoungeEditableItem } from "./LoungeItemEditor";
 import { LoungeItemArt } from "./LoungeItemArt";
 import { loungeBallEntityID, publishLoungeBallPosition } from "./ball-position";
@@ -36,9 +37,15 @@ import {
   type LoungeEmote,
 } from "./lounge-emotes";
 import {
+  defaultLoungeChatPackIDs,
   loungeQuickPhrases,
+  type LoungeChatPackID,
   type LoungeQuickPhrase,
 } from "./lounge-quick-phrases";
+import {
+  loadLoungeChatPackIDs,
+  saveLoungeChatPackIDs,
+} from "./lounge-chat-preferences";
 import { performLoungeItemMutation } from "./lounge-item-mutations";
 import {
   includedLoungeItems,
@@ -205,6 +212,9 @@ export function SharedLoungeCanvas({
     new Set<string>(),
   );
   const [reactionLocked, setReactionLocked] = useState(false);
+  const [activeChatPackIDs, setActiveChatPackIDs] = useState<
+    LoungeChatPackID[]
+  >([...defaultLoungeChatPackIDs]);
   const [avatarDiameter, setAvatarDiameter] = useState<number>();
   const [benchAvatarDiameter, setBenchAvatarDiameter] = useState<number>();
   const reactionTimerRef = useRef<number | undefined>(undefined);
@@ -219,6 +229,10 @@ export function SharedLoungeCanvas({
   useEffect(() => {
     playerRef.current = player;
   }, [player]);
+
+  useEffect(() => {
+    setActiveChatPackIDs(loadLoungeChatPackIDs(window.localStorage));
+  }, []);
 
   useEffect(
     () => () => {
@@ -881,6 +895,13 @@ export function SharedLoungeCanvas({
           aria-label="Interactive lounge canvas"
           tabIndex={0}
         />
+        <LoungeChatSettings
+          activePackIDs={activeChatPackIDs}
+          onChange={(packIDs) => {
+            setActiveChatPackIDs(packIDs);
+            saveLoungeChatPackIDs(window.localStorage, packIDs);
+          }}
+        />
         {overlays.map(({ player, position, current, state }) => (
           <div
             className="team-lounge__shared-avatar"
@@ -1124,6 +1145,7 @@ export function SharedLoungeCanvas({
           capacity={placementCapacity}
           placing={placing}
           reactionLocked={reactionLocked}
+          activePackIDs={activeChatPackIDs}
           onSelectItem={(item) => {
             setSelectedEntityID(null);
             setSelectedItem(item);

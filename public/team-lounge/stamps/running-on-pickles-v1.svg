@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Running on pickles">
+  <path fill="#d8f34a" stroke="#24451d" stroke-width="8" stroke-linejoin="round" d="M43 47h169l18 35-16 32 16 34-18 36H43l-18-36 16-34-16-32z"/>
+  <g transform="rotate(-18 131 118)">
+    <rect x="89" y="67" width="84" height="104" rx="42" fill="#43ad59" stroke="#24451d" stroke-width="8"/>
+    <path fill="none" stroke="#b6e56e" stroke-width="7" stroke-linecap="round" d="M116 82c-12 18-11 56 4 75m25-71c12 20 11 51-2 69"/>
+    <circle cx="118" cy="105" r="5" fill="#24451d"/><circle cx="146" cy="105" r="5" fill="#24451d"/>
+    <path fill="none" stroke="#24451d" stroke-width="6" stroke-linecap="round" d="M122 127c7 7 15 7 22 0M94 123l-24 9m95-1 24 11m-74 31-13 25m47-28 16 22"/>
+  </g>
+  <text x="128" y="35" fill="#24451d" font-family="Arial, sans-serif" font-size="23" font-weight="900" text-anchor="middle">RUNNING ON</text>
+  <text x="128" y="221" fill="#24451d" font-family="Arial, sans-serif" font-size="30" font-weight="900" text-anchor="middle">PICKLES</text>
+</svg>
