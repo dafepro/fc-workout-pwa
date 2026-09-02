@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  loungeItemDefinitions,
-  loungeItemForDefinition,
-} from "../lounge-items";
+import { loungeItemDefinitions } from "../lounge-items";
 import { beachBoardwalkAssets } from "./assets";
 import { beachBoardwalkDefinitions } from "./beach-boardwalk";
 import { createLoungePixiPresentation } from "./pixi-presentation";
@@ -40,7 +37,7 @@ describe("Lounge Pixi presentation", () => {
     ).toBe(false);
   });
 
-  it("leaves stamps transparent for the shared DOM art while Pixi paints props", () => {
+  it("keeps every interactive item transparent so one DOM layer owns overlap ordering", () => {
     const presentation = createLoungePixiPresentation({
       assets: beachBoardwalkAssets,
       definitions: [...beachBoardwalkDefinitions, ...loungeItemDefinitions],
@@ -50,27 +47,14 @@ describe("Lounge Pixi presentation", () => {
       const presented = presentation.definitions.find(
         ({ definitionId }) => definitionId === original.definitionId,
       );
-      const isStamp =
-        loungeItemForDefinition(original.definitionId)?.kind === "lounge_stamp";
-      expect(presented?.visual.spriteId).toBe(
-        isStamp
-          ? "lounge.stamp.transparent"
-          : `lounge.item.${original.definitionId}`,
-      );
+      expect(presented?.visual.spriteId).toBe("lounge.stamp.transparent");
       expect(presented?.body).toEqual(original.body);
       expect(presented?.colliders).toEqual(original.colliders);
       expect(presented?.behaviorType).toBe(original.behaviorType);
-      if (isStamp) {
-        expect(presentation.assets.textures).not.toContainEqual({
-          id: `lounge.item.${original.definitionId}`,
-          sourceId: `lounge-item-source-${original.definitionId}`,
-        });
-      } else {
-        expect(presentation.assets.textures).toContainEqual({
-          id: `lounge.item.${original.definitionId}`,
-          sourceId: `lounge-item-source-${original.definitionId}`,
-        });
-      }
+      expect(presentation.assets.textures).not.toContainEqual({
+        id: `lounge.item.${original.definitionId}`,
+        sourceId: `lounge-item-source-${original.definitionId}`,
+      });
     }
   });
 });

@@ -24,9 +24,11 @@ export interface LoungeEditableItem {
   imageSrc?: string;
   kind: LoungeItemChoice["kind"];
   editable: boolean;
-  owner: "current" | "teammate";
+  owner: "current" | "teammate" | "system";
   itemRevision: number;
   goalScore?: number;
+  visualLayer: number;
+  visualSize?: Readonly<{ width: number; height: number }>;
   screen: Readonly<{ x: number; y: number }>;
   transform: TeamLoungeItemTransform;
 }
@@ -187,12 +189,21 @@ export function LoungeItemEditor({
             : copy.teamLounge.goalScore(item.goalScore);
         const style = {
           transform: `translate3d(${screen.x}px, ${screen.y}px, 0) translate(-50%, -50%) rotate(${item.transform.rotation}rad) scale(${item.transform.scale})`,
+          zIndex: item.visualLayer,
+          ...(item.visualSize
+            ? {
+                "--lounge-item-art-width": `${item.visualSize.width}px`,
+                "--lounge-item-art-height": `${item.visualSize.height}px`,
+              }
+            : undefined),
         } as CSSProperties;
         const label = item.editable
           ? `${item.label} ${category}, yours; ${selectedItem ? "drag to move" : "tap to edit"}`
-          : item.owner === "current"
-            ? `${item.label} ${category}, yours; locked from an earlier day`
-            : `${item.label} ${category} placed by a teammate`;
+          : item.owner === "system"
+            ? `${item.label} ${category}`
+            : item.owner === "current"
+              ? `${item.label} ${category}, yours; locked from an earlier day`
+              : `${item.label} ${category} placed by a teammate`;
         const accessibleLabel = goalScore
           ? `${label}; score ${goalScore}`
           : label;
@@ -228,6 +239,7 @@ export function LoungeItemEditor({
             data-cannon-fuse={
               activeCannonEntityIDs?.has(item.entityID) || undefined
             }
+            data-lounge-visual-layer={item.visualLayer}
             onClick={(event) => {
               event.stopPropagation();
               if (suppressedClickRef.current === item.entityID) {
@@ -276,6 +288,7 @@ export function LoungeItemEditor({
             data-cannon-fuse={
               activeCannonEntityIDs?.has(item.entityID) || undefined
             }
+            data-lounge-visual-layer={item.visualLayer}
           >
             {content}
           </span>

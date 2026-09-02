@@ -11,6 +11,7 @@ const item: LoungeEditableItem = {
   editable: true,
   owner: "current",
   itemRevision: 3,
+  visualLayer: 4,
   screen: { x: 120, y: 180 },
   transform: { x: 40, y: 55, rotation: 0, scale: 1 },
 };

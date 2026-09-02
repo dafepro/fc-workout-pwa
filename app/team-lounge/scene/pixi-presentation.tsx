@@ -24,20 +24,12 @@ export function createLoungePixiPresentation({
   const presentedDefinitions = definitions.map((definition) => {
     const item = loungeItemForDefinition(definition.definitionId);
     if (!item) return definition;
-    if (item.kind === "lounge_stamp") return definition;
-    if (!item.imageSrc) return definition;
-
-    const sourceId = `lounge-item-source-${definition.definitionId}`;
-    const textureId = `lounge.item.${definition.definitionId}`;
-    sources.push({
-      id: sourceId,
-      src: item.imageSrc,
-      required: true,
-    });
-    textures.push({ id: textureId, sourceId });
     return {
       ...definition,
-      visual: { ...definition.visual, spriteId: textureId },
+      visual: {
+        ...definition.visual,
+        spriteId: "lounge.stamp.transparent",
+      },
     };
   });
 

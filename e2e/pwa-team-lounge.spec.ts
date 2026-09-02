@@ -1517,12 +1517,19 @@ test("two qualified players share Lounge presence and avatar movement", async ({
         name: "Wobble cone item, yours; tap to edit",
       })
       .locator("img");
-    await expect(ownedConeArtwork).toHaveCount(0);
+    await expect(ownedConeArtwork).toHaveAttribute(
+      "src",
+      "/team-lounge/items/wobble-cone-v1.png",
+    );
     const avaStage = avaLounge.getByLabel("Interactive lounge canvas");
     const teammateCone = avaLounge.getByLabel(
       "Wobble cone item placed by a teammate",
     );
     await expect(teammateCone).toBeVisible({ timeout: 10_000 });
+    await expect(teammateCone.locator("img")).toHaveAttribute(
+      "src",
+      "/team-lounge/items/wobble-cone-v1.png",
+    );
     const [avaStageBox, teammateConeBox] = await Promise.all([
       avaStage.boundingBox(),
       teammateCone.boundingBox(),

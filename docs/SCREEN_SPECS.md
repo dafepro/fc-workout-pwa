@@ -78,7 +78,9 @@ or become physics entities. Each live avatar renders as one clipped visual stack
 at three-quarters of the earlier enlarged size, and the signed-in player's
 complete stack always paints above teammate avatars when they overlap. Stamp
 placement uses the same artwork and white stamp-edge treatment promised by the
-picker.
+picker. Every interactive visual follows one explicit paint contract: stamps
+remain behind ground effects, props, moving balls, and every player avatar,
+including while an owned stamp is selected or dragged.
 
 ## Me (`/me` and `/me/avatar`)
 

@@ -177,6 +177,24 @@ test("the 320px Lounge keeps its approved visual states", async ({ page }) => {
     "src",
     "/team-lounge/items/ball-cannon-v1.svg",
   );
+  expect(
+    await lounge.evaluate((region) => ({
+      menu: Number(
+        getComputedStyle(region.querySelector(".team-lounge__menu-overlay")!)
+          .zIndex,
+      ),
+      actions: Number(
+        getComputedStyle(region.querySelector(".team-lounge__actions")!).zIndex,
+      ),
+      currentAvatar: Number(
+        getComputedStyle(
+          region.querySelector(
+            ".team-lounge__shared-avatar[data-current='true']",
+          )!,
+        ).zIndex,
+      ),
+    })),
+  ).toEqual({ menu: 60, actions: 50, currentAvatar: 31 });
   await expect(lounge).toHaveScreenshot("team-lounge-items-cannon.png", {
     animations: "disabled",
     maxDiffPixels: 1_000,
@@ -209,6 +227,82 @@ test("the 320px Lounge keeps its approved visual states", async ({ page }) => {
     animations: "disabled",
     maxDiffPixels: 1_000,
   });
+
+  await lounge.getByRole("button", { name: "Finish editing" }).click();
+  await lounge.getByRole("button", { name: /^Items,/u }).click();
+  await lounge.getByRole("button", { name: "Choose Ball cannon item" }).click();
+  await lounge
+    .getByRole("button", {
+      name: "Place Ball cannon item on the boardwalk",
+    })
+    .click({ position: { x: 160, y: 185 } });
+  await expect(lounge.getByRole("status")).toHaveText("Ball cannon placed.", {
+    timeout: 10_000,
+  });
+
+  const cannon = lounge.getByRole("button", {
+    name: "Ball cannon item, yours; tap to edit",
+  });
+  const systemBall = lounge.getByRole("img", { name: "Beach ball item" });
+  const currentAvatar = lounge.locator(
+    ".team-lounge__shared-avatar[data-current='true']",
+  );
+  await expect(cannon).toBeVisible();
+  await expect(systemBall).toBeVisible();
+  expect(
+    await lounge.evaluate((region) => {
+      const stamp = region.querySelector<HTMLElement>(
+        ".team-lounge__placed-item--stamp",
+      )!;
+      const cannon = region.querySelector<HTMLElement>(
+        '[aria-label^="Ball cannon item"]',
+      )!;
+      const ball = region.querySelector<HTMLElement>(
+        '[aria-label="Beach ball item"]',
+      )!;
+      const itemPlane = stamp.parentElement!;
+      const avatar = region.querySelector<HTMLElement>(
+        ".team-lounge__shared-avatar[data-current='true']",
+      )!;
+      const stampBounds = stamp.getBoundingClientRect();
+      const overlapOrder = document
+        .elementsFromPoint(
+          stampBounds.left + stampBounds.width / 2,
+          stampBounds.top + stampBounds.height / 2,
+        )
+        .map((element) =>
+          element.closest<HTMLElement>(".team-lounge__placed-item"),
+        );
+      return {
+        oneItemPlane:
+          cannon.parentElement === itemPlane &&
+          ball.parentElement === itemPlane,
+        stamp: getComputedStyle(stamp).zIndex,
+        cannon: getComputedStyle(cannon).zIndex,
+        ball: getComputedStyle(ball).zIndex,
+        itemPlane: getComputedStyle(itemPlane).zIndex,
+        avatar: getComputedStyle(avatar).zIndex,
+        cannonBeforeStamp:
+          overlapOrder.indexOf(cannon) < overlapOrder.indexOf(stamp),
+      };
+    }),
+  ).toEqual({
+    oneItemPlane: true,
+    stamp: "4",
+    cannon: "10",
+    ball: "20",
+    itemPlane: "auto",
+    avatar: "31",
+    cannonBeforeStamp: true,
+  });
+  await expect(currentAvatar).toHaveCSS("z-index", "31");
+  await expect(lounge.locator(".team-lounge__playfield")).toHaveScreenshot(
+    "team-lounge-stamp-layering.png",
+    {
+      animations: "disabled",
+      maxDiffPixels: 1_000,
+    },
+  );
 });
 
 test("overlapping live avatars preserve one complete local stack", async ({
@@ -235,10 +329,10 @@ test("overlapping live avatars preserve one complete local stack", async ({
     await expect(lounge.getByText("2 here")).toBeVisible({ timeout: 15_000 });
     await expect(
       lounge.locator(".team-lounge__shared-avatar[data-current='true']"),
-    ).toHaveCSS("z-index", "5");
+    ).toHaveCSS("z-index", "31");
     await expect(
       lounge.locator(".team-lounge__shared-avatar[data-presence='active']"),
-    ).toHaveCSS("z-index", "4");
+    ).toHaveCSS("z-index", "30");
     await expect(lounge.locator(".team-lounge__playfield")).toHaveScreenshot(
       "team-lounge-avatar-overlap.png",
       {

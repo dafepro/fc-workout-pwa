@@ -240,6 +240,11 @@ export function SharedLoungeCanvas({
     let participants: readonly ParticipantPresence[] = [];
     let projections: readonly OverlayEntityProjection[] = [];
     let canonicalEntities: readonly Readonly<RenderEntity>[] = [];
+    const visualDefinitions = new Map(
+      [...beachBoardwalkDefinitions, ...loungeItemDefinitions].map(
+        (definition) => [definition.definitionId, definition.visual] as const,
+      ),
+    );
     let presented = false;
     let failureReported = false;
     let unsubscribePresence: () => void = () => undefined;
@@ -330,14 +335,18 @@ export function SharedLoungeCanvas({
           const canonical = canonicalEntities.find(
             ({ id }) => id === projection.entityId,
           );
+          const visual = projection.definitionId
+            ? visualDefinitions.get(projection.definitionId)
+            : undefined;
           if (
             !item?.glyph ||
             !projection.inViewport ||
             canonical?.kind !== "item" ||
-            !canonical.itemRevision
+            !visual
           ) {
             return [];
           }
+          const systemOwned = !canonical.ownerUserId;
           const currentOwner = canonical.ownerUserId === playerID;
           const optimisticMove = optimisticItemMovesRef.current.get(
             projection.entityId,
@@ -360,9 +369,26 @@ export function SharedLoungeCanvas({
               kind: item.kind,
               editable:
                 currentOwner &&
+                Boolean(canonical.itemRevision) &&
                 editableItemIDsRef.current.has(projection.entityId),
-              owner: currentOwner ? "current" : "teammate",
-              itemRevision: canonical.itemRevision,
+              owner: systemOwned
+                ? "system"
+                : currentOwner
+                  ? "current"
+                  : "teammate",
+              itemRevision: canonical.itemRevision ?? 0,
+              visualLayer: visual.zIndex ?? 0,
+              visualSize:
+                item.kind === "lounge_prop"
+                  ? {
+                      width:
+                        visual.size.width *
+                        (projectionFrameRef.current?.viewport.scale ?? 1),
+                      height:
+                        visual.size.height *
+                        (projectionFrameRef.current?.viewport.scale ?? 1),
+                    }
+                  : undefined,
               goalScore: goalScoreFor(
                 canonical.definitionId,
                 canonical.behaviorState,
@@ -947,7 +973,7 @@ export function SharedLoungeCanvas({
         ))}
         <LoungeItemEditor
           items={itemOverlays}
-          paintArtwork={false}
+          paintArtwork
           activeCannonEntityIDs={activeCannonEntityIDs}
           selectedEntityID={selectedEditableEntityID}
           pending={mutationPending}

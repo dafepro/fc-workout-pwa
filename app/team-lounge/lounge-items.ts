@@ -85,6 +85,16 @@ const beachBallProp: LoungePropChoice = {
   capabilities: ["collision", "physics", "behavior"],
 };
 
+const systemBeachBall: LoungePropChoice = {
+  ...beachBallProp,
+  id: "system-beach-ball",
+  label: "Beach ball",
+  imageSrc: "/team-lounge/beach-ball.svg",
+  definitionId: "beach-ball",
+  definitionVersion: 9,
+  source: "included",
+};
+
 const starlightStamps: LoungeStampChoice[] = [
   ["camp-lantern", "Camp lantern", "🏮"],
   ["pennant-flag", "Pennant flag", "🚩"],
@@ -505,6 +515,7 @@ export function loungeItemForDefinition(definitionId: string) {
   const item = itemCatalog.find(
     ([id]) => definitionId === `zoomigo-stamp-${id}`,
   );
+  if (definitionId === systemBeachBall.definitionId) return systemBeachBall;
   if (definitionId === beachBallProp.definitionId) return beachBallProp;
   const prop = starlightStamps.find(
     (candidate) => candidate.definitionId === definitionId,

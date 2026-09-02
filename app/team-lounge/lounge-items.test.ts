@@ -308,6 +308,24 @@ describe("development Lounge items", () => {
       BALL: 20,
       AVATAR: 30,
     });
+    expect(LoungeVisualLayer.DECAL).toBeLessThan(
+      LoungeVisualLayer.GROUND_EFFECT,
+    );
+    expect(LoungeVisualLayer.GROUND_EFFECT).toBeLessThan(
+      LoungeVisualLayer.PROP,
+    );
+    expect(LoungeVisualLayer.PROP).toBeLessThan(LoungeVisualLayer.BALL);
+    expect(LoungeVisualLayer.BALL).toBeLessThan(LoungeVisualLayer.AVATAR);
+    for (const definition of loungeItemDefinitions) {
+      const choice = loungeItemForDefinition(definition.definitionId);
+      if (choice?.kind === "lounge_stamp") {
+        expect(definition.visual.zIndex).toBe(LoungeVisualLayer.DECAL);
+      } else {
+        expect(definition.visual.zIndex).toBeGreaterThan(
+          LoungeVisualLayer.DECAL,
+        );
+      }
+    }
     for (const definition of compositeDefinitions) {
       expect(definition.visual.zIndex).toBe(
         groundIDs.has(definition.definitionId)

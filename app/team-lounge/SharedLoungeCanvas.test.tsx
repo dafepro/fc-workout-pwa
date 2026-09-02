@@ -71,8 +71,8 @@ const runtime = vi.hoisted(() => ({
           y: number;
           rotation: number;
           scale: number;
-          ownerUserId: string;
-          itemRevision: number;
+          ownerUserId?: string;
+          itemRevision?: number;
           behaviorState: unknown;
         }>;
       }) => void)
@@ -566,7 +566,7 @@ describe("Shared Lounge Canvas", () => {
     expect(canvas.style.touchAction).toBe("pan-y");
   });
 
-  it("keeps avatar artwork in DOM while Pixi paints item artwork", async () => {
+  it("keeps avatar and item artwork in DOM so their layer bands cannot interleave", async () => {
     const { container } = render(
       <AvatarIdentityProvider
         value={{ currentPlayerID: mason.id, avatarConfig: defaultAvatar() }}
@@ -587,7 +587,7 @@ describe("Shared Lounge Canvas", () => {
       runtime.options?.definitions?.find(
         ({ definitionId }) => definitionId === "zoomigo-prop-play-wobble-cone",
       )?.visual.spriteId,
-    ).toBe("lounge.item.zoomigo-prop-play-wobble-cone");
+    ).toBe("lounge.stamp.transparent");
     expect(
       runtime.options?.definitions?.find(
         ({ definitionId }) => definitionId === "avatar",
@@ -602,6 +602,122 @@ describe("Shared Lounge Canvas", () => {
     expect(
       container.querySelector(".team-lounge__shared-avatar .avatar-art"),
     ).toBeVisible();
+  });
+
+  it("keeps overlapping stamps behind props, moving balls, and every avatar stack", async () => {
+    const { container } = render(
+      <AvatarIdentityProvider
+        value={{ currentPlayerID: mason.id, avatarConfig: defaultAvatar() }}
+      >
+        <SharedLoungeCanvas
+          teamID="team-one"
+          player={mason}
+          roster={[mason]}
+          onStateChange={vi.fn()}
+          onPresenceChange={vi.fn()}
+        />
+      </AvatarIdentityProvider>,
+    );
+
+    await waitFor(() => {
+      expect(runtime.canonicalObserver).toBeDefined();
+      expect(runtime.projectionSubscriptions).toHaveLength(1);
+    });
+    const overlap = { x: 160, y: 240 };
+    act(() => {
+      runtime.canonicalObserver?.({
+        entities: [
+          {
+            id: "stamp-one",
+            kind: "item",
+            definitionId: "zoomigo-stamp-soccer",
+            x: 50,
+            y: 75,
+            rotation: 0,
+            scale: 1,
+            ownerUserId: mason.id,
+            itemRevision: 1,
+            behaviorState: {},
+          },
+          {
+            id: "cannon-one",
+            kind: "item",
+            definitionId: "zoomigo-prop-play-ball-cannon",
+            x: 50,
+            y: 75,
+            rotation: 0,
+            scale: 1,
+            ownerUserId: mason.id,
+            itemRevision: 1,
+            behaviorState: {},
+          },
+          {
+            id: "boardwalk-beach-ball",
+            kind: "item",
+            definitionId: "beach-ball",
+            x: 50,
+            y: 75,
+            rotation: 0,
+            scale: 1,
+            behaviorState: {},
+          },
+        ],
+      });
+      runtime.projectionSubscriptions[0]?.observer({
+        canvasSize: { width: 100, height: 150 },
+        viewport: {
+          width: 320,
+          height: 480,
+          scale: 3.2,
+          offsetX: 0,
+          offsetY: 0,
+        },
+        entities: [
+          {
+            entityId: `avatar:${mason.id}`,
+            definitionId: "avatar",
+            screen: overlap,
+            world: { x: 50, y: 75 },
+            inViewport: true,
+          },
+          ...[
+            ["stamp-one", "zoomigo-stamp-soccer"],
+            ["cannon-one", "zoomigo-prop-play-ball-cannon"],
+            ["boardwalk-beach-ball", "beach-ball"],
+          ].map(([entityId, definitionId]) => ({
+            entityId,
+            definitionId,
+            screen: overlap,
+            world: { x: 50, y: 75 },
+            inViewport: true,
+            rotation: 0,
+          })),
+        ],
+      });
+    });
+
+    const stamp = screen.getByRole("img", {
+      name: "Soccer ball stamp, yours; locked from an earlier day",
+    });
+    const cannon = screen.getByRole("img", {
+      name: "Ball cannon item, yours; locked from an earlier day",
+    });
+    const ball = screen.getByRole("img", { name: "Beach ball item" });
+    const avatar = container.querySelector(
+      ".team-lounge__shared-avatar[data-current='true']",
+    );
+    expect(stamp).toHaveStyle({ zIndex: "4" });
+    expect(cannon).toHaveStyle({ zIndex: "10" });
+    expect(ball).toHaveStyle({ zIndex: "20" });
+    expect(cannon.querySelector("img")).toHaveAttribute(
+      "src",
+      "/team-lounge/items/ball-cannon-v1.svg",
+    );
+    expect(ball.querySelector("img")).toHaveAttribute(
+      "src",
+      "/team-lounge/beach-ball.svg",
+    );
+    expect(avatar).toHaveAttribute("data-avatar-stack", "local");
   });
 
   it("shows an allowlisted quick phrase as a transient sender bubble", async () => {
