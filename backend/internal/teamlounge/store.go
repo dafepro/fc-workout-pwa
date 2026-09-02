@@ -64,6 +64,7 @@ type PlacementRequest struct {
 	DefinitionVersion uint32
 	X                 float64
 	Y                 float64
+	Scale             float64
 }
 
 type PlacementReservation struct {
@@ -72,6 +73,7 @@ type PlacementReservation struct {
 	DefinitionVersion uint32
 	X                 float64
 	Y                 float64
+	Scale             float64
 	Permit            string
 	Remaining         int
 	Replayed          bool
@@ -686,12 +688,17 @@ func (store *SQLiteStore) ReservePlacement(
 	if playerID == "" || len(idempotencyKey) < 1 || len(idempotencyKey) > 128 ||
 		request.DefinitionID == "" || request.DefinitionVersion == 0 ||
 		math.IsNaN(request.X) || math.IsNaN(request.Y) ||
-		math.IsInf(request.X, 0) || math.IsInf(request.Y, 0) ||
+		math.IsNaN(request.Scale) || math.IsInf(request.X, 0) || math.IsInf(request.Y, 0) ||
+		math.IsInf(request.Scale, 0) ||
 		request.X < 0 || request.X > 100 || request.Y < 0 || request.Y > 150 {
 		return PlacementReservation{}, ErrPlacementUnavailable
 	}
+	if request.Scale == 0 {
+		request.Scale = 1
+	}
 	request.X = float64(float32(request.X))
 	request.Y = float64(float32(request.Y))
+	request.Scale = float64(float32(request.Scale))
 	template, err := store.ResolveRoomTemplate(ctx, roomID)
 	if err != nil {
 		return PlacementReservation{}, ErrPlacementUnavailable
@@ -703,6 +710,11 @@ func (store *SQLiteStore) ReservePlacement(
 	definition, ok := store.definitions[catalogKey{request.DefinitionID, request.DefinitionVersion}]
 	if !ok {
 		return PlacementReservation{}, ErrPlacementItemUnavailable
+	}
+	if !validItemTransformForDefinition(roomsdk.Transform{
+		X: request.X, Y: request.Y, Rotation: 0, Scale: request.Scale,
+	}, request.DefinitionID) {
+		return PlacementReservation{}, ErrPlacementUnavailable
 	}
 	config, err := placementDefaultConfig(definition.DefinitionRaw)
 	if err != nil {
@@ -723,8 +735,8 @@ func (store *SQLiteStore) ReservePlacement(
 		}
 	}
 	keyHash := sha256.Sum256([]byte(idempotencyKey))
-	requestHash := sha256.Sum256([]byte(fmt.Sprintf("%s\x00%d\x00%.6f\x00%.6f\x000\x001\x00%s",
-		request.DefinitionID, request.DefinitionVersion, request.X, request.Y, config)))
+	requestHash := sha256.Sum256([]byte(fmt.Sprintf("%s\x00%d\x00%.6f\x00%.6f\x000\x00%.6f\x00%s",
+		request.DefinitionID, request.DefinitionVersion, request.X, request.Y, request.Scale, config)))
 	connection, err := store.db.Conn(ctx)
 	if err != nil {
 		return PlacementReservation{}, fmt.Errorf("open lounge placement transaction: %w", err)
@@ -745,11 +757,11 @@ func (store *SQLiteStore) ReservePlacement(
 	var replayState string
 	var replayMutationKey sql.NullString
 	err = connection.QueryRowContext(ctx, `SELECT reservation_id, request_hash, definition_id,
-		definition_version, position_x, position_y, state, mutation_key
+		definition_version, position_x, position_y, scale, state, mutation_key
 		FROM team_lounge_placement_reservations
 		WHERE player_id = ? AND idempotency_key_hash = ?`, playerID, keyHash[:]).Scan(
 		&replay.ID, &storedHash, &replay.DefinitionID, &replay.DefinitionVersion,
-		&replay.X, &replay.Y, &replayState, &replayMutationKey,
+		&replay.X, &replay.Y, &replay.Scale, &replayState, &replayMutationKey,
 	)
 	if err == nil {
 		if !bytes.Equal(storedHash, requestHash[:]) {
@@ -813,10 +825,10 @@ func (store *SQLiteStore) ReservePlacement(
 		reservation_id, team_id, player_id, week_key, day_key, room_id, canvas_id, canvas_version,
 		definition_id, definition_version, position_x, position_y, rotation, scale, config_json,
 		idempotency_key_hash, request_hash, permit_hash, permit_expires_at, state, held_at
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, ?, ?, ?, ?, ?, 'held', ?)`,
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, 'held', ?)`,
 		reservationID, budget.TeamID, playerID, budget.WeekKey, creditDay, roomID,
 		template.CanvasID, template.CanvasVersion, request.DefinitionID, request.DefinitionVersion,
-		request.X, request.Y, string(config), keyHash[:], requestHash[:], permitHash,
+		request.X, request.Y, request.Scale, string(config), keyHash[:], requestHash[:], permitHash,
 		now.Add(2*time.Minute).UTC().Format(time.RFC3339Nano), now.UTC().Format(time.RFC3339Nano))
 	if err != nil {
 		return PlacementReservation{}, fmt.Errorf("reserve lounge placement: %w", err)
@@ -831,7 +843,7 @@ func (store *SQLiteStore) ReservePlacement(
 	committed = true
 	return PlacementReservation{
 		ID: reservationID, DefinitionID: request.DefinitionID, DefinitionVersion: request.DefinitionVersion,
-		X: request.X, Y: request.Y, Permit: permit,
+		X: request.X, Y: request.Y, Scale: request.Scale, Permit: permit,
 		Remaining: max(0, budget.Earned-used-1),
 	}, nil
 }

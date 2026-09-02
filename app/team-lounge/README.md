@@ -44,18 +44,24 @@ Canvas before the catalog exposes them.
 - Duck pond, hammock, robot goalie, and pinball bumper are Prize Box items.
   Development grants them with the rest of the catalog; production placement
   requires the matching server-verified unlock. Pond ducks use replicated
-  inverse-distance threat steering with velocity look-ahead. The pond can scale
-  to 2.4× and only mildly dampens a rolling ball. The hammock uses an
-  occupant-triggered fabric sprite and moves only low-speed avatars toward its
-  center. The goalie tracks tagged balls on a bounded rail and adopts a moved
-  placement as its new home. The directional bumper idles through compressed
-  sprite frames and pops forward with a 56-unit impulse, above the 48-unit
-  avatar cap.
+  smoothed inverse-distance threat steering with velocity look-ahead and
+  independent paddle motion. The pond can scale to 2.4× and only mildly dampens
+  a rolling ball. The hammock starts at 1.4×, can scale to 2.4×, and rocks both
+  its fabric and the avatar it settles. The goalie tracks tagged balls on a
+  bounded rail and adopts a moved placement as its new home. The directional
+  bumper stays armed on its first frame, springs only on contact, and pops
+  forward with a 56-unit impulse, above the 48-unit avatar cap. Picker artwork
+  is always static.
 
 The four Starlight definition IDs retain their existing `zoomigo-prop-` names.
-Generation 19 is a clean room cutover for the revised interactive prop
+Generation 20 is a clean room cutover for the revised interactive prop
 definitions; no compatibility import or destructive migration is needed. Their
 typed catalog kind and capability contract are authoritative.
+
+Every placed item and its radial editor derive from the same projected center
+variables. Optical artwork offsets are explicit catalog metadata and are tested
+separately, so fixing transparent padding cannot move the item hit target or
+editor chrome.
 
 The mini goal captures any tagged Lounge ball only after it reaches the back of
 the net, holds it for 0.4 seconds, increments a goal-owned `00`–`99` counter,

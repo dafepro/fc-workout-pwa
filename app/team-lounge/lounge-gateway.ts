@@ -254,14 +254,17 @@ export async function reserveTeamLoungePlacement(
   definitionID: string,
   definitionVersion: number,
   position: { x: number; y: number },
+  scale: number,
   idempotencyKey: string,
 ): Promise<{
   placementID: string;
   permit: string;
   definitionVersion: number;
   position: { x: number; y: number };
+  scale: number;
   remaining: number;
 }> {
+  const normalizedScale = Math.fround(scale);
   const response = await fetch(
     `/api/zoomigo/v1/teams/${encodeURIComponent(teamID)}/lounge/placements`,
     {
@@ -275,6 +278,7 @@ export async function reserveTeamLoungePlacement(
         definitionId: definitionID,
         definitionVersion,
         position,
+        scale: normalizedScale,
       }),
     },
   );
@@ -285,6 +289,7 @@ export async function reserveTeamLoungePlacement(
   const reservedDefinitionVersion = body.definitionVersion;
   const x = body.x;
   const y = body.y;
+  const reservedScale = body.scale;
   const remaining = body.remainingPlacements;
   if (
     typeof placementID !== "string" ||
@@ -296,6 +301,9 @@ export async function reserveTeamLoungePlacement(
     !Number.isFinite(x) ||
     typeof y !== "number" ||
     !Number.isFinite(y) ||
+    typeof reservedScale !== "number" ||
+    !Number.isFinite(reservedScale) ||
+    reservedScale !== normalizedScale ||
     !Number.isInteger(remaining) ||
     (remaining as number) < 0
   ) {
@@ -306,6 +314,7 @@ export async function reserveTeamLoungePlacement(
     permit,
     definitionVersion: reservedDefinitionVersion as number,
     position: { x, y },
+    scale: reservedScale,
     remaining: remaining as number,
   };
 }

@@ -14,9 +14,11 @@ type LoungeItemArtSource = Pick<
 export function LoungeItemArt({
   item,
   decorative = false,
+  playBehaviorAnimation = false,
 }: {
   item: LoungeItemArtSource;
   decorative?: boolean;
+  playBehaviorAnimation?: boolean;
 }) {
   const className = `team-lounge__item-art team-lounge__item-art--${item.kind === "lounge_stamp" ? "stamp" : "item"}`;
   const artOffsetStyle = item.artOffset
@@ -52,7 +54,9 @@ export function LoungeItemArt({
           onDragStart={(event) => event.preventDefault()}
         />
         {["leader", "left", "right"].map((duck) => (
-          <i key={duck} data-duck={duck} aria-hidden="true" />
+          <i key={duck} data-duck={duck} aria-hidden="true">
+            <span />
+          </i>
         ))}
       </span>
     );
@@ -70,7 +74,8 @@ export function LoungeItemArt({
     );
   }
   if (item.imageSrc === "/team-lounge/items/pinball-bumper-sprite-v2.png") {
-    const sequence = item.bumperSequence ?? 0;
+    const sequence = playBehaviorAnimation ? (item.bumperSequence ?? 0) : 0;
+    const springing = sequence > 0;
     return (
       <span
         className={`${className} team-lounge__sprite team-lounge__bumper-sprite`}
@@ -78,8 +83,9 @@ export function LoungeItemArt({
         role={decorative ? undefined : "img"}
         aria-label={decorative ? undefined : item.label}
         aria-hidden={decorative || undefined}
+        data-bumper-state={springing ? "springing" : "armed"}
       >
-        <i key={sequence} data-bumper-frame={sequence} aria-hidden="true" />
+        <i key={sequence} data-bumper-sequence={sequence} aria-hidden="true" />
       </span>
     );
   }

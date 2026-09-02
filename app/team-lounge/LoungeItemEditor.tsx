@@ -12,6 +12,7 @@ import type { TeamLoungeItemTransform } from "./lounge-gateway";
 import { copy } from "../content/copy";
 import {
   clampLoungeItemScale,
+  loungeItemCenterStyle,
   nextLoungeItemRotation,
 } from "./lounge-editor-geometry";
 import type { LoungeItemChoice } from "./lounge-items";
@@ -29,6 +30,7 @@ export interface LoungeEditableItem {
   goalScore?: number;
   duckFlock?: Readonly<{ heading: number; intensity: number }>;
   hammockOccupied?: boolean;
+  hammockOccupantID?: string;
   bumperSequence?: number;
   maxScale?: number;
   artOffset?: Readonly<{ xPercent: number; yPercent: number }>;
@@ -193,7 +195,8 @@ export function LoungeItemEditor({
             ? undefined
             : copy.teamLounge.goalScore(item.goalScore);
         const style = {
-          transform: `translate3d(${screen.x}px, ${screen.y}px, 0) translate(-50%, -50%) rotate(${item.transform.rotation}rad) scale(${item.transform.scale})`,
+          ...loungeItemCenterStyle(screen),
+          transform: `translate3d(var(--lounge-item-center-x), var(--lounge-item-center-y), 0) translate(-50%, -50%) rotate(${item.transform.rotation}rad) scale(${item.transform.scale})`,
           zIndex: item.visualLayer,
           ...(item.visualSize
             ? {
@@ -215,7 +218,7 @@ export function LoungeItemEditor({
         const content = (
           <>
             {paintArtwork || item.kind === "lounge_stamp" ? (
-              <LoungeItemArt item={item} decorative />
+              <LoungeItemArt item={item} decorative playBehaviorAnimation />
             ) : null}
             {goalScore ? (
               <span
@@ -309,6 +312,7 @@ export function LoungeItemEditor({
           data-canvas-pointer-ignore="true"
           style={
             {
+              ...loungeItemCenterStyle(selectedScreen),
               "--editor-x": `${selectedScreen.x}px`,
               "--editor-y": `${selectedScreen.y}px`,
             } as CSSProperties

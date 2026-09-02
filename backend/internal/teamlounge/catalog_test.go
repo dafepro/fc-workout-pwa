@@ -93,7 +93,7 @@ func TestDurableRoomIdentityPersistsAcrossWeekRollover(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if roomID != "team:team-one:lounge:v19" {
+	if roomID != "team:team-one:lounge:v20" {
 		t.Fatalf("room id = %q", roomID)
 	}
 	nextWeek, err := DurableRoomID("team-one", "2026-08-31")
@@ -104,7 +104,7 @@ func TestDurableRoomIdentityPersistsAcrossWeekRollover(t *testing.T) {
 	if err != nil || teamID != "team-one" {
 		t.Fatalf("parsed = %q, %v", teamID, err)
 	}
-	for _, invalid := range []string{"", "team:other", "team:team/one:lounge:v19", "team:team-one:lounge:today", "team:team-one:lounge", "team:team-one:lounge:v18"} {
+	for _, invalid := range []string{"", "team:other", "team:team/one:lounge:v20", "team:team-one:lounge:today", "team:team-one:lounge", "team:team-one:lounge:v19"} {
 		if _, err := ParseRoomID(invalid); err == nil {
 			t.Fatalf("accepted invalid room id %q", invalid)
 		}
@@ -122,8 +122,8 @@ func TestWeeklyThemeManifestOwnsTheImmutableCanvasBinding(t *testing.T) {
 	if theme.RoomGeneration != BeachBoardwalkRoomGeneration {
 		t.Fatalf("room generation = %d", theme.RoomGeneration)
 	}
-	if theme.RoomGeneration != 19 {
-		t.Fatalf("room generation = %d, want interactive prop generation 19", theme.RoomGeneration)
+	if theme.RoomGeneration != 20 {
+		t.Fatalf("room generation = %d, want interactive prop generation 20", theme.RoomGeneration)
 	}
 	if theme.Template.CanvasID != BeachBoardwalkCanvasID || theme.Template.CanvasVersion != BeachBoardwalkCanvasVersion {
 		t.Fatalf("theme template = %#v", theme.Template)
@@ -142,7 +142,7 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 	if canvas.CanvasID != BeachBoardwalkCanvasID || canvas.Version != BeachBoardwalkCanvasVersion || !json.Valid(canvas.DefinitionRaw) {
 		t.Fatalf("canvas record = %#v", canvas)
 	}
-	if canvas.Version != 19 {
+	if canvas.Version != 20 {
 		t.Fatalf("canvas version = %d", canvas.Version)
 	}
 	var shape struct {
@@ -305,10 +305,10 @@ func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 		{"swing-gate", 3, []string{"swing", "bounce"}},
 		{"mini-goal", 5, []string{"dampen", "goal"}},
 		{"ball-cannon", 2, []string{"dampen", "cannon"}},
-		{"duck-pond", 4, []string{"flock", "dampen"}},
-		{"hammock", 4, []string{"rest"}},
+		{"duck-pond", 5, []string{"flock", "dampen"}},
+		{"hammock", 5, []string{"rest"}},
 		{"robot-goalie", 4, []string{"goalie", "bounce"}},
-		{"pinball-bumper", 4, []string{"bounce", "hop"}},
+		{"pinball-bumper", 5, []string{"bounce", "hop"}},
 	}
 	for index, item := range catalog.Items[25:40] {
 		want := wantComposite[index]

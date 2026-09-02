@@ -308,7 +308,8 @@ describe("LoungeCompositeBehavior effects", () => {
       })
       .flush();
 
-    expect(subject.state.flockHeading).toBeCloseTo(-Math.PI / 2, 6);
+    expect(subject.state.flockHeading).toBeLessThan(-Math.PI / 2);
+    expect(subject.state.flockHeading).toBeGreaterThan(-Math.PI);
     expect(subject.state.flockAlarmUntil).toBeGreaterThan(avatarAlarm);
   });
 
@@ -345,6 +346,7 @@ describe("LoungeCompositeBehavior effects", () => {
     expect(avatar.velocity.x).toBeLessThan(0);
     expect(avatar.velocity.y).toBeLessThan(0);
     expect(subject.state.hammockOccupied).toBe(true);
+    expect(subject.state.hammockOccupantID).toBe("avatar-1");
 
     avatar.velocity = { x: 4, y: 0 };
     subject
@@ -634,7 +636,7 @@ describe("LoungeCompositeBehavior effects", () => {
     expect(subject.effects("lounge.goal-confetti")).toMatchObject([
       { params: { score: 0 } },
     ]);
-    expect(LoungeCompositeBehavior.stateVersion).toBe(4);
+    expect(LoungeCompositeBehavior.stateVersion).toBe(5);
   });
 
   it("fuses, holds, and then launches only a predefined ball from the muzzle at high speed", () => {

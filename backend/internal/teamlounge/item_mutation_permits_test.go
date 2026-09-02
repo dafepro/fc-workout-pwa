@@ -18,6 +18,9 @@ func TestValidItemTransformUsesDefinitionScaleLimit(t *testing.T) {
 	if validItemTransformForDefinition(large, "zoomigo-prop-play-robot-goalie") {
 		t.Fatal("large robot goalie transform should be rejected")
 	}
+	if !validItemTransformForDefinition(large, "zoomigo-prop-play-hammock") {
+		t.Fatal("large hammock transform should be valid")
+	}
 }
 
 func TestItemMutationPermitBindsOwnerRoomGenerationRevisionOperationAndTarget(t *testing.T) {

@@ -22,6 +22,7 @@ describe("LoungeItemArt", () => {
       "/team-lounge/items/duck-pond-v1.png",
     );
     expect(container.querySelectorAll("[data-duck]")).toHaveLength(3);
+    expect(container.querySelectorAll("[data-duck] > span")).toHaveLength(3);
     expect(container.firstElementChild).toHaveStyle({
       "--duck-flee-x": "0",
       "--duck-flee-y": "0.75",
@@ -63,7 +64,7 @@ describe("LoungeItemArt", () => {
     );
   });
 
-  it("restarts the bumper pop sprite when its impact sequence changes", () => {
+  it("keeps picker bumpers armed and only springs placed bumpers after impact", () => {
     const { container, rerender } = render(
       <LoungeItemArt
         item={{
@@ -75,9 +76,13 @@ describe("LoungeItemArt", () => {
         }}
       />,
     );
-    expect(container.querySelector("[data-bumper-frame]")).toHaveAttribute(
-      "data-bumper-frame",
-      "1",
+    expect(container.firstElementChild).toHaveAttribute(
+      "data-bumper-state",
+      "armed",
+    );
+    expect(container.querySelector("[data-bumper-sequence]")).toHaveAttribute(
+      "data-bumper-sequence",
+      "0",
     );
 
     rerender(
@@ -89,10 +94,15 @@ describe("LoungeItemArt", () => {
           label: "Pinball bumper",
           bumperSequence: 2,
         }}
+        playBehaviorAnimation
       />,
     );
-    expect(container.querySelector("[data-bumper-frame]")).toHaveAttribute(
-      "data-bumper-frame",
+    expect(container.firstElementChild).toHaveAttribute(
+      "data-bumper-state",
+      "springing",
+    );
+    expect(container.querySelector("[data-bumper-sequence]")).toHaveAttribute(
+      "data-bumper-sequence",
       "2",
     );
   });

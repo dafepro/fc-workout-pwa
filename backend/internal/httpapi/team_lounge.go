@@ -285,6 +285,7 @@ type teamLoungePlacementRequest struct {
 		X float64 `json:"x"`
 		Y float64 `json:"y"`
 	} `json:"position"`
+	Scale float64 `json:"scale"`
 }
 
 type teamLoungePlacementResponse struct {
@@ -294,6 +295,7 @@ type teamLoungePlacementResponse struct {
 	Permit              string  `json:"permit"`
 	X                   float64 `json:"x"`
 	Y                   float64 `json:"y"`
+	Scale               float64 `json:"scale"`
 	RemainingPlacements int     `json:"remainingPlacements"`
 }
 
@@ -330,7 +332,7 @@ func (service *service) reserveTeamLoungePlacement(w http.ResponseWriter, r *htt
 	reservation, err := service.teamLoungeStore.ReservePlacement(
 		r.Context(), request.RoomID, actor.PlayerID, key,
 		teamlounge.PlacementRequest{DefinitionID: request.DefinitionID, DefinitionVersion: request.DefinitionVersion,
-			X: request.Position.X, Y: request.Position.Y},
+			X: request.Position.X, Y: request.Position.Y, Scale: request.Scale},
 		service.now().UTC(),
 	)
 	if err != nil {
@@ -355,7 +357,7 @@ func (service *service) reserveTeamLoungePlacement(w http.ResponseWriter, r *htt
 	writeJSON(w, status, teamLoungePlacementResponse{
 		PlacementID: reservation.ID, DefinitionID: reservation.DefinitionID,
 		DefinitionVersion: reservation.DefinitionVersion, Permit: reservation.Permit,
-		X: reservation.X, Y: reservation.Y, RemainingPlacements: reservation.Remaining,
+		X: reservation.X, Y: reservation.Y, Scale: reservation.Scale, RemainingPlacements: reservation.Remaining,
 	})
 }
 

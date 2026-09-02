@@ -1,6 +1,15 @@
 const fullTurn = 2 * Math.PI;
 const rotationStep = Math.PI / 12;
 
+export function loungeItemCenterStyle(
+  screen: Readonly<{ x: number; y: number }>,
+) {
+  return {
+    "--lounge-item-center-x": `${screen.x}px`,
+    "--lounge-item-center-y": `${screen.y}px`,
+  } as const;
+}
+
 interface LoungeViewport {
   width: number;
   height: number;

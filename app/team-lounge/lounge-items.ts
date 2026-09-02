@@ -20,6 +20,7 @@ interface LoungeItemChoiceBase {
   definitionId: string;
   definitionVersion: number;
   source: "included" | "earned";
+  defaultScale?: number;
   maxScale?: number;
   artOffset?: Readonly<{ xPercent: number; yPercent: number }>;
 }
@@ -146,6 +147,7 @@ interface CompositeItemSpec {
   glyph: string;
   size: { width: number; height: number };
   imageSrc?: string;
+  defaultScale?: number;
   maxScale?: number;
   artOffset?: Readonly<{ xPercent: number; yPercent: number }>;
   visualLayer?: number;
@@ -375,12 +377,13 @@ const compositeItemSpecs: CompositeItemSpec[] = [
   },
   {
     id: "duck-pond",
-    definitionVersion: 4,
+    definitionVersion: 5,
     source: "earned",
     label: "Duck pond",
     glyph: "🦆",
     size: { width: 18, height: 14 },
     maxScale: 2.4,
+    artOffset: { xPercent: 0, yPercent: 2.2 },
     visualLayer: LoungeVisualLayer.GROUND_EFFECT,
     capabilities: ["collision", "behavior"],
     colliders: [sensorCircle("shore", 10), sensorRect("water", 16, 12)],
@@ -388,9 +391,9 @@ const compositeItemSpecs: CompositeItemSpec[] = [
       {
         kind: "flock",
         sensorId: "shore",
-        radius: 10,
-        lookAheadSeconds: 0.2,
-        relaxSeconds: 0.8,
+        radius: 13,
+        lookAheadSeconds: 0.35,
+        relaxSeconds: 1.2,
       },
       {
         kind: "dampen",
@@ -403,22 +406,25 @@ const compositeItemSpecs: CompositeItemSpec[] = [
   },
   {
     id: "hammock",
-    definitionVersion: 4,
+    definitionVersion: 5,
     source: "earned",
     label: "Hammock",
     glyph: "🌴",
     imageSrc: "/team-lounge/items/hammock-sprite-v2.png",
     size: { width: 20, height: 12 },
+    defaultScale: 1.4,
+    maxScale: 2.4,
+    artOffset: { xPercent: -0.4, yPercent: 4.5 },
     capabilities: ["collision", "physics", "behavior"],
     body: kinematicBody(),
-    colliders: [sensorRect("bed", 14, 6)],
+    colliders: [sensorRect("bed", 18, 8)],
     effects: [
       {
         kind: "rest",
         sensorId: "bed",
-        engageMaxSpeed: 2,
-        settleSpeed: 1.6,
-        animationSeconds: 0.5,
+        engageMaxSpeed: 6,
+        settleSpeed: 3.2,
+        animationSeconds: 0.75,
       },
     ],
   },
@@ -429,7 +435,6 @@ const compositeItemSpecs: CompositeItemSpec[] = [
     label: "Robot goalie",
     glyph: "🤖",
     size: { width: 18, height: 14 },
-    artOffset: { xPercent: -2, yPercent: 0 },
     capabilities: ["collision", "physics", "behavior"],
     body: kinematicBody(),
     colliders: [solidRect("keeper", 12, 3), sensorCircle("save-zone", 10)],
@@ -453,7 +458,7 @@ const compositeItemSpecs: CompositeItemSpec[] = [
   },
   {
     id: "pinball-bumper",
-    definitionVersion: 4,
+    definitionVersion: 5,
     source: "earned",
     label: "Pinball bumper",
     glyph: "🔴",
@@ -488,6 +493,7 @@ export const compositeLoungeItems: LoungePropChoice[] = compositeItemSpecs.map(
     label,
     glyph,
     imageSrc,
+    defaultScale,
     maxScale,
     artOffset,
     capabilities,
@@ -503,6 +509,7 @@ export const compositeLoungeItems: LoungePropChoice[] = compositeItemSpecs.map(
     source,
     kind: "lounge_prop",
     capabilities,
+    defaultScale,
     maxScale,
     artOffset,
   }),

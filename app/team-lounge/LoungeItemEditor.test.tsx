@@ -98,6 +98,15 @@ describe("LoungeItemEditor", () => {
     expect(editor).toBeVisible();
     expect(editor.style.getPropertyValue("--editor-x")).toBe("120px");
     expect(editor.style.getPropertyValue("--editor-y")).toBe("180px");
+    const placed = screen.getByRole("button", {
+      name: "Bolt stamp, yours; drag to move",
+    });
+    expect(placed.style.getPropertyValue("--lounge-item-center-x")).toBe(
+      editor.style.getPropertyValue("--lounge-item-center-x"),
+    );
+    expect(placed.style.getPropertyValue("--lounge-item-center-y")).toBe(
+      editor.style.getPropertyValue("--lounge-item-center-y"),
+    );
     expect(editor).toHaveAttribute("data-layout", "radial");
     fireEvent.click(screen.getByRole("button", { name: "Make stamp larger" }));
     expect(onScale).toHaveBeenCalledWith(item, 1.1);

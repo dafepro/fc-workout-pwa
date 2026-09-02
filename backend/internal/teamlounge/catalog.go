@@ -13,7 +13,7 @@ import (
 
 const (
 	BeachBoardwalkCanvasID        = "zoomigo-beach-boardwalk"
-	BeachBoardwalkCanvasVersion   = uint32(19)
+	BeachBoardwalkCanvasVersion   = uint32(20)
 	BeachBoardwalkRoomGeneration  = BeachBoardwalkCanvasVersion
 	loungeVisualLayerDecal        = 4
 	loungeVisualLayerGroundEffect = 6
@@ -318,21 +318,21 @@ var loungeCompositeItemSpecs = []loungeCompositeItemSpec{
 		},
 	},
 	{
-		ID: "duck-pond", PrizeID: "lounge-prop-duck-pond", Version: 4, DisplayName: "Duck pond", Width: 18, Height: 14,
+		ID: "duck-pond", PrizeID: "lounge-prop-duck-pond", Version: 5, DisplayName: "Duck pond", Width: 18, Height: 14,
 		VisualLayer: loungeVisualLayerGroundEffect,
 		Body:        loungeFixedBody(), Colliders: []map[string]any{
 			loungeSensorCircle("shore", 10), loungeSensorRect("water", 16, 12),
 		},
 		Effects: []map[string]any{
-			{"kind": "flock", "sensorId": "shore", "radius": 10, "lookAheadSeconds": 0.2, "relaxSeconds": 0.8},
+			{"kind": "flock", "sensorId": "shore", "radius": 13, "lookAheadSeconds": 0.35, "relaxSeconds": 1.2},
 			{"kind": "dampen", "sensorId": "water", "linearFactor": 0.995, "angularFactor": 0.98, "minimumSpeed": 0},
 		},
 	},
 	{
-		ID: "hammock", PrizeID: "lounge-prop-hammock", Version: 4, DisplayName: "Hammock", Width: 20, Height: 12,
-		Body: loungeKinematicBody(), Colliders: []map[string]any{loungeSensorRect("bed", 14, 6)},
+		ID: "hammock", PrizeID: "lounge-prop-hammock", Version: 5, DisplayName: "Hammock", Width: 20, Height: 12,
+		Body: loungeKinematicBody(), Colliders: []map[string]any{loungeSensorRect("bed", 18, 8)},
 		Effects: []map[string]any{
-			{"kind": "rest", "sensorId": "bed", "engageMaxSpeed": 2, "settleSpeed": 1.6, "animationSeconds": 0.5},
+			{"kind": "rest", "sensorId": "bed", "engageMaxSpeed": 6, "settleSpeed": 3.2, "animationSeconds": 0.75},
 		},
 	},
 	{
@@ -346,7 +346,7 @@ var loungeCompositeItemSpecs = []loungeCompositeItemSpec{
 		},
 	},
 	{
-		ID: "pinball-bumper", PrizeID: "lounge-prop-pinball-bumper", Version: 4, DisplayName: "Pinball bumper", Width: 11, Height: 11,
+		ID: "pinball-bumper", PrizeID: "lounge-prop-pinball-bumper", Version: 5, DisplayName: "Pinball bumper", Width: 11, Height: 11,
 		Body: loungeFixedBody(), Colliders: []map[string]any{
 			loungePinballBumperCollider(), loungeSensorCircle("bumper", 5.5),
 		},
@@ -496,7 +496,7 @@ func loungeSillyStampDefinitionJSON(assetID string) json.RawMessage {
 }
 
 const beachBoardwalkCanvasJSON = `{
-  "id":"zoomigo-beach-boardwalk","version":19,
+  "id":"zoomigo-beach-boardwalk","version":20,
   "size":{"width":100,"height":150},"orientation":"topDown",
   "backgroundAssetId":"lounge.background",
   "edges":{"top":"open","right":"open","bottom":"open","left":"open"},

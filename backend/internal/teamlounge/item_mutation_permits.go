@@ -596,7 +596,7 @@ func validItemTransformForDefinition(transform roomsdk.Transform, definitionID s
 		return false
 	}
 	maximum := 1.4
-	if definitionID == "zoomigo-prop-play-duck-pond" {
+	if definitionID == "zoomigo-prop-play-duck-pond" || definitionID == "zoomigo-prop-play-hammock" {
 		maximum = 2.4
 	}
 	return transform.Scale <= maximum

@@ -314,7 +314,7 @@ describe("development Lounge items", () => {
       visual: { zIndex: LoungeVisualLayer.GROUND_EFFECT },
       defaultConfig: {
         effects: expect.arrayContaining([
-          expect.objectContaining({ kind: "flock", radius: 10 }),
+          expect.objectContaining({ kind: "flock", radius: 13 }),
           expect.objectContaining({
             kind: "dampen",
             linearFactor: 0.995,
@@ -325,18 +325,27 @@ describe("development Lounge items", () => {
     });
     expect(
       compositeLoungeItems.find(({ id }) => id === "duck-pond"),
-    ).toMatchObject({ maxScale: 2.4 });
+    ).toMatchObject({
+      maxScale: 2.4,
+      artOffset: { xPercent: 0, yPercent: 2.2 },
+    });
     expect(definition("hammock")).toMatchObject({
       defaultConfig: {
         effects: [
           expect.objectContaining({
             kind: "rest",
             sensorId: "bed",
-            engageMaxSpeed: 2,
+            engageMaxSpeed: 6,
           }),
         ],
       },
     });
+    expect(
+      compositeLoungeItems.find(({ id }) => id === "hammock"),
+    ).toMatchObject({ defaultScale: 1.4, maxScale: 2.4 });
+    expect(
+      compositeLoungeItems.find(({ id }) => id === "robot-goalie"),
+    ).not.toHaveProperty("artOffset.xPercent");
     expect(definition("robot-goalie")).toMatchObject({
       defaultConfig: {
         effects: expect.arrayContaining([

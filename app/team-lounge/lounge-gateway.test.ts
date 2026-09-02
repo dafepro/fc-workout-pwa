@@ -303,6 +303,7 @@ describe("canonical Team Lounge gateway", () => {
             permit: "p".repeat(43),
             x: 40,
             y: 70,
+            scale: Math.fround(1.4),
             remainingPlacements: 0,
           }),
           { status: 201 },
@@ -318,6 +319,7 @@ describe("canonical Team Lounge gateway", () => {
         "zoomigo-stamp-bolt",
         1,
         { x: 40, y: 70 },
+        1.4,
         "placement-key",
       ),
     ).resolves.toEqual({
@@ -325,6 +327,7 @@ describe("canonical Team Lounge gateway", () => {
       permit: "p".repeat(43),
       definitionVersion: 1,
       position: { x: 40, y: 70 },
+      scale: Math.fround(1.4),
       remaining: 0,
     });
     expect(fetcher).toHaveBeenNthCalledWith(

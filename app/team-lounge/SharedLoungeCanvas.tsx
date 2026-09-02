@@ -179,6 +179,22 @@ function hammockOccupiedFor(
   );
 }
 
+function hammockOccupantFor(
+  definitionID: string | undefined,
+  behaviorState: unknown,
+): string | undefined {
+  if (
+    definitionID !== HAMMOCK_DEFINITION_ID ||
+    !behaviorState ||
+    typeof behaviorState !== "object"
+  ) {
+    return undefined;
+  }
+  const occupant = (behaviorState as { hammockOccupantID?: unknown })
+    .hammockOccupantID;
+  return typeof occupant === "string" ? occupant : undefined;
+}
+
 function bumperSequenceFor(
   definitionID: string | undefined,
   behaviorState: unknown,
@@ -473,6 +489,10 @@ export function SharedLoungeCanvas({
                 canonical.behaviorState,
               ),
               hammockOccupied: hammockOccupiedFor(
+                canonical.definitionId,
+                canonical.behaviorState,
+              ),
+              hammockOccupantID: hammockOccupantFor(
                 canonical.definitionId,
                 canonical.behaviorState,
               ),
@@ -790,6 +810,7 @@ export function SharedLoungeCanvas({
         selectedItem.definitionId,
         selectedItem.definitionVersion,
         point,
+        selectedItem.defaultScale ?? 1,
         idempotencyKey,
       );
       setRemainingPlacements(reservation.remaining);
@@ -797,7 +818,7 @@ export function SharedLoungeCanvas({
         selectedItem.definitionId,
         reservation.position,
         0,
-        1,
+        reservation.scale,
         {
           authorizationEvidence: new TextEncoder().encode(reservation.permit),
           applicationCorrelationId: reservation.placementID,
@@ -1026,6 +1047,12 @@ export function SharedLoungeCanvas({
             data-presence={state}
             data-avatar-stack={
               current ? "local" : state === "active" ? "teammate" : "bench"
+            }
+            data-hammock-occupied={
+              itemOverlays.some(
+                ({ hammockOccupantID }) =>
+                  hammockOccupantID === `avatar:${player.id}`,
+              ) || undefined
             }
             key={player.id}
             role={current ? undefined : "img"}

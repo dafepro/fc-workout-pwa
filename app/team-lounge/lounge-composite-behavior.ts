@@ -102,6 +102,7 @@ export interface LoungeCompositeState {
   goalieActiveUntil: number;
   hammockOccupied: boolean;
   hammockOccupiedUntil: number;
+  hammockOccupantID?: string;
   bumperSequence: number;
 }
 
@@ -110,7 +111,7 @@ export const LoungeCompositeBehavior: ItemBehavior<
   LoungeCompositeState
 > = {
   behaviorType: "zoomigoLoungeComposite",
-  stateVersion: 4,
+  stateVersion: 5,
   subscribes: [
     "contact.enter",
     "contact.stay",
@@ -152,6 +153,7 @@ export const LoungeCompositeBehavior: ItemBehavior<
           motionVelocity: hasGoalie ? { x: 0, y: 0 } : state.motionVelocity,
           hammockOccupied: false,
           hammockOccupiedUntil: 0,
+          hammockOccupantID: undefined,
         },
         commands: idleMotionCommands(ctx, config.effects, state.elapsedTicks),
       };
@@ -176,6 +178,7 @@ export const LoungeCompositeBehavior: ItemBehavior<
       goalieActiveUntil: state.goalieActiveUntil,
       hammockOccupied: state.hammockOccupied ?? false,
       hammockOccupiedUntil: state.hammockOccupiedUntil ?? 0,
+      hammockOccupantID: state.hammockOccupantID,
       bumperSequence: state.bumperSequence ?? 0,
     };
     if (event.type === "tick") {
@@ -187,6 +190,7 @@ export const LoungeCompositeBehavior: ItemBehavior<
         ctx.tick > nextState.hammockOccupiedUntil
       ) {
         nextState.hammockOccupied = false;
+        nextState.hammockOccupantID = undefined;
       }
     }
     const commands: BehaviorCommand[] = [];
@@ -370,7 +374,10 @@ function updateFlock(
   const strength = (1 - distance / effect.radius) ** 2;
   if (state.flockTick !== ctx.tick) {
     state.flockTick = ctx.tick;
-    state.flockVector = { x: 0, y: 0 };
+    state.flockVector = {
+      x: state.flockVector.x * 0.72,
+      y: state.flockVector.y * 0.72,
+    };
   }
   state.flockVector = {
     x: state.flockVector.x + away.x * strength,
@@ -393,6 +400,10 @@ function relaxFlock(
   if (ctx.tick <= state.flockAlarmUntil || state.flockIntensity <= 0) return;
   const relaxTicks = Math.max(1, ctx.ticksFor(effect.relaxSeconds));
   state.flockIntensity = Math.max(0, state.flockIntensity - 1 / relaxTicks);
+  state.flockVector = {
+    x: state.flockVector.x * 0.9,
+    y: state.flockVector.y * 0.9,
+  };
 }
 
 function restCommands(
@@ -413,6 +424,7 @@ function restCommands(
   const direction = distance > 0.05 ? normalize(towardCenter) : { x: 0, y: 0 };
   state.hammockOccupied = true;
   state.hammockOccupiedUntil = ctx.tick + ctx.ticksFor(effect.animationSeconds);
+  state.hammockOccupantID = target.entityId;
   return [
     {
       type: "setVelocity",

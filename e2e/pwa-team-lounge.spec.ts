@@ -74,9 +74,10 @@ async function expectArtworkAlphaCentered(artwork: Locator) {
             maxY = Math.max(maxY, y);
           }
         }
-        const bounds = image.getBoundingClientRect();
+        const artwork = image.closest(".team-lounge__item-art") ?? image;
+        const bounds = artwork.getBoundingClientRect();
         const transform = new DOMMatrixReadOnly(
-          getComputedStyle(image).transform,
+          getComputedStyle(artwork).transform,
         );
         return {
           name: image.alt || new URL(image.src).pathname,
@@ -95,11 +96,11 @@ async function expectArtworkAlphaCentered(artwork: Locator) {
     expect(
       Math.abs(measurement.xPercent),
       `${measurement.name} horizontal alpha center`,
-    ).toBeLessThanOrEqual(6);
+    ).toBeLessThanOrEqual(3);
     expect(
       Math.abs(measurement.yPercent),
       `${measurement.name} vertical alpha center`,
-    ).toBeLessThanOrEqual(12);
+    ).toBeLessThanOrEqual(3);
   }
 }
 
@@ -271,6 +272,13 @@ test("development exposes the prize props and nearby avatars scatter the pond du
       lounge.getByRole("button", { name: `Choose ${label} item` }),
     ).toBeAttached();
   }
+  const pickerBumper = lounge
+    .getByRole("button", { name: "Choose Pinball bumper item" })
+    .locator(".team-lounge__bumper-sprite > i");
+  await expect(pickerBumper).toHaveAttribute("data-bumper-sequence", "0");
+  expect(
+    await pickerBumper.evaluate((node) => getComputedStyle(node).animationName),
+  ).toBe("none");
   await expectArtworkAlphaCentered(
     lounge
       .getByRole("dialog", { name: "Choose a Lounge item" })
@@ -300,7 +308,7 @@ test("development exposes the prize props and nearby avatars scatter the pond du
   });
   expect((await placementRequest).postDataJSON()).toMatchObject({
     definitionId: "zoomigo-prop-play-duck-pond",
-    definitionVersion: 4,
+    definitionVersion: 5,
   });
   await expect(lounge.getByRole("status")).toHaveText("Duck pond placed.", {
     timeout: 10_000,
@@ -309,6 +317,9 @@ test("development exposes the prize props and nearby avatars scatter the pond du
   const pond = lounge.getByRole("button", {
     name: "Duck pond item, yours; tap to edit",
   });
+  await expectArtworkAlphaCentered(
+    pond.locator(".team-lounge__duck-pond-base"),
+  );
   await expect(pond.locator("[data-duck]")).toHaveCount(3);
   await expect
     .poll(
@@ -323,6 +334,27 @@ test("development exposes the prize props and nearby avatars scatter the pond du
       { timeout: 10_000 },
     )
     .toBeGreaterThan(0.05);
+  await pond.click();
+  const editablePond = lounge.getByRole("button", {
+    name: "Duck pond item, yours; drag to move",
+  });
+  const editor = lounge.getByRole("group", { name: "Edit selected item" });
+  const centerError = await Promise.all([
+    editablePond.boundingBox(),
+    editor.locator(".team-lounge__item-editor-ring").boundingBox(),
+  ]).then(([itemBounds, editorBounds]) => {
+    expect(itemBounds).not.toBeNull();
+    expect(editorBounds).not.toBeNull();
+    return Math.hypot(
+      itemBounds!.x +
+        itemBounds!.width / 2 -
+        (editorBounds!.x + editorBounds!.width / 2),
+      itemBounds!.y +
+        itemBounds!.height / 2 -
+        (editorBounds!.y + editorBounds!.height / 2),
+    );
+  });
+  expect(centerError).toBeLessThanOrEqual(0.5);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(
     320,
   );

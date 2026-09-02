@@ -730,6 +730,21 @@ describe("Shared Lounge Canvas", () => {
             scale: 1,
             behaviorState: {},
           },
+          {
+            id: "hammock-one",
+            kind: "item",
+            definitionId: "zoomigo-prop-play-hammock",
+            x: 50,
+            y: 75,
+            rotation: 0,
+            scale: 1.4,
+            ownerUserId: mason.id,
+            itemRevision: 1,
+            behaviorState: {
+              hammockOccupied: true,
+              hammockOccupantID: `avatar:${mason.id}`,
+            },
+          },
         ],
       });
       runtime.projectionSubscriptions[0]?.observer({
@@ -753,6 +768,7 @@ describe("Shared Lounge Canvas", () => {
             ["stamp-one", "zoomigo-stamp-soccer"],
             ["cannon-one", "zoomigo-prop-play-ball-cannon"],
             ["boardwalk-beach-ball", "beach-ball"],
+            ["hammock-one", "zoomigo-prop-play-hammock"],
           ].map(([entityId, definitionId]) => ({
             entityId,
             definitionId,
@@ -787,6 +803,14 @@ describe("Shared Lounge Canvas", () => {
       "/team-lounge/beach-ball.svg",
     );
     expect(avatar).toHaveAttribute("data-avatar-stack", "local");
+    expect(avatar).toHaveAttribute("data-hammock-occupied", "true");
+    expect(
+      screen
+        .getByRole("img", {
+          name: "Hammock item, yours; locked from an earlier day",
+        })
+        .getAttribute("style"),
+    ).toContain("scale(1.4)");
   });
 
   it("shows an allowlisted quick phrase as a transient sender bubble", async () => {
