@@ -65,6 +65,8 @@ The hub never renders raw training results, exhaustion, assessments, exact
 timestamps, or a least-active ordering. The older standalone activity-board and
 Leaders screens are retired. No player route or API exposes a comparative
 ranking; Team shows only bounded participation groups and aggregate progress.
+The Team header keeps a top-right Lounge shortcut visible; it follows the same
+post-check-in access gate as the Lounge preview and restores focus after return.
 
 The Lounge uses authenticated transient reactions and server-authorized Canvas
 state. Placement/edit controls expose only owned current-generation items and

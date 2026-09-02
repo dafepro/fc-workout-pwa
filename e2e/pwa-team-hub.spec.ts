@@ -43,6 +43,25 @@ test("the Team Hub deduplicates positive activity and lazily opens Lounge", asyn
   await expect(
     page.getByRole("heading", { name: "Hill Striders" }),
   ).toBeVisible();
+  const teamHeader = page.locator(".team-hub-header");
+  const headerLoungeAction = teamHeader.getByRole("button", {
+    name: "Go to Lounge",
+  });
+  await expect(headerLoungeAction).toBeVisible();
+  await expect(headerLoungeAction).toHaveCSS("min-height", "44px");
+  const [headerBox, actionBox] = await Promise.all([
+    teamHeader.boundingBox(),
+    headerLoungeAction.boundingBox(),
+  ]);
+  expect(headerBox).not.toBeNull();
+  expect(actionBox).not.toBeNull();
+  expect(actionBox!.x + actionBox!.width).toBeGreaterThan(
+    headerBox!.x + headerBox!.width / 2,
+  );
+  await expect(teamHeader).toHaveScreenshot("team-hub-lounge-action.png", {
+    animations: "disabled",
+    maxDiffPixels: 50,
+  });
   await expect(page.getByRole("heading", { name: "This week" })).toBeVisible();
   await expect(page.getByText("1 of 12 teammates completed")).toBeVisible();
   const activity = page.getByRole("region", { name: "Teammate activity" });
@@ -115,7 +134,7 @@ test("the Team Hub deduplicates positive activity and lazily opens Lounge", asyn
     "Hill Sprints challenge",
   );
 
-  await openLounge.click();
+  await headerLoungeAction.click();
   await expect(page).toHaveURL(/\/team\?view=lounge$/);
   const lounge = page.getByRole("region", {
     name: "Beach Boardwalk Team Lounge",
@@ -159,7 +178,7 @@ test("the Team Hub deduplicates positive activity and lazily opens Lounge", asyn
 
   await page.goBack();
   await expect(page).toHaveURL(/\/team$/);
-  await expect(openLounge).toBeFocused();
+  await expect(headerLoungeAction).toBeFocused();
   await api.dispose();
 });
 

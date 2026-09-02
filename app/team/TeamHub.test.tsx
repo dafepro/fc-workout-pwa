@@ -77,13 +77,19 @@ describe("TeamHub", () => {
     expect(screen.queryByText(/0 of 3/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/3 active days in 5/i)).not.toBeInTheDocument();
 
+    const headerLoungeAction = screen.getByRole("button", {
+      name: "Go to Lounge",
+    });
+    fireEvent.click(headerLoungeAction);
+    expect(onOpenLounge).toHaveBeenCalledTimes(1);
+
     const loungePreview = screen.getByRole("region", {
       name: "Team Lounge preview",
     });
     fireEvent.click(
       within(loungePreview).getByRole("button", { name: "Open Lounge" }),
     );
-    expect(onOpenLounge).toHaveBeenCalledTimes(1);
+    expect(onOpenLounge).toHaveBeenCalledTimes(2);
     expect(screen.getAllByRole("button", { name: "Open Lounge" })).toHaveLength(
       1,
     );
@@ -109,5 +115,6 @@ describe("TeamHub", () => {
         screen.getByRole("region", { name: "Team Lounge preview" }),
       ).getByRole("button", { name: "Open Lounge" }),
     ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Go to Lounge" })).toBeDisabled();
   });
 });

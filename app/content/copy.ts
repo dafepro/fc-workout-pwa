@@ -197,6 +197,8 @@ export const copy = {
     loungeTitle: "Beach Boardwalk",
     loungeDetail: "Play, react, and decorate together.",
     loungeLocked: "Finish today’s plan to enter.",
+    goToLounge: "Go to Lounge",
+    loungeShortcut: "Lounge",
     openLounge: "Open Lounge",
     backToTeam: "Back to Team",
     rosterLoading: "Gathering your teammates…",

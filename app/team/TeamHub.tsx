@@ -25,6 +25,22 @@ export function TeamHub({
           <p className="eyebrow">Team</p>
           <h1>{hub.team.name}</h1>
         </div>
+        <button
+          type="button"
+          className="team-hub-header__lounge-action"
+          aria-label={copy.teamHub.goToLounge}
+          data-team-lounge-open
+          disabled={!hub.access.loungeUnlocked}
+          onClick={onOpenLounge}
+        >
+          <span className="team-hub-header__lounge-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M5 19V9a7 7 0 0 1 14 0v10" />
+              <path d="M9 12h7m-3-3 3 3-3 3" />
+            </svg>
+          </span>
+          <span>{copy.teamHub.loungeShortcut}</span>
+        </button>
       </header>
       <TeamWeekFocus focus={hub.focus} />
       <TeammateActivity

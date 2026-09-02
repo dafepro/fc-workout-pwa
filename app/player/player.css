@@ -876,6 +876,81 @@
   line-height: 1.05;
 }
 
+.team-hub-header > div {
+  min-width: 0;
+}
+
+.team-hub-header__lounge-action {
+  display: inline-flex;
+  min-height: 44px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.42rem;
+  padding: 0.38rem 0.72rem 0.38rem 0.42rem;
+  border: 1px solid #9fc92c;
+  border-radius: 999px;
+  background: linear-gradient(145deg, #dbff65, #bfea34);
+  box-shadow:
+    0 0.38rem 0.8rem rgb(65 102 28 / 18%),
+    inset 0 1px 0 rgb(255 255 255 / 62%);
+  color: #173f2f;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.team-hub-header__lounge-action:hover:not(:disabled) {
+  box-shadow:
+    0 0.5rem 1rem rgb(65 102 28 / 24%),
+    inset 0 1px 0 rgb(255 255 255 / 70%);
+  transform: translateY(-1px);
+}
+
+.team-hub-header__lounge-action:focus-visible {
+  outline: 0.2rem solid #6e56cf;
+  outline-offset: 0.16rem;
+}
+
+.team-hub-header__lounge-action:disabled {
+  border-color: #c8d2c5;
+  background: #e9eee8;
+  box-shadow: none;
+  color: #78827c;
+  cursor: not-allowed;
+}
+
+.team-hub-header__lounge-icon {
+  display: grid;
+  width: 1.8rem;
+  height: 1.8rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #173f2f;
+  color: #d9ff5f;
+  place-items: center;
+}
+
+.team-hub-header__lounge-action:disabled .team-hub-header__lounge-icon {
+  background: #aeb8b1;
+  color: white;
+}
+
+.team-hub-header__lounge-icon svg {
+  width: 1.08rem;
+  height: 1.08rem;
+  fill: none;
+  stroke: currentcolor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
 .team-hub-card,
 .team-lounge-preview {
   min-width: 0;
