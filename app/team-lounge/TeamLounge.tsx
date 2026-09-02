@@ -31,6 +31,8 @@ export function TeamLounge({
   const [state, setState] = useState<LoungeCanvasState>("loading");
   const [presence, setPresence] = useState(1);
   const [canvasKey, setCanvasKey] = useState(0);
+  const [settingsContainer, setSettingsContainer] =
+    useState<HTMLDivElement | null>(null);
   const {
     active: fullscreenActive,
     bindContainer: bindFullscreenContainer,
@@ -88,6 +90,12 @@ export function TeamLounge({
             <span aria-hidden="true" />
             {unlocked ? `${presence} here` : copy.teamLounge.locked}
           </span>
+          {unlocked && connected ? (
+            <div
+              ref={setSettingsContainer}
+              className="team-lounge__header-settings"
+            />
+          ) : null}
           {unlocked ? (
             <button
               type="button"
@@ -165,6 +173,7 @@ export function TeamLounge({
               player={player}
               roster={roster}
               assets={sceneAssets}
+              settingsContainer={settingsContainer}
               onStateChange={updateState}
               onPresenceChange={setPresence}
             />

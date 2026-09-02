@@ -817,7 +817,7 @@ describe("Shared Lounge Canvas", () => {
     ).toHaveTextContent("Nice!");
   });
 
-  it("loads the device chat packs into the in-canvas settings wheel and dock", async () => {
+  it("loads device chat packs into the header settings control and dock", async () => {
     prizeInventory.mockResolvedValue([
       {
         item: {
@@ -839,6 +839,15 @@ describe("Shared Lounge Canvas", () => {
       JSON.stringify(["space-cadet"]),
     );
     render(
+      <header className="team-lounge__header">
+        <div
+          className="team-lounge__header-actions"
+          data-testid="settings-container"
+        />
+      </header>,
+    );
+    const settingsContainer = screen.getByTestId("settings-container");
+    render(
       <AvatarIdentityProvider
         value={{ currentPlayerID: mason.id, avatarConfig: defaultAvatar() }}
       >
@@ -846,6 +855,7 @@ describe("Shared Lounge Canvas", () => {
           teamID="team-one"
           player={mason}
           roster={[mason]}
+          settingsContainer={settingsContainer}
           onStateChange={vi.fn()}
           onPresenceChange={vi.fn()}
         />
@@ -855,6 +865,11 @@ describe("Shared Lounge Canvas", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Quick-message pack settings" }),
     );
+    expect(
+      screen
+        .getByRole("button", { name: "Quick-message pack settings" })
+        .closest(".team-lounge__header-actions"),
+    ).toBe(settingsContainer);
     await waitFor(() =>
       expect(
         screen.getByRole("checkbox", { name: /Space Cadet/u }),
