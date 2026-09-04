@@ -22,6 +22,10 @@ rules into a maintained document, move unfinished trigger-based ideas to
 ## Product sources of truth
 
 - [PRODUCT_BRIEF.md](PRODUCT_BRIEF.md) — audience, value, and product boundary
+- [avatar/intent.md](avatar/intent.md) — product intent for the replacement
+  animated 3D avatar system
+- [avatar/avatar-architecture.md](avatar/avatar-architecture.md) — **Proposed**
+  technical architecture for the replacement avatar platform
 - [UX_AND_SAFETY_RULES.md](UX_AND_SAFETY_RULES.md) — non-negotiable youth-safety
   and visibility rules
 - [SCREEN_SPECS.md](SCREEN_SPECS.md) — current player and staff surfaces
