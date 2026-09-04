@@ -13,7 +13,7 @@ import (
 
 const (
 	BeachBoardwalkCanvasID        = "zoomigo-beach-boardwalk"
-	BeachBoardwalkCanvasVersion   = uint32(20)
+	BeachBoardwalkCanvasVersion   = uint32(21)
 	BeachBoardwalkRoomGeneration  = BeachBoardwalkCanvasVersion
 	loungeVisualLayerDecal        = 4
 	loungeVisualLayerGroundEffect = 6
@@ -211,7 +211,7 @@ type loungeCompositeItemSpec struct {
 
 var loungeCompositeItemSpecs = []loungeCompositeItemSpec{
 	{
-		ID: "boost-pad", DisplayName: "Boost pad", Width: 9, Height: 14,
+		ID: "boost-pad", Version: 4, DisplayName: "Launch pad", Width: 9, Height: 14,
 		VisualLayer: loungeVisualLayerGroundEffect,
 		Body:        loungeFixedBody(), Colliders: []map[string]any{loungeSensorRect("zone", 7, 12)},
 		Effects: []map[string]any{
@@ -265,22 +265,25 @@ var loungeCompositeItemSpecs = []loungeCompositeItemSpec{
 		},
 	},
 	{
-		ID: "speed-lane", DisplayName: "Speed lane", Width: 18, Height: 6,
+		ID: "speed-lane", Version: 4, DisplayName: "Ball speed lane", Width: 18, Height: 6,
 		VisualLayer: loungeVisualLayerGroundEffect,
 		Body:        loungeFixedBody(), Colliders: []map[string]any{loungeSensorRect("lane", 17, 5)},
 		Effects: []map[string]any{
-			{"kind": "boost", "sensorId": "lane", "speed": 22},
-			{"kind": "push", "sensorId": "lane", "force": 5},
+			{"kind": "dampen", "sensorId": "lane", "linearFactor": 1, "angularFactor": 0.82, "minimumSpeed": 0,
+				"acceptedDefinitionIds": []string{"lounge-ball", "beach-ball", "zoomigo-prop-beach-ball"}},
+			{"kind": "accelerate", "sensorId": "lane", "impulsePerSecond": 90,
+				"acceptedDefinitionIds": []string{"lounge-ball", "beach-ball", "zoomigo-prop-beach-ball"}},
 		},
 	},
 	{
-		ID: "wobble-cone", DisplayName: "Wobble cone", Width: 9, Height: 11,
+		ID: "wobble-cone", Version: 4, DisplayName: "Wobble cone", Width: 9, Height: 11,
 		Body: loungeDynamicBody(4, 0.4), Colliders: []map[string]any{
 			loungeSolidCircle("solid", 3.8), loungeSensorCircle("bumper", 5),
 		},
 		Effects: []map[string]any{
-			{"kind": "bounce", "sensorId": "bumper", "impulse": 7},
-			{"kind": "wobble", "sensorId": "bumper", "torque": 780},
+			{"kind": "bounce", "sensorId": "bumper", "impulse": 7,
+				"acceptedDefinitionIds": []string{"beach-ball", "zoomigo-prop-beach-ball"}},
+			{"kind": "wobble", "sensorId": "bumper", "torque": 780, "nudgeImpulse": 0.9},
 		},
 	},
 	{
@@ -496,7 +499,7 @@ func loungeSillyStampDefinitionJSON(assetID string) json.RawMessage {
 }
 
 const beachBoardwalkCanvasJSON = `{
-  "id":"zoomigo-beach-boardwalk","version":20,
+  "id":"zoomigo-beach-boardwalk","version":21,
   "size":{"width":100,"height":150},"orientation":"topDown",
   "backgroundAssetId":"lounge.background",
   "edges":{"top":"open","right":"open","bottom":"open","left":"open"},
@@ -562,7 +565,7 @@ const loungeBallConfigSchemaJSON = `{
 
 const loungeCompositeConfigSchemaJSON = `{
   "type":"object",
-  "properties":{"effects":{"type":"array","minItems":1,"maxItems":4,"items":{"type":"object","properties":{"kind":{"type":"string","enum":["boost","hop","bounce","wobble","spin","push","orbit","dampen","swing","goal","cannon","flock","rest","goalie"]}},"required":["kind"],"additionalProperties":true}}},
+  "properties":{"effects":{"type":"array","minItems":1,"maxItems":4,"items":{"type":"object","properties":{"kind":{"type":"string","enum":["boost","accelerate","hop","bounce","wobble","spin","push","orbit","dampen","swing","goal","cannon","flock","rest","goalie"]}},"required":["kind"],"additionalProperties":true}}},
   "required":["effects"],"additionalProperties":false
 }`
 

@@ -41,6 +41,13 @@ Canvas before the catalog exposes them.
   speed lane, wobble cone, swing gate, mini goal, and ball cannon are included
   items. Each declares two compatible effects through the shared deterministic
   composite behavior and exposes matching solid or sensor collider geometry.
+  The Launch pad's label and chevrons promise its actual behavior: entering
+  it launches an avatar or ball along the rotated arrow and adds a hop. The Ball
+  speed lane affects only tagged Lounge balls, applies sustained forward acceleration along
+  its arrow instead of replacing velocity, damps only excess spin, and scales
+  to 2.1×. A wobble cone remains non-blocking for avatars; avatar or ball sensor
+  contact nudges and visibly wobbles the cone, while only balls receive its
+  rebound impulse.
 - Duck pond, hammock, robot goalie, and pinball bumper are Prize Box items.
   Development grants them with the rest of the catalog; production placement
   requires the matching server-verified unlock. Pond ducks use replicated
@@ -54,14 +61,20 @@ Canvas before the catalog exposes them.
   is always static.
 
 The four Starlight definition IDs retain their existing `zoomigo-prop-` names.
-Generation 20 is a clean room cutover for the revised interactive prop
+Generation 21 is a clean room cutover for the revised interactive prop and edit
 definitions; no compatibility import or destructive migration is needed. Their
 typed catalog kind and capability contract are authoritative.
 
 Every placed item and its radial editor derive from the same projected center
 variables. Optical artwork offsets are explicit catalog metadata and are tested
 separately, so fixing transparent padding cannot move the item hit target or
-editor chrome.
+editor chrome. Rotate and scale controls update the local presentation on every
+tap or held-repeat step. Repeated values debounce to the latest requested angle
+or scale, and all permit-backed writes remain serialized so acknowledgements
+advance item revisions in order without disabling the controls.
+
+Completed teammates shown on the bench use a dedicated paint layer below every
+stamp, ground effect, prop, ball, and live avatar.
 
 The mini goal captures any tagged Lounge ball only after it reaches the back of
 the net, holds it for 0.4 seconds, increments a goal-owned `00`–`99` counter,

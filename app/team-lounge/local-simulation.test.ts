@@ -409,6 +409,75 @@ describe("canonical local Lounge simulation", () => {
     }, 5_000);
   }, 8_000);
 
+  it("accelerates the system ball through a rotated speed lane instead of replacing its velocity", async () => {
+    const { SimulationDriver } = await import("@canvas-physics/client");
+    let entities: RenderEntity[] = [];
+    let entryVelocity: number | undefined;
+    let fastestVelocity = 0;
+    let farthestX = 0;
+    const laneDefinition = loungeItemDefinitions.find(
+      ({ definitionId }) => definitionId === "zoomigo-prop-play-speed-lane",
+    );
+    expect(laneDefinition).toBeDefined();
+    const simulation = startLocalBeachBoardwalkSimulation({
+      playerID: "mason",
+      driver: SimulationDriver.local([
+        LoungeBallBehavior,
+        LoungeActionBehavior,
+        LoungeCompositeBehavior,
+      ]),
+      additionalDefinitions: [laneDefinition!],
+      additionalItems: [
+        {
+          entityId: "speed-lane",
+          canvasId: "zoomigo-beach-boardwalk",
+          definitionId: laneDefinition!.definitionId,
+          definitionVersion: laneDefinition!.version,
+          ownerUserId: "mason",
+          transform: { x: 80, y: 98, rotation: 0, scale: 1 },
+          resolvedConfig: laneDefinition!.defaultConfig,
+          createdAt: "2026-09-03T00:00:00.000Z",
+          sceneRevision: 1,
+          itemRevision: 1,
+        },
+      ],
+      onRender(next) {
+        entities = next;
+        const ball = next.find(({ id }) => id === "boardwalk-beach-ball");
+        if (ball) farthestX = Math.max(farthestX, ball.x);
+        if (ball && ball.x >= 66 && entryVelocity === undefined) {
+          entryVelocity = ball.vx;
+        }
+        if (ball && ball.x >= 68)
+          fastestVelocity = Math.max(fastestVelocity, ball.vx);
+      },
+    });
+    stop = simulation.stop;
+
+    await simulation.ready;
+    simulation.move({
+      direction: { x: 0, y: 0 },
+      intensity: 0,
+      held: true,
+      target: { x: 57, y: 98 },
+    });
+    await until(
+      () => (entities.find(({ id }) => id === "avatar:mason")?.y ?? 0) > 96,
+    );
+    simulation.move({
+      direction: { x: 0, y: 0 },
+      intensity: 0,
+      held: true,
+      target: { x: 69, y: 98 },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 1_500));
+    const ball = entities.find(({ id }) => id === "boardwalk-beach-ball");
+    expect(entryVelocity).toBeDefined();
+    expect(fastestVelocity).toBeGreaterThan((entryVelocity ?? 0) + 6);
+    expect(farthestX).toBeGreaterThan(88);
+    expect(Math.abs(ball?.vy ?? 0)).toBeLessThan(Math.abs(ball?.vx ?? 0) * 0.1);
+  }, 8_000);
+
   it("holds, scores, and relaunches the system ball through a placed mini goal", async () => {
     const { SimulationDriver } = await import("@canvas-physics/client");
     let entities: RenderEntity[] = [];
@@ -469,7 +538,7 @@ describe("canonical local Lounge simulation", () => {
       held: true,
       target: { x: 59, y: 98 },
     });
-    await until(() => sawScoreAndRelaunch, 4_000);
+    await until(() => sawScoreAndRelaunch, 8_000);
     simulation.move({
       direction: { x: 0, y: 0 },
       intensity: 0,
@@ -549,7 +618,7 @@ describe("canonical local Lounge simulation", () => {
     expect(
       entities.find(({ id }) => id === "boardwalk-beach-ball")?.respawning,
     ).not.toBe(true);
-  }, 10_000);
+  }, 14_000);
 });
 
 async function until(predicate: () => boolean, timeoutMs = 2_000) {

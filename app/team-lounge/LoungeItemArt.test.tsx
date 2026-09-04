@@ -106,4 +106,34 @@ describe("LoungeItemArt", () => {
       "2",
     );
   });
+
+  it("keeps picker cones still and replays one wobble for each placed contact", () => {
+    const cone = {
+      glyph: "🔺",
+      imageSrc: "/team-lounge/items/wobble-cone-v1.png",
+      kind: "lounge_prop" as const,
+      label: "Wobble cone",
+      wobbleSequence: 4,
+    };
+    const { container, rerender } = render(<LoungeItemArt item={cone} />);
+
+    expect(container.firstElementChild).toHaveAttribute(
+      "data-wobble-state",
+      "still",
+    );
+    expect(container.querySelector("[data-wobble-sequence]")).toHaveAttribute(
+      "data-wobble-sequence",
+      "0",
+    );
+
+    rerender(<LoungeItemArt item={cone} playBehaviorAnimation />);
+    expect(container.firstElementChild).toHaveAttribute(
+      "data-wobble-state",
+      "wobbling",
+    );
+    expect(container.querySelector("[data-wobble-sequence]")).toHaveAttribute(
+      "data-wobble-sequence",
+      "4",
+    );
+  });
 });

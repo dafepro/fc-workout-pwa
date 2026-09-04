@@ -634,6 +634,16 @@ test("a completed offline teammate rests on the bench with a drained, paused ava
   expect(
     presentation.animationStates.every((state) => state === "paused"),
   ).toBe(true);
+  const benchLayer = await benchAvatar.evaluate((node) =>
+    Number(getComputedStyle(node).zIndex),
+  );
+  const objectLayers = await lounge
+    .locator(".team-lounge__placed-item")
+    .evaluateAll((nodes) =>
+      nodes.map((node) => Number(getComputedStyle(node).zIndex)),
+    );
+  expect(objectLayers.length).toBeGreaterThan(0);
+  expect(objectLayers.every((layer) => layer > benchLayer)).toBe(true);
 });
 
 test("a placed stamp keeps the exact artwork promised by the picker", async ({
@@ -1137,10 +1147,33 @@ test("the consolidated Team view opens the canonical canvas Lounge at 320 pixels
   );
   await expect.poll(() => loungeSizeDelta(sizeBeforeEditing)).toBeLessThan(0.1);
   network.start();
-  await lounge.getByRole("button", { name: "Make stamp larger" }).click();
-  await lounge
-    .getByRole("button", { name: "Rotate stamp right 15 degrees" })
-    .click();
+  const holdEditorControl = async (control: Locator) => {
+    const box = await control.boundingBox();
+    expect(box).not.toBeNull();
+    await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(500);
+    await page.mouse.up();
+  };
+  const largerControl = lounge.getByRole("button", {
+    name: "Make stamp larger",
+  });
+  const transformBeforeHold = await editableStamp.evaluate(
+    (node) => getComputedStyle(node).transform,
+  );
+  await holdEditorControl(largerControl);
+  await expect
+    .poll(() =>
+      editableStamp.evaluate((node) => getComputedStyle(node).transform),
+    )
+    .not.toBe(transformBeforeHold);
+  await holdEditorControl(
+    lounge.getByRole("button", { name: "Rotate stamp right 15 degrees" }),
+  );
+  await expect(editableStamp).toBeEnabled();
+  await expect
+    .poll(() => network.current().permitKinds, { timeout: 10_000 })
+    .toEqual(["scale", "rotation"]);
   const finishEditing = lounge.getByRole("button", {
     name: "Finish editing",
   });

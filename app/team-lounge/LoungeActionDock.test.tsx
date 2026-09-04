@@ -108,13 +108,13 @@ describe("Lounge action dock", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Items" }));
     for (const label of [
-      "Boost pad",
+      "Launch pad",
       "Bounce drum",
       "Pinwheel",
       "Orbit beacon",
       "Breeze fan",
       "Soft sand mat",
-      "Speed lane",
+      "Ball speed lane",
       "Wobble cone",
       "Swing gate",
       "Mini goal",

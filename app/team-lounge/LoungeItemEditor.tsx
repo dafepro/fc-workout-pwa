@@ -5,6 +5,8 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
   type RefObject,
 } from "react";
 
@@ -32,6 +34,7 @@ export interface LoungeEditableItem {
   hammockOccupied?: boolean;
   hammockOccupantID?: string;
   bumperSequence?: number;
+  wobbleSequence?: number;
   maxScale?: number;
   artOffset?: Readonly<{ xPercent: number; yPercent: number }>;
   visualLayer: number;
@@ -97,6 +100,10 @@ export function LoungeItemEditor({
   const suppressedClickRef = useRef<string | null>(null);
   const [preview, setPreview] = useState<DragState | null>(null);
   const selected = items.find(({ entityID }) => entityID === selectedEntityID);
+  const selectedRef = useRef(selected);
+  useEffect(() => {
+    selectedRef.current = selected;
+  }, [selected]);
   const selectedScreen = selected
     ? preview?.item.entityID === selected.entityID
       ? {
@@ -243,7 +250,7 @@ export function LoungeItemEditor({
             style={style}
             aria-label={accessibleLabel}
             aria-pressed={selectedItem}
-            disabled={pending}
+            aria-busy={(selectedItem && pending) || undefined}
             data-cannon-fuse={
               activeCannonEntityIDs?.has(item.entityID) || undefined
             }
@@ -308,6 +315,8 @@ export function LoungeItemEditor({
           role="group"
           aria-label={`Edit selected ${selected.kind === "lounge_prop" ? "item" : "stamp"}`}
           data-layout="radial"
+          data-syncing={pending || undefined}
+          aria-busy={pending || undefined}
           data-dragging={dragging?.entityID === selected.entityID || undefined}
           data-canvas-pointer-ignore="true"
           style={
@@ -323,74 +332,97 @@ export function LoungeItemEditor({
             role="group"
             aria-label={`${titleCase(selected.kind === "lounge_prop" ? "item" : "stamp")} size`}
           >
-            <button
-              type="button"
+            <RepeatingEditorControl
               className="team-lounge__item-editor-control team-lounge__item-editor-control--smaller"
               aria-label={`Make ${selected.kind === "lounge_prop" ? "item" : "stamp"} smaller`}
-              disabled={pending || selected.transform.scale <= 0.75}
-              onClick={() =>
-                onScale(
-                  selected,
-                  clampLoungeItemScale(selected.transform.scale - 0.1),
-                )
-              }
+              disabled={selected.transform.scale <= 0.7501}
+              onStep={() => {
+                const current = selectedRef.current;
+                if (!current) return;
+                const scale = clampLoungeItemScale(
+                  current.transform.scale - 0.1,
+                  current.maxScale,
+                );
+                if (scale === current.transform.scale) return;
+                const next = {
+                  ...current,
+                  transform: { ...current.transform, scale },
+                };
+                selectedRef.current = next;
+                onScale(current, scale);
+              }}
             >
               −
-            </button>
-            <button
-              type="button"
+            </RepeatingEditorControl>
+            <RepeatingEditorControl
               className="team-lounge__item-editor-control team-lounge__item-editor-control--larger"
               aria-label={`Make ${selected.kind === "lounge_prop" ? "item" : "stamp"} larger`}
               disabled={
-                pending ||
-                selected.transform.scale >= (selected.maxScale ?? 1.4)
+                selected.transform.scale >= (selected.maxScale ?? 1.4) - 0.0001
               }
-              onClick={() =>
-                onScale(
-                  selected,
-                  clampLoungeItemScale(
-                    selected.transform.scale + 0.1,
-                    selected.maxScale,
-                  ),
-                )
-              }
+              onStep={() => {
+                const current = selectedRef.current;
+                if (!current) return;
+                const scale = clampLoungeItemScale(
+                  current.transform.scale + 0.1,
+                  current.maxScale,
+                );
+                if (scale === current.transform.scale) return;
+                const next = {
+                  ...current,
+                  transform: { ...current.transform, scale },
+                };
+                selectedRef.current = next;
+                onScale(current, scale);
+              }}
             >
               +
-            </button>
+            </RepeatingEditorControl>
           </div>
-          <button
-            type="button"
+          <RepeatingEditorControl
             className="team-lounge__item-editor-control team-lounge__item-editor-control--rotate-left"
             aria-label={`Rotate ${selected.kind === "lounge_prop" ? "item" : "stamp"} left 15 degrees`}
-            disabled={pending}
-            onClick={() =>
-              onRotate(
-                selected,
-                nextLoungeItemRotation(selected.transform.rotation, -1),
-              )
-            }
+            onStep={() => {
+              const current = selectedRef.current;
+              if (!current) return;
+              const rotation = nextLoungeItemRotation(
+                current.transform.rotation,
+                -1,
+              );
+              const next = {
+                ...current,
+                transform: { ...current.transform, rotation },
+              };
+              selectedRef.current = next;
+              onRotate(current, rotation);
+            }}
           >
             ↺
-          </button>
-          <button
-            type="button"
+          </RepeatingEditorControl>
+          <RepeatingEditorControl
             className="team-lounge__item-editor-control team-lounge__item-editor-control--rotate-right"
             aria-label={`Rotate ${selected.kind === "lounge_prop" ? "item" : "stamp"} right 15 degrees`}
-            disabled={pending}
-            onClick={() =>
-              onRotate(
-                selected,
-                nextLoungeItemRotation(selected.transform.rotation, 1),
-              )
-            }
+            onStep={() => {
+              const current = selectedRef.current;
+              if (!current) return;
+              const rotation = nextLoungeItemRotation(
+                current.transform.rotation,
+                1,
+              );
+              const next = {
+                ...current,
+                transform: { ...current.transform, rotation },
+              };
+              selectedRef.current = next;
+              onRotate(current, rotation);
+            }}
           >
             ↻
-          </button>
+          </RepeatingEditorControl>
           <button
             type="button"
             className="team-lounge__item-editor-control team-lounge__item-editor-control--finish"
             aria-label="Finish editing"
-            disabled={pending}
             onClick={onFinish}
           >
             ✓
@@ -398,6 +430,71 @@ export function LoungeItemEditor({
         </div>
       ) : null}
     </div>
+  );
+}
+
+function RepeatingEditorControl({
+  className,
+  "aria-label": ariaLabel,
+  disabled = false,
+  onStep,
+  children,
+}: {
+  className: string;
+  "aria-label": string;
+  disabled?: boolean;
+  onStep(): void;
+  children: ReactNode;
+}) {
+  const delayRef = useRef<number | undefined>(undefined);
+  const repeatRef = useRef<number | undefined>(undefined);
+  const stop = () => {
+    window.clearTimeout(delayRef.current);
+    window.clearInterval(repeatRef.current);
+    delayRef.current = undefined;
+    repeatRef.current = undefined;
+  };
+  useEffect(() => stop, []);
+  useEffect(() => {
+    if (!disabled) return;
+    window.clearTimeout(delayRef.current);
+    window.clearInterval(repeatRef.current);
+    delayRef.current = undefined;
+    repeatRef.current = undefined;
+  }, [disabled]);
+
+  const start = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (disabled || (event.pointerType === "mouse" && event.button !== 0)) {
+      return;
+    }
+    event.preventDefault();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    stop();
+    onStep();
+    delayRef.current = window.setTimeout(() => {
+      onStep();
+      repeatRef.current = window.setInterval(onStep, 70);
+    }, 160);
+  };
+
+  return (
+    <button
+      type="button"
+      className={className}
+      aria-label={ariaLabel}
+      disabled={disabled}
+      data-repeat-control="true"
+      onPointerDown={start}
+      onPointerUp={stop}
+      onPointerCancel={stop}
+      onPointerLeave={stop}
+      onLostPointerCapture={stop}
+      onClick={(event) => {
+        if (event.detail === 0) onStep();
+      }}
+    >
+      {children}
+    </button>
   );
 }
 

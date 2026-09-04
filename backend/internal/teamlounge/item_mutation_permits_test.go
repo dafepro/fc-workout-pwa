@@ -21,6 +21,14 @@ func TestValidItemTransformUsesDefinitionScaleLimit(t *testing.T) {
 	if !validItemTransformForDefinition(large, "zoomigo-prop-play-hammock") {
 		t.Fatal("large hammock transform should be valid")
 	}
+	lane := roomsdk.Transform{X: 50, Y: 70, Rotation: 0, Scale: 2.1}
+	if !validItemTransformForDefinition(lane, "zoomigo-prop-play-speed-lane") {
+		t.Fatal("2.1x speed lane transform should be valid")
+	}
+	lane.Scale = 2.1001
+	if validItemTransformForDefinition(lane, "zoomigo-prop-play-speed-lane") {
+		t.Fatal("speed lane above 2.1x should be invalid")
+	}
 }
 
 func TestItemMutationPermitBindsOwnerRoomGenerationRevisionOperationAndTarget(t *testing.T) {

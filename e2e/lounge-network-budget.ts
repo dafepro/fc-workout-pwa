@@ -42,6 +42,9 @@ export function observeLoungeNetwork(page: Page) {
     start() {
       active = true;
     },
+    current() {
+      return { permitRequests, permitKinds: [...permitKinds] };
+    },
     async finish() {
       active = false;
       await Promise.all(pendingMeasurements);

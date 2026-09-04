@@ -371,6 +371,71 @@ describe("development Lounge items", () => {
     expect(56).toBeGreaterThan(48);
   });
 
+  it("makes directional pads self-explanatory and keeps the speed lane additive", () => {
+    const choice = (id: string) =>
+      compositeLoungeItems.find((candidate) => candidate.id === id);
+    const definition = (id: string) =>
+      loungeItemDefinitions.find(
+        ({ definitionId }) => definitionId === `zoomigo-prop-play-${id}`,
+      );
+
+    expect(choice("boost-pad")).toMatchObject({ label: "Launch pad" });
+    expect(choice("speed-lane")).toMatchObject({
+      label: "Ball speed lane",
+      maxScale: 2.1,
+    });
+    expect(definition("speed-lane")?.defaultConfig).toEqual({
+      effects: [
+        {
+          kind: "dampen",
+          sensorId: "lane",
+          linearFactor: 1,
+          angularFactor: 0.82,
+          minimumSpeed: 0,
+          acceptedDefinitionIds: [
+            "lounge-ball",
+            "beach-ball",
+            "zoomigo-prop-beach-ball",
+          ],
+        },
+        {
+          kind: "accelerate",
+          sensorId: "lane",
+          impulsePerSecond: 90,
+          acceptedDefinitionIds: [
+            "lounge-ball",
+            "beach-ball",
+            "zoomigo-prop-beach-ball",
+          ],
+        },
+      ],
+    });
+  });
+
+  it("keeps wobble-cone avatars non-blocking while contacts nudge and animate it", () => {
+    const definition = loungeItemDefinitions.find(
+      ({ definitionId }) => definitionId === "zoomigo-prop-play-wobble-cone",
+    );
+
+    expect(definition).toMatchObject({
+      version: 4,
+      defaultConfig: {
+        effects: [
+          expect.objectContaining({
+            kind: "bounce",
+            acceptedDefinitionIds: ["beach-ball", "zoomigo-prop-beach-ball"],
+          }),
+          expect.objectContaining({
+            kind: "wobble",
+            nudgeImpulse: 0.9,
+          }),
+        ],
+      },
+    });
+    const solid = definition?.colliders.find(({ id }) => id === "solid");
+    expect((solid?.collisionMask ?? 0) & CollisionLayer.AVATAR_BODY).toBe(0);
+  });
+
   it("binds every configured sensor effect to a real bounded collider", () => {
     const definitions = loungeItemDefinitions.filter(({ definitionId }) =>
       definitionId.startsWith("zoomigo-prop-play-"),
@@ -448,6 +513,7 @@ describe("development Lounge items", () => {
     ]);
 
     expect(LoungeVisualLayer).toEqual({
+      BENCH_AVATAR: 2,
       DECAL: 4,
       GROUND_EFFECT: 6,
       PROP: 10,
@@ -456,6 +522,9 @@ describe("development Lounge items", () => {
     });
     expect(LoungeVisualLayer.DECAL).toBeLessThan(
       LoungeVisualLayer.GROUND_EFFECT,
+    );
+    expect(LoungeVisualLayer.BENCH_AVATAR).toBeLessThan(
+      LoungeVisualLayer.DECAL,
     );
     expect(LoungeVisualLayer.GROUND_EFFECT).toBeLessThan(
       LoungeVisualLayer.PROP,

@@ -93,7 +93,7 @@ func TestDurableRoomIdentityPersistsAcrossWeekRollover(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if roomID != "team:team-one:lounge:v20" {
+	if roomID != "team:team-one:lounge:v21" {
 		t.Fatalf("room id = %q", roomID)
 	}
 	nextWeek, err := DurableRoomID("team-one", "2026-08-31")
@@ -104,7 +104,7 @@ func TestDurableRoomIdentityPersistsAcrossWeekRollover(t *testing.T) {
 	if err != nil || teamID != "team-one" {
 		t.Fatalf("parsed = %q, %v", teamID, err)
 	}
-	for _, invalid := range []string{"", "team:other", "team:team/one:lounge:v20", "team:team-one:lounge:today", "team:team-one:lounge", "team:team-one:lounge:v19"} {
+	for _, invalid := range []string{"", "team:other", "team:team/one:lounge:v21", "team:team-one:lounge:today", "team:team-one:lounge", "team:team-one:lounge:v20"} {
 		if _, err := ParseRoomID(invalid); err == nil {
 			t.Fatalf("accepted invalid room id %q", invalid)
 		}
@@ -122,8 +122,8 @@ func TestWeeklyThemeManifestOwnsTheImmutableCanvasBinding(t *testing.T) {
 	if theme.RoomGeneration != BeachBoardwalkRoomGeneration {
 		t.Fatalf("room generation = %d", theme.RoomGeneration)
 	}
-	if theme.RoomGeneration != 20 {
-		t.Fatalf("room generation = %d, want interactive prop generation 20", theme.RoomGeneration)
+	if theme.RoomGeneration != 21 {
+		t.Fatalf("room generation = %d, want interaction-control generation 21", theme.RoomGeneration)
 	}
 	if theme.Template.CanvasID != BeachBoardwalkCanvasID || theme.Template.CanvasVersion != BeachBoardwalkCanvasVersion {
 		t.Fatalf("theme template = %#v", theme.Template)
@@ -142,7 +142,7 @@ func TestBeachBoardwalkCatalogMatchesClientContract(t *testing.T) {
 	if canvas.CanvasID != BeachBoardwalkCanvasID || canvas.Version != BeachBoardwalkCanvasVersion || !json.Valid(canvas.DefinitionRaw) {
 		t.Fatalf("canvas record = %#v", canvas)
 	}
-	if canvas.Version != 20 {
+	if canvas.Version != 21 {
 		t.Fatalf("canvas version = %d", canvas.Version)
 	}
 	var shape struct {
@@ -281,7 +281,7 @@ func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 	}
 	effectItems := compositeSchema.Properties["effects"].Items
 	kindSchema, declaresKind := effectItems.Properties["kind"]
-	if !declaresKind || kindSchema.Type != "string" || len(kindSchema.Enum) != 14 ||
+	if !declaresKind || kindSchema.Type != "string" || len(kindSchema.Enum) != 15 ||
 		len(effectItems.Required) != 1 || effectItems.Required[0] != "kind" || !effectItems.AdditionalProperties {
 		t.Fatalf("composite effect config schema = %#v", effectItems)
 	}
@@ -294,14 +294,14 @@ func TestDevelopmentCatalogAddsOnlyPredefinedLoungeItems(t *testing.T) {
 		version uint32
 		effects []string
 	}{
-		{"boost-pad", 3, []string{"boost", "hop"}},
+		{"boost-pad", 4, []string{"boost", "hop"}},
 		{"bounce-drum", 3, []string{"bounce", "wobble"}},
 		{"pinwheel", 3, []string{"spin", "push"}},
 		{"orbit-beacon", 3, []string{"spin", "orbit"}},
 		{"breeze-fan", 3, []string{"spin", "push"}},
 		{"soft-sand-mat", 3, []string{"dampen", "orbit"}},
-		{"speed-lane", 3, []string{"boost", "push"}},
-		{"wobble-cone", 3, []string{"bounce", "wobble"}},
+		{"speed-lane", 4, []string{"dampen", "accelerate"}},
+		{"wobble-cone", 4, []string{"bounce", "wobble"}},
 		{"swing-gate", 3, []string{"swing", "bounce"}},
 		{"mini-goal", 5, []string{"dampen", "goal"}},
 		{"ball-cannon", 2, []string{"dampen", "cannon"}},

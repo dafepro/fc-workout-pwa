@@ -52,8 +52,10 @@ import {
   saveLoungeChatPackIDs,
 } from "./lounge-chat-preferences";
 import { performLoungeItemMutation } from "./lounge-item-mutations";
+import { createLoungeItemMutationQueue } from "./lounge-item-mutation-queue";
 import {
   includedLoungeItems,
+  LoungeVisualLayer,
   loungeItemChoices,
   loungeItemDefinitions,
   loungeItemForDefinition,
@@ -208,6 +210,19 @@ function bumperSequenceFor(
     : 0;
 }
 
+function wobbleSequenceFor(
+  definitionID: string | undefined,
+  behaviorState: unknown,
+): number | undefined {
+  if (definitionID !== "zoomigo-prop-play-wobble-cone") return undefined;
+  if (!behaviorState || typeof behaviorState !== "object") return 0;
+  const sequence = (behaviorState as { wobbleSequence?: unknown })
+    .wobbleSequence;
+  return typeof sequence === "number" && Number.isSafeInteger(sequence)
+    ? Math.max(0, sequence)
+    : 0;
+}
+
 function isServerRejection(cause: unknown, serverCode: string) {
   if (!cause || typeof cause !== "object") return false;
   const error = cause as {
@@ -263,6 +278,13 @@ export function SharedLoungeCanvas({
       }
     >(),
   );
+  const optimisticItemTransformsRef = useRef(
+    new Map<string, TeamLoungeItemTransform>(),
+  );
+  const mutationLabelsRef = useRef(new Map<string, string>());
+  const mutationQueueRef = useRef<
+    ReturnType<typeof createLoungeItemMutationQueue> | undefined
+  >(undefined);
   const projectionFrameRef = useRef<
     Pick<OverlayProjectionSnapshot, "canvasSize" | "viewport"> | undefined
   >(undefined);
@@ -340,8 +362,138 @@ export function SharedLoungeCanvas({
   );
 
   useEffect(() => {
+    const queue = createLoungeItemMutationQueue({
+      execute: async ({ item, kind, transform }) => {
+        const runtime = runtimeRef.current;
+        const roomID = roomIDRef.current;
+        if (!runtime || !roomID) {
+          return {
+            status: "rejected" as const,
+            itemRevision: item.itemRevision,
+            transform: item.transform,
+            error: new Error("That Lounge item could not be changed."),
+          };
+        }
+        try {
+          const mutation = await performLoungeItemMutation({
+            runtime,
+            requestPermit: requestTeamLoungeItemMutationPermit,
+            teamID,
+            roomID,
+            item,
+            kind,
+            transform,
+            idempotencyKey: crypto.randomUUID(),
+          });
+          if (mutation.outcome.status === "accepted") {
+            return {
+              status: "accepted" as const,
+              itemRevision: mutation.outcome.itemRevision,
+              transform: mutation.targetTransform,
+            };
+          }
+          return {
+            status: "rejected" as const,
+            itemRevision: item.itemRevision,
+            transform: mutation.currentTransform,
+            error: new Error(
+              itemMutationRejectionMessage(mutation.outcome.status),
+            ),
+          };
+        } catch (error) {
+          if (error instanceof TeamLoungeItemRevisionError) {
+            return {
+              status: "rejected" as const,
+              itemRevision: error.itemRevision,
+              transform: error.transform,
+              error,
+            };
+          }
+          return {
+            status: "rejected" as const,
+            itemRevision: item.itemRevision,
+            transform: item.transform,
+            error,
+          };
+        }
+      },
+      onOptimistic: (entityID, transform) => {
+        optimisticItemTransformsRef.current.set(entityID, transform);
+        setItemOverlays((current) =>
+          current.map((item) =>
+            item.entityID === entityID ? { ...item, transform } : item,
+          ),
+        );
+      },
+      onAccepted: (entityID, authoritative, displayedTransform) => {
+        optimisticItemTransformsRef.current.set(entityID, displayedTransform);
+        setItemOverlays((current) =>
+          current.map((item) =>
+            item.entityID === entityID
+              ? {
+                  ...item,
+                  itemRevision: authoritative.itemRevision,
+                  transform: displayedTransform,
+                }
+              : item,
+          ),
+        );
+        const label = mutationLabelsRef.current.get(entityID);
+        if (label) setActionMessage(`${label} updated.`);
+      },
+      onDeleted: (entityID) => {
+        const label = mutationLabelsRef.current.get(entityID) ?? "Item";
+        mutationLabelsRef.current.delete(entityID);
+        optimisticItemMovesRef.current.delete(entityID);
+        optimisticItemTransformsRef.current.delete(entityID);
+        editableItemIDsRef.current.delete(entityID);
+        setItemOverlays((current) =>
+          current.filter((item) => item.entityID !== entityID),
+        );
+        setRemainingPlacements((current) => current + 1);
+        setSelectedEntityID(null);
+        setActionMessage(`${label} removed.`);
+      },
+      onRejected: (entityID, authoritative, error) => {
+        optimisticItemMovesRef.current.delete(entityID);
+        optimisticItemTransformsRef.current.delete(entityID);
+        const projection = runtimeRef.current?.projectWorldPoint(
+          authoritative.transform,
+        );
+        setItemOverlays((current) =>
+          current.map((item) =>
+            item.entityID === entityID
+              ? {
+                  ...item,
+                  itemRevision: authoritative.itemRevision,
+                  transform: authoritative.transform,
+                  screen: projection?.screen ?? item.screen,
+                }
+              : item,
+          ),
+        );
+        setActionMessage(
+          error instanceof Error
+            ? error.message
+            : "That Lounge item could not be changed.",
+        );
+      },
+      onPendingChange: setMutationPending,
+    });
+    mutationQueueRef.current = queue;
+    return () => {
+      queue.dispose();
+      if (mutationQueueRef.current === queue) {
+        mutationQueueRef.current = undefined;
+      }
+    };
+  }, [teamID]);
+
+  useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
+    const optimisticItemMoves = optimisticItemMovesRef.current;
+    const optimisticItemTransforms = optimisticItemTransformsRef.current;
     let disposed = false;
     let runtime: CanvasRuntime | undefined;
     let participants: readonly ParticipantPresence[] = [];
@@ -440,6 +592,27 @@ export function SharedLoungeCanvas({
           const optimisticMove = optimisticItemMovesRef.current.get(
             projection.entityId,
           );
+          const canonicalTransform: TeamLoungeItemTransform = {
+            x: canonical.x,
+            y: canonical.y,
+            rotation: canonical.rotation,
+            scale: canonical.scale ?? 1,
+          };
+          const optimisticTransform = optimisticItemTransformsRef.current.get(
+            projection.entityId,
+          );
+          const transformCaughtUp =
+            optimisticTransform &&
+            Math.abs(canonicalTransform.x - optimisticTransform.x) < 0.01 &&
+            Math.abs(canonicalTransform.y - optimisticTransform.y) < 0.01 &&
+            Math.abs(
+              canonicalTransform.rotation - optimisticTransform.rotation,
+            ) < 0.0001 &&
+            Math.abs(canonicalTransform.scale - optimisticTransform.scale) <
+              0.0001;
+          if (transformCaughtUp) {
+            optimisticItemTransformsRef.current.delete(projection.entityId);
+          }
           const projectionCaughtUp =
             optimisticMove &&
             Math.hypot(
@@ -500,16 +673,18 @@ export function SharedLoungeCanvas({
                 canonical.definitionId,
                 canonical.behaviorState,
               ),
+              wobbleSequence: wobbleSequenceFor(
+                canonical.definitionId,
+                canonical.behaviorState,
+              ),
               screen:
                 optimisticMove && !projectionCaughtUp
                   ? optimisticMove.screen
                   : projection.screen,
-              transform: {
-                x: canonical.x,
-                y: canonical.y,
-                rotation: canonical.rotation,
-                scale: canonical.scale ?? 1,
-              },
+              transform:
+                optimisticTransform && !transformCaughtUp
+                  ? optimisticTransform
+                  : canonicalTransform,
             },
           ];
         }),
@@ -769,6 +944,8 @@ export function SharedLoungeCanvas({
       runtimeRef.current = null;
       roomIDRef.current = "";
       projectionFrameRef.current = undefined;
+      optimisticItemMoves.clear();
+      optimisticItemTransforms.clear();
       if (active) void active.stopGracefully(500).catch(() => active.stop());
     };
   }, [assets, avatarConfig, onPresenceChange, onStateChange, playerID, teamID]);
@@ -854,112 +1031,14 @@ export function SharedLoungeCanvas({
     }
   };
 
-  const mutateItem = async (
+  const queueItemMutation = (
     item: LoungeEditableItem,
     kind: TeamLoungeItemMutationKind,
     transform: TeamLoungeItemTransform | null,
-    rollbackScreen?: Readonly<{ x: number; y: number }>,
   ) => {
-    const runtime = runtimeRef.current;
-    const roomID = roomIDRef.current;
-    if (!runtime || !roomID || mutationPending) return;
-    setMutationPending(true);
-    try {
-      const mutation = await performLoungeItemMutation({
-        runtime,
-        requestPermit: requestTeamLoungeItemMutationPermit,
-        teamID,
-        roomID,
-        item,
-        kind,
-        transform,
-        idempotencyKey: crypto.randomUUID(),
-      });
-      const { outcome } = mutation;
-      if (outcome.status === "accepted") {
-        if (kind === "delete") {
-          editableItemIDsRef.current.delete(item.entityID);
-          setItemOverlays((current) =>
-            current.filter(({ entityID }) => entityID !== item.entityID),
-          );
-          setRemainingPlacements((current) => current + 1);
-          setSelectedEntityID(null);
-          setActionMessage(`${item.label} removed.`);
-        } else {
-          setItemOverlays((current) =>
-            current.map((currentItem) =>
-              currentItem.entityID === item.entityID
-                ? {
-                    ...currentItem,
-                    itemRevision: outcome.itemRevision,
-                    transform:
-                      mutation.targetTransform ?? currentItem.transform,
-                  }
-                : currentItem,
-            ),
-          );
-          setActionMessage(`${item.label} updated.`);
-        }
-      } else {
-        setItemOverlays((current) =>
-          current.map((currentItem) =>
-            currentItem.entityID === item.entityID
-              ? {
-                  ...currentItem,
-                  itemRevision: item.itemRevision,
-                  transform: mutation.currentTransform,
-                }
-              : currentItem,
-          ),
-        );
-        if (rollbackScreen) {
-          optimisticItemMovesRef.current.delete(item.entityID);
-          setItemOverlays((current) =>
-            current.map((currentItem) =>
-              currentItem.entityID === item.entityID
-                ? { ...currentItem, screen: rollbackScreen }
-                : currentItem,
-            ),
-          );
-        }
-        setActionMessage(itemMutationRejectionMessage(outcome.status));
-      }
-    } catch (error) {
-      if (error instanceof TeamLoungeItemRevisionError) {
-        optimisticItemMovesRef.current.delete(item.entityID);
-        const projection = runtime.projectWorldPoint(error.transform);
-        setItemOverlays((current) =>
-          current.map((currentItem) =>
-            currentItem.entityID === error.entityID
-              ? {
-                  ...currentItem,
-                  itemRevision: error.itemRevision,
-                  transform: error.transform,
-                  screen: projection?.screen ?? currentItem.screen,
-                }
-              : currentItem,
-          ),
-        );
-      }
-      if (rollbackScreen && !(error instanceof TeamLoungeItemRevisionError)) {
-        optimisticItemMovesRef.current.delete(item.entityID);
-        setItemOverlays((current) =>
-          current.map((currentItem) =>
-            currentItem.entityID === item.entityID
-              ? { ...currentItem, screen: rollbackScreen }
-              : currentItem,
-          ),
-        );
-      }
-      setActionMessage(
-        error instanceof Error
-          ? error.message
-          : "That Lounge item could not be changed.",
-      );
-    } finally {
-      setMutationPending(false);
-      setDragState(null);
-    }
+    mutationLabelsRef.current.set(item.entityID, item.label);
+    mutationQueueRef.current?.enqueue(item, kind, transform);
+    setDragState(null);
   };
 
   const sendReaction = async (
@@ -1068,6 +1147,12 @@ export function SharedLoungeCanvas({
             }
             style={{
               transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
+              zIndex:
+                state === "bench"
+                  ? LoungeVisualLayer.BENCH_AVATAR
+                  : current
+                    ? 31
+                    : LoungeVisualLayer.AVATAR,
               ...(state === "bench" && benchAvatarDiameter
                 ? ({
                     "--lounge-avatar-size": `${benchAvatarDiameter}px`,
@@ -1171,26 +1256,21 @@ export function SharedLoungeCanvas({
                   : currentItem,
               ),
             );
-            void mutateItem(
-              item,
-              "transform",
-              {
-                ...item.transform,
-                ...target,
-              },
-              item.screen,
-            );
+            queueItemMutation(item, "transform", {
+              ...item.transform,
+              ...target,
+            });
           }}
           onRotate={(item, rotation) =>
-            void mutateItem(item, "rotation", {
+            queueItemMutation(item, "rotation", {
               ...item.transform,
               rotation,
             })
           }
           onScale={(item, scale) =>
-            void mutateItem(item, "scale", { ...item.transform, scale })
+            queueItemMutation(item, "scale", { ...item.transform, scale })
           }
-          onDelete={(item) => void mutateItem(item, "delete", null)}
+          onDelete={(item) => queueItemMutation(item, "delete", null)}
           onFinish={() => setSelectedEntityID(null)}
           onDragStateChange={setDragState}
         />

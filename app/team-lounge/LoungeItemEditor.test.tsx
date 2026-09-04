@@ -113,12 +113,59 @@ describe("LoungeItemEditor", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Rotate stamp right 15 degrees" }),
     );
-    expect(onRotate.mock.calls[0]?.[0]).toBe(item);
+    expect(onRotate.mock.calls[0]?.[0]).toMatchObject({
+      entityID: item.entityID,
+      transform: { ...item.transform, scale: 1.1 },
+    });
     expect(onRotate.mock.calls[0]?.[1]).toBeCloseTo(Math.PI / 12);
     const finish = screen.getByRole("button", { name: "Finish editing" });
     expect(finish).toHaveTextContent("✓");
     fireEvent.click(finish);
     expect(onFinish).toHaveBeenCalled();
+  });
+
+  it("keeps transform controls live while syncing and repeats a held scale control", async () => {
+    vi.useFakeTimers();
+    const onScale = vi.fn();
+    render(
+      <LoungeItemEditor
+        items={[item]}
+        selectedEntityID={item.entityID}
+        pending
+        dragging={null}
+        onSelect={vi.fn()}
+        onMove={vi.fn()}
+        onRotate={vi.fn()}
+        onScale={onScale}
+        onDelete={vi.fn()}
+        onFinish={vi.fn()}
+        onDragStateChange={vi.fn()}
+      />,
+    );
+
+    const placed = screen.getByRole("button", {
+      name: "Bolt stamp, yours; drag to move",
+    });
+    const larger = screen.getByRole("button", { name: "Make stamp larger" });
+    const rotate = screen.getByRole("button", {
+      name: "Rotate stamp right 15 degrees",
+    });
+    expect(placed).toBeEnabled();
+    expect(larger).toBeEnabled();
+    expect(rotate).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Finish editing" }),
+    ).toBeEnabled();
+
+    fireEvent.pointerDown(larger, { pointerId: 8, pointerType: "touch" });
+    await vi.advanceTimersByTimeAsync(560);
+    fireEvent.pointerUp(larger, { pointerId: 8, pointerType: "touch" });
+
+    expect(onScale.mock.calls.length).toBeGreaterThanOrEqual(4);
+    const scales = onScale.mock.calls.map(([, scale]) => scale);
+    expect(scales).toEqual([...scales].sort((left, right) => left - right));
+    expect(new Set(scales).size).toBe(scales.length);
+    vi.useRealTimers();
   });
 
   it("lets the duck pond grow to its larger item-specific limit", () => {
@@ -148,6 +195,35 @@ describe("LoungeItemEditor", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Make item larger" }));
     expect(onScale).toHaveBeenCalledWith(pond, 2.4);
+  });
+
+  it("treats a replicated float at the item-specific maximum as capped", () => {
+    const lane = {
+      ...item,
+      label: "Ball speed lane",
+      kind: "lounge_prop" as const,
+      maxScale: 2.1,
+      transform: { ...item.transform, scale: Math.fround(2.1) },
+    };
+    render(
+      <LoungeItemEditor
+        items={[lane]}
+        selectedEntityID={lane.entityID}
+        pending={false}
+        dragging={null}
+        onSelect={vi.fn()}
+        onMove={vi.fn()}
+        onRotate={vi.fn()}
+        onScale={vi.fn()}
+        onDelete={vi.fn()}
+        onFinish={vi.fn()}
+        onDragStateChange={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Make item larger" }),
+    ).toBeDisabled();
   });
 
   it("moves the radial controls with the selected item projection", () => {

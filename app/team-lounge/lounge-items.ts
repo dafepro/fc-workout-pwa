@@ -28,6 +28,7 @@ interface LoungeItemChoiceBase {
 export type LoungeItemCapability = "collision" | "physics" | "behavior";
 
 export const LoungeVisualLayer = {
+  BENCH_AVATAR: 2,
   DECAL: 4,
   GROUND_EFFECT: 6,
   PROP: 10,
@@ -160,7 +161,8 @@ interface CompositeItemSpec {
 const compositeItemSpecs: CompositeItemSpec[] = [
   {
     id: "boost-pad",
-    label: "Boost pad",
+    definitionVersion: 4,
+    label: "Launch pad",
     glyph: "⏩",
     size: { width: 9, height: 14 },
     visualLayer: LoungeVisualLayer.GROUND_EFFECT,
@@ -266,19 +268,42 @@ const compositeItemSpecs: CompositeItemSpec[] = [
   },
   {
     id: "speed-lane",
-    label: "Speed lane",
+    definitionVersion: 4,
+    label: "Ball speed lane",
     glyph: "💨",
     size: { width: 18, height: 6 },
+    maxScale: 2.1,
     visualLayer: LoungeVisualLayer.GROUND_EFFECT,
     capabilities: ["collision", "behavior"],
     colliders: [sensorRect("lane", 17, 5)],
     effects: [
-      { kind: "boost", sensorId: "lane", speed: 22 },
-      { kind: "push", sensorId: "lane", force: 5 },
+      {
+        kind: "dampen",
+        sensorId: "lane",
+        linearFactor: 1,
+        angularFactor: 0.82,
+        minimumSpeed: 0,
+        acceptedDefinitionIds: [
+          "lounge-ball",
+          "beach-ball",
+          "zoomigo-prop-beach-ball",
+        ],
+      },
+      {
+        kind: "accelerate",
+        sensorId: "lane",
+        impulsePerSecond: 90,
+        acceptedDefinitionIds: [
+          "lounge-ball",
+          "beach-ball",
+          "zoomigo-prop-beach-ball",
+        ],
+      },
     ],
   },
   {
     id: "wobble-cone",
+    definitionVersion: 4,
     label: "Wobble cone",
     glyph: "🔺",
     size: { width: 9, height: 11 },
@@ -286,8 +311,18 @@ const compositeItemSpecs: CompositeItemSpec[] = [
     body: dynamicBody(4, 0.4),
     colliders: [solidCircle("solid", 3.8), sensorCircle("bumper", 5)],
     effects: [
-      { kind: "bounce", sensorId: "bumper", impulse: 7 },
-      { kind: "wobble", sensorId: "bumper", torque: 780 },
+      {
+        kind: "bounce",
+        sensorId: "bumper",
+        impulse: 7,
+        acceptedDefinitionIds: ["beach-ball", "zoomigo-prop-beach-ball"],
+      },
+      {
+        kind: "wobble",
+        sensorId: "bumper",
+        torque: 780,
+        nudgeImpulse: 0.9,
+      },
     ],
   },
   {

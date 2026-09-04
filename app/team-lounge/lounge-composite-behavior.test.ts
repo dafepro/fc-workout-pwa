@@ -51,6 +51,57 @@ describe("LoungeCompositeBehavior effects", () => {
     expect(subject.effects("lounge.boost")).toHaveLength(1);
   });
 
+  it("accelerates only tagged balls along a rotated speed lane without replacing momentum", () => {
+    const subject = harness({
+      effects: [
+        {
+          kind: "accelerate",
+          sensorId: "lane",
+          impulsePerSecond: 30,
+          acceptedDefinitionIds: ["beach-ball", "zoomigo-prop-beach-ball"],
+        },
+      ],
+    });
+    subject.host.body(subject.entityId).transform = {
+      x: 50,
+      y: 50,
+      rotation: Math.PI / 2,
+    };
+    subject.host.body("ball").velocity = { x: 31, y: 27 };
+
+    subject
+      .send({
+        type: "contact.stay",
+        selfColliderId: "lane",
+        other: {
+          entityId: "ball",
+          colliderId: "solid",
+          kind: "item",
+          tags: ["beach-ball"],
+        },
+        dwellTicks: 2,
+      })
+      .flush();
+
+    expect(subject.commands("setVelocity")).toHaveLength(0);
+    const acceleration = subject.commands("applyImpulse")[0];
+    expect(acceleration?.target).toBe("ball");
+    expect(acceleration?.impulse.x).toBeCloseTo(0, 8);
+    expect(acceleration?.impulse.y).toBeCloseTo(0.5, 8);
+    expect(subject.host.body("ball").velocity.x).toBeCloseTo(31, 8);
+    expect(subject.host.body("ball").velocity.y).toBeGreaterThan(27);
+
+    subject
+      .send({
+        type: "contact.stay",
+        selfColliderId: "lane",
+        other: avatarParty("avatar-1"),
+        dwellTicks: 2,
+      })
+      .flush();
+    expect(subject.commands("applyImpulse")).toHaveLength(1);
+  });
+
   it("bounces directly away from the item and applies a signed wobble torque", () => {
     const subject = harness({
       effects: [
@@ -82,6 +133,49 @@ describe("LoungeCompositeBehavior effects", () => {
     expect(bounce?.impulse.x).toBeCloseTo(7.2, 8);
     expect(bounce?.impulse.y).toBeCloseTo(9.6, 8);
     expect(subject.commands("applyTorque")[0]).toMatchObject({ torque: 5 });
+  });
+
+  it("wobbles and nudges the cone itself when a non-blocked avatar crosses its sensor", () => {
+    const subject = harness({
+      effects: [
+        {
+          kind: "bounce",
+          sensorId: "bumper",
+          impulse: 7,
+          acceptedDefinitionIds: ["beach-ball"],
+        },
+        {
+          kind: "wobble",
+          sensorId: "bumper",
+          torque: 780,
+          nudgeImpulse: 0.9,
+        },
+      ],
+    });
+    subject.host.body(subject.entityId).transform = {
+      x: 50,
+      y: 60,
+      rotation: 0,
+    };
+    subject.host.body("avatar-1").transform = {
+      x: 47,
+      y: 60,
+      rotation: 0,
+    };
+
+    subject
+      .send({
+        type: "contact.enter",
+        selfColliderId: "bumper",
+        other: avatarParty("avatar-1"),
+      })
+      .flush();
+
+    expect(subject.commands("applyImpulse")).toMatchObject([
+      { impulse: { x: 0.9, y: 0 } },
+    ]);
+    expect(subject.commands("applyTorque")).toMatchObject([{ torque: -780 }]);
+    expect(subject.state.wobbleSequence).toBe(1);
   });
 
   it("launches a directional bumper along its rotated forward axis", () => {
@@ -636,7 +730,7 @@ describe("LoungeCompositeBehavior effects", () => {
     expect(subject.effects("lounge.goal-confetti")).toMatchObject([
       { params: { score: 0 } },
     ]);
-    expect(LoungeCompositeBehavior.stateVersion).toBe(5);
+    expect(LoungeCompositeBehavior.stateVersion).toBe(6);
   });
 
   it("fuses, holds, and then launches only a predefined ball from the muzzle at high speed", () => {

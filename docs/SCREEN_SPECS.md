@@ -81,6 +81,8 @@ placement uses the same artwork and white stamp-edge treatment promised by the
 picker. Every interactive visual follows one explicit paint contract: stamps
 remain behind ground effects, props, moving balls, and every player avatar,
 including while an owned stamp is selected or dragged.
+Completed offline bench avatars paint below stamps and every interactive scene
+entity, so they remain contextual scenery rather than obscuring play.
 
 While the Lounge roster, lazy client bundle, or Canvas assets are loading, the
 scene stays covered by a blurred Lounge preview and the predefined twelve-frame
@@ -125,6 +127,15 @@ picker artwork never animates. Placed artwork, its hit target, and radial editor
 share one projected center, with tested optical offsets used only to compensate
 for transparent asset padding. Reduced-motion mode removes decorative
 interpolation without changing authoritative physics.
+
+The included Launch pad uses its arrow direction for both its launch and
+hop, while the Ball speed lane accepts only tagged Lounge balls, adds sustained forward acceleration
+along its rotated length without replacing existing momentum, steadies spin,
+and scales to 2.1×. Wobble-cone avatars use sensor-only contact: crossing the
+cone nudges and animates it without blocking avatar movement, while ball contact
+also keeps the existing rebound behavior. Rotate and scale controls remain
+locally responsive to rapid taps or a press-and-hold; repeated values debounce
+to the latest target and permit-backed mutations are acknowledged serially.
 
 ## Me (`/me` and `/me/avatar`)
 

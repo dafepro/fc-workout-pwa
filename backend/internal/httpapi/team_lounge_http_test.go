@@ -49,7 +49,7 @@ func TestTeamLoungeIssuesOwnerBoundItemMutationPermit(t *testing.T) {
 	}
 	loungeStore := teamlounge.NewSQLiteStore(db, teamlounge.BeachBoardwalkLoungeCatalog())
 	loungeStore.SetClock(func() time.Time { return now })
-	roomID := "team:team-one:lounge:v20"
+	roomID := "team:team-one:lounge:v21"
 	if _, err := loungeStore.BindRoom(ctx, roomID, "team-one", "2026-08-24",
 		roomsdk.RoomTemplate{CanvasID: teamlounge.BeachBoardwalkCanvasID,
 			CanvasVersion: teamlounge.BeachBoardwalkCanvasVersion}); err != nil {
@@ -117,7 +117,7 @@ func TestTeamLoungeIssuesOwnerBoundItemMutationPermit(t *testing.T) {
 	if len(ticket.EditableItemIDs) != 1 || ticket.EditableItemIDs[0] != item.EntityID {
 		t.Fatalf("editable item ticket = %#v", ticket)
 	}
-	body := []byte(`{"roomId":"team:team-one:lounge:v20","itemRevision":2,"kind":"rotation","transform":{"rotation":0.5}}`)
+	body := []byte(`{"roomId":"team:team-one:lounge:v21","itemRevision":2,"kind":"rotation","transform":{"rotation":0.5}}`)
 	request := httptest.NewRequest(http.MethodPost,
 		"/v1/teams/team-one/lounge/items/canvas-item-editable/mutation-permits", bytes.NewReader(body))
 	request.Header.Set("Authorization", "Bearer test-session")
@@ -159,7 +159,7 @@ func TestTeamLoungeIssuesOwnerBoundItemMutationPermit(t *testing.T) {
 
 	staleRequest := httptest.NewRequest(http.MethodPost,
 		"/v1/teams/team-one/lounge/items/canvas-item-editable/mutation-permits",
-		bytes.NewReader([]byte(`{"roomId":"team:team-one:lounge:v20","itemRevision":1,"kind":"scale","transform":{"scale":1.2}}`)))
+		bytes.NewReader([]byte(`{"roomId":"team:team-one:lounge:v21","itemRevision":1,"kind":"scale","transform":{"scale":1.2}}`)))
 	staleRequest.Header.Set("Authorization", "Bearer test-session")
 	staleRequest.Header.Set("Content-Type", "application/json")
 	staleRequest.Header.Set("Idempotency-Key", "stale-editable")
@@ -259,14 +259,14 @@ func TestCanonicalTeamLoungeRequiresTodayCheckInAndJoinsCanvasRoom(t *testing.T)
 	if err := json.NewDecoder(ticketResponse.Body).Decode(&credential); err != nil {
 		t.Fatal(err)
 	}
-	if len(credential.Ticket) != 43 || credential.RoomID != "team:team-one:lounge:v20" ||
+	if len(credential.Ticket) != 43 || credential.RoomID != "team:team-one:lounge:v21" ||
 		credential.WeekKey != "2026-08-24" || credential.DayKey != "2026-08-26" ||
 		credential.Theme != "Beach Boardwalk" || credential.Presence != 0 || credential.Credits != 1 || credential.Capacity != 1 ||
 		credential.Editable == nil {
 		t.Fatalf("credential = %#v", credential)
 	}
 
-	placementBody := []byte(`{"roomId":"team:team-one:lounge:v20","definitionId":"zoomigo-stamp-bolt","definitionVersion":3,"position":{"x":40,"y":70}}`)
+	placementBody := []byte(`{"roomId":"team:team-one:lounge:v21","definitionId":"zoomigo-stamp-bolt","definitionVersion":3,"position":{"x":40,"y":70}}`)
 	reservePlacement := func(key string) *httptest.ResponseRecorder {
 		request := httptest.NewRequest(http.MethodPost, "/v1/teams/team-one/lounge/placements", bytes.NewReader(placementBody))
 		request.Header.Set("Authorization", "Bearer test-session")
@@ -296,7 +296,7 @@ func TestCanonicalTeamLoungeRequiresTodayCheckInAndJoinsCanvasRoom(t *testing.T)
 		t.Fatalf("placement replay status = %d: %s", replay.Code, replay.Body.String())
 	}
 	recoverRequest := httptest.NewRequest(http.MethodDelete,
-		"/v1/teams/team-one/lounge/placements/pending", bytes.NewReader([]byte(`{"roomId":"team:team-one:lounge:v20"}`)))
+		"/v1/teams/team-one/lounge/placements/pending", bytes.NewReader([]byte(`{"roomId":"team:team-one:lounge:v21"}`)))
 	recoverRequest.Header.Set("Authorization", "Bearer test-session")
 	recoverRequest.Header.Set("Content-Type", "application/json")
 	recoverRequest.Header.Set("Idempotency-Key", "placement-one")

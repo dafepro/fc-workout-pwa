@@ -9,6 +9,7 @@ type LoungeItemArtSource = Pick<
   duckFlock?: Readonly<{ heading: number; intensity: number }>;
   hammockOccupied?: boolean;
   bumperSequence?: number;
+  wobbleSequence?: number;
 };
 
 export function LoungeItemArt({
@@ -86,6 +87,31 @@ export function LoungeItemArt({
         data-bumper-state={springing ? "springing" : "armed"}
       >
         <i key={sequence} data-bumper-sequence={sequence} aria-hidden="true" />
+      </span>
+    );
+  }
+  if (item.imageSrc === "/team-lounge/items/wobble-cone-v1.png") {
+    const sequence = playBehaviorAnimation ? (item.wobbleSequence ?? 0) : 0;
+    return (
+      <span
+        className={`${className} team-lounge__wobble-cone`}
+        style={artOffsetStyle}
+        role={decorative ? undefined : "img"}
+        aria-label={decorative ? undefined : item.label}
+        aria-hidden={decorative || undefined}
+        data-wobble-state={sequence > 0 ? "wobbling" : "still"}
+        draggable={false}
+        onDragStart={(event) => event.preventDefault()}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          key={sequence}
+          src={item.imageSrc}
+          alt=""
+          draggable={false}
+          data-wobble-sequence={sequence}
+          onDragStart={(event) => event.preventDefault()}
+        />
       </span>
     );
   }

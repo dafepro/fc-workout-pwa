@@ -17,13 +17,18 @@ type SensorEffect = {
 
 export type LoungeCompositeEffect =
   | ({ kind: "boost"; speed: number; directionRadians?: number } & SensorEffect)
+  | ({
+      kind: "accelerate";
+      impulsePerSecond: number;
+      directionRadians?: number;
+    } & SensorEffect)
   | ({ kind: "hop"; elevationSpeed: number } & SensorEffect)
   | ({
       kind: "bounce";
       impulse: number;
       directionRadians?: number;
     } & SensorEffect)
-  | ({ kind: "wobble"; torque: number } & SensorEffect)
+  | ({ kind: "wobble"; torque: number; nudgeImpulse?: number } & SensorEffect)
   | ({ kind: "push"; force: number; directionRadians?: number } & SensorEffect)
   | {
       kind: "spin";
@@ -104,6 +109,7 @@ export interface LoungeCompositeState {
   hammockOccupiedUntil: number;
   hammockOccupantID?: string;
   bumperSequence: number;
+  wobbleSequence: number;
 }
 
 export const LoungeCompositeBehavior: ItemBehavior<
@@ -111,7 +117,7 @@ export const LoungeCompositeBehavior: ItemBehavior<
   LoungeCompositeState
 > = {
   behaviorType: "zoomigoLoungeComposite",
-  stateVersion: 5,
+  stateVersion: 6,
   subscribes: [
     "contact.enter",
     "contact.stay",
@@ -132,6 +138,7 @@ export const LoungeCompositeBehavior: ItemBehavior<
     hammockOccupied: false,
     hammockOccupiedUntil: 0,
     bumperSequence: 0,
+    wobbleSequence: 0,
   }),
   onEvent(ctx, config, state, event) {
     if (event.type === "room.wake") {
@@ -180,6 +187,7 @@ export const LoungeCompositeBehavior: ItemBehavior<
       hammockOccupiedUntil: state.hammockOccupiedUntil ?? 0,
       hammockOccupantID: state.hammockOccupantID,
       bumperSequence: state.bumperSequence ?? 0,
+      wobbleSequence: state.wobbleSequence ?? 0,
     };
     if (event.type === "tick") {
       if (config.effects.some(({ kind }) => kind === "goalie")) {
@@ -270,6 +278,19 @@ function applyEffect(
             effect.directionRadians ?? 0,
           )
         : [];
+    case "accelerate":
+      return event.type === "contact.stay"
+        ? [
+            {
+              type: "applyImpulse",
+              target: event.other.entityId,
+              impulse: rotate(
+                { x: effect.impulsePerSecond / ctx.ticksFor(1), y: 0 },
+                selfRotation(ctx) + (effect.directionRadians ?? 0),
+              ),
+            },
+          ]
+        : [];
     case "hop":
       return event.type === "contact.enter"
         ? [
@@ -290,9 +311,14 @@ function applyEffect(
         effect.directionRadians,
       );
     case "wobble":
-      return event.type === "contact.enter"
-        ? wobbleCommands(ctx, event.other, effect.torque)
-        : [];
+      if (event.type !== "contact.enter") return [];
+      state.wobbleSequence += 1;
+      return wobbleCommands(
+        ctx,
+        event.other,
+        effect.torque,
+        effect.nudgeImpulse ?? 0,
+      );
     case "push":
       return event.type === "contact.stay"
         ? [
@@ -579,17 +605,26 @@ function wobbleCommands(
   ctx: BehaviorContext,
   target: ContactParty,
   torque: number,
+  nudgeImpulse: number,
 ): BehaviorCommand[] {
   const self = ctx.transform();
   const other = ctx.transform(target.entityId);
   if (!self || !other) return [];
   const localContact = rotate(sub(other, self), -self.rotation);
-  return [
+  const commands: BehaviorCommand[] = [
     {
       type: "applyTorque",
       torque: localContact.x >= 0 ? torque : -torque,
     },
   ];
+  if (nudgeImpulse > 0) {
+    const away = normalize(sub(self, other));
+    commands.push({
+      type: "applyImpulse",
+      impulse: { x: away.x * nudgeImpulse, y: away.y * nudgeImpulse },
+    });
+  }
+  return commands;
 }
 
 function orbitCommands(
