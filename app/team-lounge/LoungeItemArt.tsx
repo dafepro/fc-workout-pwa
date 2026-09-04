@@ -12,16 +12,20 @@ type LoungeItemArtSource = Pick<
   wobbleSequence?: number;
 };
 
+type LoungeItemArtPresentation = "scene" | "picker" | "placement-preview";
+
 export function LoungeItemArt({
   item,
   decorative = false,
   playBehaviorAnimation = false,
+  presentation = "scene",
 }: {
   item: LoungeItemArtSource;
   decorative?: boolean;
   playBehaviorAnimation?: boolean;
+  presentation?: LoungeItemArtPresentation;
 }) {
-  const className = `team-lounge__item-art team-lounge__item-art--${item.kind === "lounge_stamp" ? "stamp" : "item"}`;
+  const className = `team-lounge__item-art team-lounge__item-art--${item.kind === "lounge_stamp" ? "stamp" : "item"}${presentation === "scene" ? "" : ` team-lounge__item-art--${presentation}`}`;
   const artOffsetStyle = item.artOffset
     ? ({
         "--lounge-art-offset-x": `${item.artOffset.xPercent}%`,

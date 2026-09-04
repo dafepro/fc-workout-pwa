@@ -4937,10 +4937,18 @@ h2 {
   animation: lounge-bumper-pop 0.48s steps(1, end) 1;
 }
 
+.team-lounge__wobble-cone {
+  position: relative;
+}
+
 .team-lounge__wobble-cone > img {
+  position: absolute;
   width: 100%;
+  max-width: 100%;
   height: 100%;
+  max-height: 100%;
   object-fit: contain;
+  inset: 0;
   transform-origin: 50% 86%;
 }
 
@@ -5449,7 +5457,7 @@ h2 {
   cursor: crosshair;
 }
 
-.team-lounge__placement-surface span {
+.team-lounge__placement-hint {
   position: absolute;
   top: 1rem;
   left: 50%;
@@ -5465,7 +5473,7 @@ h2 {
   transform: translateX(-50%);
 }
 
-.team-lounge__placement-surface b {
+.team-lounge__placement-preview {
   display: grid;
   width: clamp(2.8rem, 13vw, 3.6rem);
   aspect-ratio: 1;
@@ -5476,6 +5484,12 @@ h2 {
   box-shadow: 0 0 0.8rem rgb(201 243 29 / 35%);
   font-size: clamp(1.9rem, 9vw, 2.8rem);
   opacity: 0.72;
+}
+
+.team-lounge__placement-surface
+  .team-lounge__wobble-cone.team-lounge__item-art--placement-preview {
+  width: 1.9rem;
+  height: 1.9rem;
 }
 
 .team-lounge__actions {
@@ -5904,6 +5918,13 @@ h2 {
   width: 2.35rem;
   height: 2.35rem;
   font-size: 1.55rem;
+}
+
+.team-lounge__item-grid
+  button
+  > .team-lounge__wobble-cone.team-lounge__item-art--picker {
+  width: 1.65rem;
+  height: 1.65rem;
 }
 
 .team-lounge__item-grid strong {

@@ -1338,9 +1338,15 @@ export function SharedLoungeCanvas({
             disabled={placing || remainingPlacements === 0}
             onClick={placeItem}
           >
-            <span>{copy.teamLounge.actions.placeHint(selectedItem.label)}</span>
-            <b aria-hidden="true">
-              <LoungeItemArt item={selectedItem} decorative />
+            <span className="team-lounge__placement-hint">
+              {copy.teamLounge.actions.placeHint(selectedItem.label)}
+            </span>
+            <b className="team-lounge__placement-preview" aria-hidden="true">
+              <LoungeItemArt
+                item={selectedItem}
+                decorative
+                presentation="placement-preview"
+              />
             </b>
           </button>
         ) : null}

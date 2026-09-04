@@ -123,6 +123,11 @@ describe("Lounge action dock", () => {
         screen.getByRole("button", { name: `Choose ${label} item` }),
       ).toBeVisible();
     }
+    expect(
+      screen
+        .getByRole("button", { name: "Choose Wobble cone item" })
+        .querySelector(".team-lounge__wobble-cone"),
+    ).toHaveClass("team-lounge__item-art--picker");
     const beachBall = screen.getByRole("button", {
       name: "Choose Beach ball item",
     });

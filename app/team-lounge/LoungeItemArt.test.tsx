@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
@@ -134,6 +137,45 @@ describe("LoungeItemArt", () => {
     expect(container.querySelector("[data-wobble-sequence]")).toHaveAttribute(
       "data-wobble-sequence",
       "4",
+    );
+  });
+
+  it("exposes compact preview presentations without shrinking placed art", () => {
+    const cone = {
+      glyph: "🔺",
+      imageSrc: "/team-lounge/items/wobble-cone-v1.png",
+      kind: "lounge_prop" as const,
+      label: "Wobble cone",
+    };
+    const { container, rerender } = render(
+      <LoungeItemArt item={cone} presentation="picker" />,
+    );
+
+    expect(container.firstElementChild).toHaveClass(
+      "team-lounge__item-art--picker",
+    );
+
+    rerender(<LoungeItemArt item={cone} presentation="placement-preview" />);
+    expect(container.firstElementChild).toHaveClass(
+      "team-lounge__item-art--placement-preview",
+    );
+
+    rerender(<LoungeItemArt item={cone} />);
+    expect(container.firstElementChild).not.toHaveClass(
+      "team-lounge__item-art--picker",
+      "team-lounge__item-art--placement-preview",
+    );
+  });
+
+  it("keeps placement chrome from styling span-based item artwork", () => {
+    const css = readFileSync(resolve(process.cwd(), "app/globals.css"), "utf8");
+
+    expect(css).toContain(".team-lounge__placement-hint {");
+    expect(css).toContain(".team-lounge__placement-preview {");
+    expect(css).not.toMatch(/\.team-lounge__placement-surface\s+span\s*\{/u);
+    expect(css).not.toMatch(/\.team-lounge__placement-surface\s+b\s*\{/u);
+    expect(css).toMatch(
+      /\.team-lounge__wobble-cone\s*>\s*img\s*\{[^}]*max-height:\s*100%/u,
     );
   });
 });

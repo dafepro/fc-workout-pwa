@@ -159,7 +159,7 @@ export function LoungeActionDock({
                   disabled={placing || remaining === 0}
                   onClick={() => finishItemSelection(choice)}
                 >
-                  <LoungeItemArt item={choice} />
+                  <LoungeItemArt item={choice} presentation="picker" />
                   <strong>{choice.label}</strong>
                   <small>
                     {choice.source === "included"

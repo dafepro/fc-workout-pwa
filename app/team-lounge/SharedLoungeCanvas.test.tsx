@@ -674,6 +674,34 @@ describe("Shared Lounge Canvas", () => {
     ).toBeVisible();
   });
 
+  it("uses a compact wobble-cone preview until the player chooses its position", async () => {
+    const { container } = render(
+      <AvatarIdentityProvider
+        value={{ currentPlayerID: mason.id, avatarConfig: defaultAvatar() }}
+      >
+        <SharedLoungeCanvas
+          teamID="team-one"
+          player={mason}
+          roster={[mason]}
+          onStateChange={vi.fn()}
+          onPresenceChange={vi.fn()}
+        />
+      </AvatarIdentityProvider>,
+    );
+
+    await waitFor(() => expect(runtime.options).toBeDefined());
+    fireEvent.click(screen.getByRole("button", { name: /Items/u }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Choose Wobble cone item" }),
+    );
+
+    expect(
+      container.querySelector(
+        ".team-lounge__placement-surface .team-lounge__wobble-cone",
+      ),
+    ).toHaveClass("team-lounge__item-art--placement-preview");
+  });
+
   it("keeps overlapping stamps behind props, moving balls, and every avatar stack", async () => {
     const { container } = render(
       <AvatarIdentityProvider
