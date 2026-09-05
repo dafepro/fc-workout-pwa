@@ -1,4 +1,9 @@
 export { parseAvatarCatalog } from "./catalog";
+export { AvatarStage } from "./AvatarStage";
+export type {
+  AvatarStageRuntime,
+  AvatarStageRuntimeFactory,
+} from "./AvatarStage";
 export { resolveAvatarMotion } from "./motion";
 export {
   AVATAR_RIG_VERSION,

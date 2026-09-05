@@ -169,6 +169,7 @@ function outsideThePlayerApp(pathname: string): boolean {
   return (
     pathname === routes.playerSignIn ||
     pathname === routes.devAccess ||
+    pathname === routes.avatar3dDemo ||
     pathname.startsWith(routes.staffPrefix)
   );
 }

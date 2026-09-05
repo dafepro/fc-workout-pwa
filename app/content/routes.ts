@@ -7,6 +7,7 @@ export const routes = {
   playerTeam: "/team",
   playerSignIn: "/login",
   devAccess: "/dev-access",
+  avatar3dDemo: "/avatar-3d/demo",
   staffPrefix: "/staff",
   staffSignIn: "/staff/sign-in",
   staffSetup: "/staff/setup",

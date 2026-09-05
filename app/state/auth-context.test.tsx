@@ -4,9 +4,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { AuthGate, useAuth } from "./auth-context";
 
 const replace = vi.fn();
+let pathname = "/";
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/",
+  usePathname: () => pathname,
   useRouter: () => ({ replace }),
 }));
 
@@ -28,11 +29,27 @@ vi.mock("./avatar-identity-context", () => ({
 }));
 
 afterEach(() => {
+  pathname = "/";
   vi.unstubAllGlobals();
   vi.clearAllMocks();
 });
 
 describe("connected authentication boundary", () => {
+  it("keeps the standalone avatar demo outside player authentication", () => {
+    pathname = "/avatar-3d/demo";
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+
+    render(
+      <AuthGate>
+        <p>Standalone avatar demo</p>
+      </AuthGate>,
+    );
+
+    expect(screen.getByText("Standalone avatar demo")).toBeVisible();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it.each([
     ["has no player", null],
     [
