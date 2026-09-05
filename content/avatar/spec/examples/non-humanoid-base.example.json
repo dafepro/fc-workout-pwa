@@ -1,0 +1,68 @@
+{
+  "$schema": "../avatar-asset.schema.json",
+  "schemaVersion": 1,
+  "assetId": "base.mascot-scout-v1",
+  "assetVersion": 1,
+  "displayName": "Mascot Scout",
+  "assetType": "base_character",
+  "familyTargets": ["family.zoomigo-mascot-v1"],
+  "rigVersion": "zoomigo-mascot-v1",
+  "delivery": {
+    "sourceBlend": "base.mascot-scout-v1/v1/source/base.mascot-scout-v1.blend",
+    "reviewGlb": "base.mascot-scout-v1/v1/review/base.mascot-scout-v1.glb",
+    "manifest": "base.mascot-scout-v1/v1/asset.json",
+    "contactSheet": "base.mascot-scout-v1/v1/review/contact-sheet.png",
+    "turntable": "base.mascot-scout-v1/v1/review/turntable.mp4",
+    "textureDirectory": "base.mascot-scout-v1/v1/textures"
+  },
+  "geometry": {
+    "lod0TriangleMax": 10000,
+    "lod1TriangleMax": 5000,
+    "materialSlotsMax": 3,
+    "deformBonesMax": 30,
+    "boneInfluencesMax": 4
+  },
+  "materials": {
+    "mode": "palette3",
+    "textureMax": 1024,
+    "materialRoles": ["opaque_fixed", "palette_mask", "eyes"]
+  },
+  "compatibility": {
+    "slot": null,
+    "requiresCapabilities": [],
+    "hideBodyRegions": [],
+    "hideSlots": [],
+    "excludesTags": []
+  },
+  "anchors": {
+    "wear.head": "socket_head",
+    "wear.face": "socket_face",
+    "wear.back": "socket_back",
+    "held.primary": "socket_hand_r",
+    "effect.root": "socket_fx_root"
+  },
+  "capabilitiesProvided": [
+    "wear.head",
+    "wear.face",
+    "wear.back",
+    "held.primary",
+    "effect.root",
+    "motion.idle",
+    "motion.walk",
+    "motion.run",
+    "motion.reaction",
+    "motion.celebration"
+  ],
+  "animationClips": [
+    "idle_default",
+    "walk",
+    "run",
+    "reaction_positive",
+    "celebration_default"
+  ],
+  "qa": {
+    "requiredPoses": ["rest", "motion_extremes", "all_anchor_clearance"],
+    "reviewStatus": "artist-wip",
+    "notes": "This family may roll, hop, hover, or use four limbs. It implements semantic motion roles and only the attachment capabilities its silhouette can support."
+  }
+}

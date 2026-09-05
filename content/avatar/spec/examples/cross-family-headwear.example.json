@@ -1,0 +1,54 @@
+{
+  "$schema": "../avatar-asset.schema.json",
+  "schemaVersion": 1,
+  "assetId": "headwear.touchline-cap",
+  "assetVersion": 1,
+  "displayName": "Touchline Cap",
+  "assetType": "socket_cosmetic",
+  "familyTargets": ["family.zoomigo-humanoid-v1", "family.zoomigo-mascot-v1"],
+  "delivery": {
+    "sourceBlend": "headwear.touchline-cap/v1/source/headwear.touchline-cap.blend",
+    "reviewGlb": "headwear.touchline-cap/v1/review/headwear.touchline-cap.glb",
+    "manifest": "headwear.touchline-cap/v1/asset.json",
+    "contactSheet": "headwear.touchline-cap/v1/review/contact-sheet.png",
+    "turntable": "headwear.touchline-cap/v1/review/turntable.mp4",
+    "textureDirectory": "headwear.touchline-cap/v1/textures"
+  },
+  "geometry": {
+    "lod0TriangleMax": 1200,
+    "lod1TriangleMax": 600,
+    "materialSlotsMax": 1,
+    "deformBonesMax": 0,
+    "boneInfluencesMax": 0
+  },
+  "materials": {
+    "mode": "palette3",
+    "textureMax": 512,
+    "materialRoles": ["palette_mask"]
+  },
+  "compatibility": {
+    "slot": "headwear",
+    "requiresCapabilities": ["wear.head"],
+    "hideBodyRegions": [],
+    "hideSlots": ["hair"],
+    "excludesTags": []
+  },
+  "familyPlacements": {
+    "family.zoomigo-humanoid-v1": {
+      "translation": [0, 0, 0],
+      "rotation": [0, 0, 0, 1],
+      "scale": [1, 1, 1]
+    },
+    "family.zoomigo-mascot-v1": {
+      "translation": [0, 0.03, 0],
+      "rotation": [0, 0, 0, 1],
+      "scale": [0.82, 0.82, 0.82]
+    }
+  },
+  "capabilitiesProvided": [],
+  "qa": {
+    "requiredPoses": ["all_anchor_clearance", "walk", "run", "celebration"],
+    "reviewStatus": "artist-wip",
+    "notes": "Both placements require separate contact sheets and art approval. The mascot transform is an example, not a production measurement."
+  }
+}

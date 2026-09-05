@@ -18,6 +18,7 @@
     "avatar:source": "node tools/avatar-content/create-engineering-sources.mjs",
     "avatar:build": "node tools/avatar-content/build-engineering-library.mjs && node tools/avatar-content/validate-engineering-library.mjs",
     "avatar:validate": "node tools/avatar-content/validate-engineering-library.mjs",
+    "avatar:spec:validate": "node tools/avatar-content/validate-artist-spec.mjs",
     "verify:worker-upload": "node scripts/verify-worker-upload.mjs",
     "deploy:dev": "node scripts/deploy-dev.mjs",
     "verify": "./scripts/verify.sh",

@@ -65,6 +65,8 @@ rules into a maintained document, move unfinished trigger-based ideas to
 Component-local details remain next to their implementation:
 
 - [../content/avatar/README.md](../content/avatar/README.md)
+- [../content/avatar/ARTIST_HANDBOOK.md](../content/avatar/ARTIST_HANDBOOK.md)
+- [../content/avatar/ASSET_PRODUCTION_LIST.md](../content/avatar/ASSET_PRODUCTION_LIST.md)
 - [../backend/README.md](../backend/README.md)
 - [../app/team-lounge/README.md](../app/team-lounge/README.md)
 - [../deploy/secrets/README.md](../deploy/secrets/README.md)

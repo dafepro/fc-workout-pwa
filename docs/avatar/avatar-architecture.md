@@ -257,7 +257,8 @@ Use the glTF coordinate conventions:
 - +Z is forward
 - meters as the linear unit
 
-The Zoomigo rig should use one canonical rest pose and one canonical skeleton hierarchy.
+Each avatar family should use one canonical rest pose and one canonical skeleton
+hierarchy. Different families may use different rigs.
 
 Recommended rest pose:
 
@@ -351,7 +352,7 @@ Use Blender as the reference content-authoring tool.
 
 Blender source files may contain:
 
-- canonical rig
+- one family's canonical rig
 - base body
 - clothing
 - hair
@@ -426,15 +427,24 @@ VRM import could be explored later as an authoring tool, not a runtime requireme
 
 ---
 
-# 7. Canonical Zoomigo Humanoid Rig
+# 7. Versioned Avatar Families and Rigs
 
-Create one versioned rig:
+The runtime must not assume every character is human. An **avatar family** owns
+one compatible body, rig, body-region, attachment, and animation contract.
+
+The first production family is the ZoomiGo youth biped:
 
 ```text
-zoomigo-humanoid-v1
+family.zoomigo-humanoid-v1
+  rig: zoomigo-humanoid-v2
 ```
 
-Every body and skinned cosmetic must target this rig.
+`zoomigo-humanoid-v1` is the engineering-spike rig, not the artist production
+reference. The artist-created v2 rig is frozen only after its base mesh,
+deformation, sockets, fit envelopes, and pose library pass the foundation gate.
+
+Every body and skinned cosmetic targets one explicit family and that family's
+locked rig. A non-human family may use a completely different skeleton.
 
 ---
 
@@ -492,7 +502,7 @@ foot_r
 toe_r
 ```
 
-Additional twist, face, finger, or helper bones may exist if they stay within the performance budget.
+Additional twist, face, finger, or helper bones may exist if they stay within the performance budget. They are frozen with that family rig version.
 
 ---
 
@@ -524,6 +534,32 @@ Examples:
 - glasses → `socket_face`
 - backpack → `socket_back`
 - held soccer ball → `socket_hand_r`
+
+Sockets expose semantic capabilities. A non-human family may map
+`held.primary` to `socket_hand_r` even when the visual attachment is a gripper,
+mouth, magnet, or other approved structure. Families declare only the sockets
+they can support cleanly.
+
+## 7.4 Non-human families
+
+A robot, quadruped, bird, floating creature, or mascot may define its own:
+
+- skeleton and rest pose;
+- deform-bone budget;
+- body coverage regions;
+- attachment sockets;
+- fitted cosmetics;
+- family-specific implementations of shared animation roles.
+
+Common animation roles are semantic. `motion.walk` means normal locomotion and
+may be implemented as walking, rolling, hopping, hovering, or another approved
+movement. Cross-family cosmetics are normally rigid socket items with a
+reviewed placement per family. Skinned garments are not retargeted across
+families by default.
+
+The initial non-human proof family is `family.zoomigo-mascot-v1`. It validates
+the capability boundary before non-human content is treated as a production
+catalog commitment.
 
 ---
 
@@ -560,8 +596,8 @@ Examples:
 
 A skinned cosmetic:
 
-- must use the canonical skeleton
-- must use the canonical joint order
+- must use its target family's canonical skeleton
+- must use that family's canonical joint order
 - must pass bind-matrix validation
 - must not add gameplay geometry
 
@@ -614,7 +650,8 @@ Examples:
 - ball juggle
 - entrance
 
-Animations use the canonical rig.
+Each animation export targets one family's canonical rig while implementing a
+shared semantic clip role.
 
 ---
 
@@ -652,14 +689,19 @@ Example:
 ```text
 head_neck
 torso
+pelvis
 upper_arm_l
 upper_arm_r
-lower_arm_hand_l
-lower_arm_hand_r
+lower_arm_l
+lower_arm_r
+hand_l
+hand_r
 upper_leg_l
 upper_leg_r
-lower_leg_foot_l
-lower_leg_foot_r
+lower_leg_l
+lower_leg_r
+foot_l
+foot_r
 ```
 
 Each wearable declares which body regions it covers.
@@ -673,8 +715,8 @@ Example:
     "torso",
     "upper_arm_l",
     "upper_arm_r",
-    "lower_arm_hand_l",
-    "lower_arm_hand_r"
+    "lower_arm_l",
+    "lower_arm_r"
   ]
 }
 ```
@@ -738,6 +780,7 @@ hair
 face
 top
 bottom
+socks
 feet
 headwear
 eyewear
@@ -745,6 +788,7 @@ back
 wrist_l
 wrist_r
 held
+full_body
 ```
 
 Animation selections:
@@ -1114,7 +1158,8 @@ Responsibilities:
 
 ## 14.6 `SkinnedItemBinder`
 
-Loads a cosmetic authored against the canonical rig and binds it to the live avatar skeleton.
+Loads a cosmetic authored against its declared family rig and binds it to the
+live avatar skeleton.
 
 Validation must ensure:
 
@@ -1125,7 +1170,8 @@ Validation must ensure:
 
 Do not run expensive animation retargeting for ordinary Zoomigo cosmetics.
 
-All official cosmetics should already use the canonical rig.
+All official skinned cosmetics should already use their target family's
+canonical rig.
 
 ---
 
@@ -1516,7 +1562,8 @@ Example:
   "displayName": "Street Striker Jersey",
   "kind": "skinned",
   "slot": "top",
-  "rigVersion": "zoomigo-humanoid-v1",
+  "familyTargets": ["family.zoomigo-humanoid-v1"],
+  "rigVersion": "zoomigo-humanoid-v2",
 
   "assets": {
     "lod0": {
@@ -1721,6 +1768,7 @@ Suggested logical shape:
 
 ```text
 player_id
+family_id
 rig_version
 loadout_json
 revision
@@ -1738,8 +1786,9 @@ Example:
 ```json
 {
   "schemaVersion": 1,
-  "rigVersion": "zoomigo-humanoid-v1",
-  "baseId": "base.zg-human-01",
+  "familyId": "family.zoomigo-humanoid-v1",
+  "rigVersion": "zoomigo-humanoid-v2",
+  "baseId": "base.player-biped-v2",
 
   "appearance": {
     "skinToneId": "skin.05",
@@ -2575,10 +2624,12 @@ Changes only when serialized player data changes.
 Example:
 
 ```text
-zoomigo-humanoid-v1
+zoomigo-humanoid-v2
 ```
 
-Changes when skeleton compatibility breaks.
+Changes when one family's skeleton compatibility breaks. Family identity and
+rig version are separate: a family may move to a new rig version through an
+explicit migration.
 
 Avoid doing this often.
 
@@ -2600,13 +2651,14 @@ Catalog changes should not require an app deployment.
 
 # 46. Rig Migration
 
-If a `zoomigo-humanoid-v2` is ever required:
+If a `zoomigo-humanoid-v3` is ever required after the production v2 rig is
+locked:
 
-- v1 items remain v1
-- v2 items declare v2
+- v2 items remain v2
+- v3 items declare v3
 - loadout migration maps compatible item IDs
-- v1 runtime support remains through a defined migration window
-- do not silently bind v1 clothing to a changed v2 skeleton
+- v2 runtime support remains through a defined migration window
+- do not silently bind v2 clothing to a changed v3 skeleton
 
 Rig changes should be treated like API breaking changes.
 
@@ -3004,7 +3056,7 @@ Mitigation:
 
 Mitigation:
 
-- one rig
+- one locked rig per avatar family
 - named animation contract
 - in-place locomotion
 - standard export process
@@ -3044,7 +3096,7 @@ Mitigation:
 Once implementation begins, avoid casually changing these:
 
 1. glTF/GLB as runtime asset format
-2. one canonical Zoomigo rig
+2. versioned avatar families with one canonical rig per family
 3. content-driven item IDs
 4. server-authoritative entitlements
 5. cosmetics separate from physics
@@ -3134,7 +3186,7 @@ Server stores entitlements and loadout
         ↓
 Catalog maps item IDs to optimized assets
         ↓
-Avatar runtime assembles one canonical rig
+Avatar runtime selects a family and assembles its canonical rig
         ↓
 Three.js renders the result
         ↓
@@ -3143,6 +3195,8 @@ Animation is derived from app or lounge state
 
 The central technical bet is simple:
 
-> **One rig, many modular assets, one shared runtime, data-driven rewards.**
+> **Stable family contracts, modular assets, one shared runtime, data-driven rewards.**
 
-That gives Zoomigo a large customization space without tying player state, multiplayer physics, or application logic to each cosmetic item.
+That gives Zoomigo a large customization space without forcing non-human
+characters onto a human skeleton or tying player state, multiplayer physics, or
+application logic to each cosmetic item.

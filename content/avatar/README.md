@@ -4,6 +4,23 @@ The isolated 3D avatar demo consumes the compiled engineering catalog. It does
 not read the authoring files directly and is not connected to saved player
 avatars.
 
+## Artist production packet
+
+- [ARTIST_HANDBOOK.md](ARTIST_HANDBOOK.md) is the Blender modeling, rigging,
+  material, animation, export, and acceptance contract.
+- [ASSET_PRODUCTION_LIST.md](ASSET_PRODUCTION_LIST.md) is the phased commission
+  list.
+- [spec/production-assets.json](spec/production-assets.json) is the
+  machine-readable family, budget, and per-item brief.
+- [spec/avatar-asset.schema.json](spec/avatar-asset.schema.json) defines one
+  artist submission manifest, with human, non-human, and cross-family examples
+  in `spec/examples/`.
+
+The current generated GLBs remain engineering fixtures. Their skeleton and
+assembly behavior are useful evidence; their shapes and materials are not the
+production art target. Artist wardrobe production begins only after the
+artist-created `zoomigo-humanoid-v2` family pack is approved and locked.
+
 ## Source contract
 
 - `engineering-library.json` owns stable item IDs, slots, compatibility,
@@ -14,9 +31,10 @@ avatars.
   catalog generation.
 
 The checked-in engineering sources are created with the repository's art
-builder because Blender is not available in the automation environment. A
-future Blender export replaces a source GLB at the same pipeline seam; the
-runtime and catalog compiler do not change.
+builder because Blender is not available in the automation environment. An
+approved Blender export enters at the same optimization and validation seam.
+Supporting multiple avatar families requires the catalog/runtime family work
+described in the architecture; it is intentionally not integrated yet.
 
 ## Commands
 

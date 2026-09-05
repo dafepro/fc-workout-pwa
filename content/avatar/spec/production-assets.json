@@ -1,0 +1,1574 @@
+{
+  "schemaVersion": 1,
+  "status": "artist-brief",
+  "units": "meters",
+  "exportAxes": { "up": "+Y", "forward": "+Z", "right": "+X" },
+  "families": [
+    {
+      "id": "family.zoomigo-humanoid-v1",
+      "displayName": "ZoomiGo youth biped",
+      "rigVersion": "zoomigo-humanoid-v2",
+      "archetype": "biped",
+      "referenceHeightMeters": 1.45,
+      "capabilities": [
+        "rig.skinned",
+        "appearance.skin",
+        "appearance.face",
+        "wear.hair",
+        "wear.top",
+        "wear.bottom",
+        "wear.socks",
+        "wear.feet",
+        "wear.full_body",
+        "wear.head",
+        "wear.face",
+        "wear.back",
+        "wear.wrist.left",
+        "wear.wrist.right",
+        "held.primary",
+        "held.secondary",
+        "effect.root",
+        "motion.idle",
+        "motion.walk",
+        "motion.run",
+        "motion.turn",
+        "motion.reaction",
+        "motion.celebration"
+      ],
+      "requiredAnchors": [
+        "socket_head",
+        "socket_face",
+        "socket_back",
+        "socket_chest",
+        "socket_wrist_l",
+        "socket_wrist_r",
+        "socket_hand_l",
+        "socket_hand_r",
+        "socket_foot_l",
+        "socket_foot_r",
+        "socket_fx_root"
+      ],
+      "bodyRegions": [
+        "head_neck",
+        "torso",
+        "pelvis",
+        "upper_arm_l",
+        "upper_arm_r",
+        "lower_arm_l",
+        "lower_arm_r",
+        "hand_l",
+        "hand_r",
+        "upper_leg_l",
+        "upper_leg_r",
+        "lower_leg_l",
+        "lower_leg_r",
+        "foot_l",
+        "foot_r"
+      ]
+    },
+    {
+      "id": "family.zoomigo-mascot-v1",
+      "displayName": "ZoomiGo non-human mascot",
+      "rigVersion": "zoomigo-mascot-v1",
+      "archetype": "non_humanoid",
+      "referenceHeightMeters": 0.95,
+      "capabilities": [
+        "wear.head",
+        "wear.face",
+        "wear.back",
+        "held.primary",
+        "effect.root",
+        "motion.idle",
+        "motion.walk",
+        "motion.run",
+        "motion.turn",
+        "motion.reaction",
+        "motion.celebration"
+      ],
+      "requiredAnchors": [
+        "socket_head",
+        "socket_face",
+        "socket_back",
+        "socket_hand_r",
+        "socket_fx_root"
+      ],
+      "bodyRegions": ["body_core", "head", "primary_limb", "secondary_limb"]
+    }
+  ],
+  "slotCapabilities": {
+    "face": "appearance.face",
+    "hair": "wear.hair",
+    "top": "wear.top",
+    "bottom": "wear.bottom",
+    "socks": "wear.socks",
+    "feet": "wear.feet",
+    "full_body": "wear.full_body",
+    "headwear": "wear.head",
+    "eyewear": "wear.face",
+    "back": "wear.back",
+    "wrist_l": "wear.wrist.left",
+    "wrist_r": "wear.wrist.right",
+    "held": "held.primary"
+  },
+  "deliveryProfiles": {
+    "base_character": [
+      "editable .blend master",
+      "uncompressed review .glb",
+      "asset manifest",
+      "source textures",
+      "front/three-quarter/side/back contact sheet",
+      "neutral-light turntable",
+      "rig and weight-paint diagnostic captures"
+    ],
+    "face_preset": [
+      "preset in the locked base .blend",
+      "asset manifest",
+      "front and three-quarter expression sheet",
+      "neutral/smile/blink review renders"
+    ],
+    "skinned_wearable": [
+      "editable .blend using linked production armature",
+      "uncompressed review .glb",
+      "asset manifest",
+      "source textures and palette mask",
+      "front/back contact sheet in required poses",
+      "deformation turntable"
+    ],
+    "socket_cosmetic": [
+      "editable .blend aligned to the family reference",
+      "uncompressed review .glb",
+      "asset manifest",
+      "source textures",
+      "front/side/back contact sheet",
+      "anchor-clearance turntable"
+    ],
+    "animation_clip": [
+      "editable animation .blend on locked armature",
+      "animation-only review .glb",
+      "asset manifest",
+      "front and side preview video",
+      "frame range and loop-event notes"
+    ]
+  },
+  "budgetProfiles": {
+    "human_base": {
+      "lod0Triangles": 7500,
+      "lod1Triangles": 3750,
+      "materials": 3,
+      "textureMax": 1024,
+      "deformBones": 60,
+      "influences": 4
+    },
+    "mascot_base": {
+      "lod0Triangles": 10000,
+      "lod1Triangles": 5000,
+      "materials": 3,
+      "textureMax": 1024,
+      "deformBones": 30,
+      "influences": 4
+    },
+    "face_preset": {
+      "lod0Triangles": 0,
+      "lod1Triangles": 0,
+      "materials": 0,
+      "textureMax": 512,
+      "deformBones": 0,
+      "influences": 0
+    },
+    "hair": {
+      "lod0Triangles": 1800,
+      "lod1Triangles": 900,
+      "materials": 1,
+      "textureMax": 512,
+      "deformBones": 12,
+      "influences": 4
+    },
+    "top": {
+      "lod0Triangles": 2500,
+      "lod1Triangles": 1250,
+      "materials": 1,
+      "textureMax": 1024,
+      "deformBones": 60,
+      "influences": 4
+    },
+    "bottom": {
+      "lod0Triangles": 2200,
+      "lod1Triangles": 1100,
+      "materials": 1,
+      "textureMax": 1024,
+      "deformBones": 60,
+      "influences": 4
+    },
+    "socks": {
+      "lod0Triangles": 700,
+      "lod1Triangles": 350,
+      "materials": 1,
+      "textureMax": 512,
+      "deformBones": 16,
+      "influences": 4
+    },
+    "feet": {
+      "lod0Triangles": 1800,
+      "lod1Triangles": 900,
+      "materials": 1,
+      "textureMax": 512,
+      "deformBones": 12,
+      "influences": 4
+    },
+    "headwear": {
+      "lod0Triangles": 1200,
+      "lod1Triangles": 600,
+      "materials": 1,
+      "textureMax": 512,
+      "deformBones": 0,
+      "influences": 0
+    },
+    "eyewear": {
+      "lod0Triangles": 500,
+      "lod1Triangles": 250,
+      "materials": 2,
+      "textureMax": 512,
+      "deformBones": 0,
+      "influences": 0
+    },
+    "back": {
+      "lod0Triangles": 1600,
+      "lod1Triangles": 800,
+      "materials": 1,
+      "textureMax": 512,
+      "deformBones": 0,
+      "influences": 0
+    },
+    "wrist": {
+      "lod0Triangles": 300,
+      "lod1Triangles": 150,
+      "materials": 1,
+      "textureMax": 256,
+      "deformBones": 0,
+      "influences": 0
+    },
+    "held": {
+      "lod0Triangles": 1200,
+      "lod1Triangles": 600,
+      "materials": 1,
+      "textureMax": 512,
+      "deformBones": 0,
+      "influences": 0
+    },
+    "full_body": {
+      "lod0Triangles": 7000,
+      "lod1Triangles": 3500,
+      "materials": 2,
+      "textureMax": 1024,
+      "deformBones": 60,
+      "influences": 4
+    },
+    "animation": {
+      "lod0Triangles": 0,
+      "lod1Triangles": 0,
+      "materials": 0,
+      "textureMax": 0,
+      "deformBones": 60,
+      "influences": 0
+    }
+  },
+  "assets": [
+    {
+      "id": "base.player-biped-v2",
+      "displayName": "Production Player Base",
+      "phase": "foundation",
+      "assetType": "base_character",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "base_character",
+      "budgetProfile": "human_base",
+      "materialMode": "skin",
+      "designBrief": "Friendly gender-inclusive youth soccer character, about 5.25 heads tall, strong silhouette at phone size, neutral anatomy and no body-shape controls.",
+      "acceptanceChecks": [
+        "character_turnaround",
+        "rig_contract",
+        "face_morphs",
+        "body_regions",
+        "extreme_pose_deformation"
+      ]
+    },
+    {
+      "id": "base.mascot-scout-v1",
+      "displayName": "Mascot Scout",
+      "phase": "platform-proof",
+      "assetType": "base_character",
+      "familyTargets": ["family.zoomigo-mascot-v1"],
+      "deliveryProfile": "base_character",
+      "budgetProfile": "mascot_base",
+      "materialMode": "palette3",
+      "designBrief": "Original friendly non-human character with a clearly different silhouette and skeleton; readable by shape, not dependent on human clothing.",
+      "acceptanceChecks": [
+        "character_turnaround",
+        "family_capabilities",
+        "anchor_clearance",
+        "motion_semantics"
+      ]
+    },
+
+    {
+      "id": "face.bright-01",
+      "displayName": "Bright",
+      "phase": "foundation",
+      "assetType": "face_preset",
+      "slot": "face",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "face_preset",
+      "budgetProfile": "face_preset",
+      "materialMode": "skin",
+      "designBrief": "Open, upbeat eyes and brows with a relaxed neutral mouth; distinct without implying beauty or mood ranking.",
+      "acceptanceChecks": [
+        "neutral_expression",
+        "blink",
+        "smile",
+        "all_skin_tones"
+      ]
+    },
+    {
+      "id": "face.focused-01",
+      "displayName": "Focused",
+      "phase": "foundation",
+      "assetType": "face_preset",
+      "slot": "face",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "face_preset",
+      "budgetProfile": "face_preset",
+      "materialMode": "skin",
+      "designBrief": "Soft straight brows and attentive eyes; determined but never angry.",
+      "acceptanceChecks": [
+        "neutral_expression",
+        "blink",
+        "smile",
+        "all_skin_tones"
+      ]
+    },
+    {
+      "id": "face.cheerful-01",
+      "displayName": "Cheerful",
+      "phase": "launch",
+      "assetType": "face_preset",
+      "slot": "face",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "face_preset",
+      "budgetProfile": "face_preset",
+      "materialMode": "skin",
+      "designBrief": "Rounded eyes, lifted brows, and subtle cheek shape that reads warmly at small size.",
+      "acceptanceChecks": [
+        "neutral_expression",
+        "blink",
+        "smile",
+        "all_skin_tones"
+      ]
+    },
+    {
+      "id": "face.calm-01",
+      "displayName": "Calm",
+      "phase": "launch",
+      "assetType": "face_preset",
+      "slot": "face",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "face_preset",
+      "budgetProfile": "face_preset",
+      "materialMode": "skin",
+      "designBrief": "Gently lowered eyelids and a quiet neutral expression; alert rather than sleepy.",
+      "acceptanceChecks": [
+        "neutral_expression",
+        "blink",
+        "smile",
+        "all_skin_tones"
+      ]
+    },
+    {
+      "id": "face.bold-01",
+      "displayName": "Bold",
+      "phase": "launch",
+      "assetType": "face_preset",
+      "slot": "face",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "face_preset",
+      "budgetProfile": "face_preset",
+      "materialMode": "skin",
+      "designBrief": "Strong curved brows and wide-set eyes with friendly confidence.",
+      "acceptanceChecks": [
+        "neutral_expression",
+        "blink",
+        "smile",
+        "all_skin_tones"
+      ]
+    },
+    {
+      "id": "face.playful-01",
+      "displayName": "Playful",
+      "phase": "launch",
+      "assetType": "face_preset",
+      "slot": "face",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "face_preset",
+      "budgetProfile": "face_preset",
+      "materialMode": "skin",
+      "designBrief": "Slightly asymmetric brow shapes and lively eyes while preserving the shared expression morphs.",
+      "acceptanceChecks": [
+        "neutral_expression",
+        "blink",
+        "smile",
+        "all_skin_tones"
+      ]
+    },
+
+    {
+      "id": "hair.curl-cloud",
+      "displayName": "Curl Cloud",
+      "phase": "foundation",
+      "assetType": "socket_cosmetic",
+      "slot": "hair",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "socket_cosmetic",
+      "budgetProfile": "hair",
+      "materialMode": "fixed",
+      "designBrief": "Layered medium curls with an intentional outer silhouette and fewer, larger clumps rather than bead-like pieces.",
+      "acceptanceChecks": [
+        "head_clearance",
+        "headwear_envelope",
+        "all_views",
+        "lod_readability"
+      ]
+    },
+    {
+      "id": "hair.wave-crop",
+      "displayName": "Wave Crop",
+      "phase": "foundation",
+      "assetType": "socket_cosmetic",
+      "slot": "hair",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "socket_cosmetic",
+      "budgetProfile": "hair",
+      "materialMode": "fixed",
+      "designBrief": "Close wave pattern with a crisp hairline and sculpted directional flow.",
+      "acceptanceChecks": [
+        "head_clearance",
+        "headwear_envelope",
+        "all_views",
+        "lod_readability"
+      ]
+    },
+    {
+      "id": "hair.braided-crown",
+      "displayName": "Braided Crown",
+      "phase": "foundation",
+      "assetType": "socket_cosmetic",
+      "slot": "hair",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "socket_cosmetic",
+      "budgetProfile": "hair",
+      "materialMode": "fixed",
+      "designBrief": "Readable crown braid with clean parting and controlled braid rhythm; avoid noisy micro-strands.",
+      "acceptanceChecks": [
+        "head_clearance",
+        "headwear_envelope",
+        "all_views",
+        "lod_readability"
+      ]
+    },
+    {
+      "id": "hair.coil-puffs",
+      "displayName": "Coil Puffs",
+      "phase": "foundation",
+      "assetType": "socket_cosmetic",
+      "slot": "hair",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "socket_cosmetic",
+      "budgetProfile": "hair",
+      "materialMode": "fixed",
+      "designBrief": "Two compact textured puffs with clean ties and a strong balanced silhouette.",
+      "acceptanceChecks": [
+        "head_clearance",
+        "headwear_conflict_tag",
+        "all_views",
+        "lod_readability"
+      ]
+    },
+    {
+      "id": "hair.side-swoop",
+      "displayName": "Side Swoop",
+      "phase": "foundation",
+      "assetType": "socket_cosmetic",
+      "slot": "hair",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "socket_cosmetic",
+      "budgetProfile": "hair",
+      "materialMode": "fixed",
+      "designBrief": "Short asymmetric swoop with broad graphic locks and a clean ear line.",
+      "acceptanceChecks": [
+        "head_clearance",
+        "headwear_envelope",
+        "all_views",
+        "lod_readability"
+      ]
+    },
+    {
+      "id": "hair.straight-bob",
+      "displayName": "Straight Bob",
+      "phase": "launch",
+      "assetType": "skinned_wearable",
+      "slot": "hair",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "skinned_wearable",
+      "budgetProfile": "hair",
+      "materialMode": "fixed",
+      "designBrief": "Chin-length rounded bob with simple interior layers and subtle shoulder deformation clearance.",
+      "acceptanceChecks": [
+        "head_clearance",
+        "shoulder_deformation",
+        "all_views",
+        "lod_readability"
+      ]
+    },
+    {
+      "id": "hair.short-twists",
+      "displayName": "Short Twists",
+      "phase": "launch",
+      "assetType": "socket_cosmetic",
+      "slot": "hair",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "socket_cosmetic",
+      "budgetProfile": "hair",
+      "materialMode": "fixed",
+      "designBrief": "Chunky short twists with visible parting and a coherent crown silhouette.",
+      "acceptanceChecks": [
+        "head_clearance",
+        "headwear_envelope",
+        "all_views",
+        "lod_readability"
+      ]
+    },
+    {
+      "id": "hair.long-braids",
+      "displayName": "Long Braids",
+      "phase": "launch",
+      "assetType": "skinned_wearable",
+      "slot": "hair",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "skinned_wearable",
+      "budgetProfile": "hair",
+      "materialMode": "fixed",
+      "designBrief": "Grouped shoulder-length braids rigged to existing upper-body bones; no simulation dependency.",
+      "acceptanceChecks": [
+        "shoulder_deformation",
+        "back_gear_conflict_tag",
+        "all_views",
+        "lod_readability"
+      ]
+    },
+
+    {
+      "id": "top.striker-jersey",
+      "displayName": "Striker Jersey",
+      "phase": "foundation",
+      "assetType": "skinned_wearable",
+      "slot": "top",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "skinned_wearable",
+      "budgetProfile": "top",
+      "materialMode": "palette3",
+      "designBrief": "Modern short-sleeve soccer jersey with a strong shoulder panel, V insert, and restrained ZoomiGo crest area.",
+      "acceptanceChecks": [
+        "rig_contract",
+        "body_coverage",
+        "arms_up",
+        "run_extremes",
+        "shorts_clearance"
+      ]
+    },
+    {
+      "id": "top.training-tee",
+      "displayName": "Training Tee",
+      "phase": "foundation",
+      "assetType": "skinned_wearable",
+      "slot": "top",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "skinned_wearable",
+      "budgetProfile": "top",
+      "materialMode": "tint1",
+      "designBrief": "Relaxed athletic tee with a slightly longer hem and rolled sleeve detail.",
+      "acceptanceChecks": [
+        "rig_contract",
+        "body_coverage",
+        "arms_up",
+        "run_extremes",
+        "shorts_clearance"
+      ]
+    },
+    {
+      "id": "top.warmup-jacket",
+      "displayName": "Breakaway Warmup",
+      "phase": "foundation",
+      "assetType": "skinned_wearable",
+      "slot": "top",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "skinned_wearable",
+      "budgetProfile": "top",
+      "materialMode": "palette3",
+      "designBrief": "Full-zip warmup with a raised collar, broad color-blocking, and no loose drawstrings.",
+      "acceptanceChecks": [
+        "rig_contract",
+        "body_coverage",
+        "arms_up",
+        "run_extremes",
+        "collar_clearance"
+      ]
+    },
+    {
+      "id": "top.goalkeeper",
+      "displayName": "Goalkeeper Shield",
+      "phase": "launch",
+      "assetType": "skinned_wearable",
+      "slot": "top",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "skinned_wearable",
+      "budgetProfile": "top",
+      "materialMode": "palette3",
+      "designBrief": "Long-sleeve keeper top with graphic elbow padding and bold but friendly panel shapes.",
+      "acceptanceChecks": [
+        "rig_contract",
+        "body_coverage",
+        "arms_up",
+        "goalkeeper_pose",
+        "glove_clearance"
+      ]
+    },
+    {
+      "id": "top.street-hoodie",
+      "displayName": "Street Hoodie",
+      "phase": "launch",
+      "assetType": "skinned_wearable",
+      "slot": "top",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "skinned_wearable",
+      "budgetProfile": "top",
+      "materialMode": "palette3",
+      "designBrief": "Lightweight athletic hoodie with the hood down and simplified seams; no cords.",
+      "acceptanceChecks": [
+        "rig_contract",
+        "body_coverage",
+        "arms_up",
+        "back_gear_clearance",
+        "hair_clearance"
+      ]
+    },
+    {
+      "id": "top.rain-shell",
+      "displayName": "Rain Shell",
+      "phase": "launch",
+      "assetType": "skinned_wearable",
+      "slot": "top",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "skinned_wearable",
+      "budgetProfile": "top",
+      "materialMode": "palette3",
+      "designBrief": "Packable weather shell with matte fabric, taped-seam cues, and a high-visibility shoulder accent.",
+      "acceptanceChecks": [
+        "rig_contract",
+        "body_coverage",
+        "arms_up",
+        "run_extremes",
+        "back_gear_clearance"
+      ]
+    },
+
+    {
+      "id": "bottom.match-shorts",
+      "displayName": "Match Shorts",
+      "phase": "foundation",
+      "assetType": "skinned_wearable",
+      "slot": "bottom",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "skinned_wearable",
+      "budgetProfile": "bottom",
+      "materialMode": "palette3",
+      "designBrief": "Classic match short with side insert, soft hem flare, and enough volume for running poses.",
+      "acceptanceChecks": [
+        "rig_contract",
+        "body_coverage",
+        "deep_crouch",
+        "run_extremes",
+        "top_clearance"
+      ]
+    },
+    {
+      "id": "bottom.training-shorts",
+      "displayName": "Training Shorts",
+      "phase": "foundation",
+      "assetType": "skinned_wearable",
+      "slot": "bottom",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "skinned_wearable",
+      "budgetProfile": "bottom",
+      "materialMode": "tint1",
+      "designBrief": "Longer relaxed training short with a graphic side seam and no dangling cords.",
+      "acceptanceChecks": [
+        "rig_contract",
+        "body_coverage",
+        "deep_crouch",
+        "run_extremes",
+        "top_clearance"
+      ]
+    },
+    {
+      "id": "bottom.tapered-joggers",
+      "displayName": "Tapered Joggers",
+      "phase": "foundation",
+      "assetType": "skinned_wearable",
+      "slot": "bottom",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "skinned_wearable",
+      "budgetProfile": "bottom",
+      "materialMode": "palette3",
+      "designBrief": "Athletic joggers with shaped knees, tapered cuffs, and simple pocket openings.",
+      "acceptanceChecks": [
+        "rig_contract",
+        "body_coverage",
+        "deep_crouch",
+        "run_extremes",
+        "shoe_clearance"
+      ]
+    },
+    {
+      "id": "bottom.keeper-pants",
+      "displayName": "Keeper Pants",
+      "phase": "launch",
+      "assetType": "skinned_wearable",
+      "slot": "bottom",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "skinned_wearable",
+      "budgetProfile": "bottom",
+      "materialMode": "palette3",
+      "designBrief": "Keeper pant with readable padded knee and hip panels, tapered safely above footwear.",
+      "acceptanceChecks": [
+        "rig_contract",
+        "body_coverage",
+        "goalkeeper_pose",
+        "deep_crouch",
+        "shoe_clearance"
+      ]
+    },
+    {
+      "id": "bottom.street-shorts",
+      "displayName": "Street Shorts",
+      "phase": "launch",
+      "assetType": "skinned_wearable",
+      "slot": "bottom",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "skinned_wearable",
+      "budgetProfile": "bottom",
+      "materialMode": "palette3",
+      "designBrief": "Panelled street-football shorts with a rounded hem and strong side graphic.",
+      "acceptanceChecks": [
+        "rig_contract",
+        "body_coverage",
+        "deep_crouch",
+        "run_extremes",
+        "top_clearance"
+      ]
+    },
+
+    {
+      "id": "socks.match-knee",
+      "displayName": "Match Socks",
+      "phase": "foundation",
+      "assetType": "skinned_wearable",
+      "slot": "socks",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "skinned_wearable",
+      "budgetProfile": "socks",
+      "materialMode": "palette3",
+      "designBrief": "Knee-high match socks with cuff and shin color zones; no separate cloth simulation.",
+      "acceptanceChecks": [
+        "rig_contract",
+        "body_coverage",
+        "deep_crouch",
+        "shoe_clearance"
+      ]
+    },
+    {
+      "id": "socks.training-crew",
+      "displayName": "Training Crew Socks",
+      "phase": "launch",
+      "assetType": "skinned_wearable",
+      "slot": "socks",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "skinned_wearable",
+      "budgetProfile": "socks",
+      "materialMode": "tint1",
+      "designBrief": "Mid-calf athletic sock with a broad readable cuff stripe.",
+      "acceptanceChecks": [
+        "rig_contract",
+        "body_coverage",
+        "deep_crouch",
+        "shoe_clearance"
+      ]
+    },
+    {
+      "id": "socks.retro-stripe",
+      "displayName": "Retro Stripe Socks",
+      "phase": "launch",
+      "assetType": "skinned_wearable",
+      "slot": "socks",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "skinned_wearable",
+      "budgetProfile": "socks",
+      "materialMode": "palette3",
+      "designBrief": "Knee sock with two wide retro bands that survive LOD reduction.",
+      "acceptanceChecks": [
+        "rig_contract",
+        "body_coverage",
+        "deep_crouch",
+        "shoe_clearance"
+      ]
+    },
+
+    {
+      "id": "feet.velocity-cleats",
+      "displayName": "Velocity Cleats",
+      "phase": "foundation",
+      "assetType": "skinned_wearable",
+      "slot": "feet",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "skinned_wearable",
+      "budgetProfile": "feet",
+      "materialMode": "palette3",
+      "designBrief": "Modern low-cut cleats with molded stud silhouette and one sweeping accent panel.",
+      "acceptanceChecks": [
+        "rig_contract",
+        "ground_contact",
+        "toe_bend",
+        "pant_clearance",
+        "paired_symmetry"
+      ]
+    },
+    {
+      "id": "feet.pitch-runners",
+      "displayName": "Pitch Runners",
+      "phase": "foundation",
+      "assetType": "skinned_wearable",
+      "slot": "feet",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "skinned_wearable",
+      "budgetProfile": "feet",
+      "materialMode": "palette3",
+      "designBrief": "Turf trainer with a broader sole and readable heel counter.",
+      "acceptanceChecks": [
+        "rig_contract",
+        "ground_contact",
+        "toe_bend",
+        "pant_clearance",
+        "paired_symmetry"
+      ]
+    },
+    {
+      "id": "feet.indoor-flats",
+      "displayName": "Indoor Flats",
+      "phase": "launch",
+      "assetType": "skinned_wearable",
+      "slot": "feet",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "skinned_wearable",
+      "budgetProfile": "feet",
+      "materialMode": "palette3",
+      "designBrief": "Low-profile indoor soccer shoe with gum-sole color zone and reinforced toe.",
+      "acceptanceChecks": [
+        "rig_contract",
+        "ground_contact",
+        "toe_bend",
+        "pant_clearance",
+        "paired_symmetry"
+      ]
+    },
+    {
+      "id": "feet.high-top-trainers",
+      "displayName": "High-top Trainers",
+      "phase": "launch",
+      "assetType": "skinned_wearable",
+      "slot": "feet",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "skinned_wearable",
+      "budgetProfile": "feet",
+      "materialMode": "palette3",
+      "designBrief": "Street trainer with padded ankle collar and bold sole blocks.",
+      "acceptanceChecks": [
+        "rig_contract",
+        "ground_contact",
+        "toe_bend",
+        "pant_clearance",
+        "paired_symmetry"
+      ]
+    },
+    {
+      "id": "feet.recovery-slides",
+      "displayName": "Recovery Slides",
+      "phase": "launch",
+      "assetType": "skinned_wearable",
+      "slot": "feet",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "skinned_wearable",
+      "budgetProfile": "feet",
+      "materialMode": "palette3",
+      "designBrief": "Sport slides with a thick safe silhouette and no individually modeled toes.",
+      "acceptanceChecks": [
+        "rig_contract",
+        "ground_contact",
+        "foot_coverage",
+        "paired_symmetry"
+      ]
+    },
+
+    {
+      "id": "headwear.touchline-cap",
+      "displayName": "Touchline Cap",
+      "phase": "foundation",
+      "assetType": "socket_cosmetic",
+      "slot": "headwear",
+      "familyTargets": [
+        "family.zoomigo-humanoid-v1",
+        "family.zoomigo-mascot-v1"
+      ],
+      "deliveryProfile": "socket_cosmetic",
+      "budgetProfile": "headwear",
+      "materialMode": "palette3",
+      "designBrief": "Rounded athletic cap with short brim and broad front badge zone; alternate fit transforms per family.",
+      "acceptanceChecks": [
+        "anchor_contract",
+        "hair_hide_rule",
+        "all_views",
+        "family_fit"
+      ]
+    },
+    {
+      "id": "headwear.training-beanie",
+      "displayName": "Training Beanie",
+      "phase": "foundation",
+      "assetType": "socket_cosmetic",
+      "slot": "headwear",
+      "familyTargets": [
+        "family.zoomigo-humanoid-v1",
+        "family.zoomigo-mascot-v1"
+      ],
+      "deliveryProfile": "socket_cosmetic",
+      "budgetProfile": "headwear",
+      "materialMode": "palette3",
+      "designBrief": "Soft cuffed beanie with one broad knit break and optional small pom; alternate fit transforms per family.",
+      "acceptanceChecks": [
+        "anchor_contract",
+        "hair_hide_rule",
+        "all_views",
+        "family_fit"
+      ]
+    },
+    {
+      "id": "headwear.sprint-band",
+      "displayName": "Sprint Band",
+      "phase": "launch",
+      "assetType": "socket_cosmetic",
+      "slot": "headwear",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "socket_cosmetic",
+      "budgetProfile": "headwear",
+      "materialMode": "tint1",
+      "designBrief": "Simple athletic headband with slight fabric thickness and no hair clipping.",
+      "acceptanceChecks": [
+        "anchor_contract",
+        "hair_compatibility",
+        "all_views",
+        "lod_readability"
+      ]
+    },
+    {
+      "id": "headwear.bucket-hat",
+      "displayName": "Sideline Bucket Hat",
+      "phase": "launch",
+      "assetType": "socket_cosmetic",
+      "slot": "headwear",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "socket_cosmetic",
+      "budgetProfile": "headwear",
+      "materialMode": "palette3",
+      "designBrief": "Compact bucket hat with graphic brim stitching and a crown panel accent.",
+      "acceptanceChecks": [
+        "anchor_contract",
+        "hair_hide_rule",
+        "all_views",
+        "lod_readability"
+      ]
+    },
+    {
+      "id": "headwear.space-helmet",
+      "displayName": "Space Striker Helmet",
+      "phase": "expansion",
+      "assetType": "socket_cosmetic",
+      "slot": "headwear",
+      "familyTargets": [
+        "family.zoomigo-humanoid-v1",
+        "family.zoomigo-mascot-v1"
+      ],
+      "deliveryProfile": "socket_cosmetic",
+      "budgetProfile": "headwear",
+      "materialMode": "fixed",
+      "designBrief": "Toy-like open-face space helmet with a clear face read, chunky rim, and restrained visor transparency.",
+      "acceptanceChecks": [
+        "anchor_contract",
+        "hair_hide_rule",
+        "face_visibility",
+        "family_fit"
+      ]
+    },
+
+    {
+      "id": "eyewear.sport-frames",
+      "displayName": "Sport Frames",
+      "phase": "foundation",
+      "assetType": "socket_cosmetic",
+      "slot": "eyewear",
+      "familyTargets": [
+        "family.zoomigo-humanoid-v1",
+        "family.zoomigo-mascot-v1"
+      ],
+      "deliveryProfile": "socket_cosmetic",
+      "budgetProfile": "eyewear",
+      "materialMode": "fixed",
+      "designBrief": "Rounded durable sport frames with thick readable rims and minimally transparent lenses.",
+      "acceptanceChecks": [
+        "anchor_contract",
+        "eye_clearance",
+        "all_views",
+        "family_fit"
+      ]
+    },
+    {
+      "id": "eyewear.sun-shield",
+      "displayName": "Sun Shield",
+      "phase": "launch",
+      "assetType": "socket_cosmetic",
+      "slot": "eyewear",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "socket_cosmetic",
+      "budgetProfile": "eyewear",
+      "materialMode": "fixed",
+      "designBrief": "Single curved sport lens with an opaque rim and eyes still faintly readable.",
+      "acceptanceChecks": [
+        "anchor_contract",
+        "eye_clearance",
+        "all_views",
+        "transparency_cost"
+      ]
+    },
+    {
+      "id": "eyewear.arcade-visor",
+      "displayName": "Arcade Visor",
+      "phase": "expansion",
+      "assetType": "socket_cosmetic",
+      "slot": "eyewear",
+      "familyTargets": [
+        "family.zoomigo-humanoid-v1",
+        "family.zoomigo-mascot-v1"
+      ],
+      "deliveryProfile": "socket_cosmetic",
+      "budgetProfile": "eyewear",
+      "materialMode": "fixed",
+      "designBrief": "Playful opaque pixel-inspired visor with no emissive bloom dependency.",
+      "acceptanceChecks": [
+        "anchor_contract",
+        "face_clearance",
+        "all_views",
+        "family_fit"
+      ]
+    },
+
+    {
+      "id": "back.training-pack",
+      "displayName": "Training Pack",
+      "phase": "foundation",
+      "assetType": "socket_cosmetic",
+      "slot": "back",
+      "familyTargets": [
+        "family.zoomigo-humanoid-v1",
+        "family.zoomigo-mascot-v1"
+      ],
+      "deliveryProfile": "socket_cosmetic",
+      "budgetProfile": "back",
+      "materialMode": "palette3",
+      "designBrief": "Compact training backpack with broad zip and pocket shapes; straps are part of the rigid presentation, not simulated.",
+      "acceptanceChecks": [
+        "anchor_contract",
+        "torso_clearance",
+        "hair_clearance",
+        "family_fit"
+      ]
+    },
+    {
+      "id": "back.ball-net",
+      "displayName": "Ball Net",
+      "phase": "launch",
+      "assetType": "socket_cosmetic",
+      "slot": "back",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "socket_cosmetic",
+      "budgetProfile": "back",
+      "materialMode": "fixed",
+      "designBrief": "Stylized soccer ball in a simplified solid-strand carry net; avoid thin geometry and simulation.",
+      "acceptanceChecks": [
+        "anchor_contract",
+        "torso_clearance",
+        "run_clearance",
+        "lod_readability"
+      ]
+    },
+    {
+      "id": "back.explorer-roll",
+      "displayName": "Explorer Roll",
+      "phase": "expansion",
+      "assetType": "socket_cosmetic",
+      "slot": "back",
+      "familyTargets": [
+        "family.zoomigo-humanoid-v1",
+        "family.zoomigo-mascot-v1"
+      ],
+      "deliveryProfile": "socket_cosmetic",
+      "budgetProfile": "back",
+      "materialMode": "palette3",
+      "designBrief": "Small rolled sideline blanket with chunky straps and a clear cylinder silhouette.",
+      "acceptanceChecks": [
+        "anchor_contract",
+        "torso_clearance",
+        "run_clearance",
+        "family_fit"
+      ]
+    },
+
+    {
+      "id": "wrist.captain-band",
+      "displayName": "Captain Band",
+      "phase": "launch",
+      "assetType": "socket_cosmetic",
+      "slot": "wrist_l",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "socket_cosmetic",
+      "budgetProfile": "wrist",
+      "materialMode": "palette3",
+      "designBrief": "Wide soft band with a simple chevron mark; readable without text.",
+      "acceptanceChecks": [
+        "anchor_contract",
+        "wrist_rotation",
+        "sleeve_clearance",
+        "lod_readability"
+      ]
+    },
+    {
+      "id": "wrist.training-watch",
+      "displayName": "Training Watch",
+      "phase": "launch",
+      "assetType": "socket_cosmetic",
+      "slot": "wrist_r",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "socket_cosmetic",
+      "budgetProfile": "wrist",
+      "materialMode": "palette3",
+      "designBrief": "Chunky child-safe sport watch with abstract non-numeric screen art.",
+      "acceptanceChecks": [
+        "anchor_contract",
+        "wrist_rotation",
+        "sleeve_clearance",
+        "lod_readability"
+      ]
+    },
+
+    {
+      "id": "held.soccer-ball",
+      "displayName": "Match Ball",
+      "phase": "foundation",
+      "assetType": "socket_cosmetic",
+      "slot": "held",
+      "familyTargets": [
+        "family.zoomigo-humanoid-v1",
+        "family.zoomigo-mascot-v1"
+      ],
+      "deliveryProfile": "socket_cosmetic",
+      "budgetProfile": "held",
+      "materialMode": "palette3",
+      "designBrief": "Stylized size-four soccer ball with broad panel graphics rather than modeled seams.",
+      "acceptanceChecks": [
+        "anchor_contract",
+        "grip_clearance",
+        "prop_animation_fit",
+        "family_fit"
+      ]
+    },
+    {
+      "id": "held.water-bottle",
+      "displayName": "Water Bottle",
+      "phase": "launch",
+      "assetType": "socket_cosmetic",
+      "slot": "held",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "socket_cosmetic",
+      "budgetProfile": "held",
+      "materialMode": "palette3",
+      "designBrief": "Opaque reusable bottle with oversized cap and no branding or readable text.",
+      "acceptanceChecks": [
+        "anchor_contract",
+        "grip_clearance",
+        "prop_animation_fit",
+        "lod_readability"
+      ]
+    },
+    {
+      "id": "held.training-cone",
+      "displayName": "Training Cone",
+      "phase": "launch",
+      "assetType": "socket_cosmetic",
+      "slot": "held",
+      "familyTargets": [
+        "family.zoomigo-humanoid-v1",
+        "family.zoomigo-mascot-v1"
+      ],
+      "deliveryProfile": "socket_cosmetic",
+      "budgetProfile": "held",
+      "materialMode": "tint1",
+      "designBrief": "Soft collapsible training cone with thick edges and a strong triangular silhouette.",
+      "acceptanceChecks": [
+        "anchor_contract",
+        "grip_clearance",
+        "prop_animation_fit",
+        "family_fit"
+      ]
+    },
+    {
+      "id": "held.pennant",
+      "displayName": "Team Pennant",
+      "phase": "expansion",
+      "assetType": "socket_cosmetic",
+      "slot": "held",
+      "familyTargets": [
+        "family.zoomigo-humanoid-v1",
+        "family.zoomigo-mascot-v1"
+      ],
+      "deliveryProfile": "socket_cosmetic",
+      "budgetProfile": "held",
+      "materialMode": "palette3",
+      "designBrief": "Small rigid pennant with geometric team-color zones and no text; limited secondary bone motion is optional.",
+      "acceptanceChecks": [
+        "anchor_contract",
+        "grip_clearance",
+        "prop_animation_fit",
+        "family_fit"
+      ]
+    },
+
+    {
+      "id": "outfit.space-striker",
+      "displayName": "Space Striker Suit",
+      "phase": "expansion",
+      "assetType": "skinned_wearable",
+      "slot": "full_body",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "skinned_wearable",
+      "budgetProfile": "full_body",
+      "materialMode": "palette3",
+      "designBrief": "Playful padded training suit with sci-fi paneling, open face, and no weapon-like details.",
+      "acceptanceChecks": [
+        "rig_contract",
+        "full_body_coverage",
+        "extreme_pose_deformation",
+        "helmet_clearance"
+      ]
+    },
+    {
+      "id": "outfit.goalkeeper-hero",
+      "displayName": "Goalkeeper Hero Suit",
+      "phase": "expansion",
+      "assetType": "skinned_wearable",
+      "slot": "full_body",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "skinned_wearable",
+      "budgetProfile": "full_body",
+      "materialMode": "palette3",
+      "designBrief": "Unified keeper kit with graphic padding and cape-like color blocking but no loose cape geometry.",
+      "acceptanceChecks": [
+        "rig_contract",
+        "full_body_coverage",
+        "goalkeeper_pose",
+        "extreme_pose_deformation"
+      ]
+    },
+
+    {
+      "id": "mascot.head.antenna-band",
+      "displayName": "Mascot Antenna Band",
+      "phase": "platform-proof",
+      "assetType": "socket_cosmetic",
+      "slot": "headwear",
+      "familyTargets": ["family.zoomigo-mascot-v1"],
+      "deliveryProfile": "socket_cosmetic",
+      "budgetProfile": "headwear",
+      "materialMode": "palette3",
+      "designBrief": "Non-human-specific head attachment that proves family-only cosmetics and preserves the mascot silhouette.",
+      "acceptanceChecks": [
+        "anchor_contract",
+        "family_fit",
+        "motion_clearance",
+        "lod_readability"
+      ]
+    },
+    {
+      "id": "mascot.back.energy-pack",
+      "displayName": "Mascot Energy Pack",
+      "phase": "platform-proof",
+      "assetType": "socket_cosmetic",
+      "slot": "back",
+      "familyTargets": ["family.zoomigo-mascot-v1"],
+      "deliveryProfile": "socket_cosmetic",
+      "budgetProfile": "back",
+      "materialMode": "palette3",
+      "designBrief": "Compact non-human back module with soft toy-like forms and no realistic weapon language.",
+      "acceptanceChecks": [
+        "anchor_contract",
+        "family_fit",
+        "motion_clearance",
+        "lod_readability"
+      ]
+    },
+
+    {
+      "id": "anim.core.idle-default",
+      "displayName": "Default Idle",
+      "phase": "foundation",
+      "assetType": "animation_clip",
+      "familyTargets": [
+        "family.zoomigo-humanoid-v1",
+        "family.zoomigo-mascot-v1"
+      ],
+      "deliveryProfile": "animation_clip",
+      "budgetProfile": "animation",
+      "materialMode": "fixed",
+      "designBrief": "Quiet breathing and weight shift, seamless 4–6 second loop, restrained enough for shared scenes.",
+      "acceptanceChecks": [
+        "semantic_clip_name",
+        "clean_loop",
+        "no_root_motion",
+        "reduced_motion_safe"
+      ]
+    },
+    {
+      "id": "anim.core.walk",
+      "displayName": "Walk",
+      "phase": "foundation",
+      "assetType": "animation_clip",
+      "familyTargets": [
+        "family.zoomigo-humanoid-v1",
+        "family.zoomigo-mascot-v1"
+      ],
+      "deliveryProfile": "animation_clip",
+      "budgetProfile": "animation",
+      "materialMode": "fixed",
+      "designBrief": "Upbeat in-place locomotion cycle whose family-specific movement still maps to the logical walk state.",
+      "acceptanceChecks": [
+        "semantic_clip_name",
+        "clean_loop",
+        "no_root_motion",
+        "foot_or_contact_stability"
+      ]
+    },
+    {
+      "id": "anim.core.run",
+      "displayName": "Run",
+      "phase": "foundation",
+      "assetType": "animation_clip",
+      "familyTargets": [
+        "family.zoomigo-humanoid-v1",
+        "family.zoomigo-mascot-v1"
+      ],
+      "deliveryProfile": "animation_clip",
+      "budgetProfile": "animation",
+      "materialMode": "fixed",
+      "designBrief": "Energetic in-place run cycle with clear silhouette and controlled hand/limb arcs.",
+      "acceptanceChecks": [
+        "semantic_clip_name",
+        "clean_loop",
+        "no_root_motion",
+        "foot_or_contact_stability"
+      ]
+    },
+    {
+      "id": "anim.core.turn-left",
+      "displayName": "Turn Left",
+      "phase": "launch",
+      "assetType": "animation_clip",
+      "familyTargets": [
+        "family.zoomigo-humanoid-v1",
+        "family.zoomigo-mascot-v1"
+      ],
+      "deliveryProfile": "animation_clip",
+      "budgetProfile": "animation",
+      "materialMode": "fixed",
+      "designBrief": "Short in-place anticipation turn; orientation remains controlled by the application.",
+      "acceptanceChecks": [
+        "semantic_clip_name",
+        "no_root_motion",
+        "clean_start_end",
+        "family_motion_read"
+      ]
+    },
+    {
+      "id": "anim.core.turn-right",
+      "displayName": "Turn Right",
+      "phase": "launch",
+      "assetType": "animation_clip",
+      "familyTargets": [
+        "family.zoomigo-humanoid-v1",
+        "family.zoomigo-mascot-v1"
+      ],
+      "deliveryProfile": "animation_clip",
+      "budgetProfile": "animation",
+      "materialMode": "fixed",
+      "designBrief": "Mirrored-quality in-place anticipation turn, authored deliberately rather than runtime-negative scaling.",
+      "acceptanceChecks": [
+        "semantic_clip_name",
+        "no_root_motion",
+        "clean_start_end",
+        "family_motion_read"
+      ]
+    },
+    {
+      "id": "anim.idle.ball-tap",
+      "displayName": "Ball Tap Idle",
+      "phase": "launch",
+      "assetType": "animation_clip",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "animation_clip",
+      "budgetProfile": "animation",
+      "materialMode": "fixed",
+      "designBrief": "Small foot-on-ball gesture using the Match Ball prop, returning exactly to idle stance.",
+      "acceptanceChecks": [
+        "prop_event_markers",
+        "clean_start_end",
+        "no_root_motion",
+        "foot_contact"
+      ]
+    },
+    {
+      "id": "anim.idle.stretch",
+      "displayName": "Warmup Stretch",
+      "phase": "launch",
+      "assetType": "animation_clip",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "animation_clip",
+      "budgetProfile": "animation",
+      "materialMode": "fixed",
+      "designBrief": "Brief shoulder and calf warmup with calm timing and no extreme flexibility display.",
+      "acceptanceChecks": [
+        "clean_start_end",
+        "no_root_motion",
+        "garment_clearance",
+        "reduced_motion_safe"
+      ]
+    },
+    {
+      "id": "anim.reaction.wave",
+      "displayName": "Friendly Wave",
+      "phase": "foundation",
+      "assetType": "animation_clip",
+      "familyTargets": [
+        "family.zoomigo-humanoid-v1",
+        "family.zoomigo-mascot-v1"
+      ],
+      "deliveryProfile": "animation_clip",
+      "budgetProfile": "animation",
+      "materialMode": "fixed",
+      "designBrief": "Clear one-hand or equivalent friendly greeting that reads at lounge scale.",
+      "acceptanceChecks": [
+        "clean_start_end",
+        "no_root_motion",
+        "silhouette_read",
+        "family_motion_read"
+      ]
+    },
+    {
+      "id": "anim.reaction.cheer",
+      "displayName": "Quick Cheer",
+      "phase": "foundation",
+      "assetType": "animation_clip",
+      "familyTargets": [
+        "family.zoomigo-humanoid-v1",
+        "family.zoomigo-mascot-v1"
+      ],
+      "deliveryProfile": "animation_clip",
+      "budgetProfile": "animation",
+      "materialMode": "fixed",
+      "designBrief": "Short positive two-beat reaction with no taunting, pointing, or winner-over-loser body language.",
+      "acceptanceChecks": [
+        "clean_start_end",
+        "no_root_motion",
+        "silhouette_read",
+        "family_motion_read"
+      ]
+    },
+    {
+      "id": "anim.celebration.jump",
+      "displayName": "Celebration Jump",
+      "phase": "foundation",
+      "assetType": "animation_clip",
+      "familyTargets": [
+        "family.zoomigo-humanoid-v1",
+        "family.zoomigo-mascot-v1"
+      ],
+      "deliveryProfile": "animation_clip",
+      "budgetProfile": "animation",
+      "materialMode": "fixed",
+      "designBrief": "Compact joyful hop that lands in place and remains readable without camera shake or effects.",
+      "acceptanceChecks": [
+        "clean_start_end",
+        "no_root_motion",
+        "landing_contact",
+        "family_motion_read"
+      ]
+    },
+    {
+      "id": "anim.celebration.fist-pump",
+      "displayName": "Fist Pump",
+      "phase": "launch",
+      "assetType": "animation_clip",
+      "familyTargets": ["family.zoomigo-humanoid-v1"],
+      "deliveryProfile": "animation_clip",
+      "budgetProfile": "animation",
+      "materialMode": "fixed",
+      "designBrief": "Single upbeat fist pump with friendly posture and no aggressive gesture.",
+      "acceptanceChecks": [
+        "clean_start_end",
+        "no_root_motion",
+        "garment_clearance",
+        "silhouette_read"
+      ]
+    },
+    {
+      "id": "anim.celebration.spin",
+      "displayName": "Victory Spin",
+      "phase": "launch",
+      "assetType": "animation_clip",
+      "familyTargets": [
+        "family.zoomigo-humanoid-v1",
+        "family.zoomigo-mascot-v1"
+      ],
+      "deliveryProfile": "animation_clip",
+      "budgetProfile": "animation",
+      "materialMode": "fixed",
+      "designBrief": "One in-place celebratory rotation with the root fixed and orientation restored on the final frame.",
+      "acceptanceChecks": [
+        "clean_start_end",
+        "root_orientation_restored",
+        "motion_clearance",
+        "family_motion_read"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "$schema": "../avatar-asset.schema.json",
+  "schemaVersion": 1,
+  "assetId": "top.striker-jersey",
+  "assetVersion": 1,
+  "displayName": "Striker Jersey",
+  "assetType": "skinned_wearable",
+  "familyTargets": ["family.zoomigo-humanoid-v1"],
+  "rigVersion": "zoomigo-humanoid-v2",
+  "delivery": {
+    "sourceBlend": "top.striker-jersey/v1/source/top.striker-jersey.blend",
+    "reviewGlb": "top.striker-jersey/v1/review/top.striker-jersey.glb",
+    "manifest": "top.striker-jersey/v1/asset.json",
+    "contactSheet": "top.striker-jersey/v1/review/contact-sheet.png",
+    "turntable": "top.striker-jersey/v1/review/turntable.mp4",
+    "textureDirectory": "top.striker-jersey/v1/textures"
+  },
+  "geometry": {
+    "lod0TriangleMax": 2500,
+    "lod1TriangleMax": 1250,
+    "materialSlotsMax": 1,
+    "deformBonesMax": 60,
+    "boneInfluencesMax": 4
+  },
+  "materials": {
+    "mode": "palette3",
+    "textureMax": 1024,
+    "materialRoles": ["palette_mask"]
+  },
+  "compatibility": {
+    "slot": "top",
+    "requiresCapabilities": ["wear.top", "rig.skinned"],
+    "hideBodyRegions": ["torso", "upper_arm_l", "upper_arm_r"],
+    "hideSlots": [],
+    "excludesTags": []
+  },
+  "capabilitiesProvided": [],
+  "qa": {
+    "requiredPoses": ["a_pose", "arms_up", "arms_forward", "run_extremes"],
+    "reviewStatus": "artist-wip",
+    "notes": "Use the locked production armature unchanged. Keep the hem clear of the shorts envelope in every required pose."
+  }
+}

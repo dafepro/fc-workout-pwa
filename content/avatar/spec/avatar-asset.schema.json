@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zoomigo.local/schemas/avatar-asset.schema.json",
+  "title": "ZoomiGo avatar artist submission",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "assetId",
+    "assetVersion",
+    "displayName",
+    "assetType",
+    "familyTargets",
+    "delivery",
+    "geometry",
+    "materials",
+    "compatibility",
+    "qa"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": 1 },
+    "assetId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)+$"
+    },
+    "assetVersion": { "type": "integer", "minimum": 1 },
+    "displayName": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "assetType": {
+      "enum": [
+        "base_character",
+        "face_preset",
+        "skinned_wearable",
+        "socket_cosmetic",
+        "animation_clip",
+        "effect_recipe"
+      ]
+    },
+    "familyTargets": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^family\\." }
+    },
+    "rigVersion": { "type": "string", "minLength": 1 },
+    "delivery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceBlend", "reviewGlb", "manifest", "contactSheet"],
+      "properties": {
+        "sourceBlend": { "type": "string", "pattern": "\\.blend$" },
+        "reviewGlb": { "type": "string", "pattern": "\\.glb$" },
+        "manifest": { "type": "string", "pattern": "\\.json$" },
+        "contactSheet": { "type": "string", "pattern": "\\.(png|webp)$" },
+        "turntable": { "type": "string", "pattern": "\\.(mp4|webm)$" },
+        "textureDirectory": { "type": "string", "minLength": 1 }
+      }
+    },
+    "geometry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lod0TriangleMax", "lod1TriangleMax", "materialSlotsMax"],
+      "properties": {
+        "lod0TriangleMax": { "type": "integer", "minimum": 0 },
+        "lod1TriangleMax": { "type": "integer", "minimum": 0 },
+        "materialSlotsMax": { "type": "integer", "minimum": 0, "maximum": 4 },
+        "deformBonesMax": { "type": "integer", "minimum": 0, "maximum": 60 },
+        "boneInfluencesMax": { "type": "integer", "minimum": 0, "maximum": 4 }
+      }
+    },
+    "materials": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "textureMax", "materialRoles"],
+      "properties": {
+        "mode": { "enum": ["fixed", "tint1", "palette3", "skin"] },
+        "textureMax": { "enum": [0, 256, 512, 1024] },
+        "materialRoles": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "skin",
+              "eyes",
+              "opaque_fixed",
+              "opaque_tint",
+              "palette_mask",
+              "alpha_mask",
+              "transparent_visor"
+            ]
+          }
+        }
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slot",
+        "requiresCapabilities",
+        "hideBodyRegions",
+        "hideSlots",
+        "excludesTags"
+      ],
+      "properties": {
+        "slot": { "type": ["string", "null"] },
+        "requiresCapabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string" }
+        },
+        "hideBodyRegions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string" }
+        },
+        "hideSlots": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string" }
+        },
+        "excludesTags": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "anchors": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "pattern": "^socket_" }
+    },
+    "familyPlacements": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["translation", "rotation", "scale"],
+        "properties": {
+          "translation": {
+            "type": "array",
+            "prefixItems": [
+              { "type": "number" },
+              { "type": "number" },
+              { "type": "number" }
+            ],
+            "minItems": 3,
+            "maxItems": 3
+          },
+          "rotation": {
+            "type": "array",
+            "prefixItems": [
+              { "type": "number" },
+              { "type": "number" },
+              { "type": "number" },
+              { "type": "number" }
+            ],
+            "minItems": 4,
+            "maxItems": 4
+          },
+          "scale": {
+            "type": "array",
+            "prefixItems": [
+              { "type": "number", "exclusiveMinimum": 0 },
+              { "type": "number", "exclusiveMinimum": 0 },
+              { "type": "number", "exclusiveMinimum": 0 }
+            ],
+            "minItems": 3,
+            "maxItems": 3
+          }
+        }
+      }
+    },
+    "capabilitiesProvided": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string" }
+    },
+    "animationClips": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string" }
+    },
+    "qa": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requiredPoses", "reviewStatus", "notes"],
+      "properties": {
+        "requiredPoses": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string" }
+        },
+        "reviewStatus": {
+          "enum": ["artist-wip", "technical-review", "art-review", "approved"]
+        },
+        "notes": { "type": "string" }
+      }
+    }
+  }
+}
