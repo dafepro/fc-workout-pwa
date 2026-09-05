@@ -3,12 +3,31 @@
   "status": "artist-brief",
   "units": "meters",
   "exportAxes": { "up": "+Y", "forward": "+Z", "right": "+X" },
+  "visualDirection": {
+    "id": "zoomigo-graphic-toon-v1",
+    "realismScale": 4,
+    "presentation": ["toon_shaded_3d", "cel_shaded_3d", "illustrated_3d"],
+    "contourTreatment": "selective_accents",
+    "reviewSizes": ["hero", "customizer", "lounge_near", "lounge_far"]
+  },
+  "expressionContract": {
+    "semantics": ["blink_l", "blink_r", "smile", "mouth_open", "surprised"],
+    "implementationStatus": "foundation-gate-decision",
+    "compatibleImplementations": [
+      "minimal_mesh_morphs",
+      "graphic_feature_states",
+      "hybrid"
+    ],
+    "legacyMorphCompatibility": true
+  },
   "families": [
     {
       "id": "family.zoomigo-humanoid-v1",
       "displayName": "ZoomiGo youth biped",
       "rigVersion": "zoomigo-humanoid-v2",
       "archetype": "biped",
+      "designScope": "initial_youth_player_family",
+      "bodyVariationPolicy": "locked_family_proportions",
       "referenceHeightMeters": 1.45,
       "capabilities": [
         "rig.skinned",
@@ -282,11 +301,12 @@
       "deliveryProfile": "base_character",
       "budgetProfile": "human_base",
       "materialMode": "skin",
-      "designBrief": "Friendly gender-inclusive youth soccer character, about 5.25 heads tall, strong silhouette at phone size, neutral anatomy and no body-shape controls.",
+      "designBrief": "First youth-oriented humanoid family in the approved graphic toon style, about 5.25 heads tall, with an expressive face, strong phone-size silhouette, and locked family proportions.",
       "acceptanceChecks": [
         "character_turnaround",
         "rig_contract",
-        "face_morphs",
+        "face_system_decision",
+        "semantic_expressions",
         "body_regions",
         "extreme_pose_deformation"
       ]
@@ -300,7 +320,7 @@
       "deliveryProfile": "base_character",
       "budgetProfile": "mascot_base",
       "materialMode": "palette3",
-      "designBrief": "Original friendly non-human character with a clearly different silhouette and skeleton; readable by shape, not dependent on human clothing.",
+      "designBrief": "Original expressive non-human character with a clearly different silhouette and skeleton; funny rather than cute and readable by shape without depending on human clothing.",
       "acceptanceChecks": [
         "character_turnaround",
         "family_capabilities",
@@ -409,7 +429,7 @@
       "deliveryProfile": "face_preset",
       "budgetProfile": "face_preset",
       "materialMode": "skin",
-      "designBrief": "Slightly asymmetric brow shapes and lively eyes while preserving the shared expression morphs.",
+      "designBrief": "Slightly asymmetric graphic brows and lively eyes while preserving the shared semantic expression system.",
       "acceptanceChecks": [
         "neutral_expression",
         "blink",
@@ -622,7 +642,7 @@
     },
     {
       "id": "top.goalkeeper",
-      "displayName": "Goalkeeper Shield",
+      "displayName": "Goalkeeper Jersey",
       "phase": "launch",
       "assetType": "skinned_wearable",
       "slot": "top",
@@ -1015,7 +1035,7 @@
       "deliveryProfile": "socket_cosmetic",
       "budgetProfile": "headwear",
       "materialMode": "fixed",
-      "designBrief": "Toy-like open-face space helmet with a clear face read, chunky rim, and restrained visor transparency.",
+      "designBrief": "Graphic open-face space helmet with a clear face read, bold rim, and restrained visor transparency for a later themed reward set.",
       "acceptanceChecks": [
         "anchor_contract",
         "hair_hide_rule",
@@ -1330,7 +1350,7 @@
       "deliveryProfile": "socket_cosmetic",
       "budgetProfile": "back",
       "materialMode": "palette3",
-      "designBrief": "Compact non-human back module with soft toy-like forms and no realistic weapon language.",
+      "designBrief": "Compact non-human back module with bold graphic forms and no realistic weapon language.",
       "acceptanceChecks": [
         "anchor_contract",
         "family_fit",

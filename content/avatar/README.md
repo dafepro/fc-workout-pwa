@@ -8,6 +8,8 @@ avatars.
 
 - [ARTIST_HANDBOOK.md](ARTIST_HANDBOOK.md) is the Blender modeling, rigging,
   material, animation, export, and acceptance contract.
+- [ART_DIRECTION_VISUAL_REFERENCE_BOARD.md](ART_DIRECTION_VISUAL_REFERENCE_BOARD.md)
+  locks the graphic toon direction and early artist review workflow.
 - [ASSET_PRODUCTION_LIST.md](ASSET_PRODUCTION_LIST.md) is the phased commission
   list.
 - [spec/production-assets.json](spec/production-assets.json) is the
@@ -27,8 +29,8 @@ artist-created `zoomigo-humanoid-v2` family pack is approved and locked.
   variants, and source-file paths.
 - `source/**/*.glb` contains reviewable authoring exports. Each skinned garment
   uses `zoomigo-humanoid-v1`; rigid pieces declare one supported socket.
-- `art-direction/zoomigo-player-turnaround-v1.png` is the visual target for this
-  catalog generation.
+- `art-direction/zoomigo-player-turnaround-v1.png` is a historical input to the
+  engineering catalog generator, not an approved production style reference.
 
 The checked-in engineering sources are created with the repository's art
 builder because Blender is not available in the automation environment. An

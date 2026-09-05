@@ -38,6 +38,68 @@ function validatePlan(value, brief) {
     "production export axes must be +Y up and +Z forward",
   );
 
+  const visualDirection = record(value.visualDirection, "visualDirection");
+  assert(
+    visualDirection.id === "zoomigo-graphic-toon-v1",
+    "production visual direction ID drift",
+  );
+  assert(
+    visualDirection.realismScale === 4,
+    "production realism target must be 4/10",
+  );
+  assert(
+    sameStrings(visualDirection.presentation, [
+      "toon_shaded_3d",
+      "cel_shaded_3d",
+      "illustrated_3d",
+    ]),
+    "production presentation modes drift",
+  );
+  assert(
+    visualDirection.contourTreatment === "selective_accents",
+    "production contours must use selective accents",
+  );
+  assert(
+    sameStrings(visualDirection.reviewSizes, [
+      "hero",
+      "customizer",
+      "lounge_near",
+      "lounge_far",
+    ]),
+    "visual direction must cover every runtime review size",
+  );
+
+  const expressionContract = record(
+    value.expressionContract,
+    "expressionContract",
+  );
+  assert(
+    sameStrings(expressionContract.semantics, [
+      "blink_l",
+      "blink_r",
+      "smile",
+      "mouth_open",
+      "surprised",
+    ]),
+    "semantic expression contract drift",
+  );
+  assert(
+    expressionContract.implementationStatus === "foundation-gate-decision",
+    "face implementation must be decided at the foundation gate",
+  );
+  assert(
+    sameStrings(expressionContract.compatibleImplementations, [
+      "minimal_mesh_morphs",
+      "graphic_feature_states",
+      "hybrid",
+    ]),
+    "face implementation candidates drift",
+  );
+  assert(
+    expressionContract.legacyMorphCompatibility === true,
+    "existing morph compatibility must remain explicit",
+  );
+
   const families = array(value.families, "families");
   const familyIds = uniqueIds(families, "family");
   assert(families.length >= 2, "at least two avatar families are required");
@@ -101,6 +163,10 @@ function validatePlan(value, brief) {
     assert(
       typeof asset.designBrief === "string" && asset.designBrief.length >= 24,
       `${asset.id} needs a useful design brief`,
+    );
+    assert(
+      !/toy-like|bubbly|chibi|photoreal/i.test(asset.designBrief),
+      `${asset.id} uses rejected visual-direction language`,
     );
     strings(asset.acceptanceChecks, `${asset.id} acceptance checks`);
     assert(
@@ -167,6 +233,24 @@ function validatePlan(value, brief) {
       `non-human proof asset ${id} is missing`,
     );
   }
+
+  const humanFamily = families.find(
+    ({ id }) => id === "family.zoomigo-humanoid-v1",
+  );
+  assert(
+    humanFamily?.designScope === "initial_youth_player_family" &&
+      humanFamily?.bodyVariationPolicy === "locked_family_proportions",
+    "the first humanoid family needs an explicit scoped body contract",
+  );
+
+  const humanBase = assets.find(({ id }) => id === "base.player-biped-v2");
+  assert(
+    humanBase &&
+      humanBase.acceptanceChecks.includes("face_system_decision") &&
+      humanBase.acceptanceChecks.includes("semantic_expressions") &&
+      !humanBase.acceptanceChecks.includes("face_morphs"),
+    "the humanoid base must select a face system without preselecting morphs",
+  );
 }
 
 function validateSubmission(value, contract, path) {
@@ -312,6 +396,14 @@ function uniqueIds(values, label) {
   const ids = values.map((value) => value.id);
   strings(ids, `${label} IDs`);
   return new Set(ids);
+}
+
+function sameStrings(value, expected) {
+  return (
+    Array.isArray(value) &&
+    value.length === expected.length &&
+    value.every((entry, index) => entry === expected[index])
+  );
 }
 
 function vector(value, length, label, positive = false) {

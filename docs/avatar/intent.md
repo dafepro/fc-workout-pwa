@@ -56,20 +56,31 @@ Not:
 
 ## Character Style
 
-The avatar should use a stylized 3D look rather than realism.
+The avatar should use a stylized graphic 3D look rather than realism. The
+production direction is toon-shaded or cel-shaded, illustrated, expressive, and
+roughly 4/10 realism. It should use deliberate modeled forms, readable
+silhouettes, broad color separation, and selective contour accents rather than
+soft bubbly forms or a heavy outline around every edge.
 
 Characters should feel:
 
-- friendly
+- expressive and funny rather than cute
 - athletic
-- expressive
 - colorful
 - readable on a phone screen
 - recognizable from a distance
-- appropriate for kids roughly ages 9–12
+- appropriate for the current youth-player audience
 - consistent with Zoomigo's playful soccer identity
 
-The design should avoid realistic body simulation or appearance systems that encourage players to compare height, weight, body shape, attractiveness, or physical development.
+The first `zoomigo-humanoid-v2` family may be designed around the current youth
+player use case. The wider ZoomiGo human art style must also support future
+families or rig versions with different ages, heights, builds, and proportions.
+One locked body, skeleton, and wardrobe should not be stretched across all
+future humans with arbitrary runtime scaling.
+
+The design should avoid realistic body simulation or appearance systems that
+encourage players to compare height, weight, body shape, attractiveness, age,
+ethnicity, or physical development.
 
 The character model should have enough personality to feel alive while remaining simple enough that clothing and accessories remain easy to read.
 

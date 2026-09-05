@@ -13,7 +13,9 @@ refined into production assets.
 
 Use [ASSET_PRODUCTION_LIST.md](ASSET_PRODUCTION_LIST.md) for the commissioned
 pieces and [spec/production-assets.json](spec/production-assets.json) for the
-machine-readable requirements attached to every item.
+machine-readable requirements attached to every item. Use
+[ART_DIRECTION_VISUAL_REFERENCE_BOARD.md](ART_DIRECTION_VISUAL_REFERENCE_BOARD.md)
+for the approved visual direction and pre-production review sequence.
 
 ## 1. What the artist receives
 
@@ -42,23 +44,39 @@ fit envelopes then become immutable for that rig version.
 
 ## 2. Art direction
 
-The character should be a polished stylized game character, not a mannequin and
-not a realistic child scan.
+The production target is stylized graphic 3D with a toon-shaded, cel-shaded,
+illustrated, or comic-book presentation. Target roughly 4/10 realism, where 1 is
+highly stylized and 10 is photorealistic. Favor modeled or sculpted forms with
+clear shape design, expressive and funny performance, readable silhouettes,
+and strong graphic color separation.
 
-- Read as approximately age 9–12 without emphasizing physical development.
+- Design `zoomigo-humanoid-v2` as the first youth-oriented production family
+  for the current player use case. Its approximate age read and proportions are
+  family-specific, not a permanent ZoomiGo-wide human style requirement.
 - Target about 5.25 heads tall with a large expressive head, compact torso,
   slightly enlarged hands, and readable footwear.
 - Use appealing asymmetry and broad shape language. Avoid primitive stacks,
   perfect procedural symmetry, bead-like hair, or details that disappear on a
   phone.
-- Keep the neutral face friendly and alert. Expressions may be energetic but
-  never sexualized, aggressive, mocking, or winner-over-loser.
+- Use graphic eyes, expressive eyebrows, and highly readable mouth shapes.
+  Expressions may be funny and exaggerated but never sexualized, aggressive,
+  mocking, or winner-over-loser.
 - Use clothing construction details selectively: collar shape, seam direction,
   panel breaks, cuffs, hems, soles, and padding should carry the design.
 - Avoid readable text, player names, numbers, sponsor logos, flags, or uploaded
   graphics. Approved geometric marks and the ZoomiGo crest zone are allowed.
 - Skin tone, face, hair, and clothing options are choices, never ranked
   upgrades. Do not create height, weight, chest, waist, or muscularity variants.
+
+Avoid Bitmoji- or Snapchat-style avatars, soft bubbly 3D, toy-like characters,
+chibi proportions, photorealism, realistic child scans, heavy anime styling,
+and a full black outline around every edge.
+
+Use selective contour accents for important silhouettes, facial features,
+garment overlaps, and major form breaks. Contours must reinforce the illustrated
+read without flattening depth or material separation. Do not use a uniform heavy
+black outline around every mesh edge. Ignore internal linework too small to
+survive normal gameplay review rather than adding complexity for it.
 
 Review art under a neutral studio rig and at these output sizes:
 
@@ -92,6 +110,12 @@ Shared runtime concepts are semantic:
 There is no universal skeleton. Cross-family assets are limited to rigid items
 with a reviewed transform for every declared family. Skinned clothing is
 normally family-specific.
+
+Future humanoid families may target different ages, heights, builds, and
+proportions with their own bodies and rig versions. Do not stretch one body,
+skeleton, or wardrobe across every human shape through arbitrary runtime scale.
+Within `zoomigo-humanoid-v2`, the locked body, scale, fit envelopes, rig, and
+wardrobe contract remain internally consistent.
 
 The production list may assign one semantic animation item to more than one
 family. That means one separately authored clip and manifest per family, not one
@@ -172,7 +196,7 @@ Use Blender's built-in glTF 2.0 exporter with these settings. Save the preset as
 | Loose edges / loose points | Off                                                              |
 | Vertex colors              | On only when declared in the manifest                            |
 | Materials                  | Export; Principled BSDF only                                     |
-| Shape keys                 | On for the base face; preserve names exactly                     |
+| Shape keys                 | On when the approved face implementation uses morph targets      |
 | Deformation bones only     | On                                                               |
 | Flatten bone hierarchy     | Off                                                              |
 | Geometry compression       | Off; the repository pipeline applies Meshopt                     |
@@ -242,8 +266,8 @@ feet, and the gaze along exported `+Z`.
 - Do not export constraints, drivers, IK controls, or control-rig objects.
 - Correct shoulders, crotch, elbows, knees, wrists, cuffs, and hems in the
   required pose set before submission.
-- Shape keys are permitted for expression on the base face, not as a hidden
-  substitute for broken garment weights.
+- Shape keys are permitted for expression when required by the approved face
+  implementation, not as a hidden substitute for broken garment weights.
 
 ## 7. Body regions and fit envelopes
 
@@ -356,7 +380,24 @@ Material modes:
 
 ## 11. Face and expression contract
 
-The base provides these expression shape keys at values `0..1`:
+The face belongs to the same graphic, illustrated, toon-shaded language as the
+body. Use graphic eyes rather than glossy or realistic eyeballs, expressive
+eyebrows, and mouth shapes that read clearly at customizer and lounge sizes.
+The system must support funny, exaggerated combinations without depending on
+realistic facial anatomy.
+
+The exact implementation is a required technical-art decision at the foundation
+gate. Evaluate all three approaches in GLB and the real browser runtime:
+
+1. a minimal mesh morph / shape-key system;
+2. a graphic feature geometry or material-state system;
+3. a hybrid using limited morphs plus graphic eye, brow, and mouth treatments.
+
+Choose the smallest approach that combines cleanly, survives export, meets the
+performance budget, and remains readable at hero, customizer, lounge-near, and
+lounge-far sizes. Record the decision before locking `zoomigo-humanoid-v2`.
+
+Regardless of technique, the semantic expression contract remains:
 
 ```text
 blink_l
@@ -366,15 +407,23 @@ mouth_open
 surprised
 ```
 
-All face presets share the same base topology, UV layout, expression keys, eye
-placement, teeth/tongue policy, and skin material. Presets may vary curated eye,
-brow, nose, and mouth shapes within the approved style. They must work across
-every skin tone and must not be presented as gender, ethnicity, attractiveness,
-or age rankings.
+The checked-in submission schema and current runtime are technique-neutral. Any
+morph-compatible assets or downstream integrations must preserve these exact
+names and `0..1` behavior until a deliberate technical change lands. A
+geometry- or material-state proposal must provide an equivalent semantic
+mapping and cannot silently break morph-compatible assets.
+
+All face presets share the approved v2 feature placement, combination rules,
+teeth/tongue policy, and skin treatment. If the selected system uses shared
+topology, UVs, morphs, geometry sets, or material states, those details are
+frozen with the family pack. Presets may vary curated eye, brow, nose, and mouth
+shapes within the approved style. They must work across every skin tone and must
+not be presented as gender, ethnicity, attractiveness, body type, or age
+rankings.
 
 Eyes must remain readable at customizer size without relying on emission.
-Closed eyelids must cover the eyeball cleanly. `smile` and `mouth_open` must
-combine without tearing, collapsed normals, or exposed interior gaps.
+Blink states must close cleanly. `smile` and `mouth_open` must combine without
+tearing, visual collisions, collapsed normals, or exposed interior gaps.
 
 ## 12. Animation contract
 
@@ -465,7 +514,7 @@ pnpm avatar:spec:validate path/to/asset.json
 
 An asset is accepted only when all four gates pass:
 
-1. **Art:** silhouette, construction, palette, age appropriateness, and visual
+1. **Art:** silhouette, construction, palette, audience appropriateness, and visual
    polish are approved at phone size.
 2. **Technical:** naming, scale, transforms, topology, UVs, skinning, materials,
    animations, and manifest pass the validator.
@@ -482,8 +531,9 @@ shipped within the contract.
 
 To avoid paying for work against a moving target:
 
-1. approve front/side silhouettes for the human base;
-2. approve topology, face expressions, and neutral materials;
+1. complete the visual-development workflow and approve one style direction;
+2. approve the blockout, turnaround, phone-size reads, topology, face-system
+   decision, expressions, contours, and neutral materials;
 3. build and test the production rig, sockets, regions, envelopes, and pose
    library;
 4. lock `zoomigo-humanoid-v2`;

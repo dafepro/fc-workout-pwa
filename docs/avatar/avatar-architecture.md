@@ -3,7 +3,9 @@
 **Status:** Proposed  
 **Companion document:** `intent.md`  
 **Primary target:** Zoomigo player PWA and multiplayer team lounge  
-**Primary users:** Youth players, roughly ages 9–12
+**Primary users:** The current product serves youth players, roughly ages 9–12;
+this audience does not impose one permanent age or body proportion on every
+future avatar family.
 
 ---
 
@@ -416,7 +418,7 @@ VRM is useful for interoperable humanoid avatars, but Zoomigo does not need arbi
 
 Zoomigo needs:
 
-- one optimized rig
+- one optimized, internally consistent rig per production family
 - predictable clothing attachment
 - curated child-safe content
 - strict mobile budgets
@@ -445,6 +447,10 @@ deformation, sockets, fit envelopes, and pose library pass the foundation gate.
 
 Every body and skinned cosmetic targets one explicit family and that family's
 locked rig. A non-human family may use a completely different skeleton.
+Future humanoid families may likewise use different bodies and rig versions for
+different ages, heights, builds, or proportions. Do not apply arbitrary runtime
+scaling to make the locked v2 body stand in for all human variation. Clothing
+fit remains reliable because each family stays internally consistent.
 
 ---
 
@@ -895,10 +901,10 @@ Keep structural appearance simple.
 Recommended model:
 
 - curated skin-tone palette
-- curated face textures or face-feature sets
+- curated graphic face-feature sets
 - curated eye/brow combinations
 - hair mesh swaps
-- optional expression morph targets
+- a foundation-approved expression implementation
 
 Do not build:
 
@@ -908,7 +914,7 @@ Do not build:
 - realistic body proportions
 - body-shape scoring
 
-Morph targets should primarily support expression:
+The runtime expression contract is semantic:
 
 ```text
 blink_l
@@ -917,6 +923,18 @@ smile
 mouth_open
 surprised
 ```
+
+Before `zoomigo-humanoid-v2` is locked, technical art must evaluate a minimal
+mesh-morph system, a graphic feature geometry or material-state system, and a
+hybrid of limited morphs with graphic eye, brow, and mouth treatments. The
+selected approach must combine cleanly, export through GLB, and remain readable
+at customizer and lounge review sizes.
+
+The checked-in submission schema and current runtime are technique-neutral.
+Morph-target compatibility remains supported until a deliberate schema and
+runtime change replaces it. When morphs are used, preserve the semantic names
+above and their `0..1` behavior. A non-morph implementation must map the same
+semantics without weakening browser validation.
 
 ---
 
@@ -2920,7 +2938,7 @@ Build:
 
 Goal:
 
-Prove that many combinations can share one rig.
+Prove that many combinations within one locked family can share its rig.
 
 ---
 

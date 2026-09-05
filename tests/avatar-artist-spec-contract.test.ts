@@ -33,6 +33,51 @@ describe("avatar artist production contract", () => {
     ).toBe(true);
   });
 
+  it("locks the graphic toon direction and selective contour review contract", () => {
+    const plan = readJson("content/avatar/spec/production-assets.json");
+    const direction = plan.visualDirection as Record<string, unknown>;
+
+    expect(direction.id).toBe("zoomigo-graphic-toon-v1");
+    expect(direction.realismScale).toBe(4);
+    expect(direction.contourTreatment).toBe("selective_accents");
+    expect(direction.reviewSizes).toEqual([
+      "hero",
+      "customizer",
+      "lounge_near",
+      "lounge_far",
+    ]);
+
+    const board = readFileSync(
+      "content/avatar/ART_DIRECTION_VISUAL_REFERENCE_BOARD.md",
+      "utf8",
+    );
+    const boardText = board.replace(/\s+/g, " ");
+    expect(boardText).toContain("toon-shaded / cel-shaded 3D");
+    expect(boardText).toContain("Do not use a uniform heavy black outline");
+    expect(board).toContain("## Approved-style checklist");
+  });
+
+  it("keeps expression semantics stable while the foundation gate selects the technique", () => {
+    const plan = readJson("content/avatar/spec/production-assets.json");
+    const base = (plan.assets as Array<Record<string, unknown>>).find(
+      ({ id }) => id === "base.player-biped-v2",
+    );
+
+    expect(plan.expressionContract).toEqual({
+      semantics: ["blink_l", "blink_r", "smile", "mouth_open", "surprised"],
+      implementationStatus: "foundation-gate-decision",
+      compatibleImplementations: [
+        "minimal_mesh_morphs",
+        "graphic_feature_states",
+        "hybrid",
+      ],
+      legacyMorphCompatibility: true,
+    });
+    expect(base?.acceptanceChecks).toContain("face_system_decision");
+    expect(base?.acceptanceChecks).toContain("semantic_expressions");
+    expect(base?.acceptanceChecks).not.toContain("face_morphs");
+  });
+
   it("gives every commissioned asset an explicit production and QA contract", () => {
     const plan = readJson("content/avatar/spec/production-assets.json");
     const assets = plan.assets as Array<Record<string, unknown>>;

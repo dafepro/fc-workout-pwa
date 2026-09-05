@@ -10,6 +10,14 @@ texture, rig, and delivery requirements come from the
 budget and also has an individual design brief and acceptance checks in the
 machine-readable source.
 
+The [visual reference board](ART_DIRECTION_VISUAL_REFERENCE_BOARD.md) must be
+approved before production modeling. The initial wave is simple, recognizable
+athletic and casual sportswear with strong silhouettes, broad color blocking,
+readable construction, and restrained seams, cuffs, and soles. Ordinary launch
+pieces are not fantasy armor, superhero costumes, sci-fi uniforms, or decorated
+game loot; those treatments belong to later reward, themed, seasonal, or
+full-body expansion work.
+
 Do not commission the entire list at once. Use the foundation gate first; it
 proves the approved base, rig, fit, materials, and export loop before wardrobe
 production scales.
@@ -56,15 +64,16 @@ the foundation purchase order.
 
 ### Faces
 
-| ID                 | Piece    | Individual visual requirement                   |
-| ------------------ | -------- | ----------------------------------------------- |
-| `face.cheerful-01` | Cheerful | Rounded eyes and lifted brows                   |
-| `face.calm-01`     | Calm     | Gently lowered lids without looking sleepy      |
-| `face.bold-01`     | Bold     | Strong curved brows and friendly confidence     |
-| `face.playful-01`  | Playful  | Controlled asymmetry using the shared morph set |
+| ID                 | Piece    | Individual visual requirement                     |
+| ------------------ | -------- | ------------------------------------------------- |
+| `face.cheerful-01` | Cheerful | Rounded eyes and lifted brows                     |
+| `face.calm-01`     | Calm     | Gently lowered lids without looking sleepy        |
+| `face.bold-01`     | Bold     | Strong curved brows and friendly confidence       |
+| `face.playful-01`  | Playful  | Controlled asymmetry using the shared face system |
 
 All six faces work with all curated skin tones and the same blink, smile,
-mouth-open, and surprised expressions.
+mouth-open, and surprised expression semantics. The foundation gate selects the
+underlying morph, graphic-state, or hybrid implementation.
 
 ### Hair
 
@@ -81,7 +90,7 @@ be lightly skinned; short rigid styles use the head socket.
 
 | ID                  | Piece             | Individual visual requirement                   |
 | ------------------- | ----------------- | ----------------------------------------------- |
-| `top.goalkeeper`    | Goalkeeper Shield | Long sleeves and graphic padding                |
+| `top.goalkeeper`    | Goalkeeper Jersey | Long sleeves and graphic padding                |
 | `top.street-hoodie` | Street Hoodie     | Hood down, no cords, backpack clearance         |
 | `top.rain-shell`    | Rain Shell        | Matte weather fabric and strong shoulder accent |
 
