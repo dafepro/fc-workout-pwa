@@ -11,20 +11,26 @@ export class ThreeAvatarAssetLoader implements AvatarAssetLoader {
   async load(url: string): Promise<LoadedAvatar> {
     const gltf = await this.loader.loadAsync(url);
     const avatarRoot =
-      gltf.scene.getObjectByName("ZoomigoAvatar") ?? gltf.scene;
+      gltf.scene.getObjectByName("ZoomigoAvatar") ??
+      gltf.scene.getObjectByName("AvatarCosmetic") ??
+      gltf.scene;
 
     if (avatarRoot.userData.rigVersion !== AVATAR_RIG_VERSION) {
       throw new Error("avatar rig version is missing or unsupported");
     }
 
-    const clipNames = new Set(gltf.animations.map(({ name }) => name));
-    if (REQUIRED_CLIPS.some((name) => !clipNames.has(name))) {
-      throw new Error("avatar is missing a required locomotion clip");
+    if (avatarRoot.name === "ZoomigoAvatar") {
+      const clipNames = new Set(gltf.animations.map(({ name }) => name));
+      if (REQUIRED_CLIPS.some((name) => !clipNames.has(name))) {
+        throw new Error("avatar is missing a required locomotion clip");
+      }
     }
 
     return {
       scene: avatarRoot,
       animations: gltf.animations,
+      equippedItemIDs: [],
+      warnings: [],
     };
   }
 }

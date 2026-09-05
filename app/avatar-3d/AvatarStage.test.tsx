@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import type { AvatarMotionState } from "./types";
+import type { AvatarLoadout, AvatarMotionState } from "./types";
 import {
   AvatarStage,
   type AvatarStageRuntime,
@@ -13,8 +13,8 @@ function stageHarness(finalState: AvatarRuntimeState) {
   const events: string[] = [];
   let reportState: ((state: AvatarRuntimeState) => void) | undefined;
   const runtime: AvatarStageRuntime = {
-    async start({ assetURL, reducedMotion }) {
-      events.push(`start:${assetURL}:${reducedMotion}`);
+    async start({ catalogURL, reducedMotion }) {
+      events.push(`start:${catalogURL}:${reducedMotion}`);
       reportState?.({ kind: "loading" });
       reportState?.(finalState);
     },
@@ -23,6 +23,9 @@ function stageHarness(finalState: AvatarRuntimeState) {
     },
     setMotion(motion) {
       events.push("motion:" + motion.kind);
+    },
+    async setLoadout(loadout) {
+      events.push("loadout:" + loadout.appearance.hairId);
     },
     setReducedMotion(reducedMotion) {
       events.push("reduced:" + reducedMotion);
@@ -43,10 +46,13 @@ describe("AvatarStage", () => {
     const { events, factory } = stageHarness({
       kind: "ready",
       animationNames: ["idle_default", "walk", "run"],
+      equippedItemIDs: ["base.zoomigo.reference", "hair.curl.reference"],
+      warnings: [],
     });
     const { rerender, unmount } = render(
       <AvatarStage
-        assetURL="/avatar/reference/zoomigo-reference.glb"
+        catalogURL="/avatar/catalog/avatar-catalog.reference.json"
+        loadout={loadout}
         motion={{ kind: "idle" }}
         runtimeFactory={factory}
       />,
@@ -57,18 +63,25 @@ describe("AvatarStage", () => {
     );
     expect(screen.getByTestId("avatar-3d-canvas")).toBeVisible();
     expect(events).toContain(
-      "start:/avatar/reference/zoomigo-reference.glb:false",
+      "start:/avatar/catalog/avatar-catalog.reference.json:false",
     );
 
     const run: AvatarMotionState = { kind: "run" };
     rerender(
       <AvatarStage
-        assetURL="/avatar/reference/zoomigo-reference.glb"
+        catalogURL="/avatar/catalog/avatar-catalog.reference.json"
+        loadout={{
+          ...loadout,
+          appearance: { ...loadout.appearance, hairId: "hair.swoop.reference" },
+        }}
         motion={run}
         runtimeFactory={factory}
       />,
     );
     await waitFor(() => expect(events).toContain("motion:run"));
+    await waitFor(() =>
+      expect(events).toContain("loadout:hair.swoop.reference"),
+    );
 
     unmount();
     expect(events.at(-1)).toBe("dispose");
@@ -82,7 +95,8 @@ describe("AvatarStage", () => {
 
     render(
       <AvatarStage
-        assetURL="/avatar/reference/missing.glb"
+        catalogURL="/avatar/catalog/missing.json"
+        loadout={loadout}
         motion={{ kind: "idle" }}
         runtimeFactory={factory}
       />,
@@ -94,3 +108,20 @@ describe("AvatarStage", () => {
     expect(screen.getByLabelText("Zoomigo avatar fallback")).toBeVisible();
   });
 });
+
+const loadout: AvatarLoadout = {
+  schemaVersion: 1,
+  rigVersion: "zoomigo-humanoid-v1",
+  baseId: "base.zoomigo.reference",
+  appearance: {
+    skinToneId: "skin.medium",
+    faceId: "face.default",
+    hairId: "hair.curl.reference",
+  },
+  slots: {},
+  animations: {
+    idle: "idle_default",
+    celebration: "celebration_jump",
+  },
+  effects: [],
+};

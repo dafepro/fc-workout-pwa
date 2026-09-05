@@ -1,18 +1,19 @@
-import type { AvatarMotionState } from "../types";
+import type { AvatarLoadout, AvatarMotionState } from "../types";
 import type {
-  AvatarAssetLoader,
+  AvatarPresentationLoader,
   AvatarRenderBackend,
   AvatarRuntimeState,
 } from "./types";
 
 interface AvatarRuntimeOptions {
   backend: AvatarRenderBackend;
-  loader: AvatarAssetLoader;
+  loader: AvatarPresentationLoader;
   onState: (state: AvatarRuntimeState) => void;
 }
 
-interface AvatarRuntimeStartOptions {
-  assetURL: string;
+export interface AvatarRuntimeStartOptions {
+  catalogURL: string;
+  loadout: AvatarLoadout;
   canvas: HTMLCanvasElement;
   reducedMotion: boolean;
 }
@@ -21,15 +22,19 @@ export class AvatarRuntime {
   private disposed = false;
   private reducedMotion = false;
   private motion: AvatarMotionState = { kind: "idle" };
+  private source?: { catalogURL: string; loadout: AvatarLoadout };
+  private loadGeneration = 0;
 
   constructor(private readonly options: AvatarRuntimeOptions) {}
 
   async start({
-    assetURL,
+    catalogURL,
+    loadout,
     canvas,
     reducedMotion,
   }: AvatarRuntimeStartOptions): Promise<void> {
     this.reducedMotion = reducedMotion;
+    this.source = { catalogURL, loadout };
     this.options.onState({ kind: "loading" });
 
     try {
@@ -39,18 +44,13 @@ export class AvatarRuntime {
       return;
     }
 
-    try {
-      const avatar = await this.options.loader.load(assetURL);
-      if (this.disposed) return;
-      this.options.backend.attach(avatar);
-      this.options.backend.setMotion(this.motion, this.reducedMotion);
-      this.options.onState({
-        kind: "ready",
-        animationNames: avatar.animations.map(({ name }) => name),
-      });
-    } catch {
-      this.fail("asset-load-failed");
-    }
+    await this.loadAvatar(this.source);
+  }
+
+  async setLoadout(loadout: AvatarLoadout): Promise<void> {
+    if (this.disposed || !this.source) return;
+    this.source = { ...this.source, loadout };
+    await this.loadAvatar(this.source);
   }
 
   resize(width: number, height: number, pixelRatio: number): void {
@@ -85,5 +85,26 @@ export class AvatarRuntime {
   ) {
     this.dispose();
     this.options.onState({ kind: "unavailable", reason });
+  }
+
+  private async loadAvatar(source: {
+    catalogURL: string;
+    loadout: AvatarLoadout;
+  }): Promise<void> {
+    const generation = ++this.loadGeneration;
+    try {
+      const avatar = await this.options.loader.load(source);
+      if (this.disposed || generation !== this.loadGeneration) return;
+      this.options.backend.attach(avatar);
+      this.options.backend.setMotion(this.motion, this.reducedMotion);
+      this.options.onState({
+        kind: "ready",
+        animationNames: avatar.animations.map(({ name }) => name),
+        equippedItemIDs: avatar.equippedItemIDs,
+        warnings: avatar.warnings,
+      });
+    } catch {
+      if (generation === this.loadGeneration) this.fail("asset-load-failed");
+    }
   }
 }

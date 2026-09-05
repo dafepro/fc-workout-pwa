@@ -3,15 +3,21 @@
 import { useEffect, useRef, useState, type HTMLAttributes } from "react";
 
 import { avatar3dCopy } from "./copy";
-import type { AvatarMotionState } from "./types";
+import type { AvatarLoadout, AvatarMotionState } from "./types";
 import styles from "./AvatarStage.module.css";
 import { AvatarRuntime } from "./runtime/AvatarRuntime";
+import { AvatarAssembler } from "./runtime/AvatarAssembler";
+import {
+  AvatarLibraryLoader,
+  HttpAvatarCatalogLoader,
+} from "./runtime/AvatarLibraryLoader";
 import { ThreeAvatarAssetLoader } from "./runtime/ThreeAvatarAssetLoader";
 import { ThreeAvatarBackend } from "./runtime/ThreeAvatarBackend";
 import type { AvatarRuntimeState } from "./runtime/types";
 
 interface AvatarStageStartOptions {
-  assetURL: string;
+  catalogURL: string;
+  loadout: AvatarLoadout;
   canvas: HTMLCanvasElement;
   reducedMotion: boolean;
 }
@@ -20,6 +26,7 @@ export interface AvatarStageRuntime {
   start(options: AvatarStageStartOptions): Promise<void>;
   resize(width: number, height: number, pixelRatio: number): void;
   setMotion(motion: AvatarMotionState): void;
+  setLoadout(loadout: AvatarLoadout): Promise<void>;
   setReducedMotion(reducedMotion: boolean): void;
   dispose(): void;
 }
@@ -30,7 +37,8 @@ export type AvatarStageRuntimeFactory = (
 
 interface AvatarStageProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
-  assetURL: string;
+  catalogURL: string;
+  loadout: AvatarLoadout;
   motion: AvatarMotionState;
   runtimeFactory?: AvatarStageRuntimeFactory;
 }
@@ -40,12 +48,16 @@ const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 const createRuntime: AvatarStageRuntimeFactory = (onState) =>
   new AvatarRuntime({
     backend: new ThreeAvatarBackend(),
-    loader: new ThreeAvatarAssetLoader(),
+    loader: new AvatarLibraryLoader(
+      new HttpAvatarCatalogLoader(),
+      new AvatarAssembler(new ThreeAvatarAssetLoader()),
+    ),
     onState,
   });
 
 export function AvatarStage({
-  assetURL,
+  catalogURL,
+  loadout,
   motion,
   runtimeFactory = createRuntime,
   className,
@@ -53,6 +65,7 @@ export function AvatarStage({
 }: AvatarStageProps) {
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const previousLoadoutRef = useRef(loadout);
   const runtimeRef = useRef<AvatarStageRuntime | undefined>(undefined);
   const [runtimeState, setRuntimeState] = useState<AvatarRuntimeState>({
     kind: "loading",
@@ -72,7 +85,8 @@ export function AvatarStage({
     setReducedMotion(initialReducedMotion);
     runtimeRef.current = runtime;
     void runtime.start({
-      assetURL,
+      catalogURL,
+      loadout: previousLoadoutRef.current,
       canvas,
       reducedMotion: initialReducedMotion,
     });
@@ -94,7 +108,13 @@ export function AvatarStage({
       if (runtimeRef.current === runtime) runtimeRef.current = undefined;
       runtime.dispose();
     };
-  }, [assetURL, runtimeFactory]);
+  }, [catalogURL, runtimeFactory]);
+
+  useEffect(() => {
+    if (previousLoadoutRef.current === loadout) return;
+    previousLoadoutRef.current = loadout;
+    void runtimeRef.current?.setLoadout(loadout);
+  }, [loadout]);
 
   useEffect(() => {
     runtimeRef.current?.setMotion(motion);
@@ -119,6 +139,11 @@ export function AvatarStage({
       {...props}
       className={[styles.stage, className].filter(Boolean).join(" ")}
       data-avatar-state={runtimeState.kind}
+      data-avatar-items={
+        runtimeState.kind === "ready"
+          ? runtimeState.equippedItemIDs.join(" ")
+          : undefined
+      }
       data-reduced-motion={reducedMotion ? "true" : "false"}
     >
       <canvas

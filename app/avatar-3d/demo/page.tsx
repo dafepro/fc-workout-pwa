@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import catalogSource from "../../../public/avatar/catalog/avatar-catalog.reference.json";
+import { parseAvatarCatalog } from "../catalog";
 import { AvatarDemo } from "./AvatarDemo";
 
 export const metadata: Metadata = {
@@ -8,8 +10,9 @@ export const metadata: Metadata = {
     "A live engineering preview of Zoomigo's replacement 3D avatar runtime.",
 };
 
-const REFERENCE_ASSET = "/avatar/reference/zoomigo-reference.glb";
-const MISSING_ASSET = "/avatar/reference/missing.glb";
+const REFERENCE_CATALOG = "/avatar/catalog/avatar-catalog.reference.json";
+const MISSING_CATALOG = "/avatar/catalog/missing.json";
+const catalog = parseAvatarCatalog(catalogSource);
 
 export default async function AvatarDemoPage({
   searchParams,
@@ -19,7 +22,8 @@ export default async function AvatarDemoPage({
   const { failure } = await searchParams;
   return (
     <AvatarDemo
-      assetURL={failure === "asset" ? MISSING_ASSET : REFERENCE_ASSET}
+      catalog={catalog}
+      catalogURL={failure === "asset" ? MISSING_CATALOG : REFERENCE_CATALOG}
     />
   );
 }

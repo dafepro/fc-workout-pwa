@@ -1,176 +1,311 @@
 .page {
   min-block-size: 100svh;
-  padding: clamp(1rem, 4vw, 3rem);
+  padding: clamp(0.75rem, 3vw, 2rem);
   background:
+    radial-gradient(circle at 10% 8%, rgb(200 245 42 / 12%), transparent 23rem),
     radial-gradient(
-      circle at 15% 12%,
-      rgb(200 245 42 / 14%),
-      transparent 24rem
-    ),
-    radial-gradient(
-      circle at 90% 30%,
-      rgb(102 208 255 / 13%),
-      transparent 28rem
+      circle at 92% 24%,
+      rgb(102 208 255 / 12%),
+      transparent 26rem
     ),
     #071126;
   color: #f7fbff;
 }
 
 .shell {
-  inline-size: min(70rem, 100%);
+  inline-size: min(74rem, 100%);
   margin-inline: auto;
 }
 
 .header {
-  display: grid;
-  gap: 0.55rem;
-  max-inline-size: 48rem;
-  margin-block-end: clamp(1.25rem, 4vw, 2.25rem);
+  display: flex;
+  gap: 1.5rem;
+  align-items: end;
+  justify-content: space-between;
+  margin-block-end: clamp(0.8rem, 2vw, 1.25rem);
 }
 
-.eyebrow {
-  margin: 0;
+.eyebrow,
+.panelHeading p {
+  margin: 0 0 0.25rem;
   color: #c8f52a;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
 }
 
 .title {
-  max-inline-size: 15ch;
   margin: 0;
-  font-size: clamp(2rem, 7vw, 4.7rem);
-  line-height: 0.98;
-  letter-spacing: -0.045em;
+  font-size: clamp(1.65rem, 4vw, 3rem);
+  line-height: 1;
+  letter-spacing: -0.04em;
 }
 
 .intro {
-  max-inline-size: 62ch;
-  margin: 0.35rem 0 0;
+  max-inline-size: 34rem;
+  margin: 0;
   color: #b9c8e8;
-  font-size: clamp(1rem, 2vw, 1.18rem);
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(17rem, 0.65fr);
-  gap: clamp(1rem, 3vw, 1.5rem);
+  grid-template-columns: minmax(0, 1.25fr) minmax(19rem, 0.75fr);
+  gap: clamp(0.75rem, 2vw, 1.25rem);
   align-items: stretch;
 }
 
-.stage {
-  min-block-size: clamp(24rem, 60svh, 42rem);
-}
-
-.panel {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  padding: clamp(1rem, 3vw, 1.5rem);
-  border: 1px solid rgb(255 255 255 / 12%);
-  border-radius: 1.5rem;
-  background: rgb(18 35 72 / 72%);
-  box-shadow: inset 0 1px rgb(255 255 255 / 10%);
-  backdrop-filter: blur(18px);
-}
-
-.panel h2 {
-  margin: 0;
-  font-size: 1.1rem;
-}
-
-.controls {
+.previewColumn {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.65rem;
+  grid-template-rows: minmax(25rem, 1fr) auto;
+  gap: 0.75rem;
+  min-inline-size: 0;
 }
 
-.button {
-  min-block-size: 3rem;
-  padding: 0.65rem 0.8rem;
-  border: 1px solid rgb(255 255 255 / 18%);
-  border-radius: 0.9rem;
+.stage {
+  min-block-size: clamp(25rem, 67svh, 43rem);
+}
+
+.motionFieldset,
+.itemFieldset,
+.colorFieldset {
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.motionFieldset {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.7rem;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 1rem;
+  background: rgb(18 35 72 / 72%);
+}
+
+.motionFieldset legend,
+.itemFieldset legend,
+.colorFieldset legend {
+  padding: 0;
+  color: #dcecff;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.motionControls {
+  display: flex;
+  flex: 1;
+  gap: 0.4rem;
+}
+
+.motionButton,
+.categories button {
+  min-block-size: 2.75rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 0.8rem;
   background: #172f61;
   color: #f7fbff;
   font: inherit;
+  font-size: 0.84rem;
   font-weight: 750;
   cursor: pointer;
-  transition:
-    border-color 140ms ease,
-    background 140ms ease,
-    transform 140ms ease;
 }
 
-.button:hover {
-  border-color: rgb(200 245 42 / 65%);
-  background: #1e3b75;
-}
-
-.button:focus-visible {
-  outline: 3px solid #66d0ff;
-  outline-offset: 2px;
-}
-
-.button[aria-pressed="true"] {
+.motionButton[aria-pressed="true"],
+.categories button[aria-pressed="true"] {
   border-color: #c8f52a;
   background: #c8f52a;
   color: #13284d;
 }
 
+.motionButton:focus-visible,
+.categories button:focus-visible,
+.itemChoice:has(input:focus-visible),
+.colorChoices label:has(input:focus-visible) {
+  outline: 3px solid #66d0ff;
+  outline-offset: 2px;
+}
+
 .animationState {
   margin: 0;
-  color: #dcecff;
-  font-size: 0.9rem;
-}
-
-.proof {
-  padding-block-start: 1.25rem;
-  border-block-start: 1px solid rgb(255 255 255 / 12%);
-}
-
-.proof ul {
-  display: grid;
-  gap: 0.75rem;
-  margin: 0.8rem 0 0;
-  padding-inline-start: 1.25rem;
   color: #b9c8e8;
+  font-size: 0.78rem;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-inline-size: 0;
+  padding: clamp(0.9rem, 2.5vw, 1.35rem);
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 1.5rem;
+  background: rgb(18 35 72 / 78%);
+  box-shadow: inset 0 1px rgb(255 255 255 / 10%);
+  backdrop-filter: blur(18px);
+}
+
+.panelHeading h2 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.categories {
+  display: flex;
+  gap: 0.45rem;
+  padding-block-end: 0.2rem;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.categories button {
+  flex: 0 0 auto;
+}
+
+.itemFieldset,
+.colorFieldset {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.itemChoices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.itemChoice {
+  display: grid;
+  min-block-size: 3.4rem;
+  border: 1px solid rgb(255 255 255 / 15%);
+  border-radius: 0.9rem;
+  background: #102653;
+  cursor: pointer;
+}
+
+.itemChoice:has(input:checked) {
+  border-color: #c8f52a;
+  box-shadow: inset 0 0 0 1px #c8f52a;
+}
+
+.itemChoice input,
+.colorChoices input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+}
+
+.itemChoice span {
+  display: grid;
+  place-items: center;
+  padding: 0.65rem;
+  color: #dcecff;
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.colorChoices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.colorChoices label {
+  display: grid;
+  inline-size: 2.9rem;
+  block-size: 2.9rem;
+  padding: 0.3rem;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 50%;
+  background: #102653;
+  cursor: pointer;
+}
+
+.colorChoices label:has(input:checked) {
+  border-color: #c8f52a;
+  box-shadow:
+    0 0 0 2px #102653,
+    0 0 0 4px #c8f52a;
+}
+
+.colorChoices span {
+  border: 1px solid rgb(255 255 255 / 28%);
+  border-radius: inherit;
+}
+
+.compatibilityNote,
+.note {
+  margin: 0;
+  padding: 0.75rem;
+  border-radius: 0.85rem;
+  font-size: 0.8rem;
   line-height: 1.45;
+}
+
+.compatibilityNote {
+  background: rgb(200 245 42 / 10%);
+  color: #e9ff9f;
 }
 
 .note {
-  margin: auto 0 0;
-  padding: 0.9rem;
-  border-radius: 1rem;
+  margin-block-start: auto;
   background: rgb(102 208 255 / 10%);
   color: #dcecff;
-  font-size: 0.84rem;
-  line-height: 1.45;
 }
 
-@media (max-width: 48rem) {
+@media (max-width: 52rem) {
+  .header {
+    display: grid;
+    gap: 0.5rem;
+  }
+
   .workspace {
     grid-template-columns: 1fr;
   }
 
   .stage {
-    min-block-size: 27rem;
+    min-block-size: 29rem;
   }
 }
 
-@media (max-width: 22rem) {
+@media (max-width: 31rem) {
   .page {
-    padding: 0.75rem;
+    padding: 0.65rem;
   }
 
-  .controls {
-    grid-template-columns: 1fr;
+  .previewColumn {
+    grid-template-rows: minmax(22rem, 55svh) auto;
+  }
+
+  .stage {
+    min-block-size: 22rem;
+  }
+
+  .motionFieldset {
+    display: grid;
+  }
+
+  .motionControls {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .motionButton {
+    min-inline-size: 0;
+    padding-inline: 0.3rem;
+    font-size: 0.72rem;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .button {
-    transition: none;
+  .motionButton,
+  .categories button {
+    scroll-behavior: auto;
   }
 }

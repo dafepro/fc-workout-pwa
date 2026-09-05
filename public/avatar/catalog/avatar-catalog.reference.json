@@ -1,0 +1,340 @@
+{
+  "schemaVersion": 1,
+  "catalogVersion": "reference-2026.09.2",
+  "rigVersion": "zoomigo-humanoid-v1",
+  "colors": [
+    {
+      "id": "navy",
+      "displayName": "Night Navy",
+      "value": "#13284d"
+    },
+    {
+      "id": "lime",
+      "displayName": "Zoomigo Lime",
+      "value": "#c8f52a"
+    },
+    {
+      "id": "violet",
+      "displayName": "Playmaker Violet",
+      "value": "#6954ee"
+    },
+    {
+      "id": "coral",
+      "displayName": "Goal Coral",
+      "value": "#ff806f"
+    },
+    {
+      "id": "sky",
+      "displayName": "Open Sky",
+      "value": "#66d0ff"
+    },
+    {
+      "id": "white",
+      "displayName": "Touchline White",
+      "value": "#f7fbff"
+    }
+  ],
+  "items": [
+    {
+      "id": "base.zoomigo.reference",
+      "version": 1,
+      "displayName": "Zoomigo Reference Player",
+      "kind": "base",
+      "hideBodyRegions": [],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "fixed",
+      "variants": [],
+      "tags": [
+        "reference",
+        "humanoid"
+      ],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/59d5c48624210b1a041a738d82fc2390c3a8d86cac3bb88fd2a4db8c8208288e.glb",
+          "sha256": "59d5c48624210b1a041a738d82fc2390c3a8d86cac3bb88fd2a4db8c8208288e",
+          "bytes": 94596
+        }
+      }
+    },
+    {
+      "id": "hair.curl-cloud.reference",
+      "version": 1,
+      "displayName": "Curl Cloud",
+      "kind": "socket",
+      "slot": "hair",
+      "hideBodyRegions": [],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "fixed",
+      "variants": [],
+      "tags": [
+        "hair",
+        "short"
+      ],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/ec5487829d15bad6e2f2b44eb12858f20760a76e2069e6b51493e2a74b098023.glb",
+          "sha256": "ec5487829d15bad6e2f2b44eb12858f20760a76e2069e6b51493e2a74b098023",
+          "bytes": 44008
+        }
+      }
+    },
+    {
+      "id": "hair.swoop.reference",
+      "version": 1,
+      "displayName": "Fast Swoop",
+      "kind": "socket",
+      "slot": "hair",
+      "hideBodyRegions": [],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "fixed",
+      "variants": [],
+      "tags": [
+        "hair",
+        "short"
+      ],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/8012d88503c2f2bfd1ee5cd4f9a21305b219c0ee132008101e28f63d4d922bc2.glb",
+          "sha256": "8012d88503c2f2bfd1ee5cd4f9a21305b219c0ee132008101e28f63d4d922bc2",
+          "bytes": 17856
+        }
+      }
+    },
+    {
+      "id": "top.training-tee.reference",
+      "version": 1,
+      "displayName": "Training Tee",
+      "kind": "socket",
+      "slot": "top",
+      "hideBodyRegions": [
+        "torso"
+      ],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "tint1",
+      "variants": [
+        "navy",
+        "lime",
+        "violet",
+        "coral"
+      ],
+      "tags": [
+        "top",
+        "training"
+      ],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/0f7e25e23db10b545bdfc97a0ec5ff96475af98f5f71fc8a00c464252160ca16.glb",
+          "sha256": "0f7e25e23db10b545bdfc97a0ec5ff96475af98f5f71fc8a00c464252160ca16",
+          "bytes": 2420
+        }
+      }
+    },
+    {
+      "id": "top.touchline-jersey.reference",
+      "version": 1,
+      "displayName": "Touchline Jersey",
+      "kind": "socket",
+      "slot": "top",
+      "hideBodyRegions": [
+        "torso"
+      ],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "tint1",
+      "variants": [
+        "sky",
+        "white",
+        "navy",
+        "lime"
+      ],
+      "tags": [
+        "top",
+        "soccer"
+      ],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/d717aff16c50c2dddffc1d26a04651fba878f75a17828021076668a27b04c8d0.glb",
+          "sha256": "d717aff16c50c2dddffc1d26a04651fba878f75a17828021076668a27b04c8d0",
+          "bytes": 4300
+        }
+      }
+    },
+    {
+      "id": "bottom.training-shorts.reference",
+      "version": 1,
+      "displayName": "Training Shorts",
+      "kind": "socket",
+      "slot": "bottom",
+      "hideBodyRegions": [
+        "upper_leg_l",
+        "upper_leg_r"
+      ],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "tint1",
+      "variants": [
+        "navy",
+        "violet",
+        "coral"
+      ],
+      "tags": [
+        "bottom",
+        "training"
+      ],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/04bba4b3a1e9a14eddc4e261bb6a77eee852a7d594e313e0ff1ce3c54c07ce51.glb",
+          "sha256": "04bba4b3a1e9a14eddc4e261bb6a77eee852a7d594e313e0ff1ce3c54c07ce51",
+          "bytes": 4336
+        }
+      }
+    },
+    {
+      "id": "bottom.striker-shorts.reference",
+      "version": 1,
+      "displayName": "Striker Shorts",
+      "kind": "socket",
+      "slot": "bottom",
+      "hideBodyRegions": [
+        "upper_leg_l",
+        "upper_leg_r"
+      ],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "tint1",
+      "variants": [
+        "white",
+        "navy",
+        "lime"
+      ],
+      "tags": [
+        "bottom",
+        "soccer"
+      ],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/74e2bf9da01470796ccee75f1669a36b3f6502e9735efd633a44a5d167ce5df6.glb",
+          "sha256": "74e2bf9da01470796ccee75f1669a36b3f6502e9735efd633a44a5d167ce5df6",
+          "bytes": 4472
+        }
+      }
+    },
+    {
+      "id": "feet.pitch-runners.reference",
+      "version": 1,
+      "displayName": "Pitch Runners",
+      "kind": "socket",
+      "slot": "feet",
+      "hideBodyRegions": [],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "tint1",
+      "variants": [
+        "white",
+        "lime",
+        "coral"
+      ],
+      "tags": [
+        "feet",
+        "training"
+      ],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/fe226d76f5a55d699ba5d313f46d3c8495e5bdedc71d7b77f7290129635c2924.glb",
+          "sha256": "fe226d76f5a55d699ba5d313f46d3c8495e5bdedc71d7b77f7290129635c2924",
+          "bytes": 8036
+        }
+      }
+    },
+    {
+      "id": "feet.street-cleats.reference",
+      "version": 1,
+      "displayName": "Street Cleats",
+      "kind": "socket",
+      "slot": "feet",
+      "hideBodyRegions": [],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "tint1",
+      "variants": [
+        "navy",
+        "violet",
+        "sky"
+      ],
+      "tags": [
+        "feet",
+        "soccer"
+      ],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/a3f9554b0db128414a750797007b636d51bd84faf6948b540a67bb32ea5a557f.glb",
+          "sha256": "a3f9554b0db128414a750797007b636d51bd84faf6948b540a67bb32ea5a557f",
+          "bytes": 8036
+        }
+      }
+    },
+    {
+      "id": "headwear.touchline-cap.reference",
+      "version": 1,
+      "displayName": "Touchline Cap",
+      "kind": "socket",
+      "slot": "headwear",
+      "hideBodyRegions": [],
+      "hideSlots": [
+        "hair"
+      ],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "tint1",
+      "variants": [
+        "navy",
+        "lime",
+        "coral"
+      ],
+      "tags": [
+        "headwear",
+        "training"
+      ],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/4013b6fa3b1f5a2c38007ee741148ca76177cc0b0c2314e479caeea5e67974d5.glb",
+          "sha256": "4013b6fa3b1f5a2c38007ee741148ca76177cc0b0c2314e479caeea5e67974d5",
+          "bytes": 13180
+        }
+      }
+    }
+  ]
+}

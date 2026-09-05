@@ -1,13 +1,31 @@
-import { describe, expect, it } from "vitest";
 import { AnimationClip, Object3D } from "three";
+import { describe, expect, it } from "vitest";
 
+import type { AvatarLoadout } from "../types";
+import { AvatarRuntime } from "./AvatarRuntime";
 import type {
-  AvatarAssetLoader,
+  AvatarPresentationLoader,
   AvatarRenderBackend,
   AvatarRuntimeState,
   LoadedAvatar,
 } from "./types";
-import { AvatarRuntime } from "./AvatarRuntime";
+
+const loadout: AvatarLoadout = {
+  schemaVersion: 1,
+  rigVersion: "zoomigo-humanoid-v1",
+  baseId: "base.zoomigo.reference",
+  appearance: {
+    skinToneId: "skin.medium",
+    faceId: "face.default",
+    hairId: "hair.curl.reference",
+  },
+  slots: {},
+  animations: {
+    idle: "idle_default",
+    celebration: "celebration_jump",
+  },
+  effects: [],
+};
 
 function harness({ failLoad = false } = {}) {
   const events: string[] = [];
@@ -17,10 +35,14 @@ function harness({ failLoad = false } = {}) {
     animations: ["idle_default", "walk", "run", "celebration_jump"].map(
       (name) => new AnimationClip(name),
     ),
+    equippedItemIDs: ["base.zoomigo.reference", "hair.curl.reference"],
+    warnings: [],
   };
-  const loader: AvatarAssetLoader = {
-    async load(url) {
-      events.push("load:" + url);
+  const loader: AvatarPresentationLoader = {
+    async load(source) {
+      events.push(
+        `load:${source.catalogURL}:${source.loadout.appearance.hairId}`,
+      );
       if (failLoad) throw new Error("missing asset");
       return loadedAvatar;
     },
@@ -53,18 +75,19 @@ function harness({ failLoad = false } = {}) {
 }
 
 describe("AvatarRuntime", () => {
-  it("loads and attaches one GLB before reporting ready", async () => {
+  it("assembles and attaches a catalog loadout before reporting ready", async () => {
     const { events, runtime, states } = harness();
 
     await runtime.start({
-      assetURL: "/avatar/reference/zoomigo-reference.glb",
+      catalogURL: "/avatar/catalog/avatar-catalog.reference.json",
+      loadout,
       canvas: document.createElement("canvas"),
       reducedMotion: false,
     });
 
     expect(events).toEqual([
       "initialize",
-      "load:/avatar/reference/zoomigo-reference.glb",
+      "load:/avatar/catalog/avatar-catalog.reference.json:hair.curl.reference",
       "attach",
       "motion:idle:false",
     ]);
@@ -73,39 +96,51 @@ describe("AvatarRuntime", () => {
       {
         kind: "ready",
         animationNames: ["idle_default", "walk", "run", "celebration_jump"],
+        equippedItemIDs: ["base.zoomigo.reference", "hair.curl.reference"],
+        warnings: [],
       },
     ]);
   });
 
-  it("forwards app motion, reduced-motion preference, and bounded pixel ratio", async () => {
+  it("reassembles a changed loadout without recreating the renderer", async () => {
     const { events, runtime } = harness();
     await runtime.start({
-      assetURL: "/avatar/reference/zoomigo-reference.glb",
+      catalogURL: "/avatar/catalog/avatar-catalog.reference.json",
+      loadout,
       canvas: document.createElement("canvas"),
       reducedMotion: true,
     });
 
+    await runtime.setLoadout({
+      ...loadout,
+      appearance: { ...loadout.appearance, hairId: "hair.swoop.reference" },
+    });
     runtime.resize(320, 480, 3);
     runtime.setMotion({ kind: "run" });
     runtime.setReducedMotion(false);
 
+    expect(events.filter((event) => event === "initialize")).toHaveLength(1);
+    expect(events).toContain(
+      "load:/avatar/catalog/avatar-catalog.reference.json:hair.swoop.reference",
+    );
     expect(events).toContain("resize:320x480@2");
     expect(events).toContain("motion:run:true");
     expect(events.at(-1)).toBe("motion:run:false");
   });
 
-  it("degrades safely and releases GPU resources when loading fails", async () => {
+  it("degrades safely and releases GPU resources when assembly fails", async () => {
     const { events, runtime, states } = harness({ failLoad: true });
 
     await runtime.start({
-      assetURL: "/avatar/reference/missing.glb",
+      catalogURL: "/avatar/catalog/missing.json",
+      loadout,
       canvas: document.createElement("canvas"),
       reducedMotion: false,
     });
 
     expect(events).toEqual([
       "initialize",
-      "load:/avatar/reference/missing.glb",
+      "load:/avatar/catalog/missing.json:hair.curl.reference",
       "dispose",
     ]);
     expect(states).toEqual([

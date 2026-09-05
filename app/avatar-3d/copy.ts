@@ -5,19 +5,19 @@ export const avatar3dCopy = {
   fallbackLabel: "Zoomigo avatar fallback",
   reducedMotion: "Reduced motion is on; idle flourish is paused.",
   demo: {
-    eyebrow: "Zoomigo avatar runtime",
-    title: "One character. Real movement. Built to grow.",
+    eyebrow: "Modular avatar lab",
+    title: "Build a look. See it move.",
     intro:
-      "This engineering preview loads a repository-owned GLB through the same runtime seam planned for profiles, rewards, and the team lounge.",
-    controlsLabel: "Animation preview",
+      "Mix independent, catalog-controlled pieces on one animated Zoomigo character.",
+    customizeLabel: "Choose your gear",
+    stepLabel: "Reference customizer",
+    chooseItem: "Style",
+    chooseColor: "Color",
+    noHeadwear: "No headwear",
+    hiddenHair: "Your hairstyle is saved and hidden under this item.",
+    animationLabel: "Try an animation",
     currentAnimation: "Current animation",
-    engineeringTitle: "What this proves",
-    engineeringPoints: [
-      "A real GLB loads through a validated canonical-rig contract.",
-      "Application state selects animations without networking bone transforms.",
-      "Renderer or asset failure leaves a safe, usable DOM fallback.",
-    ],
     referenceNote:
-      "The reference character proves the pipeline and lifecycle. It is not the final art direction.",
+      "Engineering reference art only. Choices are local to this demo and are not saved yet.",
   },
 } as const;

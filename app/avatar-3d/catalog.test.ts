@@ -4,7 +4,12 @@ import { parseAvatarCatalog } from "./catalog";
 
 const validCatalog = {
   schemaVersion: 1,
+  catalogVersion: "test-1",
   rigVersion: "zoomigo-humanoid-v1",
+  colors: [
+    { id: "maroon", displayName: "Maroon", value: "#7a1831" },
+    { id: "white", displayName: "White", value: "#ffffff" },
+  ],
   items: [
     {
       id: "top.street-jersey.001",
@@ -21,6 +26,9 @@ const validCatalog = {
         },
       },
       hideBodyRegions: ["torso"],
+      hideSlots: [],
+      requiresTags: [],
+      excludesTags: [],
       materialMode: "tint1",
       variants: ["maroon", "white"],
       tags: ["soccer", "street"],
