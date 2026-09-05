@@ -1,0 +1,671 @@
+{
+  "schemaVersion": 1,
+  "catalogVersion": "engineering-2026.09.3",
+  "rigVersion": "zoomigo-humanoid-v1",
+  "colors": [
+    { "id": "skin.01", "displayName": "Porcelain", "value": "#f3c6a5" },
+    { "id": "skin.02", "displayName": "Warm Sand", "value": "#dba077" },
+    { "id": "skin.03", "displayName": "Golden Brown", "value": "#bd7f51" },
+    { "id": "skin.04", "displayName": "Chestnut", "value": "#9a603d" },
+    { "id": "skin.05", "displayName": "Deep Umber", "value": "#70432f" },
+    { "id": "skin.06", "displayName": "Rich Ebony", "value": "#452d28" },
+    { "id": "navy", "displayName": "Night Navy", "value": "#17376f" },
+    { "id": "lime", "displayName": "ZoomiGo Lime", "value": "#c8f52a" },
+    { "id": "violet", "displayName": "Playmaker Violet", "value": "#6548c8" },
+    { "id": "coral", "displayName": "Goal Coral", "value": "#f47c70" },
+    { "id": "sky", "displayName": "Open Sky", "value": "#5bc7ed" },
+    { "id": "white", "displayName": "Touchline White", "value": "#f7f7ef" },
+    { "id": "gold", "displayName": "Final Whistle Gold", "value": "#f2c14e" },
+    { "id": "teal", "displayName": "Breakaway Teal", "value": "#20b7a5" }
+  ],
+  "items": [
+    {
+      "id": "base.zoomigo.player-v1",
+      "version": 1,
+      "displayName": "ZoomiGo Player",
+      "kind": "base",
+      "hideBodyRegions": [],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "fixed",
+      "variants": [],
+      "tags": ["engineering-art", "humanoid", "canonical-rig"],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/2dfb42fe2976044734a19bf10eebd4e20fe0385eef868e76fca50cd73ad94a3c.glb",
+          "sha256": "2dfb42fe2976044734a19bf10eebd4e20fe0385eef868e76fca50cd73ad94a3c",
+          "bytes": 149848
+        }
+      }
+    },
+    {
+      "id": "hair.curl-cloud",
+      "version": 1,
+      "displayName": "Curl Cloud",
+      "kind": "socket",
+      "slot": "hair",
+      "hideBodyRegions": [],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "fixed",
+      "variants": [],
+      "tags": ["hair", "curly", "short"],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/cac0e7755fad078ba706c509e1c5d909a3c8dd31c3a93ea20a802b4d1ed6bfe8.glb",
+          "sha256": "cac0e7755fad078ba706c509e1c5d909a3c8dd31c3a93ea20a802b4d1ed6bfe8",
+          "bytes": 34148
+        }
+      }
+    },
+    {
+      "id": "hair.side-swoop",
+      "version": 1,
+      "displayName": "Side Swoop",
+      "kind": "socket",
+      "slot": "hair",
+      "hideBodyRegions": [],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "fixed",
+      "variants": [],
+      "tags": ["hair", "swoop", "short"],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/962f49adc8ead5efebfdc121c034abbfb809a14b759b7a32fb44c5ad5c869d71.glb",
+          "sha256": "962f49adc8ead5efebfdc121c034abbfb809a14b759b7a32fb44c5ad5c869d71",
+          "bytes": 17584
+        }
+      }
+    },
+    {
+      "id": "hair.coil-puffs",
+      "version": 1,
+      "displayName": "Coil Puffs",
+      "kind": "socket",
+      "slot": "hair",
+      "hideBodyRegions": [],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "fixed",
+      "variants": [],
+      "tags": ["hair", "coils", "puffs"],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/197ddba2e21f05db101350e1fdfe4748644c4f51243ad68286c14e770645da8c.glb",
+          "sha256": "197ddba2e21f05db101350e1fdfe4748644c4f51243ad68286c14e770645da8c",
+          "bytes": 34412
+        }
+      }
+    },
+    {
+      "id": "hair.wave-crop",
+      "version": 1,
+      "displayName": "Wave Crop",
+      "kind": "socket",
+      "slot": "hair",
+      "hideBodyRegions": [],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "fixed",
+      "variants": [],
+      "tags": ["hair", "waves", "short"],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/f4646eb463ae4ace474ae1f260642ddf6aae4e9405ba25b09257badb34e663e1.glb",
+          "sha256": "f4646eb463ae4ace474ae1f260642ddf6aae4e9405ba25b09257badb34e663e1",
+          "bytes": 18732
+        }
+      }
+    },
+    {
+      "id": "hair.braided-crown",
+      "version": 1,
+      "displayName": "Braided Crown",
+      "kind": "socket",
+      "slot": "hair",
+      "hideBodyRegions": [],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "fixed",
+      "variants": [],
+      "tags": ["hair", "braids", "crown"],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/3c1000f01a013546f439d9795ec1529a2354b138a91347cdc962e3194e9cd752.glb",
+          "sha256": "3c1000f01a013546f439d9795ec1529a2354b138a91347cdc962e3194e9cd752",
+          "bytes": 28144
+        }
+      }
+    },
+    {
+      "id": "top.striker-jersey",
+      "version": 1,
+      "displayName": "Striker Jersey",
+      "kind": "skinned",
+      "slot": "top",
+      "hideBodyRegions": ["torso", "upper_arm_l", "upper_arm_r"],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "tint1",
+      "variants": ["navy", "violet", "coral", "sky", "white"],
+      "tags": ["top", "soccer", "short-sleeve"],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/0b272d7d63df129ba349edbd17e70db05d5884c33bd221707b049135a85e183c.glb",
+          "sha256": "0b272d7d63df129ba349edbd17e70db05d5884c33bd221707b049135a85e183c",
+          "bytes": 114916
+        }
+      }
+    },
+    {
+      "id": "top.training-layer",
+      "version": 1,
+      "displayName": "Training Layer",
+      "kind": "skinned",
+      "slot": "top",
+      "hideBodyRegions": [
+        "torso",
+        "upper_arm_l",
+        "upper_arm_r",
+        "lower_arm_hand_l",
+        "lower_arm_hand_r"
+      ],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "tint1",
+      "variants": ["navy", "lime", "teal", "violet"],
+      "tags": ["top", "training", "long-sleeve", "layered"],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/86d407fa15e363faafb538abe22f3217e5b34030db6a2866b4f9d84de324f594.glb",
+          "sha256": "86d407fa15e363faafb538abe22f3217e5b34030db6a2866b4f9d84de324f594",
+          "bytes": 87916
+        }
+      }
+    },
+    {
+      "id": "top.street-tee",
+      "version": 1,
+      "displayName": "Street Play Tee",
+      "kind": "skinned",
+      "slot": "top",
+      "hideBodyRegions": ["torso", "upper_arm_l", "upper_arm_r"],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "tint1",
+      "variants": ["white", "lime", "sky", "coral"],
+      "tags": ["top", "street", "short-sleeve"],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/e5008171843b1bb3c17aec9e2936f1cad27166e55f4094c8efe50a320cdcf828.glb",
+          "sha256": "e5008171843b1bb3c17aec9e2936f1cad27166e55f4094c8efe50a320cdcf828",
+          "bytes": 65704
+        }
+      }
+    },
+    {
+      "id": "top.goalkeeper",
+      "version": 1,
+      "displayName": "Goalkeeper Shield",
+      "kind": "skinned",
+      "slot": "top",
+      "hideBodyRegions": [
+        "torso",
+        "upper_arm_l",
+        "upper_arm_r",
+        "lower_arm_hand_l",
+        "lower_arm_hand_r"
+      ],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "tint1",
+      "variants": ["violet", "coral", "sky", "gold"],
+      "tags": ["top", "goalkeeper", "long-sleeve", "padded"],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/f4c9b792402bbcd2a7c92dff69648628907cab08fab3d1088f4efb4d742b941c.glb",
+          "sha256": "f4c9b792402bbcd2a7c92dff69648628907cab08fab3d1088f4efb4d742b941c",
+          "bytes": 140232
+        }
+      }
+    },
+    {
+      "id": "top.warmup-jacket",
+      "version": 1,
+      "displayName": "Breakaway Warmup",
+      "kind": "skinned",
+      "slot": "top",
+      "hideBodyRegions": [
+        "torso",
+        "upper_arm_l",
+        "upper_arm_r",
+        "lower_arm_hand_l",
+        "lower_arm_hand_r"
+      ],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "tint1",
+      "variants": ["navy", "teal", "violet", "white"],
+      "tags": ["top", "warmup", "long-sleeve", "zip"],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/8b6234dd5c24486a3b0e7fe805bf16a97a882963340edea689a523dbec66ad2f.glb",
+          "sha256": "8b6234dd5c24486a3b0e7fe805bf16a97a882963340edea689a523dbec66ad2f",
+          "bytes": 125396
+        }
+      }
+    },
+    {
+      "id": "bottom.match-shorts",
+      "version": 1,
+      "displayName": "Match Shorts",
+      "kind": "skinned",
+      "slot": "bottom",
+      "hideBodyRegions": ["upper_leg_l", "upper_leg_r"],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "tint1",
+      "variants": ["navy", "violet", "coral", "white", "teal"],
+      "tags": ["bottom", "soccer", "shorts"],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/b64b2321871ddb521aa7033661e21f147ad22c25411b367fbb72b7f0885f06d4.glb",
+          "sha256": "b64b2321871ddb521aa7033661e21f147ad22c25411b367fbb72b7f0885f06d4",
+          "bytes": 54708
+        }
+      }
+    },
+    {
+      "id": "bottom.training-shorts",
+      "version": 1,
+      "displayName": "Training Shorts",
+      "kind": "skinned",
+      "slot": "bottom",
+      "hideBodyRegions": ["upper_leg_l", "upper_leg_r"],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "tint1",
+      "variants": ["navy", "lime", "sky", "coral"],
+      "tags": ["bottom", "training", "shorts"],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/772bba599eda0192b09c01912256c68daeb1557953c137b6b1f74aaa0d150171.glb",
+          "sha256": "772bba599eda0192b09c01912256c68daeb1557953c137b6b1f74aaa0d150171",
+          "bytes": 51420
+        }
+      }
+    },
+    {
+      "id": "bottom.street-shorts",
+      "version": 1,
+      "displayName": "Street Shorts",
+      "kind": "skinned",
+      "slot": "bottom",
+      "hideBodyRegions": ["upper_leg_l", "upper_leg_r"],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "tint1",
+      "variants": ["white", "violet", "teal", "gold"],
+      "tags": ["bottom", "street", "shorts"],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/db0462164d9961482ae1c5dff17b43bd682700a23996b56ccbdb0db1c03b3c1a.glb",
+          "sha256": "db0462164d9961482ae1c5dff17b43bd682700a23996b56ccbdb0db1c03b3c1a",
+          "bytes": 50976
+        }
+      }
+    },
+    {
+      "id": "bottom.tapered-joggers",
+      "version": 1,
+      "displayName": "Tapered Joggers",
+      "kind": "skinned",
+      "slot": "bottom",
+      "hideBodyRegions": [
+        "upper_leg_l",
+        "upper_leg_r",
+        "lower_leg_foot_l",
+        "lower_leg_foot_r"
+      ],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "tint1",
+      "variants": ["navy", "violet", "teal"],
+      "tags": ["bottom", "training", "long"],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/586a57ee70cb135a0693ac588cfcd362248dbcd8aa3fe3f66d2c2e196d14bd8e.glb",
+          "sha256": "586a57ee70cb135a0693ac588cfcd362248dbcd8aa3fe3f66d2c2e196d14bd8e",
+          "bytes": 56824
+        }
+      }
+    },
+    {
+      "id": "bottom.keeper-pants",
+      "version": 1,
+      "displayName": "Keeper Pants",
+      "kind": "skinned",
+      "slot": "bottom",
+      "hideBodyRegions": [
+        "upper_leg_l",
+        "upper_leg_r",
+        "lower_leg_foot_l",
+        "lower_leg_foot_r"
+      ],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "tint1",
+      "variants": ["navy", "violet", "coral"],
+      "tags": ["bottom", "goalkeeper", "long", "padded"],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/ad34fe045c29f6f749999da5aecb4e8df57b676939b5a1b5490ec153c7820fa8.glb",
+          "sha256": "ad34fe045c29f6f749999da5aecb4e8df57b676939b5a1b5490ec153c7820fa8",
+          "bytes": 60388
+        }
+      }
+    },
+    {
+      "id": "feet.velocity-cleats",
+      "version": 1,
+      "displayName": "Velocity Cleats",
+      "kind": "socket",
+      "slot": "feet",
+      "hideBodyRegions": [],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "tint1",
+      "variants": ["navy", "violet", "coral", "sky", "white"],
+      "tags": ["feet", "soccer", "cleats"],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/974f632376fc960aa005b2739c14df24ae70daf1c24e9dfd8e0b0032bf2b8376.glb",
+          "sha256": "974f632376fc960aa005b2739c14df24ae70daf1c24e9dfd8e0b0032bf2b8376",
+          "bytes": 52500
+        }
+      }
+    },
+    {
+      "id": "feet.pitch-runners",
+      "version": 1,
+      "displayName": "Pitch Runners",
+      "kind": "socket",
+      "slot": "feet",
+      "hideBodyRegions": [],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "tint1",
+      "variants": ["white", "lime", "sky", "coral"],
+      "tags": ["feet", "training", "running"],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/4761eb3dc45c736418e9d12822aa15a5569f37c95ab469a3a5b0d9ab5b21f7cc.glb",
+          "sha256": "4761eb3dc45c736418e9d12822aa15a5569f37c95ab469a3a5b0d9ab5b21f7cc",
+          "bytes": 48696
+        }
+      }
+    },
+    {
+      "id": "feet.high-top-trainers",
+      "version": 1,
+      "displayName": "High-top Trainers",
+      "kind": "socket",
+      "slot": "feet",
+      "hideBodyRegions": [],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "tint1",
+      "variants": ["white", "navy", "violet", "teal"],
+      "tags": ["feet", "street", "high-top"],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/07e0bfb675036f49951a78d7ad09688851a524829a94f2f0f4b2f4aa655e51d5.glb",
+          "sha256": "07e0bfb675036f49951a78d7ad09688851a524829a94f2f0f4b2f4aa655e51d5",
+          "bytes": 48608
+        }
+      }
+    },
+    {
+      "id": "feet.indoor-flats",
+      "version": 1,
+      "displayName": "Indoor Flats",
+      "kind": "socket",
+      "slot": "feet",
+      "hideBodyRegions": [],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "tint1",
+      "variants": ["navy", "coral", "gold", "white"],
+      "tags": ["feet", "soccer", "indoor"],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/5412f951042b683bfa6855662c8f225ebefbf45f074952661d943fb889e48a86.glb",
+          "sha256": "5412f951042b683bfa6855662c8f225ebefbf45f074952661d943fb889e48a86",
+          "bytes": 48688
+        }
+      }
+    },
+    {
+      "id": "headwear.touchline-cap",
+      "version": 1,
+      "displayName": "Touchline Cap",
+      "kind": "socket",
+      "slot": "headwear",
+      "hideBodyRegions": [],
+      "hideSlots": ["hair"],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "tint1",
+      "variants": ["navy", "lime", "violet", "coral", "white"],
+      "tags": ["headwear", "cap"],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/56aaa7330c32f502707cc4c06db3d1adee88d57770ffb4b6eaba6a6af92b51c2.glb",
+          "sha256": "56aaa7330c32f502707cc4c06db3d1adee88d57770ffb4b6eaba6a6af92b51c2",
+          "bytes": 41880
+        }
+      }
+    },
+    {
+      "id": "headwear.training-beanie",
+      "version": 1,
+      "displayName": "Training Beanie",
+      "kind": "socket",
+      "slot": "headwear",
+      "hideBodyRegions": [],
+      "hideSlots": ["hair"],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "tint1",
+      "variants": ["navy", "violet", "coral", "teal"],
+      "tags": ["headwear", "beanie", "winter"],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/dd8e2d6ac76858db721edbfc4d0cda833fc9985c21db6d0284bec6793804592a.glb",
+          "sha256": "dd8e2d6ac76858db721edbfc4d0cda833fc9985c21db6d0284bec6793804592a",
+          "bytes": 16516
+        }
+      }
+    },
+    {
+      "id": "headwear.sprint-band",
+      "version": 1,
+      "displayName": "Sprint Band",
+      "kind": "socket",
+      "slot": "headwear",
+      "hideBodyRegions": [],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "tint1",
+      "variants": ["lime", "coral", "sky", "gold"],
+      "tags": ["headwear", "band", "training"],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/dc641879fd467b3865b71b5aab7595abc58be014a8fd1c4bc45cad18b5e37491.glb",
+          "sha256": "dc641879fd467b3865b71b5aab7595abc58be014a8fd1c4bc45cad18b5e37491",
+          "bytes": 5680
+        }
+      }
+    },
+    {
+      "id": "eyewear.sport-frames",
+      "version": 1,
+      "displayName": "Sport Frames",
+      "kind": "socket",
+      "slot": "eyewear",
+      "hideBodyRegions": [],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "fixed",
+      "variants": [],
+      "tags": ["eyewear", "frames"],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/b98d187bcc3275a1a2ae53beabb95a9166059c33be7e58b0396d3dd6fc7efc53.glb",
+          "sha256": "b98d187bcc3275a1a2ae53beabb95a9166059c33be7e58b0396d3dd6fc7efc53",
+          "bytes": 7408
+        }
+      }
+    },
+    {
+      "id": "eyewear.sun-shield",
+      "version": 1,
+      "displayName": "Sun Shield",
+      "kind": "socket",
+      "slot": "eyewear",
+      "hideBodyRegions": [],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "fixed",
+      "variants": [],
+      "tags": ["eyewear", "shield"],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/02fdb9164729481457514a555a714fbb511db0efa3826159861f2d4a2b60f559.glb",
+          "sha256": "02fdb9164729481457514a555a714fbb511db0efa3826159861f2d4a2b60f559",
+          "bytes": 42184
+        }
+      }
+    },
+    {
+      "id": "back.training-pack",
+      "version": 1,
+      "displayName": "Training Pack",
+      "kind": "socket",
+      "slot": "back",
+      "hideBodyRegions": [],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "tint1",
+      "variants": ["navy", "violet", "coral", "teal"],
+      "tags": ["back", "training", "pack"],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/49cebd50e4d60a3fb4eb8032703f816a9fd89e1fa7e20c6bbb393962b9fc0358.glb",
+          "sha256": "49cebd50e4d60a3fb4eb8032703f816a9fd89e1fa7e20c6bbb393962b9fc0358",
+          "bytes": 49396
+        }
+      }
+    },
+    {
+      "id": "back.ball-net",
+      "version": 1,
+      "displayName": "Ball Net",
+      "kind": "socket",
+      "slot": "back",
+      "hideBodyRegions": [],
+      "hideSlots": [],
+      "requiresTags": [],
+      "excludesTags": [],
+      "materialMode": "fixed",
+      "variants": [],
+      "tags": ["back", "soccer", "ball"],
+      "active": true,
+      "rigVersion": "zoomigo-humanoid-v1",
+      "assets": {
+        "lod0": {
+          "url": "/avatar/assets/5b9fdb558abd7c2813f4912b78f0245154e7a1245b4d11b03519c93488faba84.glb",
+          "sha256": "5b9fdb558abd7c2813f4912b78f0245154e7a1245b4d11b03519c93488faba84",
+          "bytes": 13132
+        }
+      }
+    }
+  ]
+}

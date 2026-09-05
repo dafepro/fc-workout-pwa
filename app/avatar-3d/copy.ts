@@ -5,19 +5,31 @@ export const avatar3dCopy = {
   fallbackLabel: "Zoomigo avatar fallback",
   reducedMotion: "Reduced motion is on; idle flourish is paused.",
   demo: {
-    eyebrow: "Modular avatar lab",
-    title: "Build a look. See it move.",
+    eyebrow: "ZoomiGo avatar art lab",
+    title: "One player. A whole squad of looks.",
     intro:
-      "Mix independent, catalog-controlled pieces on one animated Zoomigo character.",
-    customizeLabel: "Choose your gear",
-    stepLabel: "Reference customizer",
+      "Review original, production-format character art on the canonical animated rig. Every choice below loads a real optimized GLB.",
+    customizeLabel: "Build the player",
+    stepLabel: "Art review build",
     chooseItem: "Style",
     chooseColor: "Color",
-    noHeadwear: "No headwear",
+    skinToneLabel: "Skin tone",
+    noneLabels: {
+      headwear: "No headwear",
+      eyewear: "No eyewear",
+      back: "No back gear",
+    },
     hiddenHair: "Your hairstyle is saved and hidden under this item.",
     animationLabel: "Try an animation",
     currentAnimation: "Current animation",
-    referenceNote:
-      "Engineering reference art only. Choices are local to this demo and are not saved yet.",
+    viewLabel: "Inspect the art",
+    itemKinds: {
+      skinned: "Skinned to the player rig",
+      socket: "Attached at a named socket",
+    },
+    catalogSummary:
+      "27 authored assets · 6 skin tones · 8 gear colors · 6 animation clips",
+    reviewNote:
+      "Isolated review only. Nothing is saved and this is not connected to the player app.",
   },
 } as const;

@@ -62,6 +62,11 @@ export class AvatarRuntime {
     );
   }
 
+  setView(rotationRadians: number): void {
+    if (this.disposed || !Number.isFinite(rotationRadians)) return;
+    this.options.backend.setView(rotationRadians);
+  }
+
   setMotion(motion: AvatarMotionState): void {
     if (this.disposed) return;
     this.motion = motion;

@@ -17,6 +17,7 @@ const catalog = parseAvatarCatalog({
   colors: [
     { id: "lime", displayName: "Lime", value: "#c8f52a" },
     { id: "violet", displayName: "Violet", value: "#6954ee" },
+    { id: "skin.medium", displayName: "Medium", value: "#a96943" },
   ],
   items: [
     item("base.zoomigo.reference", "base"),
@@ -63,12 +64,22 @@ describe("avatar loadout resolution", () => {
     const resolved = resolveAvatarLoadout(catalog, validLoadout);
 
     expect(resolved.base.id).toBe("base.zoomigo.reference");
+    expect(resolved.skinTone.value).toBe("#a96943");
     expect(resolved.items.map(({ item }) => item.id)).toEqual([
       "hair.curl.reference",
       "top.training.reference",
     ]);
     expect(resolved.items[1].color?.value).toBe("#c8f52a");
     expect([...resolved.hiddenBodyRegions]).toEqual(["torso"]);
+  });
+
+  it("rejects a skin tone outside the curated catalog", () => {
+    expect(() =>
+      resolveAvatarLoadout(catalog, {
+        ...validLoadout,
+        appearance: { ...validLoadout.appearance, skinToneId: "skin.unknown" },
+      }),
+    ).toThrow("unknown avatar skin tone: skin.unknown");
   });
 
   it("keeps a hidden selection in the loadout but omits it from assembly", () => {

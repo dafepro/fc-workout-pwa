@@ -35,6 +35,18 @@
   text-transform: uppercase;
 }
 
+.catalogSummary {
+  inline-size: fit-content;
+  margin: 0.75rem 0 0;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid rgb(200 245 42 / 32%);
+  border-radius: 999px;
+  background: rgb(200 245 42 / 8%);
+  color: #dff986;
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
 .title {
   margin: 0;
   font-size: clamp(1.65rem, 4vw, 3rem);
@@ -68,6 +80,8 @@
 }
 
 .motionFieldset,
+.viewFieldset,
+.skinFieldset,
 .itemFieldset,
 .colorFieldset {
   min-inline-size: 0;
@@ -76,10 +90,16 @@
   border: 0;
 }
 
-.motionFieldset {
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
+.controlDeck {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(13rem, 0.65fr);
+  gap: 0.65rem;
+}
+
+.motionFieldset,
+.viewFieldset {
+  display: grid;
+  gap: 0.55rem;
   padding: 0.7rem;
   border: 1px solid rgb(255 255 255 / 12%);
   border-radius: 1rem;
@@ -87,6 +107,8 @@
 }
 
 .motionFieldset legend,
+.viewFieldset legend,
+.skinFieldset legend,
 .itemFieldset legend,
 .colorFieldset legend {
   padding: 0;
@@ -96,12 +118,19 @@
 }
 
 .motionControls {
-  display: flex;
-  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.4rem;
 }
 
+.viewControls {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
 .motionButton,
+.viewButton,
 .categories button {
   min-block-size: 2.75rem;
   padding: 0.55rem 0.75rem;
@@ -116,6 +145,7 @@
 }
 
 .motionButton[aria-pressed="true"],
+.viewButton[aria-pressed="true"],
 .categories button[aria-pressed="true"] {
   border-color: #c8f52a;
   background: #c8f52a;
@@ -123,6 +153,7 @@
 }
 
 .motionButton:focus-visible,
+.viewButton:focus-visible,
 .categories button:focus-visible,
 .itemChoice:has(input:focus-visible),
 .colorChoices label:has(input:focus-visible) {
@@ -134,6 +165,12 @@
   margin: 0;
   color: #b9c8e8;
   font-size: 0.78rem;
+}
+
+.viewButton {
+  min-inline-size: 0;
+  padding-inline: 0.3rem;
+  font-size: 0.74rem;
 }
 
 .panel {
@@ -167,6 +204,7 @@
 }
 
 .itemFieldset,
+.skinFieldset,
 .colorFieldset {
   display: grid;
   gap: 0.55rem;
@@ -240,6 +278,7 @@
 }
 
 .compatibilityNote,
+.itemKind,
 .note {
   margin: 0;
   padding: 0.75rem;
@@ -251,6 +290,12 @@
 .compatibilityNote {
   background: rgb(200 245 42 / 10%);
   color: #e9ff9f;
+}
+
+.itemKind {
+  border: 1px solid rgb(102 208 255 / 18%);
+  background: rgb(102 208 255 / 7%);
+  color: #bfeaff;
 }
 
 .note {
@@ -274,6 +319,12 @@
   }
 }
 
+@media (max-width: 40rem) {
+  .controlDeck {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 31rem) {
   .page {
     padding: 0.65rem;
@@ -287,15 +338,6 @@
     min-block-size: 22rem;
   }
 
-  .motionFieldset {
-    display: grid;
-  }
-
-  .motionControls {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
   .motionButton {
     min-inline-size: 0;
     padding-inline: 0.3rem;
@@ -305,6 +347,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .motionButton,
+  .viewButton,
   .categories button {
     scroll-behavior: auto;
   }

@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const CATALOG_PATH = "/avatar/catalog/avatar-catalog.reference.json";
+const CATALOG_PATH = "/avatar/catalog/avatar-catalog.engineering.json";
 
 test("the customizer assembles catalog equipment and drives animation", async ({
   page,
@@ -16,7 +16,7 @@ test("the customizer assembles catalog equipment and drives animation", async ({
   await expect(page.getByRole("radio", { name: "Curl Cloud" })).toBeChecked();
   await expect(page.locator("[data-avatar-items]")).toHaveAttribute(
     "data-avatar-items",
-    /base\.zoomigo\.reference.*hair\.curl-cloud\.reference.*top\.training-tee\.reference/,
+    /base\.zoomigo\.player-v1.*hair\.curl-cloud.*top\.striker-jersey/,
   );
 
   const contextVersion = await page
@@ -27,18 +27,30 @@ test("the customizer assembles catalog equipment and drives animation", async ({
     });
   expect(contextVersion).toContain("WebGL");
 
+  await page.getByRole("radio", { name: "Deep Umber" }).click();
+  await expect(page.getByRole("radio", { name: "Deep Umber" })).toBeChecked();
+  await expect(page.getByRole("status")).toHaveText("3D avatar ready");
+
   await page.getByRole("button", { name: "Tops" }).click();
-  await page.getByRole("radio", { name: "Touchline Jersey" }).click();
+  await page.getByRole("radio", { name: "Training Layer" }).click();
   await expect(page.locator("[data-avatar-items]")).toHaveAttribute(
     "data-avatar-items",
-    /top\.touchline-jersey\.reference/,
+    /top\.training-layer/,
   );
-  await page.getByRole("radio", { name: "Open Sky" }).click();
-  await expect(page.getByRole("radio", { name: "Open Sky" })).toBeChecked();
+  await page.getByRole("radio", { name: "Breakaway Teal" }).click();
+  await expect(
+    page.getByRole("radio", { name: "Breakaway Teal" }),
+  ).toBeChecked();
 
   await page.getByRole("button", { name: "Run" }).click();
   await expect(page.getByTestId("avatar-animation-state")).toHaveText(
     "Current animation: Run",
+  );
+
+  await page.getByRole("button", { name: "Back view" }).click();
+  await expect(page.getByTestId("avatar-3d-stage")).toHaveAttribute(
+    "data-avatar-view",
+    String(Math.PI),
   );
 });
 
@@ -56,7 +68,7 @@ test("compatible headwear hides hair without erasing the selection", async ({
   ).toBeVisible();
   await expect(page.locator("[data-avatar-items]")).toHaveAttribute(
     "data-avatar-items",
-    /headwear\.touchline-cap\.reference/,
+    /headwear\.touchline-cap/,
   );
   await expect(page.locator("[data-avatar-items]")).not.toHaveAttribute(
     "data-avatar-items",
@@ -66,6 +78,33 @@ test("compatible headwear hides hair without erasing the selection", async ({
   await page.getByRole("radio", { name: "No headwear" }).click();
   await page.getByRole("button", { name: "Hair" }).click();
   await expect(page.getByRole("radio", { name: "Curl Cloud" })).toBeChecked();
+});
+
+test("optional gear is independently assembled and removed", async ({
+  page,
+}) => {
+  await page.goto("/avatar-3d/demo");
+  await expect(page.getByRole("status")).toHaveText("3D avatar ready");
+
+  await page.getByRole("button", { name: "Eyewear" }).click();
+  await page.getByRole("radio", { name: "Sport Frames" }).click();
+  await expect(page.locator("[data-avatar-items]")).toHaveAttribute(
+    "data-avatar-items",
+    /eyewear\.sport-frames/,
+  );
+
+  await page.getByRole("button", { name: "Back gear" }).click();
+  await page.getByRole("radio", { name: "Training Pack" }).click();
+  await expect(page.locator("[data-avatar-items]")).toHaveAttribute(
+    "data-avatar-items",
+    /back\.training-pack/,
+  );
+
+  await page.getByRole("radio", { name: "No back gear" }).click();
+  await expect(page.locator("[data-avatar-items]")).not.toHaveAttribute(
+    "data-avatar-items",
+    /back\.training-pack/,
+  );
 });
 
 test("the customizer keeps its controls and fallback when the catalog cannot load", async ({

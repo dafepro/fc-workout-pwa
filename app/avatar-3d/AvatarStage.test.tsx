@@ -24,6 +24,9 @@ function stageHarness(finalState: AvatarRuntimeState) {
     setMotion(motion) {
       events.push("motion:" + motion.kind);
     },
+    setView(rotation) {
+      events.push("view:" + rotation);
+    },
     async setLoadout(loadout) {
       events.push("loadout:" + loadout.appearance.hairId);
     },
@@ -54,6 +57,7 @@ describe("AvatarStage", () => {
         catalogURL="/avatar/catalog/avatar-catalog.reference.json"
         loadout={loadout}
         motion={{ kind: "idle" }}
+        viewRadians={0}
         runtimeFactory={factory}
       />,
     );
@@ -75,10 +79,12 @@ describe("AvatarStage", () => {
           appearance: { ...loadout.appearance, hairId: "hair.swoop.reference" },
         }}
         motion={run}
+        viewRadians={Math.PI}
         runtimeFactory={factory}
       />,
     );
     await waitFor(() => expect(events).toContain("motion:run"));
+    await waitFor(() => expect(events).toContain("view:" + Math.PI));
     await waitFor(() =>
       expect(events).toContain("loadout:hair.swoop.reference"),
     );
@@ -98,6 +104,7 @@ describe("AvatarStage", () => {
         catalogURL="/avatar/catalog/missing.json"
         loadout={loadout}
         motion={{ kind: "idle" }}
+        viewRadians={0}
         runtimeFactory={factory}
       />,
     );

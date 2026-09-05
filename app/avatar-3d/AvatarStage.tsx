@@ -26,6 +26,7 @@ export interface AvatarStageRuntime {
   start(options: AvatarStageStartOptions): Promise<void>;
   resize(width: number, height: number, pixelRatio: number): void;
   setMotion(motion: AvatarMotionState): void;
+  setView(rotationRadians: number): void;
   setLoadout(loadout: AvatarLoadout): Promise<void>;
   setReducedMotion(reducedMotion: boolean): void;
   dispose(): void;
@@ -40,6 +41,7 @@ interface AvatarStageProps
   catalogURL: string;
   loadout: AvatarLoadout;
   motion: AvatarMotionState;
+  viewRadians: number;
   runtimeFactory?: AvatarStageRuntimeFactory;
 }
 
@@ -59,6 +61,7 @@ export function AvatarStage({
   catalogURL,
   loadout,
   motion,
+  viewRadians,
   runtimeFactory = createRuntime,
   className,
   ...props
@@ -91,9 +94,13 @@ export function AvatarStage({
       reducedMotion: initialReducedMotion,
     });
 
+    let resizeFrame = 0;
     const resize = () => {
-      const bounds = stage.getBoundingClientRect();
-      runtime.resize(bounds.width, bounds.height, window.devicePixelRatio);
+      cancelAnimationFrame(resizeFrame);
+      resizeFrame = requestAnimationFrame(() => {
+        const bounds = stage.getBoundingClientRect();
+        runtime.resize(bounds.width, bounds.height, window.devicePixelRatio);
+      });
     };
     const observer =
       typeof ResizeObserver === "undefined"
@@ -104,6 +111,7 @@ export function AvatarStage({
 
     return () => {
       active = false;
+      cancelAnimationFrame(resizeFrame);
       observer?.disconnect();
       if (runtimeRef.current === runtime) runtimeRef.current = undefined;
       runtime.dispose();
@@ -119,6 +127,10 @@ export function AvatarStage({
   useEffect(() => {
     runtimeRef.current?.setMotion(motion);
   }, [motion]);
+
+  useEffect(() => {
+    runtimeRef.current?.setView(viewRadians);
+  }, [viewRadians]);
 
   useEffect(() => {
     const media = window.matchMedia?.(REDUCED_MOTION_QUERY);
@@ -139,6 +151,8 @@ export function AvatarStage({
       {...props}
       className={[styles.stage, className].filter(Boolean).join(" ")}
       data-avatar-state={runtimeState.kind}
+      data-avatar-view={viewRadians}
+      data-testid="avatar-3d-stage"
       data-avatar-items={
         runtimeState.kind === "ready"
           ? runtimeState.equippedItemIDs.join(" ")

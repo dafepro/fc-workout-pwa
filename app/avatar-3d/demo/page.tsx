@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import catalogSource from "../../../public/avatar/catalog/avatar-catalog.reference.json";
+import catalogSource from "../../../public/avatar/catalog/avatar-catalog.engineering.json";
 import { parseAvatarCatalog } from "../catalog";
 import { AvatarDemo } from "./AvatarDemo";
 
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     "A live engineering preview of Zoomigo's replacement 3D avatar runtime.",
 };
 
-const REFERENCE_CATALOG = "/avatar/catalog/avatar-catalog.reference.json";
+const ENGINEERING_CATALOG = "/avatar/catalog/avatar-catalog.engineering.json";
 const MISSING_CATALOG = "/avatar/catalog/missing.json";
 const catalog = parseAvatarCatalog(catalogSource);
 
@@ -23,7 +23,7 @@ export default async function AvatarDemoPage({
   return (
     <AvatarDemo
       catalog={catalog}
-      catalogURL={failure === "asset" ? MISSING_CATALOG : REFERENCE_CATALOG}
+      catalogURL={failure === "asset" ? MISSING_CATALOG : ENGINEERING_CATALOG}
     />
   );
 }

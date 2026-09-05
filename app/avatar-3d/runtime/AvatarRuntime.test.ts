@@ -61,6 +61,9 @@ function harness({ failLoad = false } = {}) {
     setMotion(motion, reducedMotion) {
       events.push(`motion:${motion.kind}:${reducedMotion}`);
     },
+    setView(rotation) {
+      events.push(`view:${rotation}`);
+    },
     dispose() {
       events.push("dispose");
     },
@@ -116,6 +119,7 @@ describe("AvatarRuntime", () => {
       appearance: { ...loadout.appearance, hairId: "hair.swoop.reference" },
     });
     runtime.resize(320, 480, 3);
+    runtime.setView(Math.PI / 2);
     runtime.setMotion({ kind: "run" });
     runtime.setReducedMotion(false);
 
@@ -124,6 +128,7 @@ describe("AvatarRuntime", () => {
       "load:/avatar/catalog/avatar-catalog.reference.json:hair.swoop.reference",
     );
     expect(events).toContain("resize:320x480@2");
+    expect(events).toContain(`view:${Math.PI / 2}`);
     expect(events).toContain("motion:run:true");
     expect(events.at(-1)).toBe("motion:run:false");
   });

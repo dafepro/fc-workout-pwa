@@ -1,11 +1,16 @@
 import {
   AnimationClip,
+  Bone,
   BoxGeometry,
   Color,
+  Float32BufferAttribute,
   Group,
   Mesh,
   MeshStandardMaterial,
   Object3D,
+  Skeleton,
+  SkinnedMesh,
+  Uint16BufferAttribute,
 } from "three";
 import { describe, expect, it } from "vitest";
 
@@ -21,11 +26,14 @@ const catalog = parseAvatarCatalog({
   schemaVersion: 1,
   catalogVersion: "reference-1",
   rigVersion: "zoomigo-humanoid-v1",
-  colors: [{ id: "lime", displayName: "Lime", value: "#c8f52a" }],
+  colors: [
+    { id: "lime", displayName: "Lime", value: "#c8f52a" },
+    { id: "skin.medium", displayName: "Medium", value: "#a96943" },
+  ],
   items: [
     item("base.zoomigo.reference", "base", undefined, baseURL, "a"),
     item("hair.curl.reference", "socket", "hair", hairURL, "c"),
-    item("top.training.reference", "socket", "top", topURL, "b", {
+    item("top.training.reference", "skinned", "top", topURL, "b", {
       hideBodyRegions: ["torso"],
       materialMode: "tint1",
       variants: ["lime"],
@@ -58,7 +66,7 @@ describe("AvatarAssembler", () => {
       new Map([
         [baseURL, baseAvatar()],
         [hairURL, cosmetic("hair.curl.reference", "socket_head")],
-        [topURL, cosmetic("top.training.reference", "socket_chest")],
+        [topURL, skinnedCosmetic("top.training.reference")],
       ]),
     );
 
@@ -74,10 +82,17 @@ describe("AvatarAssembler", () => {
     const top = assembled.scene.getObjectByName(
       "top.training.reference.part",
     ) as Mesh;
-    expect(top.parent?.name).toBe("socket_chest");
+    expect(top.parent?.name).toBe("ZoomigoAvatar");
+    expect(top).toBeInstanceOf(SkinnedMesh);
+    expect((top as SkinnedMesh).skeleton.bones[0]).toBe(
+      assembled.scene.getObjectByName("hips"),
+    );
     expect((top.material as MeshStandardMaterial).color).toEqual(
       new Color("#c8f52a"),
     );
+    expect(
+      (assembled.scene.getObjectByName("body.hand-l") as Mesh).material,
+    ).toMatchObject({ color: new Color("#a96943") });
     expect(assembled.scene.getObjectByName("body.torso")?.visible).toBe(false);
     expect(assembled.warnings).toEqual([]);
   });
@@ -129,13 +144,50 @@ function baseAvatar(): LoadedAvatar {
   const torso = new Mesh(new BoxGeometry(), new MeshStandardMaterial());
   torso.name = "body.torso";
   torso.userData.bodyRegion = "torso";
-  root.add(chest, head, torso);
+  const hand = new Mesh(
+    new BoxGeometry(),
+    new MeshStandardMaterial({ color: "#ffffff" }),
+  );
+  hand.name = "body.hand-l";
+  hand.userData.skinTintable = true;
+  const hips = new Bone();
+  hips.name = "hips";
+  const chestBone = new Bone();
+  chestBone.name = "chest";
+  hips.add(chestBone);
+  root.add(chest, head, torso, hand, hips);
   return {
     scene: root,
     animations: [new AnimationClip("idle_default", 1, [])],
     equippedItemIDs: [],
     warnings: [],
   };
+}
+
+function skinnedCosmetic(itemId: string): LoadedAvatar {
+  const root = new Group();
+  root.userData = { itemId, rigVersion: "zoomigo-humanoid-v1" };
+  const hips = new Bone();
+  hips.name = "hips";
+  const chest = new Bone();
+  chest.name = "chest";
+  hips.add(chest);
+  const geometry = new BoxGeometry();
+  const vertexCount = geometry.attributes.position.count;
+  const indices = new Uint16Array(vertexCount * 4);
+  const weights = new Float32Array(vertexCount * 4);
+  for (let index = 0; index < vertexCount; index += 1) {
+    indices[index * 4] = 1;
+    weights[index * 4] = 1;
+  }
+  geometry.setAttribute("skinIndex", new Uint16BufferAttribute(indices, 4));
+  geometry.setAttribute("skinWeight", new Float32BufferAttribute(weights, 4));
+  const part = new SkinnedMesh(geometry, new MeshStandardMaterial());
+  part.name = `${itemId}.part`;
+  part.userData.tintable = true;
+  root.add(hips, part);
+  part.bind(new Skeleton([hips, chest]));
+  return { scene: root, animations: [], equippedItemIDs: [], warnings: [] };
 }
 
 function cosmetic(itemId: string, socket: string): LoadedAvatar {
@@ -150,7 +202,7 @@ function cosmetic(itemId: string, socket: string): LoadedAvatar {
 
 function item(
   id: string,
-  kind: "base" | "socket",
+  kind: "base" | "skinned" | "socket",
   slot: "hair" | "top" | undefined,
   url: string,
   hashCharacter: string,

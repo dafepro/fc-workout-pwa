@@ -35,6 +35,7 @@ export class ThreeAvatarBackend implements AvatarRenderBackend {
   private mixer?: AnimationMixer;
   private animations: AnimationClip[] = [];
   private action?: AnimationAction;
+  private viewRotation = 0;
   private animationLoopActive = false;
   private lastFrameTime = 0;
 
@@ -57,7 +58,9 @@ export class ThreeAvatarBackend implements AvatarRenderBackend {
     const hemisphere = new HemisphereLight("#dcecff", "#1b2b58", 2.7);
     const key = new DirectionalLight("#ffffff", 3.2);
     key.position.set(3, 5, 4);
-    this.scene.add(hemisphere, key);
+    const rim = new DirectionalLight("#7f9cff", 2.1);
+    rim.position.set(-4, 3, -3);
+    this.scene.add(hemisphere, key, rim);
   }
 
   attach(avatar: LoadedAvatar): void {
@@ -66,6 +69,7 @@ export class ThreeAvatarBackend implements AvatarRenderBackend {
     this.avatar = avatar.scene;
     this.animations = avatar.animations;
     this.fitAvatar(this.avatar);
+    this.avatar.rotation.y = this.viewRotation;
     this.scene.add(this.avatar);
     this.mixer = new AnimationMixer(this.avatar);
   }
@@ -76,6 +80,13 @@ export class ThreeAvatarBackend implements AvatarRenderBackend {
     this.renderer.setSize(width, height, false);
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
+    this.render();
+  }
+
+  setView(rotationRadians: number): void {
+    if (!Number.isFinite(rotationRadians)) return;
+    this.viewRotation = rotationRadians;
+    if (this.avatar) this.avatar.rotation.y = rotationRadians;
     this.render();
   }
 

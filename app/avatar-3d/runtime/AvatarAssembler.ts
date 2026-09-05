@@ -3,6 +3,7 @@ import type { Object3D } from "three";
 import { resolveAvatarLoadout } from "../loadout";
 import type { AvatarBodyRegion, AvatarCatalog } from "../types";
 import { AvatarMaterialFactory } from "./AvatarMaterialFactory";
+import { SkinnedItemBinder } from "./SkinnedItemBinder";
 import type {
   AvatarAssemblyWarning,
   AvatarAssetLoader,
@@ -13,6 +14,7 @@ export class AvatarAssembler {
   constructor(
     private readonly loader: AvatarAssetLoader,
     private readonly materials = new AvatarMaterialFactory(),
+    private readonly skinnedItems = new SkinnedItemBinder(),
   ) {}
 
   async assemble(
@@ -26,6 +28,7 @@ export class AvatarAssembler {
     if (base.scene.userData.rigVersion !== catalog.rigVersion) {
       throw new Error("base avatar rig version is missing or unsupported");
     }
+    this.materials.applySkinTone(base.scene, resolved.skinTone.value);
 
     const warnings: AvatarAssemblyWarning[] = [];
     const equippedItemIDs = [resolved.base.id];
@@ -60,7 +63,11 @@ export class AvatarAssembler {
       if (selection.color) {
         this.materials.applyTint(loaded.scene, selection.color.value);
       }
-      if (!attachCosmetic(base.scene, loaded.scene)) {
+      const attached =
+        selection.item.kind === "skinned"
+          ? this.skinnedItems.bind(base.scene, loaded.scene)
+          : attachSocketCosmetic(base.scene, loaded.scene);
+      if (!attached) {
         warnings.push({ itemId: selection.item.id, reason: "asset-invalid" });
         continue;
       }
@@ -84,7 +91,7 @@ export class AvatarAssembler {
   }
 }
 
-function attachCosmetic(avatar: Object3D, cosmetic: Object3D): boolean {
+function attachSocketCosmetic(avatar: Object3D, cosmetic: Object3D): boolean {
   const parts = [...cosmetic.children];
   if (parts.length === 0) return false;
   const attachments = parts.map((part) => {

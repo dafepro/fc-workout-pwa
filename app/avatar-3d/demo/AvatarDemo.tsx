@@ -19,7 +19,27 @@ const CATEGORIES = [
   { id: "bottom", label: "Bottoms" },
   { id: "feet", label: "Shoes" },
   { id: "headwear", label: "Headwear" },
+  { id: "eyewear", label: "Eyewear" },
+  { id: "back", label: "Back gear" },
 ] as const satisfies readonly { id: AvatarSlot; label: string }[];
+
+const OPTIONAL_SLOTS = [
+  "headwear",
+  "eyewear",
+  "back",
+] as const satisfies readonly AvatarSlot[];
+
+const VIEWS = [
+  { id: "front", label: "Front view", shortLabel: "Front", rotation: 0 },
+  {
+    id: "three-quarter",
+    label: "Three-quarter view",
+    shortLabel: "3/4",
+    rotation: Math.PI / 4,
+  },
+  { id: "side", label: "Side view", shortLabel: "Side", rotation: Math.PI / 2 },
+  { id: "back", label: "Back view", shortLabel: "Back", rotation: Math.PI },
+] as const;
 
 const MOTIONS = [
   { id: "idle", label: "Idle", motion: { kind: "idle" } },
@@ -47,16 +67,20 @@ export function AvatarDemo({
   catalog: AvatarCatalog;
   catalogURL: string;
 }) {
-  const [loadout, setLoadout] = useState(createReferenceLoadout);
+  const [loadout, setLoadout] = useState(createEngineeringLoadout);
   const [activeSlot, setActiveSlot] = useState<AvatarSlot>("hair");
   const [selectedMotionID, setSelectedMotionID] = useState("idle");
+  const [selectedViewID, setSelectedViewID] = useState("three-quarter");
   const selectedMotion =
     MOTIONS.find(({ id }) => id === selectedMotionID) ?? MOTIONS[0];
+  const selectedView =
+    VIEWS.find(({ id }) => id === selectedViewID) ?? VIEWS[0];
   const choices = catalog.items.filter(
     (item) => item.active && item.slot === activeSlot,
   );
   const selectedItem = selectedItemFor(catalog, loadout, activeSlot);
   const selectedVariant = selectionFor(loadout, activeSlot)?.variantId;
+  const skinTones = catalog.colors.filter(({ id }) => id.startsWith("skin."));
   const copy = avatar3dCopy.demo;
 
   function chooseItem(item: AvatarCatalogItem) {
@@ -80,10 +104,10 @@ export function AvatarDemo({
     });
   }
 
-  function removeHeadwear() {
+  function removeOptionalItem() {
     setLoadout((current) => {
       const slots = { ...current.slots };
-      delete slots.headwear;
+      delete slots[activeSlot];
       return { ...current, slots };
     });
   }
@@ -99,6 +123,13 @@ export function AvatarDemo({
     }));
   }
 
+  function chooseSkinTone(skinToneId: string) {
+    setLoadout((current) => ({
+      ...current,
+      appearance: { ...current.appearance, skinToneId },
+    }));
+  }
+
   return (
     <main className={styles.page}>
       <div className={styles.shell}>
@@ -106,6 +137,7 @@ export function AvatarDemo({
           <div>
             <p className={styles.eyebrow}>{copy.eyebrow}</p>
             <h1 className={styles.title}>{copy.title}</h1>
+            <p className={styles.catalogSummary}>{copy.catalogSummary}</p>
           </div>
           <p className={styles.intro}>{copy.intro}</p>
         </header>
@@ -117,30 +149,50 @@ export function AvatarDemo({
               catalogURL={catalogURL}
               loadout={loadout}
               motion={selectedMotion.motion}
+              viewRadians={selectedView.rotation}
             />
-            <fieldset className={styles.motionFieldset}>
-              <legend>{copy.animationLabel}</legend>
-              <div className={styles.motionControls}>
-                {MOTIONS.map(({ id, label }) => (
-                  <button
-                    className={styles.motionButton}
-                    key={id}
-                    type="button"
-                    aria-pressed={selectedMotionID === id}
-                    onClick={() => setSelectedMotionID(id)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <p
-                className={styles.animationState}
-                data-testid="avatar-animation-state"
-                aria-live="polite"
-              >
-                {copy.currentAnimation}: {selectedMotion.label}
-              </p>
-            </fieldset>
+            <div className={styles.controlDeck}>
+              <fieldset className={styles.motionFieldset}>
+                <legend>{copy.animationLabel}</legend>
+                <div className={styles.motionControls}>
+                  {MOTIONS.map(({ id, label }) => (
+                    <button
+                      className={styles.motionButton}
+                      key={id}
+                      type="button"
+                      aria-pressed={selectedMotionID === id}
+                      onClick={() => setSelectedMotionID(id)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <p
+                  className={styles.animationState}
+                  data-testid="avatar-animation-state"
+                  aria-live="polite"
+                >
+                  {copy.currentAnimation}: {selectedMotion.label}
+                </p>
+              </fieldset>
+              <fieldset className={styles.viewFieldset}>
+                <legend>{copy.viewLabel}</legend>
+                <div className={styles.viewControls}>
+                  {VIEWS.map(({ id, label, shortLabel }) => (
+                    <button
+                      className={styles.viewButton}
+                      key={id}
+                      type="button"
+                      aria-label={label}
+                      aria-pressed={selectedViewID === id}
+                      onClick={() => setSelectedViewID(id)}
+                    >
+                      {shortLabel}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+            </div>
           </div>
 
           <aside className={styles.panel}>
@@ -148,6 +200,25 @@ export function AvatarDemo({
               <p>{copy.stepLabel}</p>
               <h2>{copy.customizeLabel}</h2>
             </div>
+
+            <fieldset className={styles.skinFieldset}>
+              <legend>{copy.skinToneLabel}</legend>
+              <div className={styles.colorChoices}>
+                {skinTones.map((tone) => (
+                  <label key={tone.id} title={tone.displayName}>
+                    <input
+                      type="radio"
+                      name="avatar-skin-tone"
+                      value={tone.id}
+                      checked={loadout.appearance.skinToneId === tone.id}
+                      aria-label={tone.displayName}
+                      onChange={() => chooseSkinTone(tone.id)}
+                    />
+                    <span style={{ backgroundColor: tone.value }} />
+                  </label>
+                ))}
+              </div>
+            </fieldset>
 
             <nav className={styles.categories} aria-label="Avatar categories">
               {CATEGORIES.map(({ id, label }) => (
@@ -165,13 +236,13 @@ export function AvatarDemo({
             <fieldset className={styles.itemFieldset}>
               <legend>{copy.chooseItem}</legend>
               <div className={styles.itemChoices}>
-                {activeSlot === "headwear" ? (
+                {isOptionalSlot(activeSlot) ? (
                   <Choice
-                    label={copy.noHeadwear}
-                    checked={!loadout.slots.headwear}
+                    label={copy.noneLabels[activeSlot]}
+                    checked={!loadout.slots[activeSlot]}
                     value="none"
-                    name="avatar-headwear"
-                    onChange={removeHeadwear}
+                    name={`avatar-${activeSlot}`}
+                    onChange={removeOptionalItem}
                   />
                 ) : null}
                 {choices.map((item) => (
@@ -218,7 +289,13 @@ export function AvatarDemo({
               <p className={styles.compatibilityNote}>{copy.hiddenHair}</p>
             ) : null}
 
-            <p className={styles.note}>{copy.referenceNote}</p>
+            {selectedItem && selectedItem.kind !== "base" ? (
+              <p className={styles.itemKind}>
+                {copy.itemKinds[selectedItem.kind]}
+              </p>
+            ) : null}
+
+            <p className={styles.note}>{copy.reviewNote}</p>
           </aside>
         </section>
       </div>
@@ -268,23 +345,29 @@ function selectionFor(loadout: AvatarLoadout, slot: AvatarSlot) {
     : loadout.slots[slot];
 }
 
-function createReferenceLoadout(): AvatarLoadout {
+function isOptionalSlot(
+  slot: AvatarSlot,
+): slot is (typeof OPTIONAL_SLOTS)[number] {
+  return OPTIONAL_SLOTS.includes(slot as (typeof OPTIONAL_SLOTS)[number]);
+}
+
+function createEngineeringLoadout(): AvatarLoadout {
   return {
     schemaVersion: 1,
     rigVersion: "zoomigo-humanoid-v1",
-    baseId: "base.zoomigo.reference",
+    baseId: "base.zoomigo.player-v1",
     appearance: {
-      skinToneId: "skin.medium",
+      skinToneId: "skin.04",
       faceId: "face.default",
-      hairId: "hair.curl-cloud.reference",
+      hairId: "hair.curl-cloud",
     },
     slots: {
-      top: { itemId: "top.training-tee.reference", variantId: "lime" },
+      top: { itemId: "top.striker-jersey", variantId: "navy" },
       bottom: {
-        itemId: "bottom.training-shorts.reference",
+        itemId: "bottom.match-shorts",
         variantId: "violet",
       },
-      feet: { itemId: "feet.pitch-runners.reference", variantId: "white" },
+      feet: { itemId: "feet.velocity-cleats", variantId: "white" },
     },
     animations: {
       idle: "idle_default",

@@ -20,6 +20,7 @@ export interface ResolvedAvatarItem {
 export interface ResolvedAvatarLoadout {
   loadout: AvatarLoadout;
   base: AvatarCatalogItem;
+  skinTone: AvatarColorDefinition;
   items: readonly ResolvedAvatarItem[];
   hiddenSlots: ReadonlySet<AvatarSlot>;
   hiddenBodyRegions: ReadonlySet<AvatarBodyRegion>;
@@ -118,6 +119,12 @@ export function resolveAvatarLoadout(
   const colorsByID = new Map(catalog.colors.map((color) => [color.id, color]));
   const base = requiredItem(itemsByID, loadout.baseId);
   if (base.kind !== "base") throw new Error(base.id + " is not a base avatar");
+  const skinTone = colorsByID.get(loadout.appearance.skinToneId);
+  if (!skinTone) {
+    throw new Error(
+      "unknown avatar skin tone: " + loadout.appearance.skinToneId,
+    );
+  }
 
   const selected: ResolvedAvatarItem[] = [
     resolveSelection(itemsByID, colorsByID, "hair", {
@@ -151,6 +158,7 @@ export function resolveAvatarLoadout(
   return {
     loadout,
     base,
+    skinTone,
     items,
     hiddenSlots,
     hiddenBodyRegions: new Set(

@@ -34,6 +34,7 @@ export interface AvatarRenderBackend {
   initialize(canvas: HTMLCanvasElement): void | Promise<void>;
   attach(avatar: LoadedAvatar): void;
   resize(width: number, height: number, pixelRatio: number): void;
+  setView(rotationRadians: number): void;
   setMotion(motion: AvatarMotionState, reducedMotion: boolean): void;
   dispose(): void;
 }

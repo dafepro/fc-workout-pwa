@@ -1,3 +1,4 @@
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 import { AVATAR_RIG_VERSION } from "../types";
@@ -6,7 +7,7 @@ import type { AvatarAssetLoader, LoadedAvatar } from "./types";
 const REQUIRED_CLIPS = ["idle_default", "walk", "run"] as const;
 
 export class ThreeAvatarAssetLoader implements AvatarAssetLoader {
-  private readonly loader = new GLTFLoader();
+  private readonly loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
 
   async load(url: string): Promise<LoadedAvatar> {
     const gltf = await this.loader.loadAsync(url);
