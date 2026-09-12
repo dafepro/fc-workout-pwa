@@ -12,12 +12,7 @@ import {
 
 const STAFF_HANDLERS = join(process.cwd(), "backend/internal/httpapi/staff.go");
 
-/**
- * Reads the backend's own division of these paths: the route table, and for
- * each handler whether the first thing it does is demand a platform operator.
- * Deriving it rather than restating it is the point -- a table copied by hand
- * drifts, and the drift is a gateway that admits what the backend refuses.
- */
+// Derive authority from the backend so copied allowlists cannot silently drift.
 function backendOperatorPaths(): Map<string, boolean> {
   const source = readFileSync(STAFF_HANDLERS, "utf8");
 
@@ -41,7 +36,7 @@ function backendOperatorPaths(): Map<string, boolean> {
 
   const routes = new Map<string, boolean>();
   for (const [, method, path, name] of source.matchAll(
-    /mux\.HandleFunc\("(\w+) \/(v1\/staff\/[^"]*)", service\.(\w+)\)/g,
+    /(?:mux\.HandleFunc|register)\("(\w+) \/(v1\/staff\/[^"]*)", service\.(\w+)\)/g,
   )) {
     routes.set(`${method} ${path}`, gateOf.get(name) === "operatorActor");
   }
@@ -63,6 +58,8 @@ describe("console gateway routing", () => {
   it("reads the backend's staff routes", () => {
     expect(backend.size).toBeGreaterThanOrEqual(20);
     expect([...backend.values()].filter(Boolean).length).toBeGreaterThan(0);
+    expect(backend.get("POST v1/staff/accounts")).toBe(true);
+    expect(backend.get("POST v1/staff/teams/{teamId}/reward-media")).toBe(false);
   });
 
   it("proxies no path through both gateways", () => {
