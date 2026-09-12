@@ -39,6 +39,10 @@ function currentCode(secret: string, step = Math.floor(Date.now() / 30_000)) {
   return String(binary % 1_000_000).padStart(6, "0");
 }
 
+export function currentCoachCode(): string {
+  return currentCode(COACH_TOTP_SECRET);
+}
+
 /**
  * Signs in as the fixture coach through the console's own door -- password,
  * then a code from an authenticator. A code is single use and refused at or
@@ -73,7 +77,7 @@ export async function signInAsCoach(page: Page) {
 
   const code = page.getByLabel("Six-digit code");
   await code.waitFor();
-  await code.fill(currentCode(COACH_TOTP_SECRET));
+  await code.fill(currentCoachCode());
   await page.getByRole("button", { name: "Sign in" }).click();
   await page.waitForURL(/\/staff(?:\/|$)/);
 }

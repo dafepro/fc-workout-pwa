@@ -3862,6 +3862,7 @@ h2 {
 .console-facts dd {
   margin: 0;
   min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* Secrets and identifiers are copied by hand, so they must never be ambiguous
