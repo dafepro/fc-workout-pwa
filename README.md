@@ -68,6 +68,14 @@ Focused workflows:
 Install the formatting hook once per clone with
 `./scripts/install-git-hooks.sh`.
 
+Dependabot proposes weekly JavaScript, Go, and GitHub Actions updates as
+reviewable PRs; it does not auto-merge them. Keep paired React and Next packages
+compatible, and run the normal checks plus targeted Docker browser flows for
+runtime upgrades. Use `pnpm audit` explicitly when reviewing dependencies: it
+contacts the registry, so it is not part of the offline-default test command.
+An advisory count is not an exposure assessment; investigate affected runtime
+paths and record any remaining advisories without blanket suppression.
+
 ## Real-data boundary
 
 Infrastructure and encrypted backup/restore paths are implemented, but the
