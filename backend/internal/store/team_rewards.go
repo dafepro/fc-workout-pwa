@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 )
 
@@ -245,7 +246,7 @@ func (staff *StaffStore) TeamReward(ctx context.Context, teamID string, now time
 	return visibleTeamReward(ctx, staff.db, teamID, now)
 }
 
-func visibleTeamReward(ctx context.Context, db *sql.DB, teamID string, now time.Time) (TeamReward, error) {
+func visibleTeamReward(ctx context.Context, db *database.Handle, teamID string, now time.Time) (TeamReward, error) {
 	var id string
 	err := db.QueryRowContext(ctx, `SELECT id FROM team_rewards
 		WHERE team_id = ? AND status IN ('active', 'achieved')
@@ -293,7 +294,7 @@ func loadTeamRewardRow(ctx context.Context, query teamRewardQueryer, id string) 
 	return reward, nil
 }
 
-func projectTeamRewardByID(ctx context.Context, db *sql.DB, id string, now time.Time, transition bool) (TeamReward, error) {
+func projectTeamRewardByID(ctx context.Context, db *database.Handle, id string, now time.Time, transition bool) (TeamReward, error) {
 	reward, err := loadTeamRewardRow(ctx, db, id)
 	if err != nil {
 		return TeamReward{}, err
@@ -366,7 +367,7 @@ func teamRewardDays(ctx context.Context, query teamRewardQueryer, reward TeamRew
 	return days, nil
 }
 
-func achieveTeamReward(ctx context.Context, db *sql.DB, reward *TeamReward, now time.Time) error {
+func achieveTeamReward(ctx context.Context, db *database.Handle, reward *TeamReward, now time.Time) error {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return err

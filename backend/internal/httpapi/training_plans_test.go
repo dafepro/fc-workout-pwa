@@ -121,6 +121,7 @@ func trainingPlanHandler(t *testing.T, cfg config.Config) http.Handler {
 	}
 	for _, statement := range []string{
 		`INSERT INTO clubs (id, name, created_at) VALUES ('club-one', 'ZoomiGo Club', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO accounts(id,club_id,role,status,created_at) VALUES('account-coach','club-one','coach','active','2026-01-01T00:00:00Z')`,
 		`INSERT INTO teams (id, club_id, name, season_id, weekly_default_goal, time_zone, created_at)
 		 VALUES ('team-one', 'club-one', 'Trailblazers', 'season-2026', 3, 'UTC', '2026-01-01T00:00:00Z')`,
 	} {

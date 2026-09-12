@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 )
 
@@ -104,11 +105,17 @@ type AdminAuditEntry struct {
 // StaffStore is a thin wrapper so the console's queries stay out of the
 // player-facing store, which has a different reviewer and different risks.
 type StaffStore struct {
-	db  *sql.DB
+	db  *database.Handle
 	now func() time.Time
 }
 
-func NewStaffStore(db *sql.DB) *StaffStore { return &StaffStore{db: db, now: time.Now} }
+func NewStaffStore(db *sql.DB) *StaffStore {
+	return &StaffStore{db: database.NewHandle(db), now: time.Now}
+}
+
+func (staff *StaffStore) WithinTransaction(ctx context.Context, action func(context.Context) error) error {
+	return staff.db.WithinTransaction(ctx, action)
+}
 
 func (staff *StaffStore) ListClubs(ctx context.Context) ([]ClubSummary, error) {
 	rows, err := staff.db.QueryContext(ctx, `SELECT c.id, c.name, c.created_at,

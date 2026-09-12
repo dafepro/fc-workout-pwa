@@ -22,6 +22,7 @@ import (
 	"golang.org/x/crypto/argon2"
 
 	"github.com/dafepro/fc-workout-pwa/backend/internal/authn"
+	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 )
 
@@ -59,10 +60,11 @@ var (
 	ErrUnavailable       = errors.New("staff authentication is not configured")
 	ErrWeakPassword      = errors.New("password is too short")
 	ErrEmailInUse        = errors.New("email already has a staff account")
+	ErrAuditUnavailable  = errors.New("authentication audit unavailable")
 )
 
 type Service struct {
-	db   *sql.DB
+	db   *database.Handle
 	key  []byte
 	slot *authn.Slot
 	now  func() time.Time
@@ -71,7 +73,7 @@ type Service struct {
 // A key is required: rather than storing a second factor it cannot protect,
 // the service refuses every staff operation without one (fail closed).
 func NewService(db *sql.DB, key []byte, slot *authn.Slot) *Service {
-	return &Service{db: db, key: key, slot: slot, now: time.Now}
+	return &Service{db: database.NewHandle(db), key: key, slot: slot, now: time.Now}
 }
 
 func (service *Service) Configured() bool { return len(service.key) == 32 }
@@ -675,19 +677,25 @@ func (service *Service) assignedTeams(ctx context.Context, accountID string, now
 	return teams, rows.Err()
 }
 
-// Audit failures must not mask the outcome of the operation being audited, but
-// they must not be silent either; the caller has already decided the answer.
 func (service *Service) audit(ctx context.Context, accountID, eventType, detail string, now time.Time) {
+	_ = recordAudit(ctx, service.db, accountID, eventType, detail, now)
+}
+
+func recordAudit(ctx context.Context, db executor, accountID, eventType, detail string, now time.Time) error {
 	id, err := randomID("audit")
 	if err != nil {
-		return
+		return err
 	}
 	var account any
 	if accountID != "" {
 		account = accountID
 	}
-	_, _ = service.db.ExecContext(ctx, `INSERT INTO auth_audit_events (id, account_id, event_type, detail_code, occurred_at)
+	_, err = db.ExecContext(ctx, `INSERT INTO auth_audit_events (id, account_id, event_type, detail_code, occurred_at)
 		VALUES (?, ?, ?, ?, ?)`, id, account, eventType, nullable(detail), stamp(now))
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrAuditUnavailable, err)
+	}
+	return nil
 }
 
 func nullable(value string) any {

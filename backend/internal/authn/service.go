@@ -15,6 +15,7 @@ import (
 
 	"golang.org/x/crypto/argon2"
 
+	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 )
 
@@ -62,7 +63,7 @@ func (slot *Slot) Acquire() (release func(), acquired bool) {
 }
 
 type Service struct {
-	db         *sql.DB
+	db         *database.Handle
 	now        func() time.Time
 	loginSlots *Slot
 }
@@ -97,7 +98,7 @@ type Credential struct {
 func NewService(db *sql.DB) *Service { return NewServiceWithSlot(db, NewSlot()) }
 
 func NewServiceWithSlot(db *sql.DB, slot *Slot) *Service {
-	return &Service{db: db, now: time.Now, loginSlots: slot}
+	return &Service{db: database.NewHandle(db), now: time.Now, loginSlots: slot}
 }
 
 func (service *Service) Authenticate(ctx context.Context, bearerToken string) (domain.Actor, error) {
