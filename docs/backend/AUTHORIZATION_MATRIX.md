@@ -36,6 +36,11 @@ and possession of a resource ID do not grant access.
   type.
 - Sensitive staff mutations require recent step-up and emit bounded audit
   records.
+- Player credential repair (unlock/revoke/reissue), player deactivation, staff
+  creation/reset, and coach assignment/removal require full authentication in
+  the last five minutes. Reauthentication never grants a missing role or scope.
+- Platform and own-club player recovery authority survives ended memberships;
+  coach player access still depends on current team membership and assignment.
 - Development/E2E capabilities require build/configuration gates in addition to
   authentication.
 

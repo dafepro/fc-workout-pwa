@@ -8,13 +8,7 @@ import { CodeInput } from "./CodeInput";
 
 type Action = () => Promise<void>;
 
-/**
- * SEC-3. Deactivating an account and resetting staff credentials need a fresh
- * full authentication. Rather than asking for it up front, the console runs the
- * action, and only when the API answers `step_up_required` does it ask for a
- * password and a code — then retries the very action that was refused, so the
- * operator never has to remember what they were doing.
- */
+// Hold the refused action so reauthentication preserves the operator's intent.
 export function useStepUp() {
   const [pending, setPending] = useState<{ action: Action } | null>(null);
 

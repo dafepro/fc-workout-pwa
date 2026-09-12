@@ -68,6 +68,60 @@ afterEach(() => {
 });
 
 describe("player repair", () => {
+  it.each([
+    ["unlock", "Unlock"],
+    ["revoke", "Revoke login"],
+    ["reissue", "Reissue login"],
+  ])(
+    "retains the %s credential repair through step-up",
+    async (action, label) => {
+      let confirmed = false;
+      const calls = stubBackend((call) => {
+        if (call.url === "/staff/api/step-up") {
+          if (call.body?.challenge) {
+            confirmed = true;
+            return new Response(null, { status: 204 });
+          }
+          return Response.json({ challenge: "local-challenge" });
+        }
+        if (call.url.endsWith("/credential")) {
+          if (!confirmed)
+            return Response.json(
+              { error: { code: "step_up_required" } },
+              { status: 401 },
+            );
+          return action === "reissue"
+            ? Response.json({ pin: "4821" }, { status: 201 })
+            : new Response(null, { status: 204 });
+        }
+        return Response.json(player);
+      });
+      render(<PlayerRepair playerId="p1" />);
+      fireEvent.click(await screen.findByRole("button", { name: label }));
+      if (action !== "unlock")
+        fireEvent.click(screen.getByRole("button", { name: label }));
+      await screen.findByRole("heading", { name: "Confirm it is you" });
+      expect(screen.queryByRole("dialog")).toBeNull();
+      fireEvent.change(screen.getByLabelText("Password"), {
+        target: { value: "local-test-password" },
+      });
+      fireEvent.change(screen.getByLabelText("Six-digit code"), {
+        target: { value: "123456" },
+      });
+      fireEvent.submit(screen.getByRole("button", { name: "Confirm" }));
+      await waitFor(() =>
+        expect(
+          calls.filter((call) => call.url.endsWith("/credential")),
+        ).toHaveLength(2),
+      );
+      const attempts = calls.filter((call) => call.url.endsWith("/credential"));
+      expect(attempts[1]).toEqual(attempts[0]);
+      expect(attempts[1].body).toEqual({ action });
+      if (action === "reissue")
+        expect(await screen.findByText("4821")).toBeInTheDocument();
+    },
+  );
+
   it("shows why the child cannot sign in, and offers unlock only when locked", async () => {
     stubBackend(() => Response.json(player));
     render(<PlayerRepair playerId="p1" />);

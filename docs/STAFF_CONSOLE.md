@@ -18,6 +18,18 @@ and it does not rely on the retired Cloudflare Access gate.
 - Authentication, account changes, credential repair, and administrative writes
   produce bounded audit events.
 
+The API requires password and second-factor authentication within the last five
+minutes for player credential unlock/revoke/reissue, player deactivation, staff
+account creation/reset, and coach assignment/removal. Role and resource scope
+are checked first. A stale session receives `401 step_up_required` before any
+protected mutation or credential reveal. The console holds the original action
+and its submitted values while the operator confirms their identity; cancelling
+does not perform the action or discard the filled staff-creation form.
+
+Reading a player and repairing their credential does not require a current team
+membership for a platform operator or the player's own-club administrator.
+Coaches still require a current assignment to one of the player's current teams.
+
 ## Roles
 
 | Capability                                          | Coach                                | Club administrator         | Platform administrator |

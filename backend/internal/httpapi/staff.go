@@ -187,6 +187,10 @@ func (service *service) playerActor(w http.ResponseWriter, r *http.Request, play
 		writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")
 		return domain.Actor{}, false
 	}
+	// Club/platform recovery authority survives the player's final membership.
+	if actor.Role != domain.RoleCoach && domain.CanManageTeam(actor, "", clubID) {
+		return actor, true
+	}
 	teams, err := service.staffStore.TeamsOfPlayer(r.Context(), playerID)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")
@@ -597,6 +601,9 @@ func (service *service) repairCredential(w http.ResponseWriter, r *http.Request)
 	if !ok {
 		return
 	}
+	if !service.requireStepUp(w, r) {
+		return
+	}
 	if service.credentials == nil {
 		writeError(w, r, http.StatusServiceUnavailable, "not_ready", "The service is not ready.")
 		return
@@ -752,6 +759,9 @@ func (service *service) createStaffAccount(w http.ResponseWriter, r *http.Reques
 		}
 		return
 	}
+	if !service.requireStepUp(w, r) {
+		return
+	}
 	var request struct {
 		Email  string `json:"email"`
 		ClubID string `json:"clubId"`
@@ -803,6 +813,9 @@ func (service *service) assignCoach(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if !service.requireStepUp(w, r) {
+		return
+	}
 	accountID := r.PathValue("accountId")
 	var request struct {
 		TeamID string `json:"teamId"`
@@ -821,6 +834,9 @@ func (service *service) assignCoach(w http.ResponseWriter, r *http.Request) {
 func (service *service) unassignCoach(w http.ResponseWriter, r *http.Request) {
 	actor, ok := service.operatorActor(w, r)
 	if !ok {
+		return
+	}
+	if !service.requireStepUp(w, r) {
 		return
 	}
 	accountID, teamID := r.PathValue("accountId"), r.PathValue("teamId")
