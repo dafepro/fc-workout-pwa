@@ -160,6 +160,13 @@ test("macOS and Linux are the canonical local automation path", async () => {
   );
   assert.match(verifier, /node.*contracts\.mjs/);
   assert.match(verifier, /--all/);
+  const ordinaryVerification = verifier.split('if [ "$RUN_E2E" = true ]')[0];
+  for (const command of ["go vet -tags=dev ./...", "go test -tags=dev ./..."]) {
+    assert.ok(
+      ordinaryVerification.split(/\r?\n/).includes(command),
+      `${command} must run in the default required PR check`,
+    );
+  }
   assert.match(contracts, /ZoomiGo production automation contract passed/);
 });
 
