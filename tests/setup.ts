@@ -9,9 +9,10 @@ afterEach(cleanup);
 
 // jsdom ships no PointerEvent, so events fired at pointer handlers arrive
 // stripped of clientX/pointerId. Back it with MouseEvent, which carries them.
-const pointerHost = window as unknown as { PointerEvent?: unknown };
+const browserWindow = typeof window === "undefined" ? undefined : window;
+const pointerHost = browserWindow as { PointerEvent?: unknown } | undefined;
 
-if (!pointerHost.PointerEvent) {
+if (pointerHost && !pointerHost.PointerEvent) {
   class JsdomPointerEvent extends MouseEvent {
     readonly pointerId: number;
     readonly pointerType: string;
@@ -34,7 +35,7 @@ if (!pointerHost.PointerEvent) {
 // attribute jsdom does maintain. This proves the wiring, not the focus trap or
 // the inert backdrop -- those are the browser's, and the e2e pass is what
 // actually exercises them.
-const dialogPrototype = window.HTMLDialogElement?.prototype as
+const dialogPrototype = browserWindow?.HTMLDialogElement?.prototype as
   | (HTMLDialogElement & { showModal?: () => void })
   | undefined;
 
