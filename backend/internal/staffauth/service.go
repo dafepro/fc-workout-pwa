@@ -22,6 +22,7 @@ import (
 	"golang.org/x/crypto/argon2"
 
 	"github.com/dafepro/fc-workout-pwa/backend/internal/authn"
+	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 )
 
@@ -59,10 +60,11 @@ var (
 	ErrUnavailable       = errors.New("staff authentication is not configured")
 	ErrWeakPassword      = errors.New("password is too short")
 	ErrEmailInUse        = errors.New("email already has a staff account")
+	ErrAuditUnavailable  = errors.New("authentication audit unavailable")
 )
 
 type Service struct {
-	db   *sql.DB
+	db   *database.Handle
 	key  []byte
 	slot *authn.Slot
 	now  func() time.Time
@@ -71,7 +73,7 @@ type Service struct {
 // A key is required: rather than storing a second factor it cannot protect,
 // the service refuses every staff operation without one (fail closed).
 func NewService(db *sql.DB, key []byte, slot *authn.Slot) *Service {
-	return &Service{db: db, key: key, slot: slot, now: time.Now}
+	return &Service{db: database.NewHandle(db), key: key, slot: slot, now: time.Now}
 }
 
 func (service *Service) Configured() bool { return len(service.key) == 32 }
@@ -649,37 +651,51 @@ func (service *Service) recordPasswordFailure(ctx context.Context, credentialID,
 }
 
 func (service *Service) assignedTeams(ctx context.Context, accountID string, now time.Time) ([]string, error) {
-	today := now.Format("2006-01-02")
-	rows, err := service.db.QueryContext(ctx, `SELECT team_id FROM coach_team_assignments
-		WHERE account_id = ? AND active_from <= ? AND (active_to IS NULL OR active_to >= ?)`, accountID, today, today)
+	rows, err := service.db.QueryContext(ctx, `SELECT a.team_id, a.active_from, a.active_to, t.time_zone
+		FROM coach_team_assignments a JOIN teams t ON t.id = a.team_id
+		WHERE a.account_id = ? AND a.revoked_at IS NULL ORDER BY a.team_id, a.active_from`, accountID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	var teams []string
 	for rows.Next() {
-		var id string
-		if err = rows.Scan(&id); err != nil {
+		var id, from, zone string
+		var to sql.NullString
+		if err = rows.Scan(&id, &from, &to, &zone); err != nil {
 			return nil, err
 		}
-		teams = append(teams, id)
+		location, err := time.LoadLocation(zone)
+		if err != nil {
+			return nil, err
+		}
+		today := now.In(location).Format("2006-01-02")
+		if from <= today && (!to.Valid || to.String >= today) && (len(teams) == 0 || teams[len(teams)-1] != id) {
+			teams = append(teams, id)
+		}
 	}
 	return teams, rows.Err()
 }
 
-// Audit failures must not mask the outcome of the operation being audited, but
-// they must not be silent either; the caller has already decided the answer.
 func (service *Service) audit(ctx context.Context, accountID, eventType, detail string, now time.Time) {
+	_ = recordAudit(ctx, service.db, accountID, eventType, detail, now)
+}
+
+func recordAudit(ctx context.Context, db executor, accountID, eventType, detail string, now time.Time) error {
 	id, err := randomID("audit")
 	if err != nil {
-		return
+		return err
 	}
 	var account any
 	if accountID != "" {
 		account = accountID
 	}
-	_, _ = service.db.ExecContext(ctx, `INSERT INTO auth_audit_events (id, account_id, event_type, detail_code, occurred_at)
+	_, err = db.ExecContext(ctx, `INSERT INTO auth_audit_events (id, account_id, event_type, detail_code, occurred_at)
 		VALUES (?, ?, ?, ?, ?)`, id, account, eventType, nullable(detail), stamp(now))
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrAuditUnavailable, err)
+	}
+	return nil
 }
 
 func nullable(value string) any {

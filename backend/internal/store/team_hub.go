@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 )
 
@@ -117,7 +118,7 @@ func (store *Store) TeamHub(ctx context.Context, actor domain.Actor, teamID stri
 		Lounge:          TeamHubLounge{ThemeID: "beach-boardwalk", Title: "Team Lounge"},
 	}
 
-	reward, rewardErr := visibleTeamReward(ctx, store.db, teamID, now)
+	reward, rewardErr := visibleTeamReward(ctx, database.NewHandle(store.db), teamID, now)
 	if rewardErr == nil {
 		hub.Focus = append(hub.Focus, TeamHubFocus{
 			Kind: "reward", ID: reward.ID, Title: reward.Title,

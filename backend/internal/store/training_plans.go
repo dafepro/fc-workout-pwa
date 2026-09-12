@@ -6,6 +6,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 )
 
@@ -186,7 +187,7 @@ var trainingPlanActivityLabels = map[string]string{
 	"distance-run": "Distance run", "recovery-walk-jog": "Recovery walk or jog",
 }
 
-func (staff *StaffStore) insertTrainingPlan(ctx context.Context, tx *sql.Tx, teamID, startsOn, replacesPlanID string, template domain.TrainingPlanTemplate, start time.Time) (TrainingPlan, error) {
+func (staff *StaffStore) insertTrainingPlan(ctx context.Context, tx *database.Transaction, teamID, startsOn, replacesPlanID string, template domain.TrainingPlanTemplate, start time.Time) (TrainingPlan, error) {
 	endsOn := start.AddDate(0, 0, len(template.Days)-1).Format("2006-01-02")
 	var teamExists, overlap int
 	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM teams WHERE id = ?`, teamID).Scan(&teamExists); err != nil {

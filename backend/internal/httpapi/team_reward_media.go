@@ -46,6 +46,7 @@ func (service *service) uploadTeamRewardMedia(w http.ResponseWriter, r *http.Req
 	}
 	repository := service.staffStore.(teamRewardMediaRepository)
 	started := time.Now()
+	defer r.Body.Close()
 	upload, altKind, err := readRewardMediaMultipart(w, r)
 	if err != nil {
 		service.writeRewardMediaUploadError(w, r, err)
@@ -69,21 +70,41 @@ func (service *service) uploadTeamRewardMedia(w http.ResponseWriter, r *http.Req
 		writeError(w, r, http.StatusInternalServerError, "reward_media_store_failed", "The image could not be stored.")
 		return
 	}
-	media, err := repository.CreateTeamRewardMedia(r.Context(), store.CreateTeamRewardMediaInput{
-		TeamID: teamID, CreatedByAccountID: actor.AccountID, StorageKey: storageKey,
-		SHA256: processed.SHA256, MIMEType: processed.MIMEType, Width: processed.Width,
-		Height: processed.Height, ByteSize: processed.ByteSize, AltKind: altKind, Now: service.now().UTC(),
-	})
-	if err != nil {
-		_ = service.rewardMedia.Delete(r.Context(), storageKey)
-		service.writeTeamRewardMediaError(w, r, err)
-		return
-	}
-	service.cleanupUnattachedRewardMedia(r, repository)
-	service.record(r.Context(), actor, "team_reward.media_upload", "team_reward_media", media.ID,
-		map[string]any{"teamId": teamID, "byteSize": media.ByteSize, "width": media.Width, "height": media.Height})
-	slog.Info("reward media stored", "team_id", teamID, "media_id", media.ID, "byte_size", media.ByteSize, "duration_ms", time.Since(started).Milliseconds())
-	writeJSON(w, http.StatusCreated, media)
+	committed := false
+	defer func() {
+		if !committed {
+			ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 10*time.Second)
+			defer cancel()
+			if err := service.rewardMedia.Delete(ctx, storageKey); err != nil {
+				slog.Error("uncommitted reward media cleanup failed", "storage_key", storageKey)
+			}
+		}
+	}()
+	r.Body = http.NoBody
+	service.auditedStaffMutation(func(w http.ResponseWriter, r *http.Request) {
+		actor, ok = service.teamActor(w, r, teamID)
+		if !ok {
+			return
+		}
+		media, err := repository.CreateTeamRewardMedia(r.Context(), store.CreateTeamRewardMediaInput{
+			TeamID: teamID, CreatedByAccountID: actor.AccountID, StorageKey: storageKey,
+			SHA256: processed.SHA256, MIMEType: processed.MIMEType, Width: processed.Width,
+			Height: processed.Height, ByteSize: processed.ByteSize, AltKind: altKind, Now: service.now().UTC(),
+		})
+		if err != nil {
+			service.writeTeamRewardMediaError(w, r, err)
+			return
+		}
+		service.record(r.Context(), actor, "team_reward.media_upload", "team_reward_media", media.ID,
+			map[string]any{"teamId": teamID, "byteSize": media.ByteSize, "width": media.Width, "height": media.Height})
+		mutation := r.Context().Value(adminMutationKey{}).(*adminMutation)
+		mutation.afterCommit = append(mutation.afterCommit, func(ctx context.Context) {
+			committed = true
+			service.cleanupUnattachedRewardMedia(r.WithContext(ctx), repository)
+			slog.Info("reward media stored", "team_id", teamID, "media_id", media.ID, "byte_size", media.ByteSize, "duration_ms", time.Since(started).Milliseconds())
+		})
+		writeJSON(w, http.StatusCreated, media)
+	})(w, r)
 }
 
 func (service *service) getStaffTeamRewardMedia(w http.ResponseWriter, r *http.Request) {

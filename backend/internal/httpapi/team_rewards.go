@@ -98,10 +98,8 @@ func (service *service) publishTeamReward(w http.ResponseWriter, r *http.Request
 	case service.writeStaffStoreError(w, r, err):
 		return
 	}
-	if !reward.Replayed {
-		service.record(r.Context(), actor, "team_reward.publish", "team_reward", reward.ID,
-			map[string]any{"teamId": teamID, "definitionId": reward.DefinitionID, "startsOn": reward.StartsOn, "endsOn": reward.EndsOn})
-	}
+	service.record(r.Context(), actor, "team_reward.publish", "team_reward", reward.ID,
+		map[string]any{"teamId": teamID, "definitionId": reward.DefinitionID, "startsOn": reward.StartsOn, "endsOn": reward.EndsOn, "replayed": reward.Replayed})
 	status := http.StatusCreated
 	if reward.Replayed {
 		status = http.StatusOK

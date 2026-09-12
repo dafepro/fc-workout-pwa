@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -567,6 +568,13 @@ func loadLogicalTables(ctx context.Context, db *sql.DB, extracted extractedLogic
 		}
 		if err := insertLogicalTable(ctx, tx, extracted.directory, table, descriptor); err != nil {
 			return err
+		}
+		// Legacy exports used a closed date only for explicit coach removal, as migration 24 did.
+		if table.Name == "coach_team_assignments" && !slices.Contains(descriptor.Fields, "revoked_at") {
+			if _, err := tx.ExecContext(ctx, `UPDATE coach_team_assignments
+				SET revoked_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE active_to IS NOT NULL`); err != nil {
+				return err
+			}
 		}
 	}
 	return tx.Commit()

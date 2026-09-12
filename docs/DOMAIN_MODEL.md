@@ -16,7 +16,10 @@ executable SQLite schema.
 - **Account** authenticates as player, coach, club administrator, or platform
   administrator. A player account refers to one player.
 - **Coach team assignment** grants current, explicit authority over one team. A
-  shared club is not enough.
+  shared club is not enough. Its inclusive team-local calendar interval records
+  history; a separate revocation timestamp withdraws access on the next request
+  without rewriting that history to yesterday. Logical backups preserve this
+  authority state as well as the dates.
 
 Player authentication uses reissuable hashed QR/PIN credentials and hashed
 opaque sessions. Staff authentication uses password credentials, encrypted TOTP

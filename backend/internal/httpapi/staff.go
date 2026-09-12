@@ -21,6 +21,7 @@ import (
 // route is never the permission (REQ-301).
 
 type StaffRepository interface {
+	WithinTransaction(context.Context, func(context.Context) error) error
 	ListClubs(context.Context) ([]store.ClubSummary, error)
 	CreateClub(context.Context, string) (store.ClubSummary, error)
 	ListTeams(context.Context, domain.Actor) ([]store.TeamSummary, error)
@@ -77,46 +78,53 @@ func WithStaffAccountManager(accounts StaffAccountManager) Option {
 }
 
 func (service *service) registerStaffRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /v1/staff/search", service.staffSearch)
-	mux.HandleFunc("GET /v1/staff/clubs", service.listClubs)
-	mux.HandleFunc("POST /v1/staff/clubs", service.createClub)
-	mux.HandleFunc("GET /v1/staff/teams", service.listStaffTeams)
-	mux.HandleFunc("POST /v1/staff/teams", service.createStaffTeam)
-	mux.HandleFunc("GET /v1/staff/teams/{teamId}", service.getStaffTeam)
-	mux.HandleFunc("PUT /v1/staff/teams/{teamId}", service.updateStaffTeam)
-	mux.HandleFunc("GET /v1/staff/teams/{teamId}/roster", service.getRoster)
-	mux.HandleFunc("POST /v1/staff/teams/{teamId}/roster", service.startMembership)
-	mux.HandleFunc("DELETE /v1/staff/teams/{teamId}/roster/{playerId}", service.endMembership)
-	mux.HandleFunc("POST /v1/staff/teams/{teamId}/players", service.provisionPlayer)
-	mux.HandleFunc("GET /v1/staff/assignment-catalog", service.getAssignmentCatalog)
-	mux.HandleFunc("GET /v1/staff/teams/{teamId}/progress", service.getTeamProgress)
-	mux.HandleFunc("GET /v1/staff/teams/{teamId}/assignments", service.listAssignments)
-	mux.HandleFunc("POST /v1/staff/teams/{teamId}/assignments", service.createAssignment)
-	mux.HandleFunc("PATCH /v1/staff/teams/{teamId}/assignments/{assignmentId}", service.updateAssignment)
-	mux.HandleFunc("DELETE /v1/staff/teams/{teamId}/assignments/{assignmentId}", service.deleteAssignment)
-	mux.HandleFunc("POST /v1/staff/teams/{teamId}/assignments/{assignmentId}/end", service.endAssignment)
-	mux.HandleFunc("GET /v1/staff/training-plan-templates", service.listTrainingPlanTemplates)
-	mux.HandleFunc("GET /v1/staff/teams/{teamId}/training-plans", service.listTrainingPlans)
-	mux.HandleFunc("GET /v1/staff/teams/{teamId}/team-reward", service.getStaffTeamReward)
-	mux.HandleFunc("GET /v1/staff/team-reward-definitions", service.listTeamRewardDefinitions)
-	mux.HandleFunc("POST /v1/staff/teams/{teamId}/team-reward", service.publishTeamReward)
-	mux.HandleFunc("POST /v1/staff/teams/{teamId}/team-reward/{rewardId}/cancel", service.cancelTeamReward)
-	mux.HandleFunc("POST /v1/staff/teams/{teamId}/reward-media", service.uploadTeamRewardMedia)
-	mux.HandleFunc("GET /v1/staff/teams/{teamId}/reward-media/{mediaId}", service.getStaffTeamRewardMedia)
-	if service.cfg.EnableDevAccess || service.cfg.EnableE2EFixtures {
-		mux.HandleFunc("POST /v1/staff/teams/{teamId}/training-plans", service.publishTrainingPlan)
-		mux.HandleFunc("POST /v1/staff/teams/{teamId}/training-plans/{planId}/cancel", service.cancelTrainingPlan)
-		mux.HandleFunc("POST /v1/staff/teams/{teamId}/training-plans/{planId}/reschedule", service.rescheduleTrainingPlan)
+	register := func(pattern string, handler http.HandlerFunc) {
+		if !strings.HasPrefix(pattern, "GET ") {
+			handler = service.auditedStaffMutation(handler)
+		}
+		mux.HandleFunc(pattern, handler)
 	}
-	mux.HandleFunc("GET /v1/staff/players/{playerId}", service.getPlayerDetail)
-	mux.HandleFunc("POST /v1/staff/players/{playerId}/credential", service.repairCredential)
-	mux.HandleFunc("POST /v1/staff/players/{playerId}/deactivate", service.deactivatePlayer)
-	mux.HandleFunc("GET /v1/staff/accounts", service.listStaffAccounts)
-	mux.HandleFunc("POST /v1/staff/accounts", service.createStaffAccount)
-	mux.HandleFunc("POST /v1/staff/accounts/{accountId}/reset", service.resetStaffAccount)
-	mux.HandleFunc("POST /v1/staff/accounts/{accountId}/team-assignments", service.assignCoach)
-	mux.HandleFunc("DELETE /v1/staff/accounts/{accountId}/team-assignments/{teamId}", service.unassignCoach)
-	mux.HandleFunc("GET /v1/staff/audit", service.getAudit)
+	register("GET /v1/staff/search", service.staffSearch)
+	register("GET /v1/staff/clubs", service.listClubs)
+	register("POST /v1/staff/clubs", service.createClub)
+	register("GET /v1/staff/teams", service.listStaffTeams)
+	register("POST /v1/staff/teams", service.createStaffTeam)
+	register("GET /v1/staff/teams/{teamId}", service.getStaffTeam)
+	register("PUT /v1/staff/teams/{teamId}", service.updateStaffTeam)
+	register("GET /v1/staff/teams/{teamId}/roster", service.getRoster)
+	register("POST /v1/staff/teams/{teamId}/roster", service.startMembership)
+	register("DELETE /v1/staff/teams/{teamId}/roster/{playerId}", service.endMembership)
+	register("POST /v1/staff/teams/{teamId}/players", service.provisionPlayer)
+	register("GET /v1/staff/assignment-catalog", service.getAssignmentCatalog)
+	register("GET /v1/staff/teams/{teamId}/progress", service.getTeamProgress)
+	register("GET /v1/staff/teams/{teamId}/assignments", service.listAssignments)
+	register("POST /v1/staff/teams/{teamId}/assignments", service.createAssignment)
+	register("PATCH /v1/staff/teams/{teamId}/assignments/{assignmentId}", service.updateAssignment)
+	register("DELETE /v1/staff/teams/{teamId}/assignments/{assignmentId}", service.deleteAssignment)
+	register("POST /v1/staff/teams/{teamId}/assignments/{assignmentId}/end", service.endAssignment)
+	register("GET /v1/staff/training-plan-templates", service.listTrainingPlanTemplates)
+	register("GET /v1/staff/teams/{teamId}/training-plans", service.listTrainingPlans)
+	register("GET /v1/staff/teams/{teamId}/team-reward", service.getStaffTeamReward)
+	register("GET /v1/staff/team-reward-definitions", service.listTeamRewardDefinitions)
+	register("POST /v1/staff/teams/{teamId}/team-reward", service.publishTeamReward)
+	register("POST /v1/staff/teams/{teamId}/team-reward/{rewardId}/cancel", service.cancelTeamReward)
+	// Media is normalized before its handler enters the audited transaction.
+	mux.HandleFunc("POST /v1/staff/teams/{teamId}/reward-media", service.uploadTeamRewardMedia)
+	register("GET /v1/staff/teams/{teamId}/reward-media/{mediaId}", service.getStaffTeamRewardMedia)
+	if service.cfg.EnableDevAccess || service.cfg.EnableE2EFixtures {
+		register("POST /v1/staff/teams/{teamId}/training-plans", service.publishTrainingPlan)
+		register("POST /v1/staff/teams/{teamId}/training-plans/{planId}/cancel", service.cancelTrainingPlan)
+		register("POST /v1/staff/teams/{teamId}/training-plans/{planId}/reschedule", service.rescheduleTrainingPlan)
+	}
+	register("GET /v1/staff/players/{playerId}", service.getPlayerDetail)
+	register("POST /v1/staff/players/{playerId}/credential", service.repairCredential)
+	register("POST /v1/staff/players/{playerId}/deactivate", service.deactivatePlayer)
+	register("GET /v1/staff/accounts", service.listStaffAccounts)
+	register("POST /v1/staff/accounts", service.createStaffAccount)
+	register("POST /v1/staff/accounts/{accountId}/reset", service.resetStaffAccount)
+	register("POST /v1/staff/accounts/{accountId}/team-assignments", service.assignCoach)
+	register("DELETE /v1/staff/accounts/{accountId}/team-assignments/{teamId}", service.unassignCoach)
+	register("GET /v1/staff/audit", service.getAudit)
 }
 
 // staffActor authenticates and refuses a player token outright, so no player
@@ -186,6 +194,10 @@ func (service *service) playerActor(w http.ResponseWriter, r *http.Request, play
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")
 		return domain.Actor{}, false
+	}
+	// Club/platform recovery authority survives the player's final membership.
+	if actor.Role != domain.RoleCoach && domain.CanManageTeam(actor, "", clubID) {
+		return actor, true
 	}
 	teams, err := service.staffStore.TeamsOfPlayer(r.Context(), playerID)
 	if err != nil {
@@ -597,6 +609,9 @@ func (service *service) repairCredential(w http.ResponseWriter, r *http.Request)
 	if !ok {
 		return
 	}
+	if !service.requireStepUp(w, r) {
+		return
+	}
 	if service.credentials == nil {
 		writeError(w, r, http.StatusServiceUnavailable, "not_ready", "The service is not ready.")
 		return
@@ -752,6 +767,9 @@ func (service *service) createStaffAccount(w http.ResponseWriter, r *http.Reques
 		}
 		return
 	}
+	if !service.requireStepUp(w, r) {
+		return
+	}
 	var request struct {
 		Email  string `json:"email"`
 		ClubID string `json:"clubId"`
@@ -803,6 +821,9 @@ func (service *service) assignCoach(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if !service.requireStepUp(w, r) {
+		return
+	}
 	accountID := r.PathValue("accountId")
 	var request struct {
 		TeamID string `json:"teamId"`
@@ -821,6 +842,9 @@ func (service *service) assignCoach(w http.ResponseWriter, r *http.Request) {
 func (service *service) unassignCoach(w http.ResponseWriter, r *http.Request) {
 	actor, ok := service.operatorActor(w, r)
 	if !ok {
+		return
+	}
+	if !service.requireStepUp(w, r) {
 		return
 	}
 	accountID, teamID := r.PathValue("accountId"), r.PathValue("teamId")
@@ -864,7 +888,15 @@ func (service *service) requireStepUp(w http.ResponseWriter, r *http.Request) bo
 }
 
 func (service *service) record(ctx context.Context, actor domain.Actor, action, targetType, targetID string, detail map[string]any) {
-	_ = service.staffStore.RecordAdminAction(ctx, actor.AccountID, action, targetType, targetID, detail)
+	state, ok := ctx.Value(adminMutationKey{}).(*adminMutation)
+	if !ok {
+		panic("administrative audit requires a mutation transaction")
+	}
+	if err := service.staffStore.RecordAdminAction(ctx, actor.AccountID, action, targetType, targetID, detail); err != nil {
+		state.auditError = err
+		return
+	}
+	state.audits++
 }
 
 func (service *service) writeStaffStoreError(w http.ResponseWriter, r *http.Request, err error) bool {
@@ -882,6 +914,10 @@ func (service *service) writeStaffStoreError(w http.ResponseWriter, r *http.Requ
 }
 
 func (service *service) writeStaffAccountError(w http.ResponseWriter, r *http.Request, err error) {
+	if errors.Is(err, staffauth.ErrAuditUnavailable) {
+		writeError(w, r, http.StatusInternalServerError, "internal_error", "The request could not be completed.")
+		return
+	}
 	if errors.Is(err, staffauth.ErrEmailInUse) {
 		writeError(w, r, http.StatusConflict, "email_in_use", "That email already has a staff account.")
 		return

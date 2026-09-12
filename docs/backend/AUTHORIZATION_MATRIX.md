@@ -23,7 +23,11 @@ and possession of a resource ID do not grant access.
 
 - A player's `playerId` comes from the session, never a trusted body field.
 - Coach authority comes from an active team assignment, not merely a shared
-  club.
+  club. Every staff request reloads unrevoked assignments using each team's
+  local calendar, including the final scheduled day. Explicit removal revokes
+  authority immediately, independently of the inclusive historical dates.
+  Same-day reassignment reopens that day's interval; the admin audit retains
+  the individual access changes. Other team assignments are unaffected.
 - Club-administrator authority requires a nonempty matching club.
 - Platform administrators use the same authorization helpers; they do not
   bypass handler checks.
@@ -36,6 +40,11 @@ and possession of a resource ID do not grant access.
   type.
 - Sensitive staff mutations require recent step-up and emit bounded audit
   records.
+- Player credential repair (unlock/revoke/reissue), player deactivation, staff
+  creation/reset, and coach assignment/removal require full authentication in
+  the last five minutes. Reauthentication never grants a missing role or scope.
+- Platform and own-club player recovery authority survives ended memberships;
+  coach player access still depends on current team membership and assignment.
 - Development/E2E capabilities require build/configuration gates in addition to
   authentication.
 
