@@ -59,7 +59,9 @@ describe("console gateway routing", () => {
     expect(backend.size).toBeGreaterThanOrEqual(20);
     expect([...backend.values()].filter(Boolean).length).toBeGreaterThan(0);
     expect(backend.get("POST v1/staff/accounts")).toBe(true);
-    expect(backend.get("POST v1/staff/teams/{teamId}/reward-media")).toBe(false);
+    expect(backend.get("POST v1/staff/teams/{teamId}/reward-media")).toBe(
+      false,
+    );
   });
 
   it("proxies no path through both gateways", () => {
