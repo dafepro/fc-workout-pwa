@@ -2,7 +2,7 @@
 
 import { consoleCopy, staffCopy } from "./copy";
 
-import { FormEvent, useCallback, useState } from "react";
+import { FormEvent, useCallback, useRef, useState } from "react";
 import { ConsoleError, consoleAuthRequest, messageFor } from "./api";
 import { CodeInput } from "./CodeInput";
 
@@ -44,26 +44,52 @@ export function StepUpForm({
 }) {
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
+  const [challenge, setChallenge] = useState("");
+  const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (submitting.current) return;
+    submitting.current = true;
     setBusy(true);
     setError("");
     try {
-      const { challenge } = await consoleAuthRequest<{ challenge: string }>(
-        "step-up",
-        { method: "POST", body: { password } },
-      );
-      await consoleAuthRequest<void>("step-up", {
-        method: "POST",
-        body: { challenge, code },
-      });
+      if (!challenge) {
+        const outcome = await consoleAuthRequest<{
+          confirmed?: boolean;
+          challenge?: string;
+        }>("step-up", { method: "POST", body: { password } });
+        if (outcome?.confirmed === true && outcome.challenge !== undefined) {
+          throw new Error(consoleCopy.stepUp.failed);
+        }
+        if (outcome?.confirmed !== true) {
+          if (typeof outcome?.challenge !== "string" || !outcome.challenge) {
+            throw new Error(consoleCopy.stepUp.failed);
+          }
+          setChallenge(outcome.challenge);
+          setPassword("");
+          return;
+        }
+      } else {
+        await consoleAuthRequest<void>("step-up", {
+          method: "POST",
+          body: { challenge, code },
+        });
+      }
+      setPassword("");
+      setCode("");
+      setChallenge("");
       await onConfirmed();
     } catch (caught) {
+      // A submitted code consumes its challenge even when verification fails.
+      setChallenge("");
+      setPassword("");
+      setCode("");
       setError(messageFor(caught));
     } finally {
+      submitting.current = false;
       setBusy(false);
     }
   }
@@ -71,19 +97,24 @@ export function StepUpForm({
   return (
     <section className="console-card console-card--step-up">
       <h2 className="console-card__title">{consoleCopy.stepUp.title}</h2>
-      <p>{consoleCopy.stepUp.body}</p>
+      <p>{challenge ? staffCopy.codeIntro : consoleCopy.stepUp.body}</p>
       <form method="post" onSubmit={submit} noValidate className="console-form">
-        <label htmlFor="step-up-password">{staffCopy.passwordLabel}</label>
-        <input
-          id="step-up-password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          required
-        />
-        <CodeInput id="step-up-code" value={code} onChange={setCode} />
+        {challenge ? (
+          <CodeInput id="step-up-code" value={code} onChange={setCode} />
+        ) : (
+          <>
+            <label htmlFor="step-up-password">{staffCopy.passwordLabel}</label>
+            <input
+              id="step-up-password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+            />
+          </>
+        )}
         {error ? (
           <p className="notice notice--error" role="alert">
             {error}
@@ -91,12 +122,21 @@ export function StepUpForm({
         ) : null}
         <div className="console-actions">
           <button className="button button--lime" disabled={busy}>
-            {busy ? staffCopy.working : consoleCopy.stepUp.confirm}
+            {busy
+              ? staffCopy.working
+              : challenge
+                ? consoleCopy.stepUp.confirm
+                : staffCopy.continue}
           </button>
           <button
             type="button"
             className="button button--outline"
-            onClick={onCancel}
+            onClick={() => {
+              setPassword("");
+              setCode("");
+              setChallenge("");
+              onCancel();
+            }}
             disabled={busy}
           >
             {consoleCopy.cancel}

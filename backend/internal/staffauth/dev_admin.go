@@ -4,6 +4,7 @@ package staffauth
 
 import (
 	"context"
+	"crypto/sha256"
 	"crypto/subtle"
 	"database/sql"
 
@@ -11,6 +12,77 @@ import (
 )
 
 const devAdminAccountID = "account-dev-admin"
+
+// ConfirmDevStepUp exists only in dev binaries; the HTTP caller also gates it
+// on EnableDevAccess. Ordinary staff, including dev fixtures, still use MFA.
+func (service *Service) ConfirmDevStepUp(ctx context.Context, token, password string) (bool, error) {
+	actor, err := service.Authenticate(ctx, token)
+	if err != nil {
+		return false, err
+	}
+	if actor.AccountID != devAdminAccountID {
+		return false, nil
+	}
+	eligible, err := service.devPasswordOnly(ctx)
+	if err != nil || !eligible {
+		return false, err
+	}
+	proof, err := service.verifyStepUpPassword(ctx, actor.AccountID, password)
+	if err != nil {
+		return false, err
+	}
+	err = service.confirmDevStepUp(ctx, token, proof)
+	return err == nil, err
+}
+
+func (service *Service) devPasswordOnly(ctx context.Context) (bool, error) {
+	var eligible bool
+	err := service.db.QueryRowContext(ctx, `SELECT EXISTS (
+		SELECT 1 FROM accounts a JOIN auth_password_credentials c ON c.account_id=a.id
+		WHERE a.id=? AND a.status='active' AND a.role='platform_admin'
+		AND a.club_id IS NULL AND a.player_id IS NULL AND c.revoked_at IS NULL AND c.must_change=0
+		AND NOT EXISTS (SELECT 1 FROM auth_totp_enrollments e WHERE e.account_id=a.id AND e.revoked_at IS NULL))`, devAdminAccountID).Scan(&eligible)
+	return eligible, err
+}
+
+func (service *Service) confirmDevStepUp(ctx context.Context, token string, proof passwordProof) error {
+	// Hash outside the writer transaction, then bind confirmation to the exact
+	// still-current credential so a concurrent reset cannot authorize old proof.
+	return service.db.WithinTransaction(ctx, func(ctx context.Context) error {
+		actor, err := service.Authenticate(ctx, token)
+		if err != nil {
+			return err
+		}
+		if actor.AccountID != devAdminAccountID {
+			return ErrInvalidStaffLogin
+		}
+		eligible, err := service.devPasswordOnly(ctx)
+		if err != nil {
+			return err
+		}
+		if !eligible {
+			return ErrInvalidStaffLogin
+		}
+		now := service.now().UTC()
+		hash := sha256.Sum256([]byte(token))
+		result, err := service.db.ExecContext(ctx, `UPDATE staff_sessions SET authenticated_at=?
+			WHERE token_hash=? AND account_id=? AND revoked_at IS NULL
+			AND EXISTS (SELECT 1 FROM auth_password_credentials WHERE id=? AND account_id=?
+			AND revoked_at IS NULL AND must_change=0 AND verifier_salt=? AND verifier_hash=?)`,
+			stamp(now), hash[:], devAdminAccountID, proof.id, devAdminAccountID, proof.salt, proof.hash)
+		if err != nil {
+			return err
+		}
+		rows, err := result.RowsAffected()
+		if err != nil {
+			return err
+		}
+		if rows != 1 {
+			return ErrInvalidStaffLogin
+		}
+		return recordAudit(ctx, service.db, devAdminAccountID, "staff_step_up_succeeded", "dev_password_only", now)
+	})
+}
 
 func (service *Service) ResetDevAdmin(ctx context.Context, email, password string) error {
 	if !service.Configured() {

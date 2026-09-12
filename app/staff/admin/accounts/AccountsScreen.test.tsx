@@ -15,7 +15,7 @@ vi.mock("next/link", () => ({
 
 type Call = { url: string; method: string; body: unknown };
 
-function staffBackend() {
+function staffBackend(passwordOnly = false) {
   const actions: Call[] = [];
   let confirmed = false;
   vi.stubGlobal(
@@ -24,6 +24,10 @@ function staffBackend() {
       const method = init.method ?? "GET";
       const body = init.body ? JSON.parse(String(init.body)) : undefined;
       if (url === "/staff/api/step-up") {
+        if (passwordOnly) {
+          confirmed = true;
+          return Response.json({ confirmed: true });
+        }
         if (body.challenge) {
           confirmed = true;
           return new Response(null, { status: 204 });
@@ -86,7 +90,8 @@ async function confirmIdentity() {
   fireEvent.change(screen.getByLabelText("Password"), {
     target: { value: "local-test-password" },
   });
-  fireEvent.change(screen.getByLabelText("Six-digit code"), {
+  fireEvent.submit(screen.getByRole("button", { name: "Continue" }));
+  fireEvent.change(await screen.findByLabelText("Six-digit code"), {
     target: { value: "123456" },
   });
   fireEvent.submit(screen.getByRole("button", { name: "Confirm" }));
@@ -95,6 +100,22 @@ async function confirmIdentity() {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("staff account step-up intent", () => {
+  it("replays the original account creation after server-confirmed dev password", async () => {
+    const actions = staffBackend(true);
+    render(<AccountsScreen />);
+    fireEvent.change(await screen.findByLabelText("Email address"), {
+      target: { value: "new@example.test" },
+    });
+    fireEvent.submit(screen.getByRole("button", { name: "Create account" }));
+    fireEvent.change(await screen.findByLabelText("Password"), {
+      target: { value: "local-test-password" },
+    });
+    fireEvent.submit(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByRole("dialog");
+    expect(actions).toHaveLength(2);
+    expect(actions[1]).toEqual(actions[0]);
+    expect(screen.queryByLabelText("Six-digit code")).toBeNull();
+  });
   it("reauthenticates before creating staff and replays the original email, club, and role", async () => {
     const actions = staffBackend();
     render(<AccountsScreen />);

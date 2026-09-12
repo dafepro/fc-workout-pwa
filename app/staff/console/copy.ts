@@ -250,7 +250,7 @@ export const consoleCopy = {
   },
   stepUp: {
     title: "Confirm it is you",
-    body: "This action needs your password and a fresh authenticator code.",
+    body: "Confirm your password to continue. If your account uses an authenticator, we will ask for its code next.",
     confirm: "Confirm",
     failed: "That did not work. Try again.",
   },
