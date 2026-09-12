@@ -29,9 +29,14 @@ domain during release.
   downloads and applies only that exact reviewed plan artifact and is gated by
   the protected `production` GitHub Environment reviewer.
 - The Droplet, Reserved IP, and firewall have `prevent_destroy` protection.
-- SSH trust is pinned automatically. `infra.yml`'s `apply` action scans the new
-  host's ED25519 key seconds after it boots, commits it to `infra/known_hosts`,
-  and releases then run with `StrictHostKeyChecking=yes` against that file. The
+- `main` is protected: changes require a pull request, resolved conversations,
+  and the up-to-date `Static checks, tests, and build` check from GitHub Actions.
+  These rules apply to administrators; force pushes and branch deletion are
+  blocked. No mandatory approving-review count is configured.
+- `infra.yml`'s `apply` action scans the new host's ED25519 key seconds after it
+  boots and proposes `infra/known_hosts` on a unique review branch. An operator
+  must open and merge its PR after required CI before releasing to that host.
+  Releases retain `StrictHostKeyChecking=yes` against the merged pin. The
   anchor is the DigitalOcean API, which this workflow already trusts to choose
   the address and provision the image; copying a fingerprint out of the
   DigitalOcean console was never a stronger check against DigitalOcean itself.
@@ -152,6 +157,16 @@ plan run's ID. The protected `production` environment reviewer gate applies
 here exactly as it does for application releases. `apply` downloads and
 applies only that exact plan artifact; it never re-plans.
 
+If the host key changed, the apply summary links to a comparison for
+`codex/host-key-<run-id>-<attempt>`. Inspect the fingerprint and pin diff, open
+the linked pull request as an operator, wait for required CI, and merge before
+releasing. The branch contains only `infra/known_hosts`; the workflow never
+pushes to `main`, opens a PR, or bypasses branch protection. GitHub Actions is
+not allowed to create or approve PRs here. Opening the PR as an operator starts
+the required PR checks even though the branch was pushed by `GITHUB_TOKEN`.
+An unchanged pin creates no branch. A failed handoff stops the workflow; a
+rerun uses its new run-attempt suffix rather than overwriting a prior branch.
+
 If GitHub Actions itself is impaired, `infra/digitalocean/provision.sh` and
 `infra/digitalocean/adopt-host.sh` remain a documented local fallback. Copy
 `infra/digitalocean/terraform.tfvars.example` to the ignored
@@ -189,8 +204,8 @@ state):
 The script reads the Reserved IP from Terraform state, retrieves the public
 host key, refuses a fingerprint mismatch, writes the verified line to the
 tracked `infra/known_hosts`, and runs `gh variable set DEPLOY_HOST` for the
-`production` environment. Review `git status`, then commit and push
-`infra/known_hosts`. Never replace it with an unverified key copied from the
+`production` environment. Review `git status`, then commit `infra/known_hosts`
+on a feature branch and merge its PR after required CI. Never replace it with an unverified key copied from the
 network.
 
 ## 4. Perform the first release
@@ -419,7 +434,7 @@ service an operator may be trying to repair.
 
 ## Routine infrastructure changes
 
-Edit OpenTofu, commit and push it, trigger `infra.yml` with `action: plan`,
+Edit OpenTofu on a feature branch and merge its PR, then trigger `infra.yml` with `action: plan`,
 review it, then trigger `apply` with that plan's run ID. Never hand-edit
 Terraform state or use raw `tofu apply`. A deliberate teardown requires a
 separate reviewed change removing `prevent_destroy`; verify an off-host backup

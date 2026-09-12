@@ -300,6 +300,11 @@ async function secretContract() {
     ),
     "The production infrastructure apply must run only from the main workflow ref.",
   );
+  requireCondition(
+    infraWorkflow.includes("node scripts/pin-host-key-branch.mjs") &&
+      !/git push|pull-requests: write|gh pr create/.test(infraWorkflow),
+    "Infrastructure host-key changes must use a feature-branch PR handoff without bypassing protected main.",
+  );
 
   const gitignore = await text(".gitignore");
   containsEvery(

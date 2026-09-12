@@ -121,8 +121,7 @@ jobs:
     timeout-minutes: 15
     environment: production
     permissions:
-      # contents: write so the pinned host key can be committed back; a Droplet
-      # replacement changes the host key and releases fail until it is pinned.
+      # Pin updates go to a review branch, never directly to protected main.
       contents: write
       actions: read
     steps:
@@ -194,18 +193,8 @@ jobs:
           install -m 0644 "$scan" "$GITHUB_WORKSPACE/infra/known_hosts"
           ssh-keygen -E sha256 -lf "$GITHUB_WORKSPACE/infra/known_hosts"
 
-      - name: Commit the pinned host key
-        run: |
-          if git diff --quiet -- infra/known_hosts; then
-            echo "infra/known_hosts already matches the live host." >>"$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add infra/known_hosts
-          git commit -m "chore: pin Droplet host key for ${DEPLOY_HOST_ACTUAL}"
-          git push origin "HEAD:${{ github.ref_name }}"
-          echo "Pinned and committed the host key for ${DEPLOY_HOST_ACTUAL}." >>"$GITHUB_STEP_SUMMARY"
+      - name: Prepare the host-key pull request handoff
+        run: node scripts/pin-host-key-branch.mjs
 
       # GITHUB_TOKEN cannot write Environment variables (that needs repository
       # admin), so this reports drift rather than fixing it. The Reserved IP is
