@@ -202,23 +202,33 @@ func (service *Service) BeginStepUp(ctx context.Context, sessionToken, password 
 	if err != nil {
 		return Challenge{}, err
 	}
+	if _, err = service.verifyStepUpPassword(ctx, actor.AccountID, password); err != nil {
+		return Challenge{}, err
+	}
+	return service.issueChallenge(ctx, actor.AccountID, "step_up", service.now().UTC())
+}
+
+type passwordProof struct {
+	id         string
+	salt, hash []byte
+}
+
+func (service *Service) verifyStepUpPassword(ctx context.Context, accountID, password string) (passwordProof, error) {
 	release, acquired := service.slot.Acquire()
 	if !acquired {
-		return Challenge{}, ErrStaffBusy
+		return passwordProof{}, ErrStaffBusy
 	}
 	defer release()
-
-	now := service.now().UTC()
-	var salt, expected []byte
-	if err = service.db.QueryRowContext(ctx, `SELECT verifier_salt, verifier_hash FROM auth_password_credentials
-		WHERE account_id = ? AND revoked_at IS NULL`, actor.AccountID).Scan(&salt, &expected); err != nil {
-		return Challenge{}, ErrInvalidStaffLogin
+	var proof passwordProof
+	if err := service.db.QueryRowContext(ctx, `SELECT id, verifier_salt, verifier_hash FROM auth_password_credentials
+		WHERE account_id = ? AND revoked_at IS NULL`, accountID).Scan(&proof.id, &proof.salt, &proof.hash); err != nil {
+		return passwordProof{}, ErrInvalidStaffLogin
 	}
-	if subtle.ConstantTimeCompare(derivePassword(password, salt), expected) != 1 {
-		service.audit(ctx, actor.AccountID, "staff_step_up_failed", "password", now)
-		return Challenge{}, ErrInvalidStaffLogin
+	if subtle.ConstantTimeCompare(derivePassword(password, proof.salt), proof.hash) != 1 {
+		service.audit(ctx, accountID, "staff_step_up_failed", "password", service.now().UTC())
+		return passwordProof{}, ErrInvalidStaffLogin
 	}
-	return service.issueChallenge(ctx, actor.AccountID, "step_up", now)
+	return proof, nil
 }
 
 func (service *Service) CompleteStepUp(ctx context.Context, sessionToken, challengeToken, code string) error {

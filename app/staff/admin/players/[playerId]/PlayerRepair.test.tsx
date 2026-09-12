@@ -105,7 +105,8 @@ describe("player repair", () => {
       fireEvent.change(screen.getByLabelText("Password"), {
         target: { value: "local-test-password" },
       });
-      fireEvent.change(screen.getByLabelText("Six-digit code"), {
+      fireEvent.submit(screen.getByRole("button", { name: "Continue" }));
+      fireEvent.change(await screen.findByLabelText("Six-digit code"), {
         target: { value: "123456" },
       });
       fireEvent.submit(screen.getByRole("button", { name: "Confirm" }));
@@ -199,7 +200,8 @@ describe("player repair", () => {
     fireEvent.change(screen.getByLabelText("Password"), {
       target: { value: "a-long-enough-password" },
     });
-    fireEvent.change(screen.getByLabelText("Six-digit code"), {
+    fireEvent.submit(screen.getByRole("button", { name: "Continue" }));
+    fireEvent.change(await screen.findByLabelText("Six-digit code"), {
       target: { value: "654321" },
     });
     fireEvent.submit(screen.getByRole("button", { name: "Confirm" }));

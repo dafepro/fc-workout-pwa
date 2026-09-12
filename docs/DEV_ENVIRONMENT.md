@@ -46,6 +46,20 @@ method are behind the Go `dev` build tag. Configuration also requires
 `APP_ENV=dev` and `ENABLE_DEV_ACCESS=true`, so a normal API binary rejects the
 dev environment variables.
 
+After the five-minute recent-authentication window expires, the seeded
+`account-dev-admin` can confirm its current password and retry the held staff
+action without signing out. The server permits this only in a dev-tagged API
+with dev access enabled, for that exact active platform administrator with no
+club/player identity, a nontemporary current credential, and no pending or
+confirmed authenticator enrollment. It rechecks the session and credential
+after password hashing, then commits freshness and its audit record together.
+Other staff accounts, including Docker's enrolled fixtures, still require MFA.
+
+The shared confirmation form asks for a password first and displays the code
+step only when the server returns a challenge. An incorrect or expired code
+restarts password confirmation because challenges are single-use. The original
+action stays held until confirmation succeeds; cancelling does not submit it.
+
 Create resets and seeds the fixtures. Update deploys a new revision without
 erasing tester changes. Reset restores the fixture data and invalidates all
 player and staff sessions. Destroy deletes the Worker, Droplet, firewall,

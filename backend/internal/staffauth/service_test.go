@@ -398,6 +398,9 @@ func TestStepUpExpiresAfterItsWindow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err = service.RequireRecentAuthentication(ctx, session.Token); !errors.Is(err, ErrStepUpRequired) {
+		t.Fatalf("password alone bypassed second factor: %v", err)
+	}
 	if err = service.CompleteStepUp(ctx, session.Token, challenge.Token, totpCode(secret, totpStep(now))); err != nil {
 		t.Fatal(err)
 	}

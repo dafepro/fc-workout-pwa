@@ -27,6 +27,10 @@ type StaffSessionManager interface {
 	Configured() bool
 }
 
+type developmentStaffStepUp interface {
+	ConfirmDevStepUp(ctx context.Context, sessionToken, password string) (bool, error)
+}
+
 func WithStaffSessionManager(staff StaffSessionManager) Option {
 	return func(service *service) { service.staff = staff }
 }
@@ -78,8 +82,7 @@ func (service *service) completeStaffSession(w http.ResponseWriter, r *http.Requ
 	writeJSON(w, http.StatusCreated, session)
 }
 
-// One endpoint, two steps: a body with a password opens a step-up challenge, a
-// body with a code closes it. Both need the session that is being raised.
+// The server determines whether password confirmation also needs a code.
 func (service *service) staffStepUp(w http.ResponseWriter, r *http.Request) {
 	if !service.staffReady(w, r) {
 		return
@@ -94,11 +97,22 @@ func (service *service) staffStepUp(w http.ResponseWriter, r *http.Request) {
 		Challenge string `json:"challenge"`
 		Code      string `json:"code"`
 	}
-	if err := decodeStrictJSON(w, r, &request); err != nil {
+	if err := decodeStrictJSON(w, r, &request); err != nil || len(request.Password) > 256 || len(request.Challenge) > 128 || len(request.Code) > 64 || (request.Password != "" && (request.Challenge != "" || request.Code != "")) {
 		writeError(w, r, http.StatusBadRequest, "invalid_request", "The request is invalid.")
 		return
 	}
-	if request.Code == "" {
+	if request.Challenge == "" && request.Code == "" {
+		if dev, ok := service.staff.(developmentStaffStepUp); ok && service.cfg.EnableDevAccess {
+			confirmed, err := dev.ConfirmDevStepUp(r.Context(), token, request.Password)
+			if err != nil {
+				service.writeStaffAuthError(w, r, err)
+				return
+			}
+			if confirmed {
+				writeJSON(w, http.StatusOK, map[string]any{"confirmed": true})
+				return
+			}
+		}
 		challenge, err := service.staff.BeginStepUp(r.Context(), token, request.Password)
 		if err != nil {
 			service.writeStaffAuthError(w, r, err)
