@@ -27,13 +27,13 @@
     "@canvas-physics/client": "file:vendor/canvas/canvas-physics-client-0.6.2.tgz",
     "@canvas-physics/core": "file:vendor/canvas/canvas-physics-core-0.6.2.tgz",
     "@canvas-physics/protocol": "file:vendor/canvas/canvas-physics-protocol-0.6.2.tgz",
-    "next": "16.2.6",
-    "react": "19.2.6",
-    "react-dom": "19.2.6"
+    "next": "16.3.3",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.37.1",
-    "@cloudflare/workers-types": "^5.20260804.1",
+    "@cloudflare/workers-types": "5.20260804.1",
     "@playwright/test": "1.62.1",
     "@tailwindcss/postcss": "4.2.1",
     "@testing-library/jest-dom": "6.6.3",
@@ -44,15 +44,15 @@
     "@vitejs/plugin-react": "6.0.2",
     "@vitejs/plugin-rsc": "0.5.26",
     "eslint": "9.39.4",
-    "eslint-config-next": "16.2.6",
+    "eslint-config-next": "16.3.3",
     "jsdom": "26.0.0",
     "prettier": "3.5.3",
-    "react-server-dom-webpack": "19.2.6",
+    "react-server-dom-webpack": "19.2.8",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3",
     "vinext": "0.0.50",
-    "vite": "8.0.13",
-    "vitest": "3.0.9",
+    "vite": "8.0.16",
+    "vitest": "4.1.11",
     "wrangler": "4.92.0"
   },
   "type": "module"
