@@ -649,20 +649,28 @@ func (service *Service) recordPasswordFailure(ctx context.Context, credentialID,
 }
 
 func (service *Service) assignedTeams(ctx context.Context, accountID string, now time.Time) ([]string, error) {
-	today := now.Format("2006-01-02")
-	rows, err := service.db.QueryContext(ctx, `SELECT team_id FROM coach_team_assignments
-		WHERE account_id = ? AND active_from <= ? AND (active_to IS NULL OR active_to >= ?)`, accountID, today, today)
+	rows, err := service.db.QueryContext(ctx, `SELECT a.team_id, a.active_from, a.active_to, t.time_zone
+		FROM coach_team_assignments a JOIN teams t ON t.id = a.team_id
+		WHERE a.account_id = ? AND a.revoked_at IS NULL ORDER BY a.team_id, a.active_from`, accountID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	var teams []string
 	for rows.Next() {
-		var id string
-		if err = rows.Scan(&id); err != nil {
+		var id, from, zone string
+		var to sql.NullString
+		if err = rows.Scan(&id, &from, &to, &zone); err != nil {
 			return nil, err
 		}
-		teams = append(teams, id)
+		location, err := time.LoadLocation(zone)
+		if err != nil {
+			return nil, err
+		}
+		today := now.In(location).Format("2006-01-02")
+		if from <= today && (!to.Valid || to.String >= today) && (len(teams) == 0 || teams[len(teams)-1] != id) {
+			teams = append(teams, id)
+		}
 	}
 	return teams, rows.Err()
 }

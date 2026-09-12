@@ -906,17 +906,27 @@ func (staff *StaffStore) AssignCoach(ctx context.Context, accountID, teamID stri
 	if role != string(domain.RoleCoach) && role != string(domain.RoleClubAdmin) {
 		return ErrStaffInvalid
 	}
+	tx, err := staff.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
 	var open int
-	if err = staff.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM coach_team_assignments
-		WHERE account_id = ? AND team_id = ? AND (active_to IS NULL OR active_to >= ?)`, accountID, teamID, activeFrom).Scan(&open); err != nil {
+	if err = tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM coach_team_assignments
+		WHERE account_id = ? AND team_id = ? AND revoked_at IS NULL
+		AND (active_to IS NULL OR active_to >= ?)`, accountID, teamID, activeFrom).Scan(&open); err != nil {
 		return err
 	}
 	if open > 0 {
 		return ErrStaffInvalid
 	}
-	_, err = staff.db.ExecContext(ctx, `INSERT INTO coach_team_assignments (team_id, account_id, active_from) VALUES (?, ?, ?)`,
-		teamID, accountID, activeFrom)
-	return err
+	// Same-day reassignment reopens that calendar interval; admin audit retains each access change.
+	if _, err = tx.ExecContext(ctx, `INSERT INTO coach_team_assignments (team_id, account_id, active_from) VALUES (?, ?, ?)
+		ON CONFLICT(team_id, account_id, active_from) DO UPDATE SET active_to = NULL, revoked_at = NULL`,
+		teamID, accountID, activeFrom); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // Ending the assignment is what removes the team from that coach's console,
@@ -927,8 +937,10 @@ func (staff *StaffStore) UnassignCoach(ctx context.Context, accountID, teamID st
 	if err != nil {
 		return err
 	}
-	result, err := staff.db.ExecContext(ctx, `UPDATE coach_team_assignments SET active_to = ?
-		WHERE account_id = ? AND team_id = ? AND active_to IS NULL`, activeTo, accountID, teamID)
+	result, err := staff.db.ExecContext(ctx, `UPDATE coach_team_assignments
+		SET revoked_at = ?, active_to = MAX(active_from, ?)
+		WHERE account_id = ? AND team_id = ? AND revoked_at IS NULL
+		AND (active_to IS NULL OR active_to >= ?)`, stampNow(staff.now), activeTo, accountID, teamID, activeTo)
 	if err != nil {
 		return err
 	}

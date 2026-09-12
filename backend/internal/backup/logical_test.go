@@ -505,8 +505,9 @@ func fullyPopulatedDatabase(t *testing.T, ctx context.Context) string {
 		)`,
 		`INSERT INTO accounts (id, club_id, player_id, role, status, created_at)
 		 VALUES ('account-coach', 'club-zoomigo', NULL, 'coach', 'active', '2026-01-02T00:00:00Z')`,
-		`INSERT INTO coach_team_assignments (team_id, account_id, active_from, active_to)
-		 VALUES ('team-hill-striders', 'account-coach', '2026-01-02', NULL)`,
+		`INSERT INTO coach_team_assignments (team_id, account_id, active_from, active_to, revoked_at)
+		 VALUES ('team-hill-striders', 'account-coach', '2026-01-02', '2026-08-03', '2026-08-03T12:00:00Z'),
+		 ('team-hill-striders', 'account-coach', '2026-08-04', '2026-12-31', NULL)`,
 		`UPDATE team_memberships SET active_to = '2026-06-30' WHERE player_id = 'player-zoe'`,
 		`UPDATE training_entries SET idempotency_key = 'entry-key-1', assignment_id = 'assignment-hill-sprints'
 		 WHERE id = 'entry-mason-recent'`,

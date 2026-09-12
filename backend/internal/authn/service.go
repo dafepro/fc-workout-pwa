@@ -502,27 +502,10 @@ func (service *Service) lookupSession(ctx context.Context, token string) (sessio
 	}
 	row.lastSeenAt, _ = time.Parse(time.RFC3339Nano, seen)
 	actor.Role = domain.Role(role)
-	if player.Valid {
-		actor.PlayerID = player.String
+	if actor.Role != domain.RolePlayer || !player.Valid {
+		return row, domain.Actor{}, ErrUnauthenticated
 	}
-	if actor.Role == domain.RoleCoach {
-		today := service.now().UTC().Format("2006-01-02")
-		rows, qerr := service.db.QueryContext(ctx, `SELECT team_id FROM coach_team_assignments WHERE account_id = ? AND active_from <= ? AND (active_to IS NULL OR active_to >= ?)`, actor.AccountID, today, today)
-		if qerr != nil {
-			return row, actor, qerr
-		}
-		defer rows.Close()
-		for rows.Next() {
-			var id string
-			if err := rows.Scan(&id); err != nil {
-				return row, actor, err
-			}
-			actor.AssignedTeamIDs = append(actor.AssignedTeamIDs, id)
-		}
-		if err := rows.Err(); err != nil {
-			return row, actor, err
-		}
-	}
+	actor.PlayerID = player.String
 	return row, actor, nil
 }
 
