@@ -6,7 +6,25 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 )
+
+func TestPlayerSessionCannotGainStaffAuthorityAfterRoleChange(t *testing.T) {
+	for _, role := range []domain.Role{domain.RoleCoach, domain.RoleClubAdmin, domain.RolePlatformAdmin} {
+		t.Run(string(role), func(t *testing.T) {
+			service, db := sessionService(t)
+			token := seedPlayerSession(t, db, `{}`)
+			if _, err := db.Exec(`UPDATE accounts SET role = ?, player_id = NULL,
+			 club_id = CASE WHEN ? = 'platform_admin' THEN NULL ELSE club_id END WHERE id = 'account-one'`, role, role); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := service.Authenticate(t.Context(), token); !errors.Is(err, ErrUnauthenticated) {
+				t.Fatalf("player token authenticated a %s: %v", role, err)
+			}
+		})
+	}
+}
 
 func TestResetE2ECredentialsIssuesEveryFixture(t *testing.T) {
 	service, db := sessionService(t)

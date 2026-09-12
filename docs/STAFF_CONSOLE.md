@@ -16,7 +16,36 @@ and it does not rely on the retired Cloudflare Access gate.
 - Operator pages guard in the server-rendered UI and the backend authorizes every
   request. Hiding a control is never the security boundary.
 - Authentication, account changes, credential repair, and administrative writes
-  produce bounded audit events.
+  produce bounded audit events. Staff administrative HTTP mutations and their
+  administrative audit records commit in one database transaction. Failed audit
+  inserts or commits roll back the mutation and withhold success responses and
+  one-time credentials. A successful idempotent reward-publish replay records
+  a replay-marked administrative event without duplicating the reward.
+
+Administrative request bodies are bounded and read before a transaction begins;
+authorization is checked again inside the transaction. Reward-image decoding
+and provisional file creation also happen before the transaction. A failed
+metadata/audit commit removes provisional files; expired-file cleanup runs only
+after a successful commit. The caller's authenticated-session idle deadline may
+refresh even when its administrative request is rejected.
+
+This atomicity contract covers the staff console's administrative HTTP writes,
+including player credentials, rosters, staff accounts and access, assignments,
+plans, rewards, and reward media. General staff sign-in/setup/logout audit events
+and CLI management audit events do not yet share that contract; do not treat
+this as a guarantee for those separate paths.
+
+The API requires password and second-factor authentication within the last five
+minutes for player credential unlock/revoke/reissue, player deactivation, staff
+account creation/reset, and coach assignment/removal. Role and resource scope
+are checked first. A stale session receives `401 step_up_required` before any
+protected mutation or credential reveal. The console holds the original action
+and its submitted values while the operator confirms their identity; cancelling
+does not perform the action or discard the filled staff-creation form.
+
+Reading a player and repairing their credential does not require a current team
+membership for a platform operator or the player's own-club administrator.
+Coaches still require a current assignment to one of the player's current teams.
 
 ## Roles
 

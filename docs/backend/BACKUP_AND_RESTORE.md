@@ -152,6 +152,15 @@ The exported field set is owned by `backend/internal/backup/logical_schema.go`, 
 
 Adding a nullable column therefore needs only a new `nullable(...)` field. Adding a `NOT NULL` column needs a field with an explicit default. Neither changes the export format version.
 
+Authorization-state defaults also require a security review. Coach assignments
+now export `revoked_at` explicitly. Migration 24 and imports from older exports
+mark every previously closed coach interval revoked: the old application used
+`active_to` only for explicit removal. Their original inclusive dates remain
+unchanged, while the backfilled timestamp records when revocation enforcement
+was applied, not a reconstructed historical removal time. Open legacy
+assignments remain open. Current exports preserve the exact revocation state,
+including unrevoked assignments with a scheduled inclusive end date.
+
 ### Export, verify, and import
 
 ```text

@@ -106,7 +106,7 @@ func (staff *StaffStore) TeamRewardMedia(ctx context.Context, teamID, mediaID st
 	return teamRewardMedia(ctx, staff.db, teamID, mediaID)
 }
 
-func teamRewardMedia(ctx context.Context, db *sql.DB, teamID, mediaID string) (TeamRewardMedia, error) {
+func teamRewardMedia(ctx context.Context, db teamRewardQueryer, teamID, mediaID string) (TeamRewardMedia, error) {
 	media, err := scanTeamRewardMedia(db.QueryRowContext(ctx, `SELECT id, team_id, storage_key, sha256,
 		mime_type, width, height, byte_size, alt_kind, created_by_account_id, created_at, deleted_at
 		FROM team_reward_media WHERE id = ? AND team_id = ? AND deleted_at IS NULL`, mediaID, teamID))

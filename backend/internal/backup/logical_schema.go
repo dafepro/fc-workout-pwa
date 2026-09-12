@@ -235,6 +235,7 @@ var logicalTables = []logicalTable{
 			textField("account_id"),
 			textField("active_from"),
 			nullable(textField("active_to")),
+			nullable(textField("revoked_at")),
 		},
 	},
 	{

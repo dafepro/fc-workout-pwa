@@ -15,6 +15,7 @@ import (
 
 	"golang.org/x/crypto/argon2"
 
+	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 )
 
@@ -62,7 +63,7 @@ func (slot *Slot) Acquire() (release func(), acquired bool) {
 }
 
 type Service struct {
-	db         *sql.DB
+	db         *database.Handle
 	now        func() time.Time
 	loginSlots *Slot
 }
@@ -97,7 +98,7 @@ type Credential struct {
 func NewService(db *sql.DB) *Service { return NewServiceWithSlot(db, NewSlot()) }
 
 func NewServiceWithSlot(db *sql.DB, slot *Slot) *Service {
-	return &Service{db: db, now: time.Now, loginSlots: slot}
+	return &Service{db: database.NewHandle(db), now: time.Now, loginSlots: slot}
 }
 
 func (service *Service) Authenticate(ctx context.Context, bearerToken string) (domain.Actor, error) {
@@ -502,27 +503,10 @@ func (service *Service) lookupSession(ctx context.Context, token string) (sessio
 	}
 	row.lastSeenAt, _ = time.Parse(time.RFC3339Nano, seen)
 	actor.Role = domain.Role(role)
-	if player.Valid {
-		actor.PlayerID = player.String
+	if actor.Role != domain.RolePlayer || !player.Valid {
+		return row, domain.Actor{}, ErrUnauthenticated
 	}
-	if actor.Role == domain.RoleCoach {
-		today := service.now().UTC().Format("2006-01-02")
-		rows, qerr := service.db.QueryContext(ctx, `SELECT team_id FROM coach_team_assignments WHERE account_id = ? AND active_from <= ? AND (active_to IS NULL OR active_to >= ?)`, actor.AccountID, today, today)
-		if qerr != nil {
-			return row, actor, qerr
-		}
-		defer rows.Close()
-		for rows.Next() {
-			var id string
-			if err := rows.Scan(&id); err != nil {
-				return row, actor, err
-			}
-			actor.AssignedTeamIDs = append(actor.AssignedTeamIDs, id)
-		}
-		if err := rows.Err(); err != nil {
-			return row, actor, err
-		}
-	}
+	actor.PlayerID = player.String
 	return row, actor, nil
 }
 

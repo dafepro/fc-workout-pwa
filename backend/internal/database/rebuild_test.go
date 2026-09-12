@@ -64,6 +64,8 @@ func TestMigrateRebuildsAPopulatedParentTable(t *testing.T) {
 		 VALUES ('account-coach', 'club-1', NULL, 'coach', 'active', '2026-01-01T00:00:00Z')`,
 		// Every child of accounts must have a row, or the rebuild is untested.
 		`INSERT INTO coach_team_assignments (team_id, account_id, active_from) VALUES ('team-1', 'account-coach', '2026-01-01')`,
+		`INSERT INTO coach_team_assignments (team_id, account_id, active_from, active_to)
+		 VALUES ('team-1', 'account-coach', '2025-01-01', '2025-12-31')`,
 		`INSERT INTO auth_credentials (id, account_id, selector_hash, verifier_salt, verifier_hash, issued_at)
 		 VALUES ('credential-1', 'account-1', X'01', X'02', X'03', '2026-01-01T00:00:00Z')`,
 		`INSERT INTO auth_sessions (id, account_id, credential_id, token_hash, created_at, expires_at, last_seen_at)
@@ -79,11 +81,21 @@ func TestMigrateRebuildsAPopulatedParentTable(t *testing.T) {
 	if err = Migrate(ctx, db); err != nil {
 		t.Fatalf("migrate a populated database: %v", err)
 	}
+	var openCoach, revokedCoach int
+	if err = db.QueryRowContext(ctx, `SELECT
+		SUM(active_from = '2026-01-01' AND active_to IS NULL AND revoked_at IS NULL),
+		SUM(active_from = '2025-01-01' AND active_to = '2025-12-31' AND revoked_at IS NOT NULL)
+		FROM coach_team_assignments`).Scan(&openCoach, &revokedCoach); err != nil {
+		t.Fatal(err)
+	}
+	if openCoach != 1 || revokedCoach != 1 {
+		t.Fatal("coach migration must keep open authority and preserve closed history without restoring access")
+	}
 
 	// The rows survived the rebuild, and still point at the live table.
 	for table, want := range map[string]int{
 		"accounts": 2, "auth_credentials": 1, "auth_sessions": 1,
-		"auth_audit_events": 1, "coach_team_assignments": 1,
+		"auth_audit_events": 1, "coach_team_assignments": 2,
 	} {
 		var count int
 		if err = db.QueryRowContext(ctx, "SELECT COUNT(*) FROM "+table).Scan(&count); err != nil {

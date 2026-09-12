@@ -72,6 +72,7 @@ export function AccountsScreen() {
 
       <CreateAccount
         clubs={clubs.data?.clubs ?? []}
+        act={act}
         onCreated={(created) => {
           setInvitation(created);
           accounts.reload();
@@ -135,31 +136,31 @@ function roleLabel(role: string): string {
 
 function CreateAccount({
   clubs,
+  act,
   onCreated,
 }: {
   clubs: ClubSummary[];
+  act: (action: () => Promise<void>) => Promise<void>;
   onCreated: (invitation: StaffInvitation) => void;
 }) {
   const [email, setEmail] = useState("");
   const [clubId, setClubId] = useState("");
   const [role, setRole] = useState<string>(CREATABLE_ROLES[0]);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
-    setError("");
     try {
-      onCreated(
-        await consoleRequest<StaffInvitation>("v1/staff/accounts", {
-          method: "POST",
-          body: { email: email.trim(), clubId: clubId || clubs[0]?.id, role },
-        }),
-      );
-      setEmail("");
-    } catch (caught) {
-      setError(messageFor(caught));
+      await act(async () => {
+        onCreated(
+          await consoleRequest<StaffInvitation>("v1/staff/accounts", {
+            method: "POST",
+            body: { email: email.trim(), clubId: clubId || clubs[0]?.id, role },
+          }),
+        );
+        setEmail("");
+      });
     } finally {
       setBusy(false);
     }
@@ -211,11 +212,6 @@ function CreateAccount({
             </option>
           ))}
         </select>
-        {error ? (
-          <p className="notice notice--error" role="alert">
-            {error}
-          </p>
-        ) : null}
         <button
           className="button button--lime"
           disabled={busy || !email.trim()}

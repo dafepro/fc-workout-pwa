@@ -171,11 +171,13 @@ func (service *Service) ResetStaffCredential(ctx context.Context, accountID, set
 	if err != nil {
 		return StaffInvitation{}, err
 	}
+	if err = recordAudit(ctx, tx, accountID, "staff_credential_reset", "", now); err != nil {
+		return StaffInvitation{}, err
+	}
 	if err = tx.Commit(); err != nil {
 		return StaffInvitation{}, err
 	}
 
-	service.audit(ctx, accountID, "staff_credential_reset", "", now)
 	invitation.AccountID = accountID
 	invitation.Email = email
 	invitation.Role = role
