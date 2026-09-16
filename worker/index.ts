@@ -5,6 +5,7 @@ import {
   DEFAULT_IMAGE_SIZES,
 } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
+import { teamWorldUpstream } from "./team-world-proxy";
 import { pruneAnalytics } from "../lib/analytics/storage";
 import {
   devServiceWorkerResponse,
@@ -13,6 +14,8 @@ import {
 } from "./dev-gate";
 
 interface Env extends DevGateEnv {
+  ZOOMIGO_API_BASE_URL?: string;
+  ZOOMIGO_API_GATEWAY_TOKEN?: string;
   ASSETS: Fetcher;
   ANALYTICS_DB?: D1Database;
   PRODUCT_ANALYTICS_ENABLED?: string;
@@ -47,6 +50,8 @@ const worker = {
   ): Promise<Response> {
     const gateResponse = await gateDevRequest(request, env);
     if (gateResponse) return gateResponse;
+    const worldUpstream = teamWorldUpstream(request, env);
+    if (worldUpstream) return fetch(worldUpstream);
 
     const serviceWorkerResponse = devServiceWorkerResponse(request, env);
     if (serviceWorkerResponse) return serviceWorkerResponse;

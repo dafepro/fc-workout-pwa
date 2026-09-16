@@ -10,6 +10,7 @@ export default defineConfig({
   use: {
     baseURL: process.env.E2E_PWA_BASE_URL ?? "http://pwa:3000",
     trace: "retain-on-failure",
+    channel: process.env.E2E_BROWSER_CHANNEL,
     ...devices["Desktop Chrome"],
   },
 });

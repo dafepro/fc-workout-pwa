@@ -21,6 +21,9 @@ case "$api_image" in
 		compose pull api caddy
 		;;
 esac
+if [ "$(env_value TEAM_WORLD_ENABLED)" = true ]; then
+	compose pull team-world
+fi
 if [ "$enable_observability" = true ]; then
 	sh "$SCRIPT_DIRECTORY/observability-preflight.sh" "$ENV_FILE"
 	compose --profile observability pull alloy

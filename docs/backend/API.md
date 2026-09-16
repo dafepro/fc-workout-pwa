@@ -171,3 +171,38 @@ public API route.
 API versioning/deprecation, final cursor encoding, reaction retention, exact
 private badge placement copy, and audited post-window moderation remain in
 [../OPEN_DECISIONS.md](../OPEN_DECISIONS.md).
+
+## Team World v3 integration
+
+```text
+POST /v1/teams/{teamId}/world/ticket
+POST /internal/team-world/join
+POST /internal/team-world/access
+```
+
+All three routes are unavailable unless `TEAM_WORLD_RELAY_KEY` (at least 32
+characters) and `TEAM_WORLD_RELAY_URL` are configured. The URL uses `wss` and
+`/room`; `ws` is accepted only for literal loopback hosts.
+
+The player route authenticates the original session and checks current team
+membership and the same post-check-in entry policy as Lounge. It returns a
+single-use 30-second ticket, the requested team ID, a deterministic bounded
+`world-v3-<SHA-256(team ID)>` room ID and the configured relay URL. The fresh
+v3 room never shares Canvas state. Unknown team access is concealed; locked
+entry returns 423. Reissuing a pending ticket invalidates the previous one for
+that session/team. Tickets do not accept player-supplied appearance or identity.
+
+Internal routes require the separate relay bearer key and are excluded from the
+browser gateway allowlist. Join consumes the ticket and returns a private grant
+plus only the approved identity projection. Continuing access reauthenticates
+the original session and rechecks membership/check-in policy. Active grants
+renew for two minutes after a successful check; expired, revoked and invalid
+grants fail closed. The Node relay coalesces continuing checks for at most one
+second. No private grant or original session token enters the world roster.
+
+The bounded in-memory registry holds at most 4096 ticket/grant records; grants
+are ephemeral credentials, not durable app state. Restarting the API expires
+all grants. A replacement join invalidates the prior grant for that same
+session/team. Run one API writer and one relay; this is not a distributed
+session coordinator. No v3 appearance-save or placement-write route exists in
+this first playable slice. See [Team World](../TEAM_WORLD.md).

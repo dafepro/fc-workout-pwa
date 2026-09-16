@@ -3,6 +3,8 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ReactionPicker } from "../components/ReactionPicker";
+import Link from "next/link";
+import { worldCopy } from "../team-world/copy";
 import { copy } from "../content/copy";
 import type {
   ReactionType,
@@ -114,6 +116,9 @@ export default function TeamPage() {
             {copy.teamHub.retry}
           </button>
         </section>
+      ) : null}
+      {__ZOOMIGO_DEVELOPMENT_BUILD__ && hub?.access.loungeUnlocked ? (
+        <Link href="/team-world">{worldCopy.title}</Link>
       ) : null}
       {hub ? (
         <TeamHub

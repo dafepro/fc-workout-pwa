@@ -64,3 +64,5 @@ next-env.d.ts
 **/terraform.tfvars
 **/*.auto.tfvars
 /backend/*.exe
+
+/public/team-world-assets/

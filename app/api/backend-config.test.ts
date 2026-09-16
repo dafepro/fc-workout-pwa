@@ -12,7 +12,17 @@ describe("resolveBackendBaseURL", () => {
     );
   });
 
-  it("requires HTTPS except for the private Docker API hostname", () => {
+  it("requires HTTPS except for explicit local API hosts", () => {
+    expect(resolveBackendBaseURL("http://127.0.0.1:19080")).toBe(
+      "http://127.0.0.1:19080",
+    );
+    expect(resolveBackendBaseURL("http://localhost:19080")).toBe(
+      "http://localhost:19080",
+    );
+    expect(() => resolveBackendBaseURL("ftp://api:8080")).toThrow();
+    expect(() =>
+      resolveBackendBaseURL("http://localhost.attacker.test"),
+    ).toThrow();
     expect(resolveBackendBaseURL("http://api:8080")).toBe("http://api:8080");
     expect(() => resolveBackendBaseURL("http://api.example.com")).toThrow(
       /HTTPS/,

@@ -12,6 +12,7 @@ import { proxyEvents } from "../../../../lib/analytics/proxy-events";
 import { recordServerEventsForRequest } from "../../../../lib/analytics/server";
 
 const allowed = [
+  { method: "POST", pattern: /^v1\/teams\/[^/]+\/world\/ticket$/ },
   { method: "POST", pattern: /^__dev\/me\/unlocks$/ },
   { method: "GET", pattern: /^v1\/me\/training-entries$/ },
   { method: "GET", pattern: /^v1\/me\/training-dashboard$/ },

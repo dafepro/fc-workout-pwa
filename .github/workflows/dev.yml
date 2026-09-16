@@ -90,7 +90,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Test the player application
-        run: pnpm test
+        run: |
+          pnpm test
+          pnpm test:world
 
       - name: Type-check and build the development application
         run: |
@@ -127,6 +129,18 @@ jobs:
             --sbom=true \
             --push \
             backend
+
+      - name: Publish the Team World relay image
+        env:
+          RELEASE_SHA: ${{ steps.revision.outputs.sha }}
+        run: |
+          docker buildx build \
+            --file services/team-world/Dockerfile \
+            --platform linux/amd64 \
+            --tag "ghcr.io/${{ github.repository }}/api:world-dev-$RELEASE_SHA" \
+            --provenance=mode=max \
+            --sbom=true \
+            --push .
 
       - uses: actions/upload-artifact@v4
         with:
@@ -376,6 +390,14 @@ jobs:
           DEV_ACCESS_PASSWORD: ${{ secrets.DEV_ACCESS_PASSWORD }}
           E2E_PWA_BASE_URL: https://dev.zoomigo.quicktrack.cc
         run: pnpm exec playwright test e2e/dev-lounge-release-gate.spec.ts
+
+      - name: Prove Team World through the shared dev gate
+        if: needs.context.outputs.operation == 'create' || needs.context.outputs.operation == 'update'
+        env:
+          DEV_WORLD_RELEASE_GATE: "true"
+          DEV_ACCESS_PASSWORD: ${{ secrets.DEV_ACCESS_PASSWORD }}
+          E2E_PWA_BASE_URL: https://dev.zoomigo.quicktrack.cc
+        run: pnpm exec playwright test e2e/dev-team-world.spec.ts
 
       - name: Prove final disposable-dev flows
         if: needs.context.outputs.operation == 'create' || steps.infra.outputs.created == 'true'

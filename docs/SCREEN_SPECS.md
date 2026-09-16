@@ -8,7 +8,7 @@ prototype. Route files and gateway contracts remain the executable authority.
 ## Player shell
 
 Primary navigation has three destinations: **Today**, **Team**, and **Me**.
-Focused Avatar Studio and Team Lounge views hide the shell navigation on small
+Focused Avatar Studio, Team Lounge and Team World views hide the shell navigation on small
 screens so it cannot cover their controls. Every player route remains usable at
 320 CSS pixels and on desktop.
 
@@ -187,3 +187,16 @@ Platform operators use `/staff/admin` for clubs, teams, player recovery,
 accounts, audit history, and the privacy-safe analytics overview. Operator pages
 must guard in the UI and at the backend; the backend remains authoritative.
 See [STAFF_CONSOLE.md](STAFF_CONSOLE.md).
+
+## Team World v3 (`/team-world`)
+
+The integration branch includes connected shared play in the approved Fieldwork
+courtyard, with click/tap paths, joystick, sprint, equipment and predefined
+expressions. Entry requires a real session, current team membership and the
+existing participation gate. Only development navigation advertises this route
+while qualification continues. Loading, paused and denied states disable play;
+leaving the route disposes the world connection and scene.
+
+The current three approved appearances are assigned server-side. Saved modular
+appearance editing and durable decorating are subsequent integration work.
+See [TEAM_WORLD.md](TEAM_WORLD.md) for the implementation and qualification gates.

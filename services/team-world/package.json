@@ -1,0 +1,8 @@
+{
+  "name": "zoomigo-team-world-relay",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "zmap": "https://github.com/dafepro/zmap/releases/download/v0.1.2/zmap-0.1.2.tgz"
+  }
+}

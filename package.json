@@ -21,15 +21,23 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --check .",
     "format:write": "prettier --write .",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern work --ignore-pattern outputs"
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern work --ignore-pattern outputs",
+    "predev": "node scripts/prepare-team-world.mjs",
+    "prebuild": "node scripts/prepare-team-world.mjs",
+    "dev:world": "node services/team-world/server.mjs",
+    "test:world": "node --test services/team-world/*.test.mjs",
+    "dev:team-world": "./scripts/team-world-local.sh"
   },
   "dependencies": {
     "@canvas-physics/client": "file:vendor/canvas/canvas-physics-client-0.6.2.tgz",
     "@canvas-physics/core": "file:vendor/canvas/canvas-physics-core-0.6.2.tgz",
     "@canvas-physics/protocol": "file:vendor/canvas/canvas-physics-protocol-0.6.2.tgz",
+    "@zmap/avatar-studio": "https://github.com/dafepro/zmap-avatar-studio/releases/download/v0.1.1/zmap-avatar-studio-0.1.1.tgz",
     "next": "16.3.3",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "three": "0.180.0",
+    "zmap": "https://github.com/dafepro/zmap/releases/download/v0.1.2/zmap-0.1.2.tgz"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.37.1",
@@ -41,6 +49,7 @@
     "@types/node": "22.19.19",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
+    "@types/three": "0.180.0",
     "@vitejs/plugin-react": "6.0.2",
     "@vitejs/plugin-rsc": "0.5.26",
     "eslint": "9.39.4",
