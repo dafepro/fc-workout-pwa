@@ -19,6 +19,28 @@ runtime engine or avatar source is forked. Approved asset provenance is in
 `assets/team-world/PROVENANCE.md`. `scripts/prepare-team-world.mjs` copies only the
 installed runtime assets to a versioned public path before dev/build.
 
+## Viewport and controls
+
+The world uses a tall playfield with floating Lounge-style status, presence and
+fullscreen controls. The bottom dock opens one movement/camera, equipment or
+expression panel at a time. An equipped tool has a separate hold-to-use button;
+closing a panel leaves the scene available for click/tap paths or the joystick.
+The shared fullscreen hook supports native fullscreen, viewport expansion,
+Escape/exit, body-scroll restoration and route cleanup. Insets respect phone
+safe areas; controls retain 44px touch targets at 320px widths.
+
+Rendering keeps the existing meshes, ink materials, MSAA and simulation cadence.
+The app caps its drawing buffer at 1.5 million pixels (up to the existing 1.5×
+device ratio), including after fullscreen/resizing. Comic-style bindings refresh
+when equipment roots or buffer dimensions change, rather than rescanning each
+avatar hierarchy every displayed frame. Sprint UI writes occur only on state
+changes, and control readiness no longer builds full avatar diagnostic reports.
+
+A local Chrome comparison at 1440×900 CSS pixels, device ratio 2, measured
+2,916,000 → 1,499,432 drawing-buffer pixels and 482 → 0 idle dock DOM mutations
+over four seconds. Both runs displayed 240 frames, with p95 16.7ms. This reduces
+work; it is not evidence of higher FPS or qualification on slower GPUs/phones.
+
 ## Authority and deployment boundary
 
 The frontend remains Vinext/Cloudflare. `services/team-world/server.mjs` is a

@@ -111,11 +111,19 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
       .toBeGreaterThan(0.3);
     await page.keyboard.up("d");
     await page
+      .locator("summary")
+      .filter({ hasText: /^Equipment$/ })
+      .click();
+    await page
       .getByRole("combobox", { name: "Equipment", exact: true })
       .selectOption("rebound-panel");
     await expect
       .poll(() => peer.simulation?.actions?.players[state.session!]?.tool)
       .toBe("rebound-panel");
+    await page
+      .locator("summary")
+      .filter({ hasText: /^Expression$/ })
+      .click();
     await page
       .getByRole("combobox", { name: "Expression", exact: true })
       .selectOption("wave");

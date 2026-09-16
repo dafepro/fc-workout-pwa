@@ -346,14 +346,19 @@ export function createNavigationControls(
     },
     { signal },
   );
+  let lastSprintState = "";
   const update = (now: number) => {
     if (dead) return;
     frame = requestAnimationFrame(update);
-    ui.sprint.disabled = world.status !== "ready";
-    ui.sprint.setAttribute("aria-pressed", String(world.sprinting));
-    ui.sprint.textContent = world.sprinting
-      ? worldCopy.navigation.sprintOn
-      : worldCopy.navigation.sprint;
+    const sprintState = `${world.status}:${world.sprinting}`;
+    if (sprintState !== lastSprintState) {
+      lastSprintState = sprintState;
+      ui.sprint.disabled = world.status !== "ready";
+      ui.sprint.setAttribute("aria-pressed", String(world.sprinting));
+      ui.sprint.textContent = world.sprinting
+        ? worldCopy.navigation.sprintOn
+        : worldCopy.navigation.sprint;
+    }
     if (!target) return;
     const body = world.local;
     if (!body || world.status !== "ready" || document.hidden) {
