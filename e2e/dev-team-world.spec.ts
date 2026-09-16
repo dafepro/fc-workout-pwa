@@ -258,16 +258,16 @@ async function prepareFrameProbe(page: Page) {
     if (disableMSAA) {
       const native = HTMLCanvasElement.prototype.getContext;
       HTMLCanvasElement.prototype.getContext = function (
+        this: HTMLCanvasElement,
         type: string,
         options?: unknown,
       ) {
-        return native.call(
-          this,
-          type as "webgl2",
+        return Reflect.apply(native, this, [
+          type,
           type.startsWith("webgl")
             ? { ...(options as object), antialias: false }
             : options,
-        );
+        ]);
       } as typeof native;
     }
     if (location.pathname !== "/team-world") return;
