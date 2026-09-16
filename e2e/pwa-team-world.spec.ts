@@ -203,6 +203,7 @@ test("fullscreen overlays resize the world and remain usable at phone widths", a
 test("idle overlays avoid frame-by-frame DOM churn and fullscreen respects the raster budget", async ({
   page,
 }) => {
+  await page.setViewportSize({ width: 1600, height: 1000 });
   await loginAsMason(page);
   await page.goto("/team-world");
   await expect(page.getByText("Live together", { exact: true })).toBeVisible({
@@ -230,6 +231,11 @@ test("idle overlays avoid frame-by-frame DOM churn and fullscreen respects the r
       }),
   );
   expect(mutations).toBeLessThan(5);
+  expect(
+    await page
+      .locator(".team-world-canvas")
+      .evaluate((el) => el.clientWidth * el.clientHeight),
+  ).toBeGreaterThan(1_500_000);
   const pixels = await page
     .locator("canvas")
     .evaluate((canvas: HTMLCanvasElement) => canvas.width * canvas.height);
