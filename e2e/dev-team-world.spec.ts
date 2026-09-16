@@ -254,22 +254,7 @@ function observeWorld(page: Page) {
 }
 
 async function prepareFrameProbe(page: Page) {
-  await page.addInitScript((disableMSAA) => {
-    if (disableMSAA) {
-      const native = HTMLCanvasElement.prototype.getContext;
-      HTMLCanvasElement.prototype.getContext = function (
-        this: HTMLCanvasElement,
-        type: string,
-        options?: unknown,
-      ) {
-        return Reflect.apply(native, this, [
-          type,
-          type.startsWith("webgl")
-            ? { ...(options as object), antialias: false }
-            : options,
-        ]);
-      } as typeof native;
-    }
+  await page.addInitScript(() => {
     if (location.pathname !== "/team-world") return;
     const probe = {
       count: 0,
@@ -302,7 +287,7 @@ async function prepareFrameProbe(page: Page) {
         );
       }
     }).observe({ type: "longtask", buffered: true });
-  }, process.env.E2E_WORLD_MSAA_OFF === "1");
+  });
 }
 async function startProfile(page: Page) {
   const cdp = await page.context().newCDPSession(page);
