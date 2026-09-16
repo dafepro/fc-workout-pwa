@@ -4,7 +4,7 @@
 
 ## What is implemented
 
-`/team-world` lazily loads zmap 0.1.2 and Avatar Studio 0.1.1 from pinned GitHub
+`/team-world` lazily loads zmap 0.1.3 and Avatar Studio 0.1.1 from pinned GitHub
 Release tarballs. The development Team hub exposes a Team World link after the
 existing check-in gate. Production navigation is unchanged during qualification.
 
@@ -142,3 +142,15 @@ For manual review, open <https://dev.zoomigo.quicktrack.cc/team-world>, enter th
 shared preview password, choose a fixture player, and use PIN `1111`. Log an
 activity to satisfy the existing participation gate, then open **Team → Team
 World**. Use another browser profile for a second player.
+
+## Scheduling update for dev evaluation
+
+The next dev revision pins zmap 0.1.3 in both the browser and relay. Simulation
+advances on an independent 30 Hz timer; rendering uses that clock for smooth
+interpolation and stops during recovery from a main-thread stall. The runtime
+retains its existing eligibility thresholds and requires no database migration.
+
+Upstream validation passes 111 unit/socket tests, the independent package
+consumer, three local Chrome synchronization journeys, and a three-player
+action journey. Linux software rendering remains under qualification; these
+changes are a dev evaluation update rather than a claim of pilot readiness.
