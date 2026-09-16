@@ -66,6 +66,11 @@ smearing has been reproduced or eliminated.
 
 ## Authority and deployment boundary
 
+Browser and isolated relay manifests must pin the same ZMap tarball and
+integrity. `test:world` enforces that contract; the dev pipeline also starts the
+published relay image and checks its health before touching the droplet. This
+catches missing exports or map/behavior incompatibility in the actual container.
+
 The frontend remains Vinext/Cloudflare. `services/team-world/server.mjs` is a
 separate Node relay; `zmap/server` is never imported by a Worker or browser route.
 The Go API owns real sessions, membership and post-check-in policy. Its one-use

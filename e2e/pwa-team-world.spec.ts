@@ -1,3 +1,4 @@
+import * as THREE from "three";
 import { expect, request, test, type Page } from "@playwright/test";
 import type { Simulation } from "zmap";
 import {
@@ -384,4 +385,62 @@ test("hold steering follows cursor and joystick automatically selects a continuo
   await expect
     .poll(() => Math.hypot(inputs.at(-1)?.x ?? 1, inputs.at(-1)?.z ?? 1))
     .toBe(0);
+});
+
+test("short ground taps beside an item walk while distant taps build to a sprint", async ({
+  page,
+}) => {
+  const observed = observe(page);
+  let speeds: number[] = [];
+  page.on("websocket", (socket) =>
+    socket.on("framesent", ({ payload }) => {
+      const m = JSON.parse(String(payload));
+      if (m.type === "input")
+        speeds.push(
+          Math.hypot(m.input.x, m.input.z) * (m.input.sprint ? 5.4 : 2.2),
+        );
+    }),
+  );
+  await loginAsMason(page);
+  await page.goto("/team-world");
+  await expect(page.getByText("Live together", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Full screen", exact: true }).click();
+  await expect
+    .poll(() => observed.state?.players[observed.session!]?.x)
+    .not.toBeUndefined();
+  async function tap(distance: number) {
+    const p = observed.state!.players[observed.session!],
+      rect = (await page.locator(".team-world-canvas canvas").boundingBox())!;
+    const camera = new THREE.OrthographicCamera(
+      (-10 * rect.width) / rect.height,
+      (10 * rect.width) / rect.height,
+      10,
+      -10,
+      0.1,
+      200,
+    );
+    camera.zoom = 2;
+    camera.position.set(p.x + 16, p.y + 0.8 + 19, p.z + 16);
+    camera.lookAt(p.x, p.y + 0.8, p.z);
+    camera.updateProjectionMatrix();
+    camera.updateMatrixWorld();
+    const target = new THREE.Vector3(p.x - distance, p.y, p.z).project(camera);
+    speeds = [];
+    await page.mouse.click(
+      rect.x + ((target.x + 1) * rect.width) / 2,
+      rect.y + ((1 - target.y) * rect.height) / 2,
+    );
+  }
+  await tap(1);
+  await expect.poll(() => Math.max(0, ...speeds)).toBeGreaterThan(0.5);
+  await expect
+    .poll(() => page.locator(".team-world-hint").textContent())
+    .toContain("You’re here");
+  expect(Math.max(...speeds)).toBeLessThanOrEqual(2.21);
+  // Let the following camera settle before projecting the next world-space point.
+  await page.waitForTimeout(600);
+  await tap(6);
+  await expect.poll(() => Math.max(0, ...speeds)).toBeGreaterThan(3);
+  await page.keyboard.press("Escape");
+  expect(observed.errors).toEqual([]);
 });
