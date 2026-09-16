@@ -377,6 +377,9 @@ test("hold steering follows cursor and joystick automatically selects a continuo
   expect(inputs.at(-1)?.sprint).not.toBe(true);
   await page.mouse.move(x + 35, y);
   await expect.poll(() => inputs.at(-1)?.sprint).toBe(true);
+  await page.keyboard.down("w");
+  await expect.poll(() => inputs.at(-1)?.sprint).not.toBe(true);
+  await page.keyboard.up("w");
   await page.mouse.up();
   await expect
     .poll(() => Math.hypot(inputs.at(-1)?.x ?? 1, inputs.at(-1)?.z ?? 1))

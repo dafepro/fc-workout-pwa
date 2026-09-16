@@ -354,7 +354,7 @@ export function createNavigationControls(
         ].includes(event.code)
       ) {
         tap = undefined;
-        stop(hint(), event.code === "Escape");
+        stop(hint());
         releaseStick();
       }
     },
