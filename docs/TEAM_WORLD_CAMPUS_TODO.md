@@ -33,6 +33,19 @@ zones, score authority, new rewards or freeform communication.
 
 ## Follow-ups
 
+- [ ] **Shared-dev browser reliability — before rollout:** investigate the ZMap
+      host-health recovery loop under software rendering and intermittent room
+      disconnects. The September 16 deployment of `8cd89d7` is live on dev: API and
+      relay images are healthy and the gated campus GLB matches the local SHA-256.
+      The workflow's live Team World check timed out entering the room on
+      SwiftShader, after its build, unit checks and API/Lounge proofs passed
+      ([run 35144903822](https://github.com/dafepro/fc-workout-pwa/actions/runs/35144903822)).
+      A hardware Chrome check initially lost one connection; a subsequent complete
+      live check passed two-player presence, lamp synchronization, movement,
+      equipment, emotes and departure. Keep the failure open: one successful run
+      does not establish reliability. The browser diagnostic now records numeric
+      socket close codes without retaining authentication artifacts. Dev data was
+      preserved; the deployment used update, with no fixture reset.
 - [ ] **ZMap view API — before adding more overhead architecture:** design a
       public surface-visual replacement and occlusion contract. The campus now
       opens a narrow sightline through overhead art and the engine's underlying

@@ -260,6 +260,9 @@ function observeWorld(page: Page) {
             viewport: [innerWidth, innerHeight],
             frames: (window as Window & { worldFrameProbe?: unknown })
               .worldFrameProbe,
+            socketCloseCodes: (
+              window as Window & { worldSocketCloseCodes?: number[] }
+            ).worldSocketCloseCodes,
             graphics: (() => {
               const canvas = document.querySelector<HTMLCanvasElement>(
                 ".team-world-canvas canvas",
@@ -283,6 +286,20 @@ function observeWorld(page: Page) {
 async function prepareFrameProbe(page: Page) {
   await page.addInitScript(() => {
     if (location.pathname !== "/team-world") return;
+    const closeCodes: number[] = [];
+    (
+      window as Window & { worldSocketCloseCodes?: number[] }
+    ).worldSocketCloseCodes = closeCodes;
+    const NativeWebSocket = window.WebSocket;
+    window.WebSocket = class extends NativeWebSocket {
+      constructor(url: string | URL, protocols?: string | string[]) {
+        super(url, protocols);
+        if (new URL(String(url), location.href).pathname === "/room")
+          this.addEventListener("close", (event) =>
+            closeCodes.push(event.code),
+          );
+      }
+    };
     const probe = {
       count: 0,
       max: 0,
