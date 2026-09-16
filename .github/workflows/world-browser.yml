@@ -1,0 +1,31 @@
+name: Team World browser diagnosis
+on:
+  push:
+    branches: [codex/dev-world-rollout]
+  workflow_dispatch:
+concurrency:
+  group: team-world-public-diagnosis
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  browser:
+    environment: dev-world-test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.20.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec playwright test e2e/dev-team-world.spec.ts
+        env:
+          DEV_WORLD_RELEASE_GATE: "true"
+          DEV_ACCESS_PASSWORD: ${{ secrets.DEV_ACCESS_PASSWORD }}
+          E2E_PWA_BASE_URL: https://dev.zoomigo.quicktrack.cc
