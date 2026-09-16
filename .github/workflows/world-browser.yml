@@ -27,5 +27,6 @@ jobs:
       - run: pnpm exec playwright test e2e/dev-team-world.spec.ts
         env:
           DEV_WORLD_RELEASE_GATE: "true"
+          E2E_WORLD_PROFILE: "1"
           DEV_ACCESS_PASSWORD: ${{ secrets.DEV_ACCESS_PASSWORD }}
           E2E_PWA_BASE_URL: https://dev.zoomigo.quicktrack.cc

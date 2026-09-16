@@ -23,6 +23,8 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
   });
   const other = await friend.newPage();
   const diagnostics = [observeWorld(page), observeWorld(other)];
+  await Promise.all([page, other].map(prepareFrameProbe));
+  const profiles: (() => Promise<unknown>)[] = [];
   const entries: { page: Page; id: string }[] = [];
   const state: { session?: string; simulation?: Simulation } = {};
   const peer: { simulation?: Simulation } = {};
@@ -84,6 +86,8 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
       entries.push({ page: p, id: (await response.json()).id });
       stage = "world-entry";
       await p.goto("/team-world");
+      if (process.env.E2E_WORLD_PROFILE === "1")
+        profiles.push(await startProfile(p));
       await expect(p.getByText("Live together", { exact: true })).toBeVisible({
         timeout: 30000,
       });
@@ -132,6 +136,11 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
       stage,
       JSON.stringify(await Promise.all(diagnostics.map((d) => d.snapshot()))),
     );
+    if (profiles.length)
+      console.log(
+        "WORLD_CPU_PROFILE",
+        JSON.stringify(await Promise.all(profiles.map((stop) => stop()))),
+      );
     throw error;
   } finally {
     await page.keyboard.up("d").catch(() => undefined);
@@ -226,5 +235,68 @@ function observeWorld(page: Page) {
           .catch(() => null),
       };
     },
+  };
+}
+
+async function prepareFrameProbe(page: Page) {
+  await page.addInitScript(() => {
+    if (location.pathname !== "/team-world") return;
+    const probe = {
+      count: 0,
+      max: 0,
+      over100: 0,
+      over250: 0,
+      longTasks: 0,
+      longestTask: 0,
+    };
+    (window as Window & { worldFrameProbe?: unknown }).worldFrameProbe = probe;
+    let previous = 0;
+    const frame = (t: number) => {
+      if (previous) {
+        const elapsed = t - previous;
+        probe.count++;
+        probe.max = Math.max(probe.max, Math.round(elapsed));
+        if (elapsed > 100) probe.over100++;
+        if (elapsed > 250) probe.over250++;
+      }
+      previous = t;
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        probe.longTasks++;
+        probe.longestTask = Math.max(
+          probe.longestTask,
+          Math.round(entry.duration),
+        );
+      }
+    }).observe({ type: "longtask", buffered: true });
+  });
+}
+async function startProfile(page: Page) {
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Profiler.enable");
+  await cdp.send("Profiler.start");
+  return async () => {
+    try {
+      const { profile } = await cdp.send("Profiler.stop");
+      const nodes = new Map(
+        profile.nodes.map((n) => [n.id, n.callFrame.functionName]),
+      );
+      const time = new Map<string, number>();
+      profile.samples?.forEach((id, i) => {
+        const name = nodes.get(id) || "anonymous";
+        time.set(name, (time.get(name) || 0) + (profile.timeDeltas?.[i] || 0));
+      });
+      return [...time]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 15)
+        .map(([name, us]) => ({ name, ms: Math.round(us / 1000) }));
+    } catch {
+      return null;
+    } finally {
+      await cdp.detach().catch(() => undefined);
+    }
   };
 }
