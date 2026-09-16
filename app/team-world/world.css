@@ -302,3 +302,13 @@
   padding: 8px 14px;
   box-shadow: 0 4px 16px #071c2533;
 }
+
+@media (max-width: 480px) {
+  .team-world-field:has(
+      .team-world-quick-action:not([hidden]),
+      .team-world-stick:not([hidden])
+    )
+    .team-world-hint {
+    display: none;
+  }
+}

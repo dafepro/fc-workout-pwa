@@ -342,6 +342,7 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
               >
                 {copy.kick}
               </button>
+              <p>{copy.navigation[mode]}</p>
               <p>{copy.hint}</p>
             </div>
           </details>

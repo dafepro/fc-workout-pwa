@@ -112,6 +112,7 @@ test("two real accounts share movement, tools and emotes; route exit releases th
       )
       .toBe("wave");
     await page.setViewportSize({ width: 320, height: 720 });
+    await expect(page.locator(".team-world-hint")).toBeHidden();
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
