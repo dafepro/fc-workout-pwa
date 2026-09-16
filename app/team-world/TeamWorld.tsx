@@ -120,6 +120,7 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
             props!.scenery(scene);
           },
           frame: (context) => {
+            campus!.update(current?.local);
             cannon!.frame(context);
             props!.frame(context);
           },
@@ -132,6 +133,7 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
         },
       });
       world.current = current;
+      current.view.renderer.localClippingEnabled = true;
       const resizeBudget = () => {
         if (cancelled || !current || !container.current) return;
         const ratio = renderPixelRatio(

@@ -20,6 +20,10 @@ package split, map extent, remaining view/navigation design work and rollout
 constraints. [Campus provenance](../assets/team-world/campus/PROVENANCE.md)
 records reused CC0 models, generated texture prompts and the Blender rebuild.
 
+Overhead campus art and engine slabs share a narrow cutaway along the local
+player's camera sightline. It reveals the player beneath bridges and canopies
+while retaining the floor, surrounding structure and collision geometry.
+
 `app/team-world/adapters/` owns the mapping from accepted world actions to avatar
 and cannon presentation and pointer controls. It imports public packages; no
 runtime engine or avatar source is forked. Approved asset provenance is in

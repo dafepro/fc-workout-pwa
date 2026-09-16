@@ -34,11 +34,13 @@ zones, score authority, new rewards or freeform communication.
 ## Follow-ups
 
 - [ ] **ZMap view API — before adding more overhead architecture:** design a
-      public surface-visual replacement and occlusion contract. The engine can fade
-      its base slabs, while app-owned textured caps/furniture do not yet share that
-      fade. A player under a terrace can be occluded. Decide whether to fade roofs,
-      cut away an entire structure, or constrain future interiors. Keep this generic
-      in ZMap and author structure membership in consumer content.
+      public surface-visual replacement and occlusion contract. The campus now
+      opens a narrow sightline through overhead art and the engine's underlying
+      slabs, preserving the player and floor. The app adapter captures terrain
+      BoxGeometry during the pinned 0.1.4 scenery callback; it never touches
+      physics, toys or subsequently mounted characters. Replace that version-bound
+      capture with explicit surface identities in a future ZMap API, and generalize
+      the camera direction if ZMap supports rotating cameras.
 - [ ] **Navigation — before distant destinations or larger worlds:** define a
       coarse district route graph and cancellable fine search. The app now samples
       only an 8 m margin around a requested trip, at 0.8 m spacing with ZMap's hard

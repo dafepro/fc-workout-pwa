@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { createCampusCutaway } from "./campus-cutaway";
 
 /** App-owned art, layered over the same world.json terrain used by the relay. */
 export async function loadCampus(signal?: AbortSignal) {
@@ -13,6 +14,7 @@ export async function loadCampus(signal?: AbortSignal) {
     await new GLTFLoader().parseAsync(await response.arrayBuffer(), "")
   ).scene;
   root.name = "team-campus";
+  const cutaway = createCampusCutaway();
   const geometry = new Set<THREE.BufferGeometry>();
   const materials = new Set<THREE.Material>();
   const textures = new Set<THREE.Texture>();
@@ -23,6 +25,8 @@ export async function loadCampus(signal?: AbortSignal) {
       ? object.material
       : [object.material]) {
       materials.add(m);
+      m.clippingPlanes = cutaway.planes;
+      m.clipIntersection = true;
       for (const value of Object.values(m))
         if (value instanceof THREE.Texture) {
           textures.add(value);
@@ -32,13 +36,16 @@ export async function loadCampus(signal?: AbortSignal) {
   });
   let closed = false;
   return {
+    update: cutaway.update,
     scenery(scene: THREE.Scene) {
+      cutaway.bindTerrain(scene);
       scene.background = new THREE.Color("#dedfd2");
       scene.add(root);
     },
     dispose() {
       if (closed) return;
       closed = true;
+      cutaway.dispose();
       // Detach before WorldView traverses its own resources on disposal.
       root.removeFromParent();
       for (const g of geometry) g.dispose();
