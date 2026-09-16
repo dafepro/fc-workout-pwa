@@ -10,6 +10,13 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
     "Explicit deployed-dev verification only",
   );
   test.setTimeout(120000);
+  expect(
+    Boolean(
+      process.env.DEV_ACCESS_PASSWORD &&
+        process.env.DEV_ACCESS_PASSWORD.length >= 12,
+    ),
+  ).toBe(true);
+  let stage = "directory";
   // Credential-directory contents must never be recorded in traces or screenshots.
   const friend = await browser.newContext({
     baseURL: process.env.E2E_PWA_BASE_URL,
@@ -46,10 +53,12 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
       const player = p
         .locator(".dev-player-list li")
         .filter({ has: p.getByRole("heading", { name: new RegExp(name) }) });
+      stage = "player-sign-in";
       await player.getByRole("link").click();
       await p.locator("form[data-credential-ready='true']").waitFor();
       await p.getByLabel("Four-digit PIN").fill("1111");
       await p.getByRole("button", { name: "Sign in", exact: true }).click();
+      stage = "qualification";
       await p.getByRole("link", { name: /Log another activity/i }).click();
       await p
         .getByRole("button", { name: "Choose an activity", exact: true })
@@ -64,6 +73,7 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
       const response = await saved;
       expect(response.status()).toBe(201);
       entries.push({ page: p, id: (await response.json()).id });
+      stage = "world-entry";
       await p.goto("/team-world");
       await expect(p.getByText("Live together", { exact: true })).toBeVisible({
         timeout: 30000,
@@ -110,11 +120,12 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
   } catch (error) {
     console.log(
       "WORLD_DIAGNOSTICS",
+      stage,
       JSON.stringify(await Promise.all(diagnostics.map((d) => d.snapshot()))),
     );
     throw error;
   } finally {
-    await page.keyboard.up("d");
+    await page.keyboard.up("d").catch(() => undefined);
     for (const { page: p, id } of entries) {
       const removed = await p.request.delete(
         `/api/zoomigo/v1/training-entries/${encodeURIComponent(id)}`,
@@ -126,7 +137,13 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
   }
 });
 // These runs visit live dev credentials; retain no authentication artifacts.
-test.use({ trace: "off", screenshot: "off", video: "off" });
+test.use({
+  trace: "off",
+  screenshot: "off",
+  video: "off",
+  actionTimeout: 15000,
+  navigationTimeout: 30000,
+});
 
 function observeWorld(page: Page) {
   const counts: Record<string, number> = {};
@@ -139,6 +156,15 @@ function observeWorld(page: Page) {
   let eligible: boolean | undefined;
   page.on("response", (r) => {
     const path = new URL(r.url()).pathname;
+    if (
+      [
+        "/_dev-gate",
+        "/dev-access",
+        "/api/auth/session",
+        "/team-world",
+      ].includes(path)
+    )
+      count(`${path}:${r.status()}`);
     if (path.endsWith("/world/ticket")) count(`ticket:${r.status()}`);
     if (path.startsWith("/team-world-assets/")) count(`asset:${r.status()}`);
   });
@@ -181,6 +207,7 @@ function observeWorld(page: Page) {
         browser: await page
           .evaluate(() => ({
             hidden: document.hidden,
+            path: location.pathname,
             status: document.querySelector('.team-world-bar [role="status"]')
               ?.textContent,
             canvases: document.querySelectorAll(".team-world-canvas canvas")
