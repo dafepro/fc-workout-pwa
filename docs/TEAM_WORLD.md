@@ -122,19 +122,20 @@ Continue with these active integration gates before a pilot:
 
 ## Verified dev deployment
 
-Dev serves application `c73cc5bf14070bc2c4146c720ec692d73293f7a7`, which includes
+Dev serves application `ab5d47cd676120fab500146ec5e2ee199fdeec83`, which includes
 the previously deployed baseline `7853c13a4e2c6c15fe6a27e1bb7a3f1ad32cc437`.
 The update preserved the database and skipped fixture reset. The
-[deployment run](https://github.com/dafepro/fc-workout-pwa/actions/runs/35042536066)
+[deployment run](https://github.com/dafepro/fc-workout-pwa/actions/runs/35049549374)
 passed build, strict package-integrity policy, API tests in both build modes,
 Caddy validation, relay health, exact API revision and the existing Canvas
 Lounge browser proof. Production was not deployed.
 
 The new public two-player test passed against that same deployment in local
-Chrome (15.9 seconds), including gated sign-in, qualified entry, peer movement,
-equipment, shared expression and departure. Its Linux CI run timed out waiting
-for the world to become ready, so the aggregate workflow is **failed**, despite
-the successful deployment. This remains an open browser qualification issue;
+Chrome (18.9 seconds), including gated sign-in, qualified entry, peer movement,
+equipment, shared expression and departure. Its Linux CI run reached both players but
+failed the movement assertion (0.293 units versus the required >0.3 within
+15 seconds), so the aggregate workflow is **failed**, despite the successful
+deployment. This remains an open browser qualification issue;
 the local pass does not establish Linux or phone performance. No assertion or
 runtime stall threshold was relaxed.
 
@@ -145,7 +146,7 @@ World**. Use another browser profile for a second player.
 
 ## Scheduling update for dev evaluation
 
-The next dev revision pins zmap 0.1.3 in both the browser and relay. Simulation
+The deployed dev revision pins zmap 0.1.3 in both the browser and relay. Simulation
 advances on an independent 30 Hz timer; rendering uses that clock for smooth
 interpolation and stops during recovery from a main-thread stall. The runtime
 retains its existing eligibility thresholds and requires no database migration.
