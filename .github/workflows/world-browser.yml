@@ -10,6 +10,7 @@ permissions:
   contents: read
 jobs:
   browser:
+    environment: dev-world-test
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:

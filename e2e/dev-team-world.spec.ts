@@ -49,7 +49,16 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
       await p
         .getByLabel("Password", { exact: true })
         .fill(process.env.DEV_ACCESS_PASSWORD!);
+      const gate = p.waitForResponse(
+        (r) =>
+          new URL(r.url()).pathname === "/_dev-gate" &&
+          r.request().method() === "POST",
+      );
       await p.getByRole("button", { name: "Continue", exact: true }).click();
+      expect(
+        (await gate).status(),
+        "The dev gate must accept its configured preview secret",
+      ).toBe(303);
       const player = p
         .locator(".dev-player-list li")
         .filter({ has: p.getByRole("heading", { name: new RegExp(name) }) });
