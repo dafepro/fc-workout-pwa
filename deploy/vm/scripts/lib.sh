@@ -51,7 +51,12 @@ validate_host_directory() {
 }
 
 compose() {
-	docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
+	if [ "$(env_value TEAM_WORLD_ENABLED)" = true ]; then
+		[ "$(env_value APP_ENV)" = dev ] || fail "Team World overlay is dev-only"
+		docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" -f "$DEPLOY_DIRECTORY/compose.team-world.yaml" "$@"
+	else
+		docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
+	fi
 }
 
 record_observability_gauge() {

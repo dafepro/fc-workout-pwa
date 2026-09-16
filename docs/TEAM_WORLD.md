@@ -101,8 +101,8 @@ HTTP/configuration suites and vet passed, including ticket scope/replay/expiry,
 locked/cross-team access, session and membership revocation, replacement grants
 and fail-closed configuration.
 
-The app's 518 tests, lint, types and static deployment/documentation contracts
-passed. The Worker build/upload dry run was 2233 KiB compressed against its
+The app's 520 tests, lint, types and static deployment/documentation contracts
+passed. The Worker build/upload dry run was 2248 KiB compressed against its
 2800 KiB budget; the world remains a lazy browser bundle. Desktop browser tests
 do not establish physical-phone performance.
 
@@ -115,7 +115,7 @@ Continue with these active integration gates before a pilot:
    entitlement validation. Existing Canvas appearance JSON is not that contract.
 3. Implement transactional layout/CAS/idempotency receipts and approved inventory
    mapping before exposing decorating.
-4. Wire and qualify the deployed relay/backend TLS, service supervision, restart,
-   disable/rollback and one-writer policy. No production configuration changed.
+4. Qualify restart, disable/rollback and one-writer behavior beyond the dev
+   topology documented in `DEV_ENVIRONMENT.md`. Production remains unchanged.
 5. Measure representative phone rendering, input/recovery percentiles, room load
    and cost. No physical-device qualification is claimed.

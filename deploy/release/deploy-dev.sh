@@ -44,11 +44,15 @@ node "$SCRIPT_DIRECTORY/configure-worker.mjs" \
 private_root=$(mktemp -d)
 trap 'rm -rf -- "$private_root"' EXIT HUP INT TERM
 environment_file="$private_root/dev.env"
+world_key=$(node --input-type=module -e 'import {createHmac} from "node:crypto"; process.stdout.write(createHmac("sha256",process.env.DEV_API_GATEWAY_TOKEN).update("zoomigo/dev/team-world/relay/v1").digest("base64url"))')
 umask 077
 cat >"$environment_file" <<EOF
 COMPOSE_PROJECT_NAME=zoomigo-dev
 API_IMAGE=ghcr.io/dafepro/fc-workout-pwa/api:sha-dev-$app_sha
 APP_VERSION=$app_sha
+TEAM_WORLD_ENABLED=true
+TEAM_WORLD_IMAGE=ghcr.io/dafepro/fc-workout-pwa/api:world-dev-$app_sha
+TEAM_WORLD_RELAY_KEY=$world_key
 APP_ENV=dev
 ENABLE_OBSERVABILITY=${ENABLE_OBSERVABILITY:-false}
 OBSERVABILITY_DATA_DIR=/var/lib/zoomigo-dev/observability

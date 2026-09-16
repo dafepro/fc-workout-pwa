@@ -195,3 +195,27 @@ Lounge canvas startup remains a browser proof and is covered by Docker E2E.
 
 There is no automatic time-to-live. Destroy the environment when a review ends;
 DigitalOcean continues hourly billing while the Droplet exists.
+
+## Team World integration deployment
+
+The development build includes `/team-world` alongside the existing Canvas
+Lounge. The dev workflow builds an immutable Node relay image from
+`services/team-world/Dockerfile` as well as the API and Worker. Only the dev
+deployment enables `deploy/vm/compose.team-world.yaml`; production uses the
+unchanged base topology. The relay has no public port or database mount.
+
+The Worker authenticates the existing outer gate before forwarding `/room`
+WebSocket upgrades to the API hostname. Caddy accepts that path only with the
+private gateway header and forwards to the healthy relay. Browser cookies and
+session Authorization headers are not forwarded. The relay still requires
+one-use, team-scoped tickets and continuously checked private grants. Its
+separate key is domain-derived from the dev gateway secret and never enters the
+Worker/browser. No new production or shared-runtime credentials are required.
+
+Updates preserve the dev database and existing features. API and relay restart
+withdraw transient grants/rooms; clients obtain fresh join credentials. Compose
+supervises both services with bounded memory/logs and health checks. The
+workflow retains the existing Canvas Lounge proof and adds an opt-in two-player
+Team World proof through the public password gate. That proof creates and
+deletes only its own invented-player qualification entries and records no
+credential-directory traces, screenshots or videos.

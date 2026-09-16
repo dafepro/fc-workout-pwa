@@ -1,0 +1,51 @@
+services:
+  api:
+    environment:
+      TEAM_WORLD_RELAY_KEY: ${TEAM_WORLD_RELAY_KEY:?Team World key is required}
+      TEAM_WORLD_RELAY_URL: wss://dev.zoomigo.quicktrack.cc/room
+  team-world:
+    image: ${TEAM_WORLD_IMAGE:?Team World image is required}
+    restart: unless-stopped
+    init: true
+    environment:
+      TEAM_WORLD_RELAY_KEY: ${TEAM_WORLD_RELAY_KEY}
+      TEAM_WORLD_ALLOWED_ORIGIN: https://dev.zoomigo.quicktrack.cc
+      TEAM_WORLD_API_URL: http://api:8080
+      DEV_API_GATEWAY_TOKEN: ${DEV_API_GATEWAY_TOKEN}
+      TEAM_WORLD_BIND: 0.0.0.0
+      NODE_OPTIONS: --max-old-space-size=128
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8795/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 10s
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 192m
+    pids_limit: 64
+    logging:
+      driver: local
+      options:
+        max-size: 5m
+        max-file: "3"
+    networks: [backend]
+  caddy:
+    environment:
+      DEV_API_GATEWAY_TOKEN: ${DEV_API_GATEWAY_TOKEN}
+    depends_on:
+      team-world:
+        condition: service_healthy
+configs:
+  caddyfile:
+    file: ./Caddyfile.team-world
