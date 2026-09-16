@@ -2609,6 +2609,7 @@ packages:
     resolution:
       {
         tarball: https://github.com/dafepro/zmap-avatar-studio/releases/download/v0.1.1/zmap-avatar-studio-0.1.1.tgz,
+        integrity: sha512-BLFTRVFL/7ZsPuOoWaT3fKC5JVDs3nyvNceq8p6YxmX/hXwsl1BNMkFsXpxQe1cDcYVMzg3Ps+ieAloLnTepHA==,
       }
     version: 0.1.1
     peerDependencies:
@@ -6164,6 +6165,7 @@ packages:
     resolution:
       {
         tarball: https://github.com/dafepro/zmap/releases/download/v0.1.2/zmap-0.1.2.tgz,
+        integrity: sha512-5NxEUiZw2Sl15JbyJ6horybzTweLoVcGzxPAOGcsF5be75ReKi2TV2hrm2U8AytdwP+UFeSyvZ9QXYUyMNii1Q==,
       }
     version: 0.1.2
 
