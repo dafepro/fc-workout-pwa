@@ -15,6 +15,7 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
     baseURL: process.env.E2E_PWA_BASE_URL,
   });
   const other = await friend.newPage();
+  const diagnostics = [observeWorld(page), observeWorld(other)];
   const entries: { page: Page; id: string }[] = [];
   const state: { session?: string; simulation?: Simulation } = {};
   const peer: { simulation?: Simulation } = {};
@@ -106,6 +107,12 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
     await expect(other.getByText("1 player", { exact: true })).toBeVisible({
       timeout: 10000,
     });
+  } catch (error) {
+    console.log(
+      "WORLD_DIAGNOSTICS",
+      JSON.stringify(await Promise.all(diagnostics.map((d) => d.snapshot()))),
+    );
+    throw error;
   } finally {
     await page.keyboard.up("d");
     for (const { page: p, id } of entries) {
@@ -120,3 +127,68 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
 });
 // These runs visit live dev credentials; retain no authentication artifacts.
 test.use({ trace: "off", screenshot: "off", video: "off" });
+
+function observeWorld(page: Page) {
+  const counts: Record<string, number> = {};
+  const count = (key: string) => {
+    counts[key] = (counts[key] ?? 0) + 1;
+  };
+  let host: boolean | undefined;
+  let epoch: number | undefined;
+  let tick: number | undefined;
+  let eligible: boolean | undefined;
+  page.on("response", (r) => {
+    const path = new URL(r.url()).pathname;
+    if (path.endsWith("/world/ticket")) count(`ticket:${r.status()}`);
+    if (path.startsWith("/team-world-assets/")) count(`asset:${r.status()}`);
+  });
+  page.on("pageerror", () => count("pageError"));
+  page.on("console", (message) => {
+    if (/WebGL|GPU|ReadPixels|context lost/i.test(message.text()))
+      count("graphics:" + message.type());
+  });
+  page.on("websocket", (socket) => {
+    if (new URL(socket.url()).pathname !== "/room") return;
+    count("socketOpen");
+    socket.on("close", () => count("socketClose"));
+    socket.on("socketerror", () => count("socketError"));
+    socket.on("framesent", ({ payload }) => {
+      const m = JSON.parse(String(payload));
+      if (m.type === "heartbeat") {
+        count("heartbeat:" + m.eligible);
+        eligible = m.eligible;
+      }
+    });
+    socket.on("framereceived", ({ payload }) => {
+      const m = JSON.parse(String(payload));
+      if (["welcome", "room", "snapshot", "error", "denied"].includes(m.type))
+        count(m.type);
+      if (m.type === "room") {
+        host = !!m.host;
+        epoch = m.epoch;
+      }
+      if (m.state) tick = m.state.tick;
+    });
+  });
+  return {
+    async snapshot() {
+      return {
+        counts,
+        host,
+        epoch,
+        tick,
+        eligible,
+        browser: await page
+          .evaluate(() => ({
+            hidden: document.hidden,
+            status: document.querySelector('.team-world-bar [role="status"]')
+              ?.textContent,
+            canvases: document.querySelectorAll(".team-world-canvas canvas")
+              .length,
+            viewport: [innerWidth, innerHeight],
+          }))
+          .catch(() => null),
+      };
+    },
+  };
+}
