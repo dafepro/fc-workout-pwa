@@ -131,7 +131,12 @@ export async function loadInteractiveProps(map: WorldMap) {
         ),
         world.view.camera,
       );
-      if (!ray.intersectObject(source, true).length) return false;
+      if (
+        !ray
+          .intersectObject(source, true)
+          .some((hit) => hit.object instanceof THREE.Mesh)
+      )
+        return false;
       const action = this.actions(world).find(
         (a) => a.object === definition.id,
       );

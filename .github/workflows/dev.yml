@@ -142,6 +142,25 @@ jobs:
             --sbom=true \
             --push .
 
+      - name: Prove the isolated Team World image starts
+        env:
+          RELEASE_SHA: ${{ steps.revision.outputs.sha }}
+        run: |
+          docker run --rm \
+            -e TEAM_WORLD_RELAY_KEY=local-container-contract-key-only-123456 \
+            -e TEAM_WORLD_ALLOWED_ORIGIN=http://localhost:3005 \
+            -e TEAM_WORLD_API_URL=http://127.0.0.1:19080 \
+            --entrypoint node \
+            "ghcr.io/${{ github.repository }}/api:world-dev-$RELEASE_SHA" \
+            --input-type=module -e '
+              import assert from "node:assert/strict";
+              await import("./services/team-world/server.mjs");
+              const response = await fetch("http://127.0.0.1:8795/healthz");
+              assert.equal(response.status, 200);
+              console.log("Isolated Team World image is healthy");
+              process.exit(0);
+            '
+
       - uses: actions/upload-artifact@v4
         with:
           name: dev-worker-${{ steps.revision.outputs.sha }}
