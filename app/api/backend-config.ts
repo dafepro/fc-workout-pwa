@@ -9,7 +9,10 @@ export function resolveBackendBaseURL(
   if (!value) return null;
 
   const parsed = new URL(value);
-  if (parsed.protocol !== "https:" && parsed.hostname !== "api") {
+  const local = ["api", "localhost", "127.0.0.1", "[::1]"].includes(
+    parsed.hostname,
+  );
+  if (parsed.protocol !== "https:" && !(parsed.protocol === "http:" && local)) {
     throw new Error("ZOOMIGO_API_BASE_URL must use HTTPS");
   }
   return value;

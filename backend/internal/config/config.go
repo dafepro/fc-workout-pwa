@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/base64"
 	"fmt"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -38,6 +39,8 @@ const (
 )
 
 type Config struct {
+	TeamWorldRelayKey  string
+	TeamWorldRelayURL  string
 	Environment        string
 	Port               int
 	MetricsPort        int
@@ -76,6 +79,8 @@ type Config struct {
 
 func Load(getenv func(string) string) (Config, error) {
 	cfg := Config{
+		TeamWorldRelayKey:  getenv("TEAM_WORLD_RELAY_KEY"),
+		TeamWorldRelayURL:  strings.TrimSpace(getenv("TEAM_WORLD_RELAY_URL")),
 		Environment:        valueOrDefault(getenv("APP_ENV"), "development"),
 		DatabaseURL:        valueOrDefault(getenv("DATABASE_URL"), defaultDatabaseURL),
 		RewardMediaDir:     valueOrDefault(strings.TrimSpace(getenv("REWARD_MEDIA_DIR")), defaultRewardMediaDir),
@@ -91,6 +96,12 @@ func Load(getenv func(string) string) (Config, error) {
 		PlayerLoginURL:     strings.TrimSpace(getenv("PLAYER_LOGIN_URL")),
 		StaffSetupURL:      strings.TrimSpace(getenv("STAFF_SETUP_URL")),
 		ReleaseSHA:         valueOrDefault(strings.TrimSpace(getenv("RELEASE_SHA")), "unknown"),
+	}
+	if cfg.TeamWorldRelayKey != "" || cfg.TeamWorldRelayURL != "" {
+		u, err := url.Parse(cfg.TeamWorldRelayURL)
+		if err != nil || len(cfg.TeamWorldRelayKey) < 32 || u == nil || u.Hostname() == "" || u.Path != "/room" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || !(u.Scheme == "wss" || (u.Scheme == "ws" && (u.Hostname() == "localhost" || u.Hostname() == "127.0.0.1" || u.Hostname() == "::1"))) {
+			return Config{}, fmt.Errorf("TEAM_WORLD_RELAY_KEY needs 32 characters and TEAM_WORLD_RELAY_URL must be a wss /room URL (ws only on loopback)")
+		}
 	}
 	cfg.ProductionDataApproved = getenv("PRODUCTION_DATA_APPROVED") == "true"
 	if cfg.CanvasReplicaID != "" && !canvasReplicaIDPattern.MatchString(cfg.CanvasReplicaID) {

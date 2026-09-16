@@ -21,6 +21,7 @@ export function PlayerShell({ children }: { children: React.ReactNode }) {
   const searchParameters = useSearchParams();
   const { currentPlayer: player } = useAuth();
   const focused =
+    pathname === "/team-world" ||
     pathname === routes.playerAvatar ||
     (pathname === "/team" && searchParameters.get("view") === "lounge");
 

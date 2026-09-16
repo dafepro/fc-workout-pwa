@@ -1,0 +1,9 @@
+# Targeted integration overlay; start only api, then run the host PWA and relay.
+services:
+  api:
+    ports:
+      - "127.0.0.1:19080:8080"
+    environment:
+      ALLOWED_ORIGIN: http://127.0.0.1:3005
+      TEAM_WORLD_RELAY_KEY: local-team-world-integration-key-only
+      TEAM_WORLD_RELAY_URL: ws://127.0.0.1:8795/room

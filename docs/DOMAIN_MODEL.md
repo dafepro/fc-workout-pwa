@@ -118,3 +118,16 @@ cannot select or inherit that adapter.
 Backup snapshots and logical exports contain private hashed credentials and
 sessions as well as product data. They receive the same protection as the live
 database and leave the host only inside an age-encrypted envelope.
+
+## Team World v3 integration
+
+Each team has an isolated v3 room identifier derived from its team ID. The Go
+API owns session, membership and participation authorization; the Node relay
+accepts short-lived one-use join tickets and private continuing-access grants.
+These credentials are ephemeral and are not new durable domain records.
+
+Shared movement, balls, equipment and expressions remain transient. World
+physics does not award training credit or inventory. Canvas appearance/layout
+state remains separate; a versioned v3 recipe and transactional layout store
+are required before enabling those persistence features. See
+[TEAM_WORLD.md](TEAM_WORLD.md).

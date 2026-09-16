@@ -1,0 +1,255 @@
+{
+  "version": 1,
+  "id": "team-world-courtyard-v3",
+  "bounds": {
+    "x": -12,
+    "z": -10,
+    "width": 24,
+    "depth": 24
+  },
+  "spawn": {
+    "x": -2,
+    "y": 0,
+    "z": -3
+  },
+  "surfaces": [
+    {
+      "id": "yard",
+      "x": -12,
+      "z": -10,
+      "width": 24,
+      "depth": 24,
+      "y": 0,
+      "thickness": 0.3,
+      "color": "#d6dbc9",
+      "rollingResistance": 0.4
+    },
+    {
+      "id": "overpass",
+      "x": -5,
+      "z": 7,
+      "width": 10,
+      "depth": 2.4,
+      "y": 2.8,
+      "thickness": 0.3,
+      "color": "#c9bda3"
+    },
+    {
+      "id": "ramp",
+      "x": -5,
+      "z": 1,
+      "width": 2,
+      "depth": 6,
+      "y": 0,
+      "slope": 0.4666666666666666,
+      "thickness": 0.2,
+      "color": "#c29c6e"
+    }
+  ],
+  "blockers": [
+    {
+      "x": 1.8,
+      "z": -0.7,
+      "width": 0.35,
+      "depth": 4.7,
+      "y": 0,
+      "height": 1.7
+    },
+    {
+      "x": -9,
+      "z": 6,
+      "width": 1.7,
+      "depth": 0.6,
+      "y": 0,
+      "height": 1.2
+    }
+  ],
+  "toys": [
+    {
+      "id": "cannon-ball",
+      "home": {
+        "x": 6,
+        "y": 0,
+        "z": -6.35
+      },
+      "radius": 0.35,
+      "color": "#efba47",
+      "sleep": "home",
+      "restitution": 0.78
+    },
+    {
+      "id": "ball",
+      "home": {
+        "x": -2,
+        "y": 0,
+        "z": 1.5
+      },
+      "radius": 0.32,
+      "color": "#c8794e",
+      "sleep": "home",
+      "restitution": 0.72
+    },
+    {
+      "id": "blue-ball",
+      "home": {
+        "x": 4.5,
+        "y": 0,
+        "z": 1.5
+      },
+      "radius": 0.4,
+      "color": "#487b8a",
+      "sleep": "home",
+      "restitution": 0.7
+    },
+    {
+      "id": "practice-ball",
+      "home": {
+        "x": -7,
+        "y": 0,
+        "z": 3
+      },
+      "radius": 0.35,
+      "color": "#d6b451",
+      "sleep": "home",
+      "restitution": 0.68
+    }
+  ],
+  "triggers": [],
+  "placementZones": [],
+  "protectedZones": [],
+  "actionCatalog": {
+    "version": 1,
+    "tools": [
+      {
+        "id": "tether-winch",
+        "range": 5.5,
+        "strength": 10,
+        "cooldownTicks": 18
+      },
+      {
+        "id": "rebound-panel",
+        "range": 1.8,
+        "strength": 7,
+        "cooldownTicks": 18
+      },
+      {
+        "id": "wake-driver",
+        "range": 3,
+        "strength": 5,
+        "cooldownTicks": 60
+      }
+    ],
+    "performance": {
+      "emotes": [
+        {
+          "id": "wave",
+          "durationTicks": 65
+        },
+        {
+          "id": "cheer",
+          "durationTicks": 50
+        },
+        {
+          "id": "dance",
+          "durationTicks": 90
+        },
+        {
+          "id": "yes",
+          "durationTicks": 75
+        },
+        {
+          "id": "no",
+          "durationTicks": 75
+        }
+      ],
+      "drawTicks": 30,
+      "stowTicks": 30
+    }
+  },
+  "objects": [
+    {
+      "id": "courtyard-cannon",
+      "behavior": "cannon",
+      "version": 1,
+      "position": {
+        "x": 6,
+        "y": 0,
+        "z": -4
+      },
+      "rotation": 0,
+      "config": {
+        "acceptedToys": ["cannon-ball", "ball", "blue-ball", "practice-ball"],
+        "intake": {
+          "x": 0,
+          "y": 0.85,
+          "z": -1.12
+        },
+        "intakeSize": {
+          "x": 0.76,
+          "y": 1.2,
+          "z": 0.5
+        },
+        "muzzle": {
+          "x": 0,
+          "y": 0.85,
+          "z": 1.32
+        },
+        "fuseTicks": 24,
+        "cooldownTicks": 23,
+        "speed": 14
+      },
+      "playerColliders": [
+        {
+          "center": {
+            "x": 0,
+            "y": 0.9,
+            "z": 0
+          },
+          "size": {
+            "x": 1.85,
+            "y": 1.8,
+            "z": 2.25
+          }
+        }
+      ],
+      "toyColliders": [
+        {
+          "center": {
+            "x": -0.7,
+            "y": 0.36,
+            "z": 0.18
+          },
+          "size": {
+            "x": 0.25,
+            "y": 0.72,
+            "z": 0.72
+          }
+        },
+        {
+          "center": {
+            "x": 0.7,
+            "y": 0.36,
+            "z": 0.18
+          },
+          "size": {
+            "x": 0.25,
+            "y": 0.72,
+            "z": 0.72
+          }
+        },
+        {
+          "center": {
+            "x": 0,
+            "y": 0.5,
+            "z": 0.68
+          },
+          "size": {
+            "x": 0.95,
+            "y": 1,
+            "z": 0.3
+          }
+        }
+      ]
+    }
+  ]
+}

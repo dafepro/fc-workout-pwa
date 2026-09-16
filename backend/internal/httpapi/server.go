@@ -43,6 +43,7 @@ type errorBody struct {
 }
 
 type service struct {
+	worldGrants     *worldGrants
 	cfg             config.Config
 	store           Repository
 	authenticator   authn.Authenticator
@@ -130,7 +131,13 @@ func NewHandler(cfg config.Config, options ...Option) http.Handler {
 	}
 	service.teamLoungeRooms = service.buildTeamLoungeRoomHandler()
 
+	if len(cfg.TeamWorldRelayKey) >= 32 && cfg.TeamWorldRelayURL != "" {
+		service.worldGrants = &worldGrants{values: make(map[[32]byte]worldGrant)}
+	}
 	mux := http.NewServeMux()
+	mux.HandleFunc("POST /v1/teams/{teamId}/world/ticket", service.createWorldTicket)
+	mux.HandleFunc("POST /internal/team-world/join", service.joinWorld)
+	mux.HandleFunc("POST /internal/team-world/access", service.worldAccess)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, healthResponse{Status: "ok"})
 	})
