@@ -1,7 +1,6 @@
 # Team World v3
 
-**Status:** Maintained — connected first playable on the integration branch;
-not deployed or pilot-qualified.
+**Status:** Maintained — connected first playable deployed to dev; not pilot-qualified.
 
 ## What is implemented
 
@@ -43,7 +42,8 @@ state is converted, shared, dual-written or selected as a fallback.
 Run one API writer and one relay. API restart invalidates ephemeral grants;
 relay restart drops transient rooms. Normal socket reconnect obtains fresh
 credentials; terminal access denial presents an explicit retry. Production
-restart/rollback qualification and deployed TLS/origin configuration remain open.
+restart/rollback qualification remains open. Dev uses the gated same-origin
+WebSocket topology described in `DEV_ENVIRONMENT.md`.
 
 ## Run the isolated local integration
 
@@ -119,3 +119,26 @@ Continue with these active integration gates before a pilot:
    topology documented in `DEV_ENVIRONMENT.md`. Production remains unchanged.
 5. Measure representative phone rendering, input/recovery percentiles, room load
    and cost. No physical-device qualification is claimed.
+
+## Verified dev deployment
+
+Dev serves application `c73cc5bf14070bc2c4146c720ec692d73293f7a7`, which includes
+the previously deployed baseline `7853c13a4e2c6c15fe6a27e1bb7a3f1ad32cc437`.
+The update preserved the database and skipped fixture reset. The
+[deployment run](https://github.com/dafepro/fc-workout-pwa/actions/runs/35042536066)
+passed build, strict package-integrity policy, API tests in both build modes,
+Caddy validation, relay health, exact API revision and the existing Canvas
+Lounge browser proof. Production was not deployed.
+
+The new public two-player test passed against that same deployment in local
+Chrome (15.9 seconds), including gated sign-in, qualified entry, peer movement,
+equipment, shared expression and departure. Its Linux CI run timed out waiting
+for the world to become ready, so the aggregate workflow is **failed**, despite
+the successful deployment. This remains an open browser qualification issue;
+the local pass does not establish Linux or phone performance. No assertion or
+runtime stall threshold was relaxed.
+
+For manual review, open <https://dev.zoomigo.quicktrack.cc/team-world>, enter the
+shared preview password, choose a fixture player, and use PIN `1111`. Log an
+activity to satisfy the existing participation gate, then open **Team → Team
+World**. Use another browser profile for a second player.
