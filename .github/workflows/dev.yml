@@ -180,7 +180,7 @@ jobs:
           node-version: 22.20.0
           cache: pnpm
 
-      - uses: opentofu/setup-opentofu@v1
+      - uses: opentofu/setup-opentofu@v2
         with:
           tofu_version: 1.10.6
 
