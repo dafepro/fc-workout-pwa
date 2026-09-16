@@ -1,6 +1,27 @@
 import { expect, request, test, type Page } from "@playwright/test";
 import type { Simulation } from "zmap";
-import { loginAsMason, loginAsAva } from "./app-ready";
+import {
+  loginAsMason as signInMason,
+  loginAsAva as signInAva,
+} from "./app-ready";
+
+async function qualify(page: Page, login: (page: Page) => Promise<void>) {
+  await login(page);
+  await page.goto("/log/additional");
+  await page
+    .getByRole("button", { name: "Choose an activity", exact: true })
+    .click();
+  await page.getByRole("radio", { name: /^Hill Sprints/i }).click();
+  const saved = page.waitForResponse(
+    (r) =>
+      r.url().includes("/api/zoomigo/v1/me/training-entries") &&
+      r.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: /^Save / }).click();
+  expect((await saved).status()).toBe(201);
+}
+const loginAsMason = (page: Page) => qualify(page, signInMason);
+const loginAsAva = (page: Page) => qualify(page, signInAva);
 
 const apiURL = process.env.E2E_API_BASE_URL ?? "http://api:8080";
 const resetKey = process.env.E2E_RESET_KEY ?? "local-e2e-reset-only";
@@ -240,4 +261,123 @@ test("idle overlays avoid frame-by-frame DOM churn and fullscreen respects the r
     .locator("canvas")
     .evaluate((canvas: HTMLCanvasElement) => canvas.width * canvas.height);
   expect(pixels).toBeLessThanOrEqual(1_500_001);
+});
+
+test("nearby item actions share lamp state with a teammate", async ({
+  page,
+  browser,
+}) => {
+  test.setTimeout(60000);
+  const a = observe(page);
+  await loginAsMason(page);
+  await page.goto("/team-world");
+  await expect(page.getByText("Live together", { exact: true })).toBeVisible();
+  const friend = await browser.newContext();
+  const b = await friend.newPage();
+  const peer = observe(b);
+  try {
+    await loginAsAva(b);
+    await b.goto("/team-world");
+    await expect(b.getByText("Live together", { exact: true })).toBeVisible();
+    await page
+      .getByRole("button", { name: "Turn courtyard lamp on", exact: true })
+      .click();
+    await expect
+      .poll(
+        () =>
+          (
+            peer.state?.objects?.instances["courtyard-lamp"] as
+              | { on: boolean }
+              | undefined
+          )?.on,
+      )
+      .toBe(true);
+    await expect(
+      b.getByRole("button", { name: "Turn courtyard lamp off", exact: true }),
+    ).toBeVisible();
+    await b
+      .getByRole("button", { name: "Turn courtyard lamp off", exact: true })
+      .click();
+    await expect
+      .poll(
+        () =>
+          (
+            a.state?.objects?.instances["courtyard-lamp"] as
+              | { on: boolean }
+              | undefined
+          )?.on,
+      )
+      .toBe(false);
+    await page.locator(".team-world-canvas canvas").focus();
+    await page.keyboard.down("a");
+    await expect(
+      page.getByRole("button", { name: "Turn courtyard lamp on", exact: true }),
+    ).toBeHidden();
+    await page.keyboard.up("a");
+    expect(a.errors).toEqual([]);
+    expect(peer.errors).toEqual([]);
+  } finally {
+    await friend.close();
+  }
+});
+
+test("hold steering follows cursor and joystick automatically selects a continuous pace", async ({
+  page,
+}) => {
+  const inputs: { x: number; z: number; sprint?: boolean }[] = [];
+  page.on("websocket", (socket) =>
+    socket.on("framesent", ({ payload }) => {
+      const m = JSON.parse(String(payload));
+      if (m.type === "input") inputs.push(m.input);
+    }),
+  );
+  await loginAsMason(page);
+  await page.goto("/team-world");
+  await expect(page.getByText("Live together", { exact: true })).toBeVisible();
+  const canvas = page.locator(".team-world-canvas canvas");
+  const box = (await canvas.boundingBox())!;
+  await page.mouse.move(box.x + box.width * 0.7, box.y + box.height * 0.65);
+  await page.mouse.down();
+  await expect
+    .poll(() => inputs.some((i) => Math.hypot(i.x, i.z) > 0.2))
+    .toBe(true);
+  const beforeTurn = inputs.at(-1)!;
+  inputs.length = 0;
+  await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.65);
+  await expect
+    .poll(() =>
+      inputs.some((i) => i.x * beforeTurn.x + i.z * beforeTurn.z < -0.02),
+    )
+    .toBe(true);
+  await page.mouse.up();
+  await expect
+    .poll(() => Math.hypot(inputs.at(-1)?.x ?? 1, inputs.at(-1)?.z ?? 1))
+    .toBe(0);
+  await page
+    .locator("summary")
+    .filter({ hasText: /^Move & play$/ })
+    .click();
+  await page
+    .getByRole("combobox", { name: "Movement mode" })
+    .selectOption("joystick");
+  await page
+    .locator("summary")
+    .filter({ hasText: /^Move & play$/ })
+    .click();
+  const pad = (await page.locator(".team-world-stick").boundingBox())!;
+  const x = pad.x + pad.width / 2,
+    y = pad.y + pad.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + 15, y);
+  await expect
+    .poll(() => Math.hypot(inputs.at(-1)?.x ?? 0, inputs.at(-1)?.z ?? 0))
+    .toBeGreaterThan(0.1);
+  expect(inputs.at(-1)?.sprint).not.toBe(true);
+  await page.mouse.move(x + 35, y);
+  await expect.poll(() => inputs.at(-1)?.sprint).toBe(true);
+  await page.mouse.up();
+  await expect
+    .poll(() => Math.hypot(inputs.at(-1)?.x ?? 1, inputs.at(-1)?.z ?? 1))
+    .toBe(0);
 });

@@ -96,6 +96,25 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
     await expect
       .poll(() => peer.simulation?.players[state.session!]?.x)
       .not.toBeUndefined();
+    stage = "shared-lamp";
+    const lamp = page.getByRole("button", {
+      name: /^Turn courtyard lamp (on|off)$/,
+    });
+    const initialLabel = (await lamp.textContent())!;
+    const changedLabel = initialLabel.endsWith("on")
+      ? "Turn courtyard lamp off"
+      : "Turn courtyard lamp on";
+    await lamp.click();
+    await expect(
+      other.getByRole("button", { name: changedLabel, exact: true }),
+    ).toBeVisible();
+    await other
+      .getByRole("button", { name: changedLabel, exact: true })
+      .click();
+    await expect(
+      page.getByRole("button", { name: initialLabel, exact: true }),
+    ).toBeVisible();
+    stage = "movement-equipment";
     const start = peer.simulation!.players[state.session!];
     await page.locator(".team-world-canvas canvas").focus();
     await page.keyboard.down("d");

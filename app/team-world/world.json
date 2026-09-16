@@ -164,7 +164,19 @@
       ],
       "drawTicks": 30,
       "stowTicks": 30
-    }
+    },
+    "interactions": [
+      {
+        "object": "courtyard-lamp",
+        "action": "toggle",
+        "range": 2.2,
+        "point": {
+          "x": 0,
+          "y": 0.8,
+          "z": 0
+        }
+      }
+    ]
   },
   "objects": [
     {
@@ -247,6 +259,48 @@
             "x": 0.95,
             "y": 1,
             "z": 0.3
+          }
+        }
+      ]
+    },
+    {
+      "id": "courtyard-lamp",
+      "behavior": "switch",
+      "version": 1,
+      "position": {
+        "x": -1,
+        "y": 0,
+        "z": -3.6
+      },
+      "rotation": 0,
+      "config": {
+        "initialOn": false
+      },
+      "playerColliders": [
+        {
+          "center": {
+            "x": 0,
+            "y": 0.2,
+            "z": 0
+          },
+          "size": {
+            "x": 0.35,
+            "y": 0.4,
+            "z": 0.35
+          }
+        }
+      ],
+      "toyColliders": [
+        {
+          "center": {
+            "x": 0,
+            "y": 1.2,
+            "z": 0
+          },
+          "size": {
+            "x": 0.35,
+            "y": 2.4,
+            "z": 0.35
           }
         }
       ]
