@@ -1,7 +1,6 @@
 import { worldCopy } from "../copy";
 import * as THREE from "three";
 import {
-  findWalkPath,
   canWalkSegment,
   actionMovementLocked,
   WALK_SPEED,
@@ -11,6 +10,7 @@ import {
   type Zoomap,
 } from "zmap";
 import { inside } from "zmap/core";
+import { campusPath } from "./campus-navigation";
 
 /** Pick the visible walk surface, including a ramp or bridge above the ground. */
 export function pickWalkSurface(
@@ -179,7 +179,7 @@ export function createNavigationControls(
           ],
         }
       : map;
-    const result = findWalkPath(routingMap, world.local, destination, {
+    const result = campusPath(routingMap, world.local, destination, {
       items: world.durable.items,
       catalog: world.options.catalog,
     });

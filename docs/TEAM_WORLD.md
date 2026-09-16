@@ -1,17 +1,24 @@
 # Team World v3
 
-**Status:** Maintained — connected first playable deployed to dev; not pilot-qualified.
+**Status:** Maintained — campus validated locally; shared deployment pending, not pilot-qualified.
 
 ## What is implemented
 
-`/team-world` lazily loads zmap 0.1.3 and Avatar Studio 0.1.1 from pinned GitHub
+`/team-world` lazily loads zmap 0.1.4 and Avatar Studio 0.1.2 from pinned GitHub
 Release tarballs. The development Team hub exposes a Team World link after the
 existing check-in gate. Production navigation is unchanged during qualification.
 
-The approved Fieldwork courtyard includes the cannon, shared balls, three
+The textured team campus includes two pitches, furnished terraces, ramps and a
+bridge/underpass. Its app-owned Blender sources produce the same terrain and
+solid furniture envelopes used by the client and relay. The campus preserves the cannon, shared balls, three
 field tools, click/tap paths, joystick, keyboard movement, sprint, emotes and
 draw/stow. The three reviewed example appearances are selected server-side by a
 stable player-ID hash. This is not yet a saved modular appearance editor.
+
+See [campus ownership and follow-ups](TEAM_WORLD_CAMPUS_TODO.md) for the current
+package split, map extent, remaining view/navigation design work and rollout
+constraints. [Campus provenance](../assets/team-world/campus/PROVENANCE.md)
+records reused CC0 models, generated texture prompts and the Blender rebuild.
 
 `app/team-world/adapters/` owns the mapping from accepted world actions to avatar
 and cannon presentation and pointer controls. It imports public packages; no

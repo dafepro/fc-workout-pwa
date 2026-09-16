@@ -18,3 +18,10 @@ await cp(
   new URL("public/team-world-assets/kenney/", root),
   { recursive: true },
 );
+
+const campus = new URL("public/team-world-assets/campus-v1/", root);
+await mkdir(campus, { recursive: true });
+await cp(
+  new URL("assets/team-world/campus/models/team-campus.glb", root),
+  new URL("team-campus.glb", campus),
+);

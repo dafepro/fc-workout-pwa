@@ -16,6 +16,7 @@ import {
 } from "zmap";
 import { loadActionKit } from "./adapters/characters";
 import { loadCannonKit } from "./adapters/cannon";
+import { loadCampus } from "./adapters/campus";
 import {
   createNavigationControls,
   type MovementMode,
@@ -63,6 +64,7 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
     let kit: Awaited<ReturnType<typeof loadActionKit>> | undefined;
     let cannon: Awaited<ReturnType<typeof loadCannonKit>> | undefined;
     let props: Awaited<ReturnType<typeof loadInteractiveProps>> | undefined;
+    let campus: Awaited<ReturnType<typeof loadCampus>> | undefined;
     let current: Zoomap | undefined;
     let movement: ReturnType<typeof createNavigationControls> | undefined;
     const controller = new AbortController();
@@ -70,6 +72,7 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
       clearInterval(controlsTimer);
       viewportObserver?.disconnect();
       movement?.dispose();
+      campus?.dispose();
       current?.dispose();
       cannon?.dispose();
       props?.dispose();
@@ -98,6 +101,11 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
         dispose();
         return;
       }
+      campus = await loadCampus(controller.signal);
+      if (cancelled) {
+        dispose();
+        return;
+      }
       current = new Zoomap({
         container: container.current!,
         map,
@@ -107,6 +115,7 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
           character: kit.character,
           scenery: (scene, m) => {
             kit!.scenery(scene, m);
+            campus!.scenery(scene);
             cannon!.scenery(scene);
             props!.scenery(scene);
           },

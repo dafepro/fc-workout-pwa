@@ -590,55 +590,10 @@ export async function loadActionKit(
       },
     };
   }
-  function scenery(scene: THREE.Scene, map: WorldMap) {
+  function scenery(_scene: THREE.Scene, map: WorldMap) {
     for (const object of map.objects ?? [])
       if (object.behavior === "cannon") cannonIds.add(object.id);
     for (const toy of map.toys) toyRadii.set(toy.id, toy.radius);
-    for (const b of map.blockers) {
-      const object = new THREE.Mesh(
-        new THREE.BoxGeometry(b.width, b.height, b.depth),
-        new THREE.MeshStandardMaterial({
-          color: "#54717a",
-          roughness: 1,
-          flatShading: true,
-        }),
-      );
-      object.position.set(
-        b.x + b.width / 2,
-        b.y + b.height / 2,
-        b.z + b.depth / 2,
-      );
-      scene.add(object);
-      const edges = new THREE.LineSegments(
-        new THREE.EdgesGeometry(object.geometry),
-        new THREE.LineBasicMaterial({ color: "#23373d" }),
-      );
-      object.add(edges);
-    }
-    const grid = new THREE.GridHelper(
-      Math.max(map.bounds.width, map.bounds.depth),
-      20,
-      "#abb7ad",
-      "#c4ccc0",
-    );
-    grid.position.set(
-      map.bounds.x + map.bounds.width / 2,
-      0.011,
-      map.bounds.z + map.bounds.depth / 2,
-    );
-    scene.add(grid);
-    for (const toy of map.toys) {
-      const target = new THREE.Mesh(
-        new THREE.RingGeometry(0.62, 0.66, 40),
-        new THREE.MeshBasicMaterial({
-          color: "#c29243",
-          side: THREE.DoubleSide,
-        }),
-      );
-      target.rotation.x = -Math.PI / 2;
-      target.position.set(toy.home.x, toy.home.y + 0.014, toy.home.z);
-      scene.add(target);
-    }
   }
   return {
     character,

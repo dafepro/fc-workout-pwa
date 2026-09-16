@@ -191,7 +191,7 @@ See [STAFF_CONSOLE.md](STAFF_CONSOLE.md).
 ## Team World v3 (`/team-world`)
 
 The integration branch includes connected shared play in the approved Fieldwork
-courtyard, with click/tap paths, joystick, sprint, equipment and predefined
+textured campus with two pitches, furnished terraces and a bridge, with click/tap paths, joystick, sprint, equipment and predefined
 expressions. Entry requires a real session, current team membership and the
 existing participation gate. Only development navigation advertises this route
 while qualification continues. Loading, paused and denied states disable play;
