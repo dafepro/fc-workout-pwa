@@ -231,6 +231,21 @@ function observeWorld(page: Page) {
             canvases: document.querySelectorAll(".team-world-canvas canvas")
               .length,
             viewport: [innerWidth, innerHeight],
+            frames: (window as Window & { worldFrameProbe?: unknown })
+              .worldFrameProbe,
+            graphics: (() => {
+              const canvas = document.querySelector<HTMLCanvasElement>(
+                ".team-world-canvas canvas",
+              );
+              const gl = canvas?.getContext("webgl2");
+              const info = gl?.getExtension("WEBGL_debug_renderer_info");
+              return {
+                width: canvas?.width,
+                height: canvas?.height,
+                renderer:
+                  info && gl?.getParameter(info.UNMASKED_RENDERER_WEBGL),
+              };
+            })(),
           }))
           .catch(() => null),
       };
