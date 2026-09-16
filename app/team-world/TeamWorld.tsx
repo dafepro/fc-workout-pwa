@@ -1,9 +1,14 @@
 "use client";
+import {
+  loadInteractiveProps,
+  type ItemAction,
+} from "./adapters/interactive-props";
 import { useEffect, useRef, useState } from "react";
 import { useFullscreen } from "../components/use-fullscreen";
 import {
   Zoomap,
   cannonBehavior,
+  switchBehavior,
   performanceUsable,
   type ToolId,
   type WorldMap,
@@ -20,7 +25,7 @@ import mapJSON from "./world.json";
 import { worldCopy as copy } from "./copy";
 import "./world.css";
 import { renderPixelRatio } from "./render-budget";
-const map = mapJSON as WorldMap;
+const map = mapJSON as unknown as WorldMap;
 function setCameraZoom(world: Zoomap, zoom: number) {
   world.view.camera.zoom = zoom;
   world.view.camera.updateProjectionMatrix();
@@ -47,6 +52,7 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
     [attempt, setAttempt] = useState(0),
     [people, setPeople] = useState(0),
     [mode, setMode] = useState<MovementMode>("path");
+  const [itemActions, setItemActions] = useState<ItemAction[]>([]);
   const [toolReady, setToolReady] = useState(false);
   const [selectedTool, setSelectedTool] = useState("");
   const [drawn, setDrawn] = useState(true);
@@ -56,6 +62,7 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
     let controlsTimer: ReturnType<typeof setInterval> | undefined;
     let kit: Awaited<ReturnType<typeof loadActionKit>> | undefined;
     let cannon: Awaited<ReturnType<typeof loadCannonKit>> | undefined;
+    let props: Awaited<ReturnType<typeof loadInteractiveProps>> | undefined;
     let current: Zoomap | undefined;
     let movement: ReturnType<typeof createNavigationControls> | undefined;
     const controller = new AbortController();
@@ -65,6 +72,7 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
       movement?.dispose();
       current?.dispose();
       cannon?.dispose();
+      props?.dispose();
       kit?.dispose();
     };
     void (async () => {
@@ -85,18 +93,27 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
         dispose();
         return;
       }
+      props = await loadInteractiveProps(map);
+      if (cancelled) {
+        dispose();
+        return;
+      }
       current = new Zoomap({
         container: container.current!,
         map,
         catalog: [],
-        objectBehaviors: [cannonBehavior],
+        objectBehaviors: [cannonBehavior, switchBehavior],
         visuals: {
           character: kit.character,
           scenery: (scene, m) => {
             kit!.scenery(scene, m);
             cannon!.scenery(scene);
+            props!.scenery(scene);
           },
-          frame: cannon.frame,
+          frame: (context) => {
+            cannon!.frame(context);
+            props!.frame(context);
+          },
         },
         onStatus: (s) => {
           if (!cancelled) setStatus(s);
@@ -119,7 +136,14 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
       viewportObserver = new ResizeObserver(resizeBudget);
       viewportObserver.observe(container.current!);
       resizeBudget();
+      let previousActions = "";
       controlsTimer = setInterval(() => {
+        const actions = props!.actions(current!);
+        const key = JSON.stringify(actions);
+        if (key !== previousActions) {
+          previousActions = key;
+          setItemActions(actions);
+        }
         const action = current?.state.actions?.players[current.session];
         setSelectedTool(action?.tool ?? "");
         setDrawn(action?.performance?.drawn ?? true);
@@ -137,6 +161,7 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
         status: hint.current!,
         stop: stop.current!,
         sprint: sprint.current!,
+        interactAt: (x, y) => props!.interactAt(current!, x, y),
       });
       navigation.current = movement;
       await current.enter({
@@ -250,6 +275,23 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
             {copy.use}
           </button>
         </div>
+        <div
+          className="team-world-item-actions"
+          aria-label="Nearby items"
+          role="group"
+        >
+          {itemActions.map((action) => (
+            <button
+              key={`${action.object}:${action.action}`}
+              disabled={!ready || action.disabled}
+              onClick={() =>
+                run((w) => w.interact(action.object, action.action))
+              }
+            >
+              {action.label}
+            </button>
+          ))}
+        </div>
         <div className="team-world-dock">
           <details className="team-world-panel" name="team-world-controls">
             <summary>{copy.controls}</summary>
@@ -300,6 +342,7 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
               >
                 {copy.kick}
               </button>
+              <p>{copy.navigation[mode]}</p>
               <p>{copy.hint}</p>
             </div>
           </details>

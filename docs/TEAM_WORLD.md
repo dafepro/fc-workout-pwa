@@ -41,6 +41,29 @@ A local Chrome comparison at 1440×900 CSS pixels, device ratio 2, measured
 over four seconds. Both runs displayed 240 frames, with p95 16.7ms. This reduces
 work; it is not evidence of higher FPS or qualification on slower GPUs/phones.
 
+Tap a nearby destination to walk; longer routes gradually accelerate toward a
+sprint and slow before arrival. Hold on the ground for at least 160ms to steer
+toward the moving cursor; release a hold to stop. Quick taps retain their route.
+The joystick uses its inner range for walking and outer range for sprinting.
+`Pace · walk only` caps either mode. WASD/arrow keys and Shift remain available;
+keyboard movement, blur, pointer cancellation and mode changes cancel steering.
+
+Approved nearby objects expose state-dependent buttons and direct model taps.
+The courtyard lamp uses Kenney's CC0 Furniture Kit `lampSquareFloor.glb`, bundled
+with its original license in `assets/team-world/kenney/`. It drives a real
+point light, emissive shade and depth-tested ground pool. The switch is shared
+transient room state, including late joins and host handoff; the nine-tick
+switch debounce also disables the button briefly. The app supplies the model,
+labels and picking; zmap 0.1.4 owns sequenced commands, approved actions, distance,
+line-of-sight and movement-lock checks. Both relay and browser install the same
+behavior and require the interaction protocol capability.
+
+Avatar Studio 0.1.2 corrects the early ink pass to write depth. A real WebGL
+regression first reproduced disappearing silhouettes behind opaque scenery,
+then verified retained ink, foreground occlusion and clean repeated redraws.
+This addresses an overlap defect, not a claim that every display's motion
+smearing has been reproduced or eliminated.
+
 ## Authority and deployment boundary
 
 The frontend remains Vinext/Cloudflare. `services/team-world/server.mjs` is a
@@ -142,9 +165,9 @@ Continue with these active integration gates before a pilot:
 5. Measure representative phone rendering, input/recovery percentiles, room load
    and cost. No physical-device qualification is claimed.
 
-## Verified dev deployment
+## Earlier dev deployment evidence
 
-Dev serves application `ab5d47cd676120fab500146ec5e2ee199fdeec83`, which includes
+The earlier dev verification used application `ab5d47cd676120fab500146ec5e2ee199fdeec83`, which includes
 the previously deployed baseline `7853c13a4e2c6c15fe6a27e1bb7a3f1ad32cc437`.
 The update preserved the database and skipped fixture reset. The
 [deployment run](https://github.com/dafepro/fc-workout-pwa/actions/runs/35049549374)
@@ -168,7 +191,7 @@ World**. Use another browser profile for a second player.
 
 ## Scheduling update for dev evaluation
 
-The deployed dev revision pins zmap 0.1.3 in both the browser and relay. Simulation
+The earlier scheduling evaluation pinned zmap 0.1.3 in both the browser and relay. Simulation
 advances on an independent 30 Hz timer; rendering uses that clock for smooth
 interpolation and stops during recovery from a main-thread stall. The runtime
 retains its existing eligibility thresholds and requires no database migration.

@@ -57,6 +57,7 @@ export function createNavigationControls(
     status: HTMLElement;
     stop: HTMLButtonElement;
     sprint: HTMLButtonElement;
+    interactAt?: (x: number, y: number) => boolean;
   },
 ) {
   const lifecycle = new AbortController(),
@@ -74,7 +75,23 @@ export function createNavigationControls(
     progressPoint = { x: 0, z: 0 },
     retries = 0,
     stickPointer: number | undefined;
-  let tap: { id: number; x: number; y: number } | undefined;
+  let tap:
+    | { id: number; x: number; y: number; started: number; held: boolean }
+    | undefined;
+  let automaticPace = true,
+    lastSteer = 0,
+    desiredStick = { x: 0, z: 0, gain: 0 },
+    pace = 0,
+    previousFrame = 0;
+  const smooth = (v: number) => {
+    const t = Math.max(0, Math.min(1, v));
+    return t * t * (3 - 2 * t);
+  };
+  const setPace = (speed: number, dt: number) => {
+    pace += Math.max(-8 * dt, Math.min(6 * dt, speed - pace));
+    world.setSprinting(pace > WALK_SPEED);
+    return pace / (pace > WALK_SPEED ? SPRINT_SPEED : WALK_SPEED);
+  };
   const marker = new THREE.Mesh(
     new THREE.RingGeometry(0.17, 0.23, 32),
     new THREE.MeshBasicMaterial({
@@ -104,6 +121,7 @@ export function createNavigationControls(
   const stop = (message: string = hint(), clearSprint = true) => {
     if (dead) return;
     if (clearSprint) world.setSprinting(false);
+    pace = 0;
     if (target || stickPointer !== undefined) world.setWorldInput(0, 0);
     target = null;
     route = [];
@@ -206,7 +224,13 @@ export function createNavigationControls(
       event.preventDefault();
       canvas.focus({ preventScroll: true });
       aim(event);
-      tap = { id: event.pointerId, x: event.clientX, y: event.clientY };
+      tap = {
+        id: event.pointerId,
+        x: event.clientX,
+        y: event.clientY,
+        started: performance.now(),
+        held: false,
+      };
       canvas.setPointerCapture(event.pointerId);
     },
     { signal },
@@ -214,7 +238,12 @@ export function createNavigationControls(
   canvas.addEventListener(
     "pointermove",
     (event) => {
-      if (event.pointerType === "mouse") aim(event);
+      if (event.pointerType === "mouse" || tap?.id === event.pointerId)
+        aim(event);
+      if (tap?.id === event.pointerId) {
+        tap.x = event.clientX;
+        tap.y = event.clientY;
+      }
     },
     { signal },
   );
@@ -222,10 +251,17 @@ export function createNavigationControls(
     "pointerup",
     (event) => {
       if (!tap || tap.id !== event.pointerId) return;
-      const click =
-        Math.hypot(event.clientX - tap.x, event.clientY - tap.y) < 12;
+      const held = tap.held;
       tap = undefined;
-      if (mode !== "path" || !click) return;
+      if (mode !== "path") return;
+      if (held) {
+        stop();
+        return;
+      }
+      if (ui.interactAt?.(event.clientX, event.clientY)) {
+        stop();
+        return;
+      }
       const point = pickWalkSurface(world, map, event.clientX, event.clientY);
       if (point) plan(point);
       else stop("Tap a walkable part of the yard");
@@ -236,6 +272,7 @@ export function createNavigationControls(
     canvas.addEventListener(
       name,
       () => {
+        if (tap?.held) stop();
         tap = undefined;
       },
       { signal },
@@ -249,16 +286,20 @@ export function createNavigationControls(
       magnitude = Math.hypot(x, y),
       length = Math.max(1, magnitude);
     const gain = magnitude < 0.12 ? 0 : Math.min(1, (magnitude - 0.12) / 0.88);
-    world.setInput(
-      magnitude ? (x / magnitude) * gain : 0,
-      magnitude ? (y / magnitude) * gain : 0,
-    );
+    desiredStick = {
+      x: magnitude ? x / magnitude : 0,
+      z: magnitude ? y / magnitude : 0,
+      gain,
+    };
     knob.style.transform = `translate(${(x / length) * 28}px,${(y / length) * 28}px)`;
   };
   const releaseStick = () => {
     if (stickPointer === undefined) return;
     const pointer = stickPointer;
     stickPointer = undefined;
+    desiredStick = { x: 0, z: 0, gain: 0 };
+    pace = 0;
+    world.setSprinting(false);
     world.setWorldInput(0, 0);
     knob.style.transform = "";
     if (ui.stick.hasPointerCapture(pointer))
@@ -312,7 +353,8 @@ export function createNavigationControls(
           "Escape",
         ].includes(event.code)
       ) {
-        stop(hint(), event.code === "Escape");
+        tap = undefined;
+        stop(hint());
         releaseStick();
       }
     },
@@ -340,9 +382,9 @@ export function createNavigationControls(
   ui.sprint.addEventListener(
     "click",
     () => {
-      const next = !world.sprinting;
+      automaticPace = !automaticPace;
       canvas.focus({ preventScroll: true });
-      world.setSprinting(next);
+      if (!automaticPace) world.setSprinting(false);
     },
     { signal },
   );
@@ -350,12 +392,52 @@ export function createNavigationControls(
   const update = (now: number) => {
     if (dead) return;
     frame = requestAnimationFrame(update);
-    const sprintState = `${world.status}:${world.sprinting}`;
+    const dt = Math.min(
+      0.05,
+      Math.max(0, (now - (previousFrame || now)) / 1000),
+    );
+    previousFrame = now;
+    if (
+      tap &&
+      mode === "path" &&
+      now - tap.started >= 160 &&
+      now - lastSteer >= 100
+    ) {
+      tap.held = true;
+      lastSteer = now;
+      const point = pickWalkSurface(world, map, tap.x, tap.y);
+      if (
+        point &&
+        (!target ||
+          Math.hypot(
+            point.x - target.x,
+            point.y - target.y,
+            point.z - target.z,
+          ) > 0.2)
+      )
+        plan(point);
+    }
+    if (stickPointer !== undefined) {
+      if (world.status !== "ready" || document.hidden) {
+        suspend();
+        return;
+      }
+      const g = desiredStick.gain;
+      const speed =
+        g <= 0.65
+          ? WALK_SPEED * smooth(g / 0.65)
+          : WALK_SPEED +
+            (automaticPace ? SPRINT_SPEED - WALK_SPEED : 0) *
+              smooth((g - 0.65) / 0.35);
+      const strength = setPace(speed, dt);
+      world.setInput(desiredStick.x * strength, desiredStick.z * strength);
+    }
+    const sprintState = `${world.status}:${automaticPace}`;
     if (sprintState !== lastSprintState) {
       lastSprintState = sprintState;
       ui.sprint.disabled = world.status !== "ready";
-      ui.sprint.setAttribute("aria-pressed", String(world.sprinting));
-      ui.sprint.textContent = world.sprinting
+      ui.sprint.setAttribute("aria-pressed", String(!automaticPace));
+      ui.sprint.textContent = !automaticPace
         ? worldCopy.navigation.sprintOn
         : worldCopy.navigation.sprint;
     }
@@ -407,8 +489,19 @@ export function createNavigationControls(
     } else {
       // Arrival speed is measured in metres/second, independent of gait. A faster
       // sprint must not overshoot a tiny waypoint and orbit the destination.
+      let remaining = distance;
+      for (let i = waypoint + 1; i < route.length; i++)
+        remaining += Math.hypot(
+          route[i].x - route[i - 1].x,
+          route[i].z - route[i - 1].z,
+        );
+      const requested =
+        WALK_SPEED +
+        (automaticPace ? SPRINT_SPEED - WALK_SPEED : 0) *
+          smooth((remaining - 2) / 3);
+      const strength = setPace(Math.min(requested, remaining * 5), dt);
       const speed = Math.min(
-        1,
+        strength,
         (distance * 12) / (world.sprinting ? SPRINT_SPEED : WALK_SPEED),
       );
       world.setWorldInput(
@@ -441,6 +534,7 @@ export function createNavigationControls(
     if (dead) return;
     stop();
     releaseStick();
+    tap = undefined;
     mode = value;
     ui.stick.hidden = mode !== "joystick";
     canvas.style.cursor = mode === "path" ? "crosshair" : "default";

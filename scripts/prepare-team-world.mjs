@@ -12,3 +12,9 @@ await cp(
   new URL("assets/team-world/ball-cannon.glb", root),
   new URL("ball-cannon.glb", target),
 );
+
+await cp(
+  new URL("assets/team-world/kenney/", root),
+  new URL("public/team-world-assets/kenney/", root),
+  { recursive: true },
+);

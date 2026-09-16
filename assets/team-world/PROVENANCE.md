@@ -9,3 +9,7 @@ Studio contracts; no engine or avatar runtime source is forked here.
 concept references and workflow remain in that repository. Runtime avatar,
 equipment and animation assets are supplied by the pinned Avatar Studio release;
 its package includes source licenses and provenance.
+
+The courtyard lamp is the unmodified CC0 Kenney Furniture Kit model documented
+in [kenney/PROVENANCE.md](kenney/PROVENANCE.md). The preparation script copies
+this approved local source into the public asset directory.

@@ -283,3 +283,32 @@
     max-height: 52dvh;
   }
 }
+
+.team-world-item-actions {
+  position: absolute;
+  top: max(5.5rem, calc(env(safe-area-inset-top) + 4.75rem));
+  right: 12px;
+  display: flex;
+  gap: 8px;
+  max-width: calc(100% - 24px);
+  z-index: 3;
+}
+.team-world-item-actions button {
+  min-height: 44px;
+  border: 1px solid #c9f31d;
+  border-radius: 16px;
+  background: #0a3034;
+  color: #f1f6e8;
+  padding: 8px 14px;
+  box-shadow: 0 4px 16px #071c2533;
+}
+
+@media (max-width: 480px) {
+  .team-world-field:has(
+      .team-world-quick-action:not([hidden]),
+      .team-world-stick:not([hidden])
+    )
+    .team-world-hint {
+    display: none;
+  }
+}
