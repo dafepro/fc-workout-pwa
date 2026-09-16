@@ -69,11 +69,19 @@ test("two real accounts share movement, tools and emotes; route exit releases th
       .toBeGreaterThan(0.3);
     await page.keyboard.up("d");
     await page
+      .locator("summary")
+      .filter({ hasText: /^Equipment$/ })
+      .click();
+    await page
       .getByRole("combobox", { name: "Equipment", exact: true })
       .selectOption("rebound-panel");
     await expect
       .poll(() => peer.state?.actions?.players[a.session!]?.tool)
       .toBe("rebound-panel");
+    await page
+      .locator("summary")
+      .filter({ hasText: /^Expression$/ })
+      .click();
     await page
       .getByRole("combobox", { name: "Expression", exact: true })
       .selectOption("wave");
@@ -88,6 +96,10 @@ test("two real accounts share movement, tools and emotes; route exit releases th
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
+    await page
+      .locator("summary")
+      .filter({ hasText: /^Move & play$/ })
+      .click();
     await page
       .getByRole("combobox", { name: "Movement mode", exact: true })
       .selectOption("joystick");
@@ -117,7 +129,115 @@ test("a revoked real session loses room access", async ({ page }) => {
   await expect(
     page.getByText("This room is unavailable", { exact: true }),
   ).toBeVisible({ timeout: 5000 });
+  await page
+    .locator("summary")
+    .filter({ hasText: /^Move & play$/ })
+    .click();
   await expect(
     page.getByRole("button", { name: "Kick ball", exact: true }),
   ).toBeDisabled();
+});
+
+test("fullscreen overlays resize the world and remain usable at phone widths", async ({
+  page,
+}) => {
+  await loginAsMason(page);
+  await page.goto("/team-world");
+  await expect(page.getByText("Live together", { exact: true })).toBeVisible({
+    timeout: 15000,
+  });
+  const world = page.getByRole("region", { name: "Team World", exact: true });
+  await page.getByRole("button", { name: "Full screen", exact: true }).click();
+  await expect(world).toHaveClass(/team-world--fullscreen/);
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const r = document
+          .querySelector(".team-world-canvas")!
+          .getBoundingClientRect();
+        return (
+          Math.abs(r.height - innerHeight) < 2 &&
+          Math.abs(r.width - innerWidth) < 2
+        );
+      }),
+    )
+    .toBe(true);
+  await page
+    .locator("summary")
+    .filter({ hasText: /^Equipment$/ })
+    .click();
+  await expect(
+    page.getByRole("combobox", { name: "Equipment", exact: true }),
+  ).toBeVisible();
+  await page
+    .locator("summary")
+    .filter({ hasText: /^Expression$/ })
+    .click();
+  await expect(
+    page.getByRole("combobox", { name: "Equipment", exact: true }),
+  ).toBeHidden();
+  await expect(
+    page.getByRole("combobox", { name: "Expression", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Exit full screen", exact: true })
+    .click();
+  await expect(world).not.toHaveClass(/team-world--fullscreen/);
+  for (const size of [
+    { width: 320, height: 720 },
+    { width: 740, height: 360 },
+  ]) {
+    await page.setViewportSize(size);
+    await page
+      .getByRole("button", { name: "Full screen", exact: true })
+      .click();
+    const controls = await page.locator(".team-world-dock").boundingBox();
+    expect(controls!.x).toBeGreaterThanOrEqual(0);
+    expect(controls!.x + controls!.width).toBeLessThanOrEqual(size.width);
+    await page
+      .getByRole("button", { name: "Exit full screen", exact: true })
+      .click();
+  }
+});
+
+test("idle overlays avoid frame-by-frame DOM churn and fullscreen respects the raster budget", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await loginAsMason(page);
+  await page.goto("/team-world");
+  await expect(page.getByText("Live together", { exact: true })).toBeVisible({
+    timeout: 15000,
+  });
+  await page.getByRole("button", { name: "Full screen", exact: true }).click();
+  await page.waitForTimeout(500);
+  const mutations = await page.evaluate(
+    () =>
+      new Promise<number>((resolve) => {
+        let count = 0;
+        const observer = new MutationObserver(
+          (records) => (count += records.length),
+        );
+        observer.observe(document.querySelector(".team-world-dock")!, {
+          subtree: true,
+          attributes: true,
+          childList: true,
+          characterData: true,
+        });
+        setTimeout(() => {
+          observer.disconnect();
+          resolve(count);
+        }, 1000);
+      }),
+  );
+  expect(mutations).toBeLessThan(5);
+  expect(
+    await page
+      .locator(".team-world-canvas")
+      .evaluate((el) => el.clientWidth * el.clientHeight),
+  ).toBeGreaterThan(1_500_000);
+  const pixels = await page
+    .locator("canvas")
+    .evaluate((canvas: HTMLCanvasElement) => canvas.width * canvas.height);
+  expect(pixels).toBeLessThanOrEqual(1_500_001);
 });

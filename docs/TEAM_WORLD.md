@@ -1,11 +1,10 @@
 # Team World v3
 
-**Status:** Maintained — connected first playable on the integration branch;
-not deployed or pilot-qualified.
+**Status:** Maintained — connected first playable deployed to dev; not pilot-qualified.
 
 ## What is implemented
 
-`/team-world` lazily loads zmap 0.1.2 and Avatar Studio 0.1.1 from pinned GitHub
+`/team-world` lazily loads zmap 0.1.3 and Avatar Studio 0.1.1 from pinned GitHub
 Release tarballs. The development Team hub exposes a Team World link after the
 existing check-in gate. Production navigation is unchanged during qualification.
 
@@ -19,6 +18,28 @@ and cannon presentation and pointer controls. It imports public packages; no
 runtime engine or avatar source is forked. Approved asset provenance is in
 `assets/team-world/PROVENANCE.md`. `scripts/prepare-team-world.mjs` copies only the
 installed runtime assets to a versioned public path before dev/build.
+
+## Viewport and controls
+
+The world uses a tall playfield with floating Lounge-style status, presence and
+fullscreen controls. The bottom dock opens one movement/camera, equipment or
+expression panel at a time. An equipped tool has a separate hold-to-use button;
+closing a panel leaves the scene available for click/tap paths or the joystick.
+The shared fullscreen hook supports native fullscreen, viewport expansion,
+Escape/exit, body-scroll restoration and route cleanup. Insets respect phone
+safe areas; controls retain 44px touch targets at 320px widths.
+
+Rendering keeps the existing meshes, ink materials, MSAA and simulation cadence.
+The app caps its drawing buffer at 1.5 million pixels (up to the existing 1.5×
+device ratio), including after fullscreen/resizing. Comic-style bindings refresh
+when equipment roots or buffer dimensions change, rather than rescanning each
+avatar hierarchy every displayed frame. Sprint UI writes occur only on state
+changes, and control readiness no longer builds full avatar diagnostic reports.
+
+A local Chrome comparison at 1440×900 CSS pixels, device ratio 2, measured
+2,916,000 → 1,499,432 drawing-buffer pixels and 482 → 0 idle dock DOM mutations
+over four seconds. Both runs displayed 240 frames, with p95 16.7ms. This reduces
+work; it is not evidence of higher FPS or qualification on slower GPUs/phones.
 
 ## Authority and deployment boundary
 
@@ -43,7 +64,8 @@ state is converted, shared, dual-written or selected as a fallback.
 Run one API writer and one relay. API restart invalidates ephemeral grants;
 relay restart drops transient rooms. Normal socket reconnect obtains fresh
 credentials; terminal access denial presents an explicit retry. Production
-restart/rollback qualification and deployed TLS/origin configuration remain open.
+restart/rollback qualification remains open. Dev uses the gated same-origin
+WebSocket topology described in `DEV_ENVIRONMENT.md`.
 
 ## Run the isolated local integration
 
@@ -119,3 +141,39 @@ Continue with these active integration gates before a pilot:
    topology documented in `DEV_ENVIRONMENT.md`. Production remains unchanged.
 5. Measure representative phone rendering, input/recovery percentiles, room load
    and cost. No physical-device qualification is claimed.
+
+## Verified dev deployment
+
+Dev serves application `ab5d47cd676120fab500146ec5e2ee199fdeec83`, which includes
+the previously deployed baseline `7853c13a4e2c6c15fe6a27e1bb7a3f1ad32cc437`.
+The update preserved the database and skipped fixture reset. The
+[deployment run](https://github.com/dafepro/fc-workout-pwa/actions/runs/35049549374)
+passed build, strict package-integrity policy, API tests in both build modes,
+Caddy validation, relay health, exact API revision and the existing Canvas
+Lounge browser proof. Production was not deployed.
+
+The new public two-player test passed against that same deployment in local
+Chrome (18.9 seconds), including gated sign-in, qualified entry, peer movement,
+equipment, shared expression and departure. Its Linux CI run reached both players but
+failed the movement assertion (0.293 units versus the required >0.3 within
+15 seconds), so the aggregate workflow is **failed**, despite the successful
+deployment. This remains an open browser qualification issue;
+the local pass does not establish Linux or phone performance. No assertion or
+runtime stall threshold was relaxed.
+
+For manual review, open <https://dev.zoomigo.quicktrack.cc/team-world>, enter the
+shared preview password, choose a fixture player, and use PIN `1111`. Log an
+activity to satisfy the existing participation gate, then open **Team → Team
+World**. Use another browser profile for a second player.
+
+## Scheduling update for dev evaluation
+
+The deployed dev revision pins zmap 0.1.3 in both the browser and relay. Simulation
+advances on an independent 30 Hz timer; rendering uses that clock for smooth
+interpolation and stops during recovery from a main-thread stall. The runtime
+retains its existing eligibility thresholds and requires no database migration.
+
+Upstream validation passes 111 unit/socket tests, the independent package
+consumer, three local Chrome synchronization journeys, and a three-player
+action journey. Linux software rendering remains under qualification; these
+changes are a dev evaluation update rather than a claim of pilot readiness.

@@ -217,6 +217,11 @@ export async function loadActionKit(
       pending = false,
       disposed = false,
       revision = 0;
+    let styledLeft: THREE.Object3D | undefined;
+    let styledRight: THREE.Object3D | undefined;
+    let styledWidth = 0,
+      styledHeight = 0,
+      styled = false;
     let session: string | null = null,
       loadError: string | null = null;
     let impact: WorldActionEvent | undefined;
@@ -564,7 +569,24 @@ export async function loadActionKit(
             }
           }
         }
-        style.update(avatar.object, context.viewport);
+        const left = wield.getHand("left")?.object;
+        const right = wield.getHand("right")?.object;
+        // These approved appearances have fixed topology; only equipment changes
+        // add meshes. Animation changes transforms, not the style bindings.
+        if (
+          !styled ||
+          left !== styledLeft ||
+          right !== styledRight ||
+          context.viewport.x !== styledWidth ||
+          context.viewport.y !== styledHeight
+        ) {
+          style.update(avatar.object, context.viewport);
+          styled = true;
+          styledLeft = left;
+          styledRight = right;
+          styledWidth = context.viewport.x;
+          styledHeight = context.viewport.y;
+        }
       },
     };
   }
@@ -625,6 +647,10 @@ export async function loadActionKit(
       for (const character of owned)
         if (session === undefined || character.readiness().session === session)
           character.retry();
+    },
+    isPreparing() {
+      for (const character of owned) if (character.pending) return true;
+      return false;
     },
     diagnostics: () => ({
       characters: owned.size,
