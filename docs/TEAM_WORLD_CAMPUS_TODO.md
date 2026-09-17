@@ -36,19 +36,21 @@ scores use the shared transient room state.
 ## Follow-ups
 
 - [ ] **Shared-dev browser reliability — before rollout:** investigate ZMap's
-      host-health recovery loop under software rendering. The September 16 update
-      deployed `e8e10739d7e05691d4d29e5e3707130106a0bdfb`; API and relay images are
-      healthy and the gated campus GLB matches the local SHA-256. Build, app/relay
-      tests, both API build modes, exact-revision and Lounge checks passed in
-      [run 35166056988](https://github.com/dafepro/fc-workout-pwa/actions/runs/35166056988).
+      host-health recovery loop under software rendering. The September 17 update
+      deployed `20173b5c9e2b3fc756bccd9b8dea99bb61a64837`; API and relay images are
+      healthy. The gated campus, goal and scoreboard GLBs all match local SHA-256.
+      Clean install, all app/relay tests, build, both API modes, exact-revision and
+      Lounge checks passed in
+      [run 35189097952](https://github.com/dafepro/fc-workout-pwa/actions/runs/35189097952).
       Its SwiftShader Team World check failed at entry: tick 0, no eligible host,
-      2.2-second maximum frame and a 1.7-second long task. The aggregate workflow
-      is failed. Hardware Chrome passed the full deployed two-player check in
-      16.7 seconds (presence, lamp synchronization, movement, equipment, emotes
-      and departure). This does not qualify software rendering or physical phones.
+      2.2-second maximum frame, 30 frames above 250ms and a 1.7-second long task.
+      The aggregate workflow is failed. Hardware Chrome passed the full deployed
+      two-player check in 18.0 seconds (presence, lamp synchronization, movement,
+      equipment, emotes and departure). This does not qualify software rendering
+      or physical phones. The extra silhouette depth passes need profiling;
+      evaluate rendering only projected avatar regions before low-end rollout.
       Dev data was preserved; update skipped fixture reset. No health threshold or
-      test assertion was relaxed. The earlier `8cd89d7` update had the same gate
-      failure, so this remains a tracked reliability issue.
+      test assertion was relaxed. Earlier revisions also failed this entry gate.
 - [ ] **ZMap view API — before more rendering integrations:** standardize optional
       depth-aware character presentation and explicit terrain material ownership.
       The campus no longer captures BoxGeometry or clips slabs; its character-only
