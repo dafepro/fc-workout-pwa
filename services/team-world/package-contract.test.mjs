@@ -10,9 +10,12 @@ test("browser and isolated relay ship the same reviewed ZMap artifact", async ()
   assert.equal(lock.packages[""].dependencies.zmap, root.dependencies.zmap);
   const installed = lock.packages["node_modules/zmap"];
   assert.equal(installed.resolved, root.dependencies.zmap);
-  assert.ok(
-    (await read("../../pnpm-lock.yaml")).includes(
-      `integrity: ${installed.integrity},`,
-    ),
+  const entry = (await read("../../pnpm-lock.yaml"))
+    .split(`  zmap@${installed.resolved}:`)[1]
+    .split("\n\n")[0];
+  assert.ok(entry.includes(`integrity: ${installed.integrity},`));
+  assert.equal(
+    entry.match(/\n    version: (.+)/)?.[1].trim(),
+    installed.version,
   );
 });

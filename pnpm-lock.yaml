@@ -6167,7 +6167,7 @@ packages:
         tarball: https://github.com/dafepro/zmap/releases/download/v0.1.5/zmap-0.1.5.tgz,
         integrity: sha512-4fnRGS1jS2DKprp1YXcArmqhdcFiu9xVOfTG0ptmZjGBBoW5XWaobxrn8nVFeJqojuYKSYkOFSjzZ8fGBERAjw==,
       }
-    version: 0.1.4
+    version: 0.1.5
 
   zod-validation-error@4.0.2:
     resolution:
