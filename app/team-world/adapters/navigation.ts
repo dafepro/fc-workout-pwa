@@ -10,6 +10,7 @@ import {
   type Zoomap,
 } from "zmap";
 import { inside } from "zmap/core";
+import { joystickIntent, SPRINT_RING } from "./joystick";
 import { campusPath } from "./campus-navigation";
 
 /** Pick the visible walk surface, including a ramp or bridge above the ground. */
@@ -63,7 +64,7 @@ export function createNavigationControls(
   const lifecycle = new AbortController(),
     signal = lifecycle.signal,
     canvas = world.view.canvas;
-  let mode: MovementMode = "path",
+  let mode: MovementMode = "joystick",
     route: Vec3[] = [],
     target: Vec3 | null = null,
     waypoint = 1,
@@ -80,7 +81,7 @@ export function createNavigationControls(
     | undefined;
   let automaticPace = true,
     lastSteer = 0,
-    desiredStick = { x: 0, z: 0, gain: 0 },
+    desiredStick = { x: 0, z: 0, speed: 0 },
     pace = 0,
     previousFrame = 0;
   const smooth = (v: number) => {
@@ -220,9 +221,27 @@ export function createNavigationControls(
   canvas.addEventListener(
     "pointerdown",
     (event) => {
-      if (event.button !== 0 || tap) return;
+      if (
+        event.button !== 0 ||
+        tap ||
+        stickPointer !== undefined ||
+        world.status !== "ready"
+      )
+        return;
       event.preventDefault();
       canvas.focus({ preventScroll: true });
+      if (mode === "joystick") {
+        stop(hint(), false);
+        stickPointer = event.pointerId;
+        origin = { x: event.clientX, y: event.clientY };
+        const rect = canvas.getBoundingClientRect();
+        ui.stick.style.left = `${origin.x - rect.left}px`;
+        ui.stick.style.top = `${origin.y - rect.top}px`;
+        ui.stick.hidden = false;
+        dragged = false;
+        canvas.setPointerCapture(event.pointerId);
+        return;
+      }
       aim(event);
       tap = {
         id: event.pointerId,
@@ -238,6 +257,10 @@ export function createNavigationControls(
   canvas.addEventListener(
     "pointermove",
     (event) => {
+      if (stickPointer === event.pointerId) {
+        stickMove(event);
+        return;
+      }
       if (event.pointerType === "mouse" || tap?.id === event.pointerId)
         aim(event);
       if (tap?.id === event.pointerId) {
@@ -250,6 +273,12 @@ export function createNavigationControls(
   canvas.addEventListener(
     "pointerup",
     (event) => {
+      if (stickPointer === event.pointerId) {
+        const clicked = !dragged;
+        releaseStick();
+        if (clicked) ui.interactAt?.(event.clientX, event.clientY);
+        return;
+      }
       if (!tap || tap.id !== event.pointerId) return;
       const held = tap.held;
       tap = undefined;
@@ -271,71 +300,42 @@ export function createNavigationControls(
   for (const name of ["pointercancel", "lostpointercapture"] as const)
     canvas.addEventListener(
       name,
-      () => {
+      (event) => {
+        if (event.pointerId === stickPointer) releaseStick();
         if (tap?.held) stop();
         tap = undefined;
       },
       { signal },
     );
   const knob = ui.stick.querySelector<HTMLElement>("span")!;
+  let origin = { x: 0, y: 0 },
+    dragged = false;
   const stickMove = (event: PointerEvent) => {
-    if (event.pointerId !== stickPointer) return;
-    const rect = ui.stick.getBoundingClientRect(),
-      x = (event.clientX - rect.left - rect.width / 2) / 35,
-      y = (event.clientY - rect.top - rect.height / 2) / 35,
-      magnitude = Math.hypot(x, y),
-      length = Math.max(1, magnitude);
-    const gain = magnitude < 0.12 ? 0 : Math.min(1, (magnitude - 0.12) / 0.88);
-    desiredStick = {
-      x: magnitude ? x / magnitude : 0,
-      z: magnitude ? y / magnitude : 0,
-      gain,
-    };
-    knob.style.transform = `translate(${(x / length) * 28}px,${(y / length) * 28}px)`;
+    const dx = event.clientX - origin.x,
+      dy = event.clientY - origin.y;
+    const distance = Math.hypot(dx, dy);
+    dragged ||= distance > 5;
+    desiredStick = joystickIntent(dx, dy, automaticPace);
+    const scale = Math.min(1, SPRINT_RING / Math.max(1, distance));
+    knob.style.transform = `translate(${dx * scale}px,${dy * scale}px)`;
+    ui.stick.dataset.sprinting = String(
+      automaticPace && distance >= SPRINT_RING,
+    );
   };
   const releaseStick = () => {
     if (stickPointer === undefined) return;
     const pointer = stickPointer;
     stickPointer = undefined;
-    desiredStick = { x: 0, z: 0, gain: 0 };
+    desiredStick = { x: 0, z: 0, speed: 0 };
     pace = 0;
     world.setSprinting(false);
     world.setWorldInput(0, 0);
     knob.style.transform = "";
-    if (ui.stick.hasPointerCapture(pointer))
-      ui.stick.releasePointerCapture(pointer);
+    ui.stick.hidden = true;
+    delete ui.stick.dataset.sprinting;
+    if (canvas.hasPointerCapture(pointer))
+      canvas.releasePointerCapture(pointer);
   };
-  ui.stick.addEventListener(
-    "pointerdown",
-    (event) => {
-      if (
-        mode !== "joystick" ||
-        stickPointer !== undefined ||
-        event.button !== 0
-      )
-        return;
-      event.preventDefault();
-      stop(hint(), false);
-      canvas.focus({ preventScroll: true });
-      stickPointer = event.pointerId;
-      ui.stick.setPointerCapture(stickPointer);
-      stickMove(event);
-    },
-    { signal },
-  );
-  ui.stick.addEventListener("pointermove", stickMove, { signal });
-  for (const name of [
-    "pointerup",
-    "pointercancel",
-    "lostpointercapture",
-  ] as const)
-    ui.stick.addEventListener(
-      name,
-      (event) => {
-        if (event.pointerId === stickPointer) releaseStick();
-      },
-      { signal },
-    );
   // Capture cancellation before the existing keyboard handler sets fresh input.
   window.addEventListener(
     "keydown",
@@ -422,14 +422,12 @@ export function createNavigationControls(
         suspend();
         return;
       }
-      const g = desiredStick.gain;
-      const speed =
-        g <= 0.65
-          ? WALK_SPEED * smooth(g / 0.65)
-          : WALK_SPEED +
-            (automaticPace ? SPRINT_SPEED - WALK_SPEED : 0) *
-              smooth((g - 0.65) / 0.35);
-      const strength = setPace(speed, dt);
+      const strength = setPace(
+        automaticPace
+          ? desiredStick.speed
+          : Math.min(WALK_SPEED, desiredStick.speed),
+        dt,
+      );
       world.setInput(desiredStick.x * strength, desiredStick.z * strength);
     }
     const sprintState = `${world.status}:${automaticPace}`;
@@ -536,11 +534,11 @@ export function createNavigationControls(
     releaseStick();
     tap = undefined;
     mode = value;
-    ui.stick.hidden = mode !== "joystick";
+    ui.stick.hidden = true;
     canvas.style.cursor = mode === "path" ? "crosshair" : "default";
     status(hint());
   };
-  setMode("path");
+  setMode("joystick");
   frame = requestAnimationFrame(update);
   return {
     setMode,

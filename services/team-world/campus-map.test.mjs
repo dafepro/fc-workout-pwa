@@ -3,10 +3,11 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { validateMap, supportAt, top, initialSimulation } from "zmap/core";
 import { cannonBehavior, switchBehavior } from "zmap";
+import { soccerBehavior } from "../../app/team-world/soccer.mjs";
 import map from "../../app/team-world/world.json" with { type: "json" };
 
 test("campus spans multiple viewports and preserves approved world interactions", () => {
-  validateMap(map, [cannonBehavior, switchBehavior]);
+  validateMap(map, [cannonBehavior, switchBehavior, soccerBehavior]);
   assert.equal(map.id, "team-world-campus-v1");
   assert.ok(map.bounds.width >= 130 && map.bounds.depth >= 130);
   assert.ok(map.surfaces.some((s) => s.id === "social-perch"));
@@ -15,7 +16,11 @@ test("campus spans multiple viewports and preserves approved world interactions"
   assert.ok(map.objects.some((o) => o.id === "courtyard-cannon"));
   assert.ok(map.objects.some((o) => o.id === "courtyard-lamp"));
   assert.equal(map.placementZones.length, 0);
-  const state = initialSimulation(map, [cannonBehavior, switchBehavior]);
+  const state = initialSimulation(map, [
+    cannonBehavior,
+    switchBehavior,
+    soccerBehavior,
+  ]);
   assert.equal(Object.keys(state.toys).length, map.toys.length);
 });
 

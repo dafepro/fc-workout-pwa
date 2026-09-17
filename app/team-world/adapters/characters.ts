@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { createCharacterOcclusion } from "./character-occlusion";
 import {
   AvatarLibrary,
   validateCatalog,
@@ -211,6 +212,7 @@ export async function loadActionKit(
       root = new THREE.Group(),
       style = new ComicStyle({ inkWidth: 1.5 });
     root.add(avatar.object);
+    const occlusion = createCharacterOcclusion(root);
     let action: PlayerActionState | undefined,
       tick = 0,
       desired: string | null = null,
@@ -379,6 +381,7 @@ export async function loadActionKit(
         disposed = true;
         pending = false;
         revision++;
+        occlusion.dispose();
         style.clear();
         wield.dispose();
         avatar.dispose();
@@ -581,12 +584,14 @@ export async function loadActionKit(
           context.viewport.y !== styledHeight
         ) {
           style.update(avatar.object, context.viewport);
+          occlusion.update(avatar.object);
           styled = true;
           styledLeft = left;
           styledRight = right;
           styledWidth = context.viewport.x;
           styledHeight = context.viewport.y;
         }
+        occlusion.sync();
       },
     };
   }

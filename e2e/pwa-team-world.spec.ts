@@ -24,6 +24,133 @@ async function qualify(page: Page, login: (page: Page) => Promise<void>) {
 const loginAsMason = (page: Page) => qualify(page, signInMason);
 const loginAsAva = (page: Page) => qualify(page, signInAva);
 
+test("a real kick scores for both peers, then returns the ball to midfield", async ({
+  page,
+  browser,
+}) => {
+  test.setTimeout(90000);
+  const local = observe(page);
+  const phases = new Set<string>();
+  page.on("websocket", (socket) =>
+    socket.on("framereceived", ({ payload }) => {
+      const m = JSON.parse(String(payload));
+      const phase = m.state?.objects?.instances?.["main-pitch"]?.phase;
+      if (phase) phases.add(phase);
+    }),
+  );
+  await loginAsMason(page);
+  await page.goto("/team-world");
+  await expect(page.getByText("Live together", { exact: true })).toBeVisible({
+    timeout: 15000,
+  });
+  const friend = await browser.newContext(),
+    other = await friend.newPage(),
+    peer = observe(other);
+  try {
+    await loginAsAva(other);
+    await other.goto("/team-world");
+    await expect(other.getByText("Live together", { exact: true })).toBeVisible(
+      { timeout: 15000 },
+    );
+    await expect(page.getByText("2 players", { exact: true })).toBeVisible();
+    await page
+      .locator("summary")
+      .filter({ hasText: /^Move & play$/ })
+      .click();
+    await page
+      .getByRole("combobox", { name: "Movement mode" })
+      .selectOption("path");
+    await page.getByRole("slider", { name: "Camera zoom" }).focus();
+    await page.keyboard.press("Home");
+    await page
+      .locator("summary")
+      .filter({ hasText: /^Move & play$/ })
+      .click();
+    async function travel(x: number, z: number) {
+      const rect = (await page
+        .locator(".team-world-canvas canvas")
+        .boundingBox())!;
+      const body = local.state!.players[local.session!];
+      const camera = new THREE.OrthographicCamera(
+        (-10 * rect.width) / rect.height,
+        (10 * rect.width) / rect.height,
+        10,
+        -10,
+        0.1,
+        200,
+      );
+      camera.position.set(body.x + 16, body.y + 19.8, body.z + 16);
+      camera.lookAt(body.x, body.y + 0.8, body.z);
+      camera.updateMatrixWorld();
+      const point = new THREE.Vector3(x, 0, z).project(camera);
+      await page.mouse.click(
+        rect.x + ((point.x + 1) * rect.width) / 2,
+        rect.y + ((1 - point.y) * rect.height) / 2,
+      );
+      await expect
+        .poll(
+          () => {
+            const p = local.state?.players[local.session!];
+            return p ? Math.hypot(p.x - x, p.z - z) : 100;
+          },
+          { timeout: 25000 },
+        )
+        .toBeLessThan(0.15);
+      await expect(page.locator(".team-world-hint")).toContainText(
+        "You’re here",
+      );
+      await page.waitForTimeout(600);
+    }
+    // Approach from the left without dribbling the ball out of position en route.
+    await travel(-12, 8);
+    await travel(-9.2, 13);
+    await page.getByRole("button", { name: "Kick ball", exact: true }).click();
+    await expect
+      .poll(
+        () =>
+          (
+            peer.state?.objects?.instances["main-pitch"] as
+              | { burgundy: number }
+              | undefined
+          )?.burgundy,
+        { timeout: 15000 },
+      )
+      .toBe(1);
+    await expect(
+      page.getByRole("status", { name: "Pitch score" }),
+    ).toContainText("Burgundy 1");
+    await expect(
+      other.getByRole("status", { name: "Pitch score" }),
+    ).toContainText("Burgundy 1");
+    await expect
+      .poll(
+        () => {
+          const b = peer.state?.toys["practice-ball"];
+          return b ? Math.hypot(b.x + 8, b.z - 13) : 100;
+        },
+        { timeout: 8000 },
+      )
+      .toBeLessThan(0.05);
+    expect(phases.has("goal")).toBe(true);
+    expect(phases.has("return")).toBe(true);
+    expect(local.errors).toEqual([]);
+    expect(peer.errors).toEqual([]);
+  } catch (error) {
+    console.log(
+      "SOCCER_STATE",
+      JSON.stringify({
+        ball: local.state?.toys["practice-ball"],
+        pitch: local.state?.objects?.instances["main-pitch"],
+        player: local.state?.players[local.session!],
+        peerBall: peer.state?.toys["practice-ball"],
+      }),
+    );
+    throw error;
+  } finally {
+    await friend.close();
+  }
+});
+
 const apiURL = process.env.E2E_API_BASE_URL ?? "http://api:8080";
 const resetKey = process.env.E2E_RESET_KEY ?? "local-e2e-reset-only";
 // The default suite has no v3 relay. Enable only for the documented local topology.
@@ -126,7 +253,7 @@ test("two real accounts share movement, tools and emotes; route exit releases th
     await page
       .getByRole("combobox", { name: "Movement mode", exact: true })
       .selectOption("joystick");
-    await expect(page.locator(".team-world-stick")).toBeVisible();
+    await expect(page.locator(".team-world-stick")).toBeHidden();
     await page.getByRole("link", { name: "Back to Team", exact: true }).click();
     await expect(page.locator(".team-world-canvas canvas")).toHaveCount(0);
     await expect(b.getByText("1 player", { exact: true })).toBeVisible({
@@ -336,6 +463,20 @@ test("hold steering follows cursor and joystick automatically selects a continuo
   await loginAsMason(page);
   await page.goto("/team-world");
   await expect(page.getByText("Live together", { exact: true })).toBeVisible();
+  await page
+    .locator("summary")
+    .filter({ hasText: /^Move & play$/ })
+    .click();
+  await expect(
+    page.getByRole("combobox", { name: "Movement mode" }),
+  ).toHaveValue("joystick");
+  await page
+    .getByRole("combobox", { name: "Movement mode" })
+    .selectOption("path");
+  await page
+    .locator("summary")
+    .filter({ hasText: /^Move & play$/ })
+    .click();
   const canvas = page.locator(".team-world-canvas canvas");
   const box = (await canvas.boundingBox())!;
   await page.mouse.move(box.x + box.width * 0.7, box.y + box.height * 0.65);
@@ -366,9 +507,8 @@ test("hold steering follows cursor and joystick automatically selects a continuo
     .locator("summary")
     .filter({ hasText: /^Move & play$/ })
     .click();
-  const pad = (await page.locator(".team-world-stick").boundingBox())!;
-  const x = pad.x + pad.width / 2,
-    y = pad.y + pad.height / 2;
+  const x = box.x + box.width * 0.35,
+    y = box.y + box.height * 0.55;
   await page.mouse.move(x, y);
   await page.mouse.down();
   await page.mouse.move(x + 15, y);
@@ -376,7 +516,24 @@ test("hold steering follows cursor and joystick automatically selects a continuo
     .poll(() => Math.hypot(inputs.at(-1)?.x ?? 0, inputs.at(-1)?.z ?? 0))
     .toBeGreaterThan(0.1);
   expect(inputs.at(-1)?.sprint).not.toBe(true);
-  await page.mouse.move(x + 35, y);
+  await page.mouse.move(x + 42, y);
+  await expect.poll(() => inputs.at(-1)?.sprint).toBe(true);
+  await expect(page.locator(".team-world-stick")).toHaveAttribute(
+    "data-sprinting",
+    "true",
+  );
+  await page.mouse.up();
+  await expect(page.locator(".team-world-stick")).toBeHidden();
+  const secondX = box.x + box.width * 0.65;
+  const secondY = box.y + box.height * 0.6;
+  await page.mouse.move(secondX, secondY);
+  await page.mouse.down();
+  const relocated = (await page.locator(".team-world-stick").boundingBox())!;
+  expect(Math.abs(relocated.x + relocated.width / 2 - secondX)).toBeLessThan(2);
+  expect(Math.abs(relocated.y + relocated.height / 2 - secondY)).toBeLessThan(
+    2,
+  );
+  await page.mouse.move(secondX + 42, secondY);
   await expect.poll(() => inputs.at(-1)?.sprint).toBe(true);
   await page.keyboard.down("w");
   await expect.poll(() => inputs.at(-1)?.sprint).not.toBe(true);
@@ -404,6 +561,17 @@ test("short ground taps beside an item walk while distant taps build to a sprint
   await loginAsMason(page);
   await page.goto("/team-world");
   await expect(page.getByText("Live together", { exact: true })).toBeVisible();
+  await page
+    .locator("summary")
+    .filter({ hasText: /^Move & play$/ })
+    .click();
+  await page
+    .getByRole("combobox", { name: "Movement mode" })
+    .selectOption("path");
+  await page
+    .locator("summary")
+    .filter({ hasText: /^Move & play$/ })
+    .click();
   await page.getByRole("button", { name: "Full screen", exact: true }).click();
   await expect
     .poll(() => observed.state?.players[observed.session!]?.x)

@@ -1164,14 +1164,28 @@
     {
       "id": "practice-ball",
       "home": {
-        "x": -7,
+        "x": -8,
         "y": 0,
-        "z": 3
+        "z": 13
       },
-      "radius": 0.35,
-      "color": "#d6b451",
+      "radius": 0.3,
+      "color": "#f4f0df",
       "sleep": "home",
-      "restitution": 0.68
+      "restitution": 0.68,
+      "mass": 0.45
+    },
+    {
+      "id": "garden-soccer-ball",
+      "home": {
+        "x": 29,
+        "y": 0,
+        "z": -32
+      },
+      "radius": 0.3,
+      "color": "#f4f0df",
+      "sleep": "home",
+      "restitution": 0.68,
+      "mass": 0.45
     }
   ],
   "triggers": [],
@@ -1364,6 +1378,38 @@
           }
         }
       ]
+    },
+    {
+      "id": "main-pitch",
+      "behavior": "soccer",
+      "version": 1,
+      "position": {
+        "x": -8,
+        "y": 0,
+        "z": 13
+      },
+      "rotation": 0,
+      "config": {
+        "ball": "practice-ball",
+        "halfLength": 15,
+        "halfWidth": 10
+      }
+    },
+    {
+      "id": "garden-pitch",
+      "behavior": "soccer",
+      "version": 1,
+      "position": {
+        "x": 29,
+        "y": 0,
+        "z": -32
+      },
+      "rotation": 0,
+      "config": {
+        "ball": "garden-soccer-ball",
+        "halfLength": 9,
+        "halfWidth": 8
+      }
     }
   ]
 }

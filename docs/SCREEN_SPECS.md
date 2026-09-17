@@ -197,6 +197,13 @@ existing participation gate. Only development navigation advertises this route
 while qualification continues. Loading, paused and denied states disable play;
 leaving the route disposes the world connection and scene.
 
+Joystick is the default: pressing an open area anchors the stick there, with a
+30-pixel walk ring and a 10-pixel transition into sprint. Each pitch has a confined
+soccer ball and Burgundy/Gold scoreboard. Goals pause the ball, dissolve it, and
+fade it back in at midfield. Scores last only for the current room. Under bridges
+and furnishings, hidden character pixels use a grey silhouette with a pale rim;
+visible body parts keep their normal colors.
+
 The current three approved appearances are assigned server-side. Saved modular
 appearance editing and durable decorating are subsequent integration work.
 See [TEAM_WORLD.md](TEAM_WORLD.md) for the implementation and qualification gates.

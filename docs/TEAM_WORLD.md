@@ -1,11 +1,11 @@
 # Team World v3
 
-**Status:** Maintained — campus validated locally; shared deployment pending, not pilot-qualified.
+**Status:** Maintained — development campus; not pilot-qualified.
 
 ## What is implemented
 
-`/team-world` lazily loads zmap 0.1.4 and Avatar Studio 0.1.2 from pinned GitHub
-Release tarballs. The development Team hub exposes a Team World link after the
+`/team-world` lazily loads zmap 0.1.5 and Avatar Studio 0.1.2 from pinned GitHub
+Release tarballs (ZMap 0.1.5 is a development preview). The development Team hub exposes a Team World link after the
 existing check-in gate. Production navigation is unchanged during qualification.
 
 The textured team campus includes two pitches, furnished terraces, ramps and a
@@ -20,9 +20,29 @@ package split, map extent, remaining view/navigation design work and rollout
 constraints. [Campus provenance](../assets/team-world/campus/PROVENANCE.md)
 records reused CC0 models, generated texture prompts and the Blender rebuild.
 
-Overhead campus art and engine slabs share a narrow cutaway along the local
-player's camera sightline. It reveals the player beneath bridges and canopies
-while retaining the floor, surrounding structure and collision geometry.
+Architecture stays opaque and intact. Occluded character fragments render as a
+muted grey silhouette with a fine cream rim. Depth and stencil tests preserve
+visible body colors and prevent the overlay from showing through the character
+itself. Overlays live outside Avatar Studio's asset tree so cosmetic passes do
+not consume its equipment budget. No geometry is cut away.
+
+Each existing pitch has a classic paneled soccer ball and Burgundy/Gold goals.
+The positive-X goal awards Burgundy; the negative-X goal awards Gold. A whole
+ball crossing between the posts and under the bar counts once. It stays in the
+goal for one second, dissolves over half a second, then teleports and fades in
+at midfield over 0.6 seconds. Reduced motion uses visibility changes. Ball-only
+pitch boundaries preserve player movement; out-of-bounds kicks, tools and pair
+contacts are corrected before a simulation tick is published. Goal pockets are
+part of the playable enclosure. Physical boards and an accessible HUD show the
+nearest pitch's shared score. Scores are transient, saturate at 999999 and reset
+when the room empties, with no training credit or individual ranking.
+
+This adapts Canvas's accepted-ball, capture-once, hold-and-score pattern. The
+ZMap app behavior replaces Canvas's eject impulse with the requested midfield
+reset. The reusable ZMap `afterStep` hook supplies settled physics; all soccer
+policy remains in `app/team-world/soccer.mjs`, installed identically in both peers
+and the relay. The existing practice ball becomes the main-pitch ball, keeping
+the five-toy budget, with one additional garden-pitch ball.
 
 `app/team-world/adapters/` owns the mapping from accepted world actions to avatar
 and cannon presentation and pointer controls. It imports public packages; no
@@ -52,7 +72,14 @@ A local Chrome comparison at 1440×900 CSS pixels, device ratio 2, measured
 over four seconds. Both runs displayed 240 frames, with p95 16.7ms. This reduces
 work; it is not evidence of higher FPS or qualification on slower GPUs/phones.
 
-Tap a nearby destination to walk; longer routes gradually accelerate toward a
+Joystick is the default on entry and retry. Press an open canvas location to
+anchor a floating stick there; release hides it. The 30px inner ring reaches
+walking speed, and the next 10px band accelerates to sprint. Returning inside
+slows back to walking. Quick taps still activate nearby items, while dragging
+never activates one. UI controls do not start a joystick. The always-available
+Kick ball button and Space kick nearby balls.
+
+In optional path mode, tap a nearby destination to walk; longer routes gradually accelerate toward a
 sprint and slow before arrival. Hold on the ground for at least 160ms to steer
 toward the moving cursor; release a hold to stop. Quick taps retain their route.
 The joystick uses its inner range for walking and outer range for sprinting.
@@ -65,7 +92,7 @@ with its original license in `assets/team-world/kenney/`. It drives a real
 point light, emissive shade and depth-tested ground pool. The switch is shared
 transient room state, including late joins and host handoff; the nine-tick
 switch debounce also disables the button briefly. The app supplies the model,
-labels and picking; zmap 0.1.4 owns sequenced commands, approved actions, distance,
+labels and picking; zmap 0.1.5 owns sequenced commands, approved actions, distance,
 line-of-sight and movement-lock checks. Both relay and browser install the same
 behavior and require the interaction protocol capability.
 
@@ -162,8 +189,14 @@ HTTP/configuration suites and vet passed, including ticket scope/replay/expiry,
 locked/cross-team access, session and membership revocation, replacement grants
 and fail-closed configuration.
 
-The app's 520 tests, lint, types and static deployment/documentation contracts
-passed. The Worker build/upload dry run was 2248 KiB compressed against its
+The September 16 interaction pass passed all 531 app tests, eight relay tests,
+eight connected Chrome journeys, lint, types, formatting and static deployment/
+documentation contracts. The browser journeys include floating-stick relocation,
+walk/sprint thresholds, a real kick scoring for both peers, and midfield return.
+Visual review checked the football/scoreboard and grey under-bridge silhouette
+against the generated reference, with normal color above the bridge and no box
+cutaway. ZMap's generic after-physics extension passed 49 focused engine tests.
+The Worker build/upload dry run was 2241.74 KiB compressed against its
 2800 KiB budget; the world remains a lazy browser bundle. Desktop browser tests
 do not establish physical-phone performance.
 

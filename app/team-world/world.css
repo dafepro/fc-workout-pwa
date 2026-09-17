@@ -209,24 +209,39 @@
 .team-world-stick {
   position: absolute;
   z-index: 2;
-  left: max(1rem, env(safe-area-inset-left));
-  bottom: 6rem;
-  width: 108px;
-  height: 108px;
+  width: 80px;
+  height: 80px;
+  transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: #071c25ba;
+  background: #071c2530;
+  border: 1px dashed #f4edcc99;
+  pointer-events: none;
+  box-shadow: 0 2px 12px #071c2526;
+}
+.team-world-stick::before {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border: 2px solid #f1f6e8cc;
+  border-radius: 50%;
+  background: #071c2528;
+}
+.team-world-stick[data-sprinting="true"] {
   border: 2px solid #c9f31d;
-  touch-action: none;
+  box-shadow: 0 0 0 5px #c9f31d26;
 }
 .team-world-stick span {
   position: absolute;
-  left: 34px;
-  top: 34px;
-  width: 36px;
-  height: 36px;
+  left: calc(50% - 12px);
+  top: calc(50% - 12px);
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
+  background: #f1f6e8;
+  border: 2px solid #0a3034;
+}
+.team-world-stick[data-sprinting="true"] span {
   background: #c9f31d;
-  pointer-events: none;
 }
 .team-world [hidden] {
   display: none !important;
@@ -276,9 +291,6 @@
   }
 }
 @media (max-height: 480px) and (orientation: landscape) {
-  .team-world-stick {
-    bottom: 1rem;
-  }
   .team-world-panel > .team-world-controls {
     max-height: 52dvh;
   }
@@ -310,5 +322,48 @@
     )
     .team-world-hint {
     display: none;
+  }
+}
+
+.team-world-score {
+  position: absolute;
+  top: 5.5rem;
+  left: 1rem;
+  z-index: 2;
+  padding: 0.5rem 0.75rem;
+  background: #0a3034ee;
+  border: 1px solid #f4ebd533;
+  border-radius: 0.8rem;
+  pointer-events: none;
+  font-size: 0.8rem;
+}
+.team-world-score small {
+  display: block;
+  color: #cbd4c7;
+  font-size: 0.65rem;
+  margin-bottom: 0.2rem;
+}
+.team-world-score span {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.team-world-score b {
+  color: #fff8df;
+  font-variant-numeric: tabular-nums;
+}
+.team-world-score i {
+  font-style: normal;
+  color: #b7c5bb;
+}
+.team-world-kick {
+  position: absolute;
+  left: 1rem;
+  bottom: 6rem;
+  z-index: 3;
+}
+@media (max-width: 480px) {
+  .team-world-item-actions {
+    top: 9.5rem;
   }
 }

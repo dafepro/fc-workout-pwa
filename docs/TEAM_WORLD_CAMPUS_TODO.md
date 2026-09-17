@@ -7,12 +7,13 @@ design follow-ups, not promises of additional player features.
 
 | System         | Owns                                                                                                              | Consumed by Zoomigo                                         |
 | -------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| ZMap           | Deterministic world simulation, relay protocol, geometry navigation, object behaviors and basic Three.js view     | Pinned `zmap` 0.1.4 release, identically in app and relay   |
+| ZMap           | Deterministic world simulation, relay protocol, geometry navigation, object behaviors and basic Three.js view     | Pinned `zmap` 0.1.5 preview, identically in app and relay   |
 | Avatar Studio  | Modular characters, animation, comic presentation and wielded equipment                                           | Pinned `@zmap/avatar-studio` 0.1.2 release                  |
 | fc-workout-pwa | Eligibility, identity, tickets, transient room policy, campus terrain/art, input UI and action-to-avatar adapters | App-owned `world.json`, Blender sources and scenery adapter |
 
-The campus uses public package contracts. No engine or character source fork is
-needed. The older local ZMap independence-review branch is not the runtime
+The campus uses public package contracts. ZMap 0.1.5 adds the reusable settled-step
+object hook and stencil buffer; soccer rules and silhouette presentation remain
+app-owned. No character source fork is needed. The older local ZMap independence-review branch is not the runtime
 consumed by this app. Upstream's development avatar submodule is a development
 relationship; the app consumes independent release artifacts.
 
@@ -46,14 +47,11 @@ zones, score authority, new rewards or freeform communication.
       does not establish reliability. The browser diagnostic now records numeric
       socket close codes without retaining authentication artifacts. Dev data was
       preserved; the deployment used update, with no fixture reset.
-- [ ] **ZMap view API — before adding more overhead architecture:** design a
-      public surface-visual replacement and occlusion contract. The campus now
-      opens a narrow sightline through overhead art and the engine's underlying
-      slabs, preserving the player and floor. The app adapter captures terrain
-      BoxGeometry during the pinned 0.1.4 scenery callback; it never touches
-      physics, toys or subsequently mounted characters. Replace that version-bound
-      capture with explicit surface identities in a future ZMap API, and generalize
-      the camera direction if ZMap supports rotating cameras.
+- [ ] **ZMap view API — before more rendering integrations:** standardize optional
+      depth-aware character presentation and explicit terrain material ownership.
+      The campus no longer captures BoxGeometry or clips slabs; its character-only
+      stencil treatment keeps roofs intact. Benchmark the extra character passes
+      on low-end phones before considering this a reusable default.
 - [ ] **Navigation — before distant destinations or larger worlds:** define a
       coarse district route graph and cancellable fine search. The app now samples
       only an 8 m margin around a requested trip, at 0.8 m spacing with ZMap's hard

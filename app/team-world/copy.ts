@@ -1,7 +1,7 @@
 export const worldCopy = {
   navigation: {
     path: "Tap to travel · hold and steer · farther means faster",
-    joystick: "Small drag to walk · full drag to sprint · point to aim",
+    joystick: "Drag any open spot to walk · past the ring to sprint",
     landing: "Landing first · your next destination is queued",
     complex: "That route is too complex. Try a nearer spot.",
     unreachable: "No walking route to that spot",
@@ -15,6 +15,13 @@ export const worldCopy = {
     name: "Courtyard lamp",
     on: "Turn courtyard lamp on",
     off: "Turn courtyard lamp off",
+  },
+  soccer: {
+    scoreboard: "Pitch score",
+    main: "Main pitch",
+    garden: "Garden pitch",
+    burgundy: "Burgundy",
+    gold: "Gold",
   },
   title: "Team World",
   fullscreen: "Full screen",

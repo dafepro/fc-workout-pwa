@@ -22,6 +22,8 @@ import {
   type MovementMode,
 } from "./adapters/navigation";
 import { requestWorldTicket } from "./gateway";
+import { soccerBehavior, pitchState } from "./soccer.mjs";
+import { createSoccerVisuals } from "./adapters/soccer";
 import mapJSON from "./world.json";
 import { worldCopy as copy } from "./copy";
 import "./world.css";
@@ -52,10 +54,15 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
     [failed, setFailed] = useState<string | null>(null),
     [attempt, setAttempt] = useState(0),
     [people, setPeople] = useState(0),
-    [mode, setMode] = useState<MovementMode>("path");
+    [mode, setMode] = useState<MovementMode>("joystick");
   const [itemActions, setItemActions] = useState<ItemAction[]>([]);
   const [toolReady, setToolReady] = useState(false);
   const [selectedTool, setSelectedTool] = useState("");
+  const [score, setScore] = useState({
+    pitch: "main-pitch",
+    burgundy: 0,
+    gold: 0,
+  });
   const [drawn, setDrawn] = useState(true);
   useEffect(() => {
     let cancelled = false;
@@ -65,6 +72,7 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
     let cannon: Awaited<ReturnType<typeof loadCannonKit>> | undefined;
     let props: Awaited<ReturnType<typeof loadInteractiveProps>> | undefined;
     let campus: Awaited<ReturnType<typeof loadCampus>> | undefined;
+    const soccer = createSoccerVisuals(map);
     let current: Zoomap | undefined;
     let movement: ReturnType<typeof createNavigationControls> | undefined;
     const controller = new AbortController();
@@ -73,6 +81,7 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
       viewportObserver?.disconnect();
       movement?.dispose();
       campus?.dispose();
+      soccer.dispose();
       current?.dispose();
       cannon?.dispose();
       props?.dispose();
@@ -110,17 +119,19 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
         container: container.current!,
         map,
         catalog: [],
-        objectBehaviors: [cannonBehavior, switchBehavior],
+        objectBehaviors: [cannonBehavior, switchBehavior, soccerBehavior],
         visuals: {
           character: kit.character,
+          toy: soccer.toy,
           scenery: (scene, m) => {
             kit!.scenery(scene, m);
             campus!.scenery(scene);
             cannon!.scenery(scene);
             props!.scenery(scene);
+            soccer.scenery(scene);
           },
           frame: (context) => {
-            campus!.update(current?.local);
+            soccer.frame(context);
             cannon!.frame(context);
             props!.frame(context);
           },
@@ -133,7 +144,6 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
         },
       });
       world.current = current;
-      current.view.renderer.localClippingEnabled = true;
       const resizeBudget = () => {
         if (cancelled || !current || !container.current) return;
         const ratio = renderPixelRatio(
@@ -147,8 +157,25 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
       viewportObserver = new ResizeObserver(resizeBudget);
       viewportObserver.observe(container.current!);
       resizeBudget();
-      let previousActions = "";
+      let previousActions = "",
+        previousScore = "";
       controlsTimer = setInterval(() => {
+        const pitches = map.objects!.filter((o) => o.behavior === "soccer");
+        const local = current?.local ?? map.spawn;
+        const pitch = pitches.sort(
+          (a, b) =>
+            Math.hypot(a.position.x - local.x, a.position.z - local.z) -
+            Math.hypot(b.position.x - local.x, b.position.z - local.z),
+        )[0];
+        const value = current?.state.objects?.instances[pitch.id];
+        if (value) {
+          const s = pitchState(value),
+            key = `${pitch.id}:${s.burgundy}:${s.gold}`;
+          if (key !== previousScore) {
+            previousScore = key;
+            setScore({ pitch: pitch.id, burgundy: s.burgundy, gold: s.gold });
+          }
+        }
         const actions = props!.actions(current!);
         const key = JSON.stringify(actions);
         if (key !== previousActions) {
@@ -241,7 +268,7 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
             setFailed(null);
             setStatus("connecting");
             setPeople(0);
-            setMode("path");
+            setMode("joystick");
             setZoom(2);
             setAttempt((n) => n + 1);
           }}
@@ -256,7 +283,30 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
           className="team-world-canvas"
           aria-label={copy.title}
         />
-        <div ref={stick} className="team-world-stick" hidden>
+        <div
+          className="team-world-score"
+          role="status"
+          aria-live="polite"
+          aria-label={copy.soccer.scoreboard}
+        >
+          <small>
+            {score.pitch === "main-pitch"
+              ? copy.soccer.main
+              : copy.soccer.garden}
+          </small>
+          <span>
+            {copy.soccer.burgundy} <b>{score.burgundy}</b> <i>—</i>{" "}
+            {copy.soccer.gold} <b>{score.gold}</b>
+          </span>
+        </div>
+        <button
+          className="team-world-kick"
+          disabled={!ready}
+          onClick={() => run((w) => w.action("kick"))}
+        >
+          {copy.kick}
+        </button>
+        <div ref={stick} className="team-world-stick" aria-hidden="true" hidden>
           <span />
         </div>
         <div className="team-world-quick-action" hidden={!selectedTool}>
@@ -346,12 +396,6 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
               </button>
               <button ref={stop} hidden>
                 {copy.stop}
-              </button>
-              <button
-                disabled={!ready}
-                onClick={() => run((w) => w.action("kick"))}
-              >
-                {copy.kick}
               </button>
               <p>{copy.navigation[mode]}</p>
               <p>{copy.hint}</p>

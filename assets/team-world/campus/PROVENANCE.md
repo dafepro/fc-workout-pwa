@@ -52,3 +52,14 @@ Only the GLB is copied to `public/team-world-assets/campus-v1/`; its three image
 are embedded once. Source models, Blender files and concept images are not
 included in the deployed public asset directory. Tests cap the static export at
 12 MiB, 80 meshes and 100,000 triangles.
+
+## Interactive soccer and underpass presentation
+
+The existing Blender-authored goal frames and nets are reused. Soccer balls are
+original, deterministic truncated-icosahedron geometry with twelve dark pentagons
+and twenty ivory hexagons, rendered in two material groups per ball. Scoreboards
+are app-authored geometry and canvas typography. No new marketplace asset is used.
+
+`reference/underpass-v1.png` was generated using the built-in image-generation
+tool as the depth-aware grey silhouette/cream rim reference. Its prompt is saved
+alongside it. It is a design reference, not a runtime screenshot.
