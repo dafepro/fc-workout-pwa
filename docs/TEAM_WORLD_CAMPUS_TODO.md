@@ -35,19 +35,20 @@ scores use the shared transient room state.
 
 ## Follow-ups
 
-- [ ] **Shared-dev browser reliability — before rollout:** investigate the ZMap
-      host-health recovery loop under software rendering and intermittent room
-      disconnects. The September 16 deployment of `8cd89d7` is live on dev: API and
-      relay images are healthy and the gated campus GLB matches the local SHA-256.
-      The workflow's live Team World check timed out entering the room on
-      SwiftShader, after its build, unit checks and API/Lounge proofs passed
-      ([run 35144903822](https://github.com/dafepro/fc-workout-pwa/actions/runs/35144903822)).
-      A hardware Chrome check initially lost one connection; a subsequent complete
-      live check passed two-player presence, lamp synchronization, movement,
-      equipment, emotes and departure. Keep the failure open: one successful run
-      does not establish reliability. The browser diagnostic now records numeric
-      socket close codes without retaining authentication artifacts. Dev data was
-      preserved; the deployment used update, with no fixture reset.
+- [ ] **Shared-dev browser reliability — before rollout:** investigate ZMap's
+      host-health recovery loop under software rendering. The September 16 update
+      deployed `e8e10739d7e05691d4d29e5e3707130106a0bdfb`; API and relay images are
+      healthy and the gated campus GLB matches the local SHA-256. Build, app/relay
+      tests, both API build modes, exact-revision and Lounge checks passed in
+      [run 35166056988](https://github.com/dafepro/fc-workout-pwa/actions/runs/35166056988).
+      Its SwiftShader Team World check failed at entry: tick 0, no eligible host,
+      2.2-second maximum frame and a 1.7-second long task. The aggregate workflow
+      is failed. Hardware Chrome passed the full deployed two-player check in
+      16.7 seconds (presence, lamp synchronization, movement, equipment, emotes
+      and departure). This does not qualify software rendering or physical phones.
+      Dev data was preserved; update skipped fixture reset. No health threshold or
+      test assertion was relaxed. The earlier `8cd89d7` update had the same gate
+      failure, so this remains a tracked reliability issue.
 - [ ] **ZMap view API — before more rendering integrations:** standardize optional
       depth-aware character presentation and explicit terrain material ownership.
       The campus no longer captures BoxGeometry or clips slabs; its character-only
