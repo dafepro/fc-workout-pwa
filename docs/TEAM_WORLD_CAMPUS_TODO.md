@@ -30,7 +30,8 @@ The campus has two lined pitches, three furnished raised terraces, three ramps,
 a bridge/underpass and picnic/warm-up areas. Surface heights and solid furniture
 envelopes are generated with the art. Existing cannon, lamp, balls, approved
 tools, emotes and room access rules are preserved. There are no durable placement
-zones, score authority, new rewards or freeform communication.
+zones, durable competitive scores, new rewards or freeform communication. Pitch
+scores use the shared transient room state.
 
 ## Follow-ups
 

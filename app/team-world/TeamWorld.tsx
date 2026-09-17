@@ -285,6 +285,7 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
         />
         <div
           className="team-world-score"
+          hidden={!ready}
           role="status"
           aria-live="polite"
           aria-label={copy.soccer.scoreboard}

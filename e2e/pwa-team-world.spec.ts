@@ -344,6 +344,11 @@ test("fullscreen overlays resize the world and remain usable at phone widths", a
     const controls = await page.locator(".team-world-dock").boundingBox();
     expect(controls!.x).toBeGreaterThanOrEqual(0);
     expect(controls!.x + controls!.width).toBeLessThanOrEqual(size.width);
+    const kick = (await page
+      .getByRole("button", { name: "Kick ball", exact: true })
+      .boundingBox())!;
+    const hint = (await page.locator(".team-world-hint").boundingBox())!;
+    expect(kick.y + kick.height).toBeLessThanOrEqual(hint.y);
     await page
       .getByRole("button", { name: "Exit full screen", exact: true })
       .click();

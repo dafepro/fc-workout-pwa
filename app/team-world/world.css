@@ -359,7 +359,7 @@
 .team-world-kick {
   position: absolute;
   left: 1rem;
-  bottom: 6rem;
+  bottom: 9rem;
   z-index: 3;
 }
 @media (max-width: 480px) {
