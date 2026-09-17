@@ -516,17 +516,22 @@ test("hold steering follows cursor and joystick automatically selects a continuo
     y = box.y + box.height * 0.55;
   await page.mouse.move(x, y);
   await page.mouse.down();
+  expect((await page.locator(".team-world-stick").boundingBox())!.width).toBe(
+    160,
+  );
   await page.mouse.move(x + 15, y);
   await expect
     .poll(() => Math.hypot(inputs.at(-1)?.x ?? 0, inputs.at(-1)?.z ?? 0))
     .toBeGreaterThan(0.1);
   expect(inputs.at(-1)?.sprint).not.toBe(true);
-  await page.mouse.move(x + 42, y);
+  await page.mouse.move(x + 82, y);
   await expect.poll(() => inputs.at(-1)?.sprint).toBe(true);
   await expect(page.locator(".team-world-stick")).toHaveAttribute(
     "data-sprinting",
     "true",
   );
+  if (process.env.E2E_CAMPUS_REVIEW === "1")
+    await page.screenshot({ path: test.info().outputPath("joystick-v2.png") });
   await page.mouse.up();
   await expect(page.locator(".team-world-stick")).toBeHidden();
   const secondX = box.x + box.width * 0.65;
@@ -538,7 +543,7 @@ test("hold steering follows cursor and joystick automatically selects a continuo
   expect(Math.abs(relocated.y + relocated.height / 2 - secondY)).toBeLessThan(
     2,
   );
-  await page.mouse.move(secondX + 42, secondY);
+  await page.mouse.move(secondX + 82, secondY);
   await expect.poll(() => inputs.at(-1)?.sprint).toBe(true);
   await page.keyboard.down("w");
   await expect.poll(() => inputs.at(-1)?.sprint).not.toBe(true);

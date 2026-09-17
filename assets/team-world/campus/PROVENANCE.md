@@ -1,6 +1,6 @@
 # Team campus assets
 
-App-owned content for `team-world-campus-v1`, authored September 16, 2026.
+App-owned content for `team-world-campus-v2`, refined September 17, 2026.
 
 ## Reused sources
 
@@ -38,6 +38,7 @@ unverified marketplace model is used.
 From the repository root, with Blender 5.2 installed:
 
 ```sh
+blender --background --factory-startup --python tools/team-world/build-pitch-items.py
 blender --background --factory-startup --python tools/team-world/build-campus.py
 pnpm exec prettier --write app/team-world/world.json
 node scripts/prepare-team-world.mjs
@@ -48,17 +49,24 @@ editable packed `models/team-campus.blend`, the runtime `models/team-campus.glb`
 and an ignored art-review render in `outputs/campus/`. It preserves the approved
 map object/action definitions. Blender backup files are ignored.
 
-Only the GLB is copied to `public/team-world-assets/campus-v1/`; its three images
+The campus and two pitch-item GLBs are copied to `public/team-world-assets/campus-v2/`; the campus's three images
 are embedded once. Source models, Blender files and concept images are not
 included in the deployed public asset directory. Tests cap the static export at
 12 MiB, 80 meshes and 100,000 triangles.
 
 ## Interactive soccer and underpass presentation
 
-The existing Blender-authored goal frames and nets are reused. Soccer balls are
-original, deterministic truncated-icosahedron geometry with twelve dark pentagons
-and twenty ivory hexagons, rendered in two material groups per ball. Scoreboards
-are app-authored geometry and canvas typography. No new marketplace asset is used.
+The previous baked goal grids were removed. `build-pitch-items.py` authors reusable
+`pitch-goal-v2.blend/.glb` and `pitch-scoreboard-v2.blend/.glb`: tubular goal frames,
+three-dimensional side/roof/rear rope nets, rear supports and feet; beveled
+scoreboard housing, visor, foundations, braces and raised labels. Each goal is
+under 10,000 triangles and each board under 5,000; each model is under 1 MiB.
+Thin net strands omit invisible internal caps. The renderer adds instanced 3D
+score digits and drives net response from the accepted pitch behavior state.
+
+Soccer balls remain original deterministic truncated-icosahedron geometry with
+twelve dark pentagons and twenty ivory hexagons, in two material groups per ball.
+No new marketplace asset is used.
 
 `reference/underpass-v1.png` was generated using the built-in image-generation
 tool as the depth-aware grey silhouette/cream rim reference. Its prompt is saved

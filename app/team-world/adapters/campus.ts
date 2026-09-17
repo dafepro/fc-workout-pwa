@@ -1,9 +1,13 @@
 import * as THREE from "three";
+import {
+  installCharacterSilhouette,
+  markSilhouetteOccluder,
+} from "./character-occlusion";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 /** App-owned art, layered over the same world.json terrain used by the relay. */
 export async function loadCampus(signal?: AbortSignal) {
-  const response = await fetch("/team-world-assets/campus-v1/team-campus.glb", {
+  const response = await fetch("/team-world-assets/campus-v2/team-campus.glb", {
     signal: signal
       ? AbortSignal.any([signal, AbortSignal.timeout(30000)])
       : AbortSignal.timeout(30000),
@@ -31,14 +35,18 @@ export async function loadCampus(signal?: AbortSignal) {
     }
   });
   let closed = false;
+  let removeSilhouette: (() => void) | undefined;
+  markSilhouetteOccluder(root);
   return {
     scenery(scene: THREE.Scene) {
       scene.background = new THREE.Color("#dedfd2");
       scene.add(root);
+      removeSilhouette = installCharacterSilhouette(scene);
     },
     dispose() {
       if (closed) return;
       closed = true;
+      removeSilhouette?.();
       // Detach before WorldView traverses its own resources on disposal.
       root.removeFromParent();
       for (const g of geometry) g.dispose();

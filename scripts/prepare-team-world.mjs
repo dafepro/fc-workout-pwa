@@ -19,9 +19,15 @@ await cp(
   { recursive: true },
 );
 
-const campus = new URL("public/team-world-assets/campus-v1/", root);
+const campus = new URL("public/team-world-assets/campus-v2/", root);
 await mkdir(campus, { recursive: true });
 await cp(
   new URL("assets/team-world/campus/models/team-campus.glb", root),
   new URL("team-campus.glb", campus),
 );
+
+for (const name of ["pitch-goal-v2.glb", "pitch-scoreboard-v2.glb"])
+  await cp(
+    new URL(`assets/team-world/campus/models/${name}`, root),
+    new URL(name, campus),
+  );

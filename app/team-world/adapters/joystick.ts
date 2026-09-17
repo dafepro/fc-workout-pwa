@@ -1,7 +1,7 @@
 import { WALK_SPEED, SPRINT_SPEED } from "zmap";
 
-export const WALK_RING = 30;
-export const SPRINT_RING = 40;
+export const WALK_RING = 60;
+export const SPRINT_RING = 80;
 export function joystickIntent(dx: number, dy: number, automatic = true) {
   const distance = Math.hypot(dx, dy);
   const walk = Math.max(0, Math.min(1, (distance - 5) / (WALK_RING - 5)));

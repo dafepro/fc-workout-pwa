@@ -212,7 +212,7 @@ export async function loadActionKit(
       root = new THREE.Group(),
       style = new ComicStyle({ inkWidth: 1.5 });
     root.add(avatar.object);
-    const occlusion = createCharacterOcclusion(root);
+    const occlusion = createCharacterOcclusion();
     let action: PlayerActionState | undefined,
       tick = 0,
       desired: string | null = null,
@@ -591,7 +591,6 @@ export async function loadActionKit(
           styledWidth = context.viewport.x;
           styledHeight = context.viewport.y;
         }
-        occlusion.sync();
       },
     };
   }

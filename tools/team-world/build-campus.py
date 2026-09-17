@@ -8,6 +8,7 @@ import bpy
 import json
 import math
 import random
+import sys
 from pathlib import Path
 from mathutils import Vector, Matrix
 
@@ -20,7 +21,7 @@ bpy.ops.object.select_all(action="SELECT")
 bpy.ops.object.delete(use_global=False)
 world_path = ROOT / "app/team-world/world.json"
 world = json.loads(world_path.read_text())
-world.update(id="team-world-campus-v1", bounds=dict(x=-71, z=-71, width=142, depth=142), blockers=[])
+world.update(id="team-world-campus-v2", bounds=dict(x=-71, z=-71, width=142, depth=142), blockers=[])
 centers = [-44, -22, 0, 22, 44]
 world["surfaces"] = [dict(id=f"district-ground-{i}", x=c-27, z=-c-27,
     width=54, depth=54, y=0, thickness=1.2, color="#c7bda4", rollingResistance=.4)
@@ -278,14 +279,6 @@ def pitch(x,z,w,d):
         direction = 1 if dx<0 else -1
         marking(x+dx+direction*3,z,.1,d*.48)
         for dz in [-d*.24,d*.24]: marking(x+dx+direction*1.5,z+dz,3,.1)
-        # Goal mouth faces the pitch; back net is fine geometry, no alpha map.
-        gx=x+dx-direction*.45
-        for dz in [-2.4,2.4]: box("goal upright",gx,z+dz,0,.12,.12,2.4,white,True)
-        box("goal crossbar",gx,z,2.3,.12,4.9,.12,white)
-        back=gx-direction*1.3
-        for dz in [-2.4,2.4]: box("goal rear",back,z+dz,0,.08,.08,1.9,metal)
-        for i in range(17): box("goal net vertical",back,z-2.4+i*.3,0,.018,.018,1.9,cream)
-        for i in range(7): box("goal net horizontal",back,z,i*.3,.018,4.8,.018,cream)
     vertices=[]
     for i in range(97):
         a=i*math.tau/96
@@ -320,6 +313,20 @@ for i,(x,z) in enumerate(edge_sites):
     else:
         asset("nature","plant_bush",x,z,0,1.5,random.randrange(360))
 
+# Each pitch's separate models share these authored physical boundaries.
+for pitch_object in world["objects"]:
+    if pitch_object["behavior"] != "soccer": continue
+    cfg=pitch_object["config"]; origin=pitch_object["position"]
+    def boundary(x,y,z,w,h,d):
+        world["blockers"].append(dict(x=origin["x"]+x-w/2,z=origin["z"]+z-d/2,y=y-h/2,width=w,height=h,depth=d))
+    for sign in [-1,1]:
+        gx=sign*(cfg["halfLength"]+.45)
+        for z in [-2.4,2.4]: boundary(gx,1.225,z,.15,2.45,.15)
+        boundary(gx,2.375,0,.15,.15,4.95)
+        boundary(gx+sign*1.3,.98,0,.035,1.96,4.8)
+        for z in [-2.36,2.36]: boundary(gx+sign*.65,1.05,z,1.3,2.1,.025)
+    for x in [-2.4,2.4]: boundary(x-5,1.5,-cfg["halfWidth"]-3,.9,3,.9)
+    boundary(-5,3.15,-cfg["halfWidth"]-3,6.5,2.4,.48)
 assert len(world["blockers"]) <= 200, len(world["blockers"])
 world_path.write_text(json.dumps(world, indent=2)+"\n")
 
@@ -382,5 +389,5 @@ scene.view_settings.view_transform="AgX"
 scene.render.image_settings.file_format="PNG"
 scene.render.filepath=str(ROOT/"outputs/campus/blender-overview.png")
 bpy.ops.wm.save_as_mainfile(filepath=str(OUT/"team-campus.blend"))
-bpy.ops.render.render(write_still=True)
+if "--skip-render" not in sys.argv: bpy.ops.render.render(write_still=True)
 print(json.dumps(dict(meshes=len(groups),blockers=len(world["blockers"]),glb_bytes=(OUT/"team-campus.glb").stat().st_size)))

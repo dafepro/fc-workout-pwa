@@ -198,7 +198,7 @@ while qualification continues. Loading, paused and denied states disable play;
 leaving the route disposes the world connection and scene.
 
 Joystick is the default: pressing an open area anchors the stick there, with a
-30-pixel walk ring and a 10-pixel transition into sprint. Each pitch has a confined
+60-pixel walk radius and a 20-pixel transition into sprint. Each pitch has a confined
 soccer ball and Burgundy/Gold scoreboard. Goals pause the ball, dissolve it, and
 fade it back in at midfield. Scores last only for the current room. Under bridges
 and furnishings, hidden character pixels use a grey silhouette with a pale rim;

@@ -20,11 +20,14 @@ package split, map extent, remaining view/navigation design work and rollout
 constraints. [Campus provenance](../assets/team-world/campus/PROVENANCE.md)
 records reused CC0 models, generated texture prompts and the Blender rebuild.
 
-Architecture stays opaque and intact. Occluded character fragments render as a
-muted grey silhouette with a fine cream rim. Depth and stencil tests preserve
-visible body colors and prevent the overlay from showing through the character
-itself. Overlays live outside Avatar Studio's asset tree so cosmetic passes do
-not consume its equipment budget. No geometry is cut away.
+Architecture stays opaque and intact. The renderer flattens original avatar
+geometry into a nearest-surface depth mask, compares it with a separate terrain
+mask, then composites one flat grey silhouette with a cream boundary. Visible
+body pixels are unchanged, and overlapping parts are shaded exactly once. No
+per-part ghost geometry, source-material mutation or rectangular cutaway remains.
+Both masks follow the drawing-buffer budget and are released on route exit.
+A real WebGL pixel regression checks unobstructed/moving, fully hidden and partly
+hidden cases (`E2E_CAMPUS_REVIEW=1`, with the local Vite review server on port 3006).
 
 Each existing pitch has a classic paneled soccer ball and Burgundy/Gold goals.
 The positive-X goal awards Burgundy; the negative-X goal awards Gold. A whole
@@ -33,8 +36,12 @@ goal for one second, dissolves over half a second, then teleports and fades in
 at midfield over 0.6 seconds. Reduced motion uses visibility changes. Ball-only
 pitch boundaries preserve player movement; out-of-bounds kicks, tools and pair
 contacts are corrected before a simulation tick is published. Goal pockets are
-part of the playable enclosure. Physical boards and an accessible HUD show the
-nearest pitch's shared score. Scores are transient, saturate at 999999 and reset
+part of the playable enclosure. Separate Blender goal and scoreboard models are components of each shared pitch
+object. Goal frames and scoreboard supports have authored physical boundaries;
+net cages react to accepted goals. Thick freestanding boards use modeled,
+instanced seven-segment digits that update from accepted pitch state. The
+accessible HUD shows the nearest pitch's shared score. Campus and pitch models
+ship under `campus-v2` to invalidate the older baked-goal artwork. Scores are transient, saturate at 999999 and reset
 when the room empties, with no training credit or individual ranking.
 
 This adapts Canvas's accepted-ball, capture-once, hold-and-score pattern. The
@@ -73,8 +80,8 @@ over four seconds. Both runs displayed 240 frames, with p95 16.7ms. This reduces
 work; it is not evidence of higher FPS or qualification on slower GPUs/phones.
 
 Joystick is the default on entry and retry. Press an open canvas location to
-anchor a floating stick there; release hides it. The 30px inner ring reaches
-walking speed, and the next 10px band accelerates to sprint. Returning inside
+anchor a floating stick there; release hides it. The 60px inner radius reaches
+walking speed, and the next 20px band accelerates to sprint. Returning inside
 slows back to walking. Quick taps still activate nearby items, while dragging
 never activates one. UI controls do not start a joystick. The always-available
 Kick ball button and Space kick nearby balls.
@@ -189,16 +196,16 @@ HTTP/configuration suites and vet passed, including ticket scope/replay/expiry,
 locked/cross-team access, session and membership revocation, replacement grants
 and fail-closed configuration.
 
-The September 16 interaction pass passed all 531 app tests, eight relay tests,
-eight connected Chrome journeys, lint, types, formatting and static deployment/
-documentation contracts. The browser journeys include floating-stick relocation,
-walk/sprint thresholds, a real kick scoring for both peers, and midfield return.
-Visual review checked the football/scoreboard and grey under-bridge silhouette
-against the generated reference, with normal color above the bridge and no box
-cutaway. ZMap's generic after-physics extension passed 49 focused engine tests.
-The Worker build/upload dry run was 2241.74 KiB compressed against its
-2800 KiB budget; the world remains a lazy browser bundle. Desktop browser tests
-do not establish physical-phone performance.
+The September 17 refinement passed all 532 app tests, nine relay/model tests,
+eight connected Chrome journeys plus the WebGL silhouette pixel regression,
+lint, types, formatting and static deployment/documentation contracts. The
+browser journeys include the 160px floating-stick diameter, relocation and pace,
+a real kick scoring for both peers, and midfield return. Visual review checked
+uncovered/covered avatars, modeled net cages, scoreboard digits changing after a
+goal, and the larger joystick. An unconstrained unit run hit an unchanged Lounge
+timeout; the complete rerun used two workers without changing test deadlines.
+The Worker build/upload dry run was 2242.96 KiB compressed against its 2800 KiB
+budget. Desktop tests do not establish physical-phone performance.
 
 Continue with these active integration gates before a pilot:
 

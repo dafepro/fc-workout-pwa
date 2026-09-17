@@ -111,6 +111,7 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
         return;
       }
       campus = await loadCampus(controller.signal);
+      await soccer.load(controller.signal);
       if (cancelled) {
         dispose();
         return;

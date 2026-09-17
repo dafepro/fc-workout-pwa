@@ -209,8 +209,8 @@
 .team-world-stick {
   position: absolute;
   z-index: 2;
-  width: 80px;
-  height: 80px;
+  width: 160px;
+  height: 160px;
   transform: translate(-50%, -50%);
   border-radius: 50%;
   background: #071c2530;
@@ -221,7 +221,7 @@
 .team-world-stick::before {
   content: "";
   position: absolute;
-  inset: 9px;
+  inset: 19px;
   border: 2px solid #f1f6e8cc;
   border-radius: 50%;
   background: #071c2528;

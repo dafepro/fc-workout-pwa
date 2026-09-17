@@ -8,7 +8,7 @@ import map from "../../app/team-world/world.json" with { type: "json" };
 
 test("campus spans multiple viewports and preserves approved world interactions", () => {
   validateMap(map, [cannonBehavior, switchBehavior, soccerBehavior]);
-  assert.equal(map.id, "team-world-campus-v1");
+  assert.equal(map.id, "team-world-campus-v2");
   assert.ok(map.bounds.width >= 130 && map.bounds.depth >= 130);
   assert.ok(map.surfaces.some((s) => s.id === "social-perch"));
   assert.ok(map.surfaces.some((s) => s.id === "bridge"));
@@ -55,5 +55,37 @@ test("every toy and spawn has physical support at the authored height", () => {
     const surface = supportAt(map, p.x, p.z, p.y + 0.02);
     assert.ok(surface, JSON.stringify(p));
     assert.ok(Math.abs(top(surface, p.z) - p.y) < 0.025);
+  }
+});
+
+test("pitch items are separate volumetric models within repeat-instance budgets", async () => {
+  for (const [name, limit, part] of [
+    ["pitch-goal-v2", 10000, "goal-net"],
+    ["pitch-scoreboard-v2", 5000, "scoreboard-housing"],
+  ]) {
+    const bytes = await readFile(
+      new URL(
+        `../../assets/team-world/campus/models/${name}.glb`,
+        import.meta.url,
+      ),
+    );
+    assert.ok(bytes.length < 1024 * 1024, `${name} exceeds 1 MiB`);
+    const gltf = JSON.parse(
+      bytes.subarray(20, 20 + bytes.readUInt32LE(12)).toString(),
+    );
+    const triangles = gltf.meshes
+      .flatMap((m) => m.primitives)
+      .reduce((n, p) => n + gltf.accessors[p.indices].count / 3, 0);
+    assert.ok(triangles < limit, `${name} has ${triangles} triangles`);
+    const node = gltf.nodes.find((n) => n.name === part);
+    assert.ok(node);
+    const bounds =
+      gltf.accessors[gltf.meshes[node.mesh].primitives[0].attributes.POSITION];
+    assert.ok(bounds.max[0] - bounds.min[0] > 0.4);
+    assert.ok(bounds.max[1] - bounds.min[1] > 0.4);
+    assert.ok(
+      bounds.max[2] - bounds.min[2] > 0.4,
+      "Item must have actual depth",
+    );
   }
 });

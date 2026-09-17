@@ -52,7 +52,7 @@ scores use the shared transient room state.
 - [ ] **ZMap view API — before more rendering integrations:** standardize optional
       depth-aware character presentation and explicit terrain material ownership.
       The campus no longer captures BoxGeometry or clips slabs; its character-only
-      stencil treatment keeps roofs intact. Benchmark the extra character passes
+      terrain-depth-tested mask composite keeps roofs intact. Benchmark its two depth targets and extra passes
       on low-end phones before considering this a reusable default.
 - [ ] **Navigation — before distant destinations or larger worlds:** define a
       coarse district route graph and cancellable fine search. The app now samples

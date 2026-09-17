@@ -4,14 +4,14 @@ import { joystickIntent } from "./joystick";
 
 it("keeps a dead zone, reaches walking at the ring and sprint after its buffer", () => {
   expect(joystickIntent(3, 0).speed).toBe(0);
-  expect(joystickIntent(30, 0).speed).toBe(WALK_SPEED);
-  expect(joystickIntent(35, 0).speed).toBeGreaterThan(WALK_SPEED);
-  expect(joystickIntent(40, 0).speed).toBe(SPRINT_SPEED);
+  expect(joystickIntent(60, 0).speed).toBe(WALK_SPEED);
+  expect(joystickIntent(70, 0).speed).toBeGreaterThan(WALK_SPEED);
+  expect(joystickIntent(80, 0).speed).toBe(SPRINT_SPEED);
   expect(joystickIntent(400, 0).speed).toBe(SPRINT_SPEED);
   expect(joystickIntent(400, 0, false).speed).toBe(WALK_SPEED);
 });
 it("preserves diagonal direction without increasing maximum speed", () => {
-  const intent = joystickIntent(40, -40);
+  const intent = joystickIntent(80, -80);
   expect(Math.hypot(intent.x, intent.z)).toBeCloseTo(1);
   expect(intent.z).toBeLessThan(0);
   expect(intent.speed).toBe(SPRINT_SPEED);
