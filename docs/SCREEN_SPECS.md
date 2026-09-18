@@ -205,8 +205,12 @@ Joystick is the default: pressing an open area anchors the stick there, with a
 soccer ball and Burgundy/Gold scoreboard. Goals pause the ball, dissolve it, and
 fade it back in at midfield. Scores last only for the current room. Under bridges
 and furnishings, hidden character pixels use a grey silhouette with a pale rim;
-visible body parts keep their normal colors. Kicks have a half-second shared
-wind-up, strike and follow-through pose; reduced-motion mode omits the pose.
+visible body parts keep their normal colors. Kicks use a full-body instep shot: left-foot plant, hip and shoulder turn,
+right-leg strike, a short hop, and a bent-knee landing on the shooting foot.
+The half-second shared kick timer drives the shot; a local 0.3-second recovery
+blends back into locomotion. Foot contact follows the fitted boots. Animation
+does not move the authoritative player or delay the ball impulse; reduced-motion
+mode omits the shot and recovery.
 
 The current three approved appearances are assigned server-side. Saved modular
 appearance editing and durable decorating are subsequent integration work.

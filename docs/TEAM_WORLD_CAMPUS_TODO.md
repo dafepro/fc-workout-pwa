@@ -155,3 +155,23 @@ Overall workflow remains red at SwiftShader world entry: tick 6, epoch 8, no
 eligible host at failure, maximum frame 1817 ms, longest task 1306 ms. This remains
 an open software-renderer qualification issue; the successful hardware check does
 not establish software-renderer or physical-phone readiness.
+
+## Full-body instep shot — September 18
+
+The app adapter now coordinates hips, chest, head, both arms and both legs for a
+right-foot shot. A short planted backswing flows into the strike and turn-through,
+a brief airborne transfer and a bent-knee right-foot landing. The shared
+half-second kick remains unchanged; a 0.3-second display-only recovery blends into
+locomotion. Fitted rigid boot vertices are cached in ankle space for ground contact.
+No authoritative position, ball timing, library pin or protocol changed.
+
+The generated six-pose reference and coaching-source attribution live in
+`assets/team-world/PROVENANCE.md`. The developer motion review now includes front
+and side contact sheets plus normal-speed/slow playback. All three appearances
+pass real-rig floor-contact, torso/arm participation, flight, recovery and repeat
+checks; reduced motion omits the whole clip. The 18 local Chrome checks also pass
+connected scoring, silhouette rendering and sprint motion (64 moving samples,
+zero held/backwards samples in the delayed-timer reproduction). All 532 app tests,
+9 relay/model tests, repository contracts, lint, types, formatting and production
+build passed. Worker upload: 2245.96 KiB compressed against 2800 KiB. Physical-phone
+motion quality still needs device review; full Docker/VM suites were not rerun.

@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { poseKick } from "./kick";
+import { createKickPose } from "./kick";
 import { createCharacterOcclusion } from "./character-occlusion";
 import {
   AvatarLibrary,
@@ -217,6 +217,7 @@ export async function loadActionKit(
       root = new THREE.Group(),
       style = new ComicStyle({ inkWidth: 1.5 });
     root.add(avatar.object);
+    const poseKick = createKickPose();
     const occlusion = createCharacterOcclusion();
     let action: PlayerActionState | undefined,
       tick = 0,
@@ -495,7 +496,7 @@ export async function loadActionKit(
           }
         }
         avatar.update(time, motion);
-        poseKick(avatar, body.kick ?? 0, context.reducedMotion);
+        poseKick(avatar, body.kick ?? 0, time, context.reducedMotion);
         root.updateWorldMatrix(true, true);
         cable.visible = false;
         pulse.visible = false;

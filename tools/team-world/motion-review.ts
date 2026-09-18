@@ -3,14 +3,22 @@ import { loadActionKit } from "../../app/team-world/adapters/characters";
 import { installCharacterSilhouette } from "../../app/team-world/adapters/character-occlusion";
 import { initialSimulation } from "zmap/core";
 const kit = await loadActionKit(() => {});
+const params = new URLSearchParams(location.search);
 const character = kit.character({
   id: "motion",
   name: "Teammate",
-  appearance: "burgundy",
+  appearance: params.get("appearance") ?? "burgundy",
 });
 const scene = new THREE.Scene();
 scene.background = new THREE.Color("#bbcbbb");
 scene.add(character.object);
+const floor = new THREE.Mesh(
+  new THREE.PlaneGeometry(12, 12),
+  new THREE.MeshBasicMaterial({ color: "#a6b5a3" }),
+);
+floor.rotation.x = -Math.PI / 2;
+floor.position.y = -0.006;
+scene.add(floor, new THREE.GridHelper(12, 24, "#718170", "#8f9f8b"));
 const camera = new THREE.OrthographicCamera(-2, 2, 2, -2, 0.1, 80);
 camera.position.set(6, 5, 8);
 camera.lookAt(0, 1, 0);
@@ -28,7 +36,7 @@ const state = { tick: 0, players: {}, toys: {}, triggers: {} } as ReturnType<
 const context = {
   session: "motion",
   state,
-  reducedMotion: false,
+  reducedMotion: params.get("reduced") === "1",
   viewport: new THREE.Vector2(480, 480),
 };
 function hash() {
@@ -40,9 +48,9 @@ function hash() {
   return h;
 }
 function pose(i: number, kick = 0, speed = 4.6) {
-  character.object.position.z = (i / 60) * 4.6;
-  camera.position.set(6, 5, 8 + (i / 60) * 4.6);
-  camera.lookAt(0, 1, (i / 60) * 4.6);
+  character.object.position.z = (i / 60) * speed;
+  camera.position.set(6, 5, 8 + (i / 60) * speed);
+  camera.lookAt(0, 1, (i / 60) * speed);
   character.object.rotation.y = 0;
   character.update(
     {
@@ -92,13 +100,105 @@ document.querySelector("#run")!.addEventListener("click", () => {
   });
 });
 
+let clock = 3;
+const stages = new Map([
+  [3, "Plant"],
+  [5, "Strike"],
+  [13, "Follow through"],
+  [19, "Flight"],
+  [28, "Right-foot landing"],
+  [48, "Recover"],
+]);
+export function kickFrame(frame: number) {
+  pose(++clock, Math.max(0, 0.5 - frame / 60), 0);
+  camera.position.set(5, 2.8, 7);
+  camera.lookAt(0, 1, 0);
+  renderer.render(scene, camera);
+}
+function measurements(label: string) {
+  const bone = (name: string) => character.object.getObjectByName(name)!;
+  const sole = { foot_L: Infinity, foot_R: Infinity };
+  character.object.traverse((object) => {
+    if (!(object instanceof THREE.SkinnedMesh) || object.userData.comicOutline)
+      return;
+    const indices = object.geometry.getAttribute("skinIndex"),
+      weights = object.geometry.getAttribute("skinWeight");
+    for (let i = 0; i < indices.count; i++)
+      for (let j = 0; j < 4; j++) {
+        const name = object.skeleton.bones[indices.getComponent(i, j)].name;
+        if (
+          (name !== "foot_L" && name !== "foot_R") ||
+          weights.getComponent(i, j) < 0.9999
+        )
+          continue;
+        const point = object
+          .getVertexPosition(i, new THREE.Vector3())
+          .applyMatrix4(object.matrixWorld);
+        sole[name] = Math.min(sole[name], point.y);
+      }
+  });
+  return {
+    label,
+    leftSole: sole.foot_L,
+    rightSole: sole.foot_R,
+    chestYaw: bone("chest").rotation.y,
+    leftArm: bone("arm_L").rotation.z,
+    rightKnee: bone("shin_R").rotation.x,
+  };
+}
+let playing = false;
+const cards = document.createElement("div");
+cards.style.cssText = "display:flex;flex-wrap:wrap;gap:12px";
+document.body.appendChild(cards);
 document.querySelector("#kick")!.addEventListener("click", () => {
-  for (let i = 0; i <= 30; i += 3) {
-    pose(120 + i, Math.max(0, 0.5 - i / 60), 0);
-    const image = new Image();
-    image.width = 240;
-    image.src = renderer.domElement.toDataURL();
-    document.body.appendChild(image);
+  playing = false;
+  cards.replaceChildren();
+  const poses = [];
+  for (let i = 0; i < 60; i++) kickFrame(60);
+  const baseline = measurements("Baseline");
+  for (let i = 0; i <= 48; i++) {
+    kickFrame(i);
+    const label = stages.get(i);
+    if (!label) continue;
+    poses.push(measurements(label));
+    const card = document.createElement("figure");
+    card.style.cssText = "margin:0; width:240px";
+    const caption = document.createElement("figcaption");
+    caption.textContent = label;
+    card.appendChild(caption);
+    for (const side of [false, true]) {
+      camera.position.set(side ? 7 : 5, 2.8, side ? 0 : 7);
+      camera.lookAt(0, 1, 0);
+      renderer.render(scene, camera);
+      const image = new Image();
+      image.width = 240;
+      image.alt = `${label}: ${side ? "side" : "front three-quarter"}`;
+      image.src = renderer.domElement.toDataURL();
+      card.appendChild(image);
+    }
+    cards.appendChild(card);
   }
-  document.querySelector("#result")!.textContent = "kick complete";
+  document.querySelector("#result")!.textContent = JSON.stringify({
+    status: "kick complete",
+    baseline,
+    poses,
+  });
+});
+document.querySelector("#play")!.addEventListener("click", () => {
+  playing = !playing;
+  if (!playing) return;
+  camera.position.set(5, 2.8, 7);
+  camera.lookAt(0, 1, 0);
+  let frame = 0,
+    last = 0;
+  function animate(now: number) {
+    if (!playing) return;
+    const slow = (document.querySelector("#slow") as HTMLInputElement).checked;
+    if (now - last >= (slow ? 50 : 1000 / 60)) {
+      kickFrame(frame++ % 100);
+      last = now;
+    }
+    requestAnimationFrame(animate);
+  }
+  requestAnimationFrame(animate);
 });
