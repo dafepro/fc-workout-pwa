@@ -3,6 +3,6 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "zmap": "https://github.com/dafepro/zmap/releases/download/v0.1.8/zmap-0.1.8.tgz"
+    "zmap": "https://github.com/dafepro/zmap/releases/download/v0.1.9/zmap-0.1.9.tgz"
   }
 }

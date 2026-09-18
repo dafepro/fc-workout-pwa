@@ -353,7 +353,8 @@
 }
 .team-world-kick {
   position: absolute;
-  left: 1rem;
+  touch-action: none;
+  right: 1rem;
   bottom: 9rem;
   z-index: 3;
 }

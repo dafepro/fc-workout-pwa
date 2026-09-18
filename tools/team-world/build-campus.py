@@ -21,7 +21,7 @@ bpy.ops.object.select_all(action="SELECT")
 bpy.ops.object.delete(use_global=False)
 world_path = ROOT / "app/team-world/world.json"
 world = json.loads(world_path.read_text())
-world.update(id="team-world-campus-v2", bounds=dict(x=-71, z=-71, width=142, depth=142), blockers=[])
+world.update(kickWindup=.2, id="team-world-campus-v2", bounds=dict(x=-71, z=-71, width=142, depth=142), blockers=[])
 centers = [-44, -22, 0, 22, 44]
 world["surfaces"] = [dict(id=f"district-ground-{i}", x=c-27, z=-c-27,
     width=54, depth=54, y=0, thickness=1.2, color="#c7bda4", rollingResistance=.4)

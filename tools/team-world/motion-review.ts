@@ -13,15 +13,15 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color("#bbcbbb");
 scene.add(character.object);
 const floor = new THREE.Mesh(
-  new THREE.PlaneGeometry(12, 12),
+  new THREE.PlaneGeometry(200, 200),
   new THREE.MeshBasicMaterial({ color: "#a6b5a3" }),
 );
 floor.rotation.x = -Math.PI / 2;
 floor.position.y = -0.006;
-scene.add(floor, new THREE.GridHelper(12, 24, "#718170", "#8f9f8b"));
+scene.add(floor, new THREE.GridHelper(200, 400, "#718170", "#8f9f8b"));
 const camera = new THREE.OrthographicCamera(-2, 2, 2, -2, 0.1, 80);
 camera.position.set(6, 5, 8);
-camera.lookAt(0, 1, 0);
+camera.lookAt(0, 1, character.object.position.z);
 const renderer = new THREE.WebGLRenderer({
   preserveDrawingBuffer: true,
   antialias: false,
@@ -102,17 +102,21 @@ document.querySelector("#run")!.addEventListener("click", () => {
 
 let clock = 3;
 const stages = new Map([
-  [3, "Plant"],
-  [5, "Strike"],
-  [13, "Follow through"],
-  [19, "Flight"],
-  [28, "Right-foot landing"],
-  [48, "Recover"],
+  [7, "Plant"],
+  [12, "Strike"],
+  [18, "Follow through"],
+  [25, "Flight"],
+  [35, "Right-foot landing"],
+  [58, "Recover"],
 ]);
 export function kickFrame(frame: number) {
-  pose(++clock, Math.max(0, 0.5 - frame / 60), 0);
-  camera.position.set(5, 2.8, 7);
-  camera.lookAt(0, 1, 0);
+  pose(
+    ++clock,
+    Math.max(0, 0.5 - frame / 60),
+    params.get("moving") === "1" ? 5.4 : 0,
+  );
+  camera.position.set(5, 2.8, 7 + character.object.position.z);
+  camera.lookAt(0, 1, character.object.position.z);
   renderer.render(scene, camera);
 }
 function measurements(label: string) {
@@ -139,6 +143,9 @@ function measurements(label: string) {
   });
   return {
     label,
+    worldZ: character.object.position.z,
+    rightThigh: bone("leg_R").rotation.x,
+    chestLean: bone("chest").rotation.x,
     leftSole: sole.foot_L,
     rightSole: sole.foot_R,
     chestYaw: bone("chest").rotation.y,
@@ -158,7 +165,7 @@ document.querySelector("#kick")!.addEventListener("click", () => {
   const poses = [];
   for (let i = 0; i < 60; i++) kickFrame(60);
   const baseline = measurements("Baseline");
-  for (let i = 0; i <= 48; i++) {
+  for (let i = 0; i <= 58; i++) {
     kickFrame(i);
     const label = stages.get(i);
     if (!label) continue;
@@ -169,8 +176,12 @@ document.querySelector("#kick")!.addEventListener("click", () => {
     caption.textContent = label;
     card.appendChild(caption);
     for (const side of [false, true]) {
-      camera.position.set(side ? 7 : 5, 2.8, side ? 0 : 7);
-      camera.lookAt(0, 1, 0);
+      camera.position.set(
+        side ? 7 : 5,
+        2.8,
+        (side ? 0 : 7) + character.object.position.z,
+      );
+      camera.lookAt(0, 1, character.object.position.z);
       renderer.render(scene, camera);
       const image = new Image();
       image.width = 240;
@@ -190,8 +201,8 @@ document.querySelector("#play")!.addEventListener("click", () => {
   playing = !playing;
   cancelAnimationFrame(animationFrame);
   if (!playing) return;
-  camera.position.set(5, 2.8, 7);
-  camera.lookAt(0, 1, 0);
+  camera.position.set(5, 2.8, 7 + character.object.position.z);
+  camera.lookAt(0, 1, character.object.position.z);
   let frame = 0,
     last = performance.now(),
     accumulated = 0;

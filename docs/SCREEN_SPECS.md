@@ -207,10 +207,15 @@ fade it back in at midfield. Scores last only for the current room. Under bridge
 and furnishings, hidden character pixels use a grey silhouette with a pale rim;
 visible body parts keep their normal colors. Kicks use a full-body instep shot: left-foot plant, hip and shoulder turn,
 right-leg strike, a short hop, and a bent-knee landing on the shooting foot.
-The half-second shared kick timer drives the shot; a local 0.3-second recovery
-blends back into locomotion. Foot contact follows the fitted boots. Animation
-does not move the authoritative player or delay the ball impulse; reduced-motion
-mode omits the shot and recovery.
+The half-second shared kick timer drives a stretched backswing and accelerated
+strike. Ball contact occurs after the campus map’s 0.2-second wind-up, with reach
+checked at contact; movement and steering continue throughout. The full visual
+shot lasts 0.96 seconds, blending back into the current locomotion pose after
+landing. Foot contact follows the fitted boots. Reduced-motion mode omits the
+visual shot and recovery but keeps identical shared ball timing. The right-side
+Kick button triggers on touch/pointer press without taking canvas focus, so a
+second finger can shoot while the first keeps the joystick held. Space also kicks
+while keyboard movement is held.
 
 The current three approved appearances are assigned server-side. Saved modular
 appearance editing and durable decorating are subsequent integration work.

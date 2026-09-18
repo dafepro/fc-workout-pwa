@@ -7,7 +7,7 @@ design follow-ups, not promises of additional player features.
 
 | System         | Owns                                                                                                              | Consumed by Zoomigo                                         |
 | -------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| ZMap           | Deterministic world simulation, relay protocol, geometry navigation, object behaviors and basic Three.js view     | Pinned `zmap` 0.1.8 preview, identically in app and relay   |
+| ZMap           | Deterministic world simulation, relay protocol, geometry navigation, object behaviors and basic Three.js view     | Pinned `zmap` 0.1.9 preview, identically in app and relay   |
 | Avatar Studio  | Modular characters, animation, comic presentation and wielded equipment                                           | Pinned `@zmap/avatar-studio` 0.1.2 release                  |
 | fc-workout-pwa | Eligibility, identity, tickets, transient room policy, campus terrain/art, input UI and action-to-avatar adapters | App-owned `world.json`, Blender sources and scenery adapter |
 
@@ -186,3 +186,33 @@ world-entry gate (tick 0, epoch 2, no eligible host; max frame 1883 ms, longest 
 1349 ms), before a kick occurs. This is not a full software-renderer qualification.
 The local review player's normal/slow playback uses a bounded frame accumulator;
 its five motion tests, types and lint passed after that developer-tool refinement.
+
+## Running-shot refinement — September 18
+
+Kick now fires on pointer press without taking canvas focus, preserving keyboard
+and joystick movement. Its right-side placement supports steering with one thumb
+and shooting with the other; compatibility clicks do not trigger a second shot.
+Real Chrome two-touch dispatch confirms that releasing the kick finger leaves the
+steering finger active, and releasing steering stops movement.
+
+The app pose has a farther backswing, hip/chest extension, a slower build-up,
+accelerated strike, stronger follow-through, and shooting-foot landing. The
+0.96-second clip blends back into the active running/idle pose. Campus opts into
+ZMap 0.1.9's `kickWindup: 0.2`, so shared ball contact matches the visual strike
+rather than preceding the wind-up. Reach is checked at contact. Walking, sprinting
+and steering remain live. Repeated presses cannot indefinitely postpone a pending
+shot, and the existing shared timer preserves contact across host restoration.
+Other maps keep immediate kicks; enabled rooms require `kick-windup-v1` on client
+and service. Avatar Studio remains independently pinned at 0.1.2.
+
+Published engine revision `415e06653b4f1e535458f8001ae546553da7af2f`; artifact
+SHA256 `800c4e94e48e8e786b6e4a9ca0b5f645693ae5ac2857f832400bb0e0ce11c68b`.
+Engine types/build/packed consumer and all new timing/socket tests passed; 114/119
+Windows tests pass, with the same five existing directory-fsync/storage failures.
+
+Local integration validation passed 21 Chrome checks (standing/running poses,
+reduced motion, two-finger sprint/kick/release, keyboard movement with button kick,
+shared scoring, silhouettes and sprint scheduling), all 532 app tests, 9 relay
+contracts, types, lint, formatting and deployment contracts. The production build
+and upload dry run passed at 2246.13 KiB compressed. Physical phone testing remains
+open; full Docker/VM suites were not rerun for this refinement.

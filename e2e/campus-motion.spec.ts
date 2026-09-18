@@ -17,7 +17,7 @@ test("sprint pose renders consistently across repeated passes", async ({
   expect(result.differences).toEqual([]);
 });
 
-for (const appearance of ["burgundy", "saffron", "sage"])
+for (const appearance of ["burgundy", "saffron", "sage", "burgundy&moving=1"])
   test(`kick drives the whole body and lands on the shooting foot: ${appearance}`, async ({
     page,
   }) => {
@@ -50,6 +50,8 @@ for (const appearance of ["burgundy", "saffron", "sage"])
     });
     expect(plant.leftSole).toBeCloseTo(0, 2);
     expect(plant.rightSole).toBeGreaterThan(0.12);
+    expect(plant.rightThigh).toBeGreaterThan(0.85);
+    expect(plant.chestLean).toBeLessThan(-0.05);
     expect(Math.abs(follow.chestYaw - plant.chestYaw)).toBeGreaterThan(0.15);
     expect(Math.abs(follow.leftArm - plant.leftArm)).toBeGreaterThan(0.2);
     expect(landing.rightSole).toBeCloseTo(0, 2);
@@ -62,10 +64,14 @@ for (const appearance of ["burgundy", "saffron", "sage"])
     const recovery = poses.find(
       (pose: { label: string }) => pose.label === "Recover",
     );
-    expect(recovery.chestYaw).toBeCloseTo(baseline.chestYaw, 3);
-    expect(recovery.leftArm).toBeCloseTo(baseline.leftArm, 3);
-    expect(recovery.leftSole).toBeCloseTo(baseline.leftSole, 2);
-    expect(recovery.rightSole).toBeCloseTo(baseline.rightSole, 2);
+    if (!appearance.includes("moving")) {
+      expect(recovery.chestYaw).toBeCloseTo(baseline.chestYaw, 3);
+      expect(recovery.leftArm).toBeCloseTo(baseline.leftArm, 3);
+      expect(recovery.leftSole).toBeCloseTo(baseline.leftSole, 2);
+      expect(recovery.rightSole).toBeCloseTo(baseline.rightSole, 2);
+    } else {
+      expect(recovery.worldZ - plant.worldZ).toBeGreaterThan(4);
+    }
     await page
       .getByRole("button", { name: "Review kick", exact: true })
       .click();

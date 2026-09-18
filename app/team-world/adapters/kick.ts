@@ -23,23 +23,23 @@ type Pose = {
 const poses: readonly Pose[] = [
   {
     at: 0,
-    hips: [0, 0.22, -0.05],
-    chest: [0.16, -0.28, -0.08],
-    head: [-0.08, 0.08, 0.02],
-    arm_L: [-0.7, -0.15, -0.65],
-    arm_R: [0.65, 0.1, 0.48],
+    hips: [-0.08, 0.4, -0.08],
+    chest: [-0.1, -0.45, -0.12],
+    head: [0.14, 0.1, 0.03],
+    arm_L: [-0.65, -0.25, -0.85],
+    arm_R: [1.05, 0.15, 0.65],
     forearm_L: [-0.55, 0, 0],
     forearm_R: [-0.75, 0, 0],
     leg_L: [-0.16, 0, 0.02],
-    leg_R: [0.65, -0.1, -0.08],
+    leg_R: [1.05, -0.18, -0.12],
     shin_L: [0.28, 0, 0],
-    shin_R: [1.55, 0, 0],
+    shin_R: [1.65, 0, 0],
     foot_L: [-0.12, 0, 0],
     foot_R: [0.15, 0, 0],
     lift: 0,
   },
   {
-    at: 0.085,
+    at: 0.2,
     hips: [0, 0.02, -0.04],
     chest: [0.22, -0.04, -0.06],
     head: [-0.12, 0, 0],
@@ -56,16 +56,16 @@ const poses: readonly Pose[] = [
     lift: 0,
   },
   {
-    at: 0.21,
-    hips: [0, -0.32, 0.04],
-    chest: [0.18, 0.2, 0.06],
+    at: 0.3,
+    hips: [0.06, -0.5, 0.08],
+    chest: [0.3, 0.27, 0.08],
     head: [-0.14, 0.06, -0.04],
     arm_L: [-1.05, 0.45, 0.28],
     arm_R: [0.7, -0.2, 0.6],
     forearm_L: [-0.95, 0, 0],
     forearm_R: [-0.5, 0, 0],
     leg_L: [0.22, 0, 0],
-    leg_R: [-1.05, 0.18, 0.04],
+    leg_R: [-1.25, 0.25, 0.06],
     shin_L: [0.3, 0, 0],
     shin_R: [0.24, 0, 0],
     foot_L: [-0.12, 0, 0],
@@ -73,7 +73,7 @@ const poses: readonly Pose[] = [
     lift: 0,
   },
   {
-    at: 0.32,
+    at: 0.42,
     hips: [0, -0.4, 0.02],
     chest: [0.12, 0.2, 0.08],
     head: [-0.08, 0.08, -0.04],
@@ -90,7 +90,7 @@ const poses: readonly Pose[] = [
     lift: 0.13,
   },
   {
-    at: 0.46,
+    at: 0.58,
     hips: [0, -0.3, 0.01],
     chest: [0.24, 0.12, 0.04],
     head: [-0.16, 0.05, -0.02],
@@ -107,7 +107,7 @@ const poses: readonly Pose[] = [
     lift: 0,
   },
   {
-    at: 0.59,
+    at: 0.72,
     hips: [0, -0.15, 0],
     chest: [0.1, 0.05, 0.02],
     head: [-0.08, 0, 0],
@@ -124,7 +124,7 @@ const poses: readonly Pose[] = [
     lift: 0,
   },
   {
-    at: 0.8,
+    at: 0.96,
     hips: [0, 0, 0],
     chest: [0.02, 0, 0],
     head: [0, 0, 0],
@@ -184,7 +184,7 @@ export function createKickPose() {
     if (reducedMotion || dt < 0 || dt > 0.25) elapsed = Infinity;
     if (!reducedMotion && remaining > 0 && remaining <= 0.5) {
       elapsed = 0.5 - remaining;
-    } else if (!reducedMotion && elapsed < 0.8) {
+    } else if (!reducedMotion && elapsed < 0.96) {
       elapsed = Math.max(
         previous > 0 ? 0.5 : elapsed,
         elapsed + Math.max(0, dt),
@@ -192,7 +192,7 @@ export function createKickPose() {
     }
     previous = remaining;
     const view = avatar.attachmentView();
-    if (!view || elapsed >= 0.8 || reducedMotion) return;
+    if (!view || elapsed >= 0.96 || reducedMotion) return;
     if (fittedRoot !== view.root) {
       fittedRoot = view.root;
       soles.clear();
@@ -226,10 +226,10 @@ export function createKickPose() {
     const next = poses.findIndex((pose) => pose.at > elapsed);
     const a = poses[Math.max(0, next - 1)],
       b = poses[next];
-    const start = a.at === 0 ? 0.045 : a.at;
+    const start = a.at === 0 ? 0.13 : a.at;
     const blend = smooth((elapsed - start) / (b.at - start));
     const weight =
-      smooth(elapsed / 0.035) * (1 - smooth((elapsed - 0.59) / 0.21));
+      smooth(elapsed / 0.11) * (1 - smooth((elapsed - 0.72) / 0.24));
     for (const name of bones) {
       const bone = view.sockets.get(name);
       if (!bone) continue;

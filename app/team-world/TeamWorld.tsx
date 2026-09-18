@@ -390,7 +390,15 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
         <button
           className="team-world-kick"
           disabled={!ready}
-          onClick={() => run((w) => w.action("kick"))}
+          onPointerDown={(event) => {
+            if (event.button !== 0) return;
+            // A second finger must not blur the canvas and erase held movement.
+            event.preventDefault();
+            run((w) => w.action("kick"));
+          }}
+          onClick={(event) => {
+            if (event.detail === 0) run((w) => w.action("kick"));
+          }}
         >
           {copy.kick}
         </button>

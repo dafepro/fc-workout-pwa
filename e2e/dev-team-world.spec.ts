@@ -162,6 +162,22 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
         { timeout: 15000 },
       )
       .toBeGreaterThan(0.3);
+    stage = "moving-kick";
+    peerSawKick = false;
+    const movingKickStart = { ...peer.simulation!.players[state.session!] };
+    await page.getByRole("button", { name: "Kick ball", exact: true }).click();
+    await expect.poll(() => peerSawKick).toBe(true);
+    await expect(page.locator(".team-world-canvas canvas")).toBeFocused();
+    await expect
+      .poll(() =>
+        Math.hypot(
+          (peer.simulation?.players[state.session!]?.x ?? movingKickStart.x) -
+            movingKickStart.x,
+          (peer.simulation?.players[state.session!]?.z ?? movingKickStart.z) -
+            movingKickStart.z,
+        ),
+      )
+      .toBeGreaterThan(0.3);
     await page.keyboard.up("d");
     await page
       .locator("summary")

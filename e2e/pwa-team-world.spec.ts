@@ -950,3 +950,129 @@ test("steady sprint does not exhaust its display samples when the simulation tim
   expect(report.motion.summary.movingFrames).toBeGreaterThan(30);
   expect(report.motion.summary.heldMovingFrames).toBe(0);
 });
+
+test("pointer kick preserves held keyboard movement and fires once", async ({
+  page,
+}) => {
+  const inputs: { x: number; z: number; kick: boolean }[] = [];
+  page.on("websocket", (socket) =>
+    socket.on("framesent", ({ payload }) => {
+      const m = JSON.parse(String(payload));
+      if (m.type === "input") inputs.push(m.input);
+    }),
+  );
+  await loginAsMason(page);
+  await page.goto("/team-world");
+  await expect(page.getByText("Live together", { exact: true })).toBeVisible();
+  const canvas = page.locator(".team-world-canvas canvas");
+  await canvas.focus();
+  await page.keyboard.down("w");
+  try {
+    await expect
+      .poll(() => inputs.some((i) => Math.hypot(i.x, i.z) > 0.9))
+      .toBe(true);
+    inputs.length = 0;
+    await page.getByRole("button", { name: "Kick ball", exact: true }).click();
+    await expect.poll(() => inputs.some((i) => i.kick)).toBe(true);
+    await page.waitForTimeout(250);
+    expect(inputs.filter((i) => i.kick)).toHaveLength(1);
+    expect(inputs.every((i) => Math.hypot(i.x, i.z) > 0.9)).toBe(true);
+    await expect(canvas).toBeFocused();
+  } finally {
+    await page.keyboard.up("w");
+  }
+  await expect
+    .poll(() => Math.hypot(inputs.at(-1)?.x ?? 1, inputs.at(-1)?.z ?? 1))
+    .toBe(0);
+});
+
+test("a second touch kicks while the first keeps the joystick sprinting", async ({
+  page,
+  context,
+}) => {
+  const inputs: { x: number; z: number; kick: boolean; sprint?: boolean }[] =
+    [];
+  const shared = observe(page);
+  page.on("websocket", (socket) =>
+    socket.on("framesent", ({ payload }) => {
+      const m = JSON.parse(String(payload));
+      if (m.type === "input") inputs.push(m.input);
+    }),
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await loginAsMason(page);
+  await page.goto("/team-world");
+  await expect(page.getByText("Live together", { exact: true })).toBeVisible();
+  const cdp = await context.newCDPSession(page);
+  await cdp.send("Emulation.setTouchEmulationEnabled", {
+    enabled: true,
+    maxTouchPoints: 2,
+  });
+  const canvas = page.locator(".team-world-canvas canvas");
+  const box = (await canvas.boundingBox())!;
+  const first = {
+    id: 1,
+    x: Math.round(box.x + box.width * 0.25),
+    y: Math.round(box.y + box.height * 0.55),
+  };
+  const held = { ...first, x: first.x + 85 };
+  const button = (await page
+    .getByRole("button", { name: "Kick ball", exact: true })
+    .boundingBox())!;
+  const second = {
+    id: 2,
+    x: Math.round(button.x + button.width / 2),
+    y: Math.round(button.y + button.height / 2),
+  };
+  try {
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [first],
+    });
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [held],
+    });
+    await expect.poll(() => inputs.at(-1)?.sprint).toBe(true);
+    await expect
+      .poll(() => Math.hypot(inputs.at(-1)?.x ?? 0, inputs.at(-1)?.z ?? 0))
+      .toBeGreaterThan(0.9);
+    const before = { ...shared.state!.players[shared.session!] };
+    inputs.length = 0;
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [held, second],
+    });
+    await expect.poll(() => inputs.some((i) => i.kick)).toBe(true);
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [second],
+    });
+    await page.waitForTimeout(300);
+    expect(inputs.filter((i) => i.kick)).toHaveLength(1);
+    expect(inputs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kick: true, sprint: true }),
+      ]),
+    );
+    expect(
+      inputs.every((i) => i.sprint && Math.hypot(i.x, i.z) > 0.9),
+      JSON.stringify(inputs),
+    ).toBe(true);
+    const after = shared.state!.players[shared.session!];
+    expect(Math.hypot(after.x - before.x, after.z - before.z)).toBeGreaterThan(
+      0.2,
+    );
+    await expect(canvas).toBeFocused();
+    await expect(page.locator(".team-world-stick")).toBeVisible();
+  } finally {
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+  }
+  await expect(page.locator(".team-world-stick")).toBeHidden();
+  await expect
+    .poll(() => Math.hypot(inputs.at(-1)?.x ?? 1, inputs.at(-1)?.z ?? 1))
+    .toBe(0);
+});

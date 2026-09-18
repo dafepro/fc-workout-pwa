@@ -36,8 +36,8 @@ importers:
         specifier: 0.180.0
         version: 0.180.0
       zmap:
-        specifier: https://github.com/dafepro/zmap/releases/download/v0.1.8/zmap-0.1.8.tgz
-        version: https://github.com/dafepro/zmap/releases/download/v0.1.8/zmap-0.1.8.tgz
+        specifier: https://github.com/dafepro/zmap/releases/download/v0.1.9/zmap-0.1.9.tgz
+        version: https://github.com/dafepro/zmap/releases/download/v0.1.9/zmap-0.1.9.tgz
     devDependencies:
       "@cloudflare/vite-plugin":
         specifier: 1.37.1
@@ -6161,13 +6161,13 @@ packages:
         integrity: sha512-rLfVLB4FgQneDr0dv1oddCVZmKjcJ6yX6mS4pU82Mq/Dt9a3cLZQ62pDBL4AUO+uVrCvtWz3ZFUL2HFAFJ/BXQ==,
       }
 
-  zmap@https://github.com/dafepro/zmap/releases/download/v0.1.8/zmap-0.1.8.tgz:
+  zmap@https://github.com/dafepro/zmap/releases/download/v0.1.9/zmap-0.1.9.tgz:
     resolution:
       {
-        tarball: https://github.com/dafepro/zmap/releases/download/v0.1.8/zmap-0.1.8.tgz,
-        integrity: sha512-8hvoKD35Y52GFZG/dOv1i7UaoMllLuV2Kvth5cLkBF52lk59vNbyhuibSEhCCJqcar+5Jm7fyd3D8J9+8RzBSQ==,
+        tarball: https://github.com/dafepro/zmap/releases/download/v0.1.9/zmap-0.1.9.tgz,
+        integrity: sha512-jxCpEoYXMlUFgtire3Oz9Xw4h32KimhmIv5saLtSy6mRpXsBw9+TZRPQDFEC5yjwXkXiHxbehHRcXx6CLOAiYg==,
       }
-    version: 0.1.8
+    version: 0.1.9
 
   zod-validation-error@4.0.2:
     resolution:
@@ -9882,7 +9882,7 @@ snapshots:
       cookie: 1.1.1
       youch-core: 0.3.3
 
-  zmap@https://github.com/dafepro/zmap/releases/download/v0.1.8/zmap-0.1.8.tgz:
+  zmap@https://github.com/dafepro/zmap/releases/download/v0.1.9/zmap-0.1.9.tgz:
     dependencies:
       "@types/node": 22.19.19
       "@types/three": 0.180.0
