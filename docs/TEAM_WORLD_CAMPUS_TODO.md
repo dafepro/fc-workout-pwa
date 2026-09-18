@@ -156,37 +156,6 @@ eligible host at failure, maximum frame 1817 ms, longest task 1306 ms. This rema
 an open software-renderer qualification issue; the successful hardware check does
 not establish software-renderer or physical-phone readiness.
 
-## Full-body instep shot — September 18
-
-The app adapter now coordinates hips, chest, head, both arms and both legs for a
-right-foot shot. A short planted backswing flows into the strike and turn-through,
-a brief airborne transfer and a bent-knee right-foot landing. The shared
-half-second kick remains unchanged; a 0.3-second display-only recovery blends into
-locomotion. Fitted rigid boot vertices are cached in ankle space for ground contact.
-No authoritative position, ball timing, library pin or protocol changed.
-
-The generated six-pose reference and coaching-source attribution live in
-`assets/team-world/PROVENANCE.md`. The developer motion review now includes front
-and side contact sheets plus normal-speed/slow playback. All three appearances
-pass real-rig floor-contact, torso/arm participation, flight, recovery and repeat
-checks; reduced motion omits the whole clip. The 18 local Chrome checks also pass
-connected scoring, silhouette rendering and sprint motion (64 moving samples,
-zero held/backwards samples in the delayed-timer reproduction). All 532 app tests,
-9 relay/model tests, repository contracts, lint, types, formatting and production
-build passed. Worker upload: 2245.96 KiB compressed against 2800 KiB. Physical-phone
-motion quality still needs device review; full Docker/VM suites were not rerun.
-
-Deployed `fea1f22247f7660f97530dd582472b711a7e6c06` to dev on September 18.
-[Deployment run](https://github.com/dafepro/fc-workout-pwa/actions/runs/35353526507)
-passed app/API/build, image startup, exact-container and Lounge checks; API and
-relay are healthy on that revision, without resetting fixtures. The deployed
-hardware Chrome two-player test passed in 17.6 seconds, including shared kicks,
-movement, interactions and diagnostics. CI remains red at the existing SwiftShader
-world-entry gate (tick 0, epoch 2, no eligible host; max frame 1883 ms, longest task
-1349 ms), before a kick occurs. This is not a full software-renderer qualification.
-The local review player's normal/slow playback uses a bounded frame accumulator;
-its five motion tests, types and lint passed after that developer-tool refinement.
-
 ## Running-shot refinement — September 18
 
 Kick now fires on pointer press without taking canvas focus, preserving keyboard
@@ -216,3 +185,18 @@ shared scoring, silhouettes and sprint scheduling), all 532 app tests, 9 relay
 contracts, types, lint, formatting and deployment contracts. The production build
 and upload dry run passed at 2246.13 KiB compressed. Physical phone testing remains
 open; full Docker/VM suites were not rerun for this refinement.
+
+The coaching source and generated six-pose art guide remain documented in
+`assets/team-world/PROVENANCE.md`. The real-rig developer review supports front/side
+contact sheets and normal/slow playback; `?moving=1` previews the running shot.
+
+Deployed app `9e0f027f375de317971c8626d31c277f514601c3` with ZMap 0.1.9 via
+[deployment run](https://github.com/dafepro/fc-workout-pwa/actions/runs/35361863462).
+Application/API/build/image-startup/exact-container/Lounge checks passed. The API
+and relay are healthy at that revision; fixtures were not reset. Hardware Chrome
+passed the deployed two-player check in 18.9 seconds, including a peer-visible
+kick while the shooter continues moving and retains canvas focus.
+
+CI remains red before gameplay in SwiftShader world entry (tick 0, epoch 2, no
+eligible host; maximum frame 1933 ms, longest task 1375 ms). This is the existing
+software-renderer qualification gap, not a fully green release workflow.
