@@ -210,7 +210,8 @@ right-leg strike, a short hop, and a bent-knee landing on the shooting foot.
 The half-second shared kick timer drives a stretched backswing and accelerated
 strike. Ball contact occurs after the campus map’s 0.2-second wind-up, with reach
 checked at contact; movement and steering continue throughout. The full visual
-shot lasts 0.96 seconds, blending back into the current locomotion pose after
+shot lasts 0.96 seconds. Shape-preserving joint curves carry momentum through
+contact and follow-through without stopping at each keyframe, blending back into the current locomotion pose after
 landing. Foot contact follows the fitted boots. Reduced-motion mode omits the
 visual shot and recovery but keeps identical shared ball timing. The right-side
 Kick button triggers on touch/pointer press without taking canvas focus, so a

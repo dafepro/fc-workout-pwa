@@ -22,7 +22,7 @@ type Pose = {
 // Right-foot instep drive: plant, strike, turn through, hop, absorb, recover.
 const poses: readonly Pose[] = [
   {
-    at: 0,
+    at: 0.115,
     hips: [-0.08, 0.4, -0.08],
     chest: [-0.1, -0.45, -0.12],
     head: [0.14, 0.1, 0.03],
@@ -31,9 +31,9 @@ const poses: readonly Pose[] = [
     forearm_L: [-0.55, 0, 0],
     forearm_R: [-0.75, 0, 0],
     leg_L: [-0.16, 0, 0.02],
-    leg_R: [1.05, -0.18, -0.12],
+    leg_R: [0.95, -0.12, -0.08],
     shin_L: [0.28, 0, 0],
-    shin_R: [1.65, 0, 0],
+    shin_R: [1.9, 0, 0],
     foot_L: [-0.12, 0, 0],
     foot_R: [0.15, 0, 0],
     lift: 0,
@@ -65,10 +65,10 @@ const poses: readonly Pose[] = [
     forearm_L: [-0.95, 0, 0],
     forearm_R: [-0.5, 0, 0],
     leg_L: [0.22, 0, 0],
-    leg_R: [-1.25, 0.25, 0.06],
+    leg_R: [-1.4, 0.18, 0.04],
     shin_L: [0.3, 0, 0],
-    shin_R: [0.24, 0, 0],
-    foot_L: [-0.12, 0, 0],
+    shin_R: [0.15, 0, 0],
+    foot_L: [0.25, 0, 0],
     foot_R: [0.25, 0, 0],
     lift: 0,
   },
@@ -150,13 +150,41 @@ const smooth = (value: number) => {
   return t * t * (3 - 2 * t);
 };
 
+// Shape-preserving Hermite slopes carry momentum through keys without joint overshoot.
+function sample(elapsed: number, value: (pose: Pose) => number) {
+  if (elapsed <= poses[0].at) return value(poses[0]);
+  const index = poses.findIndex((pose) => pose.at > elapsed) - 1;
+  const slope = (i: number) =>
+    (value(poses[i + 1]) - value(poses[i])) / (poses[i + 1].at - poses[i].at);
+  const tangent = (i: number) => {
+    if (i === 0 || i === poses.length - 1) return 0;
+    const before = slope(i - 1),
+      after = slope(i);
+    if (before * after <= 0) return 0;
+    const previous = poses[i].at - poses[i - 1].at;
+    const next = poses[i + 1].at - poses[i].at;
+    const w1 = 2 * next + previous,
+      w2 = next + 2 * previous;
+    return (w1 + w2) / (w1 / before + w2 / after);
+  };
+  const a = poses[index],
+    b = poses[index + 1];
+  const duration = b.at - a.at,
+    t = (elapsed - a.at) / duration;
+  return (
+    (2 * t ** 3 - 3 * t * t + 1) * value(a) +
+    (t ** 3 - 2 * t * t + t) * duration * tangent(index) +
+    (-2 * t ** 3 + 3 * t * t) * value(b) +
+    (t ** 3 - t * t) * duration * tangent(index + 1)
+  );
+}
+
 /** One playback per character; only the recovery outlasts the shared kick timer. */
 export function createKickPose() {
   let elapsed = Infinity,
     previous = 0,
     lastTime: number | undefined;
-  const from = new THREE.Quaternion(),
-    to = new THREE.Quaternion();
+  const target = new THREE.Quaternion();
   const euler = new THREE.Euler();
   const origin = new THREE.Vector3(),
     point = new THREE.Vector3();
@@ -223,25 +251,25 @@ export function createKickPose() {
           }
       });
     }
-    const next = poses.findIndex((pose) => pose.at > elapsed);
-    const a = poses[Math.max(0, next - 1)],
-      b = poses[next];
-    const start = a.at === 0 ? 0.13 : a.at;
-    const blend = smooth((elapsed - start) / (b.at - start));
     const weight =
       smooth(elapsed / 0.11) * (1 - smooth((elapsed - 0.72) / 0.24));
     for (const name of bones) {
       const bone = view.sockets.get(name);
       if (!bone) continue;
-      from.setFromEuler(euler.set(...a[name]));
-      to.setFromEuler(euler.set(...b[name]));
-      bone.quaternion.slerp(from.slerp(to, blend), weight);
+      target.setFromEuler(
+        euler.set(
+          sample(elapsed, (pose) => pose[name][0]),
+          sample(elapsed, (pose) => pose[name][1]),
+          sample(elapsed, (pose) => pose[name][2]),
+        ),
+      );
+      bone.quaternion.slerp(target, weight);
     }
     avatar.object.getWorldPosition(origin);
     avatar.object.updateWorldMatrix(true, true);
     const left = sole(view.sockets.get("foot_L"));
     const right = sole(view.sockets.get("foot_R"));
-    const lift = THREE.MathUtils.lerp(a.lift, b.lift, blend);
+    const lift = sample(elapsed, (pose) => pose.lift);
     // Use the actual boots so different approved bodies share the same floor.
     view.root.position.y += (lift - Math.min(left, right)) * weight;
     avatar.object.updateWorldMatrix(true, true);

@@ -4,6 +4,12 @@ import { installCharacterSilhouette } from "../../app/team-world/adapters/charac
 import { initialSimulation } from "zmap/core";
 const kit = await loadActionKit(() => {});
 const params = new URLSearchParams(location.search);
+const angleControl = (() => {
+  const element = document.querySelector("#angle");
+  if (!(element instanceof HTMLSelectElement))
+    throw new Error("Missing view selector");
+  return element;
+})();
 const character = kit.character({
   id: "motion",
   name: "Teammate",
@@ -115,11 +121,9 @@ export function kickFrame(frame: number) {
     Math.max(0, 0.5 - frame / 60),
     params.get("moving") === "1" ? 5.4 : 0,
   );
-  camera.position.set(5, 2.8, 7 + character.object.position.z);
-  camera.lookAt(0, 1, character.object.position.z);
-  renderer.render(scene, camera);
+  renderAngle(Number(angleControl.value));
 }
-function measurements(label: string) {
+export function measurements(label: string) {
   const bone = (name: string) => character.object.getObjectByName(name)!;
   const sole = { foot_L: Infinity, foot_R: Infinity };
   character.object.traverse((object) => {
@@ -175,18 +179,15 @@ document.querySelector("#kick")!.addEventListener("click", () => {
     const caption = document.createElement("figcaption");
     caption.textContent = label;
     card.appendChild(caption);
-    for (const side of [false, true]) {
-      camera.position.set(
-        side ? 7 : 5,
-        2.8,
-        (side ? 0 : 7) + character.object.position.z,
-      );
-      camera.lookAt(0, 1, character.object.position.z);
-      renderer.render(scene, camera);
+    for (const [angle, view] of [
+      [0, "front"],
+      [90, "right side"],
+      [145, "rear three-quarter"],
+    ] as const) {
       const image = new Image();
       image.width = 240;
-      image.alt = `${label}: ${side ? "side" : "front three-quarter"}`;
-      image.src = renderer.domElement.toDataURL();
+      image.alt = `${label}: ${view}`;
+      image.src = captureAngle(angle);
       card.appendChild(image);
     }
     cards.appendChild(card);
@@ -220,3 +221,27 @@ document.querySelector("#play")!.addEventListener("click", () => {
   }
   animationFrame = requestAnimationFrame(animate);
 });
+
+function renderAngle(degrees: number) {
+  const angle = THREE.MathUtils.degToRad(degrees);
+  camera.zoom = 1.35;
+  camera.position.set(
+    Math.sin(angle) * 8,
+    1.3,
+    Math.cos(angle) * 8 + character.object.position.z,
+  );
+  camera.lookAt(0, 1.05, character.object.position.z);
+  camera.updateProjectionMatrix();
+  renderer.render(scene, camera);
+}
+angleControl.addEventListener("change", () => {
+  renderAngle(Number(angleControl.value));
+});
+export function captureAngle(degrees: number) {
+  const saved = camera.clone();
+  renderAngle(degrees);
+  const image = renderer.domElement.toDataURL();
+  camera.copy(saved);
+  renderer.render(scene, camera);
+  return image;
+}

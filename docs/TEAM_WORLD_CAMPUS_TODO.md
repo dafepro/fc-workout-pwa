@@ -187,8 +187,21 @@ and upload dry run passed at 2246.13 KiB compressed. Physical phone testing rema
 open; full Docker/VM suites were not rerun for this refinement.
 
 The coaching source and generated six-pose art guide remain documented in
-`assets/team-world/PROVENANCE.md`. The real-rig developer review supports front/side
-contact sheets and normal/slow playback; `?moving=1` previews the running shot.
+`assets/team-world/PROVENANCE.md`. The real-rig developer review supports front,
+right-side and rear-three-quarter contact sheets plus four selectable playback
+angles at normal/slow speed; `?moving=1` previews the running shot.
+
+The actual-model multi-angle refinement uses four direct Avatar Studio model
+renders as inputs to both generated pose sheets in `assets/team-world/kick-study-v3/`.
+The rig has a more tucked heel, longer follow-through and supporting-foot toe-off.
+Shape-preserving Hermite joint curves replace stop/start easing at every key.
+The actual-rig contact-velocity regression failed before the change and passes
+afterward; three appearances, running and reduced-motion pose checks also pass.
+The shared 0.2-second contact time and package versions remain unchanged.
+This refinement passes 22 targeted Chrome checks, 532 app tests, 9 relay tests,
+types, lint, formatting and deployment contracts. Production build and upload
+dry run pass at 2246.32 KiB compressed. Physical-phone and software-renderer
+qualification remain open.
 
 Deployed app `9e0f027f375de317971c8626d31c277f514601c3` with ZMap 0.1.9 via
 [deployment run](https://github.com/dafepro/fc-workout-pwa/actions/runs/35361863462).

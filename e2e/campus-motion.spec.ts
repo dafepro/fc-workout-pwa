@@ -1,4 +1,25 @@
 import { test, expect } from "@playwright/test";
+test("shooting leg carries momentum through contact", async ({ page }) => {
+  test.skip(process.env.E2E_CAMPUS_REVIEW !== "1");
+  await page.goto("http://127.0.0.1:3006/tools/team-world/motion-review.html");
+  await expect(page.locator("#result")).toContainText("ready", {
+    timeout: 30000,
+  });
+  const angles = await page.evaluate(async () => {
+    const path = "/tools/team-world/motion-review.ts";
+    const { kickFrame, measurements } = await import(path);
+    for (let i = 0; i < 60; i++) kickFrame(60);
+    return [11.94, 12, 12.06].map((frame) => {
+      kickFrame(frame);
+      return measurements("contact").rightThigh as number;
+    });
+  });
+  const incoming = (angles[1] - angles[0]) / 0.001;
+  const outgoing = (angles[2] - angles[1]) / 0.001;
+  expect(incoming).toBeLessThan(-2);
+  expect(outgoing).toBeLessThan(-2);
+  expect(Math.abs(incoming - outgoing)).toBeLessThan(1);
+});
 test("sprint pose renders consistently across repeated passes", async ({
   page,
 }) => {
