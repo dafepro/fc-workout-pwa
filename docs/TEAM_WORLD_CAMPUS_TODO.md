@@ -105,3 +105,16 @@ Reproduction, sources and generated prompts are in
       and raster scaling. Persist local settings and export a credential-free report.
 - [ ] Collect good/bad reports on the affected device; isolate the responsible
       rendering or presentation stage before claiming the sprint artifact is fixed.
+
+Validated and deployed diagnostics revision `00526e8e2e9971687d4cc84b442448a66155d963`
+on 2026-09-18. Application tests (532), relay tests (9), all 14 targeted browser
+cases (including corrected layout reruns), formatting, lint, types, build and
+2244.30 KiB upload budget passed. Hardware Chrome verified deployed two-player
+entry, diagnostics presets, shared kicks and interactions in 17.6 seconds; dev
+API/relay containers are healthy at that revision and fixture data was preserved.
+[Deployment run](https://github.com/dafepro/fc-workout-pwa/actions/runs/35340912368)
+completed the update and exact-revision checks but failed the existing SwiftShader
+world-entry qualification: tick 0, no eligible host, maximum frame 1817 ms and
+longest task 1393 ms. Overall release CI remains red; physical-phone and software
+rendering qualification remain open. This release provides isolation tools and
+does not claim to fix the reported sprint ghosting.
