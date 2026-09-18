@@ -146,12 +146,14 @@ function measurements(label: string) {
     rightKnee: bone("shin_R").rotation.x,
   };
 }
-let playing = false;
+let playing = false,
+  animationFrame = 0;
 const cards = document.createElement("div");
 cards.style.cssText = "display:flex;flex-wrap:wrap;gap:12px";
 document.body.appendChild(cards);
 document.querySelector("#kick")!.addEventListener("click", () => {
   playing = false;
+  cancelAnimationFrame(animationFrame);
   cards.replaceChildren();
   const poses = [];
   for (let i = 0; i < 60; i++) kickFrame(60);
@@ -186,19 +188,24 @@ document.querySelector("#kick")!.addEventListener("click", () => {
 });
 document.querySelector("#play")!.addEventListener("click", () => {
   playing = !playing;
+  cancelAnimationFrame(animationFrame);
   if (!playing) return;
   camera.position.set(5, 2.8, 7);
   camera.lookAt(0, 1, 0);
   let frame = 0,
-    last = 0;
+    last = performance.now(),
+    accumulated = 0;
   function animate(now: number) {
     if (!playing) return;
     const slow = (document.querySelector("#slow") as HTMLInputElement).checked;
-    if (now - last >= (slow ? 50 : 1000 / 60)) {
+    accumulated += Math.min(100, now - last);
+    last = now;
+    const step = slow ? 50 : 1000 / 60;
+    while (accumulated >= step) {
       kickFrame(frame++ % 100);
-      last = now;
+      accumulated -= step;
     }
-    requestAnimationFrame(animate);
+    animationFrame = requestAnimationFrame(animate);
   }
-  requestAnimationFrame(animate);
+  animationFrame = requestAnimationFrame(animate);
 });

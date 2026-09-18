@@ -175,3 +175,14 @@ zero held/backwards samples in the delayed-timer reproduction). All 532 app test
 9 relay/model tests, repository contracts, lint, types, formatting and production
 build passed. Worker upload: 2245.96 KiB compressed against 2800 KiB. Physical-phone
 motion quality still needs device review; full Docker/VM suites were not rerun.
+
+Deployed `fea1f22247f7660f97530dd582472b711a7e6c06` to dev on September 18.
+[Deployment run](https://github.com/dafepro/fc-workout-pwa/actions/runs/35353526507)
+passed app/API/build, image startup, exact-container and Lounge checks; API and
+relay are healthy on that revision, without resetting fixtures. The deployed
+hardware Chrome two-player test passed in 17.6 seconds, including shared kicks,
+movement, interactions and diagnostics. CI remains red at the existing SwiftShader
+world-entry gate (tick 0, epoch 2, no eligible host; max frame 1883 ms, longest task
+1349 ms), before a kick occurs. This is not a full software-renderer qualification.
+The local review player's normal/slow playback uses a bounded frame accumulator;
+its five motion tests, types and lint passed after that developer-tool refinement.
