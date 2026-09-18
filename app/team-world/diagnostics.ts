@@ -1,3 +1,4 @@
+import { captureMotion } from "./motion-recorder";
 import * as THREE from "three";
 import type { Character, Zoomap } from "zmap";
 import { createCharacterOcclusion } from "./adapters/character-occlusion";
@@ -137,13 +138,18 @@ export function createRenderDiagnostics(settings: () => RenderSettings) {
     },
   };
 }
-export function renderReport(world: Zoomap | null, settings: RenderSettings) {
+export function renderReport(
+  world: Zoomap | null,
+  settings: RenderSettings,
+  capture = false,
+) {
   const view = world?.view,
     gl = view?.renderer.getContext(),
     extension = gl?.getExtension("WEBGL_debug_renderer_info");
   const local = world?.local;
   return {
-    version: 1,
+    version: 2,
+    motion: capture ? captureMotion(world) : undefined,
     capturedAt: new Date().toISOString(),
     route: location.pathname,
     settings: { ...settings },

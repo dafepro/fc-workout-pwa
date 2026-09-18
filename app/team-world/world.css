@@ -465,3 +465,43 @@
   color: #071c25;
   font: 11px monospace;
 }
+
+.team-world-motion-reference {
+  position: absolute;
+  pointer-events: none;
+  z-index: 4;
+  top: 9rem;
+  left: 1rem;
+  padding: 0.5rem;
+  background: #071c25;
+  color: #fff;
+  font-size: 0.7rem;
+}
+.team-world-motion-reference div {
+  width: 200px;
+  height: 18px;
+  margin-top: 0.4rem;
+  background: #40525c;
+  overflow: hidden;
+}
+.team-world-motion-reference i {
+  display: block;
+  width: 18px;
+  height: 18px;
+  background: #c9f31d;
+  animation: motion-reference 0.9s linear infinite alternate;
+  will-change: transform;
+}
+@keyframes motion-reference {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(180px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .team-world-motion-reference i {
+    animation: none;
+  }
+}

@@ -1,6 +1,10 @@
 export const worldCopy = {
   diagnostics: {
     title: "Render diagnostics",
+    reference: "Independent motion reference",
+    captureHelp:
+      "After a stutter, save a capture immediately: it includes the last 10 seconds of movement, camera and frame timing. The moving reference uses a separate browser animation clock. Compare its smoothness with the avatar. Captures stay local until you share them.",
+    download: "Save motion capture",
     help: "Dev only · changes apply immediately to this browser and persist here. Physics and teammates are unchanged. Try one switch at a time, then copy a report when ghosting appears. Normal rendering resets every switch. Plain materials bypass textures and custom shaders; there is no motion-blur pass.",
     normal: "Normal rendering",
     minimal: "Minimal rendering",

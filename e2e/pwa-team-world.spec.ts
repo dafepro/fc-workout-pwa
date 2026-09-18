@@ -1,3 +1,4 @@
+import { writeFileSync } from "node:fs";
 import * as THREE from "three";
 import { expect, request, test, type Page } from "@playwright/test";
 import type { Simulation } from "zmap";
@@ -774,6 +775,32 @@ test("dev rendering controls switch live, preserve the room and export safe sett
   const session = observed.session;
   await page.getByText("Render diagnostics", { exact: true }).click();
   await page
+    .getByRole("checkbox", {
+      name: "Independent motion reference",
+      exact: true,
+    })
+    .check();
+  const marker = page.locator(".team-world-motion-reference i");
+  const before = await marker.evaluate((el) => getComputedStyle(el).transform);
+  await page.waitForTimeout(120);
+  expect(
+    await marker.evaluate((el) => getComputedStyle(el).transform),
+  ).not.toBe(before);
+  const downloadReady = page.waitForEvent("download");
+  await page
+    .getByRole("button", { name: "Save motion capture", exact: true })
+    .click();
+  const download = await downloadReady;
+  expect(download.suggestedFilename()).toBe("zoomigo-motion-capture.json");
+  await download.saveAs("outputs/campus/downloaded-motion.json");
+  await page
+    .getByRole("checkbox", {
+      name: "Independent motion reference",
+      exact: true,
+    })
+    .uncheck();
+
+  await page
     .getByRole("button", { name: "Minimal rendering", exact: true })
     .click();
   await expect(
@@ -855,4 +882,71 @@ test("dev rendering controls switch live, preserve the room and export safe sett
   ).toBeInViewport();
   await page.screenshot({ path: "outputs/campus/debug-mobile.png" });
   expect(observed.errors).toEqual([]);
+});
+
+test("steady sprint does not exhaust its display samples when the simulation timer is late", async ({
+  page,
+}) => {
+  test.setTimeout(60000);
+  await page.addInitScript(() => {
+    const original = window.setTimeout.bind(window);
+    let count = 0;
+    window.setTimeout = ((
+      callback: TimerHandler,
+      delay?: number,
+      ...args: unknown[]
+    ) =>
+      original(
+        callback,
+        delay && Math.abs(delay - 1000 / 30) < 0.01 && ++count % 5 === 0
+          ? delay + 45
+          : delay,
+        ...args,
+      )) as typeof setTimeout;
+    localStorage.setItem(
+      "zoomigo.world-render-diagnostics.v1",
+      JSON.stringify({
+        avatar: "capsule",
+        silhouette: false,
+        comic: false,
+        outlines: false,
+        animation: false,
+        campus: false,
+        freezeCamera: true,
+        material: "normal",
+        resolution: "0.5",
+      }),
+    );
+  });
+  await loginAsMason(page);
+  await page.goto("/team-world");
+  await expect(page.getByText("Live together", { exact: true })).toBeVisible({
+    timeout: 20000,
+  });
+  await page
+    .locator(".team-world-canvas canvas")
+    .click({ position: { x: 500, y: 350 } });
+  await page.keyboard.down("Shift");
+  await page.keyboard.down("d");
+  await page.waitForTimeout(1300);
+  await page.keyboard.up("d");
+  await page.keyboard.up("Shift");
+  await page.getByText("Render diagnostics", { exact: true }).click();
+  await page
+    .getByRole("button", { name: "Copy diagnostic report", exact: true })
+    .click();
+  const report = JSON.parse(
+    await page
+      .getByRole("textbox", { name: "Diagnostic report", exact: true })
+      .inputValue(),
+  );
+  console.log("MOTION_CAPTURE", JSON.stringify(report.motion?.summary));
+  writeFileSync("outputs/campus/motion-capture.json", JSON.stringify(report));
+  await test.info().attach("motion-capture", {
+    body: JSON.stringify(report),
+    contentType: "application/json",
+  });
+  expect(report.motion.frames.length).toBeGreaterThan(40);
+  expect(report.motion.summary.movingFrames).toBeGreaterThan(30);
+  expect(report.motion.summary.heldMovingFrames).toBe(0);
 });

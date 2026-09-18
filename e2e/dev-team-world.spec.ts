@@ -103,6 +103,20 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
       .not.toBeUndefined();
     stage = "render-diagnostics";
     await page.getByText("Render diagnostics", { exact: true }).click();
+    await expect(
+      page.getByRole("button", { name: "Save motion capture", exact: true }),
+    ).toBeVisible();
+    await page
+      .getByRole("button", { name: "Copy diagnostic report", exact: true })
+      .click();
+    const capture = JSON.parse(
+      await page
+        .getByRole("textbox", { name: "Diagnostic report", exact: true })
+        .inputValue(),
+    );
+    expect(capture.version).toBe(2);
+    expect(capture.motion.frames.length).toBeGreaterThan(10);
+    expect(capture.motion.columns).toContain("screenX");
     await page
       .getByRole("button", { name: "Minimal rendering", exact: true })
       .click();

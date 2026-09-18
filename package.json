@@ -37,7 +37,7 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "three": "0.180.0",
-    "zmap": "https://github.com/dafepro/zmap/releases/download/v0.1.7/zmap-0.1.7.tgz"
+    "zmap": "https://github.com/dafepro/zmap/releases/download/v0.1.8/zmap-0.1.8.tgz"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.37.1",

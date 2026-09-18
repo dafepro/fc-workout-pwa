@@ -6,6 +6,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { developmentBuild } from "../build-profile";
+import { installMotionRecorder } from "./motion-recorder";
 import { DevControls } from "./DevControls";
 import {
   normalRendering,
@@ -87,7 +88,7 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
     [people, setPeople] = useState(0),
     [mode, setMode] = useState<MovementMode>("joystick");
   const readDebug = useCallback(
-    () => renderReport(world.current, debugRef.current),
+    (capture = false) => renderReport(world.current, debugRef.current, capture),
     [],
   );
   const [itemActions, setItemActions] = useState<ItemAction[]>([]);
@@ -104,6 +105,7 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
     const debug = developmentBuild
       ? createRenderDiagnostics(() => debugRef.current)
       : undefined;
+    let recorder: ReturnType<typeof installMotionRecorder> | undefined;
     let viewportObserver: ResizeObserver | undefined;
     let controlsTimer: ReturnType<typeof setInterval> | undefined;
     let kit: Awaited<ReturnType<typeof loadActionKit>> | undefined;
@@ -120,6 +122,7 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
       movement?.dispose();
       campus?.dispose();
       soccer.dispose();
+      recorder?.dispose();
       current?.dispose();
       debug?.dispose();
       cannon?.dispose();
@@ -198,6 +201,7 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
         },
       });
       world.current = current;
+      if (developmentBuild) recorder = installMotionRecorder(current);
       const resizeBudget = () => {
         if (cancelled || !current || !container.current) return;
         const ratio =

@@ -7,7 +7,7 @@ design follow-ups, not promises of additional player features.
 
 | System         | Owns                                                                                                              | Consumed by Zoomigo                                         |
 | -------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| ZMap           | Deterministic world simulation, relay protocol, geometry navigation, object behaviors and basic Three.js view     | Pinned `zmap` 0.1.7 preview, identically in app and relay   |
+| ZMap           | Deterministic world simulation, relay protocol, geometry navigation, object behaviors and basic Three.js view     | Pinned `zmap` 0.1.8 preview, identically in app and relay   |
 | Avatar Studio  | Modular characters, animation, comic presentation and wielded equipment                                           | Pinned `@zmap/avatar-studio` 0.1.2 release                  |
 | fc-workout-pwa | Eligibility, identity, tickets, transient room policy, campus terrain/art, input UI and action-to-avatar adapters | App-owned `world.json`, Blender sources and scenery adapter |
 
@@ -118,3 +118,27 @@ world-entry qualification: tick 0, no eligible host, maximum frame 1817 ms and
 longest task 1393 ms. Overall release CI remains red; physical-phone and software
 rendering qualification remain open. This release provides isolation tools and
 does not claim to fix the reported sprint ghosting.
+
+## Timing investigation (2026-09-18)
+
+The basic-rendering report led to a reproducible scheduler defect: a delayed
+simulation timer exhausts the interpolation interval while RAF keeps presenting.
+In a real campus sprint with 45 ms added to every fifth timer, the old engine
+repeated a moving position in 36 of 74 frames. ZMap 0.1.8 drains due fixed steps
+before drawing, sharing the timer's accumulator without changing the physics rate.
+The corrected campus trace has zero held steady-motion frames; independent engine
+before/after was 26 holds versus zero. Seven engine and fifteen campus browser
+checks pass. This reproduces a real timing defect but does not establish that every
+artifact on the reported physical device has the same cause.
+
+Dev diagnostics now retain a bounded numeric ten-second trace and offer a download
+plus an independent composited reference bar. Collect affected-device captures if
+artifacts persist, then compare displayed and predicted motion, camera projection,
+frame gaps and long tasks. Physical display response requires external observation;
+browser pose data alone cannot prove or disprove panel ghosting.
+
+The owner approved publication and dev deployment. The immutable ZMap 0.1.8
+prerelease is published at engine commit `7465e61`; app and relay pin the same
+release artifact. Local validation passed 532 app tests, 9 relay tests, types, lint,
+formatting and the production build (2244.43 KiB compressed upload). Deployment
+verification follows the update; physical-device confirmation remains open.

@@ -15,8 +15,9 @@ export function DevControls({
 }: {
   settings: RenderSettings;
   onChange: (next: RenderSettings) => void;
-  read: () => ReturnType<typeof renderReport>;
+  read: (capture?: boolean) => ReturnType<typeof renderReport>;
 }) {
+  const [reference, setReference] = useState(false);
   const [open, setOpen] = useState(false),
     [stats, setStats] = useState<ReturnType<typeof renderReport> | null>(null),
     [report, setReport] = useState(""),
@@ -34,130 +35,170 @@ export function DevControls({
     setCopied(false);
   };
   return (
-    <details
-      className="team-world-debug"
-      onToggle={(e) => setOpen(e.currentTarget.open)}
-    >
-      <summary>{copy.title}</summary>
-      <div className="team-world-debug-content">
-        <p>{copy.help}</p>
-        <div className="team-world-debug-presets">
-          <button onClick={() => update({ ...normalRendering })}>
-            {copy.normal}
-          </button>
-          <button onClick={() => update({ ...minimalRendering })}>
-            {copy.minimal}
-          </button>
+    <>
+      {reference && (
+        <div
+          className="team-world-motion-reference"
+          aria-label={copy.reference}
+        >
+          <span>{copy.reference}</span>
+          <div>
+            <i />
+          </div>
         </div>
-        <label>
-          {copy.avatar}
-          <select
-            aria-label={copy.avatar}
-            value={settings.avatar}
-            onChange={(e) =>
-              update({
-                ...settings,
-                avatar: e.target.value as RenderSettings["avatar"],
-              })
-            }
-          >
-            <option value="model">{copy.model}</option>
-            <option value="capsule">{copy.capsule}</option>
-          </select>
-        </label>
-        <label>
-          {copy.material}
-          <select
-            aria-label={copy.material}
-            value={settings.material}
-            onChange={(e) =>
-              update({
-                ...settings,
-                material: e.target.value as RenderSettings["material"],
-              })
-            }
-          >
-            <option value="original">{copy.original}</option>
-            <option value="normal">{copy.plain}</option>
-            <option value="wireframe">{copy.wireframe}</option>
-          </select>
-        </label>
-        <label>
-          {copy.resolution}
-          <select
-            aria-label={copy.resolution}
-            value={settings.resolution}
-            onChange={(e) =>
-              update({
-                ...settings,
-                resolution: e.target.value as RenderSettings["resolution"],
-              })
-            }
-          >
-            <option value="1">100%</option>
-            <option value="0.75">75%</option>
-            <option value="0.5">50%</option>
-          </select>
-        </label>
-        {(
-          [
-            "silhouette",
-            "comic",
-            "outlines",
-            "animation",
-            "campus",
-            "freezeCamera",
-          ] as const
-        ).map((key) => (
-          <label className="team-world-debug-check" key={key}>
+      )}
+      <details
+        className="team-world-debug"
+        onToggle={(e) => setOpen(e.currentTarget.open)}
+      >
+        <summary>{copy.title}</summary>
+        <div className="team-world-debug-content">
+          <p>{copy.help}</p>
+          <div className="team-world-debug-presets">
+            <button onClick={() => update({ ...normalRendering })}>
+              {copy.normal}
+            </button>
+            <button onClick={() => update({ ...minimalRendering })}>
+              {copy.minimal}
+            </button>
+          </div>
+          <label>
+            {copy.avatar}
+            <select
+              aria-label={copy.avatar}
+              value={settings.avatar}
+              onChange={(e) =>
+                update({
+                  ...settings,
+                  avatar: e.target.value as RenderSettings["avatar"],
+                })
+              }
+            >
+              <option value="model">{copy.model}</option>
+              <option value="capsule">{copy.capsule}</option>
+            </select>
+          </label>
+          <label>
+            {copy.material}
+            <select
+              aria-label={copy.material}
+              value={settings.material}
+              onChange={(e) =>
+                update({
+                  ...settings,
+                  material: e.target.value as RenderSettings["material"],
+                })
+              }
+            >
+              <option value="original">{copy.original}</option>
+              <option value="normal">{copy.plain}</option>
+              <option value="wireframe">{copy.wireframe}</option>
+            </select>
+          </label>
+          <label>
+            {copy.resolution}
+            <select
+              aria-label={copy.resolution}
+              value={settings.resolution}
+              onChange={(e) =>
+                update({
+                  ...settings,
+                  resolution: e.target.value as RenderSettings["resolution"],
+                })
+              }
+            >
+              <option value="1">100%</option>
+              <option value="0.75">75%</option>
+              <option value="0.5">50%</option>
+            </select>
+          </label>
+          {(
+            [
+              "silhouette",
+              "comic",
+              "outlines",
+              "animation",
+              "campus",
+              "freezeCamera",
+            ] as const
+          ).map((key) => (
+            <label className="team-world-debug-check" key={key}>
+              <input
+                type="checkbox"
+                checked={settings[key]}
+                disabled={
+                  (key === "animation" && settings.avatar === "capsule") ||
+                  ((key === "comic" || key === "outlines") &&
+                    (settings.avatar === "capsule" ||
+                      settings.material !== "original")) ||
+                  (key === "outlines" && !settings.comic)
+                }
+                onChange={(e) =>
+                  update({ ...settings, [key]: e.target.checked })
+                }
+              />
+              {copy[key]}
+            </label>
+          ))}
+          <label className="team-world-debug-check">
             <input
               type="checkbox"
-              checked={settings[key]}
-              disabled={
-                (key === "animation" && settings.avatar === "capsule") ||
-                ((key === "comic" || key === "outlines") &&
-                  (settings.avatar === "capsule" ||
-                    settings.material !== "original")) ||
-                (key === "outlines" && !settings.comic)
-              }
-              onChange={(e) => update({ ...settings, [key]: e.target.checked })}
+              checked={reference}
+              onChange={(e) => setReference(e.target.checked)}
             />
-            {copy[key]}
+            {copy.reference}
           </label>
-        ))}
-        <p>
-          {copy.stats(
-            stats?.performance?.frameP95Ms,
-            stats?.performance?.drawCalls,
+          <p>{copy.captureHelp}</p>
+          <button
+            onClick={() => {
+              const url = URL.createObjectURL(
+                new Blob([JSON.stringify(read(true))], {
+                  type: "application/json",
+                }),
+              );
+              const link = document.createElement("a");
+              link.href = url;
+              link.download = "zoomigo-motion-capture.json";
+              link.click();
+              setTimeout(() => URL.revokeObjectURL(url), 1000);
+            }}
+          >
+            {copy.download}
+          </button>
+          <p>
+            {copy.stats(
+              stats?.performance?.frameP95Ms,
+              stats?.performance?.drawCalls,
+            )}
+          </p>
+          <button
+            onClick={async () => {
+              const text = JSON.stringify(read(true), null, 2);
+              setReport(text);
+              setCopied(false);
+              try {
+                await navigator.clipboard.writeText(text);
+                setCopied(true);
+              } catch {
+                /* The selectable report remains available. */
+              }
+            }}
+          >
+            {copy.copy}
+          </button>
+          {report && (
+            <>
+              <p role="status">{copied ? copy.copied : copy.selectReport}</p>
+              <textarea
+                aria-label={copy.report}
+                readOnly
+                value={report}
+                rows={7}
+              />
+            </>
           )}
-        </p>
-        <button
-          onClick={async () => {
-            const text = JSON.stringify(read(), null, 2);
-            setReport(text);
-            setCopied(false);
-            try {
-              await navigator.clipboard.writeText(text);
-              setCopied(true);
-            } catch {
-              /* The selectable report remains available. */
-            }
-          }}
-        >
-          {copy.copy}
-        </button>
-        {report && (
-          <>
-            <p role="status">{copied ? copy.copied : copy.selectReport}</p>
-            <textarea
-              aria-label={copy.report}
-              readOnly
-              value={report}
-              rows={7}
-            />
-          </>
-        )}
-      </div>
-    </details>
+        </div>
+      </details>
+    </>
   );
 }

@@ -222,3 +222,13 @@ report exports the settings, local host role, position, browser/GPU and frame me
 without account IDs or connection credentials. Compare one switch at a time and
 send reports from both good and bad rendering. Animation off uses the runtime's
 reduced-motion pose; it does not pause simulation. No motion-blur pass is present.
+
+**Save motion capture** downloads the most recent ten seconds of numeric submitted
+frame data: displayed/predicted/authoritative positions, camera and projected screen
+positions, CPU submission time and long tasks. Copy diagnostic report includes the
+same trace. Capture immediately after a hitch. The bounded recorder is dev-only,
+kept in memory, and never automatically uploaded. Counts of held/reversed frames
+require steady velocity but can also reflect collisions. CPU submission does not
+measure GPU completion or physical display response. **Independent motion reference**
+shows a browser-composited moving bar for comparing scene motion with a separate
+animation clock; it respects reduced motion.
