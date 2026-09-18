@@ -31,7 +31,10 @@ export function markSilhouetteOccluder(root: THREE.Object3D) {
 }
 
 /** Flatten nearest avatar surfaces, then shade each terrain-hidden pixel once. */
-export function installCharacterSilhouette(scene: THREE.Scene) {
+export function installCharacterSilhouette(
+  scene: THREE.Scene,
+  enabled: () => boolean = () => true,
+) {
   const makeTarget = () =>
     new THREE.WebGLRenderTarget(1, 1, {
       minFilter: THREE.NearestFilter,
@@ -91,6 +94,7 @@ export function installCharacterSilhouette(scene: THREE.Scene) {
     const [renderer, , camera] = args;
     if (rendering) return;
     previous.apply(scene, args);
+    if (!enabled()) return;
     rendering = true;
     const target = renderer.getRenderTarget();
     const oldMask = camera.layers.mask,

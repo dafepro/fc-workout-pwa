@@ -96,3 +96,12 @@ scores use the shared transient room state.
 
 Reproduction, sources and generated prompts are in
 [`assets/team-world/campus/PROVENANCE.md`](../assets/team-world/campus/PROVENANCE.md).
+
+## Rendering diagnostics (development only)
+
+- [x] Add live controls and normal/minimal presets for user-assisted ghosting
+      isolation, including capsule avatars, material overrides, silhouette bypass,
+      comic/outline toggles, reduced-motion poses, hidden campus art, frozen camera
+      and raster scaling. Persist local settings and export a credential-free report.
+- [ ] Collect good/bad reports on the affected device; isolate the responsible
+      rendering or presentation stage before claiming the sprint artifact is fixed.

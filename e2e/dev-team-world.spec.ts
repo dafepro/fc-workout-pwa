@@ -101,6 +101,18 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
     await expect
       .poll(() => peer.simulation?.players[state.session!]?.x)
       .not.toBeUndefined();
+    stage = "render-diagnostics";
+    await page.getByText("Render diagnostics", { exact: true }).click();
+    await page
+      .getByRole("button", { name: "Minimal rendering", exact: true })
+      .click();
+    await expect(
+      page.getByRole("combobox", { name: "Avatar rendering", exact: true }),
+    ).toHaveValue("capsule");
+    await page
+      .getByRole("button", { name: "Normal rendering", exact: true })
+      .click();
+    await page.getByText("Render diagnostics", { exact: true }).click();
     stage = "shared-kick";
     await page.getByRole("button", { name: "Kick ball", exact: true }).click();
     await expect.poll(() => peerSawKick).toBe(true);

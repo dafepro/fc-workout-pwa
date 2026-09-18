@@ -211,3 +211,14 @@ wind-up, strike and follow-through pose; reduced-motion mode omits the pose.
 The current three approved appearances are assigned server-side. Saved modular
 appearance editing and durable decorating are subsequent integration work.
 See [TEAM_WORLD.md](TEAM_WORLD.md) for the implementation and qualification gates.
+
+Development builds expose a collapsible **Render diagnostics** panel in Team World.
+Live controls isolate the occlusion composite, comic shading, ink outlines, avatar
+motion, campus art, camera following, render resolution and original/plain/wireframe
+materials. A simple capsule can replace the Avatar Studio model. Normal rendering
+resets all switches; Minimal rendering provides a cheap comparison. Settings persist
+only in this browser. Physics and other players are unaffected. Copy diagnostic
+report exports the settings, local host role, position, browser/GPU and frame metrics,
+without account IDs or connection credentials. Compare one switch at a time and
+send reports from both good and bad rendering. Animation off uses the runtime's
+reduced-motion pose; it does not pause simulation. No motion-blur pass is present.

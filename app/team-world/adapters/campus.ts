@@ -6,7 +6,10 @@ import {
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 /** App-owned art, layered over the same world.json terrain used by the relay. */
-export async function loadCampus(signal?: AbortSignal) {
+export async function loadCampus(
+  signal?: AbortSignal,
+  silhouette?: () => boolean,
+) {
   const response = await fetch("/team-world-assets/campus-v2/team-campus.glb", {
     signal: signal
       ? AbortSignal.any([signal, AbortSignal.timeout(30000)])
@@ -41,7 +44,10 @@ export async function loadCampus(signal?: AbortSignal) {
     scenery(scene: THREE.Scene) {
       scene.background = new THREE.Color("#dedfd2");
       scene.add(root);
-      removeSilhouette = installCharacterSilhouette(scene);
+      removeSilhouette = installCharacterSilhouette(scene, silhouette);
+    },
+    setVisible(visible: boolean) {
+      root.visible = visible;
     },
     dispose() {
       if (closed) return;

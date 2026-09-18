@@ -104,6 +104,10 @@ export function fieldCharacterMotion(
 export async function loadActionKit(
   onError: (error: unknown) => void,
   base = new URL("/team-world-assets/v0.1.1/", location.href),
+  presentation: () => { comic: boolean; outlines: boolean } = () => ({
+    comic: true,
+    outlines: true,
+  }),
 ) {
   const equipmentBase = new URL("action/", base);
   const json = async (url: URL) => {
@@ -225,6 +229,8 @@ export async function loadActionKit(
     let styledWidth = 0,
       styledHeight = 0,
       styled = false;
+    let comic = true,
+      outlines = true;
     let session: string | null = null,
       loadError: string | null = null;
     let impact: WorldActionEvent | undefined;
@@ -574,18 +580,29 @@ export async function loadActionKit(
             }
           }
         }
+        const options = presentation();
+        if (comic !== options.comic) {
+          style.clear();
+          styled = false;
+          comic = options.comic;
+        }
         const left = wield.getHand("left")?.object;
         const right = wield.getHand("right")?.object;
         // These approved appearances have fixed topology; only equipment changes
         // add meshes. Animation changes transforms, not the style bindings.
         if (
           !styled ||
+          outlines !== options.outlines ||
           left !== styledLeft ||
           right !== styledRight ||
           context.viewport.x !== styledWidth ||
           context.viewport.y !== styledHeight
         ) {
-          style.update(avatar.object, context.viewport);
+          if (comic) style.update(avatar.object, context.viewport);
+          outlines = options.outlines;
+          avatar.object.traverse((object) => {
+            if (object.userData.comicOutline) object.visible = outlines;
+          });
           occlusion.update(avatar.object);
           styled = true;
           styledLeft = left;

@@ -403,3 +403,65 @@
   margin-top: 0.5rem;
   text-decoration: underline;
 }
+
+.team-world-debug {
+  position: absolute;
+  z-index: 7;
+  top: 6rem;
+  right: 0.75rem;
+  width: min(21rem, calc(100% - 1.5rem));
+  background: #071c25f5;
+  border: 1px solid #c9f31d;
+  border-radius: 0.8rem;
+  font-size: 0.8rem;
+}
+.team-world-debug:not([open]) {
+  top: 13rem;
+  width: auto;
+}
+.team-world-debug[open] {
+  max-height: calc(100% - 6.75rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.team-world-debug > summary {
+  position: sticky;
+  top: 0;
+  background: #071c25;
+  z-index: 1;
+  padding: 0.6rem 0.8rem;
+  cursor: pointer;
+}
+.team-world-debug-content {
+  padding: 0 0.8rem 0.8rem;
+}
+.team-world-debug-content p {
+  line-height: 1.45;
+  margin: 0.5rem 0;
+}
+.team-world-debug-content label {
+  display: block;
+  margin: 0.65rem 0;
+}
+.team-world-debug-content .team-world-debug-check {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 36px;
+}
+.team-world-debug-check input {
+  width: 20px;
+  height: 20px;
+  accent-color: #c9f31d;
+}
+.team-world-debug-presets {
+  display: flex;
+  gap: 0.4rem;
+}
+.team-world-debug-content textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: #fff;
+  color: #071c25;
+  font: 11px monospace;
+}

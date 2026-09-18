@@ -761,3 +761,98 @@ test("connected sprint stays live through sustained movement and turns", async (
     await context.close();
   }
 });
+
+test("dev rendering controls switch live, preserve the room and export safe settings", async ({
+  page,
+}) => {
+  const observed = observe(page);
+  await loginAsMason(page);
+  await page.goto("/team-world");
+  await expect(page.getByText("Live together", { exact: true })).toBeVisible({
+    timeout: 20000,
+  });
+  const session = observed.session;
+  await page.getByText("Render diagnostics", { exact: true }).click();
+  await page
+    .getByRole("button", { name: "Minimal rendering", exact: true })
+    .click();
+  await expect(
+    page.getByRole("combobox", { name: "Avatar rendering", exact: true }),
+  ).toHaveValue("capsule");
+  await expect(
+    page.getByRole("checkbox", { name: "Occlusion silhouette", exact: true }),
+  ).not.toBeChecked();
+  await page
+    .getByRole("button", { name: "Copy diagnostic report", exact: true })
+    .click();
+  const report = JSON.parse(
+    await page
+      .getByRole("textbox", { name: "Diagnostic report", exact: true })
+      .inputValue(),
+  );
+  expect(report.settings.avatar).toBe("capsule");
+  expect(report.settings.silhouette).toBe(false);
+  expect(report.graphics.width).toBeGreaterThan(0);
+  expect(report.position.x).toEqual(expect.any(Number));
+  expect(JSON.stringify(report)).not.toMatch(/credential|ticket|session/i);
+  await page.screenshot({ path: "outputs/campus/debug-minimal.png" });
+  await page
+    .getByRole("button", { name: "Normal rendering", exact: true })
+    .click();
+  await expect(
+    page.getByRole("checkbox", { name: "Occlusion silhouette", exact: true }),
+  ).toBeChecked();
+  for (const name of [
+    "Occlusion silhouette",
+    "Avatar ink outlines",
+    "Comic avatar shading",
+    "Avatar animation",
+    "Campus art",
+    "Freeze camera",
+  ]) {
+    const control = page.getByRole("checkbox", { name, exact: true });
+    await control.setChecked(!(await control.isChecked()));
+    await page.waitForTimeout(500);
+    await expect(
+      page.getByText("Live together", { exact: true }),
+      name,
+    ).toBeVisible();
+  }
+  await page
+    .getByRole("combobox", { name: "Scene materials", exact: true })
+    .selectOption("wireframe");
+  await page.waitForTimeout(700);
+  await expect(page.getByText("Live together", { exact: true })).toBeVisible();
+  await page.screenshot({ path: "outputs/campus/debug-wireframe.png" });
+  expect(observed.session).toBe(session);
+  await page.reload();
+  await expect(page.getByText("Live together", { exact: true })).toBeVisible({
+    timeout: 20000,
+  });
+  await page.getByText("Render diagnostics", { exact: true }).click();
+  await expect(
+    page.getByRole("combobox", { name: "Scene materials", exact: true }),
+  ).toHaveValue("wireframe");
+  await page
+    .getByRole("button", { name: "Normal rendering", exact: true })
+    .click();
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page
+    .getByRole("button", { name: "Copy diagnostic report", exact: true })
+    .click();
+  const bounds = await page.locator(".team-world-debug").boundingBox();
+  const field = await page.locator(".team-world-debug").evaluate((el) => {
+    const rect = el.parentElement!.getBoundingClientRect();
+    return { bottom: rect.bottom, right: rect.right };
+  });
+  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(field.right);
+  expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(field.bottom);
+  await page
+    .getByRole("textbox", { name: "Diagnostic report", exact: true })
+    .scrollIntoViewIfNeeded();
+  await expect(
+    page.getByRole("textbox", { name: "Diagnostic report", exact: true }),
+  ).toBeInViewport();
+  await page.screenshot({ path: "outputs/campus/debug-mobile.png" });
+  expect(observed.errors).toEqual([]);
+});

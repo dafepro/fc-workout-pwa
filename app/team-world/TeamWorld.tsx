@@ -3,8 +3,18 @@ import {
   loadInteractiveProps,
   type ItemAction,
 } from "./adapters/interactive-props";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { developmentBuild } from "../build-profile";
+import { DevControls } from "./DevControls";
+import {
+  normalRendering,
+  readRenderSettings,
+  renderSettingsKey,
+  createRenderDiagnostics,
+  renderReport,
+  type RenderSettings,
+} from "./diagnostics";
 import { useFullscreen } from "../components/use-fullscreen";
 import {
   Zoomap,
@@ -42,6 +52,26 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
     exit: exitFullscreen,
   } = useFullscreen<HTMLDivElement>();
   const [zoom, setZoom] = useState(2);
+  const [debugSettings, setDebugSettings] = useState<RenderSettings>({
+    ...normalRendering,
+  });
+  const debugRef = useRef(debugSettings);
+  const updateDebug = (next: RenderSettings) => {
+    debugRef.current = next;
+    setDebugSettings(next);
+    try {
+      localStorage.setItem(renderSettingsKey, JSON.stringify(next));
+    } catch {
+      /* Live controls also work without storage. */
+    }
+  };
+  useEffect(() => {
+    if (!developmentBuild) return;
+    const frame = requestAnimationFrame(() =>
+      updateDebug(readRenderSettings()),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, []);
   const container = useRef<HTMLDivElement>(null),
     stick = useRef<HTMLDivElement>(null),
     hint = useRef<HTMLSpanElement>(null),
@@ -56,6 +86,10 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
     [attempt, setAttempt] = useState(0),
     [people, setPeople] = useState(0),
     [mode, setMode] = useState<MovementMode>("joystick");
+  const readDebug = useCallback(
+    () => renderReport(world.current, debugRef.current),
+    [],
+  );
   const [itemActions, setItemActions] = useState<ItemAction[]>([]);
   const [toolReady, setToolReady] = useState(false);
   const [selectedTool, setSelectedTool] = useState("");
@@ -67,6 +101,9 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
   const [drawn, setDrawn] = useState(true);
   useEffect(() => {
     let cancelled = false;
+    const debug = developmentBuild
+      ? createRenderDiagnostics(() => debugRef.current)
+      : undefined;
     let viewportObserver: ResizeObserver | undefined;
     let controlsTimer: ReturnType<typeof setInterval> | undefined;
     let kit: Awaited<ReturnType<typeof loadActionKit>> | undefined;
@@ -84,6 +121,7 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
       campus?.dispose();
       soccer.dispose();
       current?.dispose();
+      debug?.dispose();
       cannon?.dispose();
       props?.dispose();
       kit?.dispose();
@@ -91,12 +129,16 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
     void (async () => {
       const ticket = await requestWorldTicket(teamID, controller.signal);
       if (cancelled) return;
-      kit = await loadActionKit(() => {
-        if (!cancelled) {
-          setFailed(copy.unavailable);
-          current?.setInputEnabled(false);
-        }
-      });
+      kit = await loadActionKit(
+        () => {
+          if (!cancelled) {
+            setFailed(copy.unavailable);
+            current?.setInputEnabled(false);
+          }
+        },
+        undefined,
+        () => debugRef.current,
+      );
       if (cancelled) {
         dispose();
         return;
@@ -111,7 +153,10 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
         dispose();
         return;
       }
-      campus = await loadCampus(controller.signal);
+      campus = await loadCampus(
+        controller.signal,
+        () => !developmentBuild || debugRef.current.silhouette,
+      );
       await soccer.load(controller.signal);
       if (cancelled) {
         dispose();
@@ -123,7 +168,10 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
         catalog: [],
         objectBehaviors: [cannonBehavior, switchBehavior, soccerBehavior],
         visuals: {
-          character: kit.character,
+          character: (identity) => {
+            const character = kit!.character(identity);
+            return debug?.character(character) ?? character;
+          },
           toy: soccer.toy,
           scenery: (scene, m) => {
             kit!.scenery(scene, m);
@@ -136,6 +184,10 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
             soccer.frame(context);
             cannon!.frame(context);
             props!.frame(context);
+            if (debug && current) {
+              campus!.setVisible(debugRef.current.campus);
+              debug.frame(current);
+            }
           },
         },
         onStatus: (s) => {
@@ -148,11 +200,12 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
       world.current = current;
       const resizeBudget = () => {
         if (cancelled || !current || !container.current) return;
-        const ratio = renderPixelRatio(
-          container.current.clientWidth,
-          container.current.clientHeight,
-          devicePixelRatio,
-        );
+        const ratio =
+          renderPixelRatio(
+            container.current.clientWidth,
+            container.current.clientHeight,
+            devicePixelRatio,
+          ) * (developmentBuild ? Number(debugRef.current.resolution) : 1);
         if (Math.abs(current.view.renderer.getPixelRatio() - ratio) > 0.001)
           current.view.renderer.setPixelRatio(ratio);
       };
@@ -248,6 +301,13 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
       aria-label={copy.title}
       role="region"
     >
+      {developmentBuild && (
+        <DevControls
+          settings={debugSettings}
+          onChange={updateDebug}
+          read={readDebug}
+        />
+      )}
       <div className="team-world-bar">
         <div>
           <span className="team-world-eyebrow">{copy.title}</span>
