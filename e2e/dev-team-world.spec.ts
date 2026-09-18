@@ -28,6 +28,7 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
   const entries: { page: Page; id: string }[] = [];
   const state: { session?: string; simulation?: Simulation } = {};
   const peer: { simulation?: Simulation } = {};
+  let peerSawKick = false;
   page.on("websocket", (socket) =>
     socket.on("framereceived", ({ payload }) => {
       const m = JSON.parse(String(payload));
@@ -38,7 +39,11 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
   other.on("websocket", (socket) =>
     socket.on("framereceived", ({ payload }) => {
       const m = JSON.parse(String(payload));
-      if (m.state) peer.simulation = m.state;
+      if (m.state) {
+        peer.simulation = m.state;
+        if (state.session && (m.state.players[state.session]?.kick ?? 0) > 0)
+          peerSawKick = true;
+      }
     }),
   );
   try {
@@ -96,6 +101,9 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
     await expect
       .poll(() => peer.simulation?.players[state.session!]?.x)
       .not.toBeUndefined();
+    stage = "shared-kick";
+    await page.getByRole("button", { name: "Kick ball", exact: true }).click();
+    await expect.poll(() => peerSawKick).toBe(true);
     stage = "shared-lamp";
     const lamp = page.getByRole("button", {
       name: /^Turn courtyard lamp (on|off)$/,

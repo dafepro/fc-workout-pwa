@@ -1,6 +1,6 @@
 # Campus ownership and follow-up decisions
 
-**Status:** Decision register — September 16, 2026. These are qualification and
+**Status:** Decision register — September 17, 2026. These are qualification and
 design follow-ups, not promises of additional player features.
 
 ## Current split
@@ -43,25 +43,28 @@ scores use the shared transient room state.
       entry/exit. Sampled frame pacing was about 18 ms (p50/p95), without a duplicate
       mesh or sustained stall. Antialiasing produced tiny pixel differences in exact
       hashes; disabling it in the diagnostic made repeated renders identical.
-      No speculative animation/rendering fix was applied. Obtain the affected
-      browser/device and route, then compare delayed peer movement and frame capture.
+      The same connected sprint check also passed with an ordered message proxy
+      adding 75 ms each way and ±30 ms jitter (E2E_SPRINT_JITTER=1). No speculative
+      animation/rendering fix was applied. Obtain the affected browser/device and
+      route before claiming this intermittent issue fixed.
 
 - [ ] **Shared-dev browser reliability — before rollout:** investigate ZMap's
       host-health recovery loop under software rendering. The September 17 update
-      deployed `20173b5c9e2b3fc756bccd9b8dea99bb61a64837`; API and relay images are
-      healthy. The gated campus, goal and scoreboard GLBs all match local SHA-256.
-      Clean install, all app/relay tests, build, both API modes, exact-revision and
-      Lounge checks passed in
-      [run 35189097952](https://github.com/dafepro/fc-workout-pwa/actions/runs/35189097952).
+      deployed `34603f1ba0702741b19e23f51c800fd9902c45cd`; API and relay are healthy.
+      The gated campus, goal and scoreboard GLBs match local SHA-256. Clean install,
+      all app/relay tests, build, both API modes, exact-revision and Lounge checks
+      passed in [run 35306329446](https://github.com/dafepro/fc-workout-pwa/actions/runs/35306329446).
       Its SwiftShader Team World check failed at entry: tick 0, no eligible host,
-      2.2-second maximum frame, 30 frames above 250ms and a 1.7-second long task.
-      The aggregate workflow is failed. Hardware Chrome passed the full deployed
-      two-player check in 18.0 seconds (presence, lamp synchronization, movement,
-      equipment, emotes and departure). This does not qualify software rendering
-      or physical phones. The extra silhouette depth passes need profiling;
-      evaluate rendering only projected avatar regions before low-end rollout.
-      Dev data was preserved; update skipped fixture reset. No health threshold or
-      test assertion was relaxed. Earlier revisions also failed this entry gate.
+      2.283-second maximum frame, 26 frames above 250 ms and a 1.736-second long task.
+      The aggregate workflow is failed; the same entry failure affected earlier
+      revisions. Live hardware Chrome passed the deployed two-player check in
+      16.5 seconds, including shared kick pose, presence, lamp synchronization,
+      movement, equipment, emotes and departure. Local validation passed 532 app
+      tests, nine relay tests, 13 browser checks and an additional jittered sprint
+      check. Formatting, lint, typecheck, production build and the 2243.41 KiB Worker
+      budget check passed. Dev data was preserved; no fixture reset ran.
+      Physical phones and software rendering remain unqualified. Profile the extra
+      silhouette depth passes and evaluate projected avatar regions before rollout.
 - [ ] **ZMap view API — before more rendering integrations:** standardize optional
       depth-aware character presentation and explicit terrain material ownership.
       The campus no longer captures BoxGeometry or clips slabs; its character-only

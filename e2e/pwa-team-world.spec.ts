@@ -685,6 +685,29 @@ test("connected sprint stays live through sustained movement and turns", async (
     timeout: 20000,
   });
   const page = await context.newPage();
+  const transportTimers = new Set<ReturnType<typeof setTimeout>>();
+  if (process.env.E2E_SPRINT_JITTER === "1") {
+    await page.routeWebSocket(/\/room(?:\?|$)/, (socket) => {
+      const server = socket.connectToServer();
+      const delayed = (send: (message: string | Buffer) => void) => {
+        let due = 0,
+          count = 0;
+        return (message: string | Buffer) => {
+          due = Math.max(due + 1, Date.now() + 75 + ((count++ % 5) - 2) * 15);
+          const timer = setTimeout(
+            () => {
+              transportTimers.delete(timer);
+              send(message);
+            },
+            Math.max(0, due - Date.now()),
+          );
+          transportTimers.add(timer);
+        };
+      };
+      socket.onMessage(delayed((message) => server.send(message)));
+      server.onMessage(delayed((message) => socket.send(message)));
+    });
+  }
   const observed = observe(page);
   try {
     await loginAsAva(page);
@@ -734,6 +757,7 @@ test("connected sprint stays live through sustained movement and turns", async (
     await page.keyboard.up("Shift");
     expect(observed.errors).toEqual([]);
   } finally {
+    for (const timer of transportTimers) clearTimeout(timer);
     await context.close();
   }
 });
