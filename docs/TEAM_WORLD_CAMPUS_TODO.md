@@ -142,3 +142,16 @@ prerelease is published at engine commit `7465e61`; app and relay pin the same
 release artifact. Local validation passed 532 app tests, 9 relay tests, types, lint,
 formatting and the production build (2244.43 KiB compressed upload). Deployment
 verification follows the update; physical-device confirmation remains open.
+
+Deployed app revision `a3aa7c2b25fbb98d2a731334b5e40b369851609b` with ZMap 0.1.8
+on 2026-09-18. Published-package build and upload check passed at 2244.52 KiB.
+[Release workflow](https://github.com/dafepro/fc-workout-pwa/actions/runs/35345401056)
+passed application/API/build, image startup, exact-container and Lounge checks;
+API and relay are healthy at the deployed revision, and no fixture reset ran.
+Hardware Chrome passed the deployed two-player movement, shared kick/interaction,
+diagnostics preset and numeric motion-capture checks in 16.5 seconds.
+
+Overall workflow remains red at SwiftShader world entry: tick 6, epoch 8, no
+eligible host at failure, maximum frame 1817 ms, longest task 1306 ms. This remains
+an open software-renderer qualification issue; the successful hardware check does
+not establish software-renderer or physical-phone readiness.
