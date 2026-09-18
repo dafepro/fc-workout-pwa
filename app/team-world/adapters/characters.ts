@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { poseKick } from "./kick";
 import { createCharacterOcclusion } from "./character-occlusion";
 import {
   AvatarLibrary,
@@ -488,6 +489,7 @@ export async function loadActionKit(
           }
         }
         avatar.update(time, motion);
+        poseKick(avatar, body.kick ?? 0, context.reducedMotion);
         root.updateWorldMatrix(true, true);
         cable.visible = false;
         pulse.visible = false;

@@ -4,6 +4,7 @@ import {
   type ItemAction,
 } from "./adapters/interactive-props";
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useFullscreen } from "../components/use-fullscreen";
 import {
   Zoomap,
@@ -263,24 +264,45 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
           {fullscreen ? copy.exitFullscreen : copy.fullscreen}
         </button>
       </div>
-      {(failed || ["failed", "denied", "full"].includes(status)) && (
-        <button
-          onClick={() => {
-            setFailed(null);
-            setStatus("connecting");
-            setPeople(0);
-            setMode("joystick");
-            setZoom(2);
-            setAttempt((n) => n + 1);
-          }}
-          className="team-world-retry"
-        >
-          {copy.retry}
-        </button>
-      )}
       <div className="team-world-field">
+        {!ready && (
+          <div
+            className="team-world-connection"
+            role="status"
+            aria-live="polite"
+          >
+            <div>
+              <span aria-hidden="true">◌</span>
+              <h2>{failed ? copy.states.failed : copy.states[status]}</h2>
+              <p>
+                {failed ??
+                  (status === "connecting"
+                    ? copy.loading
+                    : ["paused", "reconnecting"].includes(status)
+                      ? copy.connectionPaused
+                      : copy.connectionStopped)}
+              </p>
+              {status !== "connecting" && (
+                <button
+                  onClick={() => {
+                    setFailed(null);
+                    setStatus("connecting");
+                    setPeople(0);
+                    setMode("joystick");
+                    setZoom(2);
+                    setAttempt((n) => n + 1);
+                  }}
+                >
+                  {copy.reconnect}
+                </button>
+              )}
+              <Link href="/team">{copy.back}</Link>
+            </div>
+          </div>
+        )}
         <div
           ref={container}
+          inert={!ready}
           className="team-world-canvas"
           aria-label={copy.title}
         />
@@ -355,7 +377,7 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
             </button>
           ))}
         </div>
-        <div className="team-world-dock">
+        <div className="team-world-dock" inert={!ready}>
           <details className="team-world-panel" name="team-world-controls">
             <summary>{copy.controls}</summary>
             <div

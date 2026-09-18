@@ -34,6 +34,10 @@ export const worldCopy = {
   locked: "Check in for today’s plan to join your team.",
   connectedOnly: "Sign in to join Team World.",
   retry: "Try again",
+  reconnect: "Reconnect",
+  connectionPaused:
+    "Shared play is paused while we reconnect. Movement and kicks are unavailable.",
+  connectionStopped: "You’re disconnected. Reconnect to return to shared play.",
   states: {
     idle: "Ready to enter",
     connecting: "Joining your team…",

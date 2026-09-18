@@ -195,14 +195,18 @@ textured campus with two pitches, furnished terraces and a bridge, with click/ta
 expressions. Entry requires a real session, current team membership and the
 existing participation gate. Only development navigation advertises this route
 while qualification continues. Loading, paused and denied states disable play;
-leaving the route disposes the world connection and scene.
+leaving the route disposes the world connection and scene. A field-wide dimmed
+connection screen blocks the frozen scene, explains paused play, and offers
+Reconnect and Back to Team. Transport interruptions retry automatically; terminal
+failures can request a fresh connection explicitly.
 
 Joystick is the default: pressing an open area anchors the stick there, with a
 60-pixel walk radius and a 20-pixel transition into sprint. Each pitch has a confined
 soccer ball and Burgundy/Gold scoreboard. Goals pause the ball, dissolve it, and
 fade it back in at midfield. Scores last only for the current room. Under bridges
 and furnishings, hidden character pixels use a grey silhouette with a pale rim;
-visible body parts keep their normal colors.
+visible body parts keep their normal colors. Kicks have a half-second shared
+wind-up, strike and follow-through pose; reduced-motion mode omits the pose.
 
 The current three approved appearances are assigned server-side. Saved modular
 appearance editing and durable decorating are subsequent integration work.

@@ -7,13 +7,15 @@ design follow-ups, not promises of additional player features.
 
 | System         | Owns                                                                                                              | Consumed by Zoomigo                                         |
 | -------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| ZMap           | Deterministic world simulation, relay protocol, geometry navigation, object behaviors and basic Three.js view     | Pinned `zmap` 0.1.5 preview, identically in app and relay   |
+| ZMap           | Deterministic world simulation, relay protocol, geometry navigation, object behaviors and basic Three.js view     | Pinned `zmap` 0.1.7 preview, identically in app and relay   |
 | Avatar Studio  | Modular characters, animation, comic presentation and wielded equipment                                           | Pinned `@zmap/avatar-studio` 0.1.2 release                  |
 | fc-workout-pwa | Eligibility, identity, tickets, transient room policy, campus terrain/art, input UI and action-to-avatar adapters | App-owned `world.json`, Blender sources and scenery adapter |
 
 The campus uses public package contracts. ZMap 0.1.5 adds the reusable settled-step
 object hook and stencil buffer; soccer rules and silhouette presentation remain
-app-owned. No character source fork is needed. The older local ZMap independence-review branch is not the runtime
+app-owned. Version 0.1.7 adds bounded kick pose timing through prediction,
+interpolation, relay snapshots and late join; the app animates Avatar Studio
+sockets through its public attachment view. No character source fork is needed. The older local ZMap independence-review branch is not the runtime
 consumed by this app. Upstream's development avatar submodule is a development
 relationship; the app consumes independent release artifacts.
 
@@ -34,6 +36,15 @@ zones, durable competitive scores, new rewards or freeform communication. Pitch
 scores use the shared transient room state.
 
 ## Follow-ups
+
+- [ ] **Intermittent sprint ghosting — reproduce on the affected device:** desktop
+      Chrome on NVIDIA RTX 3070 passed a 120-frame sprint render comparison and
+      recorded connected movement/turns as host and second player, including bridge
+      entry/exit. Sampled frame pacing was about 18 ms (p50/p95), without a duplicate
+      mesh or sustained stall. Antialiasing produced tiny pixel differences in exact
+      hashes; disabling it in the diagnostic made repeated renders identical.
+      No speculative animation/rendering fix was applied. Obtain the affected
+      browser/device and route, then compare delayed peer movement and frame capture.
 
 - [ ] **Shared-dev browser reliability — before rollout:** investigate ZMap's
       host-health recovery loop under software rendering. The September 17 update

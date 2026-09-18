@@ -31,9 +31,16 @@ test("a real kick scores for both peers, then returns the ball to midfield", asy
   test.setTimeout(90000);
   const local = observe(page);
   const phases = new Set<string>();
+  let sawKick = false;
   page.on("websocket", (socket) =>
     socket.on("framereceived", ({ payload }) => {
       const m = JSON.parse(String(payload));
+      if (
+        Object.values(m.state?.players ?? {}).some(
+          (p) => ((p as { kick?: number }).kick ?? 0) > 0,
+        )
+      )
+        sawKick = true;
       const phase = m.state?.objects?.instances?.["main-pitch"]?.phase;
       if (phase) phases.add(phase);
     }),
@@ -131,6 +138,7 @@ test("a real kick scores for both peers, then returns the ball to midfield", asy
         { timeout: 8000 },
       )
       .toBeLessThan(0.05);
+    expect(sawKick).toBe(true);
     expect(phases.has("goal")).toBe(true);
     expect(phases.has("return")).toBe(true);
     expect(local.errors).toEqual([]);
@@ -277,12 +285,12 @@ test("a revoked real session loses room access", async ({ page }) => {
   });
   expect(response.ok()).toBe(true);
   await expect(
-    page.getByText("This room is unavailable", { exact: true }),
+    page.getByRole("heading", {
+      name: "This room is unavailable",
+      exact: true,
+    }),
   ).toBeVisible({ timeout: 5000 });
-  await page
-    .locator("summary")
-    .filter({ hasText: /^Move & play$/ })
-    .click();
+  await expect(page.locator(".team-world-connection")).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Kick ball", exact: true }),
   ).toBeDisabled();
@@ -621,4 +629,111 @@ test("short ground taps beside an item walk while distant taps build to a sprint
   await expect.poll(() => Math.max(0, ...speeds)).toBeGreaterThan(3);
   await page.keyboard.press("Escape");
   expect(observed.errors).toEqual([]);
+});
+
+test("connection loss covers the field and a fresh connection restores play", async ({
+  page,
+}) => {
+  test.setTimeout(60000);
+  let disconnect: ((code?: number) => void) | undefined;
+  await page.routeWebSocket(/\/room(?:\?|$)/, (socket) => {
+    const server = socket.connectToServer();
+    disconnect = (code = 1012) => {
+      server.close();
+      socket.close({ code, reason: "Local recovery test" });
+    };
+  });
+  await loginAsMason(page);
+  await page.goto("/team-world");
+  await expect(page.getByText("Live together", { exact: true })).toBeVisible({
+    timeout: 20000,
+  });
+  disconnect!();
+  await expect(page.locator(".team-world-connection")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Kick ball", exact: true }),
+  ).toBeDisabled();
+  await expect(page.getByText("Live together", { exact: true })).toBeVisible({
+    timeout: 20000,
+  });
+  await expect(page.locator(".team-world-connection")).toHaveCount(0);
+  disconnect!(4400);
+  await expect(page.locator(".team-world-connection")).toBeVisible();
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.screenshot({ path: "outputs/campus/disconnected-mobile.png" });
+  await page.getByRole("button", { name: "Reconnect", exact: true }).click();
+  await expect(page.getByText("Live together", { exact: true })).toBeVisible({
+    timeout: 20000,
+  });
+  await expect(page.locator(".team-world-connection")).toHaveCount(0);
+});
+
+test("connected sprint stays live through sustained movement and turns", async ({
+  browser,
+}) => {
+  test.setTimeout(60000);
+  const context = await browser.newContext({
+    recordVideo: {
+      dir: "outputs/campus/sprint-video",
+      size: { width: 1280, height: 720 },
+    },
+  });
+  const host = await context.newPage();
+  await loginAsMason(host);
+  await host.goto("/team-world");
+  await expect(host.getByText("Live together", { exact: true })).toBeVisible({
+    timeout: 20000,
+  });
+  const page = await context.newPage();
+  const observed = observe(page);
+  try {
+    await loginAsAva(page);
+    await page.goto("/team-world");
+    await expect(page.getByText("Live together", { exact: true })).toBeVisible({
+      timeout: 20000,
+    });
+    await page
+      .locator(".team-world-canvas canvas")
+      .click({ position: { x: 500, y: 350 } });
+    const timing = await page.evaluate(async () => {
+      const frames: number[] = [];
+      let previous = performance.now();
+      for (let i = 0; i < 90; i++)
+        await new Promise<void>((resolve) =>
+          requestAnimationFrame((now) => {
+            frames.push(now - previous);
+            previous = now;
+            resolve();
+          }),
+        );
+      const gl = document
+        .querySelector<HTMLCanvasElement>(".team-world-canvas canvas")!
+        .getContext("webgl2")!;
+      const ext = gl.getExtension("WEBGL_debug_renderer_info");
+      frames.sort((a, b) => a - b);
+      return {
+        renderer: ext
+          ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)
+          : "unknown",
+        p50: frames[45],
+        p95: frames[85],
+        max: frames[89],
+      };
+    });
+    console.log("SPRINT_RENDER", JSON.stringify(timing));
+    await page.keyboard.down("Shift");
+    for (const key of ["w", "d", "s", "a"]) {
+      await page.keyboard.down(key);
+      await page.waitForTimeout(1600);
+      await expect(
+        page.getByText("Live together", { exact: true }),
+      ).toBeVisible();
+      await page.screenshot({ path: `outputs/campus/sprint-${key}.png` });
+      await page.keyboard.up(key);
+    }
+    await page.keyboard.up("Shift");
+    expect(observed.errors).toEqual([]);
+  } finally {
+    await context.close();
+  }
 });

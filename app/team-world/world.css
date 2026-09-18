@@ -200,12 +200,7 @@
 .team-world-hint:empty {
   display: none;
 }
-.team-world-retry {
-  position: absolute;
-  z-index: 4;
-  top: 6rem;
-  left: 1rem;
-}
+
 .team-world-stick {
   position: absolute;
   z-index: 2;
@@ -366,4 +361,45 @@
   .team-world-item-actions {
     top: 9.5rem;
   }
+}
+
+.team-world-connection {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  padding: 5rem 1rem 2rem;
+  background: rgb(7 28 37 / 82%);
+  backdrop-filter: grayscale(1) blur(3px);
+  text-align: center;
+  touch-action: none;
+}
+.team-world-connection > div {
+  max-width: 24rem;
+}
+.team-world-connection span {
+  font-size: 3rem;
+  color: #c9f31d;
+}
+.team-world-connection h2 {
+  font-size: 1.4rem;
+  margin: 0.5rem 0;
+}
+.team-world-connection p {
+  line-height: 1.5;
+  margin: 0 0 1rem;
+}
+.team-world-connection button {
+  background: #c9f31d;
+  color: #071c25;
+  font-weight: 700;
+}
+
+.team-world-connection a {
+  display: block;
+  color: #f7faf2;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+  text-decoration: underline;
 }
