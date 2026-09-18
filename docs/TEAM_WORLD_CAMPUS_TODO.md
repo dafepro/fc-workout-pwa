@@ -203,13 +203,13 @@ types, lint, formatting and deployment contracts. Production build and upload
 dry run pass at 2246.32 KiB compressed. Physical-phone and software-renderer
 qualification remain open.
 
-Deployed app `9e0f027f375de317971c8626d31c277f514601c3` with ZMap 0.1.9 via
-[deployment run](https://github.com/dafepro/fc-workout-pwa/actions/runs/35361863462).
+Deployed app `d3b9c44eeb81d2efdb218bb4514f4d100f9d7e9c` with ZMap 0.1.9 via
+[deployment run](https://github.com/dafepro/fc-workout-pwa/actions/runs/35375421756).
 Application/API/build/image-startup/exact-container/Lounge checks passed. The API
 and relay are healthy at that revision; fixtures were not reset. Hardware Chrome
-passed the deployed two-player check in 18.9 seconds, including a peer-visible
+passed the deployed two-player check in 16.9 seconds, including a peer-visible
 kick while the shooter continues moving and retains canvas focus.
 
 CI remains red before gameplay in SwiftShader world entry (tick 0, epoch 2, no
-eligible host; maximum frame 1933 ms, longest task 1375 ms). This is the existing
+eligible host; maximum frame 1900 ms, longest task 1319 ms). This is the existing
 software-renderer qualification gap, not a fully green release workflow.
