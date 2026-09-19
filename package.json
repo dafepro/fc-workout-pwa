@@ -40,8 +40,8 @@
     "zmap": "https://github.com/dafepro/zmap/releases/download/v0.1.4/zmap-0.1.4.tgz"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.37.1",
-    "@cloudflare/workers-types": "5.20260804.1",
+    "@cloudflare/vite-plugin": "1.54.10",
+    "@cloudflare/workers-types": "5.20260916.1",
     "@playwright/test": "1.62.1",
     "@tailwindcss/postcss": "4.2.1",
     "@testing-library/jest-dom": "6.6.3",
@@ -62,7 +62,7 @@
     "vinext": "0.0.50",
     "vite": "8.0.16",
     "vitest": "4.1.11",
-    "wrangler": "4.92.0"
+    "wrangler": "4.132.0"
   },
   "type": "module"
 }
