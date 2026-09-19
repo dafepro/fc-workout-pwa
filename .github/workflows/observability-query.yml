@@ -78,7 +78,7 @@ jobs:
           } >>"$GITHUB_STEP_SUMMARY"
 
       - name: Upload sanitized result
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: observability-${{ github.run_id }}
           path: observability-result.json
