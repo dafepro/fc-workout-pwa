@@ -91,7 +91,7 @@ jobs:
             -var="operator_ssh_public_key=${{ vars.OPERATOR_SSH_PUBLIC_KEY }}"
           tofu show -no-color tfplan
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: tfplan
           path: infra/digitalocean/tfplan

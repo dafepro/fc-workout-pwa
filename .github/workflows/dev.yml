@@ -161,7 +161,7 @@ jobs:
               process.exit(0);
             '
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dev-worker-${{ steps.revision.outputs.sha }}
           path: dist
@@ -320,7 +320,7 @@ jobs:
           install -m 0600 "$RUNNER_TEMP/dev-host" "$access_directory/host"
           install -m 0600 "$RUNNER_TEMP/dev-known-hosts" "$access_directory/known_hosts"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: needs.context.outputs.operation == 'create' || needs.context.outputs.operation == 'update'
         with:
           name: dev-operator-access-${{ github.run_id }}
