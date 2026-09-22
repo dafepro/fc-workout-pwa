@@ -1,11 +1,22 @@
 export const worldCopy = {
   diagnostics: {
-    title: "Render diagnostics",
+    title: "Dev controls",
     reference: "Independent motion reference",
     captureHelp:
       "After a stutter, save a capture immediately: it includes the last 10 seconds of movement, camera and frame timing. The moving reference uses a separate browser animation clock. Compare its smoothness with the avatar. Captures stay local until you share them.",
     download: "Save motion capture",
-    help: "Dev only · changes apply immediately to this browser and persist here. Physics and teammates are unchanged. Try one switch at a time, then copy a report when ghosting appears. Normal rendering resets every switch. Plain materials bypass textures and custom shaders; there is no motion-blur pass.",
+    help: "Render switches apply only to this browser and persist here. Try one switch at a time, then copy a report when ghosting appears. Normal rendering resets every switch. Plain materials bypass textures and custom shaders; there is no motion-blur pass.",
+    ballTitle: "Pitch ball physics",
+    ball: {
+      gravity: "Gravity",
+      speed: "Ball travel speed",
+      friction: "Rolling friction",
+    },
+    ballReset: "Reset pitch balls",
+    ballHost:
+      "You host this room. Ball changes affect everyone here until you leave or hosting changes.",
+    ballPeer:
+      "The current room host controls shared ball physics. Sliders unlock when this browser hosts the room.",
     normal: "Normal rendering",
     minimal: "Minimal rendering",
     avatar: "Avatar rendering",

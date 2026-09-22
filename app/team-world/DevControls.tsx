@@ -7,15 +7,27 @@ import {
   type renderReport,
 } from "./diagnostics";
 import { worldCopy } from "./copy";
+import type { BallTuning } from "./ball-tuning";
 const copy = worldCopy.diagnostics;
+const ballControls = [
+  { key: "gravity", min: 3, max: 12, unit: "m/s²" },
+  { key: "speed", min: 2, max: 10, unit: "m/s" },
+  { key: "friction", min: 0, max: 3, unit: "m/s²" },
+] as const;
 export function DevControls({
   settings,
   onChange,
   read,
+  ballTuning,
+  onBallTuningChange,
+  isHost,
 }: {
   settings: RenderSettings;
   onChange: (next: RenderSettings) => void;
   read: (capture?: boolean) => ReturnType<typeof renderReport>;
+  ballTuning: BallTuning;
+  onBallTuningChange: (next: BallTuning) => void;
+  isHost: boolean;
 }) {
   const [reference, setReference] = useState(false);
   const [open, setOpen] = useState(false),
@@ -148,6 +160,40 @@ export function DevControls({
             />
             {copy.reference}
           </label>
+          <fieldset className="team-world-debug-ball" disabled={!isHost}>
+            <legend>{copy.ballTitle}</legend>
+            {ballControls.map(({ key, min, max, unit }) => (
+              <label key={key}>
+                <span>{copy.ball[key]}</span>
+                <output>
+                  {ballTuning[key].toFixed(1)} {unit}
+                </output>
+                <input
+                  type="range"
+                  aria-label={copy.ball[key]}
+                  min={min}
+                  max={max}
+                  step="0.1"
+                  value={ballTuning[key]}
+                  onChange={(e) =>
+                    onBallTuningChange({
+                      ...ballTuning,
+                      [key]: e.currentTarget.valueAsNumber,
+                    })
+                  }
+                />
+              </label>
+            ))}
+            <button
+              type="button"
+              onClick={() =>
+                onBallTuningChange({ gravity: 5.4, speed: 6.1, friction: 1 })
+              }
+            >
+              {copy.ballReset}
+            </button>
+          </fieldset>
+          <p>{isHost ? copy.ballHost : copy.ballPeer}</p>
           <p>{copy.captureHelp}</p>
           <button
             onClick={() => {

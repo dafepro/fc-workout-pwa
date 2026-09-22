@@ -773,7 +773,15 @@ test("dev rendering controls switch live, preserve the room and export safe sett
     timeout: 20000,
   });
   const session = observed.session;
-  await page.getByText("Render diagnostics", { exact: true }).click();
+  await page.getByText("Dev controls", { exact: true }).click();
+  const gravity = page.getByRole("slider", { name: "Gravity", exact: true });
+  await expect(gravity).toBeEnabled();
+  await expect(gravity).toHaveValue("5.4");
+  await gravity.focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(gravity).toHaveValue("5.3");
+  await page.getByRole("button", { name: "Reset pitch balls" }).click();
+  await expect(gravity).toHaveValue("5.4");
   await page
     .getByRole("checkbox", {
       name: "Independent motion reference",
@@ -856,7 +864,7 @@ test("dev rendering controls switch live, preserve the room and export safe sett
   await expect(page.getByText("Live together", { exact: true })).toBeVisible({
     timeout: 20000,
   });
-  await page.getByText("Render diagnostics", { exact: true }).click();
+  await page.getByText("Dev controls", { exact: true }).click();
   await expect(
     page.getByRole("combobox", { name: "Scene materials", exact: true }),
   ).toHaveValue("wireframe");
@@ -931,7 +939,7 @@ test("steady sprint does not exhaust its display samples when the simulation tim
   await page.waitForTimeout(1300);
   await page.keyboard.up("d");
   await page.keyboard.up("Shift");
-  await page.getByText("Render diagnostics", { exact: true }).click();
+  await page.getByText("Dev controls", { exact: true }).click();
   await page
     .getByRole("button", { name: "Copy diagnostic report", exact: true })
     .click();

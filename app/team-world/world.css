@@ -455,6 +455,34 @@
   height: 20px;
   accent-color: #c9f31d;
 }
+.team-world-debug-ball {
+  border: 1px solid #759296;
+  border-radius: 0.5rem;
+  margin: 0.9rem 0 0;
+  min-width: 0;
+  padding: 0.25rem 0.65rem 0.65rem;
+}
+.team-world-debug-ball legend {
+  font-weight: 700;
+  padding: 0 0.25rem;
+}
+.team-world-debug-ball label span,
+.team-world-debug-ball output {
+  display: inline-block;
+  width: 50%;
+}
+.team-world-debug-ball output {
+  text-align: right;
+}
+.team-world-debug-ball input[type="range"] {
+  display: block;
+  width: 100%;
+  margin: 0.3rem 0;
+  accent-color: #c9f31d;
+}
+.team-world-debug-ball:disabled {
+  opacity: 0.6;
+}
 .team-world-debug-presets {
   display: flex;
   gap: 0.4rem;

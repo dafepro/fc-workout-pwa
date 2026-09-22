@@ -1350,7 +1350,8 @@
       "restitution": 0.5,
       "mass": 0.45,
       "rollingResistance": 1.0,
-      "strike": { "speed": 6.1, "closeLift": 5.8 }
+      "gravity": 5.4,
+      "strike": { "speed": 6.1, "closeSpeed": 2.8, "closeLift": 8.4 }
     },
     {
       "id": "garden-soccer-ball",
@@ -1365,7 +1366,8 @@
       "restitution": 0.5,
       "mass": 0.45,
       "rollingResistance": 1.0,
-      "strike": { "speed": 6.1, "closeLift": 5.8 }
+      "gravity": 5.4,
+      "strike": { "speed": 6.1, "closeSpeed": 2.8, "closeLift": 8.4 }
     }
   ],
   "triggers": [],

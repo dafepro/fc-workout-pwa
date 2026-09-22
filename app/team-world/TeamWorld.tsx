@@ -36,16 +36,26 @@ import {
 import { requestWorldTicket } from "./gateway";
 import { soccerBehavior, pitchState } from "./soccer.mjs";
 import { createSoccerVisuals } from "./adapters/soccer";
+import {
+  applyBallTuning,
+  readBallTuning,
+  type BallTuning,
+} from "./ball-tuning";
 import mapJSON from "./world.json";
 import { worldCopy as copy } from "./copy";
 import "./world.css";
 import { renderPixelRatio } from "./render-budget";
-const map = mapJSON as unknown as WorldMap;
+const defaultBallTuning = readBallTuning(mapJSON as unknown as WorldMap);
 function setCameraZoom(world: Zoomap, zoom: number) {
   world.view.camera.zoom = zoom;
   world.view.camera.updateProjectionMatrix();
 }
 export default function TeamWorld({ teamID }: { teamID: string }) {
+  const [map] = useState<WorldMap>(
+    () => structuredClone(mapJSON) as unknown as WorldMap,
+  );
+  const [ballTuning, setBallTuning] = useState<BallTuning>(defaultBallTuning);
+  const [isHost, setIsHost] = useState(false);
   const {
     active: fullscreen,
     bindContainer: bindViewport,
@@ -101,6 +111,7 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
   });
   const [drawn, setDrawn] = useState(true);
   useEffect(() => {
+    applyBallTuning(map, defaultBallTuning);
     let cancelled = false;
     const debug = developmentBuild
       ? createRenderDiagnostics(() => debugRef.current)
@@ -115,8 +126,11 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
     const soccer = createSoccerVisuals(map);
     let current: Zoomap | undefined;
     let movement: ReturnType<typeof createNavigationControls> | undefined;
+    let wasHost = false;
     const controller = new AbortController();
     const dispose = () => {
+      setBallTuning(defaultBallTuning);
+      setIsHost(false);
       clearInterval(controlsTimer);
       viewportObserver?.disconnect();
       movement?.dispose();
@@ -219,6 +233,14 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
       let previousActions = "",
         previousScore = "";
       controlsTimer = setInterval(() => {
+        const hostNow =
+          current?.status === "ready" && current.host === current.session;
+        setIsHost(hostNow);
+        if (wasHost && !hostNow) {
+          applyBallTuning(map, defaultBallTuning);
+          setBallTuning(defaultBallTuning);
+        }
+        wasHost = hostNow;
         const pitches = map.objects!.filter((o) => o.behavior === "soccer");
         const local = current?.local ?? map.spawn;
         const pitch = pitches.sort(
@@ -293,8 +315,14 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
       if (world.current === current) world.current = null;
       if (navigation.current === movement) navigation.current = null;
     };
-  }, [teamID, attempt]);
+  }, [teamID, attempt, map]);
   const ready = status === "ready" && !failed;
+  const updateBallTuning = (next: BallTuning) => {
+    const current = world.current;
+    if (!ready || !current || current.host !== current.session) return;
+    applyBallTuning(map, next);
+    setBallTuning(next);
+  };
   const run = (action: (w: Zoomap) => void) => {
     if (ready && world.current) action(world.current);
   };
@@ -310,6 +338,9 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
           settings={debugSettings}
           onChange={updateDebug}
           read={readDebug}
+          ballTuning={ballTuning}
+          onBallTuningChange={updateBallTuning}
+          isHost={isHost}
         />
       )}
       <div className="team-world-bar">

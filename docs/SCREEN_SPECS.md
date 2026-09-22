@@ -218,8 +218,9 @@ Kick button triggers on touch/pointer press without taking canvas focus, so a
 second finger can shoot while the first keeps the joystick held. Space also kicks
 while keyboard movement is held.
 
-The two pitch balls now slow and rebound less. A close grounded kick lifts the
-ball; a farther strike keeps it low. If the ball will be high at contact, the
+The two pitch balls now slow and rebound less. A very close grounded kick sends
+the ball above three player heights with low gravity and slow horizontal travel;
+a farther strike keeps it low. If the ball will be high at contact, the
 avatar commits to a real jump and a header or bicycle attempt. Actual ball
 height, reach and blockers at the shared contact moment decide whether it
 connects; an early or late press can miss. The header has a chest load, forehead
@@ -232,12 +233,15 @@ The current three approved appearances are assigned server-side. Saved modular
 appearance editing and durable decorating are subsequent integration work.
 See [TEAM_WORLD.md](TEAM_WORLD.md) for the implementation and qualification gates.
 
-Development builds expose a collapsible **Render diagnostics** panel in Team World.
+Development builds expose a collapsible **Dev controls** panel in Team World.
 Live controls isolate the occlusion composite, comic shading, ink outlines, avatar
 motion, campus art, camera following, render resolution and original/plain/wireframe
 materials. A simple capsule can replace the Avatar Studio model. Normal rendering
 resets all switches; Minimal rendering provides a cheap comparison. Settings persist
-only in this browser. Physics and other players are unaffected. Copy diagnostic
+only in this browser; those render controls do not change physics or other players.
+The same panel gives the elected browser host sliders for both pitch balls'
+gravity, horizontal speed, and rolling friction. They affect the room until
+host handoff or reconnect and then return to authored defaults. Copy diagnostic
 report exports the settings, local host role, position, browser/GPU and frame metrics,
 without account IDs or connection credentials. Compare one switch at a time and
 send reports from both good and bad rendering. Animation off uses the runtime's

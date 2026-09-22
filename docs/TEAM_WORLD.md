@@ -4,7 +4,7 @@
 
 ## What is implemented
 
-`/team-world` lazily loads zmap 0.1.10 and Avatar Studio 0.1.2 from pinned GitHub
+`/team-world` lazily loads zmap 0.1.11 and Avatar Studio 0.1.2 from pinned GitHub
 Release tarballs. The development Team hub exposes a Team World link after the
 existing check-in gate. Production navigation is unchanged during qualification.
 
@@ -51,11 +51,14 @@ policy remains in `app/team-world/soccer.mjs`, installed identically in both pee
 and the relay. The existing practice ball becomes the main-pitch ball, keeping
 the five-toy budget, with one additional garden-pitch ball.
 
-Both pitch balls use contextual strikes. Their 6.1 m/s grounded shot is slower
-than the previous 8 m/s kick, their bounce is 0.5, and their ground resistance
-is 1.0 m/s² so players can reach a rolling ball while a midfield shot can still
-reach the far goal. Contact within 0.65 m lofts
-the ball (up to 5.8 m/s vertically); by 1.3 m it runs almost along the ground.
+Both pitch balls use contextual strikes. Their distant 6.1 m/s grounded shot is
+slower than the previous 8 m/s kick, their bounce is 0.5, and their ground
+resistance is 1.0 m/s² so players can reach a rolling ball while a midfield shot
+can still reach the far goal. Contact within 0.65 m lifts the ball at 8.4 m/s
+vertically, but travels at just 2.8 m/s horizontally. Its 5.4 m/s² gravity
+puts the centre above 6 m and keeps it airborne for roughly three seconds; a
+second player can run under its descent and time a header. By 1.3 m, a strike
+runs almost along the ground. Other toys retain their previous gravity.
 At the 0.2-second shared contact tick, the actual ball height and reach select
 a grounded kick, header, bicycle kick, or miss. Airborne attempts commit a real
 0.44 m or 0.69 m jump when pressed, then validate ball position, contact point
@@ -67,6 +70,12 @@ overhead arc, lands on the back/side and rolls into a crouched get-up. Its boot
 travels in the outgoing ball direction at impact. Header recovery lasts 0.92 s;
 bicycle recovery lasts 1.16 s, while steering and the shared 0.2 s contact remain
 unchanged. Reduced motion retains the physical jump and omits the authored pose.
+
+Development-only **Dev controls** expose pitch-ball gravity, horizontal travel
+speed, and rolling friction. Only the elected browser host can move the sliders;
+changes apply to both pitch balls in the shared room for that visit. Losing the
+host role or reconnecting restores authored defaults. The speed slider scales
+close and distant horizontal travel together; vertical lift stays at 8.4 m/s.
 
 `adapters/aerial-kick.ts` owns the app-authored key poses. Bounded Hermite curves
 preserve momentum through contact. Contact fitting evaluates the impact pose
