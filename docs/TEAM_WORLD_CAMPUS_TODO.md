@@ -227,11 +227,17 @@ midfield shot was tested through the actual pitch behavior after 5.5 m/s and
 1.3 m/s² proved too short in both deterministic simulation and Chrome. Near
 contact lofts progressively up to 5.8 m/s vertically; farther contact stays
 low. Header and bicycle attempts use a physical 0.44 m or 0.69 m jump and the
-actual ball position at the shared impact tick. The first rig poses are
-placeholders, including reduced-motion handling and a moving target preview.
+actual ball position at the shared impact tick.
 
-Follow-up visual work for Astra: replace the header's simple chest/head snap
-and the bicycle's single extended leg with full-body anticipation, contact,
-rotation, and landing keyed to the shared target. Keep the impact tick and
-calculated contact geometry authoritative. Test on a physical phone. The
-existing SwiftShader world-entry failure remains a separate qualification gap.
+The header and bicycle now use authored full-body clips with anticipation,
+contact, follow-through, landing and recovery. The reference/blocking/polish
+workflow and actual-model generated reference are recorded in
+[aerial provenance](../assets/team-world/aerial-study-v1/PROVENANCE.md).
+Front, side and rear render checks exposed and corrected both a foot-chasing
+vertical wobble and a bicycle strike travelling against the ball's outgoing
+direction. Real shared-simulation playback covers three appearances, movement,
+raised terrain and reduced motion. Impact and jump remain authoritative.
+
+Remaining qualification: test repeated aerial strikes on a physical phone,
+especially the moving bicycle recovery and responsiveness at phone frame rates.
+The existing SwiftShader world-entry failure remains a separate qualification gap.

@@ -222,8 +222,10 @@ The two pitch balls now slow and rebound less. A close grounded kick lifts the
 ball; a farther strike keeps it low. If the ball will be high at contact, the
 avatar commits to a real jump and a header or bicycle attempt. Actual ball
 height, reach and blockers at the shared contact moment decide whether it
-connects; an early or late press can miss. Header and bicycle poses are
-temporary rig placeholders driven by the shared ball target. Reduced motion
+connects; an early or late press can miss. The header has a chest load, forehead
+drive and bent-knee landing. The bicycle uses a full-body turn, scissor exchange,
+overhead strike, side/back landing and crouched get-up, aimed at the shared ball
+target. Players retain steering throughout both animations. Reduced motion
 omits their visual poses while preserving the same jump and ball outcome.
 
 The current three approved appearances are assigned server-side. Saved modular

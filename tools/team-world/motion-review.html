@@ -21,6 +21,14 @@
     </style>
   </head>
   <body>
+    <label
+      >Strike
+      <select id="strike">
+        <option value="ground">Instep</option>
+        <option value="header">Header</option>
+        <option value="bicycle">Bicycle</option>
+      </select></label
+    >
     <button id="run">Run sprint comparison</button
     ><button id="kick">Review kick</button
     ><button id="play">Play / pause kick</button
@@ -33,7 +41,13 @@
         <option value="90">Right side</option>
         <option value="145">Rear three-quarter</option>
       </select></label
-    ><output id="result">Loading</output>
+    ><label
+      >Frame <input id="frame" type="range" min="0" max="90" value="0" /><span
+        id="frame-time"
+        >0.00s</span
+      ></label
+    >
+    <output id="result">Loading</output>
     <div id="view"></div>
     <script type="module" src="./motion-review.ts"></script>
   </body>

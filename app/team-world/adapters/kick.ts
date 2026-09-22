@@ -1,8 +1,13 @@
 import * as THREE from "three";
 import type { AvatarInstance } from "@zmap/avatar-studio";
 import type { Body } from "zmap/core";
+import {
+  aerialClips,
+  kickBones,
+  type Angles,
+  type KickBone,
+} from "./aerial-kick";
 
-type Angles = readonly [number, number, number];
 type Pose = {
   at: number;
   hips: Angles;
@@ -142,54 +147,20 @@ const poses: readonly Pose[] = [
     lift: 0,
   },
 ];
-const bones = Object.keys(poses[0]).filter(
-  (name): name is Exclude<keyof Pose, "at" | "lift"> =>
-    name !== "at" && name !== "lift",
-);
-type BoneName = (typeof bones)[number];
-const aerialPoses: Record<
-  "header" | "bicycle",
-  Partial<Record<BoneName, Angles>>
-> = {
-  header: {
-    hips: [0.12, 0, 0],
-    chest: [-0.22, 0, 0],
-    head: [-0.42, 0, 0],
-    arm_L: [-1.25, 0, -0.55],
-    arm_R: [-1.25, 0, 0.55],
-    forearm_L: [-0.55, 0, 0],
-    forearm_R: [-0.55, 0, 0],
-    leg_L: [0.34, 0, 0],
-    leg_R: [-0.2, 0, 0],
-    shin_L: [0.7, 0, 0],
-    shin_R: [0.45, 0, 0],
-    foot_L: [-0.25, 0, 0],
-    foot_R: [-0.2, 0, 0],
-  },
-  bicycle: {
-    hips: [-0.5, 0, 0],
-    chest: [-0.72, 0, 0],
-    head: [0.28, 0, 0],
-    arm_L: [-1.15, 0, -0.7],
-    arm_R: [-1.25, 0, 0.7],
-    forearm_L: [-0.45, 0, 0],
-    forearm_R: [-0.45, 0, 0],
-    leg_L: [0.75, 0, 0],
-    leg_R: [-1.65, 0, 0],
-    shin_L: [1, 0, 0],
-    shin_R: [0.22, 0, 0],
-    foot_L: [-0.28, 0, 0],
-    foot_R: [0.32, 0, 0],
-  },
-};
 const smooth = (value: number) => {
   const t = THREE.MathUtils.clamp(value, 0, 1);
   return t * t * (3 - 2 * t);
 };
 
 // Shape-preserving Hermite slopes carry momentum through keys without joint overshoot.
-function sample(elapsed: number, value: (pose: Pose) => number) {
+function sample<T extends { at: number }>(
+  poses: readonly T[],
+  elapsed: number,
+  value: (pose: T) => number,
+) {
   if (elapsed <= poses[0].at) return value(poses[0]);
+  if (elapsed >= poses[poses.length - 1].at)
+    return value(poses[poses.length - 1]);
   const index = poses.findIndex((pose) => pose.at > elapsed) - 1;
   const slope = (i: number) =>
     (value(poses[i + 1]) - value(poses[i])) / (poses[i + 1].at - poses[i].at);
@@ -227,7 +198,20 @@ export function createKickPose() {
     point = new THREE.Vector3();
   let fittedRoot: THREE.Group | undefined;
   let activeStrike: Body["strike"];
+  let strikeAim = 0;
+  let hasAim = false;
+  let hasOffset = false;
+  const strikeOffset = new THREE.Vector3();
+  const savedRoot = new THREE.Vector3();
+  const savedBones = new Map<string, THREE.Quaternion>();
   const soles = new Map<string, THREE.Vector3[]>();
+  const hullBones = new Map<string, THREE.Bone>();
+  const yaw = new THREE.Quaternion(),
+    blendedYaw = new THREE.Quaternion(),
+    axis = new THREE.Vector3(0, 1, 0);
+  const contactPoint = new THREE.Vector3(),
+    ball = new THREE.Vector3(),
+    correction = new THREE.Vector3();
   function sole(bone: THREE.Bone | undefined) {
     let minimum = Infinity;
     if (bone)
@@ -241,34 +225,51 @@ export function createKickPose() {
   }
   return (
     avatar: AvatarInstance,
-    remaining: number,
+    body: Body,
     time: number,
     reducedMotion: boolean,
-    strike?: Body["strike"],
+    floorY = 0,
+    ballRadius = 0.3,
   ) => {
+    const remaining = body.kick ?? 0,
+      strike = body.strike;
     const dt = lastTime === undefined ? 0 : time - lastTime;
     lastTime = time;
+    if (remaining > previous + 0.05) {
+      activeStrike = strike;
+      strikeAim = 0;
+      hasAim = false;
+      hasOffset = false;
+      strikeOffset.set(0, 0, 0);
+    } else if (remaining > 0 && strike) activeStrike = strike;
+    const aerial =
+      activeStrike?.kind === "header" || activeStrike?.kind === "bicycle"
+        ? aerialClips[activeStrike.kind]
+        : undefined;
+    const duration = aerial ? aerial[aerial.length - 1].at : 0.96;
     if (reducedMotion || dt < 0 || dt > 0.25) elapsed = Infinity;
     if (!reducedMotion && remaining > 0 && remaining <= 0.5) {
       elapsed = 0.5 - remaining;
-    } else if (!reducedMotion && elapsed < 0.96) {
+    } else if (!reducedMotion && elapsed < duration) {
       elapsed = Math.max(
         previous > 0 ? 0.5 : elapsed,
         elapsed + Math.max(0, dt),
       );
     }
     previous = remaining;
-    if (remaining > 0 && strike) activeStrike = strike;
     const view = avatar.attachmentView();
-    if (!view || elapsed >= 0.96 || reducedMotion) {
-      if (elapsed >= 0.96 || reducedMotion) activeStrike = undefined;
+    if (!view || elapsed >= duration || reducedMotion) {
+      if (elapsed >= duration || reducedMotion) activeStrike = undefined;
       return;
     }
     if (fittedRoot !== view.root) {
       fittedRoot = view.root;
       soles.clear();
+      hullBones.clear();
       avatar.object.updateWorldMatrix(true, true);
-      // Cache rigid boot vertices in ankle space, including fitted body proportions.
+      const inverses = new Map<THREE.Bone, THREE.Matrix4>();
+      const seen = new Map<string, Set<string>>();
+      // Rigid support hulls include fitted boots, elbows and head for the aerial landing.
       view.root.traverse((object) => {
         if (
           !(object instanceof THREE.SkinnedMesh) ||
@@ -281,25 +282,28 @@ export function createKickPose() {
           for (let j = 0; j < 4; j++) {
             if (weights.getComponent(i, j) < 0.9999) continue;
             const bone = object.skeleton.bones[indices.getComponent(i, j)];
-            if (bone.name !== "foot_L" && bone.name !== "foot_R") continue;
+            hullBones.set(bone.name, bone);
+            const inverse =
+              inverses.get(bone) ?? bone.matrixWorld.clone().invert();
+            inverses.set(bone, inverse);
+            const vertex = object
+              .getVertexPosition(i, new THREE.Vector3())
+              .applyMatrix4(object.matrixWorld)
+              .applyMatrix4(inverse);
+            const key = `${vertex.x.toFixed(5)},${vertex.y.toFixed(5)},${vertex.z.toFixed(5)}`;
+            const unique = seen.get(bone.name) ?? new Set<string>();
+            if (unique.has(key)) continue;
+            unique.add(key);
+            seen.set(bone.name, unique);
             const vertices = soles.get(bone.name) ?? [];
-            vertices.push(
-              bone.worldToLocal(
-                object
-                  .getVertexPosition(i, new THREE.Vector3())
-                  .applyMatrix4(object.matrixWorld),
-              ),
-            );
+            vertices.push(vertex);
             soles.set(bone.name, vertices);
           }
       });
     }
-    const weight =
-      smooth(elapsed / 0.11) * (1 - smooth((elapsed - 0.72) / 0.24));
-    const aerial =
-      activeStrike?.kind === "header" || activeStrike?.kind === "bicycle"
-        ? aerialPoses[activeStrike.kind]
-        : undefined;
+    const weight = aerial
+      ? smooth(elapsed / 0.055) * (1 - smooth((elapsed - duration + 0.2) / 0.2))
+      : smooth(elapsed / 0.11) * (1 - smooth((elapsed - 0.72) / 0.24));
     avatar.object.updateWorldMatrix(true, true);
     const localTarget = activeStrike
       ? avatar.object.worldToLocal(
@@ -310,45 +314,142 @@ export function createKickPose() {
           ),
         )
       : undefined;
-    const aim = localTarget
-      ? THREE.MathUtils.clamp(
-          Math.atan2(localTarget.x, Math.max(0.2, localTarget.z)),
-          -0.5,
-          0.5,
-        )
-      : 0;
-    const rise = localTarget
-      ? THREE.MathUtils.clamp((localTarget.y - 1.7) * 0.16, -0.2, 0.25)
-      : 0;
-    const aerialWeight =
-      weight * smooth(elapsed / 0.18) * (1 - smooth((elapsed - 0.38) / 0.38));
-    for (const name of bones) {
+    if (aerial && localTarget && (!hasAim || elapsed <= 0.2)) {
+      strikeAim =
+        Math.atan2(localTarget.x, localTarget.z) +
+        (activeStrike?.kind === "bicycle" ? Math.PI : 0);
+      hasAim = true;
+    }
+    yaw.setFromAxisAngle(axis, strikeAim);
+    // Fit the contact pose, not each swinging limb position. Otherwise a raised
+    // foot drags the centre of gravity up and down through the anticipation.
+    if (aerial && activeStrike && (!hasOffset || elapsed <= 0.2)) {
+      savedRoot.copy(view.root.position);
+      for (const name of kickBones) {
+        const bone = view.sockets.get(name);
+        if (!bone) continue;
+        const saved = savedBones.get(name) ?? new THREE.Quaternion();
+        saved.copy(bone.quaternion);
+        savedBones.set(name, saved);
+        bone.quaternion.setFromEuler(
+          euler.set(
+            sample(aerial, 0.2, (p) => p[name][0]),
+            sample(aerial, 0.2, (p) => p[name][1]),
+            sample(aerial, 0.2, (p) => p[name][2]),
+          ),
+        );
+        if (name === "hips") bone.quaternion.premultiply(yaw);
+      }
+      view.root.position.y += sample(aerial, 0.2, (p) => p.rootY);
+      const forward = sample(aerial, 0.2, (p) => p.rootZ);
+      view.root.position.x += Math.sin(strikeAim) * forward;
+      view.root.position.z += Math.cos(strikeAim) * forward;
+      avatar.object.updateWorldMatrix(true, true);
+      const contactBone = view.sockets.get(
+        activeStrike.kind === "header" ? "head" : "foot_R",
+      );
+      if (contactBone) {
+        contactPoint.set(
+          0,
+          activeStrike.kind === "header" ? 0.12 : 0,
+          activeStrike.kind === "header" ? 0.12 : 0.17,
+        );
+        contactBone.localToWorld(contactPoint);
+        const dt = Math.max(0, 0.2 - elapsed);
+        // The simulation owns the jump (gravity 18); only presentation is fitted.
+        contactPoint.add(
+          correction.set(
+            body.vx * dt,
+            body.vy * dt - 9 * dt * dt,
+            body.vz * dt,
+          ),
+        );
+        ball.set(
+          activeStrike.target.x,
+          activeStrike.target.y,
+          activeStrike.target.z,
+        );
+        correction.copy(ball).sub(contactPoint);
+        const distance = correction.length();
+        if (distance > 0.001)
+          correction
+            .multiplyScalar((distance - ballRadius) / distance)
+            .clampLength(0, 0.65);
+        point.copy(contactPoint).add(correction);
+        avatar.object.worldToLocal(point);
+        avatar.object.worldToLocal(contactPoint);
+        strikeOffset.copy(point).sub(contactPoint);
+        hasOffset = true;
+      }
+      view.root.position.copy(savedRoot);
+      for (const name of kickBones) {
+        const saved = savedBones.get(name);
+        if (saved) view.sockets.get(name)?.quaternion.copy(saved);
+      }
+    }
+    for (const name of kickBones) {
       const bone = view.sockets.get(name);
       if (!bone) continue;
-      const selected = aerial?.[name];
       target.setFromEuler(
         euler.set(
-          selected
-            ? selected[0] +
-                (name === "head" ? -rise : name === "leg_R" ? -rise : 0)
-            : sample(elapsed, (pose) => pose[name][0]),
-          selected
-            ? selected[1] +
-                (["hips", "chest", "head"].includes(name) ? aim * 0.5 : 0)
-            : sample(elapsed, (pose) => pose[name][1]),
-          selected ? selected[2] : sample(elapsed, (pose) => pose[name][2]),
+          sample<{ at: number } & Record<KickBone, Angles>>(
+            aerial ?? poses,
+            elapsed,
+            (pose) => pose[name][0],
+          ),
+          sample<{ at: number } & Record<KickBone, Angles>>(
+            aerial ?? poses,
+            elapsed,
+            (pose) => pose[name][1],
+          ),
+          sample<{ at: number } & Record<KickBone, Angles>>(
+            aerial ?? poses,
+            elapsed,
+            (pose) => pose[name][2],
+          ),
         ),
       );
-      bone.quaternion.slerp(target, aerial ? aerialWeight : weight);
+      bone.quaternion.slerp(target, weight);
+      if (aerial && name === "hips") {
+        blendedYaw.identity().slerp(yaw, smooth(elapsed / 0.16) * weight);
+        bone.quaternion.premultiply(blendedYaw);
+      }
+    }
+    if (aerial) {
+      view.root.position.y += sample(aerial, elapsed, (p) => p.rootY) * weight;
+      const offset = sample(aerial, elapsed, (p) => p.rootZ) * weight;
+      view.root.position.x += Math.sin(strikeAim) * offset;
+      view.root.position.z += Math.cos(strikeAim) * offset;
+      const fit =
+        smooth(elapsed / 0.18) * (1 - smooth((elapsed - 0.2) / 0.18)) * weight;
+      view.root.position.addScaledVector(strikeOffset, fit);
+      avatar.object.updateWorldMatrix(true, true);
+      let minimum = Infinity;
+      for (const [name, hull] of soles) {
+        const bone = hullBones.get(name)!;
+        for (const vertex of hull)
+          minimum = Math.min(
+            minimum,
+            point.copy(vertex).applyMatrix4(bone.matrixWorld).y,
+          );
+      }
+      const settle = smooth(
+        (elapsed - (activeStrike!.kind === "header" ? 0.42 : 0.52)) / 0.07,
+      );
+      if (Number.isFinite(minimum))
+        view.root.position.y +=
+          (floorY + 0.004 - minimum) *
+          (minimum < floorY + 0.004 ? 1 : settle * weight);
+      avatar.object.updateWorldMatrix(true, true);
+      return;
     }
     avatar.object.getWorldPosition(origin);
     avatar.object.updateWorldMatrix(true, true);
     const left = sole(view.sockets.get("foot_L"));
     const right = sole(view.sockets.get("foot_R"));
-    const lift = aerial ? 0 : sample(elapsed, (pose) => pose.lift);
+    const lift = sample(poses, elapsed, (pose) => pose.lift);
     // Use the actual boots so different approved bodies share the same floor.
-    view.root.position.y +=
-      (lift - Math.min(left, right)) * (aerial ? aerialWeight : weight);
+    view.root.position.y += (lift - Math.min(left, right)) * weight;
     avatar.object.updateWorldMatrix(true, true);
   };
 }

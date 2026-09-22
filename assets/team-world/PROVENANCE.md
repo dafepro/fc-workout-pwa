@@ -44,3 +44,10 @@ toe-off, bent-knee shooting-foot landing and return to locomotion. The fitted
 boots determine ground contact. Bounded Hermite curves preserve joint momentum
 through contact without overshooting joint targets. These authoring images are
 not shipped as runtime map or character assets.
+
+## Header and bicycle studies
+
+See [aerial-study-v1/PROVENANCE.md](aerial-study-v1/PROVENANCE.md) for the actual-rig
+reference inputs, generated pose sheet, coaching references and animation workflow.
+These app-authored clips use public Avatar Studio bones; no external animation
+asset or library/platform upgrade was required.

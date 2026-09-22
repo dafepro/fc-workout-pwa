@@ -134,9 +134,69 @@ test("reduced motion omits the shooting pose and recovery", async ({
 });
 
 for (const style of ["header", "bicycle"])
-  test(`${style} placeholder follows the shared jump and ball height`, async ({
+  test(`${style} has anticipation, contact, follow-through and a grounded recovery`, async ({
     page,
   }) => {
+    test.skip(process.env.E2E_CAMPUS_REVIEW !== "1");
+    await page.goto(
+      `http://127.0.0.1:3006/tools/team-world/motion-review.html?strike=${style}`,
+    );
+    await expect(page.locator("#result")).toContainText("ready");
+    const frames = await page.evaluate(async () => {
+      const path = "/tools/team-world/motion-review.ts";
+      const { kickFrame, measurements } = await import(path);
+      for (let i = 0; i < 90; i++) kickFrame(90);
+      const frames = [];
+      for (let i = 0; i <= 86; i++) {
+        kickFrame(i);
+        frames.push(measurements(String(i)));
+      }
+      return frames;
+    });
+    const contact = frames[12],
+      landed = frames[35],
+      end = frames[86];
+    if (style === "header") {
+      expect(frames[4].chestLean).toBeLessThan(-0.15);
+      expect(contact.chestLean).toBeGreaterThan(0.12);
+      expect(frames[18].chestLean).toBeGreaterThan(contact.chestLean);
+    } else {
+      expect(
+        frames[4].joints.foot_L[1] - frames[4].joints.foot_R[1],
+      ).toBeGreaterThan(0.12);
+      expect(
+        contact.joints.foot_R[1] - contact.joints.foot_L[1],
+      ).toBeGreaterThan(0.55);
+      expect(
+        Math.abs(contact.joints.head[1] - contact.joints.hips[1]),
+      ).toBeLessThan(0.35);
+      expect(
+        Math.abs(contact.joints.head[2] - contact.joints.hips[2]),
+      ).toBeGreaterThan(0.45);
+      expect(landed.joints.hips[1]).toBeLessThan(0.65);
+      expect(landed.joints.head[1]).toBeGreaterThan(0.12);
+    }
+    const point = style === "header" ? contact.forehead : contact.boot;
+    const before = style === "header" ? frames[11].forehead : frames[11].boot;
+    const after = style === "header" ? frames[13].forehead : frames[13].boot;
+    expect(
+      (after[0] - before[0]) * 0.7 + (after[2] - before[2]) * 0.6,
+    ).toBeGreaterThan(0);
+    expect(
+      Math.hypot(
+        point[0] - 0.7,
+        point[1] - (style === "header" ? 2.1 : 3),
+        point[2] - 0.6,
+      ),
+    ).toBeLessThan(0.48);
+    expect(Math.min(...frames.map((f) => f.minimumY))).toBeGreaterThan(-0.025);
+    expect(end.joints.head[1]).toBeCloseTo(frames[0].joints.head[1], 2);
+    expect(end.leftSole).toBeCloseTo(0, 2);
+    expect(end.rightSole).toBeCloseTo(0, 2);
+  });
+
+for (const style of ["header", "bicycle"])
+  test(`${style} follows the shared jump and ball height`, async ({ page }) => {
     test.skip(process.env.E2E_CAMPUS_REVIEW !== "1");
     await page.goto(
       `http://127.0.0.1:3006/tools/team-world/motion-review.html?strike=${style}`,
@@ -154,13 +214,81 @@ for (const style of ["header", "bicycle"])
       (pose: { label: string }) => pose.label === "Strike",
     );
     const landing = poses.find(
-      (pose: { label: string }) => pose.label === "Right-foot landing",
+      (pose: { label: string }) => pose.label === "Landing",
     );
     expect(strike.worldY).toBeGreaterThan(style === "header" ? 0.3 : 0.5);
     expect(landing.worldY).toBe(0);
     if (style === "bicycle") expect(strike.rightThigh).toBeLessThan(-1);
     await page.screenshot({
-      path: `outputs/campus/${style}-placeholder.png`,
+      path: `outputs/campus/${style}-animation.png`,
       fullPage: true,
     });
+  });
+
+for (const style of ["header", "bicycle"])
+  for (const [appearance, moving, floor] of [
+    ["burgundy", false, 0],
+    ["saffron", true, 0],
+    ["sage", false, 2],
+  ] as const)
+    test(`${style} connects in shared simulation: ${appearance}, moving=${moving}, floor=${floor}`, async ({
+      page,
+    }) => {
+      test.skip(process.env.E2E_CAMPUS_REVIEW !== "1");
+      await page.goto(
+        `http://127.0.0.1:3006/tools/team-world/motion-review.html?strike=${style}&simulation=1&appearance=${appearance}&moving=${moving ? 1 : 0}&floor=${floor}`,
+      );
+      await expect(page.locator("#result")).toContainText("ready");
+      const frames = await page.evaluate(async () => {
+        const path = "/tools/team-world/motion-review.ts";
+        const { kickFrame, measurements } = await import(path);
+        for (let i = 0; i < 100; i++) kickFrame(100);
+        const result = [];
+        for (let i = 0; i <= 90; i++) {
+          kickFrame(i);
+          result.push(measurements(String(i)));
+        }
+        return result;
+      });
+      const impact = frames[12];
+      expect(impact.strike).toBe(style);
+      const point = style === "header" ? impact.forehead : impact.boot;
+      expect(
+        Math.hypot(
+          point[0] - impact.target.x,
+          point[1] - impact.target.y,
+          point[2] - impact.target.z,
+        ),
+      ).toBeLessThan(0.48);
+      expect(
+        Math.hypot(impact.ballVelocity[0], impact.ballVelocity[2]),
+      ).toBeGreaterThan(4.5);
+      expect(
+        Math.min(...frames.map((f) => f.minimumY)) - floor,
+      ).toBeGreaterThan(-0.025);
+      expect(frames[90].worldY).toBe(floor);
+      if (moving)
+        expect(frames[90].worldZ - frames[0].worldZ).toBeGreaterThan(7);
+    });
+
+for (const style of ["header", "bicycle"])
+  test(`${style} reduced motion preserves the simulation jump without the aerial rotation`, async ({
+    page,
+  }) => {
+    test.skip(process.env.E2E_CAMPUS_REVIEW !== "1");
+    await page.goto(
+      `http://127.0.0.1:3006/tools/team-world/motion-review.html?strike=${style}&simulation=1&reduced=1`,
+    );
+    await expect(page.locator("#result")).toContainText("ready");
+    const contact = await page.evaluate(async () => {
+      const path = "/tools/team-world/motion-review.ts";
+      const { kickFrame, measurements } = await import(path);
+      for (let i = 0; i <= 12; i++) kickFrame(i);
+      return measurements("contact");
+    });
+    expect(contact.worldY).toBeGreaterThan(0.3);
+    expect(contact.joints.head[1] - contact.joints.hips[1]).toBeGreaterThan(
+      0.7,
+    );
+    expect(contact.rightThigh).toBeGreaterThan(-0.8);
   });

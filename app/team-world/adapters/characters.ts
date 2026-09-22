@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { supportAt, top } from "zmap/core";
 import { createKickPose } from "./kick";
 import { createCharacterOcclusion } from "./character-occlusion";
 import {
@@ -184,6 +185,7 @@ export async function loadActionKit(
   }
   let closed = false;
   const toyRadii = new Map<string, number>();
+  let worldMap: WorldMap | undefined;
   const cannonIds = new Set<string>();
   const report = (error: unknown) => {
     if (!closed) {
@@ -496,12 +498,15 @@ export async function loadActionKit(
           }
         }
         avatar.update(time, motion);
+        const support =
+          worldMap && supportAt(worldMap, body.x, body.z, body.y + 0.25);
         poseKick(
           avatar,
-          body.kick ?? 0,
+          body,
           time,
           context.reducedMotion,
-          body.strike,
+          support ? top(support, body.z) : 0,
+          body.strike ? toyRadii.get(body.strike.toy) : undefined,
         );
         root.updateWorldMatrix(true, true);
         cable.visible = false;
@@ -621,6 +626,7 @@ export async function loadActionKit(
     };
   }
   function scenery(_scene: THREE.Scene, map: WorldMap) {
+    worldMap = map;
     for (const object of map.objects ?? [])
       if (object.behavior === "cannon") cannonIds.add(object.id);
     for (const toy of map.toys) toyRadii.set(toy.id, toy.radius);

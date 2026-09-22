@@ -4,8 +4,8 @@
 
 ## What is implemented
 
-`/team-world` lazily loads zmap 0.1.5 and Avatar Studio 0.1.2 from pinned GitHub
-Release tarballs (ZMap 0.1.5 is a development preview). The development Team hub exposes a Team World link after the
+`/team-world` lazily loads zmap 0.1.10 and Avatar Studio 0.1.2 from pinned GitHub
+Release tarballs. The development Team hub exposes a Team World link after the
 existing check-in gate. Production navigation is unchanged during qualification.
 
 The textured team campus includes two pitches, furnished terraces, ramps and a
@@ -60,8 +60,28 @@ At the 0.2-second shared contact tick, the actual ball height and reach select
 a grounded kick, header, bicycle kick, or miss. Airborne attempts commit a real
 0.44 m or 0.69 m jump when pressed, then validate ball position, contact point
 and blockers at impact. The shared strike record supplies the dynamic world-space
-head or boot target to the avatar placeholder. Astra can replace those poses
-without changing shot timing, clearance, jump, scoring or relay state.
+head or boot target to the authored full-body animation. The header loads the
+chest, rises, drives the forehead through contact and absorbs a staggered landing.
+The bicycle turns away from the shot, exchanges the legs, strikes through an
+overhead arc, lands on the back/side and rolls into a crouched get-up. Its boot
+travels in the outgoing ball direction at impact. Header recovery lasts 0.92 s;
+bicycle recovery lasts 1.16 s, while steering and the shared 0.2 s contact remain
+unchanged. Reduced motion retains the physical jump and omits the authored pose.
+
+`adapters/aerial-kick.ts` owns the app-authored key poses. Bounded Hermite curves
+preserve momentum through contact. Contact fitting evaluates the impact pose
+against the shared sphere-centre target, then eases a bounded local offset into
+the animation; it does not chase the swinging foot. Visible rigid skin geometry
+fits the landing to the current supporting surface, including raised terrain.
+The animation uses Avatar Studio's public bones; no package source is copied.
+See [aerial reference provenance](../assets/team-world/aerial-study-v1/PROVENANCE.md).
+
+The local `tools/team-world/motion-review.html` review offers strike selection,
+front/side/rear cameras, slow playback, a frame scrubber and multi-angle contact
+sheets. `?strike=bicycle&simulation=1&moving=1` drives the real shared simulation;
+`appearance=saffron` and `floor=2` exercise different geometry and raised surfaces.
+The motion E2E suite checks both outgoing strike direction and contact distance,
+floor clearance, recovery, moving strikes, reduced motion and the existing instep.
 
 `app/team-world/adapters/` owns the mapping from accepted world actions to avatar
 and cannon presentation and pointer controls. It imports public packages; no
