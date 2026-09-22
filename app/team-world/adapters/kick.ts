@@ -315,9 +315,12 @@ export function createKickPose() {
         )
       : undefined;
     if (aerial && localTarget && (!hasAim || elapsed <= 0.2)) {
-      strikeAim =
+      const nextAim =
         Math.atan2(localTarget.x, localTarget.z) +
         (activeStrike?.kind === "bicycle" ? Math.PI : 0);
+      const from = hasAim ? strikeAim : 0;
+      strikeAim =
+        from + Math.atan2(Math.sin(nextAim - from), Math.cos(nextAim - from));
       hasAim = true;
     }
     yaw.setFromAxisAngle(axis, strikeAim);
@@ -411,7 +414,11 @@ export function createKickPose() {
       );
       bone.quaternion.slerp(target, weight);
       if (aerial && name === "hips") {
-        blendedYaw.identity().slerp(yaw, smooth(elapsed / 0.16) * weight);
+        // Keep the chosen turn direction when the target crosses the ±pi seam.
+        blendedYaw.setFromAxisAngle(
+          axis,
+          strikeAim * smooth(elapsed / 0.16) * weight,
+        );
         bone.quaternion.premultiply(blendedYaw);
       }
     }

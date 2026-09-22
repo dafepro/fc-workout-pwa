@@ -34,6 +34,8 @@ The existing physics timing and jump heights constrain the anticipation.
    the sphere surface; fitting each live swinging foot caused an unwanted vertical
    wobble and was removed. Ease the body turn through anticipation. The bicycle
    faces away from the shot so its boot follows through in the ball's direction.
+   Unwrapped aim angles keep that turn continuous when the target crosses the
+   facing axis; a Chrome regression reproduces the former one-frame reversal.
 4. Polish the landing with actual rigid skin vertices against the map support,
    then blend back into locomotion. Preserve steering and reduced-motion behavior.
 5. Validate actual-rig geometry, outgoing contact direction, floor clearance and

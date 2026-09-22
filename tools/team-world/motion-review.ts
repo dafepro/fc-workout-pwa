@@ -136,7 +136,12 @@ function pose(i: number, kick = 0, speed = 4.6, strikeFrame?: number) {
               kind:
                 style === "header" ? ("header" as const) : ("bicycle" as const),
               target: {
-                x: 0.7,
+                x:
+                  params.get("crossing") === "1"
+                    ? age < 0.1
+                      ? -0.001
+                      : 0.001
+                    : 0.7,
                 y: floorY + (style === "header" ? 2.1 : 3),
                 z: (i / 60) * speed + 0.6,
               },

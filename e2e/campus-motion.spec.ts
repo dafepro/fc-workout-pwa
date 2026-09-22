@@ -133,6 +133,34 @@ test("reduced motion omits the shooting pose and recovery", async ({
   }
 });
 
+test("bicycle turn stays continuous as the ball crosses the facing axis", async ({
+  page,
+}) => {
+  test.skip(process.env.E2E_CAMPUS_REVIEW !== "1");
+  await page.goto(
+    "http://127.0.0.1:3006/tools/team-world/motion-review.html?strike=bicycle&crossing=1",
+  );
+  await expect(page.locator("#result")).toContainText("ready");
+  const heads = await page.evaluate(async () => {
+    const path = "/tools/team-world/motion-review.ts";
+    const { kickFrame, measurements } = await import(path);
+    const positions = [];
+    for (let frame = 0; frame <= 12; frame++) {
+      kickFrame(frame);
+      positions.push(measurements(String(frame)).joints.head);
+    }
+    return positions;
+  });
+  for (let i = 1; i < heads.length; i++)
+    expect(
+      Math.hypot(
+        ...heads[i].map(
+          (value: number, axis: number) => value - heads[i - 1][axis],
+        ),
+      ),
+    ).toBeLessThan(0.35);
+});
+
 for (const style of ["header", "bicycle"])
   test(`${style} has anticipation, contact, follow-through and a grounded recovery`, async ({
     page,
