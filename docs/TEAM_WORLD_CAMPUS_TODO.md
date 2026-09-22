@@ -213,3 +213,25 @@ kick while the shooter continues moving and retains canvas focus.
 CI remains red before gameplay in SwiftShader world entry (tick 0, epoch 2, no
 eligible host; maximum frame 1900 ms, longest task 1319 ms). This is the existing
 software-renderer qualification gap, not a fully green release workflow.
+
+## Contextual aerial strikes — September 22
+
+ZMap 0.1.10 moves strike anticipation, real jump height, contact-time reach,
+header/bicycle selection and miss handling into the reusable shared simulation.
+The strike record and target are replicated, with a capability check so an older
+peer cannot silently use a different ball model. Zoomigo authors only the two
+pitch-ball profiles; other ZMap toys retain their previous kick behavior.
+
+The two pitch balls use a 6.1 m/s shot and 1.0 m/s² rolling resistance. A
+midfield shot was tested through the actual pitch behavior after 5.5 m/s and
+1.3 m/s² proved too short in both deterministic simulation and Chrome. Near
+contact lofts progressively up to 5.8 m/s vertically; farther contact stays
+low. Header and bicycle attempts use a physical 0.44 m or 0.69 m jump and the
+actual ball position at the shared impact tick. The first rig poses are
+placeholders, including reduced-motion handling and a moving target preview.
+
+Follow-up visual work for Astra: replace the header's simple chest/head snap
+and the bicycle's single extended leg with full-body anticipation, contact,
+rotation, and landing keyed to the shared target. Keep the impact tick and
+calculated contact geometry authoritative. Test on a physical phone. The
+existing SwiftShader world-entry failure remains a separate qualification gap.

@@ -496,7 +496,13 @@ export async function loadActionKit(
           }
         }
         avatar.update(time, motion);
-        poseKick(avatar, body.kick ?? 0, time, context.reducedMotion);
+        poseKick(
+          avatar,
+          body.kick ?? 0,
+          time,
+          context.reducedMotion,
+          body.strike,
+        );
         root.updateWorldMatrix(true, true);
         cable.visible = false;
         pulse.visible = false;

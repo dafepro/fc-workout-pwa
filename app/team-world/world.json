@@ -1347,8 +1347,10 @@
       "radius": 0.3,
       "color": "#f4f0df",
       "sleep": "home",
-      "restitution": 0.68,
-      "mass": 0.45
+      "restitution": 0.5,
+      "mass": 0.45,
+      "rollingResistance": 1.0,
+      "strike": { "speed": 6.1, "closeLift": 5.8 }
     },
     {
       "id": "garden-soccer-ball",
@@ -1360,8 +1362,10 @@
       "radius": 0.3,
       "color": "#f4f0df",
       "sleep": "home",
-      "restitution": 0.68,
-      "mass": 0.45
+      "restitution": 0.5,
+      "mass": 0.45,
+      "rollingResistance": 1.0,
+      "strike": { "speed": 6.1, "closeLift": 5.8 }
     }
   ],
   "triggers": [],

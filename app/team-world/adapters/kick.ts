@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { AvatarInstance } from "@zmap/avatar-studio";
+import type { Body } from "zmap/core";
 
 type Angles = readonly [number, number, number];
 type Pose = {
@@ -145,6 +146,42 @@ const bones = Object.keys(poses[0]).filter(
   (name): name is Exclude<keyof Pose, "at" | "lift"> =>
     name !== "at" && name !== "lift",
 );
+type BoneName = (typeof bones)[number];
+const aerialPoses: Record<
+  "header" | "bicycle",
+  Partial<Record<BoneName, Angles>>
+> = {
+  header: {
+    hips: [0.12, 0, 0],
+    chest: [-0.22, 0, 0],
+    head: [-0.42, 0, 0],
+    arm_L: [-1.25, 0, -0.55],
+    arm_R: [-1.25, 0, 0.55],
+    forearm_L: [-0.55, 0, 0],
+    forearm_R: [-0.55, 0, 0],
+    leg_L: [0.34, 0, 0],
+    leg_R: [-0.2, 0, 0],
+    shin_L: [0.7, 0, 0],
+    shin_R: [0.45, 0, 0],
+    foot_L: [-0.25, 0, 0],
+    foot_R: [-0.2, 0, 0],
+  },
+  bicycle: {
+    hips: [-0.5, 0, 0],
+    chest: [-0.72, 0, 0],
+    head: [0.28, 0, 0],
+    arm_L: [-1.15, 0, -0.7],
+    arm_R: [-1.25, 0, 0.7],
+    forearm_L: [-0.45, 0, 0],
+    forearm_R: [-0.45, 0, 0],
+    leg_L: [0.75, 0, 0],
+    leg_R: [-1.65, 0, 0],
+    shin_L: [1, 0, 0],
+    shin_R: [0.22, 0, 0],
+    foot_L: [-0.28, 0, 0],
+    foot_R: [0.32, 0, 0],
+  },
+};
 const smooth = (value: number) => {
   const t = THREE.MathUtils.clamp(value, 0, 1);
   return t * t * (3 - 2 * t);
@@ -189,6 +226,7 @@ export function createKickPose() {
   const origin = new THREE.Vector3(),
     point = new THREE.Vector3();
   let fittedRoot: THREE.Group | undefined;
+  let activeStrike: Body["strike"];
   const soles = new Map<string, THREE.Vector3[]>();
   function sole(bone: THREE.Bone | undefined) {
     let minimum = Infinity;
@@ -206,6 +244,7 @@ export function createKickPose() {
     remaining: number,
     time: number,
     reducedMotion: boolean,
+    strike?: Body["strike"],
   ) => {
     const dt = lastTime === undefined ? 0 : time - lastTime;
     lastTime = time;
@@ -219,8 +258,12 @@ export function createKickPose() {
       );
     }
     previous = remaining;
+    if (remaining > 0 && strike) activeStrike = strike;
     const view = avatar.attachmentView();
-    if (!view || elapsed >= 0.96 || reducedMotion) return;
+    if (!view || elapsed >= 0.96 || reducedMotion) {
+      if (elapsed >= 0.96 || reducedMotion) activeStrike = undefined;
+      return;
+    }
     if (fittedRoot !== view.root) {
       fittedRoot = view.root;
       soles.clear();
@@ -253,25 +296,59 @@ export function createKickPose() {
     }
     const weight =
       smooth(elapsed / 0.11) * (1 - smooth((elapsed - 0.72) / 0.24));
+    const aerial =
+      activeStrike?.kind === "header" || activeStrike?.kind === "bicycle"
+        ? aerialPoses[activeStrike.kind]
+        : undefined;
+    avatar.object.updateWorldMatrix(true, true);
+    const localTarget = activeStrike
+      ? avatar.object.worldToLocal(
+          new THREE.Vector3(
+            activeStrike.target.x,
+            activeStrike.target.y,
+            activeStrike.target.z,
+          ),
+        )
+      : undefined;
+    const aim = localTarget
+      ? THREE.MathUtils.clamp(
+          Math.atan2(localTarget.x, Math.max(0.2, localTarget.z)),
+          -0.5,
+          0.5,
+        )
+      : 0;
+    const rise = localTarget
+      ? THREE.MathUtils.clamp((localTarget.y - 1.7) * 0.16, -0.2, 0.25)
+      : 0;
+    const aerialWeight =
+      weight * smooth(elapsed / 0.18) * (1 - smooth((elapsed - 0.38) / 0.38));
     for (const name of bones) {
       const bone = view.sockets.get(name);
       if (!bone) continue;
+      const selected = aerial?.[name];
       target.setFromEuler(
         euler.set(
-          sample(elapsed, (pose) => pose[name][0]),
-          sample(elapsed, (pose) => pose[name][1]),
-          sample(elapsed, (pose) => pose[name][2]),
+          selected
+            ? selected[0] +
+                (name === "head" ? -rise : name === "leg_R" ? -rise : 0)
+            : sample(elapsed, (pose) => pose[name][0]),
+          selected
+            ? selected[1] +
+                (["hips", "chest", "head"].includes(name) ? aim * 0.5 : 0)
+            : sample(elapsed, (pose) => pose[name][1]),
+          selected ? selected[2] : sample(elapsed, (pose) => pose[name][2]),
         ),
       );
-      bone.quaternion.slerp(target, weight);
+      bone.quaternion.slerp(target, aerial ? aerialWeight : weight);
     }
     avatar.object.getWorldPosition(origin);
     avatar.object.updateWorldMatrix(true, true);
     const left = sole(view.sockets.get("foot_L"));
     const right = sole(view.sockets.get("foot_R"));
-    const lift = sample(elapsed, (pose) => pose.lift);
+    const lift = aerial ? 0 : sample(elapsed, (pose) => pose.lift);
     // Use the actual boots so different approved bodies share the same floor.
-    view.root.position.y += (lift - Math.min(left, right)) * weight;
+    view.root.position.y +=
+      (lift - Math.min(left, right)) * (aerial ? aerialWeight : weight);
     avatar.object.updateWorldMatrix(true, true);
   };
 }

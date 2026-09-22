@@ -37,7 +37,7 @@ test("campus art loads in the real gated world at desktop and phone widths", asy
   await page.getByRole("button", { name: /^Save / }).click();
   expect((await saved).status()).toBe(201);
   const asset = page.waitForResponse((r) =>
-    r.url().endsWith("campus-v1/team-campus.glb"),
+    r.url().endsWith("campus-v2/team-campus.glb"),
   );
   await page.goto("/team-world");
   expect((await asset).status()).toBe(200);

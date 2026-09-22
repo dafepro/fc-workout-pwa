@@ -218,6 +218,14 @@ Kick button triggers on touch/pointer press without taking canvas focus, so a
 second finger can shoot while the first keeps the joystick held. Space also kicks
 while keyboard movement is held.
 
+The two pitch balls now slow and rebound less. A close grounded kick lifts the
+ball; a farther strike keeps it low. If the ball will be high at contact, the
+avatar commits to a real jump and a header or bicycle attempt. Actual ball
+height, reach and blockers at the shared contact moment decide whether it
+connects; an early or late press can miss. Header and bicycle poses are
+temporary rig placeholders driven by the shared ball target. Reduced motion
+omits their visual poses while preserving the same jump and ball outcome.
+
 The current three approved appearances are assigned server-side. Saved modular
 appearance editing and durable decorating are subsequent integration work.
 See [TEAM_WORLD.md](TEAM_WORLD.md) for the implementation and qualification gates.

@@ -53,8 +53,15 @@ function hash() {
   for (const b of bytes) h = (Math.imul(h, 31) + b) | 0;
   return h;
 }
-function pose(i: number, kick = 0, speed = 4.6) {
+function pose(i: number, kick = 0, speed = 4.6, strikeFrame?: number) {
   character.object.position.z = (i / 60) * speed;
+  const style = params.get("strike");
+  const jumpHeight = style === "header" ? 0.44 : style === "bicycle" ? 0.69 : 0;
+  const age = (strikeFrame ?? 0) / 60;
+  character.object.position.y =
+    strikeFrame === undefined || !jumpHeight
+      ? 0
+      : Math.max(0, Math.sqrt(36 * jumpHeight) * age - 9 * age * age);
   camera.position.set(6, 5, 8 + (i / 60) * speed);
   camera.lookAt(0, 1, (i / 60) * speed);
   character.object.rotation.y = 0;
@@ -69,6 +76,21 @@ function pose(i: number, kick = 0, speed = 4.6) {
       facing: character.object.rotation.y,
       gesture: 0,
       kick,
+      ...(strikeFrame === undefined || !jumpHeight
+        ? {}
+        : {
+            strike: {
+              toy: "review-ball",
+              kind:
+                style === "header" ? ("header" as const) : ("bicycle" as const),
+              target: {
+                x: 0.7,
+                y: style === "header" ? 2.1 : 3,
+                z: (i / 60) * speed + 0.6,
+              },
+              jumpHeight,
+            },
+          }),
     },
     i / 60,
     context,
@@ -120,6 +142,7 @@ export function kickFrame(frame: number) {
     ++clock,
     Math.max(0, 0.5 - frame / 60),
     params.get("moving") === "1" ? 5.4 : 0,
+    frame,
   );
   renderAngle(Number(angleControl.value));
 }
@@ -148,6 +171,7 @@ export function measurements(label: string) {
   return {
     label,
     worldZ: character.object.position.z,
+    worldY: character.object.position.y,
     rightThigh: bone("leg_R").rotation.x,
     chestLean: bone("chest").rotation.x,
     leftSole: sole.foot_L,

@@ -132,3 +132,35 @@ test("reduced motion omits the shooting pose and recovery", async ({
     }
   }
 });
+
+for (const style of ["header", "bicycle"])
+  test(`${style} placeholder follows the shared jump and ball height`, async ({
+    page,
+  }) => {
+    test.skip(process.env.E2E_CAMPUS_REVIEW !== "1");
+    await page.goto(
+      `http://127.0.0.1:3006/tools/team-world/motion-review.html?strike=${style}`,
+    );
+    await expect(page.locator("#result")).toContainText("ready", {
+      timeout: 30000,
+    });
+    await page
+      .getByRole("button", { name: "Review kick", exact: true })
+      .click();
+    const { poses } = JSON.parse(
+      (await page.locator("#result").textContent())!,
+    );
+    const strike = poses.find(
+      (pose: { label: string }) => pose.label === "Strike",
+    );
+    const landing = poses.find(
+      (pose: { label: string }) => pose.label === "Right-foot landing",
+    );
+    expect(strike.worldY).toBeGreaterThan(style === "header" ? 0.3 : 0.5);
+    expect(landing.worldY).toBe(0);
+    if (style === "bicycle") expect(strike.rightThigh).toBeLessThan(-1);
+    await page.screenshot({
+      path: `outputs/campus/${style}-placeholder.png`,
+      fullPage: true,
+    });
+  });

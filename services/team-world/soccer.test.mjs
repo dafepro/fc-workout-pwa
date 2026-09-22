@@ -52,6 +52,41 @@ test("a swept goal counts once, holds, dissolves, returns to midfield and rearms
   assert.equal(score.gold, 1);
   assert.equal(score.burgundy, 1);
 });
+
+test("an authored midfield strike can reach the far goal at the slower ball pace", () => {
+  const { state, pitch, ball, score } = setup();
+  const shooter = "midfield-shooter";
+  state.players[shooter] = {
+    x: pitch.position.x - 1.2,
+    y: pitch.position.y,
+    z: pitch.position.z,
+    vx: 0,
+    vy: 0,
+    vz: 0,
+    facing: Math.PI / 2,
+    gesture: 0,
+  };
+  let farthest = ball.x;
+  for (let tick = 0; tick < 360 && score.burgundy === 0; tick++) {
+    stepWorld(
+      map,
+      state,
+      {
+        [shooter]: { x: 0, z: 0, sprint: false, kick: tick === 0, wave: false },
+      },
+      [],
+      [],
+      [],
+      behaviors,
+    );
+    farthest = Math.max(farthest, ball.x);
+  }
+  assert.equal(
+    score.burgundy,
+    1,
+    `midfield shot stopped at x=${farthest.toFixed(2)} before the far goal`,
+  );
+});
 test("high and wide shots never score and every published ball stays inside its pitch", () => {
   const { pitch, ball, score, step } = setup();
   for (const [z, y] of [

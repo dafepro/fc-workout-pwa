@@ -51,6 +51,18 @@ policy remains in `app/team-world/soccer.mjs`, installed identically in both pee
 and the relay. The existing practice ball becomes the main-pitch ball, keeping
 the five-toy budget, with one additional garden-pitch ball.
 
+Both pitch balls use contextual strikes. Their 6.1 m/s grounded shot is slower
+than the previous 8 m/s kick, their bounce is 0.5, and their ground resistance
+is 1.0 m/s² so players can reach a rolling ball while a midfield shot can still
+reach the far goal. Contact within 0.65 m lofts
+the ball (up to 5.8 m/s vertically); by 1.3 m it runs almost along the ground.
+At the 0.2-second shared contact tick, the actual ball height and reach select
+a grounded kick, header, bicycle kick, or miss. Airborne attempts commit a real
+0.44 m or 0.69 m jump when pressed, then validate ball position, contact point
+and blockers at impact. The shared strike record supplies the dynamic world-space
+head or boot target to the avatar placeholder. Astra can replace those poses
+without changing shot timing, clearance, jump, scoring or relay state.
+
 `app/team-world/adapters/` owns the mapping from accepted world actions to avatar
 and cannon presentation and pointer controls. It imports public packages; no
 runtime engine or avatar source is forked. Approved asset provenance is in
