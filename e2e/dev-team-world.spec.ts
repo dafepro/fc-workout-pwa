@@ -102,7 +102,15 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
       .poll(() => peer.simulation?.players[state.session!]?.x)
       .not.toBeUndefined();
     stage = "render-diagnostics";
-    await page.getByText("Render diagnostics", { exact: true }).click();
+    await page.getByText("Dev controls", { exact: true }).click();
+    const gravity = page.getByRole("slider", { name: "Gravity", exact: true });
+    await expect(gravity).toBeEnabled();
+    await expect(gravity).toHaveValue("5.4");
+    await gravity.focus();
+    await page.keyboard.press("ArrowDown");
+    await expect(gravity).toHaveValue("5.3");
+    await page.getByRole("button", { name: "Reset pitch balls" }).click();
+    await expect(gravity).toHaveValue("5.4");
     await expect(
       page.getByRole("button", { name: "Save motion capture", exact: true }),
     ).toBeVisible();
@@ -126,7 +134,7 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
     await page
       .getByRole("button", { name: "Normal rendering", exact: true })
       .click();
-    await page.getByText("Render diagnostics", { exact: true }).click();
+    await page.getByText("Dev controls", { exact: true }).click();
     stage = "shared-kick";
     await page.getByRole("button", { name: "Kick ball", exact: true }).click();
     await expect.poll(() => peerSawKick).toBe(true);
