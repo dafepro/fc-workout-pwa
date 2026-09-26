@@ -1,9 +1,4 @@
-import { expect, request, test } from "@playwright/test";
-
-interface DevAccess {
-  players: { name: string; loginUrl: string }[];
-  pin: string;
-}
+import { expect, test } from "@playwright/test";
 
 test("a qualified player enters the Lounge and sees their own avatar", async ({
   page,
@@ -13,24 +8,16 @@ test("a qualified player enters the Lounge and sees their own avatar", async ({
     "the deployed-dev release gate is opt-in",
   );
 
-  const apiBaseURL = requiredEnvironment("DEV_SMOKE_API_BASE_URL");
-  const gatewayToken = requiredEnvironment("DEV_API_GATEWAY_TOKEN");
   const previewPassword = requiredEnvironment("DEV_ACCESS_PASSWORD");
-  const api = await request.newContext({
-    baseURL: apiBaseURL,
-    extraHTTPHeaders: { "X-Zoomigo-Dev-Gateway": gatewayToken },
-  });
-  const accessResponse = await api.get("/__dev/access");
-  expect(accessResponse.ok()).toBe(true);
-  const access = (await accessResponse.json()) as DevAccess;
-  await api.dispose();
-
-  const player = access.players.find(({ name }) => name.startsWith("Mason"));
-  expect(player, "the release fixture must include Mason").toBeTruthy();
-  await page.goto(player!.loginUrl);
+  await page.goto("/dev-access");
   await page.getByLabel("Password").fill(previewPassword);
   await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByLabel("Four-digit PIN").fill(access.pin);
+  const player = page
+    .locator(".dev-player-list li")
+    .filter({ has: page.getByRole("heading", { name: /^Mason/ }) });
+  await player.getByRole("link").click();
+  await page.locator("form[data-credential-ready='true']").waitFor();
+  await page.getByLabel("Four-digit PIN").fill("1111");
   await page.getByRole("button", { name: "Sign in" }).click();
   await page.locator("html[data-app-ready='true']").waitFor();
   await page.getByRole("link", { name: /Log another activity/i }).click();
@@ -52,7 +39,7 @@ test("a qualified player enters the Lounge and sees their own avatar", async ({
   const qualification = (await qualificationResponse.json()) as { id: string };
 
   try {
-    const teamLoungeLink = page.getByRole("link", { name: /Team lounge/ });
+    const teamLoungeLink = page.getByRole("link", { name: /Go to Team/ });
     await expect(teamLoungeLink).toContainText(
       "Cheer the team or visit the boardwalk.",
     );
@@ -181,9 +168,12 @@ test("a qualified player enters the Lounge and sees their own avatar", async ({
     await page.getByRole("button", { name: "Yes, delete" }).click();
     const cleanupResponse = await cleanupResponsePromise;
     expect(cleanupResponse.status()).toBe(204);
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/me#sessions$/);
   }
 });
+
+// Preview credentials must never appear in retained traces or screenshots.
+test.use({ trace: "off", screenshot: "off", video: "off" });
 
 function requiredEnvironment(name: string) {
   const value = process.env[name]?.trim();
