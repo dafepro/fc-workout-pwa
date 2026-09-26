@@ -24,16 +24,19 @@ type TeamHubAccess struct {
 }
 
 type TeamHubFocus struct {
-	Kind        string `json:"kind"`
-	ID          string `json:"id"`
-	Title       string `json:"title"`
-	Description string `json:"description,omitempty"`
-	MediaID     string `json:"mediaId,omitempty"`
-	Current     int    `json:"current"`
-	Target      int    `json:"target"`
-	Unit        string `json:"unit"`
-	EndsOn      string `json:"endsOn,omitempty"`
-	DueOn       string `json:"dueOn,omitempty"`
+	Kind                 string `json:"kind"`
+	ID                   string `json:"id"`
+	Title                string `json:"title"`
+	Description          string `json:"description,omitempty"`
+	MediaID              string `json:"mediaId,omitempty"`
+	Current              int    `json:"current"`
+	Target               int    `json:"target"`
+	Unit                 string `json:"unit"`
+	EndsOn               string `json:"endsOn,omitempty"`
+	DueOn                string `json:"dueOn,omitempty"`
+	StartsOn             string `json:"startsOn,omitempty"`
+	State                string `json:"state,omitempty"`
+	MinimumRosterPercent int    `json:"minimumRosterPercent,omitempty"`
 }
 
 type TeamHubActivitySummary struct {
@@ -120,11 +123,25 @@ func (store *Store) TeamHub(ctx context.Context, actor domain.Actor, teamID stri
 
 	reward, rewardErr := visibleTeamReward(ctx, database.NewHandle(store.db), teamID, now)
 	if rewardErr == nil {
+		rewardLocation, err := time.LoadLocation(reward.TimeZone)
+		if err != nil {
+			return TeamHubProjection{}, err
+		}
+		today := now.In(rewardLocation).Format(time.DateOnly)
+		state := "current"
+		if reward.Status == "achieved" {
+			state = "achieved"
+		} else if today < reward.StartsOn {
+			state = "upcoming"
+		} else if today > reward.EndsOn {
+			state = "ended"
+		}
 		hub.Focus = append(hub.Focus, TeamHubFocus{
 			Kind: "reward", ID: reward.ID, Title: reward.Title,
 			Description: reward.Description, MediaID: reward.MediaID,
 			Current: reward.Progress.Current, Target: reward.Progress.Target,
 			Unit: "team_days", EndsOn: reward.EndsOn,
+			StartsOn: reward.StartsOn, State: state, MinimumRosterPercent: reward.Rule.MinimumRosterPercent,
 		})
 	} else if !errors.Is(rewardErr, ErrTeamRewardUnavailable) {
 		return TeamHubProjection{}, rewardErr

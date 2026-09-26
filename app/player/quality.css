@@ -1,0 +1,238 @@
+/* Core player surfaces share Today/Team's visual language. Activity and rarity
+   colors remain semantic accents; staff and world rendering keep their themes. */
+.player-shell {
+  --ink: #183f34;
+  --muted: #52645c;
+  --canvas: #f7f7f2;
+  --line: #dfe4dc;
+  --shadow: 0 8px 24px rgb(25 50 42 / 5%);
+  color: var(--ink);
+}
+.player-shell .page:not(.player-page) {
+  width: min(100%, 48rem);
+  padding: 1rem max(1rem, env(safe-area-inset-left)) 2rem;
+  margin: 0 auto;
+}
+.player-shell .card,
+.player-shell .intensity-card,
+.player-shell .when-details {
+  border: 1px solid var(--line);
+  border-radius: 1.2rem;
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+.player-shell :is(.page-header, .profile-hero, .prize-header) h1 {
+  color: var(--ink);
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  line-height: 1.2;
+}
+.player-shell
+  :is(
+    .button,
+    .text-button,
+    summary,
+    .prize-back,
+    .avatar-studio__back,
+    .history-load-more,
+    .player-status-row__info
+  ) {
+  min-height: 44px;
+}
+.player-shell :is(.button, .avatar-studio__back, .prize-back) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.player-shell .button--outline {
+  color: var(--ink);
+  border-color: #a4b6ac;
+  background: #fff;
+}
+.player-shell .button--lime {
+  color: #183f34;
+  background: var(--lime);
+  border-color: #a9cd2e;
+  box-shadow: none;
+}
+.player-shell .text-button,
+.player-shell .section-heading a {
+  color: #245c47;
+}
+.player-shell button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.player-shell :is(a, button, input, select, summary):focus-visible {
+  outline: 3px solid #26735a;
+  outline-offset: 3px;
+}
+.player-shell :is(input, button, a, summary) {
+  scroll-margin-block: 5rem 8rem;
+}
+.player-shell .profile-hero {
+  flex-wrap: wrap;
+  padding-block: 0.5rem;
+}
+.player-shell .profile-hero > .button {
+  flex-basis: 100%;
+}
+.player-shell .account-details {
+  margin-top: 1rem;
+  padding: 1rem;
+}
+.player-shell summary {
+  cursor: pointer;
+  padding-block: 0.7rem;
+  font-weight: 700;
+}
+.player-shell .history-load-more {
+  width: auto;
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+}
+.player-shell .player-status-row__info {
+  min-width: 44px;
+  flex-shrink: 0;
+}
+.player-shell .intensity-value {
+  margin: 0.25rem 0 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.player-shell .log-safety-note {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.player-shell .prize-header,
+.player-shell .prize-daily {
+  background: #edf3e9;
+  color: var(--ink);
+  border-color: var(--line);
+}
+.player-shell .prize-header__copy > p:last-child {
+  color: var(--muted);
+}
+.player-shell .avatar-builder__categories button {
+  min-height: 44px;
+}
+.player-shell .avatar-builder__categories button.is-active {
+  background: #e4efdf;
+  color: var(--ink);
+  border-color: #8aa57d;
+}
+.player-shell .avatar-palette button {
+  min-width: 44px;
+  min-height: 44px;
+}
+.player-shell .momentum-weekly {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  background: #edf3e9;
+}
+.player-shell .momentum-weekly strong {
+  font-size: 1.25rem;
+}
+.player-shell .momentum-weekly p,
+.player-shell .momentum-explanation > p {
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.pwa-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #fff1c9;
+  color: #553d09;
+  font-size: 0.9rem;
+}
+.player-shell .install-help p {
+  max-width: 60ch;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.player-shell .avatar-selected-name {
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+}
+.player-shell .avatar-studio__back {
+  width: auto;
+  padding-inline: 0.5rem;
+  white-space: nowrap;
+}
+.player-shell .prize-back,
+.player-shell .prize-header .eyebrow--lime {
+  color: #245c47;
+}
+.player-shell .prize-collection-tabs {
+  background: #e4efdf;
+}
+.player-shell .prize-collection-filters button {
+  border-color: var(--line);
+}
+.player-shell .prize-collection-filters button[aria-pressed="true"] {
+  color: #fff;
+  background: #245c47;
+  border-color: #245c47;
+}
+.player-shell :is(.prize-help, .workout-instructions__toggle) {
+  min-width: 44px;
+  min-height: 44px;
+}
+.player-shell .profile-hero {
+  background: #edf3e9;
+}
+.player-shell .field-card {
+  border-color: var(--line);
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+.player-shell .page-header__icon {
+  color: #245c47;
+  background: #edf3e9;
+}
+.player-shell .selected-activity__chevron,
+.player-shell .when-details summary > span:last-child {
+  color: #245c47;
+}
+.player-shell .avatar-builder__preview {
+  background: #edf3e9;
+}
+.player-shell .avatar-builder__categories {
+  background: #f1f4ee;
+}
+.player-shell .selected-instructions {
+  padding-inline: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: #fff;
+  font-size: 0.9rem;
+}
+.player-shell .selected-instructions li {
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+.player-shell .team-lounge__chat-pack-options [data-prize-preview] {
+  outline: 2px solid #26735a;
+}
+@media (max-width: 360px) {
+  .player-shell .player-status-row {
+    gap: 0.3rem;
+  }
+  .player-shell .player-status-row__summary {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}

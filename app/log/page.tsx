@@ -7,6 +7,7 @@ import { WorkoutSelect } from "../components/WorkoutSelect";
 import { WorkoutOutcomeChoices } from "../components/WorkoutOutcomeChoices";
 import { IntensityControls } from "../components/IntensityScale";
 import { copy } from "../content/copy";
+import { qualityCopy } from "../content/quality-copy";
 import {
   isBackdateAllowed,
   plannedActivityTarget,
@@ -114,8 +115,7 @@ export default function LogPage() {
     : (activities.find(
         (item) => item.id === requestedPlanBlock?.activityDefinitionId,
       ) ??
-      activities.find((item) => item.id === assignment?.activityDefinitionId) ??
-      activities[0]);
+      activities.find((item) => item.id === assignment?.activityDefinitionId));
   const recommendedActivityId =
     requestedPlanBlock?.activityDefinitionId ??
     assignment?.activityDefinitionId;
@@ -284,7 +284,7 @@ export default function LogPage() {
         <WorkoutSelect
           label="Workout"
           selectedKey={activityId}
-          placeholder={additionalMode ? copy.log.chooseActivity : undefined}
+          placeholder={copy.log.chooseActivity}
           onSelect={(key) => chooseActivity(key as ActivityId)}
           choices={activities.map((activity) => ({
             key: activity.id,
@@ -297,6 +297,31 @@ export default function LogPage() {
         />
         {selectedActivity ? (
           <>
+            {selectedActivity.instructions ? (
+              <details className="selected-instructions">
+                <summary>{qualityCopy.howTo(selectedActivity.name)}</summary>
+                <ol>
+                  {selectedActivity.instructions.map((instruction) => (
+                    <li key={instruction}>{instruction}</li>
+                  ))}
+                </ol>
+              </details>
+            ) : null}
+            <p className="log-safety-note">
+              {requestedPlanBlock ||
+              assignment?.activityDefinitionId === activityId
+                ? qualityCopy.target(
+                    requestedPlanBlock
+                      ? plannedActivityTarget(
+                          selectedActivity,
+                          requestedPlanBlock,
+                        )
+                      : assignment?.targetValue,
+                    selectedActivity.unit,
+                  )
+                : ""}
+              {qualityCopy.actualAmount}
+            </p>
             <ActivitySpecificFields
               activityId={selectedActivity.id}
               value={value}
@@ -331,35 +356,6 @@ export default function LogPage() {
             ) : null}
           </>
         ) : null}
-        {message ? (
-          <div
-            ref={errorRef}
-            tabIndex={-1}
-            className="notice notice--error"
-            role="alert"
-          >
-            <strong>{message}</strong>
-          </div>
-        ) : null}
-        <button
-          className="button button--lime button--wide"
-          type="submit"
-          disabled={saving || !clock.ready || !selectedActivity}
-        >
-          {saving
-            ? "Saving…"
-            : message
-              ? copy.recovery.retrySave
-              : selectedActivity && additionalMode
-                ? copy.log.saveActivity(
-                    value,
-                    selectedActivity.unit,
-                    selectedActivity.name,
-                  )
-                : selectedActivity
-                  ? "Save"
-                  : copy.log.chooseBeforeSaving}
-        </button>
         <details className="when-details">
           <summary>
             <span aria-hidden="true">◷</span>
@@ -395,6 +391,36 @@ export default function LogPage() {
             </label>
           </div>
         </details>
+        {message ? (
+          <div
+            ref={errorRef}
+            tabIndex={-1}
+            className="notice notice--error"
+            role="alert"
+          >
+            <strong>{message}</strong>
+          </div>
+        ) : null}
+        <button
+          className="button button--lime button--wide"
+          type="submit"
+          disabled={saving || !clock.ready || !selectedActivity}
+        >
+          {saving
+            ? "Saving…"
+            : message
+              ? copy.recovery.retrySave
+              : selectedActivity && additionalMode
+                ? copy.log.saveActivity(
+                    value,
+                    selectedActivity.unit,
+                    selectedActivity.name,
+                  )
+                : selectedActivity
+                  ? "Save"
+                  : copy.log.chooseBeforeSaving}
+        </button>
+
         {draft ? (
           <div className="draft-actions">
             <p>{copy.recovery.draftKept}</p>

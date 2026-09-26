@@ -17,13 +17,16 @@ import { PrizeCollection } from "./PrizeCollection";
 import { PrizeDialog } from "./PrizeDialog";
 import { PrizeItemArt } from "./PrizeItemArt";
 import { PrizeRarityBadge } from "./PrizeRarityBadge";
+import type { CollectionFilter } from "./navigation";
 
 type LoadStatus = "loading" | "ready" | "error";
 
 export function PrizeBoxesExperience({
   gateway,
+  initialFilter,
 }: {
   gateway: PrizeBoxGateway;
+  initialFilter?: CollectionFilter;
 }) {
   const [overview, setOverview] = useState<PrizeBoxOverview | null>(null);
   const [overviewStatus, setOverviewStatus] = useState<LoadStatus>("loading");
@@ -229,6 +232,7 @@ export function PrizeBoxesExperience({
         onOpen={(box) => void openBox(box)}
       />
       <PrizeCollection
+        initialFilter={initialFilter}
         inventory={inventory}
         status={inventoryStatus}
         onRetry={() => void loadInventory()}

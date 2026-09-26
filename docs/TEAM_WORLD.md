@@ -30,6 +30,9 @@ solid furniture envelopes used by the client and relay. The campus preserves the
 field tools, click/tap paths, joystick, keyboard movement, sprint, emotes and
 draw/stow. The three reviewed example appearances are selected server-side by a
 stable player-ID hash. This is not yet a saved modular appearance editor.
+The entry screen shows the saved portrait and explains the separate 3D outfit.
+The portrait editor states the same boundary; see the
+[representation decision](PWA_EXPERIENCE.md#rewards-and-identity).
 
 See [campus ownership and follow-ups](TEAM_WORLD_CAMPUS_TODO.md) for the current
 package split, map extent, remaining view/navigation design work and rollout

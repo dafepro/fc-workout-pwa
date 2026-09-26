@@ -8,7 +8,14 @@ export const copy = {
     me: "Me",
   },
   saveSuccess: "Training saved",
+  participation: {
+    workout: "Record a workout",
+    workoutDetail: "Record a completed workout today to join your team.",
+    rest: "Check in for planned rest",
+    restDetail: "Check in for today’s planned rest to join your team.",
+  },
   recovery: {
+    historyLoading: "Loading your private sessions…",
     saveUnconfirmed:
       "We couldn’t confirm your save. Your answers are still here. Retry the same entry to check and finish saving it.",
     offlineSave:
@@ -61,11 +68,11 @@ export const copy = {
   },
   today: {
     moreForToday: "Other things you can do",
-    teamLounge: "Team lounge",
+    teamLounge: "Go to Team",
     teamLoungeDetail: "Cheer the team or visit the boardwalk.",
-    teamLoungeLocked: "Complete today’s plan to enter.",
+    teamLoungeLocked: "Record a completed workout today to join your team.",
     logAnother: "Log another activity",
-    logAnotherDetail: "Record something outside the planned workout.",
+    logAnotherDetail: "Record an activity of your choice.",
     teamWorkout: "Team workout",
     teamWorkoutDetail: (
       activityName: string,
@@ -405,6 +412,8 @@ export const copy = {
   avatar: {
     title: "Avatar",
     open: "Customize avatar",
+    applicability:
+      "Your profile and Team Lounge portrait. Team World uses a separate 3D outfit.",
     back: "Back to profile",
     preview: "Avatar preview",
     save: "Save",

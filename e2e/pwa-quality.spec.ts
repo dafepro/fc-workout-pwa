@@ -1,5 +1,8 @@
 import { expect, request, test } from "@playwright/test";
 import { openReadyPage } from "./app-ready";
+import { mkdir } from "node:fs/promises";
+
+test.use({ serviceWorkers: "block" });
 
 test.beforeEach(async () => {
   const api = await request.newContext({
@@ -12,6 +15,71 @@ test.beforeEach(async () => {
   });
   expect(reset.status()).toBe(204);
   await api.dispose();
+});
+
+test("core screens remain usable at narrow, phone and desktop widths", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await openReadyPage(page, "/");
+  await mkdir("outputs/ux-review/after", { recursive: true });
+  for (const width of [320, 390, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const path of [
+      "/",
+      "/log",
+      "/team",
+      "/me",
+      "/progress",
+      "/prizes",
+      "/me/avatar",
+    ]) {
+      await page.goto(path);
+      await expect(page.locator("html[data-app-ready='true']")).toBeVisible();
+      await expect(page.locator("h1").first()).toBeVisible();
+      if (path === "/prizes")
+        await expect(
+          page.getByRole("heading", { name: "Your collection" }),
+        ).toBeVisible();
+      if (path === "/me/avatar")
+        await expect(page.getByRole("radio").first()).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
+      await expect
+        .poll(() =>
+          page.evaluate(
+            () => document.documentElement.scrollWidth <= window.innerWidth,
+          ),
+        )
+        .toBe(true);
+      await page.screenshot({
+        path: `outputs/ux-review/after/${path.replaceAll("/", "-") || "today"}-${width}.png`,
+        fullPage: true,
+      });
+    }
+  }
+  await page.setViewportSize({ width: 320, height: 700 });
+  await page.goto("/log");
+  const trigger = page.getByRole("button", { name: /^Selected workout:/ });
+  await trigger.click();
+  const choice = page.getByRole("radio").first();
+  await choice.focus();
+  await choice.press("Space");
+  await expect(trigger).toBeFocused();
+  expect(
+    await page.getByRole("button", { name: /^Save/ }).evaluate((button) => {
+      const date = document.querySelector(".when-details");
+      return (
+        !!date &&
+        !!(
+          date.compareDocumentPosition(button) &
+          Node.DOCUMENT_POSITION_FOLLOWING
+        )
+      );
+    }),
+  ).toBe(true);
+  expect(errors).toEqual([]);
 });
 
 test("lost save response retries one accepted entry and returns to its history", async ({

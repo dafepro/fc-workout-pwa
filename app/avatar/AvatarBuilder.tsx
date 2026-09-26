@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { copy } from "../content/copy";
+import { qualityCopy } from "../content/quality-copy";
 import { usePlayerDraft } from "../state/player-drafts";
 import { AvatarArt, AvatarPartArt } from "./AvatarArt";
 import { AVATAR_CATEGORIES, AVATAR_LAYERS } from "./catalog";
@@ -26,11 +27,13 @@ export function AvatarBuilder({
   unlockedOptionIDs = EMPTY_UNLOCKS,
   onSave,
   draftKey,
+  itemIntent,
 }: {
   config: AvatarConfiguration;
   unlockedOptionIDs?: ReadonlySet<string>;
   onSave(config: AvatarConfiguration): Promise<void>;
   draftKey?: string;
+  itemIntent?: { slot: string; assetId: string; label: string };
 }) {
   const persisted = usePlayerDraft(
     draftKey ?? "unused-avatar-preview",
@@ -44,6 +47,7 @@ export function AvatarBuilder({
     <AvatarBuilderEditor
       key={configurationKey(startingConfig)}
       startingConfig={startingConfig}
+      itemIntent={itemIntent}
       initialDraft={
         persisted.value ? normalizeAvatar(persisted.value) : startingConfig
       }
@@ -67,6 +71,7 @@ function AvatarBuilderEditor({
   initialDraft,
   onDraftChange,
   onDiscard,
+  itemIntent,
 }: {
   startingConfig: AvatarConfiguration;
   unlockedOptionIDs: ReadonlySet<string>;
@@ -74,10 +79,15 @@ function AvatarBuilderEditor({
   initialDraft: AvatarConfiguration;
   onDraftChange(config: AvatarConfiguration): void;
   onDiscard(): void;
+  itemIntent?: { slot: string; assetId: string; label: string };
 }) {
   const [draft, setDraft] = useState<AvatarConfiguration>(initialDraft);
-  const [activeCategory, setActiveCategory] =
-    useState<AvatarCategoryKind>("head");
+  const [activeCategory, setActiveCategory] = useState<AvatarCategoryKind>(
+    () =>
+      AVATAR_CATEGORIES.find((category) =>
+        category.layerKinds.some((kind) => kind === itemIntent?.slot),
+      )?.id ?? "head",
+  );
   const [status, setStatus] = useState<SaveStatus>("idle");
   const category = AVATAR_CATEGORIES.find(({ id }) => id === activeCategory)!;
   const dirty = configurationKey(draft) !== configurationKey(startingConfig);
@@ -108,7 +118,20 @@ function AvatarBuilderEditor({
     >
       <div className="avatar-builder__intro">
         <h1 id="avatar-builder-title">{copy.avatar.title}</h1>
+        <p>{copy.avatar.applicability}</p>
       </div>
+      {itemIntent ? (
+        <div className="notice">
+          <p>{qualityCopy.prizePreview(itemIntent.label)}</p>
+          <button
+            type="button"
+            className="button button--outline"
+            onClick={() => update(itemIntent.slot, itemIntent.assetId)}
+          >
+            {qualityCopy.preview(itemIntent.label)}
+          </button>
+        </div>
+      ) : null}
 
       <div
         className="avatar-builder__preview"
@@ -216,6 +239,10 @@ function LayerPicker({
   return (
     <fieldset className="avatar-builder__sublayer">
       <legend className={showLegend ? "" : "sr-only"}>{layer.legend}</legend>
+      <p className="avatar-selected-name">
+        {layer.legend}:{" "}
+        {layer.options.find((option) => option.id === draft[layer.kind])?.label}
+      </p>
       {layer.paletteKey ? (
         <LayerPaletteControl
           paletteKey={layer.paletteKey}

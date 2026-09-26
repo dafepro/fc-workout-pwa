@@ -9,6 +9,12 @@ plan if necessary, and remove it from this file when completed or rejected.
 
 ## Product and content
 
+Unified portrait/3D customization activates when reviewed part mappings,
+fallbacks for animal portraits and item applicability are ready. Preserve saved
+portraits and owned inventory; keep persistence and equip policy in ZoomiGo.
+Until then, both interfaces explicitly distinguish portrait from field outfit
+as described in [PWA_EXPERIENCE.md](PWA_EXPERIENCE.md).
+
 | Idea                                                                | Activation trigger                                                                       | Constraints to preserve                                                                                                                              |
 | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Approved Zoomi/Rover hero, loading, and celebration art             | Reviewed assets and visual direction arrive                                              | Keep player cosmetics separate from branded mascot identity; no temporary or unapproved mascot art                                                   |

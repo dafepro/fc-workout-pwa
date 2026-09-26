@@ -9,11 +9,15 @@ import { momentumProgress } from "./momentum-progress";
 type MomentumStatusProps = {
   momentumScore: number;
   checkInStreak: number;
+  weeklyCheckIns?: number;
+  weeklyGoal?: number;
 };
 
 export function MomentumStatus({
   momentumScore,
   checkInStreak,
+  weeklyCheckIns,
+  weeklyGoal,
 }: MomentumStatusProps) {
   const [showExplanation, setShowExplanation] = useState(false);
   const auth = useOptionalAuth();
@@ -50,8 +54,14 @@ export function MomentumStatus({
             <span aria-hidden="true" />
           </span>
           <span className="player-status-row__metric">
-            <small>Momentum</small>
-            <strong>{progress.score}</strong>
+            <small>
+              {weeklyCheckIns === undefined ? "Momentum" : "This week"}
+            </small>
+            <strong>
+              {weeklyCheckIns === undefined
+                ? progress.score
+                : `${weeklyCheckIns} of ${weeklyGoal ?? 3} days`}
+            </strong>
           </span>
           <span className="player-status-row__streak">
             <span aria-hidden="true">🔥</span>

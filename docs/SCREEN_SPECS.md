@@ -37,11 +37,11 @@ inventory.
 
 ## Record training (`/log` and `/log/additional`)
 
-The default activity comes from the current server projection. Players can pick
-another approved activity from the bounded catalog.
+An assigned or linked plan activity comes from the current server projection.
+Without one, the player chooses from the approved bounded catalog.
 
 Activity-specific values are repetitions, duration, or distance with
-server-owned units and ranges. Shared controls are team-local date/time, effort,
+server-owned units and ranges. Shared controls are device-local date/time, effort,
 exhaustion, and a predefined completion outcome. There is no notes field.
 
 Saving waits for server acceptance, updates the relevant Today/Team projection,
@@ -49,6 +49,9 @@ and opens a clear success state. Additional training is available separately so
 it cannot masquerade as completion of a prescribed block. Entry detail lives at
 `/sessions/[id]`; an owner may delete there while the 24-hour window remains
 open.
+
+Recovery, navigation, reward handoffs and installed-app behavior follow
+[PWA_EXPERIENCE.md](PWA_EXPERIENCE.md).
 
 ## Team (`/team`)
 

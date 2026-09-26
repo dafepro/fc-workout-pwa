@@ -11,12 +11,14 @@ export function TeammateActivity({
   unlocked,
   contextLabel,
   onCheer,
+  lockedDetail = copy.teamHub.lockedDetail,
 }: {
   activeThisWeek: number;
   activity: TeamHubActivity[];
   unlocked: boolean;
   contextLabel: (row: TeamHubActivity) => string;
   onCheer: (row: TeamHubActivity) => void;
+  lockedDetail?: string;
 }) {
   const [expanded, setExpanded] = useState(false);
   const visible = activity.slice(0, expanded ? 5 : 3);
@@ -42,7 +44,7 @@ export function TeammateActivity({
           <span aria-hidden="true">◆</span>
           <div>
             <strong>{copy.teamHub.lockedTitle}</strong>
-            <p>{copy.teamHub.lockedDetail}</p>
+            <p>{lockedDetail}</p>
           </div>
         </div>
       ) : visible.length === 0 ? (

@@ -219,6 +219,7 @@ test("connected Today and activity logging use the server assignment", async ({
   await expect(
     page.getByRole("heading", { name: "Your momentum" }),
   ).toBeVisible();
+  await page.getByText("How Momentum works", { exact: true }).click();
   await expect(
     page.getByRole("progressbar", {
       name: `Momentum: ${serverSummary.momentumScore} out of 100`,

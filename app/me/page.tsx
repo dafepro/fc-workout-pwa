@@ -1,6 +1,8 @@
 "use client";
+import { qualityCopy } from "../content/quality-copy";
 
 import Link from "next/link";
+import { InstallHelp } from "../player/PwaStatus";
 import { PlayerAvatar } from "../components/PlayerAvatar";
 import { SessionList } from "../components/SessionList";
 import { TransientQueryToast } from "../components/TransientQueryToast";
@@ -61,16 +63,22 @@ export default function MePage() {
         >
           {copy.avatar.open}
         </Link>
-        {connected ? (
-          <button
-            className="button button--outline"
-            type="button"
-            onClick={() => void signOut()}
-          >
-            Sign out
-          </button>
-        ) : null}
       </header>
+      {entriesStatus === "loading" ? (
+        <p role="status">{copy.recovery.historyLoading}</p>
+      ) : null}
+      {entriesStatus === "error" ? (
+        <LoadError
+          message={copy.recovery.historyFailed}
+          onRetry={() => void refreshEntries()}
+        />
+      ) : null}
+      {entriesStatus === "ready" || personalEntries.length > 0 ? (
+        <SessionList
+          entries={personalEntries}
+          activities={dashboard?.activities ?? []}
+        />
+      ) : null}
       <section
         className="card reaction-inbox"
         aria-labelledby="reaction-inbox-title"
@@ -139,51 +147,20 @@ export default function MePage() {
           </button>
         ) : null}
       </section>
-      <section className="profile-grid">
-        <article className="card profile-action">
-          <span aria-hidden="true">▦</span>
-          <div>
-            <h2>Session history</h2>
-            <p>
-              {entriesStatus === "loading"
-                ? "Loading your private sessions…"
-                : entriesStatus === "error"
-                  ? "Sessions unavailable"
-                  : `${personalEntries.length} private saved sessions`}
-            </p>
-          </div>
-        </article>
-        <article className="card profile-action">
-          <span aria-hidden="true">↗</span>
-          <div>
-            <h2>Assessment history</h2>
-            <p>Private to you and authorized coaches</p>
-          </div>
-          <span className="pill">Coming later</span>
-        </article>
-        <article className="card profile-action">
-          <span aria-hidden="true">◇</span>
-          <div>
-            <h2>QR + PIN security</h2>
-            <p>
-              {connected ? "Connected to your player login" : "Prototype mode"}
-            </p>
-          </div>
-          <span className="pill">{connected ? "Connected" : "Prototype"}</span>
-        </article>
-      </section>
-      {entriesStatus === "error" ? (
-        <LoadError
-          message={copy.recovery.historyFailed}
-          onRetry={() => void refreshEntries()}
-        />
-      ) : null}
-      {entriesStatus === "ready" || personalEntries.length > 0 ? (
-        <SessionList
-          entries={personalEntries}
-          activities={dashboard?.activities ?? []}
-        />
-      ) : null}
+      <details className="card account-details">
+        <summary>{qualityCopy.account}</summary>
+        <p>{qualityCopy.accountHelp}</p>
+        <InstallHelp />
+        {connected ? (
+          <button
+            className="button button--outline"
+            type="button"
+            onClick={() => void signOut()}
+          >
+            Sign out
+          </button>
+        ) : null}
+      </details>
     </div>
   );
 }

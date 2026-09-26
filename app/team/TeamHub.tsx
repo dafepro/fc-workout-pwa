@@ -1,5 +1,11 @@
 import Image from "next/image";
+import Link from "next/link";
+import {
+  participationAction,
+  type ParticipationAction,
+} from "../player/participation-action";
 import { copy } from "../content/copy";
+import { qualityCopy } from "../content/quality-copy";
 import type { TeamHubActivity, TeamHubProjection } from "../domain/types";
 import { TeamWeekFocus } from "./TeamWeekFocus";
 import { TeammateActivity } from "./TeammateActivity";
@@ -8,10 +14,12 @@ export function TeamHub({
   hub,
   onCheer,
   onOpenLounge,
+  checkIn = participationAction(null),
 }: {
   hub: TeamHubProjection;
   onCheer: (row: TeamHubActivity) => void;
   onOpenLounge: () => void;
+  checkIn?: ParticipationAction;
 }) {
   const labelByAssignment = new Map(
     hub.focus
@@ -42,8 +50,27 @@ export function TeamHub({
           <span>{copy.teamHub.loungeShortcut}</span>
         </button>
       </header>
-      <TeamWeekFocus focus={hub.focus} />
+      <TeamWeekFocus
+        focus={hub.focus.filter(
+          (item) => item.state !== "ended" && item.state !== "achieved",
+        )}
+        weekStart={hub.team.weekStart}
+        weekEnd={hub.team.weekEnd}
+      />
+      {hub.focus.some(
+        (item) => item.state === "ended" || item.state === "achieved",
+      ) ? (
+        <details className="card">
+          <summary>{qualityCopy.pastRewards}</summary>
+          <TeamWeekFocus
+            focus={hub.focus.filter(
+              (item) => item.state === "ended" || item.state === "achieved",
+            )}
+          />
+        </details>
+      ) : null}
       <TeammateActivity
+        lockedDetail={checkIn.detail}
         activeThisWeek={hub.activitySummary.activeThisWeek}
         activity={hub.activity}
         unlocked={hub.access.activityUnlocked}
@@ -67,17 +94,26 @@ export function TeamHub({
           <p>
             {hub.access.loungeUnlocked
               ? copy.teamHub.loungeDetail
-              : copy.teamHub.loungeLocked}
+              : checkIn.detail}
           </p>
-          <button
-            type="button"
-            className="button button--lime team-lounge-preview__action"
-            data-team-lounge-open
-            disabled={!hub.access.loungeUnlocked}
-            onClick={onOpenLounge}
-          >
-            {copy.teamHub.openLounge}
-          </button>
+          {hub.access.loungeUnlocked ? (
+            <button
+              type="button"
+              className="button button--lime team-lounge-preview__action"
+              data-team-lounge-open
+              disabled={!hub.access.loungeUnlocked}
+              onClick={onOpenLounge}
+            >
+              {copy.teamHub.openLounge}
+            </button>
+          ) : (
+            <Link
+              className="button button--lime team-lounge-preview__action"
+              href={checkIn.href}
+            >
+              {checkIn.label}
+            </Link>
+          )}
         </div>
       </section>
     </>

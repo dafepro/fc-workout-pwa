@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
 
 import { WorkoutInstructions } from "./WorkoutInstructions";
 
@@ -49,17 +49,21 @@ export function WorkoutSelect({
   placeholder?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const optionsId = useId();
   const selected = choices.find((choice) => choice.key === selectedKey);
   if (!selected && !placeholder) return null;
 
   function choose(key: string) {
     onSelect(key);
     setOpen(false);
+    trigger.current?.focus();
   }
 
   return (
     <>
       <button
+        ref={trigger}
         type="button"
         className={`selected-activity selected-activity--${selected ? (selected.accent ?? selected.key) : "unselected"} ${open ? "is-open" : ""}`}
         aria-label={
@@ -68,7 +72,7 @@ export function WorkoutSelect({
             : placeholder
         }
         aria-expanded={open}
-        aria-controls="activity-options"
+        aria-controls={optionsId}
         onClick={() => setOpen((visible) => !visible)}
       >
         <span className="selected-activity__icon" aria-hidden="true">
@@ -84,7 +88,16 @@ export function WorkoutSelect({
         </span>
       </button>
       {open ? (
-        <div id="activity-options" className="activity-options">
+        <div
+          id={optionsId}
+          className="activity-options"
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              setOpen(false);
+              trigger.current?.focus();
+            }
+          }}
+        >
           <fieldset className="activity-picker">
             <legend className="sr-only">{label}</legend>
             <div

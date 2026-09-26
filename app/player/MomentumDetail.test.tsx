@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { MomentumDetail } from "./MomentumDetail";
 
@@ -19,6 +19,8 @@ describe("MomentumDetail", () => {
     );
 
     expect(screen.getByRole("heading", { name: "On a roll" })).toBeVisible();
+    expect(screen.getByText("2 of 3 check-ins this week")).toBeVisible();
+    fireEvent.click(screen.getByText("How Momentum works"));
     expect(
       screen.getByRole("progressbar", { name: "Momentum: 68.5 out of 100" }),
     ).toHaveAttribute("aria-valuenow", "68.5");

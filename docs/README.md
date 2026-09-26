@@ -25,6 +25,8 @@ rules into a maintained document, move unfinished trigger-based ideas to
 - [UX_AND_SAFETY_RULES.md](UX_AND_SAFETY_RULES.md) — non-negotiable youth-safety
   and visibility rules
 - [SCREEN_SPECS.md](SCREEN_SPECS.md) — current player and staff surfaces
+- [PWA_EXPERIENCE.md](PWA_EXPERIENCE.md) — recovery, navigation, reward handoffs,
+  identity applicability, theme and installed-app behavior
 - [DOMAIN_MODEL.md](DOMAIN_MODEL.md) — maintained conceptual model and authority
   boundaries
 - [OPEN_DECISIONS.md](OPEN_DECISIONS.md) — unresolved owner decisions only

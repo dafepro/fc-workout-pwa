@@ -9,6 +9,7 @@ import { MomentumStatus } from "./player/MomentumStatus";
 import { TodayAdditionalAction } from "./player/TodayAdditionalAction";
 import { TodayPrimaryAction } from "./player/TodayPrimaryAction";
 import { PlanWeekStrip } from "./player/PlanWeekStrip";
+import { participationAction } from "./player/participation-action";
 
 export default function HomePage() {
   const { runtime } = useAuth();
@@ -114,6 +115,8 @@ export default function HomePage() {
         </section>
       ) : null}
       <MomentumStatus
+        weeklyCheckIns={dashboard?.summary.weeklyMomentumCredits}
+        weeklyGoal={dashboard?.team.weeklyGoal}
         momentumScore={momentumScore}
         checkInStreak={checkInStreak}
       />
@@ -131,6 +134,7 @@ export default function HomePage() {
       {currentPlan ? <PlanWeekStrip plan={currentPlan} /> : null}
 
       <TodayAdditionalAction
+        checkIn={participationAction(planDay)}
         teamLocked={!(dashboard?.teamPulse.unlocked ?? false)}
         teamWorkout={teamWorkout}
         prizeBoxesConnected={connected}

@@ -72,6 +72,9 @@ func TestResetE2EFixturesClearsPrizeBoxesAndInventory(t *testing.T) {
 	if err = repository.ResetE2EFixtures(ctx, now); err != nil {
 		t.Fatal(err)
 	}
+	if err = store.NewStaffStore(db).RecordAdminAction(ctx, "account-coach-hill", "training_plan.publish", "training_plan", "fixture-plan", nil); err != nil {
+		t.Fatalf("static coach fixture must support audited mutations: %v", err)
+	}
 	claimed, err := repository.ClaimDailyPrizeBox(ctx, store.ClaimDailyPrizeBoxInput{
 		PlayerID: "player-mason", IdempotencyKey: "fixture-claim", Now: now,
 	})

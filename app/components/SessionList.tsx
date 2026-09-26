@@ -68,7 +68,7 @@ export function SessionList({
           aria-label="Load more sessions"
           onClick={() => setVisibleCount((count) => count + 3)}
         >
-          <span aria-hidden="true">⌄</span>
+          Load more sessions <span aria-hidden="true">⌄</span>
         </button>
       ) : null}
     </section>
