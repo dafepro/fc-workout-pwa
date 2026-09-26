@@ -104,7 +104,7 @@ export function fieldCharacterMotion(
 /** App integration: identity selects appearance; accepted simulation state selects equipment. */
 export async function loadActionKit(
   onError: (error: unknown) => void,
-  base = new URL("/team-world-assets/v0.1.1/", location.href),
+  base = new URL("/team-world-assets/v0.1.3/", location.href),
   presentation: () => { comic: boolean; outlines: boolean } = () => ({
     comic: true,
     outlines: true,
@@ -131,7 +131,7 @@ export async function loadActionKit(
       id: "burgundy",
       hair: "hair-sweep",
       skin: "#c68b60",
-      color: "#ece8dd",
+      color: "#782e43",
       weight: 0,
     },
     {
@@ -145,7 +145,7 @@ export async function loadActionKit(
       id: "sage",
       hair: "hair-pony",
       skin: "#edc39d",
-      color: "#547780",
+      color: "#337f7d",
       weight: -0.35,
     },
   ];
@@ -155,6 +155,18 @@ export async function loadActionKit(
       choices.map(async (choice) => {
         const recipe = defaultRecipe(catalog);
         recipe.parts.hair = choice.hair;
+        if (choice.id === "burgundy")
+          Object.assign(recipe.parts, {
+            shirt: "shirt-matchday",
+            bottom: "bottom-matchday",
+            eyewear: "acc-matchday-sport",
+          });
+        if (choice.id === "sage")
+          Object.assign(recipe.parts, {
+            shirt: "shirt-courtside",
+            bottom: "bottom-courtside",
+            headwear: "hat-courtside-visor",
+          });
         recipe.body = { weight: choice.weight };
         recipe.colors = {
           skin: choice.skin,

@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { markSilhouetteOccluder } from "./character-occlusion";
+import { createBallShadow } from "./ball-shadow";
 import type { VisualOptions, WorldMap } from "zmap";
 import {
   pitchConfig,
@@ -100,8 +101,10 @@ export function createSoccerVisuals(map: WorldMap) {
       mesh: THREE.Mesh;
       dissolve: { value: number };
       materials: THREE.MeshStandardMaterial[];
+      shadow: ReturnType<typeof createBallShadow>;
     }
   >();
+  let worldScene: THREE.Scene | undefined;
   const boards = new Map<
     string,
     { root: THREE.Group; digits: THREE.InstancedMesh; last: string }
@@ -243,11 +246,18 @@ export function createSoccerVisuals(map: WorldMap) {
         materials,
       );
       mesh.name = id;
-      balls.set(id, { mesh, dissolve, materials });
+      const shadow = createBallShadow(
+        map,
+        map.toys.find((t) => t.id === id)!.radius,
+      );
+      worldScene?.add(shadow.mesh);
+      balls.set(id, { mesh, dissolve, materials, shadow });
       // WorldView owns toy geometry/material disposal.
       return mesh;
     },
     scenery(scene: THREE.Scene) {
+      worldScene = scene;
+      for (const ball of balls.values()) scene.add(ball.shadow.mesh);
       for (const pitch of pitches) {
         const c = pitchConfig(pitch),
           root = boardSource.clone(true);
@@ -335,6 +345,14 @@ export function createSoccerVisuals(map: WorldMap) {
             (state.phase === "goal" && age < GOAL_HOLD_TICKS);
           for (const m of ball.materials)
             m.opacity = context.reducedMotion ? 1 : opacity;
+          ball.shadow.update(
+            ball.mesh.position,
+            ball.mesh.visible
+              ? context.reducedMotion
+                ? 1
+                : opacity * (1 - ball.dissolve.value)
+              : 0,
+          );
         }
         for (const net of nets.get(pitch.id) ?? []) {
           const scored =
@@ -354,6 +372,7 @@ export function createSoccerVisuals(map: WorldMap) {
       }
     },
     dispose() {
+      for (const ball of balls.values()) ball.shadow.dispose();
       for (const board of boards.values()) board.root.removeFromParent();
       for (const goals of nets.values())
         for (const goal of goals) goal.root.removeFromParent();

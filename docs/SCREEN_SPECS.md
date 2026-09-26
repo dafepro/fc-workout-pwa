@@ -202,7 +202,10 @@ failures can request a fresh connection explicitly.
 
 Joystick is the default: pressing an open area anchors the stick there, with a
 60-pixel walk radius and a 20-pixel transition into sprint. Each pitch has a confined
-soccer ball and Burgundy/Gold scoreboard. Goals pause the ball, dissolve it, and
+soccer ball and Burgundy/Gold scoreboard. A soft noon shadow remains directly
+below each ball, expanding and softening with height to make aerial timing
+readable. Burgundy wears the burgundy Matchday kit and sports glasses; Sage
+wears the teal Courtside set and open visor. Goals pause the ball, dissolve it, and
 fade it back in at midfield. Scores last only for the current room. Under bridges
 and furnishings, hidden character pixels use a grey silhouette with a pale rim;
 visible body parts keep their normal colors. Kicks use a full-body instep shot: left-foot plant, hip and shoulder turn,
