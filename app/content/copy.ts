@@ -8,6 +8,24 @@ export const copy = {
     me: "Me",
   },
   saveSuccess: "Training saved",
+  recovery: {
+    saveUnconfirmed:
+      "We couldn’t confirm your save. Your answers are still here. Retry the same entry to check and finish saving it.",
+    offlineSave:
+      "You’re offline. Your answers are still here. Reconnect, then retry saving.",
+    retrySave: "Retry saving",
+    viewSession: "View saved session",
+    discard: "Discard draft",
+    draftKept:
+      "Your unfinished answers are kept on this device for this session.",
+    historyFailed:
+      "Your sessions couldn’t be loaded. They haven’t been removed.",
+    sessionFailed:
+      "This session couldn’t be loaded. Check your connection and try again.",
+    inventoryFailed:
+      "Your wardrobe couldn’t be loaded. Your owned items are safe.",
+    retry: "Try again",
+  },
   completion: {
     eyebrow: "Workout complete",
     title: "Done for today!",

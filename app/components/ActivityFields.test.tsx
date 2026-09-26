@@ -108,14 +108,14 @@ describe("activity-specific form", () => {
     );
   });
 
-  it("restores the last valid value when the field is left empty", async () => {
+  it("keeps an explicitly cleared required answer empty after blur", async () => {
     render(<Harness />);
     const repetitions = screen.getByLabelText("Reps completed");
 
     fireEvent.change(repetitions, { target: { value: "" } });
     fireEvent.blur(repetitions);
     await waitFor(() =>
-      expect(screen.getByLabelText("Reps completed")).toHaveValue(8),
+      expect(screen.getByLabelText("Reps completed")).toHaveValue(null),
     );
   });
 

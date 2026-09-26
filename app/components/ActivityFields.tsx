@@ -20,11 +20,15 @@ export function ActivitySpecificFields({
   value,
   onChange,
   activities,
+  inputText,
+  onInputText,
 }: {
   activityId: ActivityId;
   value: number;
   onChange: (value: number) => void;
   activities: ActivityDefinition[];
+  inputText?: string;
+  onInputText?(text: string): void;
 }) {
   // A separate draft keeps a half-typed or cleared field from being rewritten
   // as "0", which forced players to delete a leading zero on every entry. It is
@@ -33,11 +37,13 @@ export function ActivitySpecificFields({
   const activity = getActivityInput(activities, activityId);
   if (!activity) return null;
 
-  const shown = draft?.activityId === activityId ? draft.text : value;
+  const shown =
+    inputText ?? (draft?.activityId === activityId ? draft.text : value);
 
   const decimals = activity.step.toString().split(".")[1]?.length ?? 0;
   const commit = (next: number) => {
     setDraft(undefined);
+    onInputText?.(String(Number(next.toFixed(decimals))));
     onChange(Number(next.toFixed(decimals)));
   };
   const adjust = (direction: -1 | 1) =>
@@ -84,9 +90,9 @@ export function ActivitySpecificFields({
             onChange={(event) => {
               const text = event.target.value;
               setDraft({ activityId, text });
+              onInputText?.(text);
               if (text !== "") onChange(Number(text));
             }}
-            onBlur={() => setDraft(undefined)}
             required
           />
           <span className="value-entry__unit">{activity.unit}</span>

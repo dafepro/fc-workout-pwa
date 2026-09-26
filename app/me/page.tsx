@@ -5,6 +5,7 @@ import { PlayerAvatar } from "../components/PlayerAvatar";
 import { SessionList } from "../components/SessionList";
 import { TransientQueryToast } from "../components/TransientQueryToast";
 import { copy } from "../content/copy";
+import { LoadError } from "../components/LoadError";
 import { routes } from "../content/routes";
 import type { ReactionBadge } from "../domain/types";
 import { useTraining } from "../state/training-context";
@@ -146,7 +147,9 @@ export default function MePage() {
             <p>
               {entriesStatus === "loading"
                 ? "Loading your private sessions…"
-                : `${personalEntries.length} private saved sessions`}
+                : entriesStatus === "error"
+                  ? "Sessions unavailable"
+                  : `${personalEntries.length} private saved sessions`}
             </p>
           </div>
         </article>
@@ -169,17 +172,17 @@ export default function MePage() {
           <span className="pill">{connected ? "Connected" : "Prototype"}</span>
         </article>
       </section>
-      <SessionList
-        entries={personalEntries}
-        activities={dashboard?.activities ?? []}
-      />
       {entriesStatus === "error" ? (
-        <div className="notice notice--error" role="alert">
-          <strong>Your private sessions could not be loaded.</strong>
-          <button type="button" onClick={() => void refreshEntries()}>
-            Try again
-          </button>
-        </div>
+        <LoadError
+          message={copy.recovery.historyFailed}
+          onRetry={() => void refreshEntries()}
+        />
+      ) : null}
+      {entriesStatus === "ready" || personalEntries.length > 0 ? (
+        <SessionList
+          entries={personalEntries}
+          activities={dashboard?.activities ?? []}
+        />
       ) : null}
     </div>
   );

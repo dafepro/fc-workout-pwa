@@ -8,6 +8,7 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { defaultAvatar } from "../../avatar/config";
 import AvatarStudioPage from "./page";
+import { clearPlayerDrafts } from "../../state/player-drafts";
 
 const {
   push,
@@ -27,9 +28,13 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 vi.mock("../../state/auth-context", () => ({
   useAuth: () => ({
     connected: true,
+    currentPlayerID: "player-one",
     avatarConfig: defaultAvatar(),
     saveAvatar,
-    runtime: { prizeBoxes: { inventory, markViewed } },
+    runtime: {
+      currentTeam: { id: "team-one" },
+      prizeBoxes: { inventory, markViewed },
+    },
   }),
 }));
 vi.mock("../../build-profile", () => ({ developmentBuild: true }));
@@ -39,6 +44,7 @@ vi.mock("../../development/catalog-unlocks", () => ({
 
 afterEach(() => {
   cleanup();
+  clearPlayerDrafts();
   push.mockClear();
   saveAvatar.mockClear();
   inventory.mockReset().mockResolvedValue([]);
@@ -47,9 +53,21 @@ afterEach(() => {
 });
 
 describe("AvatarStudioPage", () => {
+  it("does not present an unavailable inventory as locked ownership and can retry", async () => {
+    inventory.mockRejectedValueOnce(new Error("offline"));
+    render(<AvatarStudioPage />);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Your owned items are safe",
+    );
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(
+      await screen.findByRole("radio", { name: "Tall person" }),
+    ).toBeEnabled();
+  });
   it("returns to the profile with a toast flag after saving", async () => {
     render(<AvatarStudioPage />);
-    fireEvent.click(screen.getByRole("radio", { name: "Tall person" }));
+    fireEvent.click(await screen.findByRole("radio", { name: "Tall person" }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(saveAvatar).toHaveBeenCalledTimes(1));

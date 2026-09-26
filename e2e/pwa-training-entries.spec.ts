@@ -36,7 +36,7 @@ test("a player can save, reopen, and delete a private session", async ({
 
   await page.getByRole("button", { name: "Delete session" }).click();
   await page.getByRole("button", { name: "Yes, delete" }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/me#sessions$/);
 
   const api = await request.newContext({ baseURL: apiBaseURL });
   const deleted = await api.get(

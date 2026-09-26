@@ -8,14 +8,19 @@ import { copy } from "../../content/copy";
 import { developmentBuild } from "../../build-profile";
 import { unlockDevelopmentCatalogItems } from "../../development/catalog-unlocks";
 import { useAuth } from "../../state/auth-context";
+import { LoadError } from "../../components/LoadError";
 
 export default function AvatarStudioPage() {
-  const { avatarConfig, runtime, saveAvatar } = useAuth();
+  const { avatarConfig, runtime, saveAvatar, currentPlayerID } = useAuth();
   const router = useRouter();
   const [gateway] = useState(() => runtime.prizeBoxes);
   const [unlockedOptionIDs, setUnlockedOptionIDs] = useState(
     () => new Set<string>(),
   );
+  const [status, setStatus] = useState<"loading" | "ready" | "error">(
+    "loading",
+  );
+  const [request, setRequest] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -29,16 +34,19 @@ export default function AvatarStudioPage() {
       .then((items) => {
         if (!active) return;
         setUnlockedOptionIDs(new Set(items.map(({ item }) => item.assetId)));
+        setStatus("ready");
         for (const unlock of items) {
           if (!unlock.viewedAt)
             void gateway.markViewed(unlock.item.id).catch(() => undefined);
         }
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (active) setStatus("error");
+      });
     return () => {
       active = false;
     };
-  }, [gateway]);
+  }, [gateway, request]);
 
   async function saveAndReturn(config: Parameters<typeof saveAvatar>[0]) {
     await saveAvatar(config);
@@ -55,11 +63,24 @@ export default function AvatarStudioPage() {
       >
         <span aria-hidden="true">←</span>
       </Link>
-      <AvatarBuilder
-        config={avatarConfig}
-        unlockedOptionIDs={unlockedOptionIDs}
-        onSave={saveAndReturn}
-      />
+      {status === "error" ? (
+        <LoadError
+          message={copy.recovery.inventoryFailed}
+          onRetry={() => {
+            setStatus("loading");
+            setRequest((value) => value + 1);
+          }}
+        />
+      ) : status === "loading" ? (
+        <p role="status">Loading your wardrobe…</p>
+      ) : (
+        <AvatarBuilder
+          draftKey={`${currentPlayerID}/${runtime.currentTeam.id}/avatar`}
+          config={avatarConfig}
+          unlockedOptionIDs={unlockedOptionIDs}
+          onSave={saveAndReturn}
+        />
+      )}
     </div>
   );
 }

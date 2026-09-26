@@ -9,7 +9,10 @@ import type {
 export interface TrainingEntryGateway {
   list(): Promise<TrainingEntry[]>;
   get(entryID: string): Promise<TrainingEntry | null>;
-  create(input: TrainingEntryInput): Promise<TrainingEntry>;
+  create(
+    input: TrainingEntryInput,
+    submissionKey?: string,
+  ): Promise<TrainingEntry>;
   delete(entryID: string): Promise<void>;
 }
 
@@ -60,12 +63,15 @@ class ConnectedTrainingEntryGateway implements TrainingEntryGateway {
     return fromAPIEntry((await response.json()) as APITrainingEntry);
   }
 
-  async create(input: TrainingEntryInput): Promise<TrainingEntry> {
+  async create(
+    input: TrainingEntryInput,
+    submissionKey = crypto.randomUUID(),
+  ): Promise<TrainingEntry> {
     const response = await fetch("/api/zoomigo/v1/me/training-entries", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Idempotency-Key": crypto.randomUUID(),
+        "Idempotency-Key": submissionKey,
       },
       body: JSON.stringify({
         teamId: this.teamID,

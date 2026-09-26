@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { copy } from "../content/copy";
+import { usePlayerDraft } from "../state/player-drafts";
 import { AvatarArt, AvatarPartArt } from "./AvatarArt";
 import { AVATAR_CATEGORIES, AVATAR_LAYERS } from "./catalog";
 import {
@@ -24,11 +25,17 @@ export function AvatarBuilder({
   config,
   unlockedOptionIDs = EMPTY_UNLOCKS,
   onSave,
+  draftKey,
 }: {
   config: AvatarConfiguration;
   unlockedOptionIDs?: ReadonlySet<string>;
   onSave(config: AvatarConfiguration): Promise<void>;
+  draftKey?: string;
 }) {
+  const persisted = usePlayerDraft(
+    draftKey ?? "unused-avatar-preview",
+    isAvatarConfiguration,
+  );
   const startingConfig = isAvatarConfiguration(config)
     ? normalizeAvatar(config)
     : defaultAvatar();
@@ -37,8 +44,18 @@ export function AvatarBuilder({
     <AvatarBuilderEditor
       key={configurationKey(startingConfig)}
       startingConfig={startingConfig}
+      initialDraft={
+        persisted.value ? normalizeAvatar(persisted.value) : startingConfig
+      }
+      onDraftChange={(next) => {
+        if (draftKey) persisted.set(next);
+      }}
+      onDiscard={persisted.clear}
       unlockedOptionIDs={unlockedOptionIDs}
-      onSave={onSave}
+      onSave={async (next) => {
+        await onSave(next);
+        if (draftKey) persisted.clear();
+      }}
     />
   );
 }
@@ -47,12 +64,18 @@ function AvatarBuilderEditor({
   startingConfig,
   unlockedOptionIDs,
   onSave,
+  initialDraft,
+  onDraftChange,
+  onDiscard,
 }: {
   startingConfig: AvatarConfiguration;
   unlockedOptionIDs: ReadonlySet<string>;
   onSave(config: AvatarConfiguration): Promise<void>;
+  initialDraft: AvatarConfiguration;
+  onDraftChange(config: AvatarConfiguration): void;
+  onDiscard(): void;
 }) {
-  const [draft, setDraft] = useState<AvatarConfiguration>(startingConfig);
+  const [draft, setDraft] = useState<AvatarConfiguration>(initialDraft);
   const [activeCategory, setActiveCategory] =
     useState<AvatarCategoryKind>("head");
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -60,7 +83,11 @@ function AvatarBuilderEditor({
   const dirty = configurationKey(draft) !== configurationKey(startingConfig);
 
   function update(key: string, value: string) {
-    setDraft((current) => ({ ...current, [key]: value }));
+    const next = { ...draft, [key]: value };
+    setDraft(next);
+    if (configurationKey(next) === configurationKey(startingConfig))
+      onDiscard();
+    else onDraftChange(next);
     setStatus("idle");
   }
 
@@ -138,6 +165,20 @@ function AvatarBuilderEditor({
       </div>
 
       <div className="avatar-builder__actions">
+        {dirty ? (
+          <button
+            type="button"
+            className="text-button"
+            disabled={status === "saving"}
+            onClick={() => {
+              setDraft(startingConfig);
+              onDiscard();
+              setStatus("idle");
+            }}
+          >
+            {copy.recovery.discard}
+          </button>
+        ) : null}
         <button
           type="button"
           className="button button--lime"

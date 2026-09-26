@@ -16,6 +16,7 @@ import { copy } from "../content/copy";
 import { routes } from "../content/routes";
 import { AnalyticsProvider } from "../../lib/analytics/AnalyticsProvider";
 import { AvatarIdentityProvider } from "./avatar-identity-context";
+import { activateDraftOwner, clearPlayerDrafts } from "./player-drafts";
 
 interface AuthState {
   connected: boolean;
@@ -53,6 +54,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         if (!active) return;
         if (response.ok) {
           const session = parseConnectedSession(await response.json());
+          if (session)
+            activateDraftOwner(
+              `${session.player.id}/${session.player.teams[0].id}`,
+            );
           setState(
             session
               ? {
@@ -80,6 +85,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             });
           }
         } else if (response.status === 401) {
+          clearPlayerDrafts();
           router.replace(routes.playerSignIn);
         } else {
           setState({ status: "unavailable" });
@@ -137,6 +143,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     },
     async signOut() {
       await fetch("/api/auth/session", { method: "DELETE" });
+      clearPlayerDrafts();
       router.replace(routes.playerSignIn);
     },
   };

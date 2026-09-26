@@ -103,6 +103,10 @@ export function PlayerShell({ children }: { children: React.ReactNode }) {
 }
 
 function isActivePath(pathname: string, href: string): boolean {
-  if (href === "/") return pathname === href;
-  return pathname === href || pathname.startsWith(`${href}/`);
+  const section = /^\/(me|sessions|prizes)(\/|$)/.test(pathname)
+    ? "/me"
+    : /^\/(team|team-world)(\/|$)/.test(pathname)
+      ? "/team"
+      : "/";
+  return href === section;
 }

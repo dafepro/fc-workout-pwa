@@ -17,7 +17,7 @@ export function SessionList({
   const [visibleCount, setVisibleCount] = useState(initialVisible);
 
   return (
-    <section className="card recent-card">
+    <section id="sessions" className="card recent-card" tabIndex={-1}>
       <div className="section-heading">
         <h2>My Sessions</h2>
       </div>
