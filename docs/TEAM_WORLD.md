@@ -12,13 +12,15 @@ not a prediction of the future landing point. No shadow-map pass is required.
 
 Avatar Studio's independent Court collection supplies six new reference-modeled
 parts. Burgundy wears the Matchday sash jersey, shorts and sports glasses;
-Sage wears the Courtside zip top, longer shorts and open visor. Saffron retains
-the original outfit. Appearance IDs and server policy are unchanged. Assets use
-the immutable `/team-world-assets/v0.1.3/` path to avoid stale catalog/model
+Sage wears the Courtside zip top, longer shorts and open visor. Saffron wears the
+Playtime trio: Frog Days bucket hat, Bolt Mode lightning frames and Melon Club
+watermelon jersey. Each playful part is independently selectable in Avatar
+Studio. Appearance IDs and server policy are unchanged. Assets use
+the immutable `/team-world-assets/v0.1.4/` path to avoid stale catalog/model
 combinations. Source references, editable Blender geometry and fitted browser
 turnarounds live in the avatar repository.
 
-`/team-world` lazily loads zmap 0.1.11 and Avatar Studio 0.1.3 from pinned GitHub
+`/team-world` lazily loads zmap 0.1.11 and Avatar Studio 0.1.4 from pinned GitHub
 Release tarballs. The development Team hub exposes a Team World link after the
 existing check-in gate. Production navigation is unchanged during qualification.
 

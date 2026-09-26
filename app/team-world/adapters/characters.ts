@@ -104,7 +104,7 @@ export function fieldCharacterMotion(
 /** App integration: identity selects appearance; accepted simulation state selects equipment. */
 export async function loadActionKit(
   onError: (error: unknown) => void,
-  base = new URL("/team-world-assets/v0.1.3/", location.href),
+  base = new URL("/team-world-assets/v0.1.4/", location.href),
   presentation: () => { comic: boolean; outlines: boolean } = () => ({
     comic: true,
     outlines: true,
@@ -166,6 +166,12 @@ export async function loadActionKit(
             shirt: "shirt-courtside",
             bottom: "bottom-courtside",
             headwear: "hat-courtside-visor",
+          });
+        if (choice.id === "saffron")
+          Object.assign(recipe.parts, {
+            shirt: "shirt-melon-club",
+            headwear: "hat-frog-days",
+            eyewear: "acc-bolt-mode",
           });
         recipe.body = { weight: choice.weight };
         recipe.colors = {

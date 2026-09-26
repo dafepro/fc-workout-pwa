@@ -4,7 +4,7 @@ const source = new URL(
   "./",
   import.meta.resolve("@zmap/avatar-studio/assets/catalog.json"),
 );
-const target = new URL("public/team-world-assets/v0.1.3/", root);
+const target = new URL("public/team-world-assets/v0.1.4/", root);
 await mkdir(target, { recursive: true });
 for (const name of ["catalog.json", "models", "action", "wield"])
   await cp(new URL(name, source), new URL(name, target), { recursive: true });

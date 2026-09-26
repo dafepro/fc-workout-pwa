@@ -54,7 +54,7 @@ export async function loadCannonKit(map: WorldMap) {
   if (!definitions.length)
     throw Error("The action yard has no approved cannon");
   const url = new URL(
-    "/team-world-assets/v0.1.3/ball-cannon.glb",
+    "/team-world-assets/v0.1.4/ball-cannon.glb",
     location.href,
   );
   const response = await fetch(url, { signal: AbortSignal.timeout(15000) });

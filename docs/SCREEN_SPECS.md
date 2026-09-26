@@ -205,7 +205,8 @@ Joystick is the default: pressing an open area anchors the stick there, with a
 soccer ball and Burgundy/Gold scoreboard. A soft noon shadow remains directly
 below each ball, expanding and softening with height to make aerial timing
 readable. Burgundy wears the burgundy Matchday kit and sports glasses; Sage
-wears the teal Courtside set and open visor. Goals pause the ball, dissolve it, and
+wears the teal Courtside set and open visor. Saffron wears a frog bucket hat,
+lightning frames and a watermelon jersey. Goals pause the ball, dissolve it, and
 fade it back in at midfield. Scores last only for the current room. Under bridges
 and furnishings, hidden character pixels use a grey silhouette with a pale rim;
 visible body parts keep their normal colors. Kicks use a full-body instep shot: left-foot plant, hip and shoulder turn,
