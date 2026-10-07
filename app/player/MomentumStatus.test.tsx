@@ -3,6 +3,17 @@ import { describe, expect, it } from "vitest";
 import { MomentumStatus } from "./MomentumStatus";
 
 describe("MomentumStatus", () => {
+  it("labels weekly check-in days without borrowing the Team session target", () => {
+    render(
+      <MomentumStatus
+        momentumScore={68.5}
+        checkInStreak={1}
+        weeklyCheckIns={1}
+      />,
+    );
+    expect(screen.getByText("1 check-in day")).toBeVisible();
+    expect(screen.queryByText(/of.*days/)).toBeNull();
+  });
   it("presents the score, named state, and check-in streak accessibly", () => {
     render(<MomentumStatus momentumScore={68.54} checkInStreak={4} />);
 

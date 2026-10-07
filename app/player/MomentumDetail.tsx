@@ -10,13 +10,11 @@ import { momentumProgress } from "./momentum-progress";
 export function MomentumDetail({
   momentumScore,
   weeklyCheckIns,
-  weeklyGoal,
   checkInStreak,
   rollingFiveActiveDays,
 }: {
   momentumScore: number;
   weeklyCheckIns: number;
-  weeklyGoal: number;
   checkInStreak: number;
   rollingFiveActiveDays: number;
 }) {
@@ -53,12 +51,9 @@ export function MomentumDetail({
       </header>
       <div className="momentum-weekly">
         <strong>
-          {qualityCopy.weekly(
-            Math.max(0, Math.floor(weeklyCheckIns)),
-            Math.max(1, Math.floor(weeklyGoal)),
-          )}
+          {qualityCopy.weekly(Math.max(0, Math.floor(weeklyCheckIns)))}
         </strong>
-        <p>{weeklyGuidance(weeklyCheckIns, weeklyGoal)}</p>
+        {weeklyCheckIns === 0 ? <p>{copy.momentum.firstCheckIn}</p> : null}
         <p>{qualityCopy.weeklyRule}</p>
       </div>
       <details className="momentum-explanation">
@@ -104,12 +99,4 @@ export function MomentumDetail({
       </details>
     </section>
   );
-}
-
-function weeklyGuidance(checkIns: number, target: number): string {
-  const current = Math.max(0, Math.floor(checkIns));
-  const goal = Math.max(1, Math.floor(target));
-  if (current >= goal) return copy.momentum.weeklyComplete(goal);
-  if (current === 0) return copy.momentum.firstCheckIn;
-  return copy.momentum.weeklyProgress(current, goal - current);
 }

@@ -321,11 +321,7 @@ export const copy = {
     gaugeLabel: "Momentum",
     guidanceLabel: "This week",
     firstCheckIn:
-      "Your first check-in starts this week’s team target. Planned rest counts too.",
-    weeklyProgress: (checkIns: number, remaining: number) =>
-      `${checkIns} ${checkIns === 1 ? "check-in" : "check-ins"} this week. ${remaining} more ${remaining === 1 ? "reaches" : "reach"} your team’s target.`,
-    weeklyComplete: (goal: number) =>
-      `You reached your team’s ${goal}-check-in target this week. Nice consistency.`,
+      "Your first check-in starts this week’s personal progress. Planned rest counts too.",
     improvementTip:
       "Show up on different days for the biggest lift. A second and third activity add smaller boosts; planned rest counts too.",
     rollingHabit: (activeDays: number) =>

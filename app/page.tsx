@@ -116,7 +116,6 @@ export default function HomePage() {
       ) : null}
       <MomentumStatus
         weeklyCheckIns={dashboard?.summary.weeklyMomentumCredits}
-        weeklyGoal={dashboard?.team.weeklyGoal}
         momentumScore={momentumScore}
         checkInStreak={checkInStreak}
       />

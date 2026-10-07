@@ -30,7 +30,6 @@ export default function PlayerProgressPage() {
       <MomentumDetail
         momentumScore={dashboard.summary.momentumScore}
         weeklyCheckIns={dashboard.summary.weeklyMomentumCredits}
-        weeklyGoal={dashboard.team.weeklyGoal}
         checkInStreak={dashboard.summary.currentCheckInStreak}
         rollingFiveActiveDays={
           dashboard.summary.activityDays
