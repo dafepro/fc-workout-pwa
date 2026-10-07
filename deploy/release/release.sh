@@ -46,17 +46,26 @@ for console_url in "$ZOOMIGO_API_BASE_URL" "$PLAYER_LOGIN_URL" "$STAFF_SETUP_URL
 done
 
 cd "$REPOSITORY_ROOT"
+analytics_approved=${PRODUCT_ANALYTICS_APPROVED:-false}
+case "$analytics_approved" in
+	true|false) ;;
+	*) printf '%s\n' "error: PRODUCT_ANALYTICS_APPROVED must be true or false" >&2; exit 1 ;;
+esac
 pnpm install --frozen-lockfile
 pnpm build
-analytics_database_id=$(pnpm exec wrangler d1 list --json | node "$SCRIPT_DIRECTORY/resolve-analytics-d1.mjs")
-if [ -n "$analytics_database_id" ]; then
+analytics_database_id=""
+if [ "$analytics_approved" = true ]; then
+	analytics_database_id=$(pnpm exec wrangler d1 list --json | node "$SCRIPT_DIRECTORY/resolve-analytics-d1.mjs")
+	[ -n "$analytics_database_id" ] || { printf '%s\n' "error: approved analytics requires its D1 database" >&2; exit 1; }
 	: "${ANALYTICS_SUBJECT_KEY:?ANALYTICS_SUBJECT_KEY is required when analytics is enabled}"
 fi
 node "$SCRIPT_DIRECTORY/configure-worker.mjs" \
 	"$REPOSITORY_ROOT/dist/server/wrangler.json" \
 	"$REPOSITORY_ROOT/deploy/production.json" \
 	"$ZOOMIGO_API_BASE_URL" \
-	"$analytics_database_id"
+	"$analytics_database_id" \
+	"$analytics_approved"
+printf 'Product analytics enabled: %s\n' "$analytics_approved"
 
 private_root=$(mktemp -d)
 secrets_directory="$private_root/secrets"
