@@ -144,9 +144,17 @@ or a reason to reset fixtures.
 | Main/controller ancestry                                 | `c4c569ef4b0870559d61c23db4b2cbdf41232b07`; record actual controller for each update  |
 | Client / relay package                                   | `zmap` 0.1.11; matched lockfile integrity                                             |
 | Avatar package / assets                                  | `@zmap/avatar-studio` 0.1.4 / `v0.1.4`                                                |
-| Campus assets                                            | `campus-v2`                                                                           |
+| Deployed campus assets                                   | `campus-v2`                                                                           |
 | Canvas package                                           | vendored 0.6.2                                                                        |
 | Live Worker/relay digest and authenticated browser gates | Await current authenticated qualification; readiness alone does not prove these       |
+
+The local candidate now packages app-owned art under the digest in
+`assets/team-world/manifest.json`; this does not change the deployed `campus-v2`
+identity above. Its campus GLB is 2.08 MB instead of 8.81 MB, with unchanged
+collision/geometry and source images. Normal verification and targeted local
+browser qualification are recorded separately from deployment below. The
+[replacement ledger](TEAM_WORLD.md#replacement-acceptance-ledger) leaves all
+complete World journeys unaccepted.
 
 The September 26 deployment completed but its aggregate qualification failed in
 Lounge cleanup; World/API write checks were skipped. Do not call it a fully green
@@ -157,6 +165,36 @@ Record candidate commit plus any dirty diff hash, image digests, controller SHA,
 Worker version, package/map/catalog versions and each passed/failed/skipped gate
 separately. Never retain passwords, session material or credential-page captures.
 Local native API/browser passes do not imply Docker, live-dev or phone acceptance.
+
+## Local candidate qualification
+
+The retained implementation source is
+`e390440134b25532b2ef8d841b33a5a4ef2756e7` on `codex/dev-roadmap-20261007`.
+The final local build uses real fixture API/SQLite/relay and a built
+development-profile Worker, with analytics disabled. It is separate from the
+deployed release above. App-owned asset digest:
+`75ceddf6763be5222b2dfaaef119e31a8456d77dd304da5f84e5d54c90b6c84f`;
+map ID remains `team-world-campus-v2` and Avatar Studio remains `v0.1.4`.
+
+A prior 25-case built browser run passed 24 and failed one: malformed team
+selection unexpectedly returned 503 rather than 400. The immediate targeted
+repeat and ten consecutive repeats passed. Response-body diagnostics are now
+retained in the assertion, but the isolated failure's cause is unconfirmed; do
+not count its green repeats as a diagnosis or erase the failed qualification.
+The campus late-decode regression failed with zero of three bitmaps released,
+then passed after cancellation cleanup. See TEAM_WORLD.md for desktop startup
+measurements, the dropped concurrency experiment and physical-device limits.
+
+| Gate                                                                               | Result                                                                                                                                                                    |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ordinary verification on retained source                                           | Passed: format/lint/types, 120 Vitest files/593 tests, World/Node contracts, production build, Go normal/dev tests and vet, docs/observability and OpenTofu static checks |
+| Built Worker affected browser journeys                                             | 26 passed, zero skipped/retried/flaky/errors; 118.97 seconds, Chrome 154 local                                                                                            |
+| Docker / VM qualification                                                          | Unverified; required base-image retrieval unavailable locally                                                                                                             |
+| Authenticated live-dev browser/API/relay and immutable artifact identity           | Pending existing dev credentials and pinned host access                                                                                                                   |
+| Physical phones, full room, sustained GPU/memory/input/recovery and operating cost | Untested                                                                                                                                                                  |
+
+The first two rows record a specific local run; they do not approve live rollout,
+resolve earlier intermittent failures, or close the full replacement ledger.
 
 ## Operating flow
 

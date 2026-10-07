@@ -26,7 +26,8 @@ Two pitches, three raised terraces, ramps, bridge/underpass and picnic/warm-up
 areas have paired physical surfaces/furniture. Scores, balls, cannon, lamp,
 approved tools and expressions are transient play state. There are no durable
 placement zones, new reward rules or free-form communication. Map art is
-`campus-v2`; Avatar Studio art uses `/team-world-assets/v0.1.4/`.
+identified by `team-world-campus-v2` and packaged under the checked manifest's
+digest directory; Avatar Studio art uses `/team-world-assets/v0.1.4/`.
 Client/relay map and behaviors must ship together; static publication alone cannot
 update relay collisions. Rooms must not mix incompatible maps.
 

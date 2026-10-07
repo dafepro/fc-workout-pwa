@@ -39,7 +39,7 @@ rules into a maintained document, move unfinished trigger-based ideas to
 ## Engineering and operations
 
 - [TEAM_WORLD_CAMPUS_TODO.md](TEAM_WORLD_CAMPUS_TODO.md) — current campus ownership, extent and rendering/qualification contracts
-- [TEAM_WORLD.md](TEAM_WORLD.md) — fresh v3 integration scope and qualification
+- [TEAM_WORLD.md](TEAM_WORLD.md) — fresh v3 integration scope, replacement acceptance ledger and qualification
 
 - [DEV_ENVIRONMENT.md](DEV_ENVIRONMENT.md) — disposable preview environment
 - [PRODUCTION_RUNBOOK.md](PRODUCTION_RUNBOOK.md) — provisioning, release, and
