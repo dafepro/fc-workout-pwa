@@ -50,6 +50,11 @@ export interface ProductEventProperties {
   training_entry_deleted: {
     age_bucket: "under_hour" | "same_day" | "next_day" | "unknown";
   };
+  training_save_recovery: { action: "retry" | "confirmed" | "unresolved" };
+  planned_activity_recorded: { completion: "partial" | "as_listed" | "extra" };
+  planned_rest_check_in_created: EmptyProperties;
+  prize_daily_claim_completed: { outcome: "created" | "existing" };
+  prize_box_opened: { outcome: "created" | "existing" };
   reaction_created: {
     context: "challenge" | "team_progress";
     reaction:
@@ -64,7 +69,14 @@ export interface ProductEventProperties {
   };
   avatar_saved: EmptyProperties;
   product_operation_completed: {
-    operation: "training_entry" | "reaction" | "avatar" | "session";
+    operation:
+      | "training_entry"
+      | "reaction"
+      | "avatar"
+      | "session"
+      | "planned_rest"
+      | "prize_claim"
+      | "prize_open";
     outcome: "success" | "failure";
     latency: "under_250ms" | "under_1s" | "under_3s" | "over_3s";
   };
@@ -79,6 +91,7 @@ export const clientEventNames = [
   "app_installed",
   "training_entry_started",
   "training_activity_selected",
+  "training_save_recovery",
   "avatar_builder_opened",
   "reaction_picker_opened",
   "session_history_opened",
@@ -208,8 +221,33 @@ function propertiesFor(
     case "cheer_inbox_opened":
     case "player_signed_out":
     case "avatar_saved":
+    case "planned_rest_check_in_created":
       exactKeys(value, [], name);
       return {};
+    case "training_save_recovery":
+      exactKeys(value, ["action"], name);
+      return {
+        action: oneOf(
+          value.action,
+          ["retry", "confirmed", "unresolved"],
+          "action",
+        ),
+      };
+    case "planned_activity_recorded":
+      exactKeys(value, ["completion"], name);
+      return {
+        completion: oneOf(
+          value.completion,
+          ["partial", "as_listed", "extra"],
+          "completion",
+        ),
+      };
+    case "prize_daily_claim_completed":
+    case "prize_box_opened":
+      exactKeys(value, ["outcome"], name);
+      return {
+        outcome: oneOf(value.outcome, ["created", "existing"], "outcome"),
+      };
     case "training_entry_started":
       exactKeys(value, ["source", "defaulted_activity"], name);
       return {
@@ -318,7 +356,15 @@ function propertiesFor(
       return {
         operation: oneOf(
           value.operation,
-          ["training_entry", "reaction", "avatar", "session"],
+          [
+            "training_entry",
+            "reaction",
+            "avatar",
+            "session",
+            "planned_rest",
+            "prize_claim",
+            "prize_open",
+          ],
           "operation",
         ),
         outcome: oneOf(value.outcome, ["success", "failure"], "outcome"),

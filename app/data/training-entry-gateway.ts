@@ -21,6 +21,7 @@ export class TrainingEntryGatewayError extends Error {
   constructor(
     public readonly code: string,
     message: string,
+    public readonly status = 0,
   ) {
     super(message);
   }
@@ -133,7 +134,7 @@ async function throwForError(response: Response): Promise<void> {
   } catch {
     // The safe fallback is used when an intermediary returns a non-JSON error.
   }
-  throw new TrainingEntryGatewayError(code, message);
+  throw new TrainingEntryGatewayError(code, message, response.status);
 }
 
 function fromAPIEntry(entry: APITrainingEntry): TrainingEntry {

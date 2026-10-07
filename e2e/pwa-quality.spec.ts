@@ -2,7 +2,7 @@ import { expect, request, test } from "@playwright/test";
 import { openReadyPage } from "./app-ready";
 import { mkdir } from "node:fs/promises";
 
-test.use({ serviceWorkers: "block" });
+test.use({ serviceWorkers: "block", timezoneId: "America/Chicago" });
 
 test.beforeEach(async () => {
   const api = await request.newContext({
@@ -87,6 +87,24 @@ test("lost save response retries one accepted entry and returns to its history",
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openReadyPage(page, "/log");
+  const boundary = await page.evaluate(() => {
+    const before = new Date();
+    before.setHours(23, 59, 0, 0);
+    const after = new Date(before);
+    after.setDate(after.getDate() + 1);
+    after.setHours(0, 1, 0, 0);
+    const original = new Date(before);
+    original.setDate(original.getDate() - 7);
+    return {
+      before: before.toISOString(),
+      after: after.toISOString(),
+      date: original.toLocaleDateString("en-CA"),
+    };
+  });
+  await page.clock.setFixedTime(new Date(boundary.before));
+  await page.locator(".when-details > summary").click();
+  await page.getByLabel("Date", { exact: true }).fill(boundary.date);
+  await page.getByLabel("Time", { exact: true }).fill("12:00");
   await page.getByLabel("Reps completed").fill("7");
   let lost = false;
   const keys: string[] = [];
@@ -104,16 +122,29 @@ test("lost save response retries one accepted entry and returns to its history",
   await page.getByRole("button", { name: /^Save/ }).click();
   await expect(page.getByRole("alert")).toContainText("couldn’t confirm");
   await expect(page.getByRole("alert")).toBeInViewport();
+  await page.clock.setFixedTime(new Date(boundary.after));
+  await expect(page.getByLabel("Reps completed")).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Discard draft" }),
+  ).toBeDisabled();
   await page.getByRole("link", { name: "Me", exact: true }).click();
   await expect(page).toHaveURL(/\/me$/);
   await page.goBack();
   await expect(page.getByLabel("Reps completed")).toHaveValue("7");
-  await page.getByRole("button", { name: /^Save/ }).click();
+  await page.reload();
+  await expect(page.getByLabel("Reps completed")).toBeDisabled();
+  await page.getByRole("button", { name: "Retry saving", exact: true }).click();
   await expect(
     page.getByRole("link", { name: /View saved session/ }),
   ).toHaveAttribute("href", `/sessions/${acceptedID}`);
   expect(keys).toHaveLength(2);
   expect(keys[1]).toBe(keys[0]);
+  const entries = await page.request.get("/api/zoomigo/v1/me/training-entries");
+  expect(
+    (await entries.json()).items.filter(
+      (entry: { id: string }) => entry.id === acceptedID,
+    ),
+  ).toHaveLength(1);
   await page.getByRole("link", { name: /View saved session/ }).click();
   await page.getByRole("link", { name: "← My Sessions", exact: true }).click();
   await expect(page).toHaveURL(/\/me#sessions$/);
@@ -132,6 +163,37 @@ test("cleared input stays empty and a draft survives a navigation detour", async
   await expect(page.getByLabel("Reps completed")).toBeEmpty();
   await page.getByRole("button", { name: "Discard draft" }).click();
   await expect(page.getByLabel("Reps completed")).not.toBeEmpty();
+});
+
+test("a definitive first rejection allows correction with a new submission", async ({
+  page,
+}) => {
+  await openReadyPage(page, "/log");
+  const keys: string[] = [];
+  await page.route("**/api/zoomigo/v1/me/training-entries", async (route) => {
+    if (route.request().method() !== "POST") return route.continue();
+    keys.push(route.request().headers()["idempotency-key"]);
+    if (keys.length > 1) return route.continue();
+    const body = route.request().postDataJSON();
+    const rejected = await route.fetch({
+      postData: JSON.stringify({
+        ...body,
+        result: { ...body.result, value: 99999 },
+      }),
+    });
+    expect(rejected.status()).toBe(422);
+    await route.fulfill({ response: rejected });
+  });
+  await page.getByRole("button", { name: /^Save/ }).click();
+  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(page.getByLabel("Reps completed")).toBeEnabled();
+  await page.getByLabel("Reps completed").fill("8");
+  await page.getByRole("button", { name: "Retry saving", exact: true }).click();
+  await expect(
+    page.getByRole("link", { name: /View saved session/ }),
+  ).toBeVisible();
+  expect(keys).toHaveLength(2);
+  expect(keys[1]).not.toBe(keys[0]);
 });
 
 test("unavailable history and session data never claims absence", async ({

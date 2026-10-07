@@ -6,7 +6,12 @@
 
 Accepted saves open Today with a persistent receipt and an entry link. An
 interrupted reply preserves the original payload and idempotency key; retrying
-unchanged input cannot create another entry. Editing starts a new attempt.
+unchanged input cannot create another entry. Unresolved saves hold the answers
+and direct discard until Retry confirms the original request. Replay runs before
+new-entry date/catalog validation, including across midnight. After confirmation,
+use the saved-session review/removal flow. A definitive first rejection releases
+the form for correction with a new key. Malformed stored attempts do not become
+frozen forms or forwarded requests.
 Failures appear beside Save and receive focus.
 
 Training and portrait drafts survive route changes and reloads in the same tab.

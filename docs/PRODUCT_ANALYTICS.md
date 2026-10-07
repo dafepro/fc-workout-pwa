@@ -53,8 +53,30 @@ Page exit and hidden-page summaries are queued before their flush.
 The bounded route catalog includes Today, Log, Team, Plan, Progress, Prizes, Me,
 session detail, portrait editing, login and Team World. Unknown paths, query
 strings, fragments and staff paths remain `unknown`; identifiers are never
-retained as route names. Plan/rest/prize action outcomes and a validated product
-success scorecard remain D21 work.
+retained as route names. Accepted planned activity/rest and daily prize/open
+outcomes contain no identifiers or athletic values. HTTP 201 counts a new write;
+HTTP 200 replay does not create another training/rest event. Prize events
+distinguish `created` and `existing`. Plan activity retains only the predefined
+completion category; it is not proof that every block or plan day completed.
+Bounded client recovery events record retry, confirmation and unresolved reply.
+
+## Product scorecard
+
+Use invented data first. These are observation definitions, not accepted targets
+or proof of representative-player comprehension. Dev collection remains off;
+the contract and fixtures can be evaluated without enabling D1 writes.
+
+| Measure                     | Evidence and interpretation                                                                                                                                                                                                                                                        |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Accepted training           | New training events, counted once for HTTP 201. Authoritative entries remain in Go/SQLite. Replayed operations measure recovery, not another session.                                                                                                                              |
+| Planned participation       | New planned activity/rest events, with partial activity separate. Actual day completion remains the API's projection.                                                                                                                                                              |
+| Save recovery               | Observed `confirmed` versus `retry` events, plus unresolved replies. No denominator means unavailable. Best-effort events can be lost and are not a receipt.                                                                                                                       |
+| Prize usefulness            | New claim/open outcomes versus existing-result replays, plus bounded Prizes route visits. Never infer ownership from telemetry.                                                                                                                                                    |
+| Return participation        | Pseudonymous return visits and acceptance-event days within the approved retention window. Actual participation dates come from authoritative API projections; delayed/backdated events cannot reconstruct them. Report cohort limitations; time in World is not training success. |
+| Comprehension and usability | D13 invented-data walkthrough: task completion, help required and explanation of personal days, Team sessions, plan completion, reward rules and portrait/outfit applicability. Automated clicks cannot supply this evidence.                                                      |
+
+Targets and representative walkthrough results remain open. Separate privacy and
+retention approvals must precede real collection.
 
 ## Storage and retention
 

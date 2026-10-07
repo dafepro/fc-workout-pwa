@@ -21,6 +21,8 @@ export const copy = {
     offlineSave:
       "You’re offline. Your answers are still here. Reconnect, then retry saving.",
     retrySave: "Retry saving",
+    resolveSave:
+      "Your previous save may already be recorded. Retry it before changing these answers. Once confirmed, open the saved session to review or remove it.",
     viewSession: "View saved session",
     discard: "Discard draft",
     draftKept:
