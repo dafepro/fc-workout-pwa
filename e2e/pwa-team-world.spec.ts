@@ -91,6 +91,14 @@ test("a real kick scores for both peers, then returns the ball to midfield", asy
       camera.lookAt(body.x, body.y + 0.8, body.z);
       camera.updateMatrixWorld();
       const point = new THREE.Vector3(x, 0, z).project(camera);
+      expect(
+        Math.abs(point.x),
+        "travel destination must be visible",
+      ).toBeLessThan(1);
+      expect(
+        Math.abs(point.y),
+        "travel destination must be visible",
+      ).toBeLessThan(1);
       await page.mouse.click(
         rect.x + ((point.x + 1) * rect.width) / 2,
         rect.y + ((1 - point.y) * rect.height) / 2,
@@ -110,6 +118,7 @@ test("a real kick scores for both peers, then returns the ball to midfield", asy
       await page.waitForTimeout(600);
     }
     // Approach from the left without dribbling the ball out of position en route.
+    await travel(-7, 2.5);
     await travel(-12, 8);
     await travel(-9.2, 13);
     await page.getByRole("button", { name: "Kick ball", exact: true }).click();

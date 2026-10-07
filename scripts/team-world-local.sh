@@ -35,6 +35,10 @@ export ZOOMIGO_API_BASE_URL=$TEAM_WORLD_API_URL
 export ZOOMIGO_BUILD_PROFILE=development
 export APP_ENV=e2e ENABLE_E2E_FIXTURES=true
 export E2E_RESET_KEY=local-team-world-e2e-only
+export STAFF_SECRET_KEY=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+export PLAYER_LOGIN_URL=https://zoomigo.example/login
+export STAFF_SETUP_URL=https://zoomigo.example/staff/setup
+export PRODUCTION_DATA_APPROVED=true
 export DATABASE_URL="file:$RUN_DIR/world.db"
 export PORT=19080 METRICS_PORT=19090
 export ALLOWED_ORIGIN=$TEAM_WORLD_ALLOWED_ORIGIN

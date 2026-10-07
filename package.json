@@ -2,6 +2,7 @@
   "name": "zoomigo-pwa",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@11.21.0",
   "engines": {
     "node": ">=22.13.0"
   },
@@ -11,6 +12,7 @@
     "start": "vinext start",
     "test": "vitest run",
     "test:e2e": "./scripts/e2e.sh",
+    "test:e2e:world": "./scripts/e2e.sh --world",
     "test:e2e:visual": "./scripts/e2e-visual.sh",
     "test:e2e:visual:update": "./scripts/e2e-visual.sh --update-snapshots",
     "test:browser": "playwright test",

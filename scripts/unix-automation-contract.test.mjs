@@ -161,6 +161,9 @@ test("macOS and Linux are the canonical local automation path", async () => {
   assert.match(verifier, /node.*contracts\.mjs/);
   assert.match(verifier, /--all/);
   const ordinaryVerification = verifier.split('if [ "$RUN_E2E" = true ]')[0];
+  assert.match(ordinaryVerification, /pnpm test:world/);
+  assert.match(ordinaryVerification, /node --test scripts\/\*\.test\.mjs/);
+  assert.equal(JSON.parse(packageDocument).packageManager, "pnpm@11.21.0");
   for (const command of ["go vet -tags=dev ./...", "go test -tags=dev ./..."]) {
     assert.ok(
       ordinaryVerification.split(/\r?\n/).includes(command),

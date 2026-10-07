@@ -38,8 +38,11 @@ test("a qualified player enters the Lounge and sees their own avatar", async ({
   expect(qualificationResponse.status()).toBe(201);
   const qualification = (await qualificationResponse.json()) as { id: string };
 
+  let primaryFailed = false;
   try {
-    const teamLoungeLink = page.getByRole("link", { name: /Go to Team/ });
+    const teamLoungeLink = page.getByRole("link", {
+      name: /Team lounge|Go to Team/,
+    });
     await expect(teamLoungeLink).toContainText(
       "Cheer the team or visit the boardwalk.",
     );
@@ -151,24 +154,39 @@ test("a qualified player enters the Lounge and sees their own avatar", async ({
     await lounge.getByRole("button", { name: "Exit full screen" }).click();
     await expect(lounge).not.toHaveAttribute("data-fullscreen");
     await expect(ownAvatar.getByText("You")).toBeVisible();
+  } catch (error) {
+    primaryFailed = true;
+    throw error;
   } finally {
-    await page.goto(`/sessions/${encodeURIComponent(qualification.id)}`);
-    await expect(
-      page.getByRole("heading", { name: "Hill Sprints" }),
-    ).toBeVisible();
-    await page.getByRole("button", { name: "Delete session" }).click();
-    const cleanupResponsePromise = page.waitForResponse(
-      (response) =>
-        response
-          .url()
-          .includes(
-            `/api/zoomigo/v1/training-entries/${encodeURIComponent(qualification.id)}`,
-          ) && response.request().method() === "DELETE",
-    );
-    await page.getByRole("button", { name: "Yes, delete" }).click();
-    const cleanupResponse = await cleanupResponsePromise;
-    expect(cleanupResponse.status()).toBe(204);
-    await expect(page).toHaveURL(/\/me#sessions$/);
+    try {
+      await page.goto(`/sessions/${encodeURIComponent(qualification.id)}`);
+      await expect(
+        page.getByRole("heading", { name: "Hill Sprints" }),
+      ).toBeVisible();
+      await page.getByRole("button", { name: "Delete session" }).click();
+      const cleanupResponsePromise = page.waitForResponse(
+        (response) =>
+          response
+            .url()
+            .includes(
+              `/api/zoomigo/v1/training-entries/${encodeURIComponent(qualification.id)}`,
+            ) && response.request().method() === "DELETE",
+      );
+      await page.getByRole("button", { name: "Yes, delete" }).click();
+      const cleanupResponse = await cleanupResponsePromise;
+      expect(cleanupResponse.status()).toBe(204);
+      const deleted = await page.request.get(
+        `/api/zoomigo/v1/training-entries/${encodeURIComponent(qualification.id)}`,
+      );
+      expect(deleted.status()).toBe(404);
+    } catch (error) {
+      if (!primaryFailed) throw error;
+      test.info().annotations.push({
+        type: "cleanup-failed",
+        description:
+          "The qualification entry could not be removed; the original failure is retained.",
+      });
+    }
   }
 });
 
