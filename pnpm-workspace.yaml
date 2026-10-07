@@ -7,3 +7,13 @@ allowBuilds:
 overrides:
   "@canvas-physics/core": "file:vendor/canvas/canvas-physics-core-0.6.2.tgz"
   "@canvas-physics/protocol": "file:vendor/canvas/canvas-physics-protocol-0.6.2.tgz"
+  # Remove these scoped security patches when their parents resolve patched versions.
+  "browserslist@4.28.2": "4.28.7"
+  "fast-uri@3.1.2": "3.1.8"
+  "brace-expansion@1.1.18": "1.1.21"
+  "brace-expansion@5.0.6": "5.0.12"
+  # vinext pins image-size; retain this patch exception until its parent is updated.
+  "image-size@2.0.2": "2.0.3"
+  "source-map-js@1.2.1": "1.2.2"
+  "esbuild@0.28.0": "0.28.1"
+  "sharp@0.35.4": "0.35.5"
