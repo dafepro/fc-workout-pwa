@@ -184,13 +184,10 @@ test("team preference survives renaming and switches only to current memberships
         })
       ).status(),
     ).toBe(403);
-    expect(
-      (
-        await page.request.post("/api/auth/team", {
-          data: { teamId: stableDefault.id, extra: "unapproved" },
-        })
-      ).status(),
-    ).toBe(400);
+    const malformed = await page.request.post("/api/auth/team", {
+      data: { teamId: stableDefault.id, extra: "unapproved" },
+    });
+    expect(malformed.status(), await malformed.text()).toBe(400);
     expect(
       (
         await api.delete(`/v1/staff/teams/${target.id}/roster/player-mason`)
