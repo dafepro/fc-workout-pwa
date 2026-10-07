@@ -169,7 +169,7 @@ Local native API/browser passes do not imply Docker, live-dev or phone acceptanc
 ## Local candidate qualification
 
 The retained implementation source is
-`e390440134b25532b2ef8d841b33a5a4ef2756e7` on `codex/dev-roadmap-20261007`.
+`2a9293468170ab46e6e5f84d244322b8a5851f5a` on `codex/dev-roadmap-20261007`.
 The final local build uses real fixture API/SQLite/relay and a built
 development-profile Worker, with analytics disabled. It is separate from the
 deployed release above. App-owned asset digest:
@@ -188,13 +188,49 @@ measurements, the dropped concurrency experiment and physical-device limits.
 | Gate                                                                               | Result                                                                                                                                                                    |
 | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Ordinary verification on retained source                                           | Passed: format/lint/types, 120 Vitest files/593 tests, World/Node contracts, production build, Go normal/dev tests and vet, docs/observability and OpenTofu static checks |
-| Built Worker affected browser journeys                                             | 26 passed, zero skipped/retried/flaky/errors; 118.97 seconds, Chrome 154 local                                                                                            |
+| Built Worker affected browser journeys                                             | 26 passed, zero skipped/retried/flaky/errors; 118.97 seconds, Chrome 154 local; run started October 7 at 22:54:59 UTC                                                     |
+| Vite development module-runner smoke                                               | Passed: real API sessions, two-account shared movement/tools/emotes, route exit and Team return; 7.44 seconds                                                             |
+| Generated Worker configuration and upload dry run                                  | Passed: May 15 compatibility/flags/layout and analytics approval controls retained; 2266.71 KiB compressed, below 2800 KiB budget; no upload                              |
 | Docker / VM qualification                                                          | Unverified; required base-image retrieval unavailable locally                                                                                                             |
 | Authenticated live-dev browser/API/relay and immutable artifact identity           | Pending existing dev credentials and pinned host access                                                                                                                   |
 | Physical phones, full room, sustained GPU/memory/input/recovery and operating cost | Untested                                                                                                                                                                  |
 
-The first two rows record a specific local run; they do not approve live rollout,
+The local rows record specific checks and runs; they do not approve live rollout,
 resolve earlier intermittent failures, or close the full replacement ledger.
+
+## Candidate dependency security
+
+The October 7 candidate audit fell from 51 advisories (one critical) to one
+high finding: braces 3.0.3, [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm).
+Its advertised fix 3.0.4 was not published when checked; an unresolvable override
+was dropped. The finding concerns stack exhaustion from deeply nested patterns.
+The remaining paths are ESLint/build glob tooling; no attacker-controlled app
+path was identified. Keep it open D32 work. Audit counts describe this candidate,
+not the default branch's GitHub alerts or proof of exploitability.
+
+Next and its matching ESLint package are pinned to 16.3.6, addressing the
+[Node ImageResponse advisory](https://github.com/vercel/next.js/security/advisories/GHSA-vcvr-r3jv-pc5j).
+No affected `next/og` or `ImageResponse` app route was identified. Compatible
+transitive patches also refreshed. Only two version-specific security exceptions
+remain: vinext's image-size 2.0.2 pin selects 2.0.3, and Miniflare's sharp 0.35.4
+pin selects 0.35.5. Remove them when their parent pins include the patches.
+
+The matched [Cloudflare tooling release](https://github.com/cloudflare/workers-sdk/releases/tag/%40cloudflare%2Fvite-plugin%401.63.0)
+pins Vite plugin 1.63.0, Wrangler 4.148.0 and Workers types 5.20261006.1, with
+upstream-selected Miniflare 5.20261006.0-alpha and workerd 1.20261006.1. It replaces
+the affected older tooling graph. The Worker compatibility date remains explicitly
+`2026-05-15` with `nodejs_compat`: an actual build before pinning it reproduced
+the new plugin's unintended default-date advance to October 6.
+
+Worker-specific types are imported at their consumers, preserving Node/browser
+globals and Vinext's standard asset-fetch contract. This resolves the actual
+Buffer type conflict without weakening PNG/TOTP assertions.
+
+Frozen installation, ordinary verification, generated configuration, upload dry
+run and both Vite-dev and built browser results qualify this local increment as
+recorded above. No cloud upload or shared-dev fixture reset is part of those
+checks. Successful local qualification does not resolve the remaining advisory
+or deployment, container, device and owner gates.
 
 ## Operating flow
 

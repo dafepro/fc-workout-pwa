@@ -298,7 +298,7 @@ CPU and do not establish an actual network RTT or phone performance.
 
 These timings used `f54bbcbbd195c959605fc15c6327a2a111903c2e` plus the
 recorded experimental dirty diffs, before the late-decode cancellation fix and
-provenance-digest update. They are not exact-`e390440` performance qualification.
+provenance-digest update. They are not performance qualification of the retained candidate.
 Serial preparation completed two 20-cycle runs. Cold p95 was 6.33 and 6.52 seconds;
 warm p95 was 1.99 seconds in both. No sockets remained after any exit, no page
 errors were recorded, and training remained usable. Required art alone transferred
