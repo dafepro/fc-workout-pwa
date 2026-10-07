@@ -14,6 +14,8 @@ const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 
 const bindingConfig = () => ({
   main: "./worker/index.ts",
+  // Tool updates must not advance Worker runtime semantics.
+  compatibility_date: "2026-05-15",
   triggers: { crons: ["17 5 * * *"] },
   compatibility_flags: ["nodejs_compat"],
   vars: {
