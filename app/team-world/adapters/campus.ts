@@ -4,17 +4,17 @@ import {
   markSilhouetteOccluder,
 } from "./character-occlusion";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { worldAssetUrl } from "../assets";
 
 /** App-owned art, layered over the same world.json terrain used by the relay. */
 export async function loadCampus(
   signal?: AbortSignal,
   silhouette?: () => boolean,
 ) {
-  const response = await fetch("/team-world-assets/campus-v2/team-campus.glb", {
-    signal: signal
-      ? AbortSignal.any([signal, AbortSignal.timeout(30000)])
-      : AbortSignal.timeout(30000),
-  });
+  const loading = signal
+    ? AbortSignal.any([signal, AbortSignal.timeout(30000)])
+    : AbortSignal.timeout(30000);
+  const response = await fetch(worldAssetUrl("campus"), { signal: loading });
   if (!response.ok) throw Error("Campus scenery unavailable");
   const root = (
     await new GLTFLoader().parseAsync(await response.arrayBuffer(), "")
@@ -40,7 +40,7 @@ export async function loadCampus(
   let closed = false;
   let removeSilhouette: (() => void) | undefined;
   markSilhouetteOccluder(root);
-  return {
+  const campus = {
     scenery(scene: THREE.Scene) {
       scene.background = new THREE.Color("#dedfd2");
       scene.add(root);
@@ -67,4 +67,9 @@ export async function loadCampus(
       }
     },
   };
+  if (loading.aborted) {
+    campus.dispose();
+    loading.throwIfAborted();
+  }
+  return campus;
 }

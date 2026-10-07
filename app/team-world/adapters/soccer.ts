@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { worldAssetUrl } from "../assets";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { markSilhouetteOccluder } from "./character-occlusion";
 import { createBallShadow } from "./ball-shadow";
@@ -171,8 +172,8 @@ export function createSoccerVisuals(map: WorldMap) {
   return {
     async load(signal?: AbortSignal) {
       const models = await Promise.allSettled(
-        ["pitch-goal-v2.glb", "pitch-scoreboard-v2.glb"].map(async (name) => {
-          const response = await fetch(`/team-world-assets/campus-v2/${name}`, {
+        (["pitchGoal", "pitchScoreboard"] as const).map(async (role) => {
+          const response = await fetch(worldAssetUrl(role), {
             signal: signal
               ? AbortSignal.any([signal, AbortSignal.timeout(30000)])
               : AbortSignal.timeout(30000),

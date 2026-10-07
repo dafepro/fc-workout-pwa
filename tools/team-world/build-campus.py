@@ -13,6 +13,8 @@ from pathlib import Path
 from mathutils import Vector, Matrix
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from campus_export import export_campus
 ASSETS = ROOT / "assets/team-world/campus"
 OUT = ASSETS / "models"
 OUT.mkdir(parents=True, exist_ok=True)
@@ -360,8 +362,7 @@ for (district,name), objects in groups.items():
     bpy.ops.object.join()
     bpy.context.object.name=f"district {district} / {name}"
 bpy.ops.object.select_all(action="SELECT")
-bpy.ops.export_scene.gltf(filepath=str(OUT/"team-campus.glb"),export_format="GLB",
-    use_selection=True,export_animations=False,export_cameras=False,export_lights=False)
+export_campus(OUT/"team-campus.glb")
 
 # Reproducible overview for art review (not a substitute for runtime screenshots).
 scene=bpy.context.scene

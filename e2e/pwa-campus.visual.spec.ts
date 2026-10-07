@@ -1,6 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import { test, expect, request } from "@playwright/test";
 import { loginAsMason } from "./app-ready";
+import { worldAssetUrl } from "../app/team-world/assets";
 
 test.skip(
   process.env.E2E_TEAM_WORLD !== "1",
@@ -36,8 +37,8 @@ test("campus art loads in the real gated world at desktop and phone widths", asy
   );
   await page.getByRole("button", { name: /^Save / }).click();
   expect((await saved).status()).toBe(201);
-  const asset = page.waitForResponse((r) =>
-    r.url().endsWith("campus-v2/team-campus.glb"),
+  const asset = page.waitForResponse(
+    (r) => new URL(r.url()).pathname === worldAssetUrl("campus"),
   );
   await page.goto("/team-world");
   expect((await asset).status()).toBe(200);

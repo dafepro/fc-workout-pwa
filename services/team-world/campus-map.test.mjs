@@ -50,6 +50,33 @@ test("campus runtime asset stays within the reviewed geometry and download budge
   );
 });
 
+test("campus runtime export bounds opaque texture bytes without changing geometry caps", async () => {
+  const bytes = await readFile(
+    new URL(
+      "../../assets/team-world/campus/models/team-campus.glb",
+      import.meta.url,
+    ),
+  );
+  assert.ok(
+    bytes.length < 3 * 1024 * 1024,
+    "Campus runtime exceeds 3 MiB regression cap",
+  );
+  const gltf = JSON.parse(
+    bytes.subarray(20, 20 + bytes.readUInt32LE(12)).toString(),
+  );
+  assert.ok(
+    gltf.materials.every((m) => !m.alphaMode || m.alphaMode === "OPAQUE"),
+  );
+  assert.equal(gltf.images.length, 3);
+  assert.ok(gltf.images.every((i) => i.mimeType === "image/jpeg"));
+  assert.ok(
+    gltf.images.reduce(
+      (n, i) => n + gltf.bufferViews[i.bufferView].byteLength,
+      0,
+    ) < 400000,
+  );
+});
+
 test("every toy and spawn has physical support at the authored height", () => {
   for (const p of [map.spawn, ...map.toys.map((t) => t.home)]) {
     const surface = supportAt(map, p.x, p.z, p.y + 0.02);
