@@ -127,14 +127,45 @@ running. The selected branch contributes the API image and prebuilt Worker
 files, while a strict Worker-config allowlist removes branch-supplied routes,
 cron triggers, service bindings, storage bindings, and variables.
 
+## Current release identity and Actions pause
+
+On October 7, 2026, repository-wide Actions permission was set to `enabled:false`
+for `dafepro/fc-workout-pwa` at the user's request; no queued/running jobs remained.
+Keep it disabled until the user requests otherwise. Pushes and workflow dispatch
+commands below currently cannot perform an update. A manual update requires a
+qualified immutable artifact, existing operator credentials/pinned host key and
+separate API/relay/Worker evidence; disabling Actions is not deployment approval
+or a reason to reset fixtures.
+
+| Component                                                | Observed / selected identity                                                          |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Deployed dev API readiness                               | `b8a87f1f39305fd9e7d5e1d130a173d2249e1d9b`, observed October 7                        |
+| Candidate source baseline                                | `9d21ce7267b5ff7ac6a6fa6e65c7256b9229c6b1`, campus plus existing smoke navigation fix |
+| Main/controller ancestry                                 | `c4c569ef4b0870559d61c23db4b2cbdf41232b07`; record actual controller for each update  |
+| Client / relay package                                   | `zmap` 0.1.11; matched lockfile integrity                                             |
+| Avatar package / assets                                  | `@zmap/avatar-studio` 0.1.4 / `v0.1.4`                                                |
+| Campus assets                                            | `campus-v2`                                                                           |
+| Canvas package                                           | vendored 0.6.2                                                                        |
+| Live Worker/relay digest and authenticated browser gates | Await current authenticated qualification; readiness alone does not prove these       |
+
+The September 26 deployment completed but its aggregate qualification failed in
+Lounge cleanup; World/API write checks were skipped. Do not call it a fully green
+release. PR 72 supplies compatibility work to assess, not a substitute for the
+campus candidate's source tree.
+
+Record candidate commit plus any dirty diff hash, image digests, controller SHA,
+Worker version, package/map/catalog versions and each passed/failed/skipped gate
+separately. Never retain passwords, session material or credential-page captures.
+Local native API/browser passes do not imply Docker, live-dev or phone acceptance.
+
 ## Operating flow
 
-Every push to `main` automatically runs an `update` for that exact commit. The
+When repository Actions is enabled, every push to `main` automatically runs an `update` for that exact commit. The
 update verifies and packages the pushed revision, deploys it through the trusted
 workflow from the same commit, preserves the dev database, and proves the exact
 API container plus the qualified-player Lounge flow before succeeding.
 
-Run the **Operate disposable ZoomiGo dev** workflow manually for the other
+With Actions enabled, run the **Operate disposable ZoomiGo dev** workflow for the other
 operations or for an intentional feature-branch preview:
 
 - `create` with a branch or SHA verifies the revision, publishes a dev-tagged

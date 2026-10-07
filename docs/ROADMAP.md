@@ -1,82 +1,89 @@
 # Delivery roadmap
 
-**Status:** Maintained
+**Status:** Maintained — dev-first queue, reconciled October 7, 2026.
 
-This is the ordered work queue at repository head, last reconciled with code on
-2026-08-30. It is not an implementation diary. Completed work belongs in Git
-history; dormant ideas with activation triggers belong in
-[FUTURE_WORK.md](FUTURE_WORK.md).
+The goal is a simple, safe training PWA with private progress and team motivation,
+plus reusable Zoomap play that cannot change training results. Zoomigo owns
+identity, access, inventory, rewards, persistence and durable policy. The core
+training journey can qualify before the complete World replacement. Saved World
+appearance, decorating and linked travel remain explicit scope gates; a larger
+campus alone does not finish those requirements.
 
-## Current baseline
+## Baseline and evidence
 
-- Connected player flows cover Today, structured training/rest, plan detail,
-  private progress/history, Team Hub, rewards, prize inventory, Avatar Studio,
-  and Team Lounge.
-- The Go/SQLite API owns player and staff authentication, training data, safe
-  projections, assignments, plans, rewards, reactions, analytics identity, and
-  Lounge authority.
-- Coach and platform-operator console surfaces are implemented with TOTP,
-  step-up, role checks, and audit events.
-- Immutable VM releases, OpenTofu infrastructure, encrypted off-host backups,
-  isolated restore, observability, and a disposable preview environment are
-  implemented.
-- Production templates still default real-player provisioning and product
-  analytics to off.
+Deployed dev API: `b8a87f1f39305fd9e7d5e1d130a173d2249e1d9b`.
+Implementation baseline: `codex/team-campus` at
+`9d21ce7267b5ff7ac6a6fa6e65c7256b9229c6b1`, including its smoke navigation fix.
+Main ancestor: `c4c569ef4b0870559d61c23db4b2cbdf41232b07`.
+Preserve the existing campus work in the integration path; an older main tree
+must not replace it. App and trusted deployment-controller SHAs are distinct.
 
-## P0 — owner approvals before real data
+Runtime packages: `zmap` 0.1.11, `@zmap/avatar-studio` 0.1.4, Canvas 0.6.2.
+Map art: `campus-v2`; avatar assets have their own immutable version. Connected
+training, plans/rest, private Momentum/history, Team Hub, prizes, portrait
+editing, staff authentication and transient World are implemented. Durable
+World placements and saved modular 3D appearance are not implemented.
 
-1. Resolve every item in the production approval checklist with dates, names,
-   retention periods, recovery objectives, and a restore record.
-2. Confirm the `PRODUCTION_DATA_APPROVED` state; do not rely on the contradictory
-   historical alpha note.
-3. Resolve backup recovery-key custody and guardian credential handoff.
-4. Approve product-analytics collection/retention or keep it disabled.
+Repository Actions is disabled at the user's request. Local implementation is
+not evidence of deployment. See [DEV_ENVIRONMENT.md](DEV_ENVIRONMENT.md) for
+release identity and qualification. Real-data and analytics approvals remain
+separate from invented-data dev evaluation.
 
-Exit: [backend/PRODUCTION_APPROVAL_CHECKLIST.md](backend/PRODUCTION_APPROVAL_CHECKLIST.md)
-is complete and the corresponding items are removed from
-[OPEN_DECISIONS.md](OPEN_DECISIONS.md).
+## Prioritized, dependency-aware queue
 
-## P1 — release qualification
+States below distinguish local implementation, partial work, ready work,
+qualification, owner decisions and conditional work. None implies an accepted
+or deployed release. Dependencies govern acceptance; independent investigation
+can start earlier. P0 establishes trustworthy dev evidence, P1 stabilizes current
+behavior, P2 closes the product and eventual launch, and P3 requires a trigger.
 
-1. Run the complete Docker browser/API E2E and VM smoke suites against the
-   release candidate.
-2. Execute and record encrypted upload, isolated restore, live cutover, and
-   rollback drills using the approved key-custody process.
-3. Populate both real-device records in
-   [TEAM_LOUNGE_PERFORMANCE_BUDGET.md](TEAM_LOUNGE_PERFORMANCE_BUDGET.md), using
-   the exact stable browser/OS builds tested.
-4. Verify alert delivery, bounded logs, metrics remote-write, memory, disk, and
-   reboot handling on the selected 1 GiB VM.
-5. Review each intentional visual baseline change at 320 px.
+| ID  | Priority / state                                   | Work and acceptance                                                                                                                                                                                                                                                                                            | Dependencies                                                 |
+| --- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| D01 | P0 / partial                                       | One canonical candidate and roadmap. Reconcile current behavior, approved reward exception and separate portrait/outfit representation. Complete exact app/controller/API/relay/Worker/package/map qualification evidence for the next immutable update.                                                       | None                                                         |
+| D02 | P0 / partial                                       | Finish PR 72 smoke compatibility: cleanup verifies its deletion and preserves the original failure. Rerun authenticated deployed Lounge/World gates. Separate deployment from qualification; preserve tester data.                                                                                             | D01; dev access                                              |
+| D03 | P1 / partial                                       | Pin pnpm; include World/package/relay and standalone Node contracts in ordinary verification. The new Docker World runner rejects empty/skipped/failed/flaky reports; container execution remains unverified. Complete build and actual browser/API/VM/container qualification.                                | D01                                                          |
+| D04 | P1 / qualification                                 | Named Android/iOS/desktop cold/warm entry, required/total bytes, decode, frame/input/recovery distributions, full room, 15-minute soak, 20 entry/exit cycles, real transport impairment and relay/API cost. Distinguish proposed from accepted budgets.                                                        | D02; exact candidate                                         |
+| D05 | P1 / ready investigation                           | Use entry waterfall to reduce required art and isolate optional failures. Terrain must be ready before control. Specific retry/fallback, version coherence, old/new caches and graphics-loss recovery need measured proof.                                                                                     | D03; D04 for device acceptance                               |
+| D06 | P1 / qualification                                 | Reproduce host-health/software-renderer and affected-device motion failures on pinned packages. Preserve the fixed timer regression. Repeat entry, movement, late join and host loss; record supported-renderer/fallback decision without weakening thresholds.                                                | D03, D04                                                     |
+| D07 | P1 / partial                                       | Preserve Team session goal and label personal distinct check-in days separately. Partial work may add a private day but cannot complete a plan or earn a Reward day. Count/copy fixes and real SQLite same-day/rest/deletion/rollover coverage are local; include in qualified dev release.                    | D01                                                          |
+| D08 | P1 / implemented locally                           | Membership uses each team's IANA dates, inclusive start/end, one instant and stable ID ties. DST/opposite-zone boundaries and real session-to-dashboard/revocation HTTP regressions pass. Include in next qualified dev release.                                                                               | None                                                         |
+| D09 | P1 / ready                                         | Stable explicit team context or enforceable single-team pilot scope. Renaming must not switch context. Scope drafts/plans/World/Lounge/analytics and retain account-wide prize-day authority so switching cannot double-grant.                                                                                 | D08; context contract                                        |
+| D10 | P1 / partial                                       | Publish/contribute/earn/publish-next passes a real local API/browser journey at 320px. Complete incomplete-reward cancel/expiry, history and fulfillment. Decide late backdated contributions before automatic expiry; show saved participation rule.                                                          | D07 for copy; lifecycle decision                             |
+| D11 | P1 / partial                                       | Stored-only drafts now guard update activation, including malformed/restricted storage. Physical phone keyboard/focus/reduced-motion/expiry/drafts/lost replies/preview-return and isolated production-mode HTTPS install/offline/update remain. Resolve accepted-but-lost reply → edit → save reconciliation. | D02, D03; repeat after D07–D10                               |
+| D12 | P1 / qualification                                 | API/relay restart, authority outage, session/membership revocation, host suspension, two tabs, rejoin, repeated exit and coordinated client/relay/map rollout. Health endpoint is process evidence only; transient reset must be understandable and training usable.                                           | D03; D06 for renderer acceptance                             |
+| D13 | P2 / qualification                                 | Invented-data adult walkthrough first: task completion, comprehension, help needed, return participation and portrait/outfit explanation. Representative children require approved process/policies.                                                                                                           | D07–D11; D24–D26 for real children                           |
+| D14 | P2 / decision and design                           | Versioned World inventory/catalog applicability, quotas, play/edit rights, staff cleanup, upgrades and sleep/reset. Classify earned categories retained/mapped/retired. Preserve fresh-world decision; no old-coordinate conversion promise.                                                                   | D01; compatibility decisions                                 |
+| D15 | P2 / after contract                                | Transactional Go/SQLite layouts: revision CAS, idempotency receipts, quotas, ownership, protected routes, deadlines and unknown outcomes. Prove concurrent/lost-reply retries, restart/deletion/restore without duplicated objects or rights.                                                                  | D12, D14                                                     |
+| D16 | P2 / after authority                               | Public Zoomap preview/cancel/place/move/rotate/remove/return with support height and clear save states. Separate menu/game input and teammate play/edit rights; qualify phone routes.                                                                                                                          | D05, D15                                                     |
+| D17 | P2 / decision after stabilization                  | Saved compatible 3D appearance or recorded scope revision. Versioned recipes, animal/unsupported-item fallback, entitlements and concurrency; saved/peer appearance and unchanged movement. Preserve portrait; unified editor is conditional.                                                                  | D14; representation decision                                 |
+| D18 | P2 / ready                                         | Versioned visual/collision/provenance/budget manifest and reproducible Blender exports. Public depth/attachment hooks where measured need exists. Coarse district graph only for reproduced search failures or distant destinations.                                                                           | D04, D05; route trigger                                      |
+| D19 | P2 / V1 scope decision                             | Implement linked travel/return, destination recovery, no duplicate presence and inventory-safe map generations, or record an owner-approved scope revision.                                                                                                                                                    | D12, D15, D18                                                |
+| D20 | P2 / qualification                                 | Map A-01–A-14 and Z/L/N requirements to passed/failed/untested/explicitly superseded evidence. Requalify full-room cost after customization. Independent map/toy consumer must not depend on Zoomigo business code.                                                                                            | D05, D06, D12, D16; accepted D17/D19 scope                   |
+| D21 | P2 / ready                                         | Current bounded route names are implemented locally. Complete product scorecard and missing event coverage for plan/rest/prize/failed-save recovery. Invented data first; no athletic values/free text. Measure successful training and comprehension, not Lounge hours.                                       | D07; D13 for validated measures; D22/D25 for real collection |
+| D22 | P2 now; P0 before collection / implemented locally | Explicit analytics approval defaults false; D1 alone cannot enable collection. Approved/missing-resource/dev combinations tested; dev forced off. Record effective flag. Disabled collection does not solve existing-row retention.                                                                            | None; D25 for retention                                      |
+| D23 | P2 / decision and implementation                   | Workload bounds and dedicated production plan capability. Check adjacent/overlapping plans, rest, partial work, reschedule/cancel. Reward authoring must not require an unavailable participation source.                                                                                                      | D07, D10; training owner                                     |
+| D24 | P2 future launch gate / decision                   | Guardian handoff/recovery, verified requests, retention/consent, key custodians and RPO/RTO. Audit effective flags and rehearse invented-identity handoff/reissue. Fixtures are not real-data approval.                                                                                                        | None                                                         |
+| D25 | P2 future launch gate / after policy               | Staff export/erasure and audited post-window moderation, analytics/media/retention, restore-safe deletions and backup aging. Verify roles/retry/no resurrection; deactivation is not erasure.                                                                                                                  | D24; analytics policy; D22 before collection                 |
+| D26 | P2 future launch gate / qualification              | Approved-custody encrypted upload, isolated restore, timed cutover/rollback and credential recovery. Prove remote retention and delivered alerts bound to actual app resource IDs; account-wide counts are insufficient.                                                                                       | D24, D25                                                     |
+| D27 | P2 final pilot gate / qualification                | Immutable bounded pilot with core journeys, policies, declared World scope, exact-SHA browser/API/VM, physical devices and rollback preserving new data. Core can precede full World; exposed World requires its applicable gates.                                                                             | D11–D13, D21–D26; D20 for full World; accepted D17/D19 scope |
+| D28 | P3 / conditional                                   | Approved mascots/cosmetics/saved looks/rarity/celebrations/phrases/toys/maps when evaluation shows value. Existing message packs are shipped. Use inventory/content budgets; no purchases/trading/ability rewards.                                                                                             | D13, D14, D18, D20; content approval                         |
+| D29 | P3 / conditional                                   | Predefined ball-work or private coach assessments when demand/catalog/units/workload/retention are approved. Keep assessments outside Team/reward comparison.                                                                                                                                                  | D23, D25; demand                                             |
+| D30 | P3 / conditional                                   | Club management for demonstrated delegated administration; reward email only for fulfillment need with domain/suppression/privacy/delivery operations ready.                                                                                                                                                   | D09, D10, D24–D26; demonstrated need                         |
+| D31 | P3 / conditional                                   | Postgres/multiple writers/transport/managed analytics/new renderer only after measured concurrency/reliability/cost/GPU thresholds. Preserve one SQLite writer until migration/recovery is proved.                                                                                                             | D04, D20, D26; threshold breach                              |
+| D32 | Ongoing                                            | Compatible dependency groups and public-package/release integrity. Refactor touched adapters/styles to remove duplicate state; consolidate stale journals into maintained docs. Avoid a parallel engine or broad rewrite.                                                                                      | D03; targeted checks                                         |
 
-Exit: evidence is dated, failures are fixed or explicitly accepted by the
-responsible owner, and the immutable release SHA has passed the required gates.
+## Next ready work
 
-## P2 — close known product/operations gaps
+1. Finish current normal/local browser qualification and independent review;
+   authenticate dev and record release identity.
+2. Measure startup/lifecycle locally, then physical devices. Fix reproduced
+   failures before extending World.
+3. Close team context and participation/reward regressions; run the invented-data
+   walkthrough and bounded scorecard.
+4. Establish ownership before durable layout/placement. Resolve appearance/travel
+   scope explicitly, then close the acceptance ledger.
+5. Resolve D24 policy before real-data operations. Conditional catalog/scaling
+   ideas retain their triggers in [FUTURE_WORK.md](FUTURE_WORK.md).
 
-1. Approve numeric workload bounds, then enable production training-plan
-   authoring without introducing free text.
-2. Implement guardian export/deletion and audited post-window staff moderation
-   after the policy is approved.
-3. Complete analytics erasure and retention semantics: restore-safe tombstones
-   and, only if needed, durable non-personal aggregates.
-4. Update the bounded analytics route catalog and instrumentation for Plan,
-   Progress, and Prizes so those current screens no longer report as `unknown`.
-5. Remove remaining stale historical comments in source when their surrounding
-   code is next changed; do not preserve old Cloudflare Access behavior.
-6. Keep API and schema inventories generated or mechanically checked so new
-   routes/migrations cannot silently outrun the docs.
-
-## P3 — approved experience work
-
-1. Integrate approved Zoomi/Rover brand assets.
-2. Ship only progression rules and catalog expansions that have an explicit
-   product decision and safe server authority.
-3. Consider the Starlight theme only after visual approval and real-device
-   qualification of the current Lounge.
-
-## Trigger-based work
-
-Do not schedule dormant architecture or feature expansion merely because an old
-plan mentioned it. The preserved list and its activation criteria are in
-[FUTURE_WORK.md](FUTURE_WORK.md).
+Owner decisions and physical-device evidence cannot be replaced by automated
+checks. Keep their rows open until the decision or evidence exists.

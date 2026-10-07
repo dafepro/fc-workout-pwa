@@ -64,8 +64,8 @@ ship under `campus-v2` to invalidate the older baked-goal artwork. Scores are tr
 when the room empties, with no training credit or individual ranking.
 
 This adapts Canvas's accepted-ball, capture-once, hold-and-score pattern. The
-ZMap app behavior replaces Canvas's eject impulse with the requested midfield
-reset. The reusable ZMap `afterStep` hook supplies settled physics; all soccer
+Zoomap app behavior replaces Canvas's eject impulse with the requested midfield
+reset. The reusable Zoomap `afterStep` hook supplies settled physics; all soccer
 policy remains in `app/team-world/soccer.mjs`, installed identically in both peers
 and the relay. The existing practice ball becomes the main-pitch ball, keeping
 the five-toy budget, with one additional garden-pitch ball.
@@ -163,7 +163,7 @@ labels and picking; zmap 0.1.5 owns sequenced commands, approved actions, distan
 line-of-sight and movement-lock checks. Both relay and browser install the same
 behavior and require the interaction protocol capability.
 
-Avatar Studio 0.1.2 corrects the early ink pass to write depth. A real WebGL
+The current Avatar Studio ink pass writes depth. A real WebGL
 regression first reproduced disappearing silhouettes behind opaque scenery,
 then verified retained ink, foreground occlusion and clean repeated redraws.
 This addresses an overlap defect, not a claim that every display's motion
@@ -171,7 +171,7 @@ smearing has been reproduced or eliminated.
 
 ## Authority and deployment boundary
 
-Browser and isolated relay manifests must pin the same ZMap tarball and
+Browser and isolated relay manifests must pin the same Zoomap tarball and
 integrity. `test:world` enforces that contract; the dev pipeline also starts the
 published relay image and checks its health before touching the droplet. This
 catches missing exports or map/behavior incompatibility in the actual container.
@@ -239,80 +239,31 @@ suite is skipped unless explicitly enabled because the ordinary app E2E topology
 has no v3 relay. It resets only the fixture database identified by the local API
 and reset key. Do not run it against a shared development session.
 
-`backend/compose.team-world.yaml` overlays the existing E2E API container with
-these ports and fixture settings. Run only `api` with both compose files, then
-start the host relay/PWA with the corresponding environment variables instead
-of starting a second API. The Docker image build could not be validated in this
-pass because Docker Hub metadata retrieval timed out; the native API exercised
-the same real migrations/authentication.
+`backend/compose.world-e2e.yaml` supplies the automated local relay overlay.
+`backend/compose.team-world.yaml` remains available for a host relay/PWA with only
+its API running in Docker; do not start a second API on the same ports.
 
 ## Verification and remaining gates
 
-The connected browser tests passed with two real fixture accounts: entry,
-peer-visible movement, equipment, shared emote, 320px layout, route disposal and
-original-session revocation within five seconds. No socket or identity was
-mocked. The relay adapter also has a local HTTP contract test. The Go
-HTTP/configuration suites and vet passed, including ticket scope/replay/expiry,
-locked/cross-team access, session and membership revocation, replacement grants
-and fail-closed configuration.
+Normal `pnpm verify` runs `test:world` and standalone Node contracts as well as
+application/Go/static/build checks. `pnpm test:e2e:world` builds a wholly local
+API/PWA/relay/browser topology and rejects empty, skipped, flaky or failed World
+reports. `pnpm verify:all` adds ordinary Docker E2E, World and VM smoke. None uses
+cloud secrets or shared dev data. The native commands above are useful targeted
+qualification when Docker image retrieval is unavailable; they do not prove the
+container or VM deployment.
 
-The September 17 refinement passed all 532 app tests, nine relay/model tests,
-eight connected Chrome journeys plus the WebGL silhouette pixel regression,
-lint, types, formatting and static deployment/documentation contracts. The
-browser journeys include the 160px floating-stick diameter, relocation and pace,
-a real kick scoring for both peers, and midfield return. Visual review checked
-uncovered/covered avatars, modeled net cages, scoreboard digits changing after a
-goal, and the larger joystick. An unconstrained unit run hit an unchanged Lounge
-timeout; the complete rerun used two workers without changing test deadlines.
-The Worker build/upload dry run was 2242.96 KiB compressed against its 2800 KiB
-budget. Desktop tests do not establish physical-phone performance.
+The October candidate passes all 14 native local World browser cases with zero
+skips/retries, covering gameplay, controls, diagnostics, session revocation,
+connection loss/retry and route disposal. An initial dev-server HMR context failure
+cleared after restart. The full run then exposed a soccer-test destination outside
+the visible canvas; an explicit bounds assertion reproduced it and a nearby
+waypoint retained scoring/synchronization assertions. Docker/VM/live-dev/device
+qualification remains open; native success does not replace those gates.
+Desktop Chrome, a Worker upload-size pass and relay health are not evidence of
+physical-phone performance or authority connectivity.
 
-Continue with these active integration gates before a pilot:
-
-1. Resolve upstream software-rendered Linux world/animation qualification. The
-   no-host election storm is fixed in zmap 0.1.2; that alone does not resolve all
-   rendering stalls. See zmap's `docs/ci-browser-investigation.md`.
-2. Add a versioned saved v3 recipe contract, approved modular editor and
-   entitlement validation. Existing Canvas appearance JSON is not that contract.
-3. Implement transactional layout/CAS/idempotency receipts and approved inventory
-   mapping before exposing decorating.
-4. Qualify restart, disable/rollback and one-writer behavior beyond the dev
-   topology documented in `DEV_ENVIRONMENT.md`. Production remains unchanged.
-5. Measure representative phone rendering, input/recovery percentiles, room load
-   and cost. No physical-device qualification is claimed.
-
-## Earlier dev deployment evidence
-
-The earlier dev verification used application `ab5d47cd676120fab500146ec5e2ee199fdeec83`, which includes
-the previously deployed baseline `7853c13a4e2c6c15fe6a27e1bb7a3f1ad32cc437`.
-The update preserved the database and skipped fixture reset. The
-[deployment run](https://github.com/dafepro/fc-workout-pwa/actions/runs/35049549374)
-passed build, strict package-integrity policy, API tests in both build modes,
-Caddy validation, relay health, exact API revision and the existing Canvas
-Lounge browser proof. Production was not deployed.
-
-The new public two-player test passed against that same deployment in local
-Chrome (18.9 seconds), including gated sign-in, qualified entry, peer movement,
-equipment, shared expression and departure. Its Linux CI run reached both players but
-failed the movement assertion (0.293 units versus the required >0.3 within
-15 seconds), so the aggregate workflow is **failed**, despite the successful
-deployment. This remains an open browser qualification issue;
-the local pass does not establish Linux or phone performance. No assertion or
-runtime stall threshold was relaxed.
-
-For manual review, open <https://dev.zoomigo.quicktrack.cc/team-world>, enter the
-shared preview password, choose a fixture player, and use PIN `1111`. Log an
-activity to satisfy the existing participation gate, then open **Team → Team
-World**. Use another browser profile for a second player.
-
-## Scheduling update for dev evaluation
-
-The earlier scheduling evaluation pinned zmap 0.1.3 in both the browser and relay. Simulation
-advances on an independent 30 Hz timer; rendering uses that clock for smooth
-interpolation and stops during recovery from a main-thread stall. The runtime
-retains its existing eligibility thresholds and requires no database migration.
-
-Upstream validation passes 111 unit/socket tests, the independent package
-consumer, three local Chrome synchronization journeys, and a three-player
-action journey. Linux software rendering remains under qualification; these
-changes are a dev evaluation update rather than a claim of pilot readiness.
+Current release evidence belongs in DEV_ENVIRONMENT.md. Active acceptance work is
+D04–D06 and D12–D20 in ROADMAP.md: phone/load/renderer/recovery, durable ownership
+before decorating, saved appearance, travel scope and package independence.
+Production World navigation remains off during qualification.

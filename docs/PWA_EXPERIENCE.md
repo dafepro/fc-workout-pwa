@@ -37,7 +37,10 @@ Locked Team/Lounge guidance links to the unfinished plan block, planned rest
 check-in, or completed-workout recording when no plan exists. A prize link into
 a locked Lounge explains the gate and preserves ownership.
 
-Today and Progress lead with distinct check-in days this week and the team goal.
+Today and Progress lead with distinct check-in days this week. Team's separate
+weekly goal counts training sessions. A recorded session (including partial work)
+or planned rest adds one personal day; multiple sessions on that day still add
+only one. Partial work does not complete a plan or earn a Team Reward day.
 Momentum's score and rolling window are supporting detail. The score still
 gives small additional same-day activity credit; the weekly day count does not.
 Streak, calendar week and rolling five-day window are separately labeled.
@@ -75,7 +78,8 @@ colors. Selecting an activity or pressing Escape restores picker focus.
 The manifest includes 192px/512px regular icons, a maskable icon and Apple touch
 artwork. `scripts/generate-pwa-icons.mjs` renders the checked-in vector. Offline
 state requires reconnection for server actions. A waiting worker offers Update
-app; drafts disable activation. Other tabs changing controllers never reload
+app; unexpired drafts in memory or session storage disable activation, including
+a stored draft after reloading another route. Other tabs changing controllers never reload
 this tab automatically. Development hosts disable/unregister the worker.
 
 ## Qualification

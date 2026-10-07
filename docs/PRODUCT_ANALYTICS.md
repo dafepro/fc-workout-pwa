@@ -10,7 +10,12 @@ autocapture, advertising IDs, or raw training values.
 
 ## Enablement boundary
 
-Collection is active only when all of these exist:
+Release requires explicit trusted `PRODUCT_ANALYTICS_APPROVED=true`; the default
+is `false`. A provisioned database alone never authorizes collection. Dev releases
+force collection off even if approval is supplied. An approved production release
+fails before deployment when its binding, database ID or subject secret is absent.
+The generated effective `PRODUCT_ANALYTICS_ENABLED` flag is printed in release
+evidence. Runtime collection also requires all of these:
 
 - `PRODUCT_ANALYTICS_ENABLED=true` in the Worker configuration;
 - an `ANALYTICS_DB` D1 binding;
@@ -18,7 +23,7 @@ Collection is active only when all of these exist:
 
 Absent or invalid configuration fails closed for collection and leaves normal
 product workflows usable. Infrastructure provisions the dedicated D1 resource;
-release automation discovers its ID rather than copying it into GitHub.
+approved release automation discovers its ID rather than copying it into GitHub.
 
 Real-player collection remains an owner decision in
 [OPEN_DECISIONS.md](OPEN_DECISIONS.md).
@@ -40,10 +45,11 @@ derives HMAC subject/team keys from the authenticated session. Names, raw IDs,
 email, credential/session material, URLs, free text, athletic measurements,
 effort, exhaustion, and response bodies are forbidden.
 
-The canonical route catalog still reflects the older Home/Log/Team/Me surface;
-Plan, Progress, and Prizes currently fall into `unknown`. Expanding that bounded
-enum to match the consolidated shell is known roadmap work, not evidence that
-the new screens are unimplemented.
+The bounded route catalog includes Today, Log, Team, Plan, Progress, Prizes, Me,
+session detail, portrait editing, login and Team World. Unknown paths, query
+strings, fragments and staff paths remain `unknown`; identifiers are never
+retained as route names. Plan/rest/prize action outcomes and a validated product
+success scorecard remain D21 work.
 
 ## Storage and retention
 
@@ -52,7 +58,10 @@ stores event/source, received and occurred times, pseudonymous keys, visit,
 canonical route, active duration, team-local day/hour, allowlisted JSON
 properties, and sample weight.
 
-A scheduled Worker call prunes raw rows older than 90 days in bounded batches.
+While enabled, a scheduled Worker call prunes raw rows older than 90 days in
+bounded batches. Disabling release collection removes its binding and schedule;
+existing D1 rows do not automatically disappear or continue scheduled pruning.
+D25 must provide independently operated retention/erasure before real collection.
 The current implementation does **not** have durable daily-aggregate,
 maintenance, or erasure-tombstone tables. Do not describe those planned tables
 as shipped. Restore-safe subject erasure and long-lived non-personal rollups are

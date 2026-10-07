@@ -30,7 +30,7 @@ rules into a maintained document, move unfinished trigger-based ideas to
 - [DOMAIN_MODEL.md](DOMAIN_MODEL.md) — maintained conceptual model and authority
   boundaries
 - [OPEN_DECISIONS.md](OPEN_DECISIONS.md) — unresolved owner decisions only
-- [ROADMAP.md](ROADMAP.md) — current ordered work and release gates
+- [ROADMAP.md](ROADMAP.md) — D01–D32 dev-first priorities, dependencies, evidence and future launch gates
 - [FUTURE_WORK.md](FUTURE_WORK.md) — dormant ideas preserved with explicit
   activation triggers
 - [STAFF_CONSOLE.md](STAFF_CONSOLE.md) — current staff roles, capabilities, and
@@ -38,7 +38,7 @@ rules into a maintained document, move unfinished trigger-based ideas to
 
 ## Engineering and operations
 
-- [TEAM_WORLD_CAMPUS_TODO.md](TEAM_WORLD_CAMPUS_TODO.md) — campus ownership, extent and unresolved rendering/qualification decisions
+- [TEAM_WORLD_CAMPUS_TODO.md](TEAM_WORLD_CAMPUS_TODO.md) — current campus ownership, extent and rendering/qualification contracts
 - [TEAM_WORLD.md](TEAM_WORLD.md) — fresh v3 integration scope and qualification
 
 - [DEV_ENVIRONMENT.md](DEV_ENVIRONMENT.md) — disposable preview environment

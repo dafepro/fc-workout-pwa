@@ -95,30 +95,34 @@ rollups and restore-safe erasure tombstones are not implemented.
 - Approve or reject the Starlight Training Camp candidate in
   [TEAM_LOUNGE_STARLIGHT_CAMP.md](TEAM_LOUNGE_STARLIGHT_CAMP.md).
 
-## Team Reward authoring
+## Team Reward lifecycle
 
-**Owner:** Product and safety owner
+**Owner:** Product owner
 
-**Decision:** Authorized staff may customize a reward title and description and
-optionally upload one JPEG or PNG prize image. The server re-decodes, crops, and
-stores an immutable private JPEG; only staff for that team and players who can
-see the attached current reward may fetch it. Guidance prohibits players,
-faces, names, contact details, schedules, QR codes, and private information.
-This is the sole production upload exception and grants no upload or open-text
-control to players. New rewards default to the team-local current date through
-six days later; cleared or reversed dates are explicitly identified and
-focused. Alternate progress rules and player-level reward results remain out.
+**Needed before:** Automatic expiry and fulfillment workflows
+
+Decide whether an incomplete reward can earn through otherwise valid entries
+backdated after its final date, when staff may replace/cancel it, how long history
+is visible, and who records promised fulfillment. The current rule allows
+seven-day backdating; silently expiring on the end date would change eligibility.
+Earned rewards already allow publication of the next reward. The approved staff
+content exception is maintained in PRODUCT_BRIEF.md and UX_AND_SAFETY_RULES.md.
+
+## World inventory and V1 scope
+
+**Owner:** Product and engineering owner
+
+**Needed before:** Durable decorating, saved 3D appearance or a full-World pilot
+
+Approve applicability of existing earned items, placement quotas/edit rights and
+cleanup/reset policy. Decide compatible saved 3D recipes and linked travel/map
+changes, or record an explicit V1 scope revision. The separate portrait/outfit
+representation is accepted during stabilization; it does not close the original
+saved World appearance goal. See D14–D20 in ROADMAP.md.
 
 ## Retired ranking projection and private reaction badges
 
 **Owner:** Product and engineering owner
-
-**Decision:** The standalone ranking projection and its reaction context are
-retired. The API, player proxy, client gateway, prototype fixtures, analytics,
-and current database schema expose only Team progress and challenge contexts.
-Migration 22 deletes existing ranking-context reactions rather than relabeling
-them because Team progress has different semantics; supported reactions remain
-intact. Logical backups omit the retired metric field.
 
 **Needed before:** Reintroducing any comparative ranking or placement language
 
