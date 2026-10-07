@@ -85,10 +85,11 @@ export function activateDraftOwner(next: string) {
   } catch {
     /* Memory ownership still works when storage is restricted. */
   }
-  if (previous && previous !== next) clearPlayerDrafts();
-  owner = next;
+  const player = next.split("/")[0];
+  if (previous && previous.split("/")[0] !== player) clearPlayerDrafts();
+  owner = player;
   try {
-    storage()?.setItem(OWNER, next);
+    storage()?.setItem(OWNER, player);
   } catch {
     /* Restricted storage. */
   }

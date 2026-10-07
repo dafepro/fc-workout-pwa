@@ -45,6 +45,11 @@ derives HMAC subject/team keys from the authenticated session. Names, raw IDs,
 email, credential/session material, URLs, free text, athletic measurements,
 effort, exhaustion, and response bodies are forbidden.
 
+Each tab's validated active team scopes its analytics. A queued client batch
+retains the context in which it was created when the next visit switches teams.
+An invalid or revoked explicit context cannot be attributed to another team.
+Page exit and hidden-page summaries are queued before their flush.
+
 The bounded route catalog includes Today, Log, Team, Plan, Progress, Prizes, Me,
 session detail, portrait editing, login and Team World. Unknown paths, query
 strings, fragments and staff paths remain `unknown`; identifiers are never

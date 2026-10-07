@@ -15,6 +15,14 @@ beforeEach(() => {
   sessionStorage.clear();
 });
 describe("private session drafts", () => {
+  it("keeps another team's draft for the same player during context fallback", () => {
+    activateDraftOwner("player-a/team-old");
+    writePlayerDraft("player-a/team-old/training", { amount: "9" });
+    activateDraftOwner("player-a");
+    expect(readPlayerDraft("player-a/team-old/training", valid)).toEqual({
+      amount: "9",
+    });
+  });
   it("keeps blank answers and separates routes while recovering the same draft", () => {
     activateDraftOwner("player-a/team-a");
     writePlayerDraft("player-a/team-a/log", { amount: "" });

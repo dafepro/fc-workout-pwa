@@ -11,6 +11,11 @@ import {
   setSessionCookie,
 } from "../../backend";
 import {
+  decodeTeamPreference,
+  selectTeam,
+  TEAM_CONTEXT_HEADER,
+} from "../../../../lib/team-context";
+import {
   recordServerEvent,
   recordAnonymousServerEvent,
   recordServerEventForRequest,
@@ -28,7 +33,7 @@ export async function GET(request: Request) {
   }
   const token = readSessionCookie(request);
   if (!token) return jsonError(401, "unauthenticated", "Sign in is required.");
-  return proxySession(baseURL, token);
+  return proxySession(request, baseURL, token);
 }
 
 export async function POST(request: Request) {
@@ -146,7 +151,7 @@ export async function DELETE(request: Request) {
   });
 }
 
-async function proxySession(baseURL: string, token: string) {
+async function proxySession(request: Request, baseURL: string, token: string) {
   let response: Response;
   try {
     response = await fetch(`${baseURL}/v1/auth/session`, {
@@ -157,6 +162,25 @@ async function proxySession(baseURL: string, token: string) {
       503,
       "backend_unavailable",
       "ZoomiGo is temporarily unavailable.",
+    );
+  }
+  if (response.ok) {
+    const session = (await response.json()) as AnalyticsSession;
+    const player = session.player;
+    return Response.json(
+      {
+        ...session,
+        activeTeamId: player
+          ? selectTeam(
+              player.teams,
+              decodeTeamPreference(
+                request.headers.get(TEAM_CONTEXT_HEADER),
+                player.id,
+              ),
+            )?.id
+          : undefined,
+      },
+      { headers: forwardedHeaders(response) },
     );
   }
   return new Response(await response.text(), {

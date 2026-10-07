@@ -1,3 +1,4 @@
+import { fetchWithTeamContext } from "../../lib/team-context";
 import type {
   ActivityId,
   CompletionOutcome,
@@ -55,7 +56,7 @@ class ConnectedTrainingEntryGateway implements TrainingEntryGateway {
   }
 
   async get(entryID: string): Promise<TrainingEntry | null> {
-    const response = await fetch(
+    const response = await fetchWithTeamContext(
       `/api/zoomigo/v1/training-entries/${encodeURIComponent(entryID)}`,
     );
     if (response.status === 404) return null;
@@ -67,34 +68,37 @@ class ConnectedTrainingEntryGateway implements TrainingEntryGateway {
     input: TrainingEntryInput,
     submissionKey = crypto.randomUUID(),
   ): Promise<TrainingEntry> {
-    const response = await fetch("/api/zoomigo/v1/me/training-entries", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Idempotency-Key": submissionKey,
-      },
-      body: JSON.stringify({
-        teamId: this.teamID,
-        activityDefinitionId: input.activityId,
-        assignmentId: input.assignmentId,
-        plan: input.plan,
-        occurredAt: input.occurredAt,
-        result: {
-          kind: input.inputKind,
-          value: input.value,
-          unit: input.unit,
+    const response = await fetchWithTeamContext(
+      "/api/zoomigo/v1/me/training-entries",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": submissionKey,
         },
-        effortLevel: input.effortLevel,
-        exhaustionLevel: input.exhaustionLevel,
-        completionOutcome: input.completionOutcome,
-      }),
-    });
+        body: JSON.stringify({
+          teamId: this.teamID,
+          activityDefinitionId: input.activityId,
+          assignmentId: input.assignmentId,
+          plan: input.plan,
+          occurredAt: input.occurredAt,
+          result: {
+            kind: input.inputKind,
+            value: input.value,
+            unit: input.unit,
+          },
+          effortLevel: input.effortLevel,
+          exhaustionLevel: input.exhaustionLevel,
+          completionOutcome: input.completionOutcome,
+        }),
+      },
+    );
     await throwForError(response);
     return fromAPIEntry((await response.json()) as APITrainingEntry);
   }
 
   async delete(entryID: string): Promise<void> {
-    const response = await fetch(
+    const response = await fetchWithTeamContext(
       `/api/zoomigo/v1/training-entries/${encodeURIComponent(entryID)}`,
       {
         method: "DELETE",
@@ -104,7 +108,7 @@ class ConnectedTrainingEntryGateway implements TrainingEntryGateway {
   }
 
   private async request(path: string): Promise<Response> {
-    const response = await fetch(`/api/zoomigo${path}`);
+    const response = await fetchWithTeamContext(`/api/zoomigo${path}`);
     await throwForError(response);
     return response;
   }

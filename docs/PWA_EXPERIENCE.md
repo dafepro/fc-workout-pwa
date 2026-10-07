@@ -15,6 +15,16 @@ save, or Discard. Session storage is scoped to player/team/form; restricted
 storage falls back to memory. This is recovery, not queued offline submission.
 Blank numeric input stays blank and cannot submit.
 
+Me's Account and app section selects only current authenticated memberships.
+The current team is pinned by ID per tab in session storage, independent of the
+shared sign-in cookie. Renaming or adding a team does not switch an existing tab.
+Switch team requires saving or explicitly discarding drafts, then reloads Today
+to release the old training and play runtime. A removed membership falls back
+to the stable default with fresh providers; old team drafts remain recoverable
+until expiration or deliberate discard, rather than being silently erased.
+Restricted storage uses a bounded fragment handoff for the switch and validated
+memory for the visit; a later independent reload may return to the default.
+
 Only an assigned or linked plan activity is preselected. Otherwise the player
 chooses an activity. Instructions, prescribed target versus completed amount,
 named feeling values, and editable device-local date/time appear before Save.

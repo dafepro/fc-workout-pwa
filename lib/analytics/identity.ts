@@ -1,6 +1,8 @@
 import type { AnalyticsIdentity } from "./storage";
+import { selectTeam } from "../team-context";
 
 export interface AnalyticsSession {
+  activeTeamId?: string;
   player: {
     id: string;
     teams: { id: string; name: string; timeZone?: string }[];
@@ -34,7 +36,12 @@ export async function identityForSession(
   secret: string,
 ): Promise<AnalyticsIdentity | null> {
   if (!session.player) return null;
-  const team = session.player.teams[0];
+  if (
+    session.activeTeamId &&
+    !session.player.teams.some((team) => team.id === session.activeTeamId)
+  )
+    return null;
+  const team = selectTeam(session.player.teams, session.activeTeamId);
   return {
     subjectKey: await pseudonymize(`player:${session.player.id}`, secret),
     teamKey: team ? await pseudonymize(`team:${team.id}`, secret) : null,

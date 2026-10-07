@@ -1,4 +1,19 @@
 export const qualityCopy = {
+  teamContext: {
+    title: "Your team",
+    label: "Current team",
+    help: "Your plan, sessions and Team views use this team. Your Prizes belong to you.",
+    action: "Switch team",
+    busy: "Switching team…",
+    draft: "Save or discard your drafts before switching teams.",
+    failed:
+      "Team switching is unavailable. Your current team stays selected. Try again.",
+    discard: "Discard saved drafts",
+    discardHelp:
+      "This removes training and portrait drafts in this tab. Your recorded sessions stay saved.",
+    confirmDiscard: "Yes, discard drafts",
+    cancel: "Keep drafts",
+  },
   offline:
     "You’re offline. Your unfinished edits stay on this device. Reconnect before saving or joining your team.",
   updateDraft:

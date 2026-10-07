@@ -17,6 +17,11 @@ import { routes } from "../content/routes";
 import { AnalyticsProvider } from "../../lib/analytics/AnalyticsProvider";
 import { AvatarIdentityProvider } from "./avatar-identity-context";
 import { activateDraftOwner, clearPlayerDrafts } from "./player-drafts";
+import {
+  clearTeamContext,
+  fetchWithTeamContext,
+  persistTeamContext,
+} from "../../lib/team-context";
 
 interface AuthState {
   connected: boolean;
@@ -48,21 +53,24 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     let active = true;
     void (async () => {
       try {
-        const response = await fetch("/api/auth/session", {
+        const response = await fetchWithTeamContext("/api/auth/session", {
           cache: "no-store",
         });
         if (!active) return;
         if (response.ok) {
           const session = parseConnectedSession(await response.json());
-          if (session)
-            activateDraftOwner(
-              `${session.player.id}/${session.player.teams[0].id}`,
-            );
+          const runtime = session
+            ? createConnectedPlayerRuntime(session)
+            : null;
+          if (runtime) {
+            persistTeamContext(runtime.currentPlayerID, runtime.currentTeam.id);
+            activateDraftOwner(runtime.currentPlayerID);
+          }
           setState(
-            session
+            runtime
               ? {
                   status: "ready",
-                  runtime: createConnectedPlayerRuntime(session),
+                  runtime,
                 }
               : { status: "unavailable" },
           );
@@ -86,6 +94,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           }
         } else if (response.status === 401) {
           clearPlayerDrafts();
+          clearTeamContext();
           router.replace(routes.playerSignIn);
         } else {
           setState({ status: "unavailable" });
@@ -142,16 +151,26 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       setAvatarConfig(await runtime.avatar.save(config));
     },
     async signOut() {
-      await fetch("/api/auth/session", { method: "DELETE" });
+      await fetchWithTeamContext("/api/auth/session", { method: "DELETE" });
       clearPlayerDrafts();
+      clearTeamContext();
       router.replace(routes.playerSignIn);
     },
   };
   return (
     <AuthContext.Provider value={auth}>
-      <AnalyticsProvider enabled={connected}>
+      <AnalyticsProvider
+        key={`${currentPlayerID}/${runtime.currentTeam.id}`}
+        enabled={connected}
+        teamContext={
+          connected ? `${currentPlayerID}/${runtime.currentTeam.id}` : undefined
+        }
+      >
         <AvatarIdentityProvider value={{ currentPlayerID, avatarConfig }}>
-          <TrainingProvider runtime={runtime}>
+          <TrainingProvider
+            key={`${currentPlayerID}/${runtime.currentTeam.id}`}
+            runtime={runtime}
+          >
             <PlayerShell>{children}</PlayerShell>
           </TrainingProvider>
         </AvatarIdentityProvider>
