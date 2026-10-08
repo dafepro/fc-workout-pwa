@@ -127,14 +127,119 @@ running. The selected branch contributes the API image and prebuilt Worker
 files, while a strict Worker-config allowlist removes branch-supplied routes,
 cron triggers, service bindings, storage bindings, and variables.
 
+## Current release identity and Actions pause
+
+On October 7, 2026, repository-wide Actions permission was set to `enabled:false`
+for `dafepro/fc-workout-pwa` at the user's request; no queued/running jobs remained.
+Keep it disabled until the user requests otherwise. Pushes and workflow dispatch
+commands below currently cannot perform an update. A manual update requires a
+qualified immutable artifact, existing operator credentials/pinned host key and
+separate API/relay/Worker evidence; disabling Actions is not deployment approval
+or a reason to reset fixtures.
+
+| Component                                                | Observed / selected identity                                                          |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Deployed dev API readiness                               | `b8a87f1f39305fd9e7d5e1d130a173d2249e1d9b`, observed October 7                        |
+| Candidate source baseline                                | `9d21ce7267b5ff7ac6a6fa6e65c7256b9229c6b1`, campus plus existing smoke navigation fix |
+| Main/controller ancestry                                 | `c4c569ef4b0870559d61c23db4b2cbdf41232b07`; record actual controller for each update  |
+| Client / relay package                                   | `zmap` 0.1.11; matched lockfile integrity                                             |
+| Avatar package / assets                                  | `@zmap/avatar-studio` 0.1.4 / `v0.1.4`                                                |
+| Deployed campus assets                                   | `campus-v2`                                                                           |
+| Canvas package                                           | vendored 0.6.2                                                                        |
+| Live Worker/relay digest and authenticated browser gates | Await current authenticated qualification; readiness alone does not prove these       |
+
+The local candidate now packages app-owned art under the digest in
+`assets/team-world/manifest.json`; this does not change the deployed `campus-v2`
+identity above. Its campus GLB is 2.08 MB instead of 8.81 MB, with unchanged
+collision/geometry and source images. Normal verification and targeted local
+browser qualification are recorded separately from deployment below. The
+[replacement ledger](TEAM_WORLD.md#replacement-acceptance-ledger) leaves all
+complete World journeys unaccepted.
+
+The September 26 deployment completed but its aggregate qualification failed in
+Lounge cleanup; World/API write checks were skipped. Do not call it a fully green
+release. PR 72 supplies compatibility work to assess, not a substitute for the
+campus candidate's source tree.
+
+Record candidate commit plus any dirty diff hash, image digests, controller SHA,
+Worker version, package/map/catalog versions and each passed/failed/skipped gate
+separately. Never retain passwords, session material or credential-page captures.
+Local native API/browser passes do not imply Docker, live-dev or phone acceptance.
+
+## Local candidate qualification
+
+The retained implementation source is
+`2a9293468170ab46e6e5f84d244322b8a5851f5a` on `codex/dev-roadmap-20261007`.
+The final local build uses real fixture API/SQLite/relay and a built
+development-profile Worker, with analytics disabled. It is separate from the
+deployed release above. App-owned asset digest:
+`75ceddf6763be5222b2dfaaef119e31a8456d77dd304da5f84e5d54c90b6c84f`;
+map ID remains `team-world-campus-v2` and Avatar Studio remains `v0.1.4`.
+
+A prior 25-case built browser run passed 24 and failed one: malformed team
+selection unexpectedly returned 503 rather than 400. The immediate targeted
+repeat and ten consecutive repeats passed. Response-body diagnostics are now
+retained in the assertion, but the isolated failure's cause is unconfirmed; do
+not count its green repeats as a diagnosis or erase the failed qualification.
+The campus late-decode regression failed with zero of three bitmaps released,
+then passed after cancellation cleanup. See TEAM_WORLD.md for desktop startup
+measurements, the dropped concurrency experiment and physical-device limits.
+
+| Gate                                                                               | Result                                                                                                                                                                    |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ordinary verification on retained source                                           | Passed: format/lint/types, 120 Vitest files/593 tests, World/Node contracts, production build, Go normal/dev tests and vet, docs/observability and OpenTofu static checks |
+| Built Worker affected browser journeys                                             | 26 passed, zero skipped/retried/flaky/errors; 118.97 seconds, Chrome 154 local; run started October 7 at 22:54:59 UTC                                                     |
+| Vite development module-runner smoke                                               | Passed: real API sessions, two-account shared movement/tools/emotes, route exit and Team return; 7.44 seconds                                                             |
+| Generated Worker configuration and upload dry run                                  | Passed: May 15 compatibility/flags/layout and analytics approval controls retained; 2266.71 KiB compressed, below 2800 KiB budget; no upload                              |
+| Docker / VM qualification                                                          | Unverified; required base-image retrieval unavailable locally                                                                                                             |
+| Authenticated live-dev browser/API/relay and immutable artifact identity           | Pending existing dev credentials and pinned host access                                                                                                                   |
+| Physical phones, full room, sustained GPU/memory/input/recovery and operating cost | Untested                                                                                                                                                                  |
+
+The local rows record specific checks and runs; they do not approve live rollout,
+resolve earlier intermittent failures, or close the full replacement ledger.
+
+## Candidate dependency security
+
+The October 7 candidate audit fell from 51 advisories (one critical) to one
+high finding: braces 3.0.3, [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm).
+Its advertised fix 3.0.4 was not published when checked; an unresolvable override
+was dropped. The finding concerns stack exhaustion from deeply nested patterns.
+The remaining paths are ESLint/build glob tooling; no attacker-controlled app
+path was identified. Keep it open D32 work. Audit counts describe this candidate,
+not the default branch's GitHub alerts or proof of exploitability.
+
+Next and its matching ESLint package are pinned to 16.3.6, addressing the
+[Node ImageResponse advisory](https://github.com/vercel/next.js/security/advisories/GHSA-vcvr-r3jv-pc5j).
+No affected `next/og` or `ImageResponse` app route was identified. Compatible
+transitive patches also refreshed. Only two version-specific security exceptions
+remain: vinext's image-size 2.0.2 pin selects 2.0.3, and Miniflare's sharp 0.35.4
+pin selects 0.35.5. Remove them when their parent pins include the patches.
+
+The matched [Cloudflare tooling release](https://github.com/cloudflare/workers-sdk/releases/tag/%40cloudflare%2Fvite-plugin%401.63.0)
+pins Vite plugin 1.63.0, Wrangler 4.148.0 and Workers types 5.20261006.1, with
+upstream-selected Miniflare 5.20261006.0-alpha and workerd 1.20261006.1. It replaces
+the affected older tooling graph. The Worker compatibility date remains explicitly
+`2026-05-15` with `nodejs_compat`: an actual build before pinning it reproduced
+the new plugin's unintended default-date advance to October 6.
+
+Worker-specific types are imported at their consumers, preserving Node/browser
+globals and Vinext's standard asset-fetch contract. This resolves the actual
+Buffer type conflict without weakening PNG/TOTP assertions.
+
+Frozen installation, ordinary verification, generated configuration, upload dry
+run and both Vite-dev and built browser results qualify this local increment as
+recorded above. No cloud upload or shared-dev fixture reset is part of those
+checks. Successful local qualification does not resolve the remaining advisory
+or deployment, container, device and owner gates.
+
 ## Operating flow
 
-Every push to `main` automatically runs an `update` for that exact commit. The
+When repository Actions is enabled, every push to `main` automatically runs an `update` for that exact commit. The
 update verifies and packages the pushed revision, deploys it through the trusted
 workflow from the same commit, preserves the dev database, and proves the exact
 API container plus the qualified-player Lounge flow before succeeding.
 
-Run the **Operate disposable ZoomiGo dev** workflow manually for the other
+With Actions enabled, run the **Operate disposable ZoomiGo dev** workflow for the other
 operations or for an intentional feature-branch preview:
 
 - `create` with a branch or SHA verifies the revision, publishes a dev-tagged

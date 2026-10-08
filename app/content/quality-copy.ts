@@ -1,4 +1,19 @@
 export const qualityCopy = {
+  teamContext: {
+    title: "Your team",
+    label: "Current team",
+    help: "Your plan, sessions and Team views use this team. Your Prizes belong to you.",
+    action: "Switch team",
+    busy: "Switching team…",
+    draft: "Save or discard your drafts before switching teams.",
+    failed:
+      "Team switching is unavailable. Your current team stays selected. Try again.",
+    discard: "Discard saved drafts",
+    discardHelp:
+      "This removes training and portrait drafts in this tab. Your recorded sessions stay saved.",
+    confirmDiscard: "Yes, discard drafts",
+    cancel: "Keep drafts",
+  },
   offline:
     "You’re offline. Your unfinished edits stay on this device. Reconnect before saving or joining your team.",
   updateDraft:
@@ -30,10 +45,11 @@ export const qualityCopy = {
     `A team day counts when at least ${percent}% of eligible teammates complete planned activity or check in for planned rest.`,
   ended: (date: string) => `Ended ${date}`,
   starts: (date: string) => `Starts ${date}`,
-  weekly: (current: number, goal: number) =>
-    `${current} of ${goal} check-ins this week`,
+  checkInDays: (current: number) =>
+    `${current} check-in ${current === 1 ? "day" : "days"}`,
+  weekly: (current: number) => `${qualityCopy.checkInDays(current)} this week`,
   weeklyRule:
-    "A completed workout or planned rest check-in counts. More activity in one day does not add another check-in.",
+    "A recorded training session or planned rest check-in adds a day. More activity on the same day does not add another day. Your Team goal counts training sessions separately. Partial work does not complete a plan or earn a Team Reward day.",
   howMomentum: "How Momentum works",
   momentumRule:
     "Momentum is a score from 0 to 100 based on your recent consistency. Your streak counts consecutive check-in days. The five-day view is a rolling window, so it can differ from this week.",

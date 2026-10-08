@@ -1,5 +1,5 @@
 import type { ActivityId, CompletionOutcome } from "../domain/types";
-import type { SubmissionAttempt } from "./submission";
+import { submissionInput, type SubmissionAttempt } from "./submission";
 
 export type TrainingDraft = {
   selection: { activityId: ActivityId; value: number } | null;
@@ -29,8 +29,6 @@ export function isTrainingDraft(value: unknown): value is TrainingDraft {
     (draft.selection === null ||
       (typeof draft.selection?.activityId === "string" &&
         Number.isFinite(draft.selection.value))) &&
-    (draft.attempt === undefined ||
-      (typeof draft.attempt.key === "string" &&
-        typeof draft.attempt.fingerprint === "string"))
+    (draft.attempt === undefined || submissionInput(draft.attempt) !== null)
   );
 }

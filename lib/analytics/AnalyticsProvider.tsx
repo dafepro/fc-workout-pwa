@@ -1,4 +1,5 @@
 "use client";
+import { TEAM_CONTEXT_HEADER } from "../team-context";
 
 import { usePathname } from "next/navigation";
 import {
@@ -17,9 +18,11 @@ const idleAfterMs = 60_000;
 export function AnalyticsProvider({
   enabled,
   children,
+  teamContext,
 }: {
   enabled: boolean;
   children: ReactNode;
+  teamContext?: string;
 }) {
   const pathname = usePathname();
   const client = useMemo(
@@ -29,13 +32,16 @@ export function AnalyticsProvider({
         send: async (batch) => {
           await fetch("/api/metrics", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              ...(teamContext ? { [TEAM_CONTEXT_HEADER]: teamContext } : {}),
+            },
             body: JSON.stringify(batch),
             keepalive: true,
           });
         },
       }),
-    [enabled],
+    [enabled, teamContext],
   );
 
   useEffect(() => {
@@ -69,7 +75,6 @@ export function AnalyticsProvider({
       window.removeEventListener("appinstalled", installed);
       window.removeEventListener("online", online);
       window.removeEventListener("offline", offline);
-      void client.flush();
     };
   }, [client, enabled]);
 
@@ -97,33 +102,24 @@ export function AnalyticsProvider({
         views: 1,
       });
     };
+    const summarizeAndFlush = () => {
+      summarize();
+      void client.flush();
+    };
     const summarizeWhenHidden = () => {
-      if (document.visibilityState === "hidden") summarize();
+      if (document.visibilityState === "hidden") summarizeAndFlush();
     };
     document.addEventListener("visibilitychange", summarizeWhenHidden);
-    window.addEventListener("pagehide", summarize);
+    window.addEventListener("pagehide", summarizeAndFlush);
     return () => {
       for (const eventName of ["pointerdown", "keydown", "scroll"] as const) {
         window.removeEventListener(eventName, markActive);
       }
       document.removeEventListener("visibilitychange", summarizeWhenHidden);
-      window.removeEventListener("pagehide", summarize);
-      summarize();
-      void client.flush();
+      window.removeEventListener("pagehide", summarizeAndFlush);
+      summarizeAndFlush();
     };
   }, [client, enabled, pathname]);
-
-  useEffect(() => {
-    const flush = () => {
-      if (document.visibilityState === "hidden") void client.flush();
-    };
-    document.addEventListener("visibilitychange", flush);
-    window.addEventListener("pagehide", flush);
-    return () => {
-      document.removeEventListener("visibilitychange", flush);
-      window.removeEventListener("pagehide", flush);
-    };
-  }, [client]);
 
   return (
     <AnalyticsContext.Provider value={client}>

@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "mapId": "team-world-campus-v2",
+  "files": [
+    {
+      "role": "collision",
+      "source": "app/team-world/world.json",
+      "provenance": "assets/team-world/campus/PROVENANCE.md",
+      "bytes": 26679,
+      "sha256": "74de8d226dc32d96d7ad7c76b064af362f22af09fbc23c09ad887e6e31ee27a5",
+      "provenanceSha256": "ed9cac189ad0131f0b59fbde83681459018b2b53782718215dd0c07dfe17bc53"
+    },
+    {
+      "role": "campus",
+      "source": "assets/team-world/campus/models/team-campus.glb",
+      "publicName": "team-campus.glb",
+      "provenance": "assets/team-world/campus/PROVENANCE.md",
+      "limits": {
+        "bytes": 3145728,
+        "meshes": 80,
+        "triangles": 100000,
+        "textureBytes": 400000
+      },
+      "bytes": 2079524,
+      "sha256": "c97c5210a660184c4612b34e566e70c177886de29e4d316cbecf8e1ee363f450",
+      "provenanceSha256": "ed9cac189ad0131f0b59fbde83681459018b2b53782718215dd0c07dfe17bc53",
+      "meshes": 49,
+      "triangles": 28002,
+      "textureBytes": 69643
+    },
+    {
+      "role": "pitchGoal",
+      "source": "assets/team-world/campus/models/pitch-goal-v2.glb",
+      "publicName": "pitch-goal-v2.glb",
+      "provenance": "assets/team-world/campus/PROVENANCE.md",
+      "limits": {
+        "bytes": 1048576,
+        "triangles": 10000
+      },
+      "bytes": 438928,
+      "sha256": "dd728e1f9c7ea690cb4c75719d6e2561f8324d8232b76dba0114b1afb47f9461",
+      "provenanceSha256": "ed9cac189ad0131f0b59fbde83681459018b2b53782718215dd0c07dfe17bc53",
+      "meshes": 5,
+      "triangles": 8052,
+      "textureBytes": 0
+    },
+    {
+      "role": "pitchScoreboard",
+      "source": "assets/team-world/campus/models/pitch-scoreboard-v2.glb",
+      "publicName": "pitch-scoreboard-v2.glb",
+      "provenance": "assets/team-world/campus/PROVENANCE.md",
+      "limits": {
+        "bytes": 1048576,
+        "triangles": 5000
+      },
+      "bytes": 174488,
+      "sha256": "c16894c9afde3eafc74912f476eb3733c5ba63cea47ad2a9a2c91e54595dc3d6",
+      "provenanceSha256": "ed9cac189ad0131f0b59fbde83681459018b2b53782718215dd0c07dfe17bc53",
+      "meshes": 13,
+      "triangles": 4264,
+      "textureBytes": 0
+    },
+    {
+      "role": "cannon",
+      "source": "assets/team-world/ball-cannon.glb",
+      "publicName": "ball-cannon.glb",
+      "provenance": "assets/team-world/PROVENANCE.md",
+      "limits": {
+        "bytes": 2097152
+      },
+      "bytes": 721264,
+      "sha256": "0ff050f14e34d135cf4781a07c0c724d0b0e7d32a88b37428b35b4e1c9a2cc11",
+      "provenanceSha256": "85db6dbcb8a0b12bc744d581546ff63685dd801971314dcbde5a5608d3b764e4",
+      "meshes": 9,
+      "triangles": 14000,
+      "textureBytes": 0
+    },
+    {
+      "role": "lamp",
+      "source": "assets/team-world/kenney/lampSquareFloor.glb",
+      "publicName": "lampSquareFloor.glb",
+      "provenance": "assets/team-world/kenney/PROVENANCE.md",
+      "bytes": 5624,
+      "sha256": "6466993748d8e184de9ec5b6b0af613867c50c0ce320d1898b1db9e4c27c2561",
+      "provenanceSha256": "d4543f3dd9315efcb129fc6b6b8e983fcc7778929af5137cfac986e892f6d4eb",
+      "meshes": 1,
+      "triangles": 60,
+      "textureBytes": 0
+    }
+  ],
+  "releaseDigest": "75ceddf6763be5222b2dfaaef119e31a8456d77dd304da5f84e5d54c90b6c84f"
+}

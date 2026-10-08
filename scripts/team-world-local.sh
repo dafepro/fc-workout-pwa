@@ -1,6 +1,15 @@
 #!/bin/sh
 # Disposable fixture-only integration: no production credentials or cloud services.
 set -eu
+if [ "$#" -gt 1 ]; then
+  printf '%s\n' 'Usage: team-world-local.sh [--built]' >&2
+  exit 2
+fi
+case "${1:-}" in
+  '') APP_MODE=dev ;;
+  --built) APP_MODE=built ;;
+  *) printf '%s\n' 'Usage: team-world-local.sh [--built]' >&2; exit 2 ;;
+esac
 ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$ROOT"
 node --input-type=module - <<'JS'
@@ -33,8 +42,13 @@ export TEAM_WORLD_ALLOWED_ORIGIN=http://localhost:3005
 export TEAM_WORLD_API_URL=http://127.0.0.1:19080
 export ZOOMIGO_API_BASE_URL=$TEAM_WORLD_API_URL
 export ZOOMIGO_BUILD_PROFILE=development
+export PRODUCT_ANALYTICS_ENABLED=false ANALYTICS_SUBJECT_KEY=''
 export APP_ENV=e2e ENABLE_E2E_FIXTURES=true
 export E2E_RESET_KEY=local-team-world-e2e-only
+export STAFF_SECRET_KEY=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+export PLAYER_LOGIN_URL=https://zoomigo.example/login
+export STAFF_SETUP_URL=https://zoomigo.example/staff/setup
+export PRODUCTION_DATA_APPROVED=true
 export DATABASE_URL="file:$RUN_DIR/world.db"
 export PORT=19080 METRICS_PORT=19090
 export ALLOWED_ORIGIN=$TEAM_WORLD_ALLOWED_ORIGIN
@@ -52,6 +66,14 @@ until curl --fail --silent "$TEAM_WORLD_API_URL/readyz" >/dev/null; do
   sleep 0.2
 done
 node services/team-world/server.mjs & RELAY_PID=$!
-./node_modules/.bin/vinext dev --port 3005 & APP_PID=$!
+if [ "$APP_MODE" = built ]; then
+  ./node_modules/.bin/vinext build
+  node scripts/prune-browser-only-server-assets.mjs
+  WRANGLER_SEND_METRICS=false ./node_modules/.bin/wrangler dev \
+    --config dist/server/wrangler.json --local --port 3005 --ip 127.0.0.1 \
+    --persist-to "$RUN_DIR/worker" --show-interactive-dev-session=false & APP_PID=$!
+else
+  ./node_modules/.bin/vinext dev --port 3005 & APP_PID=$!
+fi
 printf '%s\n' "Team World: http://localhost:3005/team-world (fixture sign-in documented in docs/TEAM_WORLD.md)"
 wait "$APP_PID"

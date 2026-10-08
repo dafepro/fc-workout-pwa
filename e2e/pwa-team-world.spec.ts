@@ -2,6 +2,7 @@ import { writeFileSync } from "node:fs";
 import * as THREE from "three";
 import { expect, request, test, type Page } from "@playwright/test";
 import type { Simulation } from "zmap";
+import { worldAssetUrl } from "../app/team-world/assets";
 import {
   loginAsMason as signInMason,
   loginAsAva as signInAva,
@@ -91,6 +92,14 @@ test("a real kick scores for both peers, then returns the ball to midfield", asy
       camera.lookAt(body.x, body.y + 0.8, body.z);
       camera.updateMatrixWorld();
       const point = new THREE.Vector3(x, 0, z).project(camera);
+      expect(
+        Math.abs(point.x),
+        "travel destination must be visible",
+      ).toBeLessThan(1);
+      expect(
+        Math.abs(point.y),
+        "travel destination must be visible",
+      ).toBeLessThan(1);
       await page.mouse.click(
         rect.x + ((point.x + 1) * rect.width) / 2,
         rect.y + ((1 - point.y) * rect.height) / 2,
@@ -110,6 +119,7 @@ test("a real kick scores for both peers, then returns the ball to midfield", asy
       await page.waitForTimeout(600);
     }
     // Approach from the left without dribbling the ball out of position en route.
+    await travel(-7, 2.5);
     await travel(-12, 8);
     await travel(-9.2, 13);
     await page.getByRole("button", { name: "Kick ball", exact: true }).click();
@@ -667,6 +677,177 @@ test("connection loss covers the field and a fresh connection restores play", as
     timeout: 20000,
   });
   await expect(page.locator(".team-world-connection")).toHaveCount(0);
+});
+
+test.describe("required asset preparation", () => {
+  test.use({ serviceWorkers: "block" });
+  test("leaving during campus decoding closes late image bitmaps", async ({
+    page,
+  }) => {
+    const errors: string[] = [];
+    let sockets = 0;
+    page.on("pageerror", (error) => errors.push(error.message));
+    page.on("websocket", (socket) => {
+      if (new URL(socket.url()).pathname !== "/room") return;
+      sockets++;
+      socket.on("close", () => sockets--);
+    });
+    await page.addInitScript(() => {
+      const held = new Set<ImageBitmap>(),
+        closed = new Set<ImageBitmap>();
+      let release!: () => void;
+      const pending = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const create = window.createImageBitmap,
+        close = ImageBitmap.prototype.close;
+      window.createImageBitmap = async (
+        image: ImageBitmapSource,
+        ...args: unknown[]
+      ) => {
+        const bitmap = (await Reflect.apply(create, window, [
+          image,
+          ...args,
+        ])) as ImageBitmap;
+        if (image instanceof Blob && image.type === "image/jpeg") {
+          held.add(bitmap);
+          await pending;
+        }
+        return bitmap;
+      };
+      ImageBitmap.prototype.close = function (this: ImageBitmap) {
+        if (held.has(this)) closed.add(this);
+        close.call(this);
+      };
+      Object.assign(window, {
+        __campusDecode: {
+          get held() {
+            return held.size;
+          },
+          get closed() {
+            return closed.size;
+          },
+          release,
+        },
+      });
+    });
+    await loginAsMason(page);
+    await page.goto("/team-world");
+    type DecodeProbe = {
+      __campusDecode: { held: number; closed: number; release(): void };
+    };
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => (window as unknown as DecodeProbe).__campusDecode.held,
+        ),
+      )
+      .toBe(3);
+    await expect(
+      page.getByRole("button", { name: "Kick ball", exact: true }),
+    ).toBeDisabled();
+    expect(sockets).toBe(0);
+    await page
+      .getByRole("link", { name: "Back to Team", exact: true })
+      .first()
+      .click();
+    await expect(page).toHaveURL(/\/team$/);
+    await page.evaluate(() =>
+      (window as unknown as DecodeProbe).__campusDecode.release(),
+    );
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => (window as unknown as DecodeProbe).__campusDecode.closed,
+        ),
+      )
+      .toBe(3);
+    expect(sockets).toBe(0);
+    await expect(page.locator(".team-world-canvas canvas")).toHaveCount(0);
+    await page.goto("/log");
+    await expect(page.getByLabel("Reps completed")).toBeEnabled();
+    expect(errors).toEqual([]);
+  });
+  for (const mode of ["ready", "exit", "failure"] as const) {
+    test(
+      "required art keeps play gated and handles " + mode,
+      async ({ page }) => {
+        const errors: string[] = [];
+        let release!: () => void;
+        const held = new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        let cannonRequested = false;
+        let sockets = 0;
+        page.on("pageerror", (error) => errors.push(error.message));
+        page.on("websocket", (socket) => {
+          if (new URL(socket.url()).pathname !== "/room") return;
+          sockets++;
+          socket.on("close", () => sockets--);
+        });
+        await loginAsMason(page);
+        await page.route(`**${worldAssetUrl("cannon")}`, async (route) => {
+          cannonRequested = true;
+          await held;
+          await route.continue();
+        });
+        if (mode === "failure")
+          await page.route(`**${worldAssetUrl("campus")}`, (route) =>
+            route.fulfill({ status: 404, body: "" }),
+          );
+        try {
+          await page.goto("/team-world");
+          await expect.poll(() => cannonRequested).toBe(true);
+          await expect(
+            page.getByRole("button", { name: "Kick ball", exact: true }),
+          ).toBeDisabled();
+          expect(sockets).toBe(0);
+          const cannon = page.waitForResponse(
+            (response) =>
+              new URL(response.url()).pathname === worldAssetUrl("cannon"),
+          );
+          if (mode === "exit")
+            await page
+              .getByRole("link", { name: "Back to Team", exact: true })
+              .first()
+              .click();
+          release();
+          expect((await cannon).status()).toBe(200);
+          if (mode === "ready") {
+            await expect(
+              page.getByText("Live together", { exact: true }),
+            ).toBeVisible();
+            expect(sockets).toBe(1);
+          } else if (mode === "failure") {
+            await expect(
+              page.getByText(/Team World could not open/).first(),
+            ).toBeVisible();
+            expect(sockets).toBe(0);
+            await expect(page.locator(".team-world-canvas canvas")).toHaveCount(
+              0,
+            );
+          }
+          if (mode !== "exit")
+            await page
+              .getByRole("link", { name: "Back to Team", exact: true })
+              .first()
+              .click();
+          await expect(page).toHaveURL(/\/team$/);
+          await page.waitForLoadState("networkidle");
+          await expect.poll(() => sockets).toBe(0);
+          await expect(page.locator(".team-world-canvas canvas")).toHaveCount(
+            0,
+          );
+          await page.goto("/log");
+          await expect(page.getByLabel("Reps completed")).toBeEnabled();
+          expect(errors).toEqual([]);
+        } finally {
+          release();
+          await page.unrouteAll({ behavior: "wait" });
+        }
+      },
+    );
+  }
 });
 
 test("connected sprint stays live through sustained movement and turns", async ({

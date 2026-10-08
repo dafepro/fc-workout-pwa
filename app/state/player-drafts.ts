@@ -79,11 +79,17 @@ export function clearPlayerDrafts() {
 
 let owner: string | null = null;
 export function activateDraftOwner(next: string) {
-  const previous = owner ?? storage()?.getItem(OWNER);
-  if (previous && previous !== next) clearPlayerDrafts();
-  owner = next;
+  let previous = owner;
   try {
-    storage()?.setItem(OWNER, next);
+    previous ??= storage()?.getItem(OWNER) ?? null;
+  } catch {
+    /* Memory ownership still works when storage is restricted. */
+  }
+  const player = next.split("/")[0];
+  if (previous && previous.split("/")[0] !== player) clearPlayerDrafts();
+  owner = player;
+  try {
+    storage()?.setItem(OWNER, player);
   } catch {
     /* Restricted storage. */
   }
@@ -103,9 +109,33 @@ export function usePlayerDraft<T>(
 }
 
 export function useHasPlayerDrafts() {
-  return useSyncExternalStore(
-    subscribe,
-    () => [...memory.values()].some((entry) => entry.expires > Date.now()),
-    () => false,
-  );
+  return useSyncExternalStore(subscribe, hasPlayerDrafts, () => false);
+}
+
+function hasPlayerDrafts() {
+  const now = Date.now();
+  if ([...memory.values()].some((entry) => entry.expires > now)) return true;
+  try {
+    const store = storage();
+    if (!store) return false;
+    for (const key of Object.keys(store)) {
+      if (!key.startsWith(PREFIX)) continue;
+      try {
+        const saved = JSON.parse(store.getItem(key) ?? "null");
+        if (
+          saved &&
+          typeof saved.expires === "number" &&
+          Number.isFinite(saved.expires) &&
+          saved.expires > now &&
+          Object.hasOwn(saved, "value")
+        )
+          return true;
+      } catch {
+        /* One malformed draft must not hide the remaining stored edits. */
+      }
+    }
+  } catch {
+    /* Restricted storage leaves the memory fallback available. */
+  }
+  return false;
 }

@@ -42,10 +42,13 @@ func configuredAuthenticator(cfg config.Config, sessions *authn.Service, staff *
 				return err
 			}
 			if !staff.Configured() {
-				return nil
+				return sessions.ResetE2EClubAdmin(ctx)
 			}
-			return staff.ResetE2ECoach(ctx, e2eCoachAccountID, e2eClubID, e2eTeamID,
-				e2eCoachEmail, e2eCoachPassword, e2eCoachTOTPSecret)
+			if err := staff.ResetE2ECoach(ctx, e2eCoachAccountID, e2eClubID, e2eTeamID,
+				e2eCoachEmail, e2eCoachPassword, e2eCoachTOTPSecret); err != nil {
+				return err
+			}
+			return sessions.ResetE2EClubAdmin(ctx)
 		}
 		return authn.Fallback{Primary: sessions, Secondary: authn.NewE2EFixtures()}, reset
 	}

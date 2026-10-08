@@ -3,6 +3,7 @@ import { qualityCopy } from "../content/quality-copy";
 
 import Link from "next/link";
 import { InstallHelp } from "../player/PwaStatus";
+import { TeamSwitcher } from "../player/TeamSwitcher";
 import { PlayerAvatar } from "../components/PlayerAvatar";
 import { SessionList } from "../components/SessionList";
 import { TransientQueryToast } from "../components/TransientQueryToast";
@@ -22,6 +23,7 @@ export default function MePage() {
     currentPlayer: player,
     currentPlayerID,
     runtime,
+    session,
   } = useAuth();
   const {
     entries,
@@ -150,6 +152,13 @@ export default function MePage() {
       <details className="card account-details">
         <summary>{qualityCopy.account}</summary>
         <p>{qualityCopy.accountHelp}</p>
+        {session ? (
+          <TeamSwitcher
+            key={runtime.currentTeam.id}
+            session={session}
+            currentTeamID={runtime.currentTeam.id}
+          />
+        ) : null}
         <InstallHelp />
         {connected ? (
           <button

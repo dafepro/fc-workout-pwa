@@ -1947,9 +1947,16 @@ h2 {
   color: white;
 }
 
-.log-form {
+.log-form,
+.log-inputs {
   display: grid;
   gap: 1rem;
+}
+.log-inputs {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
 .record-header {
   margin-bottom: 1rem;

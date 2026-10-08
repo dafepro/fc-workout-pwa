@@ -151,6 +151,11 @@ Me owns private history and identity:
 - sign-out and credential guidance;
 - entry to the predefined Avatar Studio.
 
+Account and app includes the current team and a native membership selector when
+more than one is available. Selection requires an explicit Switch team action.
+Valid saved drafts block switching; a separate confirmation can discard them.
+Switching opens Today with the validated team and a fresh mounted runtime.
+
 Avatar Studio previews each layer independently, supports reviewed preset or
 custom colors within the validated shape, and saves the whole configuration.
 The Background category includes color, animated FX, and independently colored

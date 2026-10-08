@@ -144,6 +144,7 @@ export const consoleCopy = {
       `${days} days with ${percent}% team participation`,
     window: (start: string, end: string) => `${start} to ${end}`,
     none: "No active team reward.",
+    earnedNext: "Your team earned this reward. Publish the next reward below.",
   },
   home: {
     coachTitle: "Coach console",

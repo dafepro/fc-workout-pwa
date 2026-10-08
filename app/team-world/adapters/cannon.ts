@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { worldAssetUrl } from "../assets";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { ComicStyle } from "@zmap/avatar-studio";
 import {
@@ -53,10 +54,7 @@ export async function loadCannonKit(map: WorldMap) {
   );
   if (!definitions.length)
     throw Error("The action yard has no approved cannon");
-  const url = new URL(
-    "/team-world-assets/v0.1.4/ball-cannon.glb",
-    location.href,
-  );
+  const url = new URL(worldAssetUrl("cannon"), location.href);
   const response = await fetch(url, { signal: AbortSignal.timeout(15000) });
   if (!response.ok)
     throw Error(`Ball cannon model unavailable (${response.status})`);

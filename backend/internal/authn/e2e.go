@@ -5,12 +5,22 @@ package authn
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 )
 
 type E2EFixtures struct {
 	actors map[string]domain.Actor
+}
+
+// Static fixture mutations still require a real account for transactional audit.
+func (service *Service) ResetE2EClubAdmin(ctx context.Context) error {
+	_, err := service.db.ExecContext(ctx, `INSERT INTO accounts (id, club_id, player_id, role, status, created_at)
+		VALUES ('account-admin-zoomigo', 'club-zoomigo', NULL, 'club_admin', 'active', ?)
+		ON CONFLICT(id) DO UPDATE SET club_id = excluded.club_id, role = excluded.role, status = 'active'`,
+		service.now().UTC().Format(time.RFC3339Nano))
+	return err
 }
 
 func NewE2EFixtures() E2EFixtures {

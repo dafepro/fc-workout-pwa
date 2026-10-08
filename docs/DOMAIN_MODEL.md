@@ -26,6 +26,12 @@ opaque sessions. Staff authentication uses password credentials, encrypted TOTP
 enrollment, recovery codes, setup tokens, bounded sign-in challenges, and staff
 sessions. Raw secrets are revealed only in their one-time handoff flow.
 
+The connected player runtime has one active team per tab. The session gateway
+validates a bounded player/team preference against current memberships, defaults
+by stable team ID and returns `activeTeamId`. The validated result is pinned in
+that tab; team names and new memberships cannot silently change it. The
+preference never grants access. Backend requests still authorize each resource.
+
 ## Training
 
 - **Activity definition** is a server-owned catalog entry with input kind, unit,
@@ -70,6 +76,9 @@ server-generated. Rate limits and idempotency are authoritative across devices.
   events. It carries no athletic value.
 
 Opening a prize box and granting a nonduplicate item are one transaction.
+Daily prize claims use the account-wide `TEAM_TIME_ZONE` calendar stored by the
+API, independently of the tab's selected team. Switching teams cannot mint a
+second daily box.
 Completing three or seven distinct proven plan days grants separate boxes once;
 later deletion or plan cancellation does not revoke an already granted box.
 

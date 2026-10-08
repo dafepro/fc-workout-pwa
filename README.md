@@ -50,10 +50,12 @@ pnpm install --frozen-lockfile
 ```
 
 `./scripts/verify.sh` runs formatting, linting, type checks, unit tests, Go
-checks, production builds, documentation contracts, deployment contracts, and
+checks, World/package/relay and standalone Node contracts, production builds,
+documentation contracts, deployment contracts, and
 OpenTofu validation. Use `./scripts/verify.sh --all` only for an intentional
-release-candidate pass that should also run the full Docker API/browser E2E and
-VM smoke suites.
+release-candidate pass that should also run Docker API/browser E2E, the local
+World relay/browser overlay and VM smoke. `pnpm test:e2e:world` runs only the World
+overlay and rejects skipped/empty/failed/flaky reports.
 
 Focused workflows:
 

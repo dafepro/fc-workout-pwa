@@ -6,7 +6,12 @@
 
 Accepted saves open Today with a persistent receipt and an entry link. An
 interrupted reply preserves the original payload and idempotency key; retrying
-unchanged input cannot create another entry. Editing starts a new attempt.
+unchanged input cannot create another entry. Unresolved saves hold the answers
+and direct discard until Retry confirms the original request. Replay runs before
+new-entry date/catalog validation, including across midnight. After confirmation,
+use the saved-session review/removal flow. A definitive first rejection releases
+the form for correction with a new key. Malformed stored attempts do not become
+frozen forms or forwarded requests.
 Failures appear beside Save and receive focus.
 
 Training and portrait drafts survive route changes and reloads in the same tab.
@@ -14,6 +19,16 @@ They expire after two hours and clear on sign-out/account change, successful
 save, or Discard. Session storage is scoped to player/team/form; restricted
 storage falls back to memory. This is recovery, not queued offline submission.
 Blank numeric input stays blank and cannot submit.
+
+Me's Account and app section selects only current authenticated memberships.
+The current team is pinned by ID per tab in session storage, independent of the
+shared sign-in cookie. Renaming or adding a team does not switch an existing tab.
+Switch team requires saving or explicitly discarding drafts, then reloads Today
+to release the old training and play runtime. A removed membership falls back
+to the stable default with fresh providers; old team drafts remain recoverable
+until expiration or deliberate discard, rather than being silently erased.
+Restricted storage uses a bounded fragment handoff for the switch and validated
+memory for the visit; a later independent reload may return to the default.
 
 Only an assigned or linked plan activity is preselected. Otherwise the player
 chooses an activity. Instructions, prescribed target versus completed amount,
@@ -37,7 +52,10 @@ Locked Team/Lounge guidance links to the unfinished plan block, planned rest
 check-in, or completed-workout recording when no plan exists. A prize link into
 a locked Lounge explains the gate and preserves ownership.
 
-Today and Progress lead with distinct check-in days this week and the team goal.
+Today and Progress lead with distinct check-in days this week. Team's separate
+weekly goal counts training sessions. A recorded session (including partial work)
+or planned rest adds one personal day; multiple sessions on that day still add
+only one. Partial work does not complete a plan or earn a Team Reward day.
 Momentum's score and rolling window are supporting detail. The score still
 gives small additional same-day activity credit; the weekly day count does not.
 Streak, calendar week and rolling five-day window are separately labeled.
@@ -75,7 +93,8 @@ colors. Selecting an activity or pressing Escape restores picker focus.
 The manifest includes 192px/512px regular icons, a maskable icon and Apple touch
 artwork. `scripts/generate-pwa-icons.mjs` renders the checked-in vector. Offline
 state requires reconnection for server actions. A waiting worker offers Update
-app; drafts disable activation. Other tabs changing controllers never reload
+app; unexpired drafts in memory or session storage disable activation, including
+a stored draft after reloading another route. Other tabs changing controllers never reload
 this tab automatically. Development hosts disable/unregister the worker.
 
 ## Qualification

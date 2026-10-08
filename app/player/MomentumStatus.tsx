@@ -3,6 +3,7 @@
 import { useState, type CSSProperties } from "react";
 import { PlayerAvatar } from "../components/PlayerAvatar";
 import { copy } from "../content/copy";
+import { qualityCopy } from "../content/quality-copy";
 import { useOptionalAuth } from "../state/auth-context";
 import { momentumProgress } from "./momentum-progress";
 
@@ -10,14 +11,12 @@ type MomentumStatusProps = {
   momentumScore: number;
   checkInStreak: number;
   weeklyCheckIns?: number;
-  weeklyGoal?: number;
 };
 
 export function MomentumStatus({
   momentumScore,
   checkInStreak,
   weeklyCheckIns,
-  weeklyGoal,
 }: MomentumStatusProps) {
   const [showExplanation, setShowExplanation] = useState(false);
   const auth = useOptionalAuth();
@@ -60,7 +59,9 @@ export function MomentumStatus({
             <strong>
               {weeklyCheckIns === undefined
                 ? progress.score
-                : `${weeklyCheckIns} of ${weeklyGoal ?? 3} days`}
+                : qualityCopy.checkInDays(
+                    Math.max(0, Math.floor(weeklyCheckIns)),
+                  )}
             </strong>
           </span>
           <span className="player-status-row__streak">

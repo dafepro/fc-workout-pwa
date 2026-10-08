@@ -25,6 +25,7 @@ pnpm format
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm test:world
 pnpm build
 
 cd "$REPOSITORY_ROOT/backend"
@@ -41,9 +42,7 @@ go test -tags=dev ./...
 cd "$REPOSITORY_ROOT"
 node scripts/contracts.mjs
 node scripts/documentation-contract.mjs
-node --test scripts/unix-automation-contract.test.mjs
-node --test scripts/deploy-dev.test.mjs
-node --test deploy/observability/config_test.mjs scripts/observability-query.test.mjs
+node --test scripts/*.test.mjs deploy/observability/config_test.mjs
 
 cd "$REPOSITORY_ROOT/infra/digitalocean"
 tofu fmt -check
@@ -52,6 +51,7 @@ tofu validate
 
 if [ "$RUN_E2E" = true ]; then
 	"$SCRIPT_DIRECTORY/e2e.sh"
+	"$SCRIPT_DIRECTORY/e2e.sh" --world
 	"$SCRIPT_DIRECTORY/vm-smoke.sh"
 fi
 
