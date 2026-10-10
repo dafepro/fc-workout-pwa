@@ -309,7 +309,7 @@ test("updates prove the exact container and new infrastructure proves final flow
   assert.match(workflow, /pnpm verify:worker-upload/);
   assert.ok(
     workflow.indexOf("pnpm verify:worker-upload") <
-      workflow.indexOf("actions\/upload-artifact@v4"),
+      workflow.indexOf("actions/upload-artifact@"),
   );
   assert.match(deploy, /ConnectTimeout=10/);
   assert.match(deploy, /ServerAliveInterval=15/);

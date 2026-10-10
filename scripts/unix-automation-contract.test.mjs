@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   access,
   readFile,
+  readdir,
   mkdtemp,
   mkdir,
   writeFile,
@@ -191,4 +192,21 @@ test("the browser image runs Playwright without recursing into Docker", async ()
   assert.doesNotMatch(dockerfile, /CMD \["pnpm", "test:e2e"\]/);
   assert.match(visualRunner, /--volume.*\/e2e:\/app\/e2e/);
   assert.match(visualRunner, /--update-snapshots/);
+});
+
+test("workflow dependencies remain pinned to immutable commits", async () => {
+  const workflows = await readdir(join(root, ".github/workflows"));
+  const files = [
+    ...workflows
+      .filter((file) => file.endsWith(".yml"))
+      .map((file) => `.github/workflows/${file}`),
+    ".github/actions/setup/action.yml",
+  ];
+  for (const file of files) {
+    const contents = await readFile(join(root, file), "utf8");
+    for (const match of contents.matchAll(/uses:\s+([^\s#]+)/g)) {
+      if (match[1].startsWith("./")) continue;
+      assert.match(match[1], /^[^@]+@[0-9a-f]{40}$/, `${file}: ${match[1]}`);
+    }
+  }
 });

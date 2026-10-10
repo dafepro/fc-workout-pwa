@@ -1,21 +1,30 @@
-name: Read sanitized observability data
+name: Read-only operations
 
 on:
   workflow_dispatch:
     inputs:
-      environment:
-        description: Telemetry environment
+      mode:
+        description: Read a reviewed telemetry query or fixed production host diagnostics
         required: true
+        default: query
+        type: choice
+        options: [query, host-diagnostic]
+      environment:
+        description: Telemetry environment (query mode only)
+        required: true
+        default: dev
         type: choice
         options: [dev, production]
       window:
-        description: Lookback window
+        description: Lookback window (query mode only)
         required: true
+        default: 1h
         type: choice
         options: [15m, 1h, 6h, 24h]
       query:
-        description: Reviewed diagnostic
+        description: Reviewed diagnostic (query mode only)
         required: true
+        default: readiness
         type: choice
         options:
           [
@@ -37,15 +46,16 @@ permissions:
 
 jobs:
   query:
+    if: github.ref == 'refs/heads/main' && inputs.mode == 'query'
     runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
     timeout-minutes: 5
     environment: production
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 22
+          node-version: 22.20.0
 
       - name: Query reviewed telemetry preset
         env:
@@ -78,9 +88,35 @@ jobs:
           } >>"$GITHUB_STEP_SUMMARY"
 
       - name: Upload sanitized result
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: observability-${{ github.run_id }}
           path: observability-result.json
           retention-days: 1
           if-no-files-found: error
+
+  host-diagnostic:
+    if: github.ref == 'refs/heads/main' && inputs.mode == 'host-diagnostic'
+    runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
+    timeout-minutes: 5
+    environment: production
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Read fixed collector diagnostics
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          ZOOMIGO_DEPLOY_SSH_KEY: ${{ secrets.ZOOMIGO_DEPLOY_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          identity="$RUNNER_TEMP/deploy_ssh_key"
+          trap 'rm -f -- "$identity"' EXIT
+          (umask 077 && printf '%s\n' "$ZOOMIGO_DEPLOY_SSH_KEY" >"$identity")
+          ssh -i "$identity" \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile=infra/known_hosts \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" sh -s -- /opt/app/deploy/vm \
+            <scripts/observability-host-diagnostic.sh

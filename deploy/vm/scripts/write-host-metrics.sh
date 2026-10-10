@@ -39,3 +39,6 @@ trap 'rm -f -- "$temporary_metrics"' EXIT HUP INT TERM
 chmod 0600 "$temporary_metrics"
 mv -- "$temporary_metrics" "$metrics_directory/zoomigo_host.prom"
 trap - EXIT HUP INT TERM
+
+require_command python3
+python3 "$SCRIPT_DIRECTORY/write-lounge-hold-metrics.py" "$metrics_directory" "$ENV_FILE"

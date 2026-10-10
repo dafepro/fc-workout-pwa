@@ -40,6 +40,11 @@ work in ROADMAP.md, not dormant future features.
 
 ## Scale and operations
 
+Active workflow credential, monitoring, performance and action-runtime work is
+prioritized as W01–W05 in [ROADMAP.md](ROADMAP.md#workflow-follow-through). It is
+not a reason to add a second runner or replace the deployment system before
+measuring the current one.
+
 | Idea                                                            | Activation trigger                                                                                                             | Constraints to preserve                                                                                            |
 | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
 | Managed Postgres adapter                                        | Horizontal writers, multi-region writes, managed HA/PITR, or sustained write concurrency makes single-writer SQLite inadequate | One intentional migration path with populated-data tests, backup/rollback, and no shared SQLite network filesystem |
