@@ -69,7 +69,9 @@ services.
 
 ## GitHub configuration
 
-The workflow uses two fresh runners. The first checks out and builds the
+The workflow uses separate build and operation jobs on a persistent Mac runner.
+These jobs share a host, so their separation is not a security sandbox; deploy
+only trusted repository revisions. The first checks out and builds the
 selected application revision without cloud, state, or runtime secrets. The
 second checks out only the workflow revision from `main`, downloads the built
 Worker artifact, and performs the deployment. This prevents branch code or a
@@ -127,15 +129,14 @@ running. The selected branch contributes the API image and prebuilt Worker
 files, while a strict Worker-config allowlist removes branch-supplied routes,
 cron triggers, service bindings, storage bindings, and variables.
 
-## Current release identity and Actions pause
+## Current release identity and Actions
 
-On October 7, 2026, repository-wide Actions permission was set to `enabled:false`
-for `dafepro/fc-workout-pwa` at the user's request; no queued/running jobs remained.
-Keep it disabled until the user requests otherwise. Pushes and workflow dispatch
-commands below currently cannot perform an update. A manual update requires a
-qualified immutable artifact, existing operator credentials/pinned host key and
-separate API/relay/Worker evidence; disabling Actions is not deployment approval
-or a reason to reset fixtures.
+Actions was paused on October 7, 2026, then re-enabled on October 10 at the
+user's request using the local Mac runner described below. This configuration
+change does not deploy or qualify the application. A manual update requires a
+qualified immutable artifact, existing operator credentials/pinned host key, and
+separate API/relay/Worker evidence. Enabling Actions is not a reason to reset
+fixtures.
 
 | Component                                                | Observed / selected identity                                                          |
 | -------------------------------------------------------- | ------------------------------------------------------------------------------------- |
@@ -324,3 +325,33 @@ workflow retains the existing Canvas Lounge proof and adds an opt-in two-player
 Team World proof through the public password gate. That proof creates and
 deletes only its own invented-player qualification entries and records no
 credential-directory traces, screenshots or videos.
+
+## Mac Actions runner
+
+Trusted jobs use the Apple Silicon runner `zoomigo-dcarrell-mac-arm64`, with
+labels `self-hosted`, `macOS`, `ARM64`, and `zoomigo-mac`. Fork PR verification
+uses GitHub-hosted Ubuntu. Repository-wide fork approval requires approval from
+all external contributors. The installed job-start hook rejects fork PRs, other
+repositories, missing event payloads, and unsupported event types before checkout.
+It is installed outside the runner directory; changing a workflow cannot remove
+that copy. This is a persistent personal Mac runner, not an isolated sandbox.
+Only repository collaborators' code should execute on it.
+
+The runner lives at `~/.local/share/zoomigo-actions-runner`; its private hook copy
+lives at `~/.local/share/zoomigo-runner-config`. The official `svc.sh` installs a
+user LaunchAgent that starts after login. Run `./svc.sh status`, `./svc.sh stop`,
+or `./svc.sh start` from the runner directory to manage it. Keep the Mac awake,
+connected, logged in, and Docker Desktop running for Docker jobs. A sleeping or
+logged-out Mac leaves jobs queued. The service uses separate GitHub CLI, Git,
+and Docker credential configuration from the interactive developer shell.
+
+To update the guard, stop the service, review and copy both
+`scripts/runner-job-guard.{sh,mjs}` into the private hook directory, then restart
+it. Do not point the hook at the mutable checkout. The guard's tests run in normal
+verification. Runner diagnostic logs are under the installation's `_diag`.
+
+Automatic dev deployment remains enabled unless the repository variable
+`DEV_AUTO_UPDATE_ENABLED` is exactly `false`. Use that temporary setting when
+merging infrastructure changes that must not deploy the application; manual dev
+operations remain available. Restore the previous variable after maintenance.
+Production deployment remains manual.

@@ -24,8 +24,8 @@ training, plans/rest, private Momentum/history, Team Hub, prizes, portrait
 editing, staff authentication and transient World are implemented. Durable
 World placements and saved modular 3D appearance are not implemented.
 
-Repository Actions is disabled at the user's request. Local implementation is
-not evidence of deployment. See [DEV_ENVIRONMENT.md](DEV_ENVIRONMENT.md) for
+Repository Actions resumed on the local Mac runner on October 10 at the user's
+request. Local implementation and runner setup are not evidence of deployment. See [DEV_ENVIRONMENT.md](DEV_ENVIRONMENT.md) for
 release identity and qualification. Real-data and analytics approvals remain
 separate from invented-data dev evaluation.
 
@@ -75,8 +75,8 @@ behavior, P2 closes the product and eventual launch, and P3 requires a trigger.
 ## Next ready work
 
 1. Authenticate dev, record exact release identity and rerun deployed Lounge/World
-   gates. Qualify the immutable candidate and container/VM paths while Actions
-   remains paused. Follow the unpublished braces fix under D32.
+   gates. Qualify the immutable candidate and container/VM paths on the Mac runner
+   before a deliberate dev update. Follow the unpublished braces fix under D32.
 2. Measure the retained candidate on named physical devices and full rooms,
    including restart/authority/host recovery and impaired WebSockets. Fix
    reproduced failures and enforce download/resource/cost budgets before

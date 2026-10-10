@@ -28,7 +28,8 @@ permissions:
 jobs:
   context:
     name: Resolve dev operation
-    runs-on: ubuntu-24.04
+    if: github.event_name != 'push' || vars.DEV_AUTO_UPDATE_ENABLED != 'false'
+    runs-on: [self-hosted, macOS, ARM64, zoomigo-mac]
     outputs:
       operation: ${{ steps.resolve.outputs.operation }}
       ref: ${{ steps.resolve.outputs.ref }}
@@ -53,7 +54,7 @@ jobs:
     name: Verify and package the selected application
     needs: context
     if: needs.context.outputs.operation == 'create' || needs.context.outputs.operation == 'update'
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, macOS, ARM64, zoomigo-mac]
     timeout-minutes: 30
     env:
       ZOOMIGO_BUILD_PROFILE: development
@@ -177,7 +178,7 @@ jobs:
       (needs.context.outputs.operation == 'reset' ||
       needs.context.outputs.operation == 'destroy' ||
       needs.build.result == 'success')
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, macOS, ARM64, zoomigo-mac]
     timeout-minutes: 35
     environment: production
     permissions:
