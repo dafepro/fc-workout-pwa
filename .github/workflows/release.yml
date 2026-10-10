@@ -29,7 +29,7 @@ jobs:
   deploy:
     name: Deploy VM and Cloudflare Worker
     if: github.ref == 'refs/heads/main' && vars.PRODUCTION_DEPLOY_ENABLED == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
     timeout-minutes: 20
     environment: production
     permissions:
@@ -57,11 +57,12 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           version: 11.21.0
+          dest: ${{ runner.temp }}/pnpm
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22.20.0
-          cache: pnpm
+          cache: ${{ runner.environment == 'github-hosted' && 'pnpm' || '' }}
 
       - uses: docker/login-action@v3
         with:

@@ -30,7 +30,7 @@ permissions:
 jobs:
   container-drills:
     name: Rehearse the drills in containers
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
@@ -41,8 +41,14 @@ jobs:
 
       - name: Install age
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends age
+          if command -v age >/dev/null 2>&1; then
+            age --version
+          elif [ "$RUNNER_OS" = "macOS" ]; then
+            brew install age
+          else
+            sudo apt-get update
+            sudo apt-get install --yes --no-install-recommends age
+          fi
 
       - name: Bounded logs, encrypted backups, restore, cutover, credentials, release path
         run: |
@@ -60,7 +66,7 @@ jobs:
   release-candidate:
     name: Release-candidate pass
     if: inputs.full_verify
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
@@ -68,15 +74,17 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           version: 11.21.0
+          dest: ${{ runner.temp }}/pnpm
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22.20.0
-          cache: pnpm
+          cache: ${{ runner.environment == 'github-hosted' && 'pnpm' || '' }}
 
       - uses: actions/setup-go@v6
         with:
           go-version-file: backend/go.mod
+          cache: ${{ runner.environment == 'github-hosted' }}
           cache-dependency-path: backend/go.sum
 
       - uses: opentofu/setup-opentofu@v1
@@ -104,7 +112,7 @@ jobs:
   host-checks:
     name: Read-only checks on the production VM
     if: inputs.host_checks && vars.PRODUCTION_DRILLS_ENABLED == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
     timeout-minutes: 15
     environment: production
     steps:
@@ -179,7 +187,7 @@ jobs:
       - container-drills
       - release-candidate
       - host-checks
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4

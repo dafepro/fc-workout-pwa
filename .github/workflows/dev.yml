@@ -28,7 +28,8 @@ permissions:
 jobs:
   context:
     name: Resolve dev operation
-    runs-on: ubuntu-24.04
+    if: github.event_name != 'push' || vars.DEV_AUTO_UPDATE_ENABLED != 'false'
+    runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
     outputs:
       operation: ${{ steps.resolve.outputs.operation }}
       ref: ${{ steps.resolve.outputs.ref }}
@@ -53,7 +54,7 @@ jobs:
     name: Verify and package the selected application
     needs: context
     if: needs.context.outputs.operation == 'create' || needs.context.outputs.operation == 'update'
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
     timeout-minutes: 30
     env:
       ZOOMIGO_BUILD_PROFILE: development
@@ -75,15 +76,17 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           version: 11.21.0
+          dest: ${{ runner.temp }}/pnpm
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22.20.0
-          cache: pnpm
+          cache: ${{ runner.environment == 'github-hosted' && 'pnpm' || '' }}
 
       - uses: actions/setup-go@v5
         with:
           go-version-file: backend/go.mod
+          cache: ${{ runner.environment == 'github-hosted' }}
           cache-dependency-path: backend/go.sum
 
       - name: Install the selected revision
@@ -177,7 +180,7 @@ jobs:
       (needs.context.outputs.operation == 'reset' ||
       needs.context.outputs.operation == 'destroy' ||
       needs.build.result == 'success')
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
     timeout-minutes: 35
     environment: production
     permissions:
@@ -193,11 +196,12 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           version: 11.21.0
+          dest: ${{ runner.temp }}/pnpm
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22.20.0
-          cache: pnpm
+          cache: ${{ runner.environment == 'github-hosted' && 'pnpm' || '' }}
 
       - uses: opentofu/setup-opentofu@v1
         with:
