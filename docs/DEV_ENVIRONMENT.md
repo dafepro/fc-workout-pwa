@@ -143,13 +143,16 @@ Record the selected application SHA and trusted controller SHA independently in
 each Actions run. An update preserves existing fixtures; only an explicitly
 requested create/reset seeds them.
 
-The October 10 dev release is application
-`661e4268d2f97a1c2966eb2b3a88d49ae6c39598`, operated by controller
-`61c1cbdb211ed59cd695b647b6f90df6b860b349`. Its
-[successful run](https://github.com/dafepro/fc-workout-pwa/actions/runs/38076496971)
-includes exact API readiness, qualified-player Lounge and two-player World browser
-checks. This evidence does not qualify physical phones, a full room or sustained
-GPU/memory/recovery behavior; those gates remain in ROADMAP.md and TEAM_WORLD.md.
+Read the live application SHA from
+[`/readyz`](https://api-dev.zoomigo.quicktrack.cc/readyz) and match it to the
+selected revision and controller in the
+[dev operation run](https://github.com/dafepro/fc-workout-pwa/actions/workflows/dev.yml).
+Successful deployment is separate from qualification. The current gate requires
+exact API readiness, a qualified-player Lounge avatar, and two-player World
+movement, kick propagation, shared controls and clean exit. Earlier receipts
+without kick assertions do not qualify the stronger gate. These checks do not
+qualify physical phones, a full room or sustained GPU/memory/recovery behavior;
+those gates remain in ROADMAP.md and TEAM_WORLD.md.
 Keep credentials and credential-page recordings out of retained evidence.
 
 The matched runtime packages are `zmap` 0.1.11, Avatar Studio 0.1.4 and vendored
