@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import type { Simulation } from "zmap";
+import { createWorldProtocolProbe } from "./world-diagnostics";
 
 test("dev keeps the outer gate and supports two qualified Team World players", async ({
   page,
@@ -22,7 +23,7 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
     baseURL: process.env.E2E_PWA_BASE_URL,
   });
   const other = await friend.newPage();
-  const diagnostics = [observeWorld(page), observeWorld(other)];
+  const diagnostics = [page, other].map((p) => observeWorld(p, () => stage));
   await Promise.all([page, other].map(prepareFrameProbe));
   const profiles: (() => Promise<unknown>)[] = [];
   const entries: { page: Page; id: string }[] = [];
@@ -136,7 +137,11 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
       .click();
     await page.getByText("Dev controls", { exact: true }).click();
     stage = "shared-kick";
+    const firstKickInputs = diagnostics[0].kickCount();
     await page.getByRole("button", { name: "Kick ball", exact: true }).click();
+    await expect
+      .poll(() => diagnostics[0].kickCount())
+      .toBe(firstKickInputs + 1);
     await expect.poll(() => peerSawKick).toBe(true);
     stage = "shared-lamp";
     const lamp = page.getByRole("button", {
@@ -173,7 +178,11 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
     stage = "moving-kick";
     peerSawKick = false;
     const movingKickStart = { ...peer.simulation!.players[state.session!] };
+    const movingKickInputs = diagnostics[0].kickCount();
     await page.getByRole("button", { name: "Kick ball", exact: true }).click();
+    await expect
+      .poll(() => diagnostics[0].kickCount())
+      .toBe(movingKickInputs + 1);
     await expect.poll(() => peerSawKick).toBe(true);
     await expect(page.locator(".team-world-canvas canvas")).toBeFocused();
     await expect
@@ -248,13 +257,12 @@ test.use({
   navigationTimeout: 30000,
 });
 
-function observeWorld(page: Page) {
+function observeWorld(page: Page, stage: () => string) {
+  const protocol = createWorldProtocolProbe(stage);
   const counts: Record<string, number> = {};
   const count = (key: string) => {
     counts[key] = (counts[key] ?? 0) + 1;
   };
-  let host: boolean | undefined;
-  let epoch: number | undefined;
   let tick: number | undefined;
   let eligible: boolean | undefined;
   page.on("response", (r) => {
@@ -283,6 +291,7 @@ function observeWorld(page: Page) {
     socket.on("socketerror", () => count("socketError"));
     socket.on("framesent", ({ payload }) => {
       const m = JSON.parse(String(payload));
+      protocol.sent(m);
       if (m.type === "heartbeat") {
         count("heartbeat:" + m.eligible);
         eligible = m.eligible;
@@ -290,21 +299,18 @@ function observeWorld(page: Page) {
     });
     socket.on("framereceived", ({ payload }) => {
       const m = JSON.parse(String(payload));
+      protocol.received(m);
       if (["welcome", "room", "snapshot", "error", "denied"].includes(m.type))
         count(m.type);
-      if (m.type === "room") {
-        host = !!m.host;
-        epoch = m.epoch;
-      }
       if (m.state) tick = m.state.tick;
     });
   });
   return {
+    kickCount: protocol.kickCount,
     async snapshot() {
       return {
         counts,
-        host,
-        epoch,
+        protocol: protocol.snapshot(),
         tick,
         eligible,
         browser: await page
