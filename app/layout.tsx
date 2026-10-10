@@ -4,6 +4,7 @@ import { copy } from "./content/copy";
 import { AuthGate } from "./state/auth-context";
 import "./globals.css";
 import "./player/player.css";
+import "./player/quality.css";
 
 export async function generateMetadata(): Promise<Metadata> {
   const requestHeaders = await headers();
@@ -29,8 +30,9 @@ export async function generateMetadata(): Promise<Metadata> {
       title: copy.brand,
     },
     icons: {
-      icon: "/favicon.svg",
-      shortcut: "/favicon.svg",
+      icon: "/icons/source.svg",
+      shortcut: "/icons/source.svg",
+      apple: "/icons/apple-touch-icon.png",
     },
     openGraph: {
       type: "website",
@@ -51,7 +53,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#0b123d",
+  themeColor: "#183f34",
 };
 
 export default function RootLayout({

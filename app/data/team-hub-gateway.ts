@@ -1,3 +1,4 @@
+import { fetchWithTeamContext } from "../../lib/team-context";
 import type { TeamHubActivity, TeamHubProjection } from "../domain/types";
 import { playerFromSocialIdentity } from "./social-identity";
 
@@ -26,7 +27,7 @@ class ConnectedTeamHubGateway implements TeamHubGateway {
   constructor(private readonly teamID: string) {}
 
   async current(): Promise<TeamHubProjection> {
-    const response = await fetch(
+    const response = await fetchWithTeamContext(
       `/api/zoomigo/v1/teams/${encodeURIComponent(this.teamID)}/hub`,
       { cache: "no-store" },
     );

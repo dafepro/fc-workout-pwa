@@ -28,6 +28,7 @@ test("configures the production Worker, API, and analytics binding", () => {
       production,
       "https://api.quicktrack.cc",
       "11111111-1111-4111-8111-111111111111",
+      true,
     ),
     {
       name: "zoomigo-training",
@@ -54,6 +55,90 @@ test("configures the production Worker, API, and analytics binding", () => {
       ],
     },
   );
+});
+
+const databaseID = "11111111-1111-4111-8111-111111111111";
+const production = {
+  apiHostname: "api.quicktrack.cc",
+  pwaHostname: "zoomigo.quicktrack.cc",
+  workerName: "zoomigo-training",
+};
+const analyticsConfig = {
+  vars: {
+    PRODUCT_ANALYTICS_ENABLED: "true",
+    ANALYTICS_SUBJECT_KEY: "must-not-enter-config",
+  },
+  d1_databases: [{ binding: "ANALYTICS_DB", database_id: databaseID }],
+  triggers: { crons: ["17 5 * * *"] },
+};
+
+test("a database and stale generated flags do not authorize collection", () => {
+  for (const approved of [undefined, false]) {
+    const configured = configureWorker(
+      analyticsConfig,
+      production,
+      "https://api.quicktrack.cc",
+      databaseID,
+      approved,
+    );
+    assert.equal(configured.vars.PRODUCT_ANALYTICS_ENABLED, "false");
+    assert.equal(configured.vars.ANALYTICS_SUBJECT_KEY, undefined);
+    assert.deepEqual(configured.d1_databases, []);
+    assert.equal(configured.triggers, undefined);
+  }
+});
+
+test("approved production analytics requires an actual binding and ID", () => {
+  for (const [generated, id] of [
+    [analyticsConfig, ""],
+    [{}, databaseID],
+  ]) {
+    assert.throws(
+      () =>
+        configureWorker(
+          generated,
+          production,
+          "https://api.quicktrack.cc",
+          id,
+          true,
+        ),
+      /analytics.*binding|analytics.*database/i,
+    );
+  }
+});
+
+test("only a boolean approval is accepted", () => {
+  for (const approved of ["yes", "TRUE", "true", 1, null]) {
+    assert.throws(
+      () =>
+        configureWorker(
+          analyticsConfig,
+          production,
+          "https://api.quicktrack.cc",
+          databaseID,
+          approved,
+        ),
+      /approval.*boolean/i,
+    );
+  }
+});
+
+test("disposable dev cannot enable analytics even with approval and a database", () => {
+  const configured = configureWorker(
+    {
+      ...analyticsConfig,
+      main: "index.js",
+      compatibility_date: "2026-05-15",
+      assets: { directory: "../client" },
+    },
+    { ...production, devAccessEnabled: true },
+    "https://api.quicktrack.cc",
+    databaseID,
+    true,
+  );
+  assert.equal(configured.vars.PRODUCT_ANALYTICS_ENABLED, "false");
+  assert.equal(configured.d1_databases, undefined);
+  assert.equal(configured.triggers, undefined);
 });
 
 test("leaves analytics disabled and removes the placeholder without a database", () => {

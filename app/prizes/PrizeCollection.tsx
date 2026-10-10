@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { copy } from "../content/copy";
 import { routes } from "../content/routes";
 import type {
@@ -12,9 +12,9 @@ import type {
 import { PrizeDialog } from "./PrizeDialog";
 import { PrizeItemArt } from "./PrizeItemArt";
 import { PrizeRarityBadge } from "./PrizeRarityBadge";
+import type { CollectionFilter } from "./navigation";
 
 type CollectionStatus = "loading" | "ready" | "error";
-type CollectionFilter = "all" | PrizeItem["destination"];
 type CollectionView = "collection" | "history";
 
 export function PrizeCollection({
@@ -22,13 +22,27 @@ export function PrizeCollection({
   onMarkViewed,
   onRetry,
   status,
+  initialFilter = "all",
 }: {
   inventory: PrizeUnlock[];
   onMarkViewed(itemId: string): Promise<PrizeUnlock>;
   onRetry(): void;
   status: CollectionStatus;
+  initialFilter?: CollectionFilter;
 }) {
-  const [filter, setFilter] = useState<CollectionFilter>("all");
+  const [filter, setFilter] = useState<CollectionFilter>(initialFilter);
+  const restoredPosition = useRef(false);
+  useEffect(() => {
+    if (status !== "ready" || restoredPosition.current) return;
+    const id = window.location.hash.slice(1);
+    if (!id.startsWith("prize-item-")) return;
+    const target = document.getElementById(id);
+    if (target) {
+      target.focus({ preventScroll: true });
+      target.scrollIntoView({ block: "center" });
+      restoredPosition.current = true;
+    }
+  }, [status, inventory]);
   const [view, setView] = useState<CollectionView>("collection");
   const [selected, setSelected] = useState<PrizeUnlock | null>(null);
   const [viewedItems, setViewedItems] = useState(() => new Set<string>());
@@ -113,7 +127,12 @@ export function PrizeCollection({
             type="button"
             key={value}
             aria-pressed={filter === value}
-            onClick={() => setFilter(value)}
+            onClick={() => {
+              setFilter(value);
+              const url = new URL(window.location.href);
+              url.searchParams.set("filter", value);
+              window.history.replaceState(window.history.state, "", url);
+            }}
           >
             {label}
           </button>
@@ -150,6 +169,7 @@ export function PrizeCollection({
               <button
                 type="button"
                 className={`prize-collection-card rarity-${unlock.item.rarity}`}
+                id={`prize-item-${encodeURIComponent(unlock.item.id)}`}
                 aria-label={copy.prizes.viewItem(unlock.item.label)}
                 onClick={() => void selectPrize(unlock)}
               >
@@ -214,7 +234,7 @@ export function PrizeCollection({
           ) : null}
           <Link
             className="button button--lime"
-            href={destinationHref(selected.item)}
+            href={`${destinationHref(selected.item)}&filter=${filter}`}
           >
             {destinationAction(selected.item)}
           </Link>
@@ -256,8 +276,8 @@ function destinationLabel(item: PrizeItem) {
 
 function destinationHref(item: PrizeItem) {
   return item.destination === "avatar"
-    ? routes.playerAvatar
-    : routes.playerTeam;
+    ? `${routes.playerAvatar}?item=${encodeURIComponent(item.id)}&from=prizes`
+    : `${routes.playerTeam}?view=lounge&item=${encodeURIComponent(item.id)}&from=prizes`;
 }
 
 function destinationAction(item: PrizeItem) {

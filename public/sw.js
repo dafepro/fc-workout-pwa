@@ -1,4 +1,4 @@
-const CACHE_NAME = "zoomigo-shell-v5";
+const CACHE_NAME = "zoomigo-shell-v6";
 const IS_DEV_PREVIEW = self.location.hostname.startsWith("dev.");
 const APP_SHELL = [
   "/",
@@ -19,7 +19,10 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)),
   );
-  self.skipWaiting();
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "ACTIVATE_UPDATE") self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
@@ -74,7 +77,13 @@ self.addEventListener("fetch", (event) => {
       .catch(() =>
         caches
           .match(event.request)
-          .then((cached) => cached || caches.match("/")),
+          .then(
+            (cached) =>
+              cached ||
+              (event.request.mode === "navigate"
+                ? caches.match("/")
+                : Response.error()),
+          ),
       ),
   );
 });

@@ -1,3 +1,4 @@
+import { fetchWithTeamContext } from "../../lib/team-context";
 import { normalizeAvatar } from "../avatar/config";
 import type { AvatarConfiguration } from "../avatar/types";
 
@@ -25,7 +26,7 @@ class ConnectedAvatarGateway implements AvatarGateway {
   }
 
   async save(config: AvatarConfiguration): Promise<AvatarConfiguration> {
-    const response = await fetch("/api/zoomigo/v1/me/avatar", {
+    const response = await fetchWithTeamContext("/api/zoomigo/v1/me/avatar", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ configuration: normalizeAvatar(config) }),

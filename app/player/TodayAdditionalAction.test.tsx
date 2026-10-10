@@ -27,9 +27,7 @@ describe("TodayAdditionalAction", () => {
       name: /Log another activity/i,
     });
     expect(action).toHaveAttribute("href", "/log/additional");
-    expect(action).toHaveTextContent(
-      "Record something outside the planned workout.",
-    );
+    expect(action).toHaveTextContent("Record an activity of your choice.");
 
     action.addEventListener("click", (event) => event.preventDefault());
     fireEvent.click(action);
@@ -42,9 +40,9 @@ describe("TodayAdditionalAction", () => {
   it("explains when the Lounge is still locked without removing its row", () => {
     render(<TodayAdditionalAction teamLocked />);
 
-    expect(
-      screen.getByRole("link", { name: /Team lounge/i }),
-    ).toHaveTextContent("Complete today’s plan to enter.");
+    expect(screen.getByRole("link", { name: /Go to Team/i })).toHaveTextContent(
+      "Record a completed workout today to join your team.",
+    );
   });
 
   it("puts an overlapping team workout first among the optional actions", () => {

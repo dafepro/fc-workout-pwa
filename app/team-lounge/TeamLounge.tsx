@@ -22,12 +22,14 @@ export function TeamLounge({
   connected = false,
   teamID = "team-hill-striders",
   roster = [player],
+  itemIntent,
 }: {
   player: Player;
   unlocked: boolean;
   connected?: boolean;
   teamID?: string;
   roster?: readonly Player[];
+  itemIntent?: string;
 }) {
   const [state, setState] = useState<LoungeCanvasState>("loading");
   const [presence, setPresence] = useState(1);
@@ -170,6 +172,7 @@ export function TeamLounge({
         {unlocked && state !== "superseded" && state !== "ownership-lost" ? (
           connected ? (
             <SharedLoungeCanvas
+              itemIntent={itemIntent}
               key={canvasKey}
               teamID={teamID}
               player={player}

@@ -23,6 +23,7 @@ import { AvatarArt } from "../avatar/AvatarArt";
 import { normalizeAvatar } from "../avatar/config";
 import { developmentBuild } from "../build-profile";
 import { copy } from "../content/copy";
+import { qualityCopy } from "../content/quality-copy";
 import { createConnectedPrizeBoxGateway } from "../data/prize-box-gateway";
 import { unlockDevelopmentCatalogItems } from "../development/catalog-unlocks";
 import type { Player } from "../domain/types";
@@ -252,6 +253,7 @@ export function SharedLoungeCanvas({
   settingsContainer,
   onStateChange,
   onPresenceChange,
+  itemIntent,
 }: {
   teamID: string;
   player: Player;
@@ -260,8 +262,10 @@ export function SharedLoungeCanvas({
   settingsContainer?: Element | null;
   onStateChange(state: LoungeCanvasState): void;
   onPresenceChange(count: number): void;
+  itemIntent?: string;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
+  const initialItemIntent = useRef(itemIntent);
   const { avatarConfig } = useAvatarIdentity();
   const playerID = player.id;
   const playerRef = useRef(player);
@@ -293,6 +297,7 @@ export function SharedLoungeCanvas({
   const [itemOverlays, setItemOverlays] = useState<LoungeEditableItem[]>([]);
   const [choices, setChoices] =
     useState<LoungeItemChoice[]>(includedLoungeItems);
+  const [chatIntent, setChatIntent] = useState<string>();
   const [visitorIDs, setVisitorIDs] = useState<readonly string[]>([]);
   const [selectedItem, setSelectedItem] = useState<LoungeItemChoice | null>(
     null,
@@ -719,6 +724,21 @@ export function SharedLoungeCanvas({
         .then((inventory) => {
           if (disposed) return;
           setChoices(loungeItemChoices(inventory));
+          const intended = inventory.find(
+            ({ item }) => item.id === initialItemIntent.current,
+          )?.item;
+          if (initialItemIntent.current) {
+            const choice =
+              intended &&
+              loungeItemChoices(inventory).find(
+                (choice) => choice.id === intended.assetId,
+              );
+            if (choice) setSelectedItem(choice);
+            else if (intended?.kind === "lounge_chat_pack") {
+              setChatIntent(intended.assetId);
+              setActionMessage(qualityCopy.chatPreview(intended.label));
+            } else setActionMessage(qualityCopy.loungeUnavailable);
+          }
           const unlocked = unlockedLoungeChatPackIDs(
             inventory,
             developmentBuild,
@@ -1105,6 +1125,8 @@ export function SharedLoungeCanvas({
         {settingsContainer
           ? createPortal(
               <LoungeChatSettings
+                key={chatIntent ?? "chat-settings"}
+                previewPackID={chatIntent}
                 activePackIDs={activeChatPackIDs}
                 unlockedPackIDs={unlockedChatPackIDs}
                 onChange={(packIDs) => {

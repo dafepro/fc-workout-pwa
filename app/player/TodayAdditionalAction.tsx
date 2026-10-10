@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAnalytics } from "../../lib/analytics/AnalyticsProvider";
 import { copy } from "../content/copy";
+import {
+  participationAction,
+  type ParticipationAction,
+} from "./participation-action";
 import type { PrizeBoxGateway } from "../data/prize-box-gateway";
 
 export function TodayAdditionalAction({
@@ -11,6 +15,7 @@ export function TodayAdditionalAction({
   teamWorkout = null,
   prizeBoxesConnected = false,
   prizeBoxGateway,
+  checkIn = participationAction(null),
 }: {
   teamLocked: boolean;
   teamWorkout?: {
@@ -21,6 +26,7 @@ export function TodayAdditionalAction({
   } | null;
   prizeBoxesConnected?: boolean;
   prizeBoxGateway?: PrizeBoxGateway;
+  checkIn?: ParticipationAction;
 }) {
   const analytics = useAnalytics();
   const [unopenedPrizeBoxes, setUnopenedPrizeBoxes] = useState(0);
@@ -71,9 +77,7 @@ export function TodayAdditionalAction({
       href: "/team",
       icon: "●●",
       title: copy.today.teamLounge,
-      detail: teamLocked
-        ? copy.today.teamLoungeLocked
-        : copy.today.teamLoungeDetail,
+      detail: teamLocked ? checkIn.detail : copy.today.teamLoungeDetail,
       badge: 0,
       track: false,
     },

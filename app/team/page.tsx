@@ -1,4 +1,5 @@
 "use client";
+import { qualityCopy } from "../content/quality-copy";
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -15,6 +16,8 @@ import { useAuth } from "../state/auth-context";
 import { useTraining } from "../state/training-context";
 import { TeamHub } from "./TeamHub";
 import { TeamLoungeFocus } from "./TeamLoungeFocus";
+import { participationAction } from "../player/participation-action";
+import { collectionReturn } from "../prizes/navigation";
 
 export default function TeamPage() {
   const router = useRouter();
@@ -90,9 +93,33 @@ export default function TeamPage() {
   }
 
   if (focused && hub) {
+    const checkIn = participationAction(dashboard?.currentPlanDay ?? null);
     return (
       <div className="page player-page player-page--team page--team">
+        {searchParameters.get("from") === "prizes" ? (
+          <Link
+            className="prize-back"
+            href={collectionReturn(
+              searchParameters.get("filter"),
+              searchParameters.get("item"),
+            )}
+          >
+            ← Back to Prizes
+          </Link>
+        ) : null}
+        {!hub.access.loungeUnlocked ? (
+          <section className="card">
+            <h2>{qualityCopy.loungeGate}</h2>
+            <p>
+              {checkIn.detail} {qualityCopy.keptItems}
+            </p>
+            <Link className="button button--lime" href={checkIn.href}>
+              {checkIn.label}
+            </Link>
+          </section>
+        ) : null}
         <TeamLoungeFocus
+          itemIntent={searchParameters.get("item") ?? undefined}
           player={currentPlayer}
           teamID={teamID}
           unlocked={hub.access.loungeUnlocked}
@@ -122,6 +149,7 @@ export default function TeamPage() {
       ) : null}
       {hub ? (
         <TeamHub
+          checkIn={participationAction(dashboard?.currentPlanDay ?? null)}
           hub={hub}
           onCheer={setCheerSelection}
           onOpenLounge={() => router.push("/team?view=lounge")}

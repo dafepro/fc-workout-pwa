@@ -1,5 +1,11 @@
 import { env } from "cloudflare:workers";
-import { backendBaseURL, readSessionCookie } from "../../app/api/backend";
+import type { D1Database } from "@cloudflare/workers-types";
+import {
+  backendBaseURL,
+  backendHeaders,
+  readSessionCookie,
+} from "../../app/api/backend";
+import { decodeTeamPreference, TEAM_CONTEXT_HEADER } from "../team-context";
 import type {
   ClientEventBatch,
   ProductEventProperties,
@@ -53,10 +59,23 @@ export async function analyticsIdentityForRequest(
   if (!key || !baseURL || !token) return null;
   try {
     const response = await fetch(`${baseURL}/v1/auth/session`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: backendHeaders({ Authorization: `Bearer ${token}` }),
     });
     if (!response.ok) return null;
-    return identityForSession((await response.json()) as AnalyticsSession, key);
+    const session = (await response.json()) as AnalyticsSession;
+    if (session.player && request.headers.has(TEAM_CONTEXT_HEADER)) {
+      const preferred = decodeTeamPreference(
+        request.headers.get(TEAM_CONTEXT_HEADER),
+        session.player.id,
+      );
+      if (
+        !preferred ||
+        !session.player.teams.some((team) => team.id === preferred)
+      )
+        return null;
+      session.activeTeamId = preferred;
+    }
+    return identityForSession(session, key);
   } catch {
     return null;
   }

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { SessionFeelings } from "../../components/SessionFeelings";
 import { canDeleteEntry } from "../../domain/rules";
 import { copy } from "../../content/copy";
+import { LoadError } from "../../components/LoadError";
 import type { TrainingEntry } from "../../domain/types";
 import { useTraining } from "../../state/training-context";
 import { useAuth } from "../../state/auth-context";
@@ -13,12 +14,20 @@ import { useAuth } from "../../state/auth-context";
 export default function SessionDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const { dashboard, dashboardStatus, deleteEntry, getEntry } = useTraining();
+  const {
+    dashboard,
+    dashboardStatus,
+    refreshDashboard,
+    deleteEntry,
+    getEntry,
+  } = useTraining();
   const { currentPlayerID } = useAuth();
   const [entry, setEntry] = useState<TrainingEntry | null | undefined>();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [request, setRequest] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -27,13 +36,31 @@ export default function SessionDetailPage() {
         if (active) setEntry(loaded);
       },
       () => {
-        if (active) setEntry(null);
+        if (active) setLoadError(true);
       },
     );
     return () => {
       active = false;
     };
-  }, [getEntry, params.id]);
+  }, [getEntry, params.id, request]);
+
+  if (loadError)
+    return (
+      <div className="page page--session-detail">
+        <Link className="context-back" href="/me#sessions">
+          ← My Sessions
+        </Link>
+        <h1>Session unavailable</h1>
+        <LoadError
+          message={copy.recovery.sessionFailed}
+          onRetry={() => {
+            setLoadError(false);
+            setEntry(undefined);
+            setRequest((value) => value + 1);
+          }}
+        />
+      </div>
+    );
 
   if (entry === undefined || dashboardStatus === "loading") {
     return (
@@ -50,8 +77,8 @@ export default function SessionDetailPage() {
       <div className="page page--session-detail">
         <section className="card empty-session">
           <h1>Session not found</h1>
-          <p>It may have been deleted or saved on another device.</p>
-          <Link className="button button--outline" href="/">
+          <p>This session is no longer available.</p>
+          <Link className="button button--outline" href="/me#sessions">
             Back to My Sessions
           </Link>
         </section>
@@ -67,7 +94,10 @@ export default function SessionDetailPage() {
       <div className="page page--session-detail">
         <section className="card empty-session" role="alert">
           <h1>Activity unavailable</h1>
-          <p>This approved activity could not be loaded.</p>
+          <LoadError
+            message="This activity’s details couldn’t be loaded."
+            onRetry={() => void refreshDashboard()}
+          />
         </section>
       </div>
     );
@@ -81,7 +111,7 @@ export default function SessionDetailPage() {
     setDeleteError("");
     try {
       await deleteEntry(entry.id);
-      router.replace("/");
+      router.replace("/me#sessions");
     } catch (cause) {
       setDeleteError(
         cause instanceof Error
@@ -95,7 +125,9 @@ export default function SessionDetailPage() {
   return (
     <div className="page page--session-detail">
       <header className="session-detail-header">
-        <Link href="/">← My Sessions</Link>
+        <Link className="context-back" href="/me#sessions">
+          ← My Sessions
+        </Link>
         <h1>{activity.name}</h1>
       </header>
 

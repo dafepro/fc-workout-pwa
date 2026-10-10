@@ -17,7 +17,7 @@ export function SessionList({
   const [visibleCount, setVisibleCount] = useState(initialVisible);
 
   return (
-    <section className="card recent-card">
+    <section id="sessions" className="card recent-card" tabIndex={-1}>
       <div className="section-heading">
         <h2>My Sessions</h2>
       </div>
@@ -68,7 +68,7 @@ export function SessionList({
           aria-label="Load more sessions"
           onClick={() => setVisibleCount((count) => count + 3)}
         >
-          <span aria-hidden="true">⌄</span>
+          Load more sessions <span aria-hidden="true">⌄</span>
         </button>
       ) : null}
     </section>

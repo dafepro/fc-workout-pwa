@@ -1,3 +1,4 @@
+import type { D1Database } from "@cloudflare/workers-types";
 import type { ClientEventBatch, ServerEventName } from "./catalog";
 import type { RouteName } from "./route";
 

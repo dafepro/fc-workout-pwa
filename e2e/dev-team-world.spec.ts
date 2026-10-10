@@ -28,6 +28,7 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
   const entries: { page: Page; id: string }[] = [];
   const state: { session?: string; simulation?: Simulation } = {};
   const peer: { simulation?: Simulation } = {};
+  let peerSawKick = false;
   page.on("websocket", (socket) =>
     socket.on("framereceived", ({ payload }) => {
       const m = JSON.parse(String(payload));
@@ -38,7 +39,11 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
   other.on("websocket", (socket) =>
     socket.on("framereceived", ({ payload }) => {
       const m = JSON.parse(String(payload));
-      if (m.state) peer.simulation = m.state;
+      if (m.state) {
+        peer.simulation = m.state;
+        if (state.session && (m.state.players[state.session]?.kick ?? 0) > 0)
+          peerSawKick = true;
+      }
     }),
   );
   try {
@@ -96,6 +101,43 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
     await expect
       .poll(() => peer.simulation?.players[state.session!]?.x)
       .not.toBeUndefined();
+    stage = "render-diagnostics";
+    await page.getByText("Dev controls", { exact: true }).click();
+    const gravity = page.getByRole("slider", { name: "Gravity", exact: true });
+    await expect(gravity).toBeEnabled();
+    await expect(gravity).toHaveValue("5.4");
+    await gravity.focus();
+    await page.keyboard.press("ArrowDown");
+    await expect(gravity).toHaveValue("5.3");
+    await page.getByRole("button", { name: "Reset pitch balls" }).click();
+    await expect(gravity).toHaveValue("5.4");
+    await expect(
+      page.getByRole("button", { name: "Save motion capture", exact: true }),
+    ).toBeVisible();
+    await page
+      .getByRole("button", { name: "Copy diagnostic report", exact: true })
+      .click();
+    const capture = JSON.parse(
+      await page
+        .getByRole("textbox", { name: "Diagnostic report", exact: true })
+        .inputValue(),
+    );
+    expect(capture.version).toBe(2);
+    expect(capture.motion.frames.length).toBeGreaterThan(10);
+    expect(capture.motion.columns).toContain("screenX");
+    await page
+      .getByRole("button", { name: "Minimal rendering", exact: true })
+      .click();
+    await expect(
+      page.getByRole("combobox", { name: "Avatar rendering", exact: true }),
+    ).toHaveValue("capsule");
+    await page
+      .getByRole("button", { name: "Normal rendering", exact: true })
+      .click();
+    await page.getByText("Dev controls", { exact: true }).click();
+    stage = "shared-kick";
+    await page.getByRole("button", { name: "Kick ball", exact: true }).click();
+    await expect.poll(() => peerSawKick).toBe(true);
     stage = "shared-lamp";
     const lamp = page.getByRole("button", {
       name: /^Turn courtyard lamp (on|off)$/,
@@ -126,6 +168,22 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
             (peer.simulation?.players[state.session!]?.z ?? start.z) - start.z,
           ),
         { timeout: 15000 },
+      )
+      .toBeGreaterThan(0.3);
+    stage = "moving-kick";
+    peerSawKick = false;
+    const movingKickStart = { ...peer.simulation!.players[state.session!] };
+    await page.getByRole("button", { name: "Kick ball", exact: true }).click();
+    await expect.poll(() => peerSawKick).toBe(true);
+    await expect(page.locator(".team-world-canvas canvas")).toBeFocused();
+    await expect
+      .poll(() =>
+        Math.hypot(
+          (peer.simulation?.players[state.session!]?.x ?? movingKickStart.x) -
+            movingKickStart.x,
+          (peer.simulation?.players[state.session!]?.z ?? movingKickStart.z) -
+            movingKickStart.z,
+        ),
       )
       .toBeGreaterThan(0.3);
     await page.keyboard.up("d");
@@ -260,6 +318,9 @@ function observeWorld(page: Page) {
             viewport: [innerWidth, innerHeight],
             frames: (window as Window & { worldFrameProbe?: unknown })
               .worldFrameProbe,
+            socketCloseCodes: (
+              window as Window & { worldSocketCloseCodes?: number[] }
+            ).worldSocketCloseCodes,
             graphics: (() => {
               const canvas = document.querySelector<HTMLCanvasElement>(
                 ".team-world-canvas canvas",
@@ -283,6 +344,20 @@ function observeWorld(page: Page) {
 async function prepareFrameProbe(page: Page) {
   await page.addInitScript(() => {
     if (location.pathname !== "/team-world") return;
+    const closeCodes: number[] = [];
+    (
+      window as Window & { worldSocketCloseCodes?: number[] }
+    ).worldSocketCloseCodes = closeCodes;
+    const NativeWebSocket = window.WebSocket;
+    window.WebSocket = class extends NativeWebSocket {
+      constructor(url: string | URL, protocols?: string | string[]) {
+        super(url, protocols);
+        if (new URL(String(url), location.href).pathname === "/room")
+          this.addEventListener("close", (event) =>
+            closeCodes.push(event.code),
+          );
+      }
+    };
     const probe = {
       count: 0,
       max: 0,

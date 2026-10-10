@@ -1,4 +1,5 @@
 import { playerColor } from "../avatar/color";
+import { selectTeam } from "../../lib/team-context";
 import type { AvatarConfiguration } from "../avatar/types";
 import type { Player, TrainingDashboard } from "../domain/types";
 import {
@@ -31,6 +32,7 @@ import {
 } from "./training-entry-gateway";
 
 export interface SessionProfile {
+  activeTeamId?: string;
   accountId: string;
   role: string;
   player: {
@@ -89,6 +91,8 @@ export function parseConnectedSession(value: unknown): SessionProfile | null {
   return {
     accountId: value.accountId,
     role: value.role,
+    activeTeamId:
+      typeof value.activeTeamId === "string" ? value.activeTeamId : undefined,
     player: {
       id: player.id,
       firstName: player.firstName,
@@ -103,7 +107,8 @@ export function createConnectedPlayerRuntime(
   session: SessionProfile,
 ): PlayerRuntimeAdapter {
   const currentPlayerID = session.player.id;
-  const currentTeam = session.player.teams[0];
+  const currentTeam = selectTeam(session.player.teams, session.activeTeamId);
+  if (!currentTeam) throw Error("No active team");
   const currentPlayer: Player = {
     id: currentPlayerID,
     firstName: session.player.firstName,

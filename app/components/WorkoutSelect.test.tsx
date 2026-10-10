@@ -61,6 +61,7 @@ describe("workout select", () => {
 
     expect(onSelect).toHaveBeenCalledWith("distance_run_1mi");
     expect(screen.queryByRole("radio")).toBeNull();
+    expect(summary()).toHaveFocus();
   });
 
   it("accents the summary by activity, not by the choice's own key", () => {

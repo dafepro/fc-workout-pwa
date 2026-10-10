@@ -111,3 +111,26 @@ func seedTeamHubReward(t *testing.T, db *sql.DB) {
 		}
 	}
 }
+
+func TestTeamHubRewardDatesUseRewardTimeZone(t *testing.T) {
+	for _, tc := range []struct{ stamp, state string }{
+		{"2026-08-10T04:59:00Z", "upcoming"},
+		{"2026-08-10T05:00:00Z", "current"},
+		{"2026-08-17T04:59:00Z", "current"},
+		{"2026-08-17T05:00:00Z", "ended"},
+	} {
+		t.Run(tc.stamp, func(t *testing.T) {
+			repository, db := socialProjectionStore(t)
+			now, _ := time.Parse(time.RFC3339, tc.stamp)
+			seedSocialProjection(t, db, now)
+			seedTeamHubReward(t, db)
+			hub, err := repository.TeamHub(context.Background(), domain.Actor{Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-one"}, "team-one", now)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(hub.Focus) == 0 || hub.Focus[0].State != tc.state || hub.Focus[0].MinimumRosterPercent != 60 {
+				t.Fatalf("focus = %+v, want %s", hub.Focus, tc.state)
+			}
+		})
+	}
+}

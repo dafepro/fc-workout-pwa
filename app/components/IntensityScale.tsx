@@ -26,6 +26,9 @@ function IntensityChoice({
   return (
     <fieldset className={`intensity-choice intensity-choice--${name}`}>
       <legend>{title}</legend>
+      <p className="intensity-value">
+        {labels[value - 1]} · {value} of 7
+      </p>
       <RangeSlider
         className="intensity-slider"
         name={name}

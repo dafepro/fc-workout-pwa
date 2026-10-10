@@ -31,7 +31,10 @@ interface TrainingState {
   reactionInboxMoreStatus: "idle" | "loading" | "error";
   dashboard: TrainingDashboard | null;
   dashboardStatus: "loading" | "ready" | "error";
-  addEntry: (entry: TrainingEntryInput) => Promise<TrainingEntry>;
+  addEntry: (
+    entry: TrainingEntryInput,
+    submissionKey?: string,
+  ) => Promise<TrainingEntry>;
   getEntry: (entryId: string) => Promise<TrainingEntry | null>;
   deleteEntry: (entryId: string) => Promise<void>;
   refreshEntries: () => Promise<void>;
@@ -138,8 +141,8 @@ export function TrainingProvider({
   }, [reactionBadgeCursor, reactionGateway, reactionInboxMoreStatus]);
 
   const addEntry = useCallback(
-    async (input: TrainingEntryInput) => {
-      const entry = await trainingEntryGateway.create(input);
+    async (input: TrainingEntryInput, submissionKey?: string) => {
+      const entry = await trainingEntryGateway.create(input, submissionKey);
       setEntries((current) => [
         entry,
         ...current.filter((item) => item.id !== entry.id),

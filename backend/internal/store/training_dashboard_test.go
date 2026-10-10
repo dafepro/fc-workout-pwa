@@ -148,3 +148,57 @@ func TestTrainingDashboardRejectsUnrelatedPlayer(t *testing.T) {
 		t.Fatalf("error = %v", err)
 	}
 }
+
+func TestPersonalDaysAndTeamSessionsStayDistinctThroughDeletionAndRollover(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	ctx := context.Background()
+	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+	for _, id := range []string{"entry-extra-one", "entry-extra-two"} {
+		if _, err := db.Exec(`INSERT INTO training_entries (
+			id, player_id, team_id, activity_definition_id, occurred_at, result_value,
+			result_unit, effort_level, exhaustion_level, created_at, delete_eligible_until
+		) SELECT ?, player_id, team_id, activity_definition_id, occurred_at, result_value,
+			result_unit, effort_level, exhaustion_level, created_at, delete_eligible_until
+		FROM training_entries WHERE id = 'entry-mason'`, id); err != nil {
+			t.Fatal(err)
+		}
+	}
+	actor := domain.Actor{Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-one"}
+	check := func(at time.Time, sessions, days int) {
+		t.Helper()
+		dashboard, err := repository.TrainingDashboard(ctx, actor, "team-one", at)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if dashboard.Summary.WeeklySessions != sessions || dashboard.Summary.WeeklyMomentumCredits != days {
+			t.Fatalf("personal summary = %+v, want %d sessions / %d days", dashboard.Summary, sessions, days)
+		}
+		team, err := repository.TeamActivity(ctx, actor, "team-one", at)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, member := range team.Members {
+			if member.PlayerID == actor.PlayerID {
+				if member.WeeklySessions != sessions || (member.GoalStatus == "completed") != (sessions >= team.Team.WeeklyGoal) {
+					t.Fatalf("Team session goal = %+v, want %d sessions", member, sessions)
+				}
+				return
+			}
+		}
+		t.Fatal("current player absent from Team projection")
+	}
+	check(now, 3, 1)
+	check(time.Date(2026, time.August, 17, 5, 0, 0, 0, time.UTC), 0, 0)
+	for index, id := range []string{"entry-extra-one", "entry-extra-two", "entry-mason"} {
+		deleted, err := repository.DeleteTrainingEntry(ctx, id, now)
+		if err != nil || !deleted {
+			t.Fatalf("delete %s = %v, %v", id, deleted, err)
+		}
+		days := 1
+		if index == 2 {
+			days = 0
+		}
+		check(now, 2-index, days)
+	}
+}

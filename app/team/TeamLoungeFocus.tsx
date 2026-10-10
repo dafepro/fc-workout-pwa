@@ -24,11 +24,13 @@ export function TeamLoungeFocus({
   teamID,
   unlocked,
   onBack,
+  itemIntent,
 }: {
   player: Player;
   teamID: string;
   unlocked: boolean;
   onBack: () => void;
+  itemIntent?: string;
 }) {
   const { connected, runtime } = useAuth();
   const gateway = useMemo(() => runtime.social(), [runtime]);
@@ -82,6 +84,7 @@ export function TeamLoungeFocus({
       {!unlocked || roster ? (
         <Suspense fallback={<LoungeLoading label={copy.teamLounge.loading} />}>
           <LazyTeamLounge
+            itemIntent={itemIntent}
             player={player}
             unlocked={unlocked}
             connected={connected}

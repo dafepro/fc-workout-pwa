@@ -1,3 +1,4 @@
+import { fetchWithTeamContext } from "../../lib/team-context";
 import type {
   ActivityDefinition,
   ActivityId,
@@ -30,7 +31,7 @@ class ConnectedTrainingDashboardGateway implements TrainingDashboardGateway {
   constructor(private readonly teamID: string) {}
 
   async get(): Promise<TrainingDashboard> {
-    const response = await fetch(
+    const response = await fetchWithTeamContext(
       `/api/zoomigo/v1/me/training-dashboard?teamId=${encodeURIComponent(this.teamID)}`,
       { cache: "no-store" },
     );
@@ -50,14 +51,17 @@ class ConnectedTrainingDashboardGateway implements TrainingDashboardGateway {
   }
 
   async recordPlannedRest(planID: string, dayIndex: number): Promise<void> {
-    const response = await fetch("/api/zoomigo/v1/me/planned-rest-check-ins", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Idempotency-Key": crypto.randomUUID(),
+    const response = await fetchWithTeamContext(
+      "/api/zoomigo/v1/me/planned-rest-check-ins",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": crypto.randomUUID(),
+        },
+        body: JSON.stringify({ teamId: this.teamID, planId: planID, dayIndex }),
       },
-      body: JSON.stringify({ teamId: this.teamID, planId: planID, dayIndex }),
-    });
+    );
     if (!response.ok) throw new Error("Planned rest could not be saved.");
   }
 }

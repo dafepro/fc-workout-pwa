@@ -79,5 +79,5 @@ export async function signInAsCoach(page: Page) {
   await code.waitFor();
   await code.fill(currentCoachCode());
   await page.getByRole("button", { name: "Sign in" }).click();
-  await page.waitForURL(/\/staff(?:\/|$)/);
+  await page.waitForURL((url) => url.pathname === "/staff");
 }

@@ -26,7 +26,7 @@ describe("service worker host mode", () => {
       "zoomigo-shell-v5",
     ]);
     expect(harness.unregistered()).toBe(1);
-    expect(harness.lifecycle()).toEqual(["claim", "unregister"]);
+    expect(harness.lifecycle()).toEqual(["skipWaiting", "claim", "unregister"]);
     expect(intercepted).toBe(false);
   });
 
@@ -46,9 +46,17 @@ describe("service worker host mode", () => {
     });
 
     expect(harness.opened()).toBe(1);
-    expect(harness.deleted).toEqual(["legacy-shell"]);
+    expect(harness.deleted).toEqual(["legacy-shell", "zoomigo-shell-v5"]);
     expect(harness.unregistered()).toBe(0);
     expect(intercepted).toBe(true);
+  });
+  it("waits for explicit activation of production updates", async () => {
+    const harness = serviceWorkerHarness("app.zoomigo.example");
+    runInNewContext(source, harness.context);
+    await dispatch(harness.handlers.get("install"));
+    expect(harness.lifecycle()).not.toContain("skipWaiting");
+    harness.handlers.get("message")?.({ data: { type: "ACTIVATE_UPDATE" } });
+    expect(harness.lifecycle()).toContain("skipWaiting");
   });
 });
 
@@ -86,7 +94,7 @@ function serviceWorkerHarness(hostname: string) {
         kind: string,
         handler: (event: Record<string, unknown>) => void,
       ) => handlers.set(kind, handler),
-      skipWaiting: () => undefined,
+      skipWaiting: () => lifecycle.push("skipWaiting"),
       clients: {
         claim: async () => {
           lifecycle.push("claim");

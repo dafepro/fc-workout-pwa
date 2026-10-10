@@ -7,6 +7,7 @@ import {
   type VisualOptions,
 } from "zmap";
 import { worldCopy } from "../copy";
+import { worldAssetUrl } from "../assets";
 
 type Frame = Parameters<NonNullable<VisualOptions["frame"]>>[0];
 export type ItemAction = {
@@ -19,10 +20,9 @@ export type ItemAction = {
 /** Each approved prop supplies its own presentation and labels over the shared interaction contract. */
 export async function loadInteractiveProps(map: WorldMap) {
   const definition = map.objects!.find((o) => o.id === "courtyard-lamp")!;
-  const response = await fetch(
-    "/team-world-assets/kenney/lampSquareFloor.glb",
-    { signal: AbortSignal.timeout(10000) },
-  );
+  const response = await fetch(worldAssetUrl("lamp"), {
+    signal: AbortSignal.timeout(10000),
+  });
   if (!response.ok) throw Error("Courtyard lamp unavailable");
   const source = (
     await new GLTFLoader().parseAsync(

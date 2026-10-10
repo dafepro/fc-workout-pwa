@@ -1,0 +1,75 @@
+import * as THREE from "three";
+import {
+  installCharacterSilhouette,
+  markSilhouetteOccluder,
+} from "./character-occlusion";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { worldAssetUrl } from "../assets";
+
+/** App-owned art, layered over the same world.json terrain used by the relay. */
+export async function loadCampus(
+  signal?: AbortSignal,
+  silhouette?: () => boolean,
+) {
+  const loading = signal
+    ? AbortSignal.any([signal, AbortSignal.timeout(30000)])
+    : AbortSignal.timeout(30000);
+  const response = await fetch(worldAssetUrl("campus"), { signal: loading });
+  if (!response.ok) throw Error("Campus scenery unavailable");
+  const root = (
+    await new GLTFLoader().parseAsync(await response.arrayBuffer(), "")
+  ).scene;
+  root.name = "team-campus";
+  const geometry = new Set<THREE.BufferGeometry>();
+  const materials = new Set<THREE.Material>();
+  const textures = new Set<THREE.Texture>();
+  root.traverse((object) => {
+    if (!(object instanceof THREE.Mesh)) return;
+    geometry.add(object.geometry);
+    for (const m of Array.isArray(object.material)
+      ? object.material
+      : [object.material]) {
+      materials.add(m);
+      for (const value of Object.values(m))
+        if (value instanceof THREE.Texture) {
+          textures.add(value);
+          value.anisotropy = 4;
+        }
+    }
+  });
+  let closed = false;
+  let removeSilhouette: (() => void) | undefined;
+  markSilhouetteOccluder(root);
+  const campus = {
+    scenery(scene: THREE.Scene) {
+      scene.background = new THREE.Color("#dedfd2");
+      scene.add(root);
+      removeSilhouette = installCharacterSilhouette(scene, silhouette);
+    },
+    setVisible(visible: boolean) {
+      root.visible = visible;
+    },
+    dispose() {
+      if (closed) return;
+      closed = true;
+      removeSilhouette?.();
+      // Detach before WorldView traverses its own resources on disposal.
+      root.removeFromParent();
+      for (const g of geometry) g.dispose();
+      for (const m of materials) m.dispose();
+      for (const t of textures) {
+        t.dispose();
+        if (
+          typeof ImageBitmap !== "undefined" &&
+          t.image instanceof ImageBitmap
+        )
+          t.image.close();
+      }
+    },
+  };
+  if (loading.aborted) {
+    campus.dispose();
+    loading.throwIfAborted();
+  }
+  return campus;
+}

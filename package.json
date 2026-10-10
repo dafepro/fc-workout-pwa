@@ -2,6 +2,7 @@
   "name": "zoomigo-pwa",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@11.21.0",
   "engines": {
     "node": ">=22.13.0"
   },
@@ -11,6 +12,7 @@
     "start": "vinext start",
     "test": "vitest run",
     "test:e2e": "./scripts/e2e.sh",
+    "test:e2e:world": "./scripts/e2e.sh --world",
     "test:e2e:visual": "./scripts/e2e-visual.sh",
     "test:e2e:visual:update": "./scripts/e2e-visual.sh --update-snapshots",
     "test:browser": "playwright test",
@@ -32,16 +34,16 @@
     "@canvas-physics/client": "file:vendor/canvas/canvas-physics-client-0.6.2.tgz",
     "@canvas-physics/core": "file:vendor/canvas/canvas-physics-core-0.6.2.tgz",
     "@canvas-physics/protocol": "file:vendor/canvas/canvas-physics-protocol-0.6.2.tgz",
-    "@zmap/avatar-studio": "https://github.com/dafepro/zmap-avatar-studio/releases/download/v0.1.2/zmap-avatar-studio-0.1.2.tgz",
-    "next": "16.3.3",
+    "@zmap/avatar-studio": "https://github.com/dafepro/zmap-avatar-studio/releases/download/v0.1.4/zmap-avatar-studio-0.1.4.tgz",
+    "next": "16.3.6",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "three": "0.180.0",
-    "zmap": "https://github.com/dafepro/zmap/releases/download/v0.1.4/zmap-0.1.4.tgz"
+    "zmap": "https://github.com/dafepro/zmap/releases/download/v0.1.11/zmap-0.1.11.tgz"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.37.1",
-    "@cloudflare/workers-types": "5.20260804.1",
+    "@cloudflare/vite-plugin": "1.63.0",
+    "@cloudflare/workers-types": "5.20261006.1",
     "@playwright/test": "1.62.1",
     "@tailwindcss/postcss": "4.2.1",
     "@testing-library/jest-dom": "6.6.3",
@@ -53,7 +55,7 @@
     "@vitejs/plugin-react": "6.0.2",
     "@vitejs/plugin-rsc": "0.5.26",
     "eslint": "9.39.4",
-    "eslint-config-next": "16.3.3",
+    "eslint-config-next": "16.3.6",
     "jsdom": "26.0.0",
     "prettier": "3.5.3",
     "react-server-dom-webpack": "19.2.8",
@@ -62,7 +64,7 @@
     "vinext": "0.0.50",
     "vite": "8.0.16",
     "vitest": "4.1.11",
-    "wrangler": "4.92.0"
+    "wrangler": "4.148.0"
   },
   "type": "module"
 }

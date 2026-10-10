@@ -10,7 +10,10 @@ with them, change the feature.
 Player-facing features must not accept free-form text, comments, links, uploads,
 photos, custom names, status messages, announcements, or direct messages.
 Coach-authored player experiences also use predefined workouts, plan templates,
-rewards, and structured controls.
+and structured controls. The approved Team Reward exception permits authorized
+staff title/description and one normalized private prize image, with the
+restrictions in [PRODUCT_BRIEF.md](PRODUCT_BRIEF.md#motivation-and-rewards).
+It grants no player authoring or general coach publishing.
 
 Avatars, Lounge objects, reactions, quick phrases, rewards, and system messages
 come from reviewed versioned catalogs. Unknown IDs or extra payload fields are

@@ -1,0 +1,43 @@
+services:
+  api:
+    environment:
+      TEAM_WORLD_RELAY_KEY: local-team-world-integration-key-only
+      TEAM_WORLD_RELAY_URL: ws://[::1]:8795/room
+
+  team-world:
+    build:
+      context: ..
+      dockerfile: services/team-world/Dockerfile
+    network_mode: service:pwa
+    depends_on:
+      api:
+        condition: service_healthy
+      pwa:
+        condition: service_healthy
+    environment:
+      TEAM_WORLD_RELAY_KEY: local-team-world-integration-key-only
+      TEAM_WORLD_ALLOWED_ORIGIN: http://[::1]:3000
+      TEAM_WORLD_API_URL: http://api:8080
+      TEAM_WORLD_BIND: "::"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://[::1]:8795/healthz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
+  browser-e2e:
+    environment:
+      E2E_TEAM_WORLD: "1"
+    command:
+      [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "pwa-team-world.spec.ts",
+        "--reporter=json",
+      ]

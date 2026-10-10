@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { createRoomService } from "zmap/server";
 import { cannonBehavior, switchBehavior } from "zmap";
 import map from "../../app/team-world/world.json" with { type: "json" };
+import { soccerBehavior } from "../../app/team-world/soccer.mjs";
 import { createAuthority } from "./authority.mjs";
 
 const key = process.env.TEAM_WORLD_RELAY_KEY;
@@ -29,7 +30,7 @@ const rooms = createRoomService({
   server,
   map,
   catalog: [],
-  objectBehaviors: [cannonBehavior, switchBehavior],
+  objectBehaviors: [cannonBehavior, switchBehavior, soccerBehavior],
   allowedOrigins: [origin],
   ...authority,
   store: {

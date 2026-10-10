@@ -7,3 +7,7 @@ allowBuilds:
 overrides:
   "@canvas-physics/core": "file:vendor/canvas/canvas-physics-core-0.6.2.tgz"
   "@canvas-physics/protocol": "file:vendor/canvas/canvas-physics-protocol-0.6.2.tgz"
+  # vinext pins image-size; retain this patch exception until its parent is updated.
+  "image-size@2.0.2": "2.0.3"
+  # Miniflare pins sharp; retain this patch exception until its parent is updated.
+  "sharp@0.35.4": "0.35.5"

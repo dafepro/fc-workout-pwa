@@ -36,7 +36,10 @@ export function proxyEvents(
   const successful = status >= 200 && status < 300;
   const payload = parseBody(rawBody);
   let outcome: ProjectedServerEvent | null = null;
-  let operation: "training_entry" | "reaction" | "avatar" | null = null;
+  let planOutcome: ProjectedServerEvent | null = null;
+  let operation:
+    | ProductEventProperties["product_operation_completed"]["operation"]
+    | null = null;
   if (method === "POST" && path === "v1/me/training-entries") {
     operation = "training_entry";
     if (!successful) {
@@ -44,7 +47,7 @@ export function proxyEvents(
         name: "training_entry_rejected",
         properties: { reason: rejectionReason(status) },
       };
-    } else {
+    } else if (status === 201) {
       const activity = stringProperty(payload, "activityDefinitionId");
       if (activities.has(activity)) {
         outcome = {
@@ -58,8 +61,39 @@ export function proxyEvents(
             backdate_days: backdateDays(payload.occurredAt, now),
           },
         };
+        if (payload.plan && typeof payload.plan === "object") {
+          const completion = payload.completionOutcome ?? "as_listed";
+          if (["partial", "as_listed", "extra"].includes(String(completion)))
+            planOutcome = {
+              name: "planned_activity_recorded",
+              properties: {
+                completion: completion as "partial" | "as_listed" | "extra",
+              },
+            };
+        }
       }
     }
+  } else if (method === "POST" && path === "v1/me/planned-rest-check-ins") {
+    operation = "planned_rest";
+    if (status === 201)
+      outcome = { name: "planned_rest_check_in_created", properties: {} };
+  } else if (method === "POST" && path === "v1/me/prize-boxes/claim-daily") {
+    operation = "prize_claim";
+    if (status === 201 || status === 200)
+      outcome = {
+        name: "prize_daily_claim_completed",
+        properties: { outcome: status === 201 ? "created" : "existing" },
+      };
+  } else if (
+    method === "POST" &&
+    /^v1\/me\/prize-boxes\/[^/]+\/open$/.test(path)
+  ) {
+    operation = "prize_open";
+    if (status === 201 || status === 200)
+      outcome = {
+        name: "prize_box_opened",
+        properties: { outcome: status === 201 ? "created" : "existing" },
+      };
   } else if (
     method === "DELETE" &&
     /^v1\/training-entries\/[^/]+$/.test(path) &&
@@ -105,7 +139,11 @@ export function proxyEvents(
       latency: latencyBucket(elapsedMs),
     },
   };
-  return outcome ? [outcome, completion] : [completion];
+  return [
+    ...(outcome ? [outcome] : []),
+    ...(planOutcome ? [planOutcome] : []),
+    completion,
+  ];
 }
 
 function parseBody(rawBody: string | undefined): Record<string, unknown> {

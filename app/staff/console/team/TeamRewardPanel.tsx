@@ -261,9 +261,14 @@ export function TeamRewardPanel({
             />
           ) : null}
         </div>
-      ) : (
+      ) : null}
+      {!reward || reward.status === "achieved" ? (
         <>
-          <p>{consoleCopy.teamReward.none}</p>
+          <p>
+            {reward
+              ? consoleCopy.teamReward.earnedNext
+              : consoleCopy.teamReward.none}
+          </p>
           {definition ? (
             <form className="console-form" onSubmit={publish} noValidate>
               <label htmlFor="reward-title">
@@ -393,7 +398,7 @@ export function TeamRewardPanel({
             </form>
           ) : null}
         </>
-      )}
+      ) : null}
     </section>
   );
 }

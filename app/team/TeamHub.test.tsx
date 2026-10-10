@@ -57,6 +57,31 @@ const hub: TeamHubProjection = {
 };
 
 describe("TeamHub", () => {
+  it("uses the actual team week and keeps ended rewards out of current focus", () => {
+    render(
+      <TeamHub
+        hub={{
+          ...hub,
+          focus: [
+            {
+              ...hub.focus[0],
+              state: "ended",
+              endsOn: "2026-08-16",
+              minimumRosterPercent: 60,
+            },
+          ],
+        }}
+        onCheer={vi.fn()}
+        onOpenLounge={vi.fn()}
+      />,
+    );
+    const current = screen.getByRole("region", { name: "This week" });
+    expect(within(current).getByText("Aug 24 – Aug 30")).toBeVisible();
+    expect(within(current).queryByText("Team celebration")).toBeNull();
+    fireEvent.click(screen.getByText("Past rewards"));
+    expect(screen.getByText("Ended Aug 16")).toBeVisible();
+    expect(screen.getByText(/at least 60%/)).toBeVisible();
+  });
   it("renders one clear weekly focus and one action per teammate", () => {
     const onCheer = vi.fn();
     const onOpenLounge = vi.fn();
@@ -113,8 +138,8 @@ describe("TeamHub", () => {
     expect(
       within(
         screen.getByRole("region", { name: "Team Lounge preview" }),
-      ).getByRole("button", { name: "Open Lounge" }),
-    ).toBeDisabled();
+      ).getByRole("link", { name: "Record a workout" }),
+    ).toHaveAttribute("href", "/log");
     expect(screen.getByRole("button", { name: "Go to Lounge" })).toBeDisabled();
   });
 });

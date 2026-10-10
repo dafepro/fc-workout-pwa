@@ -37,11 +37,11 @@ inventory.
 
 ## Record training (`/log` and `/log/additional`)
 
-The default activity comes from the current server projection. Players can pick
-another approved activity from the bounded catalog.
+An assigned or linked plan activity comes from the current server projection.
+Without one, the player chooses from the approved bounded catalog.
 
 Activity-specific values are repetitions, duration, or distance with
-server-owned units and ranges. Shared controls are team-local date/time, effort,
+server-owned units and ranges. Shared controls are device-local date/time, effort,
 exhaustion, and a predefined completion outcome. There is no notes field.
 
 Saving waits for server acceptance, updates the relevant Today/Team projection,
@@ -49,6 +49,9 @@ and opens a clear success state. Additional training is available separately so
 it cannot masquerade as completion of a prescribed block. Entry detail lives at
 `/sessions/[id]`; an owner may delete there while the 24-hour window remains
 open.
+
+Recovery, navigation, reward handoffs and installed-app behavior follow
+[PWA_EXPERIENCE.md](PWA_EXPERIENCE.md).
 
 ## Team (`/team`)
 
@@ -148,6 +151,11 @@ Me owns private history and identity:
 - sign-out and credential guidance;
 - entry to the predefined Avatar Studio.
 
+Account and app includes the current team and a native membership selector when
+more than one is available. Selection requires an explicit Switch team action.
+Valid saved drafts block switching; a separate confirmation can discard them.
+Switching opens Today with the validated team and a fresh mounted runtime.
+
 Avatar Studio previews each layer independently, supports reviewed preset or
 custom colors within the validated shape, and saves the whole configuration.
 The Background category includes color, animated FX, and independently colored
@@ -191,12 +199,72 @@ See [STAFF_CONSOLE.md](STAFF_CONSOLE.md).
 ## Team World v3 (`/team-world`)
 
 The integration branch includes connected shared play in the approved Fieldwork
-courtyard, with click/tap paths, joystick, sprint, equipment and predefined
+textured campus with two pitches, furnished terraces and a bridge, with click/tap paths, joystick, sprint, equipment and predefined
 expressions. Entry requires a real session, current team membership and the
 existing participation gate. Only development navigation advertises this route
 while qualification continues. Loading, paused and denied states disable play;
-leaving the route disposes the world connection and scene.
+leaving the route disposes the world connection and scene. A field-wide dimmed
+connection screen blocks the frozen scene, explains paused play, and offers
+Reconnect and Back to Team. Transport interruptions retry automatically; terminal
+failures can request a fresh connection explicitly.
+
+Joystick is the default: pressing an open area anchors the stick there, with a
+60-pixel walk radius and a 20-pixel transition into sprint. Each pitch has a confined
+soccer ball and Burgundy/Gold scoreboard. A soft noon shadow remains directly
+below each ball, expanding and softening with height to make aerial timing
+readable. Burgundy wears the burgundy Matchday kit and sports glasses; Sage
+wears the teal Courtside set and open visor. Saffron wears a frog bucket hat,
+lightning frames and a watermelon jersey. Goals pause the ball, dissolve it, and
+fade it back in at midfield. Scores last only for the current room. Under bridges
+and furnishings, hidden character pixels use a grey silhouette with a pale rim;
+visible body parts keep their normal colors. Kicks use a full-body instep shot: left-foot plant, hip and shoulder turn,
+right-leg strike, a short hop, and a bent-knee landing on the shooting foot.
+The half-second shared kick timer drives a stretched backswing and accelerated
+strike. Ball contact occurs after the campus map’s 0.2-second wind-up, with reach
+checked at contact; movement and steering continue throughout. The full visual
+shot lasts 0.96 seconds. Shape-preserving joint curves carry momentum through
+contact and follow-through without stopping at each keyframe, blending back into the current locomotion pose after
+landing. Foot contact follows the fitted boots. Reduced-motion mode omits the
+visual shot and recovery but keeps identical shared ball timing. The right-side
+Kick button triggers on touch/pointer press without taking canvas focus, so a
+second finger can shoot while the first keeps the joystick held. Space also kicks
+while keyboard movement is held.
+
+The two pitch balls now slow and rebound less. A very close grounded kick sends
+the ball above three player heights with low gravity and slow horizontal travel;
+a farther strike keeps it low. If the ball will be high at contact, the
+avatar commits to a real jump and a header or bicycle attempt. Actual ball
+height, reach and blockers at the shared contact moment decide whether it
+connects; an early or late press can miss. The header has a chest load, forehead
+drive and bent-knee landing. The bicycle uses a full-body turn, scissor exchange,
+overhead strike, side/back landing and crouched get-up, aimed at the shared ball
+target. Players retain steering throughout both animations. Reduced motion
+omits their visual poses while preserving the same jump and ball outcome.
 
 The current three approved appearances are assigned server-side. Saved modular
 appearance editing and durable decorating are subsequent integration work.
 See [TEAM_WORLD.md](TEAM_WORLD.md) for the implementation and qualification gates.
+
+Development builds expose a collapsible **Dev controls** panel in Team World.
+Live controls isolate the occlusion composite, comic shading, ink outlines, avatar
+motion, campus art, camera following, render resolution and original/plain/wireframe
+materials. A simple capsule can replace the Avatar Studio model. Normal rendering
+resets all switches; Minimal rendering provides a cheap comparison. Settings persist
+only in this browser; those render controls do not change physics or other players.
+The same panel gives the elected browser host sliders for both pitch balls'
+gravity, horizontal speed, and rolling friction. They affect the room until
+host handoff or reconnect and then return to authored defaults. Copy diagnostic
+report exports the settings, local host role, position, browser/GPU and frame metrics,
+without account IDs or connection credentials. Compare one switch at a time and
+send reports from both good and bad rendering. Animation off uses the runtime's
+reduced-motion pose; it does not pause simulation. No motion-blur pass is present.
+
+**Save motion capture** downloads the most recent ten seconds of numeric submitted
+frame data: displayed/predicted/authoritative positions, camera and projected screen
+positions, CPU submission time and long tasks. Copy diagnostic report includes the
+same trace. Capture immediately after a hitch. The bounded recorder is dev-only,
+kept in memory, and never automatically uploaded. Counts of held/reversed frames
+require steady velocity but can also reflect collisions. CPU submission does not
+measure GPU completion or physical display response. **Independent motion reference**
+shows a browser-composited moving bar for comparing scene motion with a separate
+animation clock; it respects reduced motion.

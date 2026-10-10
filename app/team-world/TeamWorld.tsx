@@ -3,7 +3,19 @@ import {
   loadInteractiveProps,
   type ItemAction,
 } from "./adapters/interactive-props";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { developmentBuild } from "../build-profile";
+import { installMotionRecorder } from "./motion-recorder";
+import { DevControls } from "./DevControls";
+import {
+  normalRendering,
+  readRenderSettings,
+  renderSettingsKey,
+  createRenderDiagnostics,
+  renderReport,
+  type RenderSettings,
+} from "./diagnostics";
 import { useFullscreen } from "../components/use-fullscreen";
 import {
   Zoomap,
@@ -16,21 +28,34 @@ import {
 } from "zmap";
 import { loadActionKit } from "./adapters/characters";
 import { loadCannonKit } from "./adapters/cannon";
+import { loadCampus } from "./adapters/campus";
 import {
   createNavigationControls,
   type MovementMode,
 } from "./adapters/navigation";
 import { requestWorldTicket } from "./gateway";
+import { soccerBehavior, pitchState } from "./soccer.mjs";
+import { createSoccerVisuals } from "./adapters/soccer";
+import {
+  applyBallTuning,
+  readBallTuning,
+  type BallTuning,
+} from "./ball-tuning";
 import mapJSON from "./world.json";
 import { worldCopy as copy } from "./copy";
 import "./world.css";
 import { renderPixelRatio } from "./render-budget";
-const map = mapJSON as unknown as WorldMap;
+const defaultBallTuning = readBallTuning(mapJSON as unknown as WorldMap);
 function setCameraZoom(world: Zoomap, zoom: number) {
   world.view.camera.zoom = zoom;
   world.view.camera.updateProjectionMatrix();
 }
 export default function TeamWorld({ teamID }: { teamID: string }) {
+  const [map] = useState<WorldMap>(
+    () => structuredClone(mapJSON) as unknown as WorldMap,
+  );
+  const [ballTuning, setBallTuning] = useState<BallTuning>(defaultBallTuning);
+  const [isHost, setIsHost] = useState(false);
   const {
     active: fullscreen,
     bindContainer: bindViewport,
@@ -38,6 +63,26 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
     exit: exitFullscreen,
   } = useFullscreen<HTMLDivElement>();
   const [zoom, setZoom] = useState(2);
+  const [debugSettings, setDebugSettings] = useState<RenderSettings>({
+    ...normalRendering,
+  });
+  const debugRef = useRef(debugSettings);
+  const updateDebug = (next: RenderSettings) => {
+    debugRef.current = next;
+    setDebugSettings(next);
+    try {
+      localStorage.setItem(renderSettingsKey, JSON.stringify(next));
+    } catch {
+      /* Live controls also work without storage. */
+    }
+  };
+  useEffect(() => {
+    if (!developmentBuild) return;
+    const frame = requestAnimationFrame(() =>
+      updateDebug(readRenderSettings()),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, []);
   const container = useRef<HTMLDivElement>(null),
     stick = useRef<HTMLDivElement>(null),
     hint = useRef<HTMLSpanElement>(null),
@@ -51,26 +96,49 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
     [failed, setFailed] = useState<string | null>(null),
     [attempt, setAttempt] = useState(0),
     [people, setPeople] = useState(0),
-    [mode, setMode] = useState<MovementMode>("path");
+    [mode, setMode] = useState<MovementMode>("joystick");
+  const readDebug = useCallback(
+    (capture = false) => renderReport(world.current, debugRef.current, capture),
+    [],
+  );
   const [itemActions, setItemActions] = useState<ItemAction[]>([]);
   const [toolReady, setToolReady] = useState(false);
   const [selectedTool, setSelectedTool] = useState("");
+  const [score, setScore] = useState({
+    pitch: "main-pitch",
+    burgundy: 0,
+    gold: 0,
+  });
   const [drawn, setDrawn] = useState(true);
   useEffect(() => {
+    applyBallTuning(map, defaultBallTuning);
     let cancelled = false;
+    const debug = developmentBuild
+      ? createRenderDiagnostics(() => debugRef.current)
+      : undefined;
+    let recorder: ReturnType<typeof installMotionRecorder> | undefined;
     let viewportObserver: ResizeObserver | undefined;
     let controlsTimer: ReturnType<typeof setInterval> | undefined;
     let kit: Awaited<ReturnType<typeof loadActionKit>> | undefined;
     let cannon: Awaited<ReturnType<typeof loadCannonKit>> | undefined;
     let props: Awaited<ReturnType<typeof loadInteractiveProps>> | undefined;
+    let campus: Awaited<ReturnType<typeof loadCampus>> | undefined;
+    const soccer = createSoccerVisuals(map);
     let current: Zoomap | undefined;
     let movement: ReturnType<typeof createNavigationControls> | undefined;
+    let wasHost = false;
     const controller = new AbortController();
     const dispose = () => {
+      setBallTuning(defaultBallTuning);
+      setIsHost(false);
       clearInterval(controlsTimer);
       viewportObserver?.disconnect();
       movement?.dispose();
+      campus?.dispose();
+      soccer.dispose();
+      recorder?.dispose();
       current?.dispose();
+      debug?.dispose();
       cannon?.dispose();
       props?.dispose();
       kit?.dispose();
@@ -78,12 +146,16 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
     void (async () => {
       const ticket = await requestWorldTicket(teamID, controller.signal);
       if (cancelled) return;
-      kit = await loadActionKit(() => {
-        if (!cancelled) {
-          setFailed(copy.unavailable);
-          current?.setInputEnabled(false);
-        }
-      });
+      kit = await loadActionKit(
+        () => {
+          if (!cancelled) {
+            setFailed(copy.unavailable);
+            current?.setInputEnabled(false);
+          }
+        },
+        undefined,
+        () => debugRef.current,
+      );
       if (cancelled) {
         dispose();
         return;
@@ -98,21 +170,41 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
         dispose();
         return;
       }
+      campus = await loadCampus(
+        controller.signal,
+        () => !developmentBuild || debugRef.current.silhouette,
+      );
+      await soccer.load(controller.signal);
+      if (cancelled) {
+        dispose();
+        return;
+      }
       current = new Zoomap({
         container: container.current!,
         map,
         catalog: [],
-        objectBehaviors: [cannonBehavior, switchBehavior],
+        objectBehaviors: [cannonBehavior, switchBehavior, soccerBehavior],
         visuals: {
-          character: kit.character,
+          character: (identity) => {
+            const character = kit!.character(identity);
+            return debug?.character(character) ?? character;
+          },
+          toy: soccer.toy,
           scenery: (scene, m) => {
             kit!.scenery(scene, m);
+            campus!.scenery(scene);
             cannon!.scenery(scene);
             props!.scenery(scene);
+            soccer.scenery(scene);
           },
           frame: (context) => {
+            soccer.frame(context);
             cannon!.frame(context);
             props!.frame(context);
+            if (debug && current) {
+              campus!.setVisible(debugRef.current.campus);
+              debug.frame(current);
+            }
           },
         },
         onStatus: (s) => {
@@ -123,21 +215,48 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
         },
       });
       world.current = current;
+      if (developmentBuild) recorder = installMotionRecorder(current);
       const resizeBudget = () => {
         if (cancelled || !current || !container.current) return;
-        const ratio = renderPixelRatio(
-          container.current.clientWidth,
-          container.current.clientHeight,
-          devicePixelRatio,
-        );
+        const ratio =
+          renderPixelRatio(
+            container.current.clientWidth,
+            container.current.clientHeight,
+            devicePixelRatio,
+          ) * (developmentBuild ? Number(debugRef.current.resolution) : 1);
         if (Math.abs(current.view.renderer.getPixelRatio() - ratio) > 0.001)
           current.view.renderer.setPixelRatio(ratio);
       };
       viewportObserver = new ResizeObserver(resizeBudget);
       viewportObserver.observe(container.current!);
       resizeBudget();
-      let previousActions = "";
+      let previousActions = "",
+        previousScore = "";
       controlsTimer = setInterval(() => {
+        const hostNow =
+          current?.status === "ready" && current.host === current.session;
+        setIsHost(hostNow);
+        if (wasHost && !hostNow) {
+          applyBallTuning(map, defaultBallTuning);
+          setBallTuning(defaultBallTuning);
+        }
+        wasHost = hostNow;
+        const pitches = map.objects!.filter((o) => o.behavior === "soccer");
+        const local = current?.local ?? map.spawn;
+        const pitch = pitches.sort(
+          (a, b) =>
+            Math.hypot(a.position.x - local.x, a.position.z - local.z) -
+            Math.hypot(b.position.x - local.x, b.position.z - local.z),
+        )[0];
+        const value = current?.state.objects?.instances[pitch.id];
+        if (value) {
+          const s = pitchState(value),
+            key = `${pitch.id}:${s.burgundy}:${s.gold}`;
+          if (key !== previousScore) {
+            previousScore = key;
+            setScore({ pitch: pitch.id, burgundy: s.burgundy, gold: s.gold });
+          }
+        }
         const actions = props!.actions(current!);
         const key = JSON.stringify(actions);
         if (key !== previousActions) {
@@ -196,8 +315,14 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
       if (world.current === current) world.current = null;
       if (navigation.current === movement) navigation.current = null;
     };
-  }, [teamID, attempt]);
+  }, [teamID, attempt, map]);
   const ready = status === "ready" && !failed;
+  const updateBallTuning = (next: BallTuning) => {
+    const current = world.current;
+    if (!ready || !current || current.host !== current.session) return;
+    applyBallTuning(map, next);
+    setBallTuning(next);
+  };
   const run = (action: (w: Zoomap) => void) => {
     if (ready && world.current) action(world.current);
   };
@@ -208,6 +333,16 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
       aria-label={copy.title}
       role="region"
     >
+      {developmentBuild && (
+        <DevControls
+          settings={debugSettings}
+          onChange={updateDebug}
+          read={readDebug}
+          ballTuning={ballTuning}
+          onBallTuningChange={updateBallTuning}
+          isHost={isHost}
+        />
+      )}
       <div className="team-world-bar">
         <div>
           <span className="team-world-eyebrow">{copy.title}</span>
@@ -224,28 +359,81 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
           {fullscreen ? copy.exitFullscreen : copy.fullscreen}
         </button>
       </div>
-      {(failed || ["failed", "denied", "full"].includes(status)) && (
-        <button
-          onClick={() => {
-            setFailed(null);
-            setStatus("connecting");
-            setPeople(0);
-            setMode("path");
-            setZoom(2);
-            setAttempt((n) => n + 1);
-          }}
-          className="team-world-retry"
-        >
-          {copy.retry}
-        </button>
-      )}
       <div className="team-world-field">
+        {!ready && (
+          <div
+            className="team-world-connection"
+            role="status"
+            aria-live="polite"
+          >
+            <div>
+              <span aria-hidden="true">◌</span>
+              <h2>{failed ? copy.states.failed : copy.states[status]}</h2>
+              <p>
+                {failed ??
+                  (status === "connecting"
+                    ? copy.loading
+                    : ["paused", "reconnecting"].includes(status)
+                      ? copy.connectionPaused
+                      : copy.connectionStopped)}
+              </p>
+              {status !== "connecting" && (
+                <button
+                  onClick={() => {
+                    setFailed(null);
+                    setStatus("connecting");
+                    setPeople(0);
+                    setMode("joystick");
+                    setZoom(2);
+                    setAttempt((n) => n + 1);
+                  }}
+                >
+                  {copy.reconnect}
+                </button>
+              )}
+              <Link href="/team">{copy.back}</Link>
+            </div>
+          </div>
+        )}
         <div
           ref={container}
+          inert={!ready}
           className="team-world-canvas"
           aria-label={copy.title}
         />
-        <div ref={stick} className="team-world-stick" hidden>
+        <div
+          className="team-world-score"
+          hidden={!ready}
+          role="status"
+          aria-live="polite"
+          aria-label={copy.soccer.scoreboard}
+        >
+          <small>
+            {score.pitch === "main-pitch"
+              ? copy.soccer.main
+              : copy.soccer.garden}
+          </small>
+          <span>
+            {copy.soccer.burgundy} <b>{score.burgundy}</b> <i>—</i>{" "}
+            {copy.soccer.gold} <b>{score.gold}</b>
+          </span>
+        </div>
+        <button
+          className="team-world-kick"
+          disabled={!ready}
+          onPointerDown={(event) => {
+            if (event.button !== 0) return;
+            // A second finger must not blur the canvas and erase held movement.
+            event.preventDefault();
+            run((w) => w.action("kick"));
+          }}
+          onClick={(event) => {
+            if (event.detail === 0) run((w) => w.action("kick"));
+          }}
+        >
+          {copy.kick}
+        </button>
+        <div ref={stick} className="team-world-stick" aria-hidden="true" hidden>
           <span />
         </div>
         <div className="team-world-quick-action" hidden={!selectedTool}>
@@ -292,7 +480,7 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
             </button>
           ))}
         </div>
-        <div className="team-world-dock">
+        <div className="team-world-dock" inert={!ready}>
           <details className="team-world-panel" name="team-world-controls">
             <summary>{copy.controls}</summary>
             <div
@@ -335,12 +523,6 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
               </button>
               <button ref={stop} hidden>
                 {copy.stop}
-              </button>
-              <button
-                disabled={!ready}
-                onClick={() => run((w) => w.action("kick"))}
-              >
-                {copy.kick}
               </button>
               <p>{copy.navigation[mode]}</p>
               <p>{copy.hint}</p>

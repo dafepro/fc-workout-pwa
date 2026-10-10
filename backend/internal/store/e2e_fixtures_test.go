@@ -11,6 +11,46 @@ import (
 	"github.com/dafepro/fc-workout-pwa/backend/internal/store"
 )
 
+func TestResetE2EFixturesRemovesSecondTeamMembershipAndRestoresDefault(t *testing.T) {
+	ctx := context.Background()
+	repository, db := fixtureStore(t)
+	now := time.Date(2026, time.October, 7, 18, 0, 0, 0, time.UTC)
+	if err := repository.ResetE2EFixtures(ctx, now); err != nil {
+		t.Fatal(err)
+	}
+	staff := store.NewStaffStore(db)
+	input := store.TeamInput{ClubID: "club-zoomigo", Name: "Other", SeasonID: "season-2026", TimeZone: "Pacific/Kiritimati", WeeklyGoal: 5}
+	team, err := staff.CreateTeam(ctx, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = staff.StartMembership(ctx, team.ID, "player-mason"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = staff.UpdateTeam(ctx, "team-hill-striders", input); err != nil {
+		t.Fatal(err)
+	}
+	if err = staff.EndMembership(ctx, "team-hill-striders", "player-mason"); err != nil {
+		t.Fatal(err)
+	}
+	for range 2 {
+		if err = repository.ResetE2EFixtures(ctx, now); err != nil {
+			t.Fatal(err)
+		}
+		var generated, ended int
+		if err = db.QueryRow(`SELECT COUNT(*) FROM teams WHERE id = ?`, team.ID).Scan(&generated); err != nil {
+			t.Fatal(err)
+		}
+		if err = db.QueryRow(`SELECT COUNT(*) FROM team_memberships WHERE active_to IS NOT NULL`).Scan(&ended); err != nil {
+			t.Fatal(err)
+		}
+		base, err := staff.Team(ctx, "team-hill-striders")
+		if err != nil || base.Name != "Hill Striders" || base.TimeZone != "America/Chicago" || base.WeeklyGoal != 3 || generated != 0 || ended != 0 {
+			t.Fatalf("reset default %+v generated=%d ended=%d: %v", base, generated, ended, err)
+		}
+	}
+}
+
 // The browser suite reads Mason's weekly count off the goal card, so the two
 // seeded sessions have to land inside the team-local week whatever day the
 // suite runs on. Monday is the day that used to lose one of them.
@@ -71,6 +111,9 @@ func TestResetE2EFixturesClearsPrizeBoxesAndInventory(t *testing.T) {
 	now := time.Date(2026, time.August, 27, 12, 0, 0, 0, time.UTC)
 	if err = repository.ResetE2EFixtures(ctx, now); err != nil {
 		t.Fatal(err)
+	}
+	if err = store.NewStaffStore(db).RecordAdminAction(ctx, "account-coach-hill", "training_plan.publish", "training_plan", "fixture-plan", nil); err != nil {
+		t.Fatalf("static coach fixture must support audited mutations: %v", err)
 	}
 	claimed, err := repository.ClaimDailyPrizeBox(ctx, store.ClaimDailyPrizeBoxInput{
 		PlayerID: "player-mason", IdempotencyKey: "fixture-claim", Now: now,
