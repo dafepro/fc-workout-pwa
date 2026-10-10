@@ -116,13 +116,20 @@ Keep one offline copy of `backup-identity.txt` outside GitHub, then delete the
 local file. Set the remaining secrets (`CLOUDFLARE_API_TOKEN`,
 `CLOUDFLARE_ACCOUNT_ID`, `BACKUP_S3_ACCESS_KEY_ID`,
 `BACKUP_S3_SECRET_ACCESS_KEY`, `DIGITALOCEAN_TOKEN`, `TF_STATE_ACCESS_KEY_ID`,
-`TF_STATE_SECRET_ACCESS_KEY`) and variables (`ZOOMIGO_API_BASE_URL`,
+`TF_STATE_SECRET_ACCESS_KEY`, `TF_PLAN_ENCRYPTION_KEY`, `ALERT_EMAIL_ADDRESSES`)
+and variables (`ZOOMIGO_API_BASE_URL`,
 `BACKUP_S3_ENDPOINT`/`BUCKET`/`PROVIDER`/`REGION`, `TF_STATE_BUCKET`/`ENDPOINT`,
-`CLOUDFLARE_ZONE_ID`, `SSH_SOURCE_ADDRESSES`, `ALERT_EMAIL_ADDRESSES`) with
+`CLOUDFLARE_ZONE_ID`, `SSH_SOURCE_ADDRESSES`) with
 `gh secret set NAME --env production` / `gh variable set NAME --env production
 --body VALUE`. The `production` environment currently permits only `main` and has no required
 reviewers. Review each plan before manually dispatching apply; there is no
 automatic human approval gate.
+
+`TF_PLAN_ENCRYPTION_KEY` is 32 random bytes encoded as 64 lowercase hexadecimal
+characters. Generate it privately and pass it to `gh secret set` through stdin;
+do not put its value in command arguments or logs. `ALERT_EMAIL_ADDRESSES` is a
+JSON list of operator email addresses stored as a secret, supplied to OpenTofu
+through `TF_VAR_alert_email_addresses` instead of a logged command argument.
 
 The staff console needs a few more. `STAFF_SECRET_KEY` encrypts stored second
 factors; rotating it makes every enrolled authenticator unreadable, so every
@@ -143,8 +150,18 @@ only code gate. Nothing here needs an infra apply to admit a person.
 
 Trigger the `infra.yml` GitHub Actions workflow with `action: plan`. It reads
 the secrets/variables above, derives the deployment SSH public key, and runs
-`tofu plan` against the R2-backed state, uploading the plan as a build
-artifact and printing it in the job log.
+`tofu plan` against the R2-backed state. It uploads an encrypted plan artifact
+with three-day retention and prints the sensitive-value-redacted plan in the
+job log and summary. Public repository artifacts must never contain plaintext
+plans: sensitive inputs are serialized into a saved plan even when terminal
+output redacts them.
+
+Both jobs enforce plan-only PBKDF2/AES-GCM encryption through `TF_ENCRYPTION`
+using `TF_PLAN_ENCRYPTION_KEY`; missing or malformed keys, plaintext plans and
+plans encrypted with another key fail closed. This does not change the R2
+state format. Keep the key stable while a reviewed plan is pending. To rotate
+it, retire pending plan artifacts, replace the production secret and generate
+a fresh plan; an old plan cannot be applied with the new key.
 
 Read the complete plan. A first plan should create one project, SSH key,
 Droplet, assigned Reserved IP, firewall, three resource alerts, one global
@@ -187,7 +204,8 @@ in the current shell without printing them, then:
 ./infra/digitalocean/provision.sh output
 ```
 
-Never commit `terraform.tfvars`, a `.tfplan`, or a state file.
+Never commit `terraform.tfvars`, a `.tfplan`, or a state file. Local fallback
+plans remain private operator files; do not upload them to public artifacts.
 
 ## 3. Independently pin the new host
 
