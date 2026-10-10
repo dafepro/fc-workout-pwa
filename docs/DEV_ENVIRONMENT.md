@@ -69,11 +69,13 @@ services.
 
 ## GitHub configuration
 
-The workflow uses two fresh runners. The first checks out and builds the
-selected application revision without cloud, state, or runtime secrets. The
-second checks out only the workflow revision from `main`, downloads the built
-Worker artifact, and performs the deployment. This prevents branch code or a
-process left behind by its build from reading control-plane credentials.
+The workflow uses separate build and operation jobs on the persistent Mac
+runner. The first checks out and builds the selected application revision without
+injecting cloud, state, or runtime secrets. The second checks out only the workflow
+revision from `main`, downloads the built Worker artifact, and performs the
+deployment. The jobs share a host, so this separation is not a security sandbox.
+Deploy only trusted repository revisions. The controller uses its own reviewed
+workflow revision; the selected application cannot replace its deployment scripts.
 
 The deployment job uses the existing `production` GitHub environment only as a
 control-plane credential vault. Its OpenTofu directory, state key, resource
@@ -219,3 +221,60 @@ workflow retains the existing Canvas Lounge proof and adds an opt-in two-player
 Team World proof through the public password gate. That proof creates and
 deletes only its own invented-player qualification entries and records no
 credential-directory traces, screenshots or videos.
+
+## Mac Actions runners
+
+The Mac is available to every active, non-fork repository owned by `dafepro`,
+with a separate GitHub registration per repository and the shared labels
+`self-hosted`, `macOS`, `ARM64`, and `dcarrell-mac`. GitHub personal accounts
+cannot share one registration across repositories. Register a future repository
+with `github-mac-runner dafepro/REPOSITORY`, or reconcile current repositories
+with `github-mac-runner --all`. The installed command comes from
+`scripts/install-mac-runner.sh`; it requires the owner's interactive GitHub CLI
+credentials and verifies the official runner archive's checksum before installation.
+It does not change other repositories' workflow files or Actions permissions.
+To opt a job in, use `runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]`.
+
+ZoomiGo fork PR verification uses GitHub-hosted Ubuntu. Its fork approval policy
+requires approval for all external contributors. Every Mac registration uses a
+job-start hook that rejects fork PRs, repositories outside `dafepro`, mismatched
+or missing event payloads, and unsupported event types before checkout. The
+installed hook lives outside the checkout. This persistent personal Mac is not
+an isolated sandbox; only trusted repository collaborators' code should run here.
+
+New installations live under `~/.local/share/github-mac-runners/dafepro--REPOSITORY`.
+ZoomiGo retains its initial installation at `~/.local/share/zoomigo-actions-runner`
+and runner name `zoomigo-dcarrell-mac-arm64`; its `zoomigo-mac` label is retained
+as a compatibility alias. All registrations use the maintained guard under
+`~/.local/share/github-mac-runners/guard` (the legacy guard file links there).
+The official `svc.sh` installs a user LaunchAgent that starts after login. Run
+`./svc.sh status`, `./svc.sh stop`, or `./svc.sh start` inside a runner directory
+to manage it. Keep the Mac awake, connected, logged in, and Docker Desktop running
+for Docker jobs. Sleeping or logging out leaves jobs queued. Separate registrations
+can run jobs concurrently and share this Mac's CPU, memory, and Docker daemon.
+
+Each service has separate GitHub CLI, Git, and Docker credential configuration.
+The private Docker config explicitly exposes Docker Desktop's Compose and Buildx
+plugins. Each `.env` sets a five-minute pnpm fetch timeout, four concurrent downloads,
+and a stable private package store; cold CI downloads otherwise exceeded the
+default timeout on this connection. Both pnpm 10 and 11 configuration namespaces
+are set. ZoomiGo enables Node and Go cache uploads only for GitHub-hosted jobs; its Mac
+jobs reuse local caches without publishing shared dependency stores. When porting
+other repositories, apply that same cache policy and set `pnpm/action-setup`
+`dest: ${{ runner.temp }}/pnpm` so concurrent jobs cannot replace one another's
+pnpm installation. Workflows must support native macOS; use Docker CLI commands
+for Linux containers because GitHub job containers and service containers need
+a Linux runner. The original ZoomiGo store remains in its
+legacy configuration directory. Diagnostic logs are under each runner's `_diag`.
+
+To update the guard, stop the services, review and copy
+`scripts/runner-job-guard.{sh,mjs}` into the maintained guard directory, then restart
+services. Review and refresh the installer copy under `github-mac-runners/bootstrap`
+when changing registration behavior. Never point hooks at mutable checkouts.
+The guard tests and installer syntax check run in normal verification.
+
+Automatic dev deployment remains enabled unless the repository variable
+`DEV_AUTO_UPDATE_ENABLED` is exactly `false`. Use that temporary setting when
+merging infrastructure changes that must not deploy the application; manual dev
+operations remain available. Restore the previous variable after maintenance.
+Production deployment remains manual.

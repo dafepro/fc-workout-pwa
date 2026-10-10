@@ -39,6 +39,8 @@ go vet -tags=dev ./...
 go test -tags=dev ./...
 
 cd "$REPOSITORY_ROOT"
+bash -n scripts/install-mac-runner.sh
+node --test scripts/runner-job-guard.test.mjs
 node scripts/contracts.mjs
 node scripts/documentation-contract.mjs
 node --test scripts/unix-automation-contract.test.mjs

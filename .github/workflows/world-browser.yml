@@ -11,17 +11,18 @@ permissions:
 jobs:
   browser:
     environment: dev-world-test
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
           version: 11.21.0
+          dest: ${{ runner.temp }}/pnpm
       - uses: actions/setup-node@v4
         with:
           node-version: 22.20.0
-          cache: pnpm
+          cache: ${{ runner.environment == 'github-hosted' && 'pnpm' || '' }}
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm exec playwright test e2e/dev-team-world.spec.ts

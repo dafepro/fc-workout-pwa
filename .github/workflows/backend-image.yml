@@ -23,7 +23,7 @@ permissions:
 jobs:
   verify:
     name: Static checks, tests, and build
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && fromJSON('["ubuntu-24.04"]') || fromJSON('["self-hosted", "macOS", "ARM64", "dcarrell-mac"]') }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -31,15 +31,17 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           version: 10.17.1
+          dest: ${{ runner.temp }}/pnpm
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22.20.0
-          cache: pnpm
+          cache: ${{ runner.environment == 'github-hosted' && 'pnpm' || '' }}
 
       - uses: actions/setup-go@v6
         with:
           go-version-file: backend/go.mod
+          cache: ${{ runner.environment == 'github-hosted' }}
           cache-dependency-path: backend/go.sum
 
       - uses: opentofu/setup-opentofu@v1
@@ -59,7 +61,7 @@ jobs:
     name: Publish immutable GHCR image
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: verify
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
     timeout-minutes: 20
     permissions:
       contents: read
