@@ -43,7 +43,7 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.63.0",
-    "@cloudflare/workers-types": "5.20261006.1",
+    "@cloudflare/workers-types": "5.20261007.1",
     "@playwright/test": "1.62.1",
     "@tailwindcss/postcss": "4.2.1",
     "@testing-library/jest-dom": "6.6.3",
