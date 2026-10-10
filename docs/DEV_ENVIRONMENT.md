@@ -362,8 +362,13 @@ The private Docker config explicitly exposes Docker Desktop's Compose and Buildx
 plugins. Each `.env` sets a five-minute pnpm fetch timeout, four concurrent downloads,
 and a stable private package store; cold CI downloads otherwise exceeded the
 default timeout on this connection. Both pnpm 10 and 11 configuration namespaces
-are set. Node and Go cache uploads are enabled only for GitHub-hosted jobs; Mac
-jobs reuse local caches without publishing shared dependency stores. The original ZoomiGo store remains in its
+are set. ZoomiGo enables Node and Go cache uploads only for GitHub-hosted jobs; its Mac
+jobs reuse local caches without publishing shared dependency stores. When porting
+other repositories, apply that same cache policy and set `pnpm/action-setup`
+`dest: ${{ runner.temp }}/pnpm` so concurrent jobs cannot replace one another's
+pnpm installation. Workflows must support native macOS; use Docker CLI commands
+for Linux containers because GitHub job containers and service containers need
+a Linux runner. The original ZoomiGo store remains in its
 legacy configuration directory. Diagnostic logs are under each runner's `_diag`.
 
 To update the guard, stop the services, review and copy
