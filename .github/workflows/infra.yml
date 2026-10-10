@@ -32,11 +32,13 @@ jobs:
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}
-      TF_DATA_DIR: ${{ runner.temp }}/infra-${{ github.run_id }}-${{ github.run_attempt }}
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@v4
+
+      - name: Isolate OpenTofu metadata
+        run: echo "TF_DATA_DIR=$RUNNER_TEMP/infra-${{ github.run_id }}-${{ github.run_attempt }}" >>"$GITHUB_ENV"
 
       - uses: actions/setup-node@v4
         with:
@@ -139,13 +141,15 @@ jobs:
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}
-      TF_DATA_DIR: ${{ runner.temp }}/infra-${{ github.run_id }}-${{ github.run_attempt }}
     permissions:
       # Pin updates go to a review branch, never directly to protected main.
       contents: write
       actions: read
     steps:
       - uses: actions/checkout@v4
+
+      - name: Isolate OpenTofu metadata
+        run: echo "TF_DATA_DIR=$RUNNER_TEMP/infra-${{ github.run_id }}-${{ github.run_attempt }}" >>"$GITHUB_ENV"
 
       - uses: actions/setup-node@v4
         with:

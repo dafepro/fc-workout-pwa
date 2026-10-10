@@ -278,7 +278,7 @@ the environment is resolved, so an environment variable is not visible there.
 Releases are manual. A push to `main` runs static checks, targeted tests, and
 builds, then publishes an immutable API image — and stops. It never deploys.
 
-To ship, dispatch "Verify and release ZoomiGo" with `deploy: true`. That job
+To ship, dispatch "Release ZoomiGo to production" with the full verified `release_sha`. That job
 backs up and deploys the VM, then deploys the Worker, reading every credential
 straight from the `production` environment's secrets/variables, and follows its main-only branch policy. No required-reviewer gate is configured. `PRODUCTION_DEPLOY_ENABLED` is a kill switch on top
 of all that: set it to anything but `true` to block every release without
