@@ -273,16 +273,26 @@ func (service *Service) Session(ctx context.Context, token string) (Session, err
 			player.AvatarConfiguration = map[string]string{}
 		}
 		player.Teams = []TeamProfile{}
-		today := service.now().UTC().Format("2006-01-02")
-		rows, err := service.db.QueryContext(ctx, `SELECT t.id, t.name, t.time_zone FROM teams t JOIN team_memberships m ON m.team_id = t.id WHERE m.player_id = ? AND m.active_from <= ? AND (m.active_to IS NULL OR m.active_to >= ?) ORDER BY t.name`, actor.PlayerID, today, today)
+		now := service.now()
+		rows, err := service.db.QueryContext(ctx, `SELECT t.id, t.name, t.time_zone, m.active_from, m.active_to FROM teams t JOIN team_memberships m ON m.team_id = t.id WHERE m.player_id = ? ORDER BY t.name, t.id`, actor.PlayerID)
 		if err != nil {
 			return Session{}, err
 		}
 		defer rows.Close()
 		for rows.Next() {
 			var team TeamProfile
-			if err := rows.Scan(&team.ID, &team.Name, &team.TimeZone); err != nil {
+			var activeFrom string
+			var activeTo sql.NullString
+			if err := rows.Scan(&team.ID, &team.Name, &team.TimeZone, &activeFrom, &activeTo); err != nil {
 				return Session{}, err
+			}
+			location, err := time.LoadLocation(team.TimeZone)
+			if err != nil {
+				return Session{}, fmt.Errorf("load team calendar: %w", err)
+			}
+			today := now.In(location).Format("2006-01-02")
+			if today < activeFrom || (activeTo.Valid && today > activeTo.String) {
+				continue
 			}
 			player.Teams = append(player.Teams, team)
 		}

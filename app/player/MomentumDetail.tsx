@@ -1,4 +1,5 @@
 "use client";
+import { qualityCopy } from "../content/quality-copy";
 
 import type { CSSProperties } from "react";
 import { PlayerAvatar } from "../components/PlayerAvatar";
@@ -9,13 +10,11 @@ import { momentumProgress } from "./momentum-progress";
 export function MomentumDetail({
   momentumScore,
   weeklyCheckIns,
-  weeklyGoal,
   checkInStreak,
   rollingFiveActiveDays,
 }: {
   momentumScore: number;
   weeklyCheckIns: number;
-  weeklyGoal: number;
   checkInStreak: number;
   rollingFiveActiveDays: number;
 }) {
@@ -50,51 +49,54 @@ export function MomentumDetail({
           {copy.momentum.streak(Math.max(0, Math.floor(checkInStreak)))}
         </p>
       </header>
-      <div className="momentum-detail__body">
-        <div
-          className="momentum-detail__gauge"
-          role="progressbar"
-          aria-label={copy.momentum.gauge(progress.score)}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={progress.score}
-          style={gaugeStyle}
-        >
-          <div>
-            <strong>{progress.score}</strong>
-            <small>{copy.momentum.gaugeLabel}</small>
+      <div className="momentum-weekly">
+        <strong>
+          {qualityCopy.weekly(Math.max(0, Math.floor(weeklyCheckIns)))}
+        </strong>
+        {weeklyCheckIns === 0 ? <p>{copy.momentum.firstCheckIn}</p> : null}
+        <p>{qualityCopy.weeklyRule}</p>
+      </div>
+      <details className="momentum-explanation">
+        <summary>{qualityCopy.howMomentum}</summary>
+        <p>{qualityCopy.momentumRule}</p>
+        <div className="momentum-detail__body">
+          <div
+            className="momentum-detail__gauge"
+            role="progressbar"
+            aria-label={copy.momentum.gauge(progress.score)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={progress.score}
+            style={gaugeStyle}
+          >
+            <div>
+              <strong>{progress.score}</strong>
+              <small>{copy.momentum.gaugeLabel}</small>
+            </div>
+          </div>
+          <div className="momentum-detail__guidance">
+            <span aria-hidden="true">→</span>
+            <div>
+              <small>{copy.momentum.guidanceLabel}</small>
+              <p>{qualityCopy.momentumTip}</p>
+              <p className="momentum-detail__tip">
+                {copy.momentum.improvementTip}
+              </p>
+            </div>
           </div>
         </div>
-        <div className="momentum-detail__guidance">
-          <span aria-hidden="true">→</span>
+        <div className="momentum-detail__habit">
+          <span aria-hidden="true">✦</span>
           <div>
-            <small>{copy.momentum.guidanceLabel}</small>
-            <p>{weeklyGuidance(weeklyCheckIns, weeklyGoal)}</p>
-            <p className="momentum-detail__tip">
-              {copy.momentum.improvementTip}
-            </p>
+            <strong>
+              {copy.momentum.rollingHabit(
+                Math.min(5, Math.max(0, Math.floor(rollingFiveActiveDays))),
+              )}
+            </strong>
+            <small>{copy.momentum.rollingHabitPrivate}</small>
           </div>
         </div>
-      </div>
-      <div className="momentum-detail__habit">
-        <span aria-hidden="true">✦</span>
-        <div>
-          <strong>
-            {copy.momentum.rollingHabit(
-              Math.min(5, Math.max(0, Math.floor(rollingFiveActiveDays))),
-            )}
-          </strong>
-          <small>{copy.momentum.rollingHabitPrivate}</small>
-        </div>
-      </div>
+      </details>
     </section>
   );
-}
-
-function weeklyGuidance(checkIns: number, target: number): string {
-  const current = Math.max(0, Math.floor(checkIns));
-  const goal = Math.max(1, Math.floor(target));
-  if (current >= goal) return copy.momentum.weeklyComplete(goal);
-  if (current === 0) return copy.momentum.firstCheckIn;
-  return copy.momentum.weeklyProgress(current, goal - current);
 }

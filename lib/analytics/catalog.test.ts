@@ -29,6 +29,35 @@ function batch(
 }
 
 describe("validateClientBatch", () => {
+  it("accepts bounded recovery intent without accepting identifiers or authoritative outcomes", () => {
+    for (const action of ["retry", "confirmed", "unresolved"]) {
+      expect(
+        validateClientBatch(
+          batch("training_save_recovery" as never, { action }),
+          NOW,
+        ).events[0].properties,
+      ).toEqual({ action });
+    }
+    expect(() =>
+      validateClientBatch(
+        batch("training_save_recovery" as never, {
+          action: "retry",
+          entry_id: "private",
+        }),
+        NOW,
+      ),
+    ).toThrow();
+    for (const name of [
+      "planned_activity_recorded",
+      "planned_rest_check_in_created",
+      "prize_daily_claim_completed",
+      "prize_box_opened",
+    ]) {
+      expect(() => validateClientBatch(batch(name as never, {}), NOW)).toThrow(
+        /event name/i,
+      );
+    }
+  });
   it("accepts a declared event and returns only its canonical shape", () => {
     expect(validateClientBatch(batch(), NOW)).toEqual({
       events: [
@@ -119,6 +148,28 @@ describe("validateClientBatch", () => {
 });
 
 describe("validateServerEvent", () => {
+  it("rejects raw identifiers and values on plan and prize outcomes", () => {
+    expect(
+      validateServerEvent("planned_activity_recorded" as never, {
+        completion: "partial",
+      }),
+    ).toEqual({ completion: "partial" });
+    expect(
+      validateServerEvent("prize_box_opened" as never, { outcome: "existing" }),
+    ).toEqual({ outcome: "existing" });
+    expect(() =>
+      validateServerEvent("planned_activity_recorded" as never, {
+        completion: "partial",
+        result: 8,
+      }),
+    ).toThrow();
+    expect(() =>
+      validateServerEvent("prize_box_opened" as never, {
+        outcome: "created",
+        item_id: "private",
+      }),
+    ).toThrow();
+  });
   it("accepts declared authoritative outcomes", () => {
     expect(
       validateServerEvent("training_entry_created", {

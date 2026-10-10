@@ -200,33 +200,43 @@
 .team-world-hint:empty {
   display: none;
 }
-.team-world-retry {
-  position: absolute;
-  z-index: 4;
-  top: 6rem;
-  left: 1rem;
-}
+
 .team-world-stick {
   position: absolute;
   z-index: 2;
-  left: max(1rem, env(safe-area-inset-left));
-  bottom: 6rem;
-  width: 108px;
-  height: 108px;
+  width: 160px;
+  height: 160px;
+  transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: #071c25ba;
+  background: #071c2530;
+  border: 1px dashed #f4edcc99;
+  pointer-events: none;
+  box-shadow: 0 2px 12px #071c2526;
+}
+.team-world-stick::before {
+  content: "";
+  position: absolute;
+  inset: 19px;
+  border: 2px solid #f1f6e8cc;
+  border-radius: 50%;
+  background: #071c2528;
+}
+.team-world-stick[data-sprinting="true"] {
   border: 2px solid #c9f31d;
-  touch-action: none;
+  box-shadow: 0 0 0 5px #c9f31d26;
 }
 .team-world-stick span {
   position: absolute;
-  left: 34px;
-  top: 34px;
-  width: 36px;
-  height: 36px;
+  left: calc(50% - 12px);
+  top: calc(50% - 12px);
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
+  background: #f1f6e8;
+  border: 2px solid #0a3034;
+}
+.team-world-stick[data-sprinting="true"] span {
   background: #c9f31d;
-  pointer-events: none;
 }
 .team-world [hidden] {
   display: none !important;
@@ -276,9 +286,6 @@
   }
 }
 @media (max-height: 480px) and (orientation: landscape) {
-  .team-world-stick {
-    bottom: 1rem;
-  }
   .team-world-panel > .team-world-controls {
     max-height: 52dvh;
   }
@@ -310,5 +317,220 @@
     )
     .team-world-hint {
     display: none;
+  }
+}
+
+.team-world-score {
+  position: absolute;
+  top: 5.5rem;
+  left: 1rem;
+  z-index: 2;
+  padding: 0.5rem 0.75rem;
+  background: #0a3034ee;
+  border: 1px solid #f4ebd533;
+  border-radius: 0.8rem;
+  pointer-events: none;
+  font-size: 0.8rem;
+}
+.team-world-score small {
+  display: block;
+  color: #cbd4c7;
+  font-size: 0.65rem;
+  margin-bottom: 0.2rem;
+}
+.team-world-score span {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.team-world-score b {
+  color: #fff8df;
+  font-variant-numeric: tabular-nums;
+}
+.team-world-score i {
+  font-style: normal;
+  color: #b7c5bb;
+}
+.team-world-kick {
+  position: absolute;
+  touch-action: none;
+  right: 1rem;
+  bottom: 9rem;
+  z-index: 3;
+}
+@media (max-width: 480px) {
+  .team-world-item-actions {
+    top: 9.5rem;
+  }
+}
+
+.team-world-connection {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  padding: 5rem 1rem 2rem;
+  background: rgb(7 28 37 / 82%);
+  backdrop-filter: grayscale(1) blur(3px);
+  text-align: center;
+  touch-action: none;
+}
+.team-world-connection > div {
+  max-width: 24rem;
+}
+.team-world-connection span {
+  font-size: 3rem;
+  color: #c9f31d;
+}
+.team-world-connection h2 {
+  font-size: 1.4rem;
+  margin: 0.5rem 0;
+}
+.team-world-connection p {
+  line-height: 1.5;
+  margin: 0 0 1rem;
+}
+.team-world-connection button {
+  background: #c9f31d;
+  color: #071c25;
+  font-weight: 700;
+}
+
+.team-world-connection a {
+  display: block;
+  color: #f7faf2;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+  text-decoration: underline;
+}
+
+.team-world-debug {
+  position: absolute;
+  z-index: 7;
+  top: 6rem;
+  right: 0.75rem;
+  width: min(21rem, calc(100% - 1.5rem));
+  background: #071c25f5;
+  border: 1px solid #c9f31d;
+  border-radius: 0.8rem;
+  font-size: 0.8rem;
+}
+.team-world-debug:not([open]) {
+  top: 13rem;
+  width: auto;
+}
+.team-world-debug[open] {
+  max-height: calc(100% - 6.75rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.team-world-debug > summary {
+  position: sticky;
+  top: 0;
+  background: #071c25;
+  z-index: 1;
+  padding: 0.6rem 0.8rem;
+  cursor: pointer;
+}
+.team-world-debug-content {
+  padding: 0 0.8rem 0.8rem;
+}
+.team-world-debug-content p {
+  line-height: 1.45;
+  margin: 0.5rem 0;
+}
+.team-world-debug-content label {
+  display: block;
+  margin: 0.65rem 0;
+}
+.team-world-debug-content .team-world-debug-check {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 36px;
+}
+.team-world-debug-check input {
+  width: 20px;
+  height: 20px;
+  accent-color: #c9f31d;
+}
+.team-world-debug-ball {
+  border: 1px solid #759296;
+  border-radius: 0.5rem;
+  margin: 0.9rem 0 0;
+  min-width: 0;
+  padding: 0.25rem 0.65rem 0.65rem;
+}
+.team-world-debug-ball legend {
+  font-weight: 700;
+  padding: 0 0.25rem;
+}
+.team-world-debug-ball label span,
+.team-world-debug-ball output {
+  display: inline-block;
+  width: 50%;
+}
+.team-world-debug-ball output {
+  text-align: right;
+}
+.team-world-debug-ball input[type="range"] {
+  display: block;
+  width: 100%;
+  margin: 0.3rem 0;
+  accent-color: #c9f31d;
+}
+.team-world-debug-ball:disabled {
+  opacity: 0.6;
+}
+.team-world-debug-presets {
+  display: flex;
+  gap: 0.4rem;
+}
+.team-world-debug-content textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: #fff;
+  color: #071c25;
+  font: 11px monospace;
+}
+
+.team-world-motion-reference {
+  position: absolute;
+  pointer-events: none;
+  z-index: 4;
+  top: 9rem;
+  left: 1rem;
+  padding: 0.5rem;
+  background: #071c25;
+  color: #fff;
+  font-size: 0.7rem;
+}
+.team-world-motion-reference div {
+  width: 200px;
+  height: 18px;
+  margin-top: 0.4rem;
+  background: #40525c;
+  overflow: hidden;
+}
+.team-world-motion-reference i {
+  display: block;
+  width: 18px;
+  height: 18px;
+  background: #c9f31d;
+  animation: motion-reference 0.9s linear infinite alternate;
+  will-change: transform;
+}
+@keyframes motion-reference {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(180px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .team-world-motion-reference i {
+    animation: none;
   }
 }

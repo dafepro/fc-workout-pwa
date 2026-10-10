@@ -1,3 +1,4 @@
+import { fetchWithTeamContext } from "../../lib/team-context";
 export type PrizeBoxSource =
   | "daily_check_in"
   | "plan_participation_3"
@@ -133,7 +134,7 @@ function mutation(idempotencyKey: string): RequestInit {
 }
 
 async function request<T>(url: string, init: RequestInit): Promise<T> {
-  const response = await fetch(url, init);
+  const response = await fetchWithTeamContext(url, init);
   if (response.ok) return (await response.json()) as T;
   let code = "prize_box_failed";
   let message = "Prize boxes could not be updated.";

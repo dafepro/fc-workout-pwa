@@ -1,4 +1,7 @@
 import * as THREE from "three";
+import { supportAt, top } from "zmap/core";
+import { createKickPose } from "./kick";
+import { createCharacterOcclusion } from "./character-occlusion";
 import {
   AvatarLibrary,
   validateCatalog,
@@ -101,7 +104,11 @@ export function fieldCharacterMotion(
 /** App integration: identity selects appearance; accepted simulation state selects equipment. */
 export async function loadActionKit(
   onError: (error: unknown) => void,
-  base = new URL("/team-world-assets/v0.1.1/", location.href),
+  base = new URL("/team-world-assets/v0.1.4/", location.href),
+  presentation: () => { comic: boolean; outlines: boolean } = () => ({
+    comic: true,
+    outlines: true,
+  }),
 ) {
   const equipmentBase = new URL("action/", base);
   const json = async (url: URL) => {
@@ -124,7 +131,7 @@ export async function loadActionKit(
       id: "burgundy",
       hair: "hair-sweep",
       skin: "#c68b60",
-      color: "#ece8dd",
+      color: "#782e43",
       weight: 0,
     },
     {
@@ -138,7 +145,7 @@ export async function loadActionKit(
       id: "sage",
       hair: "hair-pony",
       skin: "#edc39d",
-      color: "#547780",
+      color: "#337f7d",
       weight: -0.35,
     },
   ];
@@ -148,6 +155,24 @@ export async function loadActionKit(
       choices.map(async (choice) => {
         const recipe = defaultRecipe(catalog);
         recipe.parts.hair = choice.hair;
+        if (choice.id === "burgundy")
+          Object.assign(recipe.parts, {
+            shirt: "shirt-matchday",
+            bottom: "bottom-matchday",
+            eyewear: "acc-matchday-sport",
+          });
+        if (choice.id === "sage")
+          Object.assign(recipe.parts, {
+            shirt: "shirt-courtside",
+            bottom: "bottom-courtside",
+            headwear: "hat-courtside-visor",
+          });
+        if (choice.id === "saffron")
+          Object.assign(recipe.parts, {
+            shirt: "shirt-melon-club",
+            headwear: "hat-frog-days",
+            eyewear: "acc-bolt-mode",
+          });
         recipe.body = { weight: choice.weight };
         recipe.colors = {
           skin: choice.skin,
@@ -178,6 +203,7 @@ export async function loadActionKit(
   }
   let closed = false;
   const toyRadii = new Map<string, number>();
+  let worldMap: WorldMap | undefined;
   const cannonIds = new Set<string>();
   const report = (error: unknown) => {
     if (!closed) {
@@ -211,6 +237,8 @@ export async function loadActionKit(
       root = new THREE.Group(),
       style = new ComicStyle({ inkWidth: 1.5 });
     root.add(avatar.object);
+    const poseKick = createKickPose();
+    const occlusion = createCharacterOcclusion();
     let action: PlayerActionState | undefined,
       tick = 0,
       desired: string | null = null,
@@ -222,6 +250,8 @@ export async function loadActionKit(
     let styledWidth = 0,
       styledHeight = 0,
       styled = false;
+    let comic = true,
+      outlines = true;
     let session: string | null = null,
       loadError: string | null = null;
     let impact: WorldActionEvent | undefined;
@@ -379,6 +409,7 @@ export async function loadActionKit(
         disposed = true;
         pending = false;
         revision++;
+        occlusion.dispose();
         style.clear();
         wield.dispose();
         avatar.dispose();
@@ -485,6 +516,16 @@ export async function loadActionKit(
           }
         }
         avatar.update(time, motion);
+        const support =
+          worldMap && supportAt(worldMap, body.x, body.z, body.y + 0.25);
+        poseKick(
+          avatar,
+          body,
+          time,
+          context.reducedMotion,
+          support ? top(support, body.z) : 0,
+          body.strike ? toyRadii.get(body.strike.toy) : undefined,
+        );
         root.updateWorldMatrix(true, true);
         cable.visible = false;
         pulse.visible = false;
@@ -569,18 +610,30 @@ export async function loadActionKit(
             }
           }
         }
+        const options = presentation();
+        if (comic !== options.comic) {
+          style.clear();
+          styled = false;
+          comic = options.comic;
+        }
         const left = wield.getHand("left")?.object;
         const right = wield.getHand("right")?.object;
         // These approved appearances have fixed topology; only equipment changes
         // add meshes. Animation changes transforms, not the style bindings.
         if (
           !styled ||
+          outlines !== options.outlines ||
           left !== styledLeft ||
           right !== styledRight ||
           context.viewport.x !== styledWidth ||
           context.viewport.y !== styledHeight
         ) {
-          style.update(avatar.object, context.viewport);
+          if (comic) style.update(avatar.object, context.viewport);
+          outlines = options.outlines;
+          avatar.object.traverse((object) => {
+            if (object.userData.comicOutline) object.visible = outlines;
+          });
+          occlusion.update(avatar.object);
           styled = true;
           styledLeft = left;
           styledRight = right;
@@ -590,55 +643,11 @@ export async function loadActionKit(
       },
     };
   }
-  function scenery(scene: THREE.Scene, map: WorldMap) {
+  function scenery(_scene: THREE.Scene, map: WorldMap) {
+    worldMap = map;
     for (const object of map.objects ?? [])
       if (object.behavior === "cannon") cannonIds.add(object.id);
     for (const toy of map.toys) toyRadii.set(toy.id, toy.radius);
-    for (const b of map.blockers) {
-      const object = new THREE.Mesh(
-        new THREE.BoxGeometry(b.width, b.height, b.depth),
-        new THREE.MeshStandardMaterial({
-          color: "#54717a",
-          roughness: 1,
-          flatShading: true,
-        }),
-      );
-      object.position.set(
-        b.x + b.width / 2,
-        b.y + b.height / 2,
-        b.z + b.depth / 2,
-      );
-      scene.add(object);
-      const edges = new THREE.LineSegments(
-        new THREE.EdgesGeometry(object.geometry),
-        new THREE.LineBasicMaterial({ color: "#23373d" }),
-      );
-      object.add(edges);
-    }
-    const grid = new THREE.GridHelper(
-      Math.max(map.bounds.width, map.bounds.depth),
-      20,
-      "#abb7ad",
-      "#c4ccc0",
-    );
-    grid.position.set(
-      map.bounds.x + map.bounds.width / 2,
-      0.011,
-      map.bounds.z + map.bounds.depth / 2,
-    );
-    scene.add(grid);
-    for (const toy of map.toys) {
-      const target = new THREE.Mesh(
-        new THREE.RingGeometry(0.62, 0.66, 40),
-        new THREE.MeshBasicMaterial({
-          color: "#c29243",
-          side: THREE.DoubleSide,
-        }),
-      );
-      target.rotation.x = -Math.PI / 2;
-      target.position.set(toy.home.x, toy.home.y + 0.014, toy.home.z);
-      scene.add(target);
-    }
   }
   return {
     character,

@@ -1,4 +1,5 @@
 "use client";
+import { qualityCopy } from "../content/quality-copy";
 
 import { useState } from "react";
 
@@ -14,12 +15,14 @@ export function LoungeChatSettings({
   activePackIDs,
   unlockedPackIDs,
   onChange,
+  previewPackID,
 }: {
   activePackIDs: readonly LoungeChatPackID[];
   unlockedPackIDs: readonly LoungeChatPackID[];
   onChange(packIDs: LoungeChatPackID[]): void;
+  previewPackID?: string;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(Boolean(previewPackID));
   const actions = copy.teamLounge.actions;
   const atLimit = activePackIDs.length >= MAX_ACTIVE_LOUNGE_CHAT_PACKS;
 
@@ -69,7 +72,11 @@ export function LoungeChatSettings({
               const checked = activePackIDs.includes(pack.id);
               const unlocked = unlockedPackIDs.includes(pack.id);
               return (
-                <label key={pack.id} data-locked={!unlocked || undefined}>
+                <label
+                  key={pack.id}
+                  data-locked={!unlocked || undefined}
+                  data-prize-preview={pack.id === previewPackID || undefined}
+                >
                   <input
                     type="checkbox"
                     checked={checked}
@@ -84,6 +91,9 @@ export function LoungeChatSettings({
                   />
                   <span>
                     <strong>{pack.label}</strong>
+                    {pack.id === previewPackID ? (
+                      <small>{qualityCopy.chatChoose}</small>
+                    ) : null}
                     <small>{pack.description}</small>
                   </span>
                   {!unlocked ? (

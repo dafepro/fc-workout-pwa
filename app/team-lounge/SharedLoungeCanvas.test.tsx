@@ -222,6 +222,39 @@ const mason: Player = {
 };
 
 describe("Shared Lounge Canvas", () => {
+  it("opens an owned prize placement preview without placing it automatically", async () => {
+    prizeInventory.mockResolvedValue([
+      {
+        item: {
+          id: "lounge-prop-beach-ball",
+          kind: "lounge_prop",
+          assetId: "beach-ball",
+          label: "Beach ball",
+          slot: "prop",
+        },
+      },
+    ]);
+    render(
+      <AvatarIdentityProvider
+        value={{ currentPlayerID: mason.id, avatarConfig: defaultAvatar() }}
+      >
+        <SharedLoungeCanvas
+          teamID="team-one"
+          player={mason}
+          roster={[mason]}
+          itemIntent="lounge-prop-beach-ball"
+          onStateChange={vi.fn()}
+          onPresenceChange={vi.fn()}
+        />
+      </AvatarIdentityProvider>,
+    );
+    expect(
+      await screen.findByRole("button", {
+        name: "Place Beach ball item on the boardwalk",
+      }),
+    ).toBeVisible();
+    expect(runtime.transientActions).toEqual([]);
+  });
   beforeEach(() => {
     runtime.options = undefined;
     runtime.projectionSubscriptions = [];

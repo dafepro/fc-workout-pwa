@@ -8,6 +8,33 @@ export const copy = {
     me: "Me",
   },
   saveSuccess: "Training saved",
+  participation: {
+    workout: "Record a workout",
+    workoutDetail: "Record a completed workout today to join your team.",
+    rest: "Check in for planned rest",
+    restDetail: "Check in for today’s planned rest to join your team.",
+  },
+  recovery: {
+    historyLoading: "Loading your private sessions…",
+    saveUnconfirmed:
+      "We couldn’t confirm your save. Your answers are still here. Retry the same entry to check and finish saving it.",
+    offlineSave:
+      "You’re offline. Your answers are still here. Reconnect, then retry saving.",
+    retrySave: "Retry saving",
+    resolveSave:
+      "Your previous save may already be recorded. Retry it before changing these answers. Once confirmed, open the saved session to review or remove it.",
+    viewSession: "View saved session",
+    discard: "Discard draft",
+    draftKept:
+      "Your unfinished answers are kept on this device for this session.",
+    historyFailed:
+      "Your sessions couldn’t be loaded. They haven’t been removed.",
+    sessionFailed:
+      "This session couldn’t be loaded. Check your connection and try again.",
+    inventoryFailed:
+      "Your wardrobe couldn’t be loaded. Your owned items are safe.",
+    retry: "Try again",
+  },
   completion: {
     eyebrow: "Workout complete",
     title: "Done for today!",
@@ -43,11 +70,11 @@ export const copy = {
   },
   today: {
     moreForToday: "Other things you can do",
-    teamLounge: "Team lounge",
+    teamLounge: "Go to Team",
     teamLoungeDetail: "Cheer the team or visit the boardwalk.",
-    teamLoungeLocked: "Complete today’s plan to enter.",
+    teamLoungeLocked: "Record a completed workout today to join your team.",
     logAnother: "Log another activity",
-    logAnotherDetail: "Record something outside the planned workout.",
+    logAnotherDetail: "Record an activity of your choice.",
     teamWorkout: "Team workout",
     teamWorkoutDetail: (
       activityName: string,
@@ -296,11 +323,7 @@ export const copy = {
     gaugeLabel: "Momentum",
     guidanceLabel: "This week",
     firstCheckIn:
-      "Your first check-in starts this week’s team target. Planned rest counts too.",
-    weeklyProgress: (checkIns: number, remaining: number) =>
-      `${checkIns} ${checkIns === 1 ? "check-in" : "check-ins"} this week. ${remaining} more ${remaining === 1 ? "reaches" : "reach"} your team’s target.`,
-    weeklyComplete: (goal: number) =>
-      `You reached your team’s ${goal}-check-in target this week. Nice consistency.`,
+      "Your first check-in starts this week’s personal progress. Planned rest counts too.",
     improvementTip:
       "Show up on different days for the biggest lift. A second and third activity add smaller boosts; planned rest counts too.",
     rollingHabit: (activeDays: number) =>
@@ -387,6 +410,8 @@ export const copy = {
   avatar: {
     title: "Avatar",
     open: "Customize avatar",
+    applicability:
+      "Your profile and Team Lounge portrait. Team World uses a separate 3D outfit.",
     back: "Back to profile",
     preview: "Avatar preview",
     save: "Save",

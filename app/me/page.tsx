@@ -1,10 +1,14 @@
 "use client";
+import { qualityCopy } from "../content/quality-copy";
 
 import Link from "next/link";
+import { InstallHelp } from "../player/PwaStatus";
+import { TeamSwitcher } from "../player/TeamSwitcher";
 import { PlayerAvatar } from "../components/PlayerAvatar";
 import { SessionList } from "../components/SessionList";
 import { TransientQueryToast } from "../components/TransientQueryToast";
 import { copy } from "../content/copy";
+import { LoadError } from "../components/LoadError";
 import { routes } from "../content/routes";
 import type { ReactionBadge } from "../domain/types";
 import { useTraining } from "../state/training-context";
@@ -19,6 +23,7 @@ export default function MePage() {
     currentPlayer: player,
     currentPlayerID,
     runtime,
+    session,
   } = useAuth();
   const {
     entries,
@@ -60,16 +65,22 @@ export default function MePage() {
         >
           {copy.avatar.open}
         </Link>
-        {connected ? (
-          <button
-            className="button button--outline"
-            type="button"
-            onClick={() => void signOut()}
-          >
-            Sign out
-          </button>
-        ) : null}
       </header>
+      {entriesStatus === "loading" ? (
+        <p role="status">{copy.recovery.historyLoading}</p>
+      ) : null}
+      {entriesStatus === "error" ? (
+        <LoadError
+          message={copy.recovery.historyFailed}
+          onRetry={() => void refreshEntries()}
+        />
+      ) : null}
+      {entriesStatus === "ready" || personalEntries.length > 0 ? (
+        <SessionList
+          entries={personalEntries}
+          activities={dashboard?.activities ?? []}
+        />
+      ) : null}
       <section
         className="card reaction-inbox"
         aria-labelledby="reaction-inbox-title"
@@ -138,49 +149,27 @@ export default function MePage() {
           </button>
         ) : null}
       </section>
-      <section className="profile-grid">
-        <article className="card profile-action">
-          <span aria-hidden="true">▦</span>
-          <div>
-            <h2>Session history</h2>
-            <p>
-              {entriesStatus === "loading"
-                ? "Loading your private sessions…"
-                : `${personalEntries.length} private saved sessions`}
-            </p>
-          </div>
-        </article>
-        <article className="card profile-action">
-          <span aria-hidden="true">↗</span>
-          <div>
-            <h2>Assessment history</h2>
-            <p>Private to you and authorized coaches</p>
-          </div>
-          <span className="pill">Coming later</span>
-        </article>
-        <article className="card profile-action">
-          <span aria-hidden="true">◇</span>
-          <div>
-            <h2>QR + PIN security</h2>
-            <p>
-              {connected ? "Connected to your player login" : "Prototype mode"}
-            </p>
-          </div>
-          <span className="pill">{connected ? "Connected" : "Prototype"}</span>
-        </article>
-      </section>
-      <SessionList
-        entries={personalEntries}
-        activities={dashboard?.activities ?? []}
-      />
-      {entriesStatus === "error" ? (
-        <div className="notice notice--error" role="alert">
-          <strong>Your private sessions could not be loaded.</strong>
-          <button type="button" onClick={() => void refreshEntries()}>
-            Try again
+      <details className="card account-details">
+        <summary>{qualityCopy.account}</summary>
+        <p>{qualityCopy.accountHelp}</p>
+        {session ? (
+          <TeamSwitcher
+            key={runtime.currentTeam.id}
+            session={session}
+            currentTeamID={runtime.currentTeam.id}
+          />
+        ) : null}
+        <InstallHelp />
+        {connected ? (
+          <button
+            className="button button--outline"
+            type="button"
+            onClick={() => void signOut()}
+          >
+            Sign out
           </button>
-        </div>
-      ) : null}
+        ) : null}
+      </details>
     </div>
   );
 }

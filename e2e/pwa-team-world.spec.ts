@@ -1,6 +1,8 @@
+import { writeFileSync } from "node:fs";
 import * as THREE from "three";
 import { expect, request, test, type Page } from "@playwright/test";
 import type { Simulation } from "zmap";
+import { worldAssetUrl } from "../app/team-world/assets";
 import {
   loginAsMason as signInMason,
   loginAsAva as signInAva,
@@ -23,6 +25,150 @@ async function qualify(page: Page, login: (page: Page) => Promise<void>) {
 }
 const loginAsMason = (page: Page) => qualify(page, signInMason);
 const loginAsAva = (page: Page) => qualify(page, signInAva);
+
+test("a real kick scores for both peers, then returns the ball to midfield", async ({
+  page,
+  browser,
+}) => {
+  test.setTimeout(90000);
+  const local = observe(page);
+  const phases = new Set<string>();
+  let sawKick = false;
+  page.on("websocket", (socket) =>
+    socket.on("framereceived", ({ payload }) => {
+      const m = JSON.parse(String(payload));
+      if (
+        Object.values(m.state?.players ?? {}).some(
+          (p) => ((p as { kick?: number }).kick ?? 0) > 0,
+        )
+      )
+        sawKick = true;
+      const phase = m.state?.objects?.instances?.["main-pitch"]?.phase;
+      if (phase) phases.add(phase);
+    }),
+  );
+  await loginAsMason(page);
+  await page.goto("/team-world");
+  await expect(page.getByText("Live together", { exact: true })).toBeVisible({
+    timeout: 15000,
+  });
+  const friend = await browser.newContext(),
+    other = await friend.newPage(),
+    peer = observe(other);
+  try {
+    await loginAsAva(other);
+    await other.goto("/team-world");
+    await expect(other.getByText("Live together", { exact: true })).toBeVisible(
+      { timeout: 15000 },
+    );
+    await expect(page.getByText("2 players", { exact: true })).toBeVisible();
+    await page
+      .locator("summary")
+      .filter({ hasText: /^Move & play$/ })
+      .click();
+    await page
+      .getByRole("combobox", { name: "Movement mode" })
+      .selectOption("path");
+    await page.getByRole("slider", { name: "Camera zoom" }).focus();
+    await page.keyboard.press("Home");
+    await page
+      .locator("summary")
+      .filter({ hasText: /^Move & play$/ })
+      .click();
+    async function travel(x: number, z: number) {
+      const rect = (await page
+        .locator(".team-world-canvas canvas")
+        .boundingBox())!;
+      const body = local.state!.players[local.session!];
+      const camera = new THREE.OrthographicCamera(
+        (-10 * rect.width) / rect.height,
+        (10 * rect.width) / rect.height,
+        10,
+        -10,
+        0.1,
+        200,
+      );
+      camera.position.set(body.x + 16, body.y + 19.8, body.z + 16);
+      camera.lookAt(body.x, body.y + 0.8, body.z);
+      camera.updateMatrixWorld();
+      const point = new THREE.Vector3(x, 0, z).project(camera);
+      expect(
+        Math.abs(point.x),
+        "travel destination must be visible",
+      ).toBeLessThan(1);
+      expect(
+        Math.abs(point.y),
+        "travel destination must be visible",
+      ).toBeLessThan(1);
+      await page.mouse.click(
+        rect.x + ((point.x + 1) * rect.width) / 2,
+        rect.y + ((1 - point.y) * rect.height) / 2,
+      );
+      await expect
+        .poll(
+          () => {
+            const p = local.state?.players[local.session!];
+            return p ? Math.hypot(p.x - x, p.z - z) : 100;
+          },
+          { timeout: 25000 },
+        )
+        .toBeLessThan(0.15);
+      await expect(page.locator(".team-world-hint")).toContainText(
+        "You’re here",
+      );
+      await page.waitForTimeout(600);
+    }
+    // Approach from the left without dribbling the ball out of position en route.
+    await travel(-7, 2.5);
+    await travel(-12, 8);
+    await travel(-9.2, 13);
+    await page.getByRole("button", { name: "Kick ball", exact: true }).click();
+    await expect
+      .poll(
+        () =>
+          (
+            peer.state?.objects?.instances["main-pitch"] as
+              | { burgundy: number }
+              | undefined
+          )?.burgundy,
+        { timeout: 15000 },
+      )
+      .toBe(1);
+    await expect(
+      page.getByRole("status", { name: "Pitch score" }),
+    ).toContainText("Burgundy 1");
+    await expect(
+      other.getByRole("status", { name: "Pitch score" }),
+    ).toContainText("Burgundy 1");
+    await expect
+      .poll(
+        () => {
+          const b = peer.state?.toys["practice-ball"];
+          return b ? Math.hypot(b.x + 8, b.z - 13) : 100;
+        },
+        { timeout: 8000 },
+      )
+      .toBeLessThan(0.05);
+    expect(sawKick).toBe(true);
+    expect(phases.has("goal")).toBe(true);
+    expect(phases.has("return")).toBe(true);
+    expect(local.errors).toEqual([]);
+    expect(peer.errors).toEqual([]);
+  } catch (error) {
+    console.log(
+      "SOCCER_STATE",
+      JSON.stringify({
+        ball: local.state?.toys["practice-ball"],
+        pitch: local.state?.objects?.instances["main-pitch"],
+        player: local.state?.players[local.session!],
+        peerBall: peer.state?.toys["practice-ball"],
+      }),
+    );
+    throw error;
+  } finally {
+    await friend.close();
+  }
+});
 
 const apiURL = process.env.E2E_API_BASE_URL ?? "http://api:8080";
 const resetKey = process.env.E2E_RESET_KEY ?? "local-e2e-reset-only";
@@ -126,7 +272,7 @@ test("two real accounts share movement, tools and emotes; route exit releases th
     await page
       .getByRole("combobox", { name: "Movement mode", exact: true })
       .selectOption("joystick");
-    await expect(page.locator(".team-world-stick")).toBeVisible();
+    await expect(page.locator(".team-world-stick")).toBeHidden();
     await page.getByRole("link", { name: "Back to Team", exact: true }).click();
     await expect(page.locator(".team-world-canvas canvas")).toHaveCount(0);
     await expect(b.getByText("1 player", { exact: true })).toBeVisible({
@@ -150,12 +296,12 @@ test("a revoked real session loses room access", async ({ page }) => {
   });
   expect(response.ok()).toBe(true);
   await expect(
-    page.getByText("This room is unavailable", { exact: true }),
+    page.getByRole("heading", {
+      name: "This room is unavailable",
+      exact: true,
+    }),
   ).toBeVisible({ timeout: 5000 });
-  await page
-    .locator("summary")
-    .filter({ hasText: /^Move & play$/ })
-    .click();
+  await expect(page.locator(".team-world-connection")).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Kick ball", exact: true }),
   ).toBeDisabled();
@@ -217,6 +363,11 @@ test("fullscreen overlays resize the world and remain usable at phone widths", a
     const controls = await page.locator(".team-world-dock").boundingBox();
     expect(controls!.x).toBeGreaterThanOrEqual(0);
     expect(controls!.x + controls!.width).toBeLessThanOrEqual(size.width);
+    const kick = (await page
+      .getByRole("button", { name: "Kick ball", exact: true })
+      .boundingBox())!;
+    const hint = (await page.locator(".team-world-hint").boundingBox())!;
+    expect(kick.y + kick.height).toBeLessThanOrEqual(hint.y);
     await page
       .getByRole("button", { name: "Exit full screen", exact: true })
       .click();
@@ -336,6 +487,20 @@ test("hold steering follows cursor and joystick automatically selects a continuo
   await loginAsMason(page);
   await page.goto("/team-world");
   await expect(page.getByText("Live together", { exact: true })).toBeVisible();
+  await page
+    .locator("summary")
+    .filter({ hasText: /^Move & play$/ })
+    .click();
+  await expect(
+    page.getByRole("combobox", { name: "Movement mode" }),
+  ).toHaveValue("joystick");
+  await page
+    .getByRole("combobox", { name: "Movement mode" })
+    .selectOption("path");
+  await page
+    .locator("summary")
+    .filter({ hasText: /^Move & play$/ })
+    .click();
   const canvas = page.locator(".team-world-canvas canvas");
   const box = (await canvas.boundingBox())!;
   await page.mouse.move(box.x + box.width * 0.7, box.y + box.height * 0.65);
@@ -366,17 +531,38 @@ test("hold steering follows cursor and joystick automatically selects a continuo
     .locator("summary")
     .filter({ hasText: /^Move & play$/ })
     .click();
-  const pad = (await page.locator(".team-world-stick").boundingBox())!;
-  const x = pad.x + pad.width / 2,
-    y = pad.y + pad.height / 2;
+  const x = box.x + box.width * 0.35,
+    y = box.y + box.height * 0.55;
   await page.mouse.move(x, y);
   await page.mouse.down();
+  expect((await page.locator(".team-world-stick").boundingBox())!.width).toBe(
+    160,
+  );
   await page.mouse.move(x + 15, y);
   await expect
     .poll(() => Math.hypot(inputs.at(-1)?.x ?? 0, inputs.at(-1)?.z ?? 0))
     .toBeGreaterThan(0.1);
   expect(inputs.at(-1)?.sprint).not.toBe(true);
-  await page.mouse.move(x + 35, y);
+  await page.mouse.move(x + 82, y);
+  await expect.poll(() => inputs.at(-1)?.sprint).toBe(true);
+  await expect(page.locator(".team-world-stick")).toHaveAttribute(
+    "data-sprinting",
+    "true",
+  );
+  if (process.env.E2E_CAMPUS_REVIEW === "1")
+    await page.screenshot({ path: test.info().outputPath("joystick-v2.png") });
+  await page.mouse.up();
+  await expect(page.locator(".team-world-stick")).toBeHidden();
+  const secondX = box.x + box.width * 0.65;
+  const secondY = box.y + box.height * 0.6;
+  await page.mouse.move(secondX, secondY);
+  await page.mouse.down();
+  const relocated = (await page.locator(".team-world-stick").boundingBox())!;
+  expect(Math.abs(relocated.x + relocated.width / 2 - secondX)).toBeLessThan(2);
+  expect(Math.abs(relocated.y + relocated.height / 2 - secondY)).toBeLessThan(
+    2,
+  );
+  await page.mouse.move(secondX + 82, secondY);
   await expect.poll(() => inputs.at(-1)?.sprint).toBe(true);
   await page.keyboard.down("w");
   await expect.poll(() => inputs.at(-1)?.sprint).not.toBe(true);
@@ -404,6 +590,17 @@ test("short ground taps beside an item walk while distant taps build to a sprint
   await loginAsMason(page);
   await page.goto("/team-world");
   await expect(page.getByText("Live together", { exact: true })).toBeVisible();
+  await page
+    .locator("summary")
+    .filter({ hasText: /^Move & play$/ })
+    .click();
+  await page
+    .getByRole("combobox", { name: "Movement mode" })
+    .selectOption("path");
+  await page
+    .locator("summary")
+    .filter({ hasText: /^Move & play$/ })
+    .click();
   await page.getByRole("button", { name: "Full screen", exact: true }).click();
   await expect
     .poll(() => observed.state?.players[observed.session!]?.x)
@@ -443,4 +640,628 @@ test("short ground taps beside an item walk while distant taps build to a sprint
   await expect.poll(() => Math.max(0, ...speeds)).toBeGreaterThan(3);
   await page.keyboard.press("Escape");
   expect(observed.errors).toEqual([]);
+});
+
+test("connection loss covers the field and a fresh connection restores play", async ({
+  page,
+}) => {
+  test.setTimeout(60000);
+  let disconnect: ((code?: number) => void) | undefined;
+  await page.routeWebSocket(/\/room(?:\?|$)/, (socket) => {
+    const server = socket.connectToServer();
+    disconnect = (code = 1012) => {
+      server.close();
+      socket.close({ code, reason: "Local recovery test" });
+    };
+  });
+  await loginAsMason(page);
+  await page.goto("/team-world");
+  await expect(page.getByText("Live together", { exact: true })).toBeVisible({
+    timeout: 20000,
+  });
+  disconnect!();
+  await expect(page.locator(".team-world-connection")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Kick ball", exact: true }),
+  ).toBeDisabled();
+  await expect(page.getByText("Live together", { exact: true })).toBeVisible({
+    timeout: 20000,
+  });
+  await expect(page.locator(".team-world-connection")).toHaveCount(0);
+  disconnect!(4400);
+  await expect(page.locator(".team-world-connection")).toBeVisible();
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.screenshot({ path: "outputs/campus/disconnected-mobile.png" });
+  await page.getByRole("button", { name: "Reconnect", exact: true }).click();
+  await expect(page.getByText("Live together", { exact: true })).toBeVisible({
+    timeout: 20000,
+  });
+  await expect(page.locator(".team-world-connection")).toHaveCount(0);
+});
+
+test.describe("required asset preparation", () => {
+  test.use({ serviceWorkers: "block" });
+  test("leaving during campus decoding closes late image bitmaps", async ({
+    page,
+  }) => {
+    const errors: string[] = [];
+    let sockets = 0;
+    page.on("pageerror", (error) => errors.push(error.message));
+    page.on("websocket", (socket) => {
+      if (new URL(socket.url()).pathname !== "/room") return;
+      sockets++;
+      socket.on("close", () => sockets--);
+    });
+    await page.addInitScript(() => {
+      const held = new Set<ImageBitmap>(),
+        closed = new Set<ImageBitmap>();
+      let release!: () => void;
+      const pending = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const create = window.createImageBitmap,
+        close = ImageBitmap.prototype.close;
+      window.createImageBitmap = async (
+        image: ImageBitmapSource,
+        ...args: unknown[]
+      ) => {
+        const bitmap = (await Reflect.apply(create, window, [
+          image,
+          ...args,
+        ])) as ImageBitmap;
+        if (image instanceof Blob && image.type === "image/jpeg") {
+          held.add(bitmap);
+          await pending;
+        }
+        return bitmap;
+      };
+      ImageBitmap.prototype.close = function (this: ImageBitmap) {
+        if (held.has(this)) closed.add(this);
+        close.call(this);
+      };
+      Object.assign(window, {
+        __campusDecode: {
+          get held() {
+            return held.size;
+          },
+          get closed() {
+            return closed.size;
+          },
+          release,
+        },
+      });
+    });
+    await loginAsMason(page);
+    await page.goto("/team-world");
+    type DecodeProbe = {
+      __campusDecode: { held: number; closed: number; release(): void };
+    };
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => (window as unknown as DecodeProbe).__campusDecode.held,
+        ),
+      )
+      .toBe(3);
+    await expect(
+      page.getByRole("button", { name: "Kick ball", exact: true }),
+    ).toBeDisabled();
+    expect(sockets).toBe(0);
+    await page
+      .getByRole("link", { name: "Back to Team", exact: true })
+      .first()
+      .click();
+    await expect(page).toHaveURL(/\/team$/);
+    await page.evaluate(() =>
+      (window as unknown as DecodeProbe).__campusDecode.release(),
+    );
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => (window as unknown as DecodeProbe).__campusDecode.closed,
+        ),
+      )
+      .toBe(3);
+    expect(sockets).toBe(0);
+    await expect(page.locator(".team-world-canvas canvas")).toHaveCount(0);
+    await page.goto("/log");
+    await expect(page.getByLabel("Reps completed")).toBeEnabled();
+    expect(errors).toEqual([]);
+  });
+  for (const mode of ["ready", "exit", "failure"] as const) {
+    test(
+      "required art keeps play gated and handles " + mode,
+      async ({ page }) => {
+        const errors: string[] = [];
+        let release!: () => void;
+        const held = new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        let cannonRequested = false;
+        let sockets = 0;
+        page.on("pageerror", (error) => errors.push(error.message));
+        page.on("websocket", (socket) => {
+          if (new URL(socket.url()).pathname !== "/room") return;
+          sockets++;
+          socket.on("close", () => sockets--);
+        });
+        await loginAsMason(page);
+        await page.route(`**${worldAssetUrl("cannon")}`, async (route) => {
+          cannonRequested = true;
+          await held;
+          await route.continue();
+        });
+        if (mode === "failure")
+          await page.route(`**${worldAssetUrl("campus")}`, (route) =>
+            route.fulfill({ status: 404, body: "" }),
+          );
+        try {
+          await page.goto("/team-world");
+          await expect.poll(() => cannonRequested).toBe(true);
+          await expect(
+            page.getByRole("button", { name: "Kick ball", exact: true }),
+          ).toBeDisabled();
+          expect(sockets).toBe(0);
+          const cannon = page.waitForResponse(
+            (response) =>
+              new URL(response.url()).pathname === worldAssetUrl("cannon"),
+          );
+          if (mode === "exit")
+            await page
+              .getByRole("link", { name: "Back to Team", exact: true })
+              .first()
+              .click();
+          release();
+          expect((await cannon).status()).toBe(200);
+          if (mode === "ready") {
+            await expect(
+              page.getByText("Live together", { exact: true }),
+            ).toBeVisible();
+            expect(sockets).toBe(1);
+          } else if (mode === "failure") {
+            await expect(
+              page.getByText(/Team World could not open/).first(),
+            ).toBeVisible();
+            expect(sockets).toBe(0);
+            await expect(page.locator(".team-world-canvas canvas")).toHaveCount(
+              0,
+            );
+          }
+          if (mode !== "exit")
+            await page
+              .getByRole("link", { name: "Back to Team", exact: true })
+              .first()
+              .click();
+          await expect(page).toHaveURL(/\/team$/);
+          await page.waitForLoadState("networkidle");
+          await expect.poll(() => sockets).toBe(0);
+          await expect(page.locator(".team-world-canvas canvas")).toHaveCount(
+            0,
+          );
+          await page.goto("/log");
+          await expect(page.getByLabel("Reps completed")).toBeEnabled();
+          expect(errors).toEqual([]);
+        } finally {
+          release();
+          await page.unrouteAll({ behavior: "wait" });
+        }
+      },
+    );
+  }
+});
+
+test("connected sprint stays live through sustained movement and turns", async ({
+  browser,
+}) => {
+  test.setTimeout(60000);
+  const context = await browser.newContext({
+    recordVideo: {
+      dir: "outputs/campus/sprint-video",
+      size: { width: 1280, height: 720 },
+    },
+  });
+  const host = await context.newPage();
+  await loginAsMason(host);
+  await host.goto("/team-world");
+  await expect(host.getByText("Live together", { exact: true })).toBeVisible({
+    timeout: 20000,
+  });
+  const page = await context.newPage();
+  const transportTimers = new Set<ReturnType<typeof setTimeout>>();
+  if (process.env.E2E_SPRINT_JITTER === "1") {
+    await page.routeWebSocket(/\/room(?:\?|$)/, (socket) => {
+      const server = socket.connectToServer();
+      const delayed = (send: (message: string | Buffer) => void) => {
+        let due = 0,
+          count = 0;
+        return (message: string | Buffer) => {
+          due = Math.max(due + 1, Date.now() + 75 + ((count++ % 5) - 2) * 15);
+          const timer = setTimeout(
+            () => {
+              transportTimers.delete(timer);
+              send(message);
+            },
+            Math.max(0, due - Date.now()),
+          );
+          transportTimers.add(timer);
+        };
+      };
+      socket.onMessage(delayed((message) => server.send(message)));
+      server.onMessage(delayed((message) => socket.send(message)));
+    });
+  }
+  const observed = observe(page);
+  try {
+    await loginAsAva(page);
+    await page.goto("/team-world");
+    await expect(page.getByText("Live together", { exact: true })).toBeVisible({
+      timeout: 20000,
+    });
+    await page
+      .locator(".team-world-canvas canvas")
+      .click({ position: { x: 500, y: 350 } });
+    const timing = await page.evaluate(async () => {
+      const frames: number[] = [];
+      let previous = performance.now();
+      for (let i = 0; i < 90; i++)
+        await new Promise<void>((resolve) =>
+          requestAnimationFrame((now) => {
+            frames.push(now - previous);
+            previous = now;
+            resolve();
+          }),
+        );
+      const gl = document
+        .querySelector<HTMLCanvasElement>(".team-world-canvas canvas")!
+        .getContext("webgl2")!;
+      const ext = gl.getExtension("WEBGL_debug_renderer_info");
+      frames.sort((a, b) => a - b);
+      return {
+        renderer: ext
+          ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)
+          : "unknown",
+        p50: frames[45],
+        p95: frames[85],
+        max: frames[89],
+      };
+    });
+    console.log("SPRINT_RENDER", JSON.stringify(timing));
+    await page.keyboard.down("Shift");
+    for (const key of ["w", "d", "s", "a"]) {
+      await page.keyboard.down(key);
+      await page.waitForTimeout(1600);
+      await expect(
+        page.getByText("Live together", { exact: true }),
+      ).toBeVisible();
+      await page.screenshot({ path: `outputs/campus/sprint-${key}.png` });
+      await page.keyboard.up(key);
+    }
+    await page.keyboard.up("Shift");
+    expect(observed.errors).toEqual([]);
+  } finally {
+    for (const timer of transportTimers) clearTimeout(timer);
+    await context.close();
+  }
+});
+
+test("dev rendering controls switch live, preserve the room and export safe settings", async ({
+  page,
+}) => {
+  const observed = observe(page);
+  await loginAsMason(page);
+  await page.goto("/team-world");
+  await expect(page.getByText("Live together", { exact: true })).toBeVisible({
+    timeout: 20000,
+  });
+  const session = observed.session;
+  await page.getByText("Dev controls", { exact: true }).click();
+  const gravity = page.getByRole("slider", { name: "Gravity", exact: true });
+  await expect(gravity).toBeEnabled();
+  await expect(gravity).toHaveValue("5.4");
+  await gravity.focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(gravity).toHaveValue("5.3");
+  await page.getByRole("button", { name: "Reset pitch balls" }).click();
+  await expect(gravity).toHaveValue("5.4");
+  await page
+    .getByRole("checkbox", {
+      name: "Independent motion reference",
+      exact: true,
+    })
+    .check();
+  const marker = page.locator(".team-world-motion-reference i");
+  const before = await marker.evaluate((el) => getComputedStyle(el).transform);
+  await page.waitForTimeout(120);
+  expect(
+    await marker.evaluate((el) => getComputedStyle(el).transform),
+  ).not.toBe(before);
+  const downloadReady = page.waitForEvent("download");
+  await page
+    .getByRole("button", { name: "Save motion capture", exact: true })
+    .click();
+  const download = await downloadReady;
+  expect(download.suggestedFilename()).toBe("zoomigo-motion-capture.json");
+  await download.saveAs("outputs/campus/downloaded-motion.json");
+  await page
+    .getByRole("checkbox", {
+      name: "Independent motion reference",
+      exact: true,
+    })
+    .uncheck();
+
+  await page
+    .getByRole("button", { name: "Minimal rendering", exact: true })
+    .click();
+  await expect(
+    page.getByRole("combobox", { name: "Avatar rendering", exact: true }),
+  ).toHaveValue("capsule");
+  await expect(
+    page.getByRole("checkbox", { name: "Occlusion silhouette", exact: true }),
+  ).not.toBeChecked();
+  await page
+    .getByRole("button", { name: "Copy diagnostic report", exact: true })
+    .click();
+  const report = JSON.parse(
+    await page
+      .getByRole("textbox", { name: "Diagnostic report", exact: true })
+      .inputValue(),
+  );
+  expect(report.settings.avatar).toBe("capsule");
+  expect(report.settings.silhouette).toBe(false);
+  expect(report.graphics.width).toBeGreaterThan(0);
+  expect(report.position.x).toEqual(expect.any(Number));
+  expect(JSON.stringify(report)).not.toMatch(/credential|ticket|session/i);
+  await page.screenshot({ path: "outputs/campus/debug-minimal.png" });
+  await page
+    .getByRole("button", { name: "Normal rendering", exact: true })
+    .click();
+  await expect(
+    page.getByRole("checkbox", { name: "Occlusion silhouette", exact: true }),
+  ).toBeChecked();
+  for (const name of [
+    "Occlusion silhouette",
+    "Avatar ink outlines",
+    "Comic avatar shading",
+    "Avatar animation",
+    "Campus art",
+    "Freeze camera",
+  ]) {
+    const control = page.getByRole("checkbox", { name, exact: true });
+    await control.setChecked(!(await control.isChecked()));
+    await page.waitForTimeout(500);
+    await expect(
+      page.getByText("Live together", { exact: true }),
+      name,
+    ).toBeVisible();
+  }
+  await page
+    .getByRole("combobox", { name: "Scene materials", exact: true })
+    .selectOption("wireframe");
+  await page.waitForTimeout(700);
+  await expect(page.getByText("Live together", { exact: true })).toBeVisible();
+  await page.screenshot({ path: "outputs/campus/debug-wireframe.png" });
+  expect(observed.session).toBe(session);
+  await page.reload();
+  await expect(page.getByText("Live together", { exact: true })).toBeVisible({
+    timeout: 20000,
+  });
+  await page.getByText("Dev controls", { exact: true }).click();
+  await expect(
+    page.getByRole("combobox", { name: "Scene materials", exact: true }),
+  ).toHaveValue("wireframe");
+  await page
+    .getByRole("button", { name: "Normal rendering", exact: true })
+    .click();
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page
+    .getByRole("button", { name: "Copy diagnostic report", exact: true })
+    .click();
+  const bounds = await page.locator(".team-world-debug").boundingBox();
+  const field = await page.locator(".team-world-debug").evaluate((el) => {
+    const rect = el.parentElement!.getBoundingClientRect();
+    return { bottom: rect.bottom, right: rect.right };
+  });
+  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(field.right);
+  expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(field.bottom);
+  await page
+    .getByRole("textbox", { name: "Diagnostic report", exact: true })
+    .scrollIntoViewIfNeeded();
+  await expect(
+    page.getByRole("textbox", { name: "Diagnostic report", exact: true }),
+  ).toBeInViewport();
+  await page.screenshot({ path: "outputs/campus/debug-mobile.png" });
+  expect(observed.errors).toEqual([]);
+});
+
+test("steady sprint does not exhaust its display samples when the simulation timer is late", async ({
+  page,
+}) => {
+  test.setTimeout(60000);
+  await page.addInitScript(() => {
+    const original = window.setTimeout.bind(window);
+    let count = 0;
+    window.setTimeout = ((
+      callback: TimerHandler,
+      delay?: number,
+      ...args: unknown[]
+    ) =>
+      original(
+        callback,
+        delay && Math.abs(delay - 1000 / 30) < 0.01 && ++count % 5 === 0
+          ? delay + 45
+          : delay,
+        ...args,
+      )) as typeof setTimeout;
+    localStorage.setItem(
+      "zoomigo.world-render-diagnostics.v1",
+      JSON.stringify({
+        avatar: "capsule",
+        silhouette: false,
+        comic: false,
+        outlines: false,
+        animation: false,
+        campus: false,
+        freezeCamera: true,
+        material: "normal",
+        resolution: "0.5",
+      }),
+    );
+  });
+  await loginAsMason(page);
+  await page.goto("/team-world");
+  await expect(page.getByText("Live together", { exact: true })).toBeVisible({
+    timeout: 20000,
+  });
+  await page
+    .locator(".team-world-canvas canvas")
+    .click({ position: { x: 500, y: 350 } });
+  await page.keyboard.down("Shift");
+  await page.keyboard.down("d");
+  await page.waitForTimeout(1300);
+  await page.keyboard.up("d");
+  await page.keyboard.up("Shift");
+  await page.getByText("Dev controls", { exact: true }).click();
+  await page
+    .getByRole("button", { name: "Copy diagnostic report", exact: true })
+    .click();
+  const report = JSON.parse(
+    await page
+      .getByRole("textbox", { name: "Diagnostic report", exact: true })
+      .inputValue(),
+  );
+  console.log("MOTION_CAPTURE", JSON.stringify(report.motion?.summary));
+  writeFileSync("outputs/campus/motion-capture.json", JSON.stringify(report));
+  await test.info().attach("motion-capture", {
+    body: JSON.stringify(report),
+    contentType: "application/json",
+  });
+  expect(report.motion.frames.length).toBeGreaterThan(40);
+  expect(report.motion.summary.movingFrames).toBeGreaterThan(30);
+  expect(report.motion.summary.heldMovingFrames).toBe(0);
+});
+
+test("pointer kick preserves held keyboard movement and fires once", async ({
+  page,
+}) => {
+  const inputs: { x: number; z: number; kick: boolean }[] = [];
+  page.on("websocket", (socket) =>
+    socket.on("framesent", ({ payload }) => {
+      const m = JSON.parse(String(payload));
+      if (m.type === "input") inputs.push(m.input);
+    }),
+  );
+  await loginAsMason(page);
+  await page.goto("/team-world");
+  await expect(page.getByText("Live together", { exact: true })).toBeVisible();
+  const canvas = page.locator(".team-world-canvas canvas");
+  await canvas.focus();
+  await page.keyboard.down("w");
+  try {
+    await expect
+      .poll(() => inputs.some((i) => Math.hypot(i.x, i.z) > 0.9))
+      .toBe(true);
+    inputs.length = 0;
+    await page.getByRole("button", { name: "Kick ball", exact: true }).click();
+    await expect.poll(() => inputs.some((i) => i.kick)).toBe(true);
+    await page.waitForTimeout(250);
+    expect(inputs.filter((i) => i.kick)).toHaveLength(1);
+    expect(inputs.every((i) => Math.hypot(i.x, i.z) > 0.9)).toBe(true);
+    await expect(canvas).toBeFocused();
+  } finally {
+    await page.keyboard.up("w");
+  }
+  await expect
+    .poll(() => Math.hypot(inputs.at(-1)?.x ?? 1, inputs.at(-1)?.z ?? 1))
+    .toBe(0);
+});
+
+test("a second touch kicks while the first keeps the joystick sprinting", async ({
+  page,
+  context,
+}) => {
+  const inputs: { x: number; z: number; kick: boolean; sprint?: boolean }[] =
+    [];
+  const shared = observe(page);
+  page.on("websocket", (socket) =>
+    socket.on("framesent", ({ payload }) => {
+      const m = JSON.parse(String(payload));
+      if (m.type === "input") inputs.push(m.input);
+    }),
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await loginAsMason(page);
+  await page.goto("/team-world");
+  await expect(page.getByText("Live together", { exact: true })).toBeVisible();
+  const cdp = await context.newCDPSession(page);
+  await cdp.send("Emulation.setTouchEmulationEnabled", {
+    enabled: true,
+    maxTouchPoints: 2,
+  });
+  const canvas = page.locator(".team-world-canvas canvas");
+  const box = (await canvas.boundingBox())!;
+  const first = {
+    id: 1,
+    x: Math.round(box.x + box.width * 0.25),
+    y: Math.round(box.y + box.height * 0.55),
+  };
+  const held = { ...first, x: first.x + 85 };
+  const button = (await page
+    .getByRole("button", { name: "Kick ball", exact: true })
+    .boundingBox())!;
+  const second = {
+    id: 2,
+    x: Math.round(button.x + button.width / 2),
+    y: Math.round(button.y + button.height / 2),
+  };
+  try {
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [first],
+    });
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [held],
+    });
+    await expect.poll(() => inputs.at(-1)?.sprint).toBe(true);
+    await expect
+      .poll(() => Math.hypot(inputs.at(-1)?.x ?? 0, inputs.at(-1)?.z ?? 0))
+      .toBeGreaterThan(0.9);
+    const before = { ...shared.state!.players[shared.session!] };
+    inputs.length = 0;
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [held, second],
+    });
+    await expect.poll(() => inputs.some((i) => i.kick)).toBe(true);
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [second],
+    });
+    await page.waitForTimeout(300);
+    expect(inputs.filter((i) => i.kick)).toHaveLength(1);
+    expect(inputs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kick: true, sprint: true }),
+      ]),
+    );
+    expect(
+      inputs.every((i) => i.sprint && Math.hypot(i.x, i.z) > 0.9),
+      JSON.stringify(inputs),
+    ).toBe(true);
+    const after = shared.state!.players[shared.session!];
+    expect(Math.hypot(after.x - before.x, after.z - before.z)).toBeGreaterThan(
+      0.2,
+    );
+    await expect(canvas).toBeFocused();
+    await expect(page.locator(".team-world-stick")).toBeVisible();
+  } finally {
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+  }
+  await expect(page.locator(".team-world-stick")).toBeHidden();
+  await expect
+    .poll(() => Math.hypot(inputs.at(-1)?.x ?? 1, inputs.at(-1)?.z ?? 1))
+    .toBe(0);
 });

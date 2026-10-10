@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { copy } from "./content/copy";
 import { useTraining } from "./state/training-context";
 import { useAuth } from "./state/auth-context";
@@ -8,6 +9,7 @@ import { MomentumStatus } from "./player/MomentumStatus";
 import { TodayAdditionalAction } from "./player/TodayAdditionalAction";
 import { TodayPrimaryAction } from "./player/TodayPrimaryAction";
 import { PlanWeekStrip } from "./player/PlanWeekStrip";
+import { participationAction } from "./player/participation-action";
 
 export default function HomePage() {
   const { runtime } = useAuth();
@@ -17,8 +19,11 @@ export default function HomePage() {
     dashboardStatus,
     refreshDashboard,
     recordPlannedRest,
+    entries,
   } = useTraining();
   const [showSavedToast, setShowSavedToast] = useState(false);
+  const [savedEntryID, setSavedEntryID] = useState<string | null>(null);
+  const savedEntry = entries.find((entry) => entry.id === savedEntryID);
   const [celebrateCompletion, setCelebrateCompletion] = useState(false);
   const momentumScore = dashboard?.summary.momentumScore ?? 0;
   const checkInStreak = dashboard?.summary.currentCheckInStreak ?? 0;
@@ -53,6 +58,7 @@ export default function HomePage() {
     const completed = parameters.get("completed") === "1";
     const showTimer = window.setTimeout(() => {
       setShowSavedToast(true);
+      setSavedEntryID(parameters.get("entry"));
       setCelebrateCompletion(completed);
     }, 0);
     const settleTimer = completed
@@ -86,13 +92,30 @@ export default function HomePage() {
 
   return (
     <div className="page player-page player-page--today page--home">
-      {showSavedToast ? (
+      {showSavedToast && !savedEntry ? (
         <div className="toast-overlay" role="status">
           <span aria-hidden="true">✓</span>
           <strong>{copy.saveSuccess}</strong>
         </div>
       ) : null}
+      {savedEntry ? (
+        <section className="saved-receipt" role="status">
+          <strong>{copy.saveSuccess}</strong>
+          <span>
+            {
+              dashboard?.activities.find(
+                (activity) => activity.id === savedEntry.activityId,
+              )?.name
+            }{" "}
+            · {savedEntry.value} {savedEntry.unit}
+          </span>
+          <Link href={`/sessions/${encodeURIComponent(savedEntry.id)}`}>
+            {copy.recovery.viewSession} →
+          </Link>
+        </section>
+      ) : null}
       <MomentumStatus
+        weeklyCheckIns={dashboard?.summary.weeklyMomentumCredits}
         momentumScore={momentumScore}
         checkInStreak={checkInStreak}
       />
@@ -110,6 +133,7 @@ export default function HomePage() {
       {currentPlan ? <PlanWeekStrip plan={currentPlan} /> : null}
 
       <TodayAdditionalAction
+        checkIn={participationAction(planDay)}
         teamLocked={!(dashboard?.teamPulse.unlocked ?? false)}
         teamWorkout={teamWorkout}
         prizeBoxesConnected={connected}

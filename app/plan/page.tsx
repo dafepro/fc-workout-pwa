@@ -4,6 +4,7 @@ import Link from "next/link";
 import { copy } from "../content/copy";
 import { PlanOverview } from "../player/PlanOverview";
 import { useTraining } from "../state/training-context";
+import { LoadError } from "../components/LoadError";
 
 export default function PlayerPlanPage() {
   const training = useTraining();
@@ -16,6 +17,16 @@ export default function PlayerPlanPage() {
       </div>
     );
   }
+  if (training.dashboardStatus === "error")
+    return (
+      <div className="player-page plan-page">
+        <h1>{copy.today.fullPlanTitle}</h1>
+        <LoadError
+          message="Your plan couldn’t be loaded. Try again to see your current schedule."
+          onRetry={() => void training.refreshDashboard()}
+        />
+      </div>
+    );
   if (!plan) {
     return (
       <div className="player-page plan-page plan-page--empty">

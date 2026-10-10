@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { planLogHref } from "./participation-action";
 import type {
   ActivityDefinition,
   CurrentTrainingPlanDay,
@@ -153,20 +154,6 @@ export function TodayPlanHero({
       ) : null}
     </section>
   );
-}
-
-function planLogHref(
-  day: CurrentTrainingPlanDay,
-  blockIndex: number,
-  activityID: string,
-) {
-  const parameters = new URLSearchParams({
-    planId: day.planId,
-    dayIndex: String(day.dayIndex),
-    blockIndex: String(blockIndex),
-    activityId: activityID,
-  });
-  return `/log?${parameters.toString()}`;
 }
 
 function capitalize(value: string) {

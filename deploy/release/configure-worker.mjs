@@ -16,7 +16,12 @@ export function configureWorker(
   deployment,
   apiBaseURL,
   analyticsDatabaseID = "",
+  analyticsApproved = false,
 ) {
+  if (typeof analyticsApproved !== "boolean") {
+    throw new Error("analytics approval must be a boolean");
+  }
+  const analyticsEnabled = analyticsApproved && !deployment.devAccessEnabled;
   const apiHostname = requireHostname(deployment.apiHostname, "apiHostname");
   const pwaHostname = requireHostname(deployment.pwaHostname, "pwaHostname");
   if (
@@ -43,7 +48,7 @@ export function configureWorker(
   const d1Databases = (generated.d1_databases ?? [])
     .filter((database) => database.binding !== "ANALYTICS_DB")
     .concat(
-      analyticsDatabaseID
+      analyticsEnabled && analyticsDatabaseID
         ? (generated.d1_databases ?? [])
             .filter((database) => database.binding === "ANALYTICS_DB")
             .map((database) => ({
@@ -52,6 +57,15 @@ export function configureWorker(
             }))
         : [],
     );
+  if (
+    analyticsEnabled &&
+    (!analyticsDatabaseID ||
+      !d1Databases.some((database) => database.binding === "ANALYTICS_DB"))
+  ) {
+    throw new Error(
+      "approved analytics requires a database ID and ANALYTICS_DB binding",
+    );
+  }
   const generatedVars = { ...(generated.vars ?? {}) };
   delete generatedVars.ANALYTICS_SUBJECT_KEY;
 
@@ -66,7 +80,7 @@ export function configureWorker(
       ...(deployment.devAccessEnabled ? {} : generatedVars),
       ZOOMIGO_API_BASE_URL: apiBaseURL,
       ZOOMIGO_REQUIRE_BACKEND: "true",
-      PRODUCT_ANALYTICS_ENABLED: analyticsDatabaseID ? "true" : "false",
+      PRODUCT_ANALYTICS_ENABLED: String(analyticsEnabled),
       ...(deployment.devAccessEnabled
         ? {
             DEV_ACCESS_ENABLED: "true",
@@ -77,7 +91,7 @@ export function configureWorker(
     workers_dev: false,
     routes: [{ pattern: pwaHostname, custom_domain: true }],
   };
-  if (!analyticsDatabaseID) {
+  if (!analyticsEnabled) {
     delete configured.triggers;
   }
   if (deployment.devAccessEnabled) {
@@ -112,12 +126,20 @@ function requireDevBuildConfig(generated) {
 }
 
 async function main() {
-  const [generatedPath, productionPath, apiBaseURL, analyticsDatabaseID] =
-    process.argv.slice(2);
+  const [
+    generatedPath,
+    productionPath,
+    apiBaseURL,
+    analyticsDatabaseID,
+    approval = "false",
+  ] = process.argv.slice(2);
   if (!generatedPath || !productionPath || !apiBaseURL) {
     throw new Error(
       "usage: configure-worker.mjs GENERATED_CONFIG PRODUCTION_CONFIG API_BASE_URL",
     );
+  }
+  if (approval !== "true" && approval !== "false") {
+    throw new Error("PRODUCT_ANALYTICS_APPROVED must be true or false");
   }
   const generated = JSON.parse(await readFile(resolve(generatedPath), "utf8"));
   const production = JSON.parse(
@@ -128,6 +150,7 @@ async function main() {
     production,
     apiBaseURL,
     analyticsDatabaseID,
+    approval === "true",
   );
   await writeFile(
     resolve(generatedPath),

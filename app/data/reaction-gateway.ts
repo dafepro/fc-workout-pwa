@@ -1,3 +1,4 @@
+import { fetchWithTeamContext } from "../../lib/team-context";
 import type {
   ReactionBadge,
   ReactionBadgePage,
@@ -53,7 +54,7 @@ interface APIBadge extends Omit<ReactionBadge, "reactionType"> {
 
 class ConnectedReactionGateway implements ReactionGateway {
   async send(input: SendReactionInput): Promise<SendReactionResult> {
-    const response = await fetch("/api/zoomigo/v1/reactions", {
+    const response = await fetchWithTeamContext("/api/zoomigo/v1/reactions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -81,7 +82,7 @@ class ConnectedReactionGateway implements ReactionGateway {
   async listReceived(cursor?: string): Promise<ReactionBadgePage> {
     const params = new URLSearchParams({ limit: "20" });
     if (cursor) params.set("cursor", cursor);
-    const response = await fetch(
+    const response = await fetchWithTeamContext(
       `/api/zoomigo/v1/me/reaction-badges?${params.toString()}`,
     );
     if (!response.ok) {

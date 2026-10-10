@@ -1,3 +1,4 @@
+import { fetchWithTeamContext } from "../../lib/team-context";
 import { normalizeAvatar } from "../avatar/config";
 import type { AvatarConfiguration } from "../avatar/types";
 import type {
@@ -49,7 +50,9 @@ class ConnectedSocialGateway implements SocialGateway {
   }
 
   private async request(path: string): Promise<Response> {
-    const response = await fetch(`/api/zoomigo${path}`, { cache: "no-store" });
+    const response = await fetchWithTeamContext(`/api/zoomigo${path}`, {
+      cache: "no-store",
+    });
     if (response.ok) return response;
     let code = "social_projection_failed";
     let message = "Team progress could not be loaded.";

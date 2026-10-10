@@ -324,13 +324,16 @@ func (store *Store) ResetE2EFixtures(ctx context.Context, now time.Time) error {
 		"DELETE FROM coach_team_assignments",
 		// Fixture rows use hyphenated identifiers; anything a test created has a
 		// generated one, so this keeps the fixtures and clears the rest.
-		"DELETE FROM team_memberships WHERE player_id NOT LIKE 'player-%'",
+		"DELETE FROM team_memberships",
 		"DELETE FROM accounts WHERE id NOT LIKE 'account-%'",
 		"DELETE FROM players WHERE id NOT LIKE 'player-%'",
 		"DELETE FROM teams WHERE id NOT LIKE 'team-%'",
 		"DELETE FROM clubs WHERE id NOT LIKE 'club-%'",
 		`INSERT INTO clubs (id, name, created_at) VALUES ('club-zoomigo', 'ZoomiGo', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO UPDATE SET name = excluded.name`,
-		`INSERT INTO teams (id, club_id, name, season_id, weekly_default_goal, time_zone, created_at) VALUES ('team-hill-striders', 'club-zoomigo', 'Hill Striders', 'season-2026', 3, 'America/Chicago', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
+		// Static E2E staff tokens still need a real account for atomic audit writes.
+		`INSERT INTO accounts (id, club_id, role, status, created_at) VALUES ('account-coach-hill', 'club-zoomigo', 'coach', 'active', '2026-01-01T00:00:00Z') ON CONFLICT(id) DO NOTHING`,
+		`INSERT INTO teams (id, club_id, name, season_id, weekly_default_goal, time_zone, created_at) VALUES ('team-hill-striders', 'club-zoomigo', 'Hill Striders', 'season-2026', 3, 'America/Chicago', '2026-01-01T00:00:00Z')
+		 ON CONFLICT(id) DO UPDATE SET name = excluded.name, season_id = excluded.season_id, weekly_default_goal = excluded.weekly_default_goal, time_zone = excluded.time_zone`,
 		// The seeds below cannot restore an avatar a test saved: they either do
 		// nothing on conflict or update only the column they exist to fix.
 		"UPDATE players SET avatar_configuration_json = '{}' WHERE id LIKE 'player-%'",

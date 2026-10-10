@@ -1,4 +1,5 @@
 /** Cloudflare Worker entry point for the vinext-starter template. */
+import type { D1Database, ScheduledEvent } from "@cloudflare/workers-types";
 import {
   handleImageOptimization,
   DEFAULT_DEVICE_SIZES,
@@ -16,7 +17,7 @@ import {
 interface Env extends DevGateEnv {
   ZOOMIGO_API_BASE_URL?: string;
   ZOOMIGO_API_GATEWAY_TOKEN?: string;
-  ASSETS: Fetcher;
+  ASSETS: { fetch(request: Request): Promise<Response> };
   ANALYTICS_DB?: D1Database;
   PRODUCT_ANALYTICS_ENABLED?: string;
   IMAGES: {

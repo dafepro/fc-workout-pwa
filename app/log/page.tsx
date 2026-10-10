@@ -1,12 +1,13 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ActivitySpecificFields } from "../components/ActivityFields";
 import { WorkoutSelect } from "../components/WorkoutSelect";
 import { WorkoutOutcomeChoices } from "../components/WorkoutOutcomeChoices";
 import { IntensityControls } from "../components/IntensityScale";
 import { copy } from "../content/copy";
+import { qualityCopy } from "../content/quality-copy";
 import {
   isBackdateAllowed,
   plannedActivityTarget,
@@ -14,9 +15,18 @@ import {
 } from "../domain/rules";
 import type {
   ActivityId,
-  CompletionOutcome,
   TrainingPlanProvenance,
+  TrainingEntryInput,
 } from "../domain/types";
+import { TrainingEntryGatewayError } from "../data/training-entry-gateway";
+import {
+  submissionAttempt,
+  submissionInput,
+  type SubmissionAttempt,
+} from "./submission";
+import { useAuth } from "../state/auth-context";
+import { usePlayerDraft } from "../state/player-drafts";
+import { isTrainingDraft, type TrainingDraft } from "./draft";
 import { useTraining } from "../state/training-context";
 import { useAnalytics } from "../../lib/analytics/AnalyticsProvider";
 import { useLocalSessionClock } from "./useLocalSessionClock";
@@ -46,21 +56,39 @@ export default function LogPage() {
   const searchParameters = useSearchParams();
   const additionalMode = pathname === "/log/additional";
   const analytics = useAnalytics();
+  const { currentPlayerID, runtime } = useAuth();
+  const draftStore = usePlayerDraft(
+    `${currentPlayerID}/${runtime.currentTeam.id}${pathname}?${searchParameters.toString()}`,
+    isTrainingDraft,
+  );
+  const draft = draftStore.value;
   const { addEntry, dashboard, dashboardStatus, refreshDashboard } =
     useTraining();
   const activities = useMemo(() => dashboard?.activities ?? [], [dashboard]);
   const assignment = dashboard?.currentAssignment ?? null;
-  const [selection, setSelection] = useState<{
-    activityId: ActivityId;
-    value: number;
-  } | null>(null);
+  const selection = draft?.selection ?? null;
   const clock = useLocalSessionClock();
-  const [effort, setEffort] = useState(4);
-  const [exhaustion, setExhaustion] = useState(4);
-  const [completionOutcome, setCompletionOutcome] =
-    useState<CompletionOutcome>("as_listed");
+  const effort = draft?.effort ?? 4;
+  const exhaustion = draft?.exhaustion ?? 4;
+  const completionOutcome = draft?.completionOutcome ?? "as_listed";
+  const date = draft?.date ?? clock.date;
+  const time = draft?.time ?? clock.time;
+  function updateDraft(patch: Partial<TrainingDraft>) {
+    draftStore.set({
+      selection,
+      date,
+      time,
+      effort,
+      exhaustion,
+      completionOutcome,
+      ...draft,
+      attempt: undefined,
+      ...patch,
+    });
+  }
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const errorRef = useRef<HTMLDivElement>(null);
   const planDay = dashboard?.currentPlanDay ?? null;
   const requestedPlanBlock = useMemo(() => {
     if (!planDay || searchParameters.get("planId") !== planDay.planId) {
@@ -91,8 +119,7 @@ export default function LogPage() {
     : (activities.find(
         (item) => item.id === requestedPlanBlock?.activityDefinitionId,
       ) ??
-      activities.find((item) => item.id === assignment?.activityDefinitionId) ??
-      activities[0]);
+      activities.find((item) => item.id === assignment?.activityDefinitionId));
   const recommendedActivityId =
     requestedPlanBlock?.activityDefinitionId ??
     assignment?.activityDefinitionId;
@@ -110,12 +137,16 @@ export default function LogPage() {
 
   function chooseActivity(next: ActivityId) {
     const nextActivity = activities.find((item) => item.id === next);
-    setSelection({
+    const nextSelection = {
       activityId: next,
       value:
         assignment?.activityDefinitionId === next
           ? assignment.targetValue
           : (nextActivity?.defaultValue ?? 1),
+    };
+    updateDraft({
+      selection: nextSelection,
+      amountText: String(nextSelection.value),
     });
     setMessage(null);
     analytics.track("training_activity_selected", {
@@ -126,8 +157,13 @@ export default function LogPage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (saving || !clock.ready) return;
-    if (!isBackdateAllowed(clock.date)) {
+    if (saving) return;
+    if (draft?.attempt) {
+      await saveInput(undefined, draft.attempt);
+      return;
+    }
+    if (!clock.ready) return;
+    if (!isBackdateAllowed(date)) {
       setMessage("Choose today or one of the previous seven days.");
       return;
     }
@@ -136,24 +172,29 @@ export default function LogPage() {
       setMessage(copy.log.chooseBeforeSaving);
       return;
     }
-    if (value < activity.min || value > activity.max) {
+    if (
+      draft?.amountText === "" ||
+      !Number.isFinite(value) ||
+      value < activity.min ||
+      value > activity.max
+    ) {
       setMessage(
         `Enter a value from ${activity.min} to ${activity.max} ${activity.unit}.`,
       );
       return;
     }
-    const occurredAt = new Date(`${clock.date}T${clock.time}:00`);
+    const occurredAt = new Date(`${date}T${time}:00`);
     const assignmentId =
       !requestedPlanBlock &&
       assignment?.activityDefinitionId === activityId &&
-      clock.date >= assignment.startsOn &&
-      clock.date <= assignment.dueOn
+      date >= assignment.startsOn &&
+      date <= assignment.dueOn
         ? assignment.id
         : undefined;
     const plan: TrainingPlanProvenance | undefined =
       requestedPlanBlock &&
       planDay &&
-      clock.date === planDay.occursOn &&
+      date === planDay.occursOn &&
       requestedPlanBlock.activityDefinitionId === activityId
         ? {
             planId: planDay.planId,
@@ -172,10 +213,8 @@ export default function LogPage() {
             activity.unit === assignment.targetUnit &&
             value >= assignment.targetValue,
     );
-    setSaving(true);
-    setMessage(null);
-    try {
-      await addEntry({
+    await saveInput(
+      {
         activityId: activity.id,
         inputKind: activity.inputKind,
         assignmentId,
@@ -186,23 +225,63 @@ export default function LogPage() {
         effortLevel: effort,
         exhaustionLevel: exhaustion,
         completionOutcome,
+      },
+      undefined,
+      completesPrimary,
+    );
+  }
+
+  async function saveInput(
+    freshInput?: TrainingEntryInput,
+    previous?: SubmissionAttempt,
+    completesPrimary = false,
+  ) {
+    setSaving(true);
+    setMessage(null);
+    if (previous)
+      analytics.track("training_save_recovery", { action: "retry" });
+    try {
+      const input = previous ? submissionInput(previous) : freshInput;
+      if (!input) throw Error("Invalid saved attempt");
+      const attempt = submissionAttempt(input, previous);
+      updateDraft({
+        attempt,
+        selection: { activityId: input.activityId, value: input.value },
+        amountText: String(input.value),
       });
-      router.push(`/?saved=1${completesPrimary ? "&completed=1" : ""}`);
+      const entry = await addEntry(input, attempt.key);
+      if (previous)
+        analytics.track("training_save_recovery", { action: "confirmed" });
+      draftStore.clear();
+      router.push(
+        `/?saved=1&entry=${encodeURIComponent(entry.id)}${completesPrimary ? "&completed=1" : ""}`,
+      );
     } catch (cause) {
+      const rejected =
+        !previous &&
+        cause instanceof TrainingEntryGatewayError &&
+        cause.status >= 400 &&
+        cause.status < 500 &&
+        cause.status !== 409;
+      if (rejected) updateDraft({ attempt: undefined });
+      else analytics.track("training_save_recovery", { action: "unresolved" });
       setMessage(
-        cause instanceof Error
-          ? cause.message
-          : "That session could not be saved.",
+        !navigator.onLine
+          ? copy.recovery.offlineSave
+          : cause instanceof TrainingEntryGatewayError
+            ? cause.message
+            : copy.recovery.saveUnconfirmed,
       );
       setSaving(false);
+      window.requestAnimationFrame(() => errorRef.current?.focus());
     }
   }
 
-  if (dashboardStatus === "loading") {
+  if (dashboardStatus === "loading" && !draft?.attempt) {
     return <main className="auth-state">Loading approved activities…</main>;
   }
 
-  if (dashboardStatus === "error" || !dashboard) {
+  if ((dashboardStatus === "error" || !dashboard) && !draft?.attempt) {
     return (
       <main className="auth-state" role="alert">
         <h1>Approved activities could not be loaded</h1>
@@ -233,111 +312,178 @@ export default function LogPage() {
         <p className="log-safety-note">{copy.log.additionalIntro}</p>
       ) : null}
 
-      {message ? (
-        <div className="notice notice--error" role="status">
-          <span aria-hidden="true">!</span>
-          <strong>{message}</strong>
-        </div>
-      ) : null}
-
       <form method="post" className="log-form" onSubmit={submit}>
-        <WorkoutSelect
-          label="Workout"
-          selectedKey={activityId}
-          placeholder={additionalMode ? copy.log.chooseActivity : undefined}
-          onSelect={(key) => chooseActivity(key as ActivityId)}
-          choices={activities.map((activity) => ({
-            key: activity.id,
-            name: activity.name,
-            description: activity.description,
-            icon: activity.icon,
-            instructions: activity.instructions,
-            recommended: activity.id === recommendedActivityId,
-          }))}
-        />
-        {selectedActivity ? (
-          <>
-            <ActivitySpecificFields
-              activityId={selectedActivity.id}
-              value={value}
-              onChange={(nextValue) =>
-                setSelection({
-                  activityId: selectedActivity.id,
-                  value: nextValue,
-                })
-              }
-              activities={activities}
-            />
-            <WorkoutOutcomeChoices
-              value={completionOutcome}
-              onChange={setCompletionOutcome}
-            />
-            <IntensityControls
-              effort={effort}
-              exhaustion={exhaustion}
-              onEffortChange={setEffort}
-              onExhaustionChange={setExhaustion}
-            />
-            {exhaustion >= 6 ? (
-              <aside className="recovery-note">
-                <span aria-hidden="true">💧</span>
-                <p>{copy.recoveryNote}</p>
-              </aside>
-            ) : null}
-          </>
+        <fieldset
+          className="log-inputs"
+          aria-label="Training answers"
+          disabled={saving || Boolean(draft?.attempt)}
+        >
+          <WorkoutSelect
+            label="Workout"
+            selectedKey={activityId}
+            placeholder={copy.log.chooseActivity}
+            onSelect={(key) => chooseActivity(key as ActivityId)}
+            choices={activities.map((activity) => ({
+              key: activity.id,
+              name: activity.name,
+              description: activity.description,
+              icon: activity.icon,
+              instructions: activity.instructions,
+              recommended: activity.id === recommendedActivityId,
+            }))}
+          />
+          {selectedActivity ? (
+            <>
+              {selectedActivity.instructions ? (
+                <details className="selected-instructions">
+                  <summary>{qualityCopy.howTo(selectedActivity.name)}</summary>
+                  <ol>
+                    {selectedActivity.instructions.map((instruction) => (
+                      <li key={instruction}>{instruction}</li>
+                    ))}
+                  </ol>
+                </details>
+              ) : null}
+              <p className="log-safety-note">
+                {requestedPlanBlock ||
+                assignment?.activityDefinitionId === activityId
+                  ? qualityCopy.target(
+                      requestedPlanBlock
+                        ? plannedActivityTarget(
+                            selectedActivity,
+                            requestedPlanBlock,
+                          )
+                        : assignment?.targetValue,
+                      selectedActivity.unit,
+                    )
+                  : ""}
+                {qualityCopy.actualAmount}
+              </p>
+              <ActivitySpecificFields
+                activityId={selectedActivity.id}
+                value={value}
+                inputText={draft?.amountText}
+                onInputText={(text) => updateDraft({ amountText: text })}
+                onChange={(nextValue) =>
+                  updateDraft({
+                    selection: {
+                      activityId: selectedActivity.id,
+                      value: nextValue,
+                    },
+                    amountText: String(nextValue),
+                  })
+                }
+                activities={activities}
+              />
+              <WorkoutOutcomeChoices
+                value={completionOutcome}
+                onChange={(next) => updateDraft({ completionOutcome: next })}
+              />
+              <IntensityControls
+                effort={effort}
+                exhaustion={exhaustion}
+                onEffortChange={(next) => updateDraft({ effort: next })}
+                onExhaustionChange={(next) => updateDraft({ exhaustion: next })}
+              />
+              {exhaustion >= 6 ? (
+                <aside className="recovery-note">
+                  <span aria-hidden="true">💧</span>
+                  <p>{copy.recoveryNote}</p>
+                </aside>
+              ) : null}
+            </>
+          ) : null}
+          <details className="when-details">
+            <summary>
+              <span aria-hidden="true">◷</span>
+              <strong>
+                {clock.ready
+                  ? `${compactDateLabel(date)} · ${compactTimeLabel(time)}`
+                  : "Setting local date and time…"}
+              </strong>
+              <span>Change</span>
+            </summary>
+            <div className="when-details__fields">
+              <label htmlFor="session-date">
+                Date
+                <input
+                  id="session-date"
+                  type="date"
+                  min={clock.earliestDate || undefined}
+                  max={clock.today || undefined}
+                  value={date}
+                  onChange={(event) =>
+                    updateDraft({ date: event.target.value })
+                  }
+                  required
+                />
+              </label>
+              <label htmlFor="session-time">
+                Time
+                <input
+                  id="session-time"
+                  type="time"
+                  value={time}
+                  onChange={(event) =>
+                    updateDraft({ time: event.target.value })
+                  }
+                  required
+                />
+              </label>
+            </div>
+          </details>
+        </fieldset>
+        {draft?.attempt && !saving ? (
+          <p role="status">{copy.recovery.resolveSave}</p>
+        ) : null}
+        {message ? (
+          <div
+            ref={errorRef}
+            tabIndex={-1}
+            className="notice notice--error"
+            role="alert"
+          >
+            <strong>{message}</strong>
+          </div>
         ) : null}
         <button
           className="button button--lime button--wide"
           type="submit"
-          disabled={saving || !clock.ready || !selectedActivity}
+          disabled={
+            saving || (!draft?.attempt && (!clock.ready || !selectedActivity))
+          }
         >
           {saving
             ? "Saving…"
-            : selectedActivity && additionalMode
-              ? copy.log.saveActivity(
-                  value,
-                  selectedActivity.unit,
-                  selectedActivity.name,
-                )
-              : selectedActivity
-                ? "Save"
-                : copy.log.chooseBeforeSaving}
+            : message || draft?.attempt
+              ? copy.recovery.retrySave
+              : selectedActivity && additionalMode
+                ? copy.log.saveActivity(
+                    value,
+                    selectedActivity.unit,
+                    selectedActivity.name,
+                  )
+                : selectedActivity
+                  ? "Save"
+                  : copy.log.chooseBeforeSaving}
         </button>
-        <details className="when-details">
-          <summary>
-            <span aria-hidden="true">◷</span>
-            <strong>
-              {clock.ready
-                ? `${compactDateLabel(clock.date)} · ${compactTimeLabel(clock.time)}`
-                : "Setting local date and time…"}
-            </strong>
-            <span>Change</span>
-          </summary>
-          <div className="when-details__fields">
-            <label htmlFor="session-date">
-              Date
-              <input
-                id="session-date"
-                type="date"
-                min={clock.earliestDate || undefined}
-                max={clock.today || undefined}
-                value={clock.date}
-                onChange={(event) => clock.setDate(event.target.value)}
-                required
-              />
-            </label>
-            <label htmlFor="session-time">
-              Time
-              <input
-                id="session-time"
-                type="time"
-                value={clock.time}
-                onChange={(event) => clock.setTime(event.target.value)}
-                required
-              />
-            </label>
+
+        {draft ? (
+          <div className="draft-actions">
+            <p>{copy.recovery.draftKept}</p>
+            <button
+              type="button"
+              className="text-button"
+              disabled={saving || Boolean(draft?.attempt)}
+              onClick={() => {
+                draftStore.clear();
+                setMessage(null);
+              }}
+            >
+              {copy.recovery.discard}
+            </button>
           </div>
-        </details>
+        ) : null}
       </form>
     </div>
   );

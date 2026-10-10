@@ -129,6 +129,27 @@ running. The selected branch contributes the API image and prebuilt Worker
 files, while a strict Worker-config allowlist removes branch-supplied routes,
 cron triggers, service bindings, storage bindings, and variables.
 
+## Release identity and qualification
+
+The canonical application baseline includes the campus integration on `main`.
+Record the selected application SHA and trusted controller SHA independently in
+each Actions run. An update preserves existing fixtures; only an explicitly
+requested create/reset seeds them.
+
+The October 10 dev release is application
+`661e4268d2f97a1c2966eb2b3a88d49ae6c39598`, operated by controller
+`61c1cbdb211ed59cd695b647b6f90df6b860b349`. Its
+[successful run](https://github.com/dafepro/fc-workout-pwa/actions/runs/38076496971)
+includes exact API readiness, qualified-player Lounge and two-player World browser
+checks. This evidence does not qualify physical phones, a full room or sustained
+GPU/memory/recovery behavior; those gates remain in ROADMAP.md and TEAM_WORLD.md.
+Keep credentials and credential-page recordings out of retained evidence.
+
+The matched runtime packages are `zmap` 0.1.11, Avatar Studio 0.1.4 and vendored
+Canvas 0.6.2. App-owned assets are validated against
+`assets/team-world/manifest.json`. Keep dependency patches and any remaining
+advisory follow-up in ROADMAP.md rather than maintaining a second release journal.
+
 ## Operating flow
 
 The trusted main Lounge release gate uses the public password-gated dev directory,
@@ -143,7 +164,7 @@ update verifies and packages the pushed revision, deploys it through the trusted
 workflow from the same commit, preserves the dev database, and proves the exact
 API container plus the qualified-player Lounge flow before succeeding.
 
-Run the **Operate disposable ZoomiGo dev** workflow manually for the other
+With Actions enabled, run the **Operate disposable ZoomiGo dev** workflow for the other
 operations or for an intentional feature-branch preview:
 
 - `create` with a branch or SHA verifies the revision, publishes a dev-tagged

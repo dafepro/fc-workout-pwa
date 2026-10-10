@@ -31,6 +31,28 @@ vi.mock("../components/PlayerAvatar", () => ({
 }));
 
 describe("PlayerShell", () => {
+  it.each([
+    ["/log", "Today"],
+    ["/plan/2", "Today"],
+    ["/progress", "Today"],
+    ["/prizes", "Me"],
+    ["/sessions/example", "Me"],
+    ["/team-world", "Team"],
+  ])("keeps %s in its parent section", (path, label) => {
+    pathname = path;
+    render(
+      <PlayerShell>
+        <p>Detail</p>
+      </PlayerShell>,
+    );
+    for (const nav of screen.getAllByRole("navigation", {
+      name: "Primary navigation",
+    }))
+      expect(within(nav).getByRole("link", { name: label })).toHaveAttribute(
+        "aria-current",
+        "page",
+      );
+  });
   beforeEach(() => {
     pathname = "/";
     searchParameters = new URLSearchParams();

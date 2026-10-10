@@ -207,6 +207,9 @@ export type TeamHubSignalKind =
   | "weekly_goal_complete";
 
 export interface TeamHubFocus {
+  state?: "current" | "upcoming" | "ended" | "achieved";
+  startsOn?: string;
+  minimumRosterPercent?: number;
   kind: "reward" | "challenge";
   id: string;
   title: string;

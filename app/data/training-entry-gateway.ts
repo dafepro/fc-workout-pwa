@@ -1,3 +1,4 @@
+import { fetchWithTeamContext } from "../../lib/team-context";
 import type {
   ActivityId,
   CompletionOutcome,
@@ -9,7 +10,10 @@ import type {
 export interface TrainingEntryGateway {
   list(): Promise<TrainingEntry[]>;
   get(entryID: string): Promise<TrainingEntry | null>;
-  create(input: TrainingEntryInput): Promise<TrainingEntry>;
+  create(
+    input: TrainingEntryInput,
+    submissionKey?: string,
+  ): Promise<TrainingEntry>;
   delete(entryID: string): Promise<void>;
 }
 
@@ -17,6 +21,7 @@ export class TrainingEntryGatewayError extends Error {
   constructor(
     public readonly code: string,
     message: string,
+    public readonly status = 0,
   ) {
     super(message);
   }
@@ -52,7 +57,7 @@ class ConnectedTrainingEntryGateway implements TrainingEntryGateway {
   }
 
   async get(entryID: string): Promise<TrainingEntry | null> {
-    const response = await fetch(
+    const response = await fetchWithTeamContext(
       `/api/zoomigo/v1/training-entries/${encodeURIComponent(entryID)}`,
     );
     if (response.status === 404) return null;
@@ -60,35 +65,41 @@ class ConnectedTrainingEntryGateway implements TrainingEntryGateway {
     return fromAPIEntry((await response.json()) as APITrainingEntry);
   }
 
-  async create(input: TrainingEntryInput): Promise<TrainingEntry> {
-    const response = await fetch("/api/zoomigo/v1/me/training-entries", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Idempotency-Key": crypto.randomUUID(),
-      },
-      body: JSON.stringify({
-        teamId: this.teamID,
-        activityDefinitionId: input.activityId,
-        assignmentId: input.assignmentId,
-        plan: input.plan,
-        occurredAt: input.occurredAt,
-        result: {
-          kind: input.inputKind,
-          value: input.value,
-          unit: input.unit,
+  async create(
+    input: TrainingEntryInput,
+    submissionKey = crypto.randomUUID(),
+  ): Promise<TrainingEntry> {
+    const response = await fetchWithTeamContext(
+      "/api/zoomigo/v1/me/training-entries",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": submissionKey,
         },
-        effortLevel: input.effortLevel,
-        exhaustionLevel: input.exhaustionLevel,
-        completionOutcome: input.completionOutcome,
-      }),
-    });
+        body: JSON.stringify({
+          teamId: this.teamID,
+          activityDefinitionId: input.activityId,
+          assignmentId: input.assignmentId,
+          plan: input.plan,
+          occurredAt: input.occurredAt,
+          result: {
+            kind: input.inputKind,
+            value: input.value,
+            unit: input.unit,
+          },
+          effortLevel: input.effortLevel,
+          exhaustionLevel: input.exhaustionLevel,
+          completionOutcome: input.completionOutcome,
+        }),
+      },
+    );
     await throwForError(response);
     return fromAPIEntry((await response.json()) as APITrainingEntry);
   }
 
   async delete(entryID: string): Promise<void> {
-    const response = await fetch(
+    const response = await fetchWithTeamContext(
       `/api/zoomigo/v1/training-entries/${encodeURIComponent(entryID)}`,
       {
         method: "DELETE",
@@ -98,7 +109,7 @@ class ConnectedTrainingEntryGateway implements TrainingEntryGateway {
   }
 
   private async request(path: string): Promise<Response> {
-    const response = await fetch(`/api/zoomigo${path}`);
+    const response = await fetchWithTeamContext(`/api/zoomigo${path}`);
     await throwForError(response);
     return response;
   }
@@ -123,7 +134,7 @@ async function throwForError(response: Response): Promise<void> {
   } catch {
     // The safe fallback is used when an intermediary returns a non-JSON error.
   }
-  throw new TrainingEntryGatewayError(code, message);
+  throw new TrainingEntryGatewayError(code, message, response.status);
 }
 
 function fromAPIEntry(entry: APITrainingEntry): TrainingEntry {

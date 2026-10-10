@@ -15,6 +15,15 @@ const session = {
 };
 
 describe("analytics identity", () => {
+  it("refuses an explicit context outside current memberships", async () => {
+    expect(
+      await identityForSession(
+        { ...session, activeTeamId: "revoked-team" },
+        "a".repeat(32),
+      ),
+    ).toBeNull();
+  });
+
   it("is stable and distinct across raw identifiers", async () => {
     const first = await pseudonymize("player-private-id", "a".repeat(32));
     expect(first).toBe(await pseudonymize("player-private-id", "a".repeat(32)));
