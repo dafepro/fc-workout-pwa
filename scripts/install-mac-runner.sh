@@ -86,7 +86,8 @@ PNPM_CONFIG_NETWORK_CONCURRENCY=4
 PNPM_CONFIG_STORE_DIR=$RUNNER_ROOT/pnpm-store
 ENV
 touch "$RUNNER_ROOT/config/$RUNNER_SLUG/gitconfig"
-printf '%s\n' '{"cliPluginsExtraDirs":["/Applications/Docker.app/Contents/Resources/cli-plugins"]}' > "$RUNNER_ROOT/config/$RUNNER_SLUG/docker/config.json"
+# An explicit empty helper prevents Docker from selecting the interactive Mac Keychain.
+printf '%s\n' '{"cliPluginsExtraDirs":["/Applications/Docker.app/Contents/Resources/cli-plugins"],"credsStore":"","credHelpers":{"ghcr.io":""}}' > "$RUNNER_ROOT/config/$RUNNER_SLUG/docker/config.json"
 printf '%s\n' "/opt/homebrew/opt/node@22/bin:/opt/homebrew/bin:$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin" > .path
 chmod 600 .env .path .runner .credentials .credentials_rsaparams
 ./svc.sh install
