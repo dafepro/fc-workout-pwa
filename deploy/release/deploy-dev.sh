@@ -33,6 +33,16 @@ for value in "$DEV_API_GATEWAY_TOKEN" "$DEV_RESET_KEY" "$DEV_FIXTURE_SEED" "$DEV
 done
 case "$STAFF_SECRET_KEY" in *[!A-Za-z0-9+/=]*) printf '%s\n' "error: STAFF_SECRET_KEY must be base64" >&2; exit 1 ;; esac
 
+for image in "${DEV_API_IMAGE:-}" "${DEV_RELAY_IMAGE:-}"; do
+	[ -n "$image" ] || continue
+	case "$image" in ghcr.io/dafepro/fc-workout-pwa/api@sha256:*) ;;
+		*) printf '%s\n' "error: invalid immutable dev image" >&2; exit 1 ;;
+	esac
+	digest=${image##*@sha256:}
+	case "$digest" in *[!0-9a-f]*) exit 1 ;; esac
+	[ "${#digest}" -eq 64 ] || exit 1
+done
+
 worker_config="$source_root/dist/server/wrangler.json"
 [ -f "$worker_config" ] || { printf '%s\n' "error: prebuilt Worker config is missing" >&2; exit 1; }
 cd "$REPOSITORY_ROOT"
@@ -48,10 +58,10 @@ world_key=$(node --input-type=module -e 'import {createHmac} from "node:crypto";
 umask 077
 cat >"$environment_file" <<EOF
 COMPOSE_PROJECT_NAME=zoomigo-dev
-API_IMAGE=ghcr.io/dafepro/fc-workout-pwa/api:sha-dev-$app_sha
+API_IMAGE=${DEV_API_IMAGE:-ghcr.io/dafepro/fc-workout-pwa/api:sha-dev-$app_sha}
 APP_VERSION=$app_sha
 TEAM_WORLD_ENABLED=true
-TEAM_WORLD_IMAGE=ghcr.io/dafepro/fc-workout-pwa/api:world-dev-$app_sha
+TEAM_WORLD_IMAGE=${DEV_RELAY_IMAGE:-ghcr.io/dafepro/fc-workout-pwa/api:world-dev-$app_sha}
 TEAM_WORLD_RELAY_KEY=$world_key
 APP_ENV=dev
 ENABLE_OBSERVABILITY=${ENABLE_OBSERVABILITY:-false}

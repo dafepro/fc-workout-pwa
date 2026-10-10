@@ -143,8 +143,7 @@ test("macOS and Linux are the canonical local automation path", async () => {
     ]);
 
   assert.match(workflow, /\.\/scripts\/verify\.sh/);
-  assert.match(workflow, /\.\/scripts\/e2e\.sh/);
-  assert.match(workflow, /\.\/scripts\/vm-smoke\.sh/);
+  assert.match(workflow, /\.\/scripts\/verify\.sh --all/);
   assert.match(workflow, /run_e2e:[\s\S]*type: boolean[\s\S]*default: false/);
   assert.match(
     workflow,

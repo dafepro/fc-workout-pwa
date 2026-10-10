@@ -54,6 +54,9 @@ export function configureWorker(
             .map((database) => ({
               ...database,
               database_id: analyticsDatabaseID,
+              // Generated Vite paths point to the original checkout. The release
+              // archive contains its matching migrations beside dist.
+              migrations_dir: "../../drizzle",
             }))
         : [],
     );

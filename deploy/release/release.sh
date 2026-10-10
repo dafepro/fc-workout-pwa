@@ -10,12 +10,11 @@ for command_name in node pnpm ssh; do
 	command -v "$command_name" >/dev/null 2>&1 || { printf '%s\n' "error: $command_name is required" >&2; exit 1; }
 done
 
-case ${PUBLISH_API_IMAGE:-false} in
-	true) "$SCRIPT_DIRECTORY/publish-image.sh" "$release_sha" ;;
-	false) ;;
-	*) printf '%s\n' "error: PUBLISH_API_IMAGE must be true or false" >&2; exit 1 ;;
-esac
-
+artifact_directory=${PRODUCTION_RELEASE_DIRECTORY:?PRODUCTION_RELEASE_DIRECTORY must contain the verified production artifact}
+node "$REPOSITORY_ROOT/scripts/artifact-provenance.mjs" verify production "$release_sha" \
+	"$artifact_directory/worker.tgz" "$artifact_directory/release-manifest.json"
+API_IMAGE_OVERRIDE="ghcr.io/dafepro/fc-workout-pwa/api@$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).apiDigest)' "$artifact_directory/release-manifest.json")"
+export API_IMAGE_OVERRIDE
 : "${DEPLOY_HOST:?DEPLOY_HOST is required}"
 : "${DEPLOY_USER:?DEPLOY_USER is required}"
 : "${ZOOMIGO_API_BASE_URL:?ZOOMIGO_API_BASE_URL is required}"
@@ -45,14 +44,20 @@ for console_url in "$ZOOMIGO_API_BASE_URL" "$PLAYER_LOGIN_URL" "$STAFF_SETUP_URL
 	case "$console_url" in https://*) ;; *) printf '%s\n' "error: $console_url must use HTTPS" >&2; exit 1 ;; esac
 done
 
+private_root=$(mktemp -d)
+trap 'rm -rf -- "$private_root"' EXIT HUP INT TERM
+source_root="$private_root/application"
+mkdir -m 0700 "$source_root"
+tar -xzf "$artifact_directory/worker.tgz" -C "$source_root"
+worker_config="$source_root/dist/server/wrangler.json"
+[ -f "$worker_config" ] && [ -d "$source_root/drizzle" ] || { printf '%s\n' "error: prebuilt production Worker or matching migrations are missing" >&2; exit 1; }
+
 cd "$REPOSITORY_ROOT"
 analytics_approved=${PRODUCT_ANALYTICS_APPROVED:-false}
 case "$analytics_approved" in
 	true|false) ;;
 	*) printf '%s\n' "error: PRODUCT_ANALYTICS_APPROVED must be true or false" >&2; exit 1 ;;
 esac
-pnpm install --frozen-lockfile
-pnpm build
 analytics_database_id=""
 if [ "$analytics_approved" = true ]; then
 	analytics_database_id=$(pnpm exec wrangler d1 list --json | node "$SCRIPT_DIRECTORY/resolve-analytics-d1.mjs")
@@ -60,16 +65,14 @@ if [ "$analytics_approved" = true ]; then
 	: "${ANALYTICS_SUBJECT_KEY:?ANALYTICS_SUBJECT_KEY is required when analytics is enabled}"
 fi
 node "$SCRIPT_DIRECTORY/configure-worker.mjs" \
-	"$REPOSITORY_ROOT/dist/server/wrangler.json" \
+	"$worker_config" \
 	"$REPOSITORY_ROOT/deploy/production.json" \
 	"$ZOOMIGO_API_BASE_URL" \
 	"$analytics_database_id" \
 	"$analytics_approved"
 printf 'Product analytics enabled: %s\n' "$analytics_approved"
 
-private_root=$(mktemp -d)
 secrets_directory="$private_root/secrets"
-trap 'rm -rf -- "$private_root"' EXIT HUP INT TERM
 mkdir -m 0700 -- "$secrets_directory"
 (
 	umask 077
@@ -100,14 +103,14 @@ mkdir -m 0700 -- "$secrets_directory"
 	GRAFANA_METRICS_TOKEN=${GRAFANA_METRICS_TOKEN:-}
 	EOF
 )
-"$SCRIPT_DIRECTORY/deploy-vm.sh" "$secrets_directory" "$release_sha"
+"$SCRIPT_DIRECTORY/deploy-vm.sh" "$secrets_directory" "$release_sha" "$(git rev-parse HEAD)"
 
 if [ -n "$analytics_database_id" ]; then
-	pnpm exec wrangler d1 migrations apply ANALYTICS_DB --remote --config dist/server/wrangler.json
+	pnpm exec wrangler d1 migrations apply ANALYTICS_DB --remote --config "$worker_config"
 fi
-pnpm exec wrangler deploy --config dist/server/wrangler.json
+pnpm exec wrangler deploy --config "$worker_config"
 if [ -n "$analytics_database_id" ]; then
-	printf '%s' "$ANALYTICS_SUBJECT_KEY" | pnpm exec wrangler secret put ANALYTICS_SUBJECT_KEY --config dist/server/wrangler.json
+	printf '%s' "$ANALYTICS_SUBJECT_KEY" | pnpm exec wrangler secret put ANALYTICS_SUBJECT_KEY --config "$worker_config"
 fi
 
 # The console gates on staff sign-in and TOTP, in the application, so a release

@@ -1,7 +1,7 @@
 name: Release ZoomiGo to production
 
-# Releases are manual and consume an image that was already built and verified
-# by "Verify and release ZoomiGo". Nothing here builds a container: the whole
+# Releases are manual and consume an image and frontend bundle already built and verified
+# by "Verify and publish ZoomiGo". Nothing here builds a container: the whole
 # point of the split is that shipping a revision cannot produce a different
 # artifact than the one that passed verification.
 #
@@ -35,12 +35,14 @@ jobs:
     permissions:
       contents: read
       packages: read
+      actions: read
     steps:
-      # Checking out the released revision rather than a branch tip keeps the
-      # deploy scripts and Worker configuration matched to the image.
+      # Deployment code is the reviewed main controller; application bytes come
+      # only from the selected successful main build.
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.release_sha }}
+          ref: ${{ github.sha }}
+          fetch-depth: 0
 
       - name: Reject a SHA that is not on main
         env:
@@ -54,15 +56,30 @@ jobs:
           git merge-base --is-ancestor "$RELEASE_SHA" origin/main ||
             { echo "$RELEASE_SHA is not an ancestor of origin/main" >&2; exit 1; }
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11.21.0
-          dest: ${{ runner.temp }}/pnpm
+      - uses: ./.github/actions/setup
 
-      - uses: actions/setup-node@v4
+      - name: Install trusted deployment tools
+        run: pnpm install --frozen-lockfile
+
+      - name: Resolve the matched verified production artifacts
+        id: producer
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_SHA: ${{ inputs.release_sha }}
+        run: node scripts/artifact-provenance.mjs resolve production latest "$RELEASE_SHA"
+
+      - uses: actions/download-artifact@v4
         with:
-          node-version: 22.20.0
-          cache: ${{ runner.environment == 'github-hosted' && 'pnpm' || '' }}
+          artifact-ids: ${{ steps.producer.outputs.artifact-id }}
+          merge-multiple: true
+          run-id: ${{ steps.producer.outputs.run-id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: ${{ runner.temp }}/production-release
+
+      - name: Verify production frontend and immutable API identity
+        env:
+          RELEASE_SHA: ${{ inputs.release_sha }}
+        run: node scripts/artifact-provenance.mjs verify production "$RELEASE_SHA" "$RUNNER_TEMP/production-release/worker.tgz" "$RUNNER_TEMP/production-release/release-manifest.json"
 
       - uses: docker/login-action@v3
         with:
@@ -74,13 +91,14 @@ jobs:
       # published, which is the obvious way to misuse a dispatch-by-SHA release.
       - name: Require the published image to exist
         env:
-          IMAGE: ghcr.io/${{ github.repository }}/api:sha-${{ inputs.release_sha }}
+          IMAGE: ${{ env.API_IMAGE_OVERRIDE }}
         run: |
           docker manifest inspect "$IMAGE" >/dev/null ||
             { echo "no published image for this revision: $IMAGE" >&2; exit 1; }
 
       - name: Release the verified revision
         env:
+          PRODUCTION_RELEASE_DIRECTORY: ${{ runner.temp }}/production-release
           DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
           DEPLOY_USER: ${{ vars.DEPLOY_USER }}
           ZOOMIGO_API_BASE_URL: ${{ vars.ZOOMIGO_API_BASE_URL }}
@@ -130,7 +148,8 @@ jobs:
             echo "| | |"
             echo "|---|---|"
             echo "| Revision | \`${{ inputs.release_sha }}\` |"
-            echo "| API image | \`ghcr.io/${{ github.repository }}/api:sha-${{ inputs.release_sha }}\` |"
+            echo "| Controller | \`${{ github.sha }}\` |"
+            echo "| API image | \`${API_IMAGE_OVERRIDE:-unresolved}\` |"
             echo "| VM host | \`${{ vars.DEPLOY_HOST }}\` as \`${{ vars.DEPLOY_USER }}\` |"
             echo "| API | $(jq -r '"https://" + .apiHostname + "/readyz"' deploy/production.json) |"
             echo "| PWA | $(jq -r '"https://" + .pwaHostname' deploy/production.json) |"
@@ -153,3 +172,7 @@ jobs:
               echo "The release step produced no log; it failed before running."
             fi
           } >>"$GITHUB_STEP_SUMMARY"
+
+      - name: Remove temporary production artifacts
+        if: always()
+        run: rm -rf -- "$RUNNER_TEMP/production-release"

@@ -215,20 +215,35 @@ network.
 
 ## 4. Perform the first release
 
-The first release must publish the immutable API image because the new host's
-cloud-init checkout cannot start it before GHCR has that SHA. Export
-`DEPLOY_HOST`, `DEPLOY_USER`, `ZOOMIGO_API_BASE_URL`, `ZOOMIGO_DEPLOY_SSH_KEY`,
-`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, and the `BACKUP_S3_*`
-variables in the current shell (the same values just stored in GitHub), then:
+The CI release consumes a matched production Worker archive and API digest from
+one successful main **Verify and publish ZoomiGo** run. Dispatch **Release ZoomiGo
+to production** with its full `release_sha`; the controller validates producer,
+artifact ID, schema, profile and checksum before using production credentials.
+Artifacts expire after 30 days. A missing/expired artifact requires a fresh
+verified publication, never a silent deployment rebuild. Controller/docs-only
+pushes verify normally but skip publication; manual verification dispatch remains
+an explicit publication path.
+
+When Actions is impaired, use the operator fallback from the clean selected
+checkout. Verify before publishing the API; prepare a fresh production Worker
+bundle before loading cloud/application/backup deployment credentials:
 
 ```sh
-PUBLISH_API_IMAGE=true ./deploy/release/release.sh FULL_40_CHARACTER_GIT_SHA
+./scripts/verify.sh
+./deploy/release/publish-image.sh FULL_40_CHARACTER_GIT_SHA
+./deploy/release/prepare-production-release.sh FULL_40_CHARACTER_GIT_SHA "$PWD/work/production-release"
+# Load the existing operator deployment credentials after preparing artifacts.
+PRODUCTION_RELEASE_DIRECTORY="$PWD/work/production-release" ./deploy/release/release.sh FULL_40_CHARACTER_GIT_SHA
 ```
+
+The preparation command verifies and builds production without deployment.
+`release.sh` requires the prebuilt bundle and manifest and never installs or
+rebuilds frontend code. Do not use a development-profile bundle for production.
 
 The release:
 
-1. publishes the exact Linux/amd64 API image;
-2. builds and binds the Worker to `zoomigo.quicktrack.cc`;
+1. verifies the production frontend archive and selected API image digest;
+2. configures the prebuilt Worker for `zoomigo.quicktrack.cc`;
 3. waits for cloud-init and deploys the API to the pinned Reserved IP;
 4. enables the daily backup timer, creates the first encrypted SQLite snapshot
    and logical export, and verifies both objects exist in private R2;
@@ -276,15 +291,17 @@ repository-scoped, not environment-scoped: a job-level `if` is evaluated before
 the environment is resolved, so an environment variable is not visible there.
 
 Releases are manual. A push to `main` runs static checks, targeted tests, and
-builds, then publishes an immutable API image — and stops. It never deploys.
+builds, then publishes matched immutable API/frontend artifacts when runtime
+source changes. Production deployment remains manual. Dev updates have their own
+separate workflow and can be paused with `DEV_AUTO_UPDATE_ENABLED=false`.
 
 To ship, dispatch "Release ZoomiGo to production" with the full verified `release_sha`. That job
 backs up and deploys the VM, then deploys the Worker, reading every credential
 straight from the `production` environment's secrets/variables, and follows its main-only branch policy. No required-reviewer gate is configured. `PRODUCTION_DEPLOY_ENABLED` is a kill switch on top
 of all that: set it to anything but `true` to block every release without
 editing the workflow. The same `release.sh` remains the incident fallback when
-GitHub Actions is impaired. Trigger the workflow manually with `run_e2e`
-enabled for an intentional full Docker validation pass.
+GitHub Actions is impaired. Dispatch **Verify and publish ZoomiGo** with `run_e2e` enabled for an intentional
+full Docker/World/VM validation pass.
 
 ## 6. Prove production operations before real data
 

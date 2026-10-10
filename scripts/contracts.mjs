@@ -361,9 +361,11 @@ async function releaseContract() {
     "Release script",
   );
   requireCondition(
-    code(release).indexOf("publish-image.sh") <
-      code(release).indexOf("deploy-vm.sh"),
-    "The fallback must publish the image before deploying it to the VM.",
+    code(release).indexOf("artifact-provenance.mjs") >= 0 &&
+      code(release).indexOf("artifact-provenance.mjs") <
+        code(release).indexOf("deploy-vm.sh") &&
+      !code(release).includes("pnpm build"),
+    "Deployment must verify a prebuilt production artifact before using the VM and must not rebuild it.",
   );
   containsEvery(
     await text("deploy/release/publish-image.sh"),

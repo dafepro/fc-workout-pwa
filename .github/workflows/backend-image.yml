@@ -15,7 +15,7 @@ on:
 
 concurrency:
   group: backend-image-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -25,49 +25,82 @@ jobs:
     name: Static checks, tests, and build
     runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && fromJSON('["ubuntu-24.04"]') || fromJSON('["self-hosted", "macOS", "ARM64", "dcarrell-mac"]') }}
     timeout-minutes: 30
+    outputs:
+      publish: ${{ steps.changes.outputs.publish }}
+      worker-artifact: ${{ steps.worker.outputs.artifact-id }}
     steps:
       - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
         with:
-          version: 11.21.0
-          dest: ${{ runner.temp }}/pnpm
+          fetch-depth: 2
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.20.0
-          cache: ${{ runner.environment == 'github-hosted' && 'pnpm' || '' }}
+      - name: Determine whether publication is needed
+        id: changes
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          publish=true
+          if [ "${{ github.event_name }}" = push ] && [ -n "$BEFORE_SHA" ] && [ "$BEFORE_SHA" != 0000000000000000000000000000000000000000 ]; then
+            git fetch --depth=1 origin "$BEFORE_SHA"
+            git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" >"$RUNNER_TEMP/changed-paths"
+            if ! grep -Eqv '^(docs/|infra/|\.github/|deploy/release/|AGENTS\.md$|scripts/(artifact-provenance|drill-result|runner-job-guard|install-mac-runner|observability-query|observability-host-diagnostic|lounge-placement-holds-monitor|deploy-dev|dev-deploy-smoke|retry-command|pin-host-key-branch)[./-])' "$RUNNER_TEMP/changed-paths"; then
+              publish=false
+            fi
+          fi
+          echo "publish=$publish" >>"$GITHUB_OUTPUT"
 
-      - uses: actions/setup-go@v6
+      - uses: ./.github/actions/setup
         with:
-          go-version-file: backend/go.mod
-          cache: ${{ runner.environment == 'github-hosted' }}
-          cache-dependency-path: backend/go.sum
+          go: "true"
+          tofu: "true"
 
-      - uses: opentofu/setup-opentofu@v1
-        with:
-          tofu_version: 1.10.10
+      - name: Validate workflow syntax
+        run: |
+          GOBIN="$RUNNER_TEMP/workflow-tools" go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+          "$RUNNER_TEMP/workflow-tools/actionlint" -shellcheck= -pyflakes=
 
       - name: Static checks, unit tests, builds, and contracts
+        if: github.event_name != 'workflow_dispatch' || !inputs.run_e2e
         run: ./scripts/verify.sh
 
-      - name: Docker end-to-end suites
+      - name: Intentional full verification
         if: github.event_name == 'workflow_dispatch' && inputs.run_e2e
+        run: ./scripts/verify.sh --all
+
+      - name: Package the verified production Worker
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.changes.outputs.publish == 'true'
         run: |
-          ./scripts/e2e.sh
-          ./scripts/vm-smoke.sh
+          mkdir -p "$RUNNER_TEMP/production-worker"
+          tar -czf "$RUNNER_TEMP/production-worker/worker.tgz" dist drizzle
+
+      - uses: actions/upload-artifact@v4
+        id: worker
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.changes.outputs.publish == 'true'
+        with:
+          name: production-worker-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/production-worker/worker.tgz
+          retention-days: 30
+          if-no-files-found: error
 
   publish:
     name: Publish immutable GHCR image
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.verify.outputs.publish == 'true'
     needs: verify
     runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
     timeout-minutes: 20
     permissions:
       contents: read
       packages: write
+      actions: read
     steps:
       - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup
+
+      - uses: actions/download-artifact@v4
+        with:
+          artifact-ids: ${{ needs.verify.outputs.worker-artifact }}
+          merge-multiple: true
+          path: ${{ runner.temp }}/production-release
 
       - uses: docker/setup-buildx-action@v3
 
@@ -78,6 +111,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: docker/build-push-action@v6
+        id: image
         with:
           context: backend
           file: backend/Dockerfile
@@ -87,7 +121,20 @@ jobs:
             ghcr.io/${{ github.repository }}/api:sha-${{ github.sha }}
             ghcr.io/${{ github.repository }}/api:main
           build-args: APP_VERSION=${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=production-api
+          cache-to: type=gha,mode=max,scope=production-api
           provenance: mode=max
           sbom: true
+
+      - name: Record matched immutable production artifacts
+        env:
+          API_DIGEST: ${{ steps.image.outputs.digest }}
+          CONTROLLER_SHA: ${{ github.sha }}
+        run: node scripts/artifact-provenance.mjs create production "$GITHUB_SHA" "$RUNNER_TEMP/production-release/worker.tgz" "$RUNNER_TEMP/production-release/release-manifest.json"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: production-release-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/production-release
+          retention-days: 30
+          if-no-files-found: error
