@@ -22,6 +22,7 @@ if [ "$(env_value ENABLE_OBSERVABILITY)" != true ]; then
 fi
 
 require_command systemctl
+require_command python3
 sh "$SCRIPT_DIRECTORY/observability-preflight.sh" "$ENV_FILE"
 install -m 0644 "$DEPLOY_DIRECTORY/systemd/$service_name" "/etc/systemd/system/$service_name"
 install -m 0644 "$DEPLOY_DIRECTORY/systemd/$timer_name" "/etc/systemd/system/$timer_name"

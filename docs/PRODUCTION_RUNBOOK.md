@@ -313,7 +313,16 @@ repository variable `PRODUCTION_DRILLS_ENABLED=true`, and only inspects the live
 host — it pipes `scripts/host-drills.sh` in over SSH and has no access to the age
 identity, so it cannot restore anything.
 
-A green run proves the mechanics, not the outcome. Three things still have to be
+The workflow runs only from `main`. Container drills always run; `full_verify`
+defaults to true and `host_checks` defaults to false. A successful requested
+subset passes but reports full automated qualification as incomplete. A
+requested check that fails, is cancelled, is skipped, or is disabled by
+`PRODUCTION_DRILLS_ENABLED` fails the result. The concise summary links to job
+logs and retained artifacts. Reproduce container drills with
+`./scripts/drills.sh`, the full candidate pass with `./scripts/verify.sh --all`,
+and read-only host checks with `scripts/host-drills.sh` on the VM.
+
+A green run proves its requested mechanics, not the outcome. Three things still have to be
 done by hand before real data: confirm an alert email actually arrives, perform
 and time the isolated restore and the offline cutover rehearsal from
 `docs/backend/LIVE_RESTORE_RUNBOOK.md` against real archives, and drive one
@@ -354,11 +363,17 @@ resize. Leave `PRODUCTION_OBSERVABILITY_ENABLED=false` until the reviewed
 infrastructure change is applied and the live admission test passes. Do not
 lower the API memory limit to make room.
 
-For a read-only incident check, dispatch **Read sanitized observability data**,
-choose the environment, window, and preset, and download its one-day artifact.
-The `request-id` preset additionally requires the exact `req_` plus 24 lowercase
-hexadecimal characters shown to the client. The workflow exposes no arbitrary
-LogQL/PromQL input and never uses SSH.
+For a read-only incident check, dispatch `operations.yml` (**Read-only
+operations**) from `main` with mode `query`, choose the telemetry environment,
+window and reviewed preset, and download its one-day sanitized artifact. The
+`request-id` preset additionally requires the exact `req_` plus 24 lowercase
+hexadecimal characters shown to the client. This job has only the Grafana read
+credential and no SSH credential or arbitrary LogQL/PromQL input.
+
+Mode `host-diagnostic` runs the fixed collector diagnostics on the production
+host with its dedicated SSH credential and pinned host key. Query inputs are
+unused in this mode. The two jobs receive separate credentials; neither accepts
+an arbitrary shell command.
 
 Rotate a write credential one signal and environment at a time: create the new
 scoped token, update the GitHub secret, release, verify fresh data and Alloy
@@ -380,6 +395,14 @@ path when either stale outcome count is nonzero or when the report is malformed.
 The workflow never releases a hold, changes a permit, or writes to the database.
 Treat a failed scheduled run as an operator alert and follow the investigation
 steps below.
+
+An always-on replacement is implemented in the existing host metrics timer:
+it emits aggregate hold counts, collection status and last-success freshness
+through Alloy. This code change does not activate production monitoring.
+Follow [Lounge hold monitoring activation](OBSERVABILITY.md#lounge-hold-monitoring-activation)
+to deploy it, configure count/failure/missing-series alerts, and observe delivery.
+Retain the six-hour Actions schedule until that evidence exists; then remove
+only the schedule and retain the manual report.
 
 ```sh
 cd /opt/app/deploy/vm
