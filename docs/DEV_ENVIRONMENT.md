@@ -239,7 +239,10 @@ user LaunchAgent that starts after login. Run `./svc.sh status`, `./svc.sh stop`
 or `./svc.sh start` from the runner directory to manage it. Keep the Mac awake,
 connected, logged in, and Docker Desktop running for Docker jobs. A sleeping or
 logged-out Mac leaves jobs queued. The service uses separate GitHub CLI, Git,
-and Docker credential configuration from the interactive developer shell.
+and Docker credential configuration from the interactive developer shell. Its
+`.env` also sets a five-minute pnpm fetch timeout, four concurrent downloads,
+and a stable private store under the runner configuration directory; cold CI
+downloads otherwise exceeded the default timeout on this connection.
 
 To update the guard, stop the service, review and copy both
 `scripts/runner-job-guard.{sh,mjs}` into the private hook directory, then restart
