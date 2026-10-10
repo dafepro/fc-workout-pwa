@@ -158,6 +158,12 @@ an authority change intentionally resets those settings, so a two-player release
 gate cannot require them to persist through a host handoff.
 Keep credentials and credential-page recordings out of retained evidence.
 
+Training eligibility compares parsed instants against the inclusive team-day
+start and current time. Whole-second and fractional timestamps, including
+offset-bearing restored fixtures, must agree; future, prior-day, partial and
+deleted entries cannot unlock the Lounge or World. The live gates retain their
+unlocked-player assertions rather than retrying around timestamp boundaries.
+
 The matched runtime packages are `zmap` 0.1.11, Avatar Studio 0.1.4 and vendored
 Canvas 0.6.2. App-owned assets are validated against
 `assets/team-world/manifest.json`. Keep dependency patches and any remaining

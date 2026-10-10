@@ -498,21 +498,42 @@ func (store *Store) activeTeamMembersThisWeek(ctx context.Context, teamID string
 }
 
 func (store *Store) teamPulseUnlocked(ctx context.Context, playerID, teamID string, dayStart, now time.Time, teamDay string) (bool, error) {
-	var unlocked bool
-	err := store.db.QueryRowContext(ctx, `SELECT EXISTS (
-		SELECT 1 FROM training_entries
+	// Restored and seeded timestamps can carry offsets; candidate bounds leave room for those before exact instant checks.
+	const candidateFormat = "2006-01-02T15:04:05"
+	rows, err := store.db.QueryContext(ctx, `SELECT occurred_at, 0 FROM training_entries
 		WHERE player_id = ? AND team_id = ? AND deleted_at IS NULL
 		  AND (completion_outcome IS NULL OR completion_outcome <> 'partial')
-		  AND occurred_at >= ? AND occurred_at <= ?
+		  AND occurred_at >= ? AND occurred_at < ?
 		UNION ALL
-		SELECT 1 FROM planned_rest_check_ins
+		SELECT '', 1 FROM planned_rest_check_ins
 		WHERE player_id = ? AND team_id = ? AND occurs_on = ?
-	)`, playerID, teamID, dayStart.UTC().Format(time.RFC3339Nano), now.UTC().Format(time.RFC3339Nano),
-		playerID, teamID, teamDay).Scan(&unlocked)
+	`, playerID, teamID, dayStart.UTC().Add(-48*time.Hour).Format(candidateFormat), now.UTC().Add(48*time.Hour).Format(candidateFormat),
+		playerID, teamID, teamDay)
 	if err != nil {
 		return false, fmt.Errorf("load team pulse access: %w", err)
 	}
-	return unlocked, nil
+	defer rows.Close()
+	for rows.Next() {
+		var stamp string
+		var plannedRest bool
+		if err := rows.Scan(&stamp, &plannedRest); err != nil {
+			return false, fmt.Errorf("scan team pulse access: %w", err)
+		}
+		if plannedRest {
+			return true, nil
+		}
+		occurredAt, err := time.Parse(time.RFC3339Nano, stamp)
+		if err != nil {
+			return false, fmt.Errorf("parse team pulse activity: %w", err)
+		}
+		if !occurredAt.Before(dayStart) && !occurredAt.After(now) {
+			return true, nil
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return false, fmt.Errorf("iterate team pulse access: %w", err)
+	}
+	return false, nil
 }
 
 func (store *Store) recentTeamActivities(ctx context.Context, playerID, teamID string, start, now time.Time, teamDay string, location *time.Location) ([]TeamPulseActivity, error) {

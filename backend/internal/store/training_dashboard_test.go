@@ -137,6 +137,73 @@ func TestTrainingDashboardPlannedRestUnlocksSafeTeamPulse(t *testing.T) {
 	}
 }
 
+func TestTeamAccessUsesExactTrainingInstants(t *testing.T) {
+	second := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
+	for _, fixture := range []struct {
+		name, zone, outcome, stamp string
+		occurredAt, now            time.Time
+		deleted, unlocked          bool
+	}{
+		{name: "whole second before fractional now", occurredAt: second, now: second.Add(100 * time.Millisecond), unlocked: true},
+		{name: "fractional now before next whole second", occurredAt: second.Add(500 * time.Millisecond), now: second.Add(100 * time.Millisecond)},
+		{name: "exact now", occurredAt: second.Add(time.Nanosecond), now: second.Add(time.Nanosecond), unlocked: true},
+		{name: "fractional future at whole-second now", occurredAt: second.Add(time.Nanosecond), now: second},
+		{name: "one nanosecond in the future", occurredAt: second.Add(2 * time.Nanosecond), now: second.Add(time.Nanosecond)},
+		{name: "next whole second", occurredAt: second.Add(time.Second), now: second.Add(100 * time.Millisecond)},
+		{name: "fractional team midnight", occurredAt: second.Add(-13*time.Hour + 100*time.Millisecond), now: second, unlocked: true},
+		{name: "exact team midnight", occurredAt: second.Add(-13 * time.Hour), now: second, unlocked: true},
+		{name: "one nanosecond before team midnight", occurredAt: second.Add(-13*time.Hour - time.Nanosecond), now: second},
+		{name: "partial", occurredAt: second, now: second.Add(100 * time.Millisecond), outcome: "partial"},
+		{name: "deleted", occurredAt: second, now: second.Add(100 * time.Millisecond), deleted: true},
+		{name: "positive offset team midnight", zone: "Asia/Tokyo", occurredAt: second.Add(-3*time.Hour + time.Nanosecond), now: second, unlocked: true},
+		{name: "before positive offset team midnight", zone: "Asia/Tokyo", occurredAt: second.Add(-3*time.Hour - time.Nanosecond), now: second},
+		{name: "legacy negative offset midnight", stamp: "2026-08-12T00:00:00-05:00", now: second, unlocked: true},
+		{name: "legacy positive offset midnight", zone: "Asia/Tokyo", stamp: "2026-08-13T00:00:00+09:00", now: second, unlocked: true},
+		{name: "legacy offset future", stamp: "2026-08-12T13:00:00.000000001-05:00", now: second},
+		{name: "legacy offset prior day", zone: "Asia/Tokyo", stamp: "2026-08-12T23:59:59.999999999+09:00", now: second},
+	} {
+		t.Run(fixture.name, func(t *testing.T) {
+			repository, db := socialProjectionStore(t)
+			seedSocialProjection(t, db, fixture.now)
+			if fixture.zone != "" {
+				if _, err := db.Exec(`UPDATE teams SET time_zone = ? WHERE id = 'team-one'`, fixture.zone); err != nil {
+					t.Fatal(err)
+				}
+			}
+			var outcome, deletedAt any
+			if fixture.outcome != "" {
+				outcome = fixture.outcome
+			}
+			if fixture.deleted {
+				deletedAt = fixture.now.UTC().Format(time.RFC3339Nano)
+			}
+			stamp := fixture.stamp
+			if stamp == "" {
+				stamp = fixture.occurredAt.UTC().Format(time.RFC3339Nano)
+			}
+			if _, err := db.Exec(`UPDATE training_entries SET occurred_at = ?, completion_outcome = ?, deleted_at = ? WHERE id = 'entry-mason'`,
+				stamp, outcome, deletedAt); err != nil {
+				t.Fatal(err)
+			}
+			actor := domain.Actor{Role: domain.RolePlayer, PlayerID: "player-mason", ClubID: "club-one"}
+			dashboard, err := repository.TrainingDashboard(context.Background(), actor, "team-one", fixture.now)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if dashboard.TeamPulse.Unlocked != fixture.unlocked {
+				t.Fatalf("dashboard unlocked = %v, want %v", dashboard.TeamPulse.Unlocked, fixture.unlocked)
+			}
+			hub, err := repository.TeamHub(context.Background(), actor, "team-one", fixture.now)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if hub.Access.LoungeUnlocked != fixture.unlocked || hub.Access.ActivityUnlocked != fixture.unlocked {
+				t.Fatalf("Team access = %+v, want unlocked %v", hub.Access, fixture.unlocked)
+			}
+		})
+	}
+}
+
 func TestTrainingDashboardRejectsUnrelatedPlayer(t *testing.T) {
 	repository, db := socialProjectionStore(t)
 	now := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)

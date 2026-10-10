@@ -419,7 +419,7 @@ func withinWeek(occurredAt, weekStart time.Time) string {
 	if occurredAt.Before(weekStart) {
 		occurredAt = weekStart
 	}
-	return occurredAt.Format(time.RFC3339Nano)
+	return occurredAt.UTC().Format(time.RFC3339Nano)
 }
 
 func newID(prefix string) string {

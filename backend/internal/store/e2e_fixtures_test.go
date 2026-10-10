@@ -89,6 +89,9 @@ func TestResetE2EFixturesKeepsBothSessionsInTheLocalWeek(t *testing.T) {
 			if projection.Summary.WeeklySessions != 2 {
 				t.Fatalf("%s: weekly sessions %d, want 2", label, projection.Summary.WeeklySessions)
 			}
+			if projection.TeamPulse.ActiveThisWeek != 2 {
+				t.Fatalf("%s: active team members %d, want 2", label, projection.TeamPulse.ActiveThisWeek)
+			}
 			if projection.CurrentAssignment == nil || projection.CurrentAssignment.Completed {
 				t.Fatalf("%s: unexpected assignment: %+v", label, projection.CurrentAssignment)
 			}
