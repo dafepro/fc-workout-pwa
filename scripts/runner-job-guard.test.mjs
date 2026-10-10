@@ -71,3 +71,47 @@ test("rejects unreadable event payload", () => {
     0,
   );
 });
+
+test("allows another repository owned by the same account", () => {
+  const otherRepository = "dafepro/zmap";
+  assert.equal(
+    run(
+      "push",
+      { repository: { full_name: otherRepository } },
+      { GITHUB_REPOSITORY: otherRepository },
+    ).status,
+    0,
+  );
+});
+test("rejects a matching repository belonging to a different account", () => {
+  const otherRepository = "attacker/zmap";
+  assert.notEqual(
+    run(
+      "push",
+      { repository: { full_name: otherRepository } },
+      { GITHUB_REPOSITORY: otherRepository },
+    ).status,
+    0,
+  );
+});
+
+test("allows an internal PR in another owned repository", () => {
+  const other = "dafepro/zmap";
+  assert.equal(
+    run(
+      "pull_request",
+      {
+        repository: { full_name: other },
+        pull_request: {
+          head: { repo: { full_name: other } },
+          base: { repo: { full_name: other } },
+        },
+      },
+      { GITHUB_REPOSITORY: other },
+    ).status,
+    0,
+  );
+});
+test("rejects a PR from a different repository under the same owner", () => {
+  assert.notEqual(run("pull_request", pullRequest("dafepro/zmap")).status, 0);
+});

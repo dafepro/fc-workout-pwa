@@ -222,32 +222,49 @@ Team World proof through the public password gate. That proof creates and
 deletes only its own invented-player qualification entries and records no
 credential-directory traces, screenshots or videos.
 
-## Mac Actions runner
+## Mac Actions runners
 
-Trusted jobs use the Apple Silicon runner `zoomigo-dcarrell-mac-arm64`, with
-labels `self-hosted`, `macOS`, `ARM64`, and `zoomigo-mac`. Fork PR verification
-uses GitHub-hosted Ubuntu. Repository-wide fork approval requires approval from
-all external contributors. The installed job-start hook rejects fork PRs, other
-repositories, missing event payloads, and unsupported event types before checkout.
-It is installed outside the runner directory; changing a workflow cannot remove
-that copy. This is a persistent personal Mac runner, not an isolated sandbox.
-Only repository collaborators' code should execute on it.
+The Mac is available to every active, non-fork repository owned by `dafepro`,
+with a separate GitHub registration per repository and the shared labels
+`self-hosted`, `macOS`, `ARM64`, and `dcarrell-mac`. GitHub personal accounts
+cannot share one registration across repositories. Register a future repository
+with `github-mac-runner dafepro/REPOSITORY`, or reconcile current repositories
+with `github-mac-runner --all`. The installed command comes from
+`scripts/install-mac-runner.sh`; it requires the owner's interactive GitHub CLI
+credentials and verifies the official runner archive's checksum before installation.
+It does not change other repositories' workflow files or Actions permissions.
+To opt a job in, use `runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]`.
 
-The runner lives at `~/.local/share/zoomigo-actions-runner`; its private hook copy
-lives at `~/.local/share/zoomigo-runner-config`. The official `svc.sh` installs a
-user LaunchAgent that starts after login. Run `./svc.sh status`, `./svc.sh stop`,
-or `./svc.sh start` from the runner directory to manage it. Keep the Mac awake,
-connected, logged in, and Docker Desktop running for Docker jobs. A sleeping or
-logged-out Mac leaves jobs queued. The service uses separate GitHub CLI, Git,
-and Docker credential configuration from the interactive developer shell. Its
-`.env` also sets a five-minute pnpm fetch timeout, four concurrent downloads,
-and a stable private store under the runner configuration directory; cold CI
-downloads otherwise exceeded the default timeout on this connection.
+ZoomiGo fork PR verification uses GitHub-hosted Ubuntu. Its fork approval policy
+requires approval for all external contributors. Every Mac registration uses a
+job-start hook that rejects fork PRs, repositories outside `dafepro`, mismatched
+or missing event payloads, and unsupported event types before checkout. The
+installed hook lives outside the checkout. This persistent personal Mac is not
+an isolated sandbox; only trusted repository collaborators' code should run here.
 
-To update the guard, stop the service, review and copy both
-`scripts/runner-job-guard.{sh,mjs}` into the private hook directory, then restart
-it. Do not point the hook at the mutable checkout. The guard's tests run in normal
-verification. Runner diagnostic logs are under the installation's `_diag`.
+New installations live under `~/.local/share/github-mac-runners/dafepro--REPOSITORY`.
+ZoomiGo retains its initial installation at `~/.local/share/zoomigo-actions-runner`
+and runner name `zoomigo-dcarrell-mac-arm64`; its `zoomigo-mac` label is retained
+as a compatibility alias. All registrations use the maintained guard under
+`~/.local/share/github-mac-runners/guard` (the legacy guard file links there).
+The official `svc.sh` installs a user LaunchAgent that starts after login. Run
+`./svc.sh status`, `./svc.sh stop`, or `./svc.sh start` inside a runner directory
+to manage it. Keep the Mac awake, connected, logged in, and Docker Desktop running
+for Docker jobs. Sleeping or logging out leaves jobs queued. Separate registrations
+can run jobs concurrently and share this Mac's CPU, memory, and Docker daemon.
+
+Each service has separate GitHub CLI, Git, and Docker credential configuration.
+The private Docker config explicitly exposes Docker Desktop's Compose and Buildx
+plugins. Each `.env` sets a five-minute pnpm fetch timeout, four concurrent downloads,
+and a stable private package store; cold CI downloads otherwise exceeded the
+default timeout on this connection. The original ZoomiGo store remains in its
+legacy configuration directory. Diagnostic logs are under each runner's `_diag`.
+
+To update the guard, stop the services, review and copy
+`scripts/runner-job-guard.{sh,mjs}` into the maintained guard directory, then restart
+services. Review and refresh the installer copy under `github-mac-runners/bootstrap`
+when changing registration behavior. Never point hooks at mutable checkouts.
+The guard tests and installer syntax check run in normal verification.
 
 Automatic dev deployment remains enabled unless the repository variable
 `DEV_AUTO_UPDATE_ENABLED` is exactly `false`. Use that temporary setting when

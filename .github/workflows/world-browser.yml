@@ -11,7 +11,7 @@ permissions:
 jobs:
   browser:
     environment: dev-world-test
-    runs-on: [self-hosted, macOS, ARM64, zoomigo-mac]
+    runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4

@@ -1,10 +1,10 @@
 import { readFileSync } from "node:fs";
 
-const repository = "dafepro/fc-workout-pwa";
+const repository = process.env.GITHUB_REPOSITORY;
 try {
   const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, "utf8"));
   if (
-    process.env.GITHUB_REPOSITORY !== repository ||
+    !/^dafepro\/[a-zA-Z0-9_.-]+$/.test(repository ?? "") ||
     event.repository?.full_name !== repository
   ) {
     throw new Error("repository is not allowed");

@@ -15,7 +15,7 @@ permissions:
 jobs:
   inspect:
     name: Inspect read-only Canvas outcome holds
-    runs-on: [self-hosted, macOS, ARM64, zoomigo-mac]
+    runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
     timeout-minutes: 5
     environment: production
     steps:
