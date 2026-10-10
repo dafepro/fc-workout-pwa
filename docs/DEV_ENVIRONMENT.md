@@ -255,7 +255,9 @@ can run jobs concurrently and share this Mac's CPU, memory, and Docker daemon.
 
 Each service has separate GitHub CLI, Git, and Docker credential configuration.
 The private Docker config explicitly exposes Docker Desktop's Compose and Buildx
-plugins. Each `.env` sets a five-minute pnpm fetch timeout, four concurrent downloads,
+plugins and disables automatic Mac Keychain selection with an explicit empty
+GHCR helper. Job tokens use the private file store and Docker login's post-job
+logout; login services cannot unlock an interactive Keychain. Each `.env` sets a five-minute pnpm fetch timeout, four concurrent downloads,
 and a stable private package store; cold CI downloads otherwise exceeded the
 default timeout on this connection. Both pnpm 10 and 11 configuration namespaces
 are set. ZoomiGo enables Node and Go cache uploads only for GitHub-hosted jobs; its Mac
