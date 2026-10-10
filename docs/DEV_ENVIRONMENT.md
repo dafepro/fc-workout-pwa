@@ -361,7 +361,9 @@ Each service has separate GitHub CLI, Git, and Docker credential configuration.
 The private Docker config explicitly exposes Docker Desktop's Compose and Buildx
 plugins. Each `.env` sets a five-minute pnpm fetch timeout, four concurrent downloads,
 and a stable private package store; cold CI downloads otherwise exceeded the
-default timeout on this connection. The original ZoomiGo store remains in its
+default timeout on this connection. Both pnpm 10 and 11 configuration namespaces
+are set. Node and Go cache uploads are enabled only for GitHub-hosted jobs; Mac
+jobs reuse local caches without publishing shared dependency stores. The original ZoomiGo store remains in its
 legacy configuration directory. Diagnostic logs are under each runner's `_diag`.
 
 To update the guard, stop the services, review and copy

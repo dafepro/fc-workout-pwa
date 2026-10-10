@@ -35,11 +35,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22.20.0
-          cache: pnpm
+          cache: ${{ runner.environment == 'github-hosted' && 'pnpm' || '' }}
 
       - uses: actions/setup-go@v6
         with:
           go-version-file: backend/go.mod
+          cache: ${{ runner.environment == 'github-hosted' }}
           cache-dependency-path: backend/go.sum
 
       - uses: opentofu/setup-opentofu@v1
