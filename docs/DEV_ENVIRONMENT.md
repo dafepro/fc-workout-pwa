@@ -153,6 +153,9 @@ movement, kick propagation, shared controls and clean exit. Earlier receipts
 without kick assertions do not qualify the stronger gate. These checks do not
 qualify physical phones, a full room or sustained GPU/memory/recovery behavior;
 those gates remain in ROADMAP.md and TEAM_WORLD.md.
+Host-only ball tuning remains in the local single-player rendering-controls test:
+an authority change intentionally resets those settings, so a two-player release
+gate cannot require them to persist through a host handoff.
 Keep credentials and credential-page recordings out of retained evidence.
 
 The matched runtime packages are `zmap` 0.1.11, Avatar Studio 0.1.4 and vendored
