@@ -2,15 +2,28 @@
 
 set -eu
 
-secrets_directory=${1:?usage: deploy-vm.sh OPENED_SECRETS_DIRECTORY RELEASE_SHA}
-release_sha=${2:?usage: deploy-vm.sh OPENED_SECRETS_DIRECTORY RELEASE_SHA}
+secrets_directory=${1:?usage: deploy-vm.sh OPENED_SECRETS_DIRECTORY RELEASE_SHA CONTROL_SHA}
+release_sha=${2:?usage: deploy-vm.sh OPENED_SECRETS_DIRECTORY RELEASE_SHA CONTROL_SHA}
+control_sha=${3:?usage: deploy-vm.sh OPENED_SECRETS_DIRECTORY RELEASE_SHA CONTROL_SHA}
 
 : "${DEPLOY_HOST:?DEPLOY_HOST is required}"
 : "${DEPLOY_USER:?DEPLOY_USER is required}"
 case "$DEPLOY_HOST" in *[!A-Za-z0-9.-]*|"") printf '%s\n' "invalid DEPLOY_HOST" >&2; exit 1 ;; esac
 case "$DEPLOY_USER" in *[!A-Za-z0-9_-]*|"") printf '%s\n' "invalid DEPLOY_USER" >&2; exit 1 ;; esac
-case "$release_sha" in *[!0-9a-f]*|"") printf '%s\n' "invalid release SHA" >&2; exit 1 ;; esac
-[ "${#release_sha}" -eq 40 ] || { printf '%s\n' "invalid release SHA" >&2; exit 1; }
+for revision in "$release_sha" "$control_sha"; do
+	case "$revision" in *[!0-9a-f]*|"") printf '%s\n' "invalid release/controller SHA" >&2; exit 1 ;; esac
+	[ "${#revision}" -eq 40 ] || { printf '%s\n' "invalid release/controller SHA" >&2; exit 1; }
+done
+
+image=${API_IMAGE_OVERRIDE:-ghcr.io/dafepro/fc-workout-pwa/api:sha-$release_sha}
+case "$image" in
+	ghcr.io/dafepro/fc-workout-pwa/api@sha256:*)
+		digest=${image##*@sha256:}
+		case "$digest" in *[!0-9a-f]*) exit 1 ;; esac
+		[ "${#digest}" -eq 64 ] || exit 1 ;;
+	ghcr.io/dafepro/fc-workout-pwa/api:sha-"$release_sha") ;;
+	*) printf '%s\n' "error: invalid release image" >&2; exit 1 ;;
+esac
 
 identity_file="$secrets_directory/deploy_ssh_key"
 known_hosts_file="$secrets_directory/known_hosts"
@@ -39,8 +52,7 @@ run_ssh "sudo -n install -d -m 0755 /etc/zoomigo && sudo -n sh -c 'umask 077; ca
 # scripts beneath systemd. A brand-new host has no database to preserve yet.
 run_ssh "if sudo -n test -f /var/lib/zoomigo/data/zoomigo.db; then sudo -n systemctl start zoomigo-backup.service; fi"
 
-image="ghcr.io/dafepro/fc-workout-pwa/api:sha-$release_sha"
-run_ssh "set -eu; cd /opt/app; test -z \"\$(git status --porcelain --untracked-files=no)\"; git fetch --depth=1 origin '$release_sha'; git checkout --detach '$release_sha'; cd deploy/vm; sudo -n ./scripts/set-release.sh .env '$image' '$release_sha'"
+run_ssh "set -eu; cd /opt/app; test -z \"\$(git status --porcelain --untracked-files=no)\"; git fetch --depth=1 origin '$control_sha'; git checkout --detach '$control_sha'; cd deploy/vm; sudo -n ./scripts/set-release.sh .env '$image' '$release_sha'"
 
 # A connection of its own, so the staff secret arrives on standard input rather
 # than inside a command string that sshd and any process list would show. The

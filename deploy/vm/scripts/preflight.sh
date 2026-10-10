@@ -29,8 +29,9 @@ printf '%s' "$site_address" | grep -Eq '^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?
 
 case "$api_image" in
 	*:latest|*:main) fail "API_IMAGE must use an immutable sha-* tag, not a moving tag" ;;
+	*@sha256:*) is_image_digest "$api_image" || fail "API_IMAGE has an invalid SHA-256 digest" ;;
 	*:sha-*|zoomigo-api:*) ;;
-	*) fail "API_IMAGE must use an immutable sha-* tag (or zoomigo-api:* for a local source build)" ;;
+	*) fail "API_IMAGE must use an sha-* tag or immutable SHA-256 digest (or zoomigo-api:* for a local source build)" ;;
 esac
 
 case "$backup_recipient" in

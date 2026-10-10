@@ -12,7 +12,11 @@ release_sha=${3:?usage: set-release.sh ENV_FILE API_IMAGE RELEASE_SHA}
 require_env_file
 case "$release_sha" in *[!0-9a-f]*|"") fail "release SHA must be 40 lowercase hexadecimal characters" ;; esac
 [ "${#release_sha}" -eq 40 ] || fail "release SHA must be 40 lowercase hexadecimal characters"
-case "$image" in *":sha-$release_sha") ;; *) fail "API image must be pinned to the release SHA" ;; esac
+case "$image" in
+	ghcr.io/dafepro/fc-workout-pwa/api@sha256:*) is_image_digest "$image" || fail "API image digest is invalid" ;;
+	*":sha-$release_sha") ;;
+	*) fail "API image must be pinned to the release SHA or verified digest" ;;
+esac
 [ "$(grep -c '^API_IMAGE=' "$ENV_FILE")" -eq 1 ] || fail "API_IMAGE must appear exactly once in $ENV_FILE"
 [ "$(grep -c '^APP_VERSION=' "$ENV_FILE")" -eq 1 ] || fail "APP_VERSION must appear exactly once in $ENV_FILE"
 

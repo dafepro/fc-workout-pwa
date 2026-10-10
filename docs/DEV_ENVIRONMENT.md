@@ -69,7 +69,7 @@ services.
 
 ## GitHub configuration
 
-The workflow uses separate build and operation jobs on the persistent Mac
+The workflow uses separate build, operation and live-qualification jobs on the persistent Mac
 runner. The first checks out and builds the selected application revision without
 injecting cloud, state, or runtime secrets. The second checks out only the workflow
 revision from `main`, downloads the built Worker artifact, and performs the
@@ -77,25 +77,32 @@ deployment. The jobs share a host, so this separation is not a security sandbox.
 Deploy only trusted repository revisions. The controller uses its own reviewed
 workflow revision; the selected application cannot replace its deployment scripts.
 
-The deployment job uses the existing `production` GitHub environment only as a
-control-plane credential vault. Its OpenTofu directory, state key, resource
+Deployment and qualification use a dedicated main-only `dev` GitHub environment.
+The deployment job receives only explicitly referenced dev/provider secrets.
+Qualification receives only the dev gate password and API gateway token. Its OpenTofu directory, state key, resource
 names, DNS name, Worker name, VM filesystem, Compose project, and runtime data
 are all dev-specific. It does not read the production host, backup
 configuration, application database, or application credentials.
 
-These existing `production` environment secrets and variables are required by
+These `dev` environment secrets and variables are required by
 the trusted deployment runner:
 
-| Name                         | Purpose                                         |
-| ---------------------------- | ----------------------------------------------- |
-| `DIGITALOCEAN_TOKEN`         | Creates and destroys named dev resources.       |
-| `CLOUDFLARE_API_TOKEN`       | Manages only the configured dev DNS and Worker. |
-| `CLOUDFLARE_ACCOUNT_ID`      | Selects the Worker account.                     |
-| `CLOUDFLARE_ZONE_ID`         | Selects the DNS zone.                           |
-| `TF_STATE_ACCESS_KEY_ID`     | Accesses the separately keyed OpenTofu state.   |
-| `TF_STATE_SECRET_ACCESS_KEY` | Accesses the separately keyed OpenTofu state.   |
+| Name                         | Purpose                                       |
+| ---------------------------- | --------------------------------------------- |
+| `DIGITALOCEAN_TOKEN`         | Creates and destroys named dev resources.     |
+| `CLOUDFLARE_API_TOKEN`       | Manages configured dev DNS and Worker.        |
+| `CLOUDFLARE_ACCOUNT_ID`      | Selects the Worker account.                   |
+| `CLOUDFLARE_ZONE_ID`         | Selects the DNS zone.                         |
+| `TF_STATE_ACCESS_KEY_ID`     | Accesses the separately keyed OpenTofu state. |
+| `TF_STATE_SECRET_ACCESS_KEY` | Accesses the separately keyed OpenTofu state. |
 
-Configure these repository secrets with independent dev-only values:
+The initial environment migration reuses existing provider credentials, whose
+account-level permissions can still reach production resources. Environment
+separation protects production application, backup, staff and SSH credentials;
+it does not narrow provider authority. Issue dev-scoped provider credentials and
+state storage permissions before treating dev as independently isolated.
+
+Configure these `dev` environment secrets with independent dev-only values:
 
 | Secret                   | Purpose                                                 |
 | ------------------------ | ------------------------------------------------------- |
@@ -180,6 +187,20 @@ current commit is the pushed branch head, dispatches that SHA through the
 trusted `main` workflow, prints the run URL, and exits without waiting. Do not
 run it after a normal push to `main`; that push has already queued the same
 serialized update.
+
+Use `operation=qualify` with the exact live 40-character application SHA to
+repeat the API, Lounge and World gates without building, deploying or resetting.
+After a successful deployment with a failed qualification job, GitHub's **Re-run
+failed jobs** also repeats qualification alone. Exact live API identity is
+checked before browser qualification. Create-only fixture mutation proofs remain
+in the operation job and do not run during an update or standalone qualification.
+
+Build and deploy exchange an artifact by ID: a checksummed Worker archive and
+versioned manifest containing application/controller SHAs, build profile and
+immutable API/relay digests. Deployment verifies it before infrastructure access,
+uses digest-pinned images, and records the manifest in its summary. Third-party
+Actions are pinned to reviewed commit SHAs; normal required CI validates workflow
+syntax. The selected application cannot supply the setup or manifest controller.
 
 The workflow is serialized, so two operations cannot mutate the environment at
 once. Infrastructure state is separate from production. No resource has

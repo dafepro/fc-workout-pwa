@@ -1,0 +1,34 @@
+name: ZoomiGo toolchain
+description: Pinned Node, package-declared pnpm and optional Go/OpenTofu
+inputs:
+  root:
+    description: Application checkout directory
+    default: "."
+  go:
+    description: Install the backend Go toolchain
+    default: "false"
+  tofu:
+    description: Install OpenTofu
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v4
+      with:
+        package_json_file: ${{ inputs.root }}/package.json
+        dest: ${{ runner.temp }}/pnpm
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22.20.0
+        cache: ${{ runner.environment == 'github-hosted' && 'pnpm' || '' }}
+        cache-dependency-path: ${{ inputs.root }}/pnpm-lock.yaml
+    - uses: actions/setup-go@v6
+      if: inputs.go == 'true'
+      with:
+        go-version-file: ${{ inputs.root }}/backend/go.mod
+        cache: ${{ runner.environment == 'github-hosted' }}
+        cache-dependency-path: ${{ inputs.root }}/backend/go.sum
+    - uses: opentofu/setup-opentofu@v1
+      if: inputs.tofu == 'true'
+      with:
+        tofu_version: 1.10.10

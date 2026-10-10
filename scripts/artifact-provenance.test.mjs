@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { spawnSync } from "node:child_process";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { validateProducer, validateManifest } from "./artifact-provenance.mjs";
 
 const sha = "a".repeat(40);
@@ -91,5 +95,55 @@ test("manifest requires current schema, matching SHA/profile and checksum", () =
         digest,
       ),
     );
+  }
+});
+
+test("production and development artifacts preserve immutable image metadata and reject tampering", async () => {
+  const root = await mkdtemp(join(tmpdir(), "release-artifact-"));
+  try {
+    const payload = join(root, "worker.tgz");
+    const manifest = join(root, "release-manifest.json");
+    await writeFile(payload, "verified frontend fixture");
+    const invoke = (command, profile) =>
+      spawnSync(
+        process.execPath,
+        [
+          new URL("./artifact-provenance.mjs", import.meta.url).pathname,
+          command,
+          profile,
+          sha,
+          payload,
+          manifest,
+        ],
+        {
+          encoding: "utf8",
+          env: {
+            ...process.env,
+            GITHUB_ENV: "",
+            CONTROLLER_SHA: sha,
+            API_DIGEST: `sha256:${"b".repeat(64)}`,
+            RELAY_DIGEST: `sha256:${"c".repeat(64)}`,
+          },
+        },
+      );
+    for (const profile of ["production", "development"]) {
+      assert.equal(invoke("create", profile).status, 0);
+      const receipt = JSON.parse(await readFile(manifest, "utf8"));
+      assert.equal(receipt.apiDigest, `sha256:${"b".repeat(64)}`);
+      assert.equal(invoke("verify", profile).status, 0);
+      assert.notEqual(
+        invoke(
+          "verify",
+          profile === "production" ? "development" : "production",
+        ).status,
+        0,
+      );
+    }
+    await writeFile(payload, "tampered frontend");
+    assert.notEqual(invoke("verify", "development").status, 0);
+    await rm(payload);
+    assert.notEqual(invoke("verify", "production").status, 0);
+  } finally {
+    await rm(root, { recursive: true, force: true });
   }
 });

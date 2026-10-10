@@ -584,16 +584,26 @@ if wanted release; then
 			fail "release.sh refused without mentioning '$expected': $output"
 	}
 	assert_refused 'usage: release.sh RELEASE_SHA' ./deploy/release/release.sh
-	assert_refused 'PUBLISH_API_IMAGE must be true or false' \
-		env PUBLISH_API_IMAGE=yes ./deploy/release/release.sh "$sha"
+
+	assert_refused 'PRODUCTION_RELEASE_DIRECTORY' \
+		env PRODUCTION_RELEASE_DIRECTORY= ./deploy/release/release.sh "$sha"
+	mkdir -p "$DRILL_ROOT/release-artifact"
+	printf '%s' fixture >"$DRILL_ROOT/release-artifact/worker.tgz"
+	API_DIGEST="sha256:$(printf '%064d' 0)" CONTROLLER_SHA="$sha" \
+		node scripts/artifact-provenance.mjs create production "$sha" \
+		"$DRILL_ROOT/release-artifact/worker.tgz" "$DRILL_ROOT/release-artifact/release-manifest.json"
 	assert_refused 'DEPLOY_HOST is required' \
-		env DEPLOY_HOST= ./deploy/release/release.sh "$sha"
-	assert_refused 'ZOOMIGO_API_BASE_URL must use HTTPS' \
-		env DEPLOY_HOST=host.invalid DEPLOY_USER=zoomigo \
+		env PRODUCTION_RELEASE_DIRECTORY="$DRILL_ROOT/release-artifact" DEPLOY_HOST= \
+		./deploy/release/release.sh "$sha"
+	assert_refused 'http://api.invalid must use HTTPS' \
+		env PRODUCTION_RELEASE_DIRECTORY="$DRILL_ROOT/release-artifact" \
+		DEPLOY_HOST=host.invalid DEPLOY_USER=zoomigo \
 		ZOOMIGO_API_BASE_URL=http://api.invalid ZOOMIGO_DEPLOY_SSH_KEY=key \
 		BACKUP_S3_ENDPOINT=https://s3.invalid BACKUP_S3_BUCKET=bucket \
 		BACKUP_S3_ACCESS_KEY_ID=id BACKUP_S3_SECRET_ACCESS_KEY=secret \
-		./deploy/release/release.sh "$sha"
+		STAFF_SECRET_KEY=fixture PLAYER_LOGIN_URL=https://pwa.invalid/login \
+		STAFF_SETUP_URL=https://pwa.invalid/staff/setup CLOUDFLARE_ACCOUNT_ID=fixture \
+		CLOUDFLARE_API_TOKEN=fixture ./deploy/release/release.sh "$sha"
 	passed "release -- $script_count operator scripts parse and release.sh refuses incomplete input"
 fi
 

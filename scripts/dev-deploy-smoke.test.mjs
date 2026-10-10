@@ -258,13 +258,26 @@ test("updates prove the exact container and new infrastructure proves final flow
     workflow.lastIndexOf("- name:", readOnlySmoke),
     readOnlySmoke,
   );
-  assert.match(readOnlyStep, /needs\.context\.outputs\.operation == 'create'/);
-  assert.match(readOnlyStep, /needs\.context\.outputs\.operation == 'update'/);
+  assert.match(
+    readOnlyStep,
+    /needs\.build\.outputs\.revision \|\| needs\.context\.outputs\.ref/,
+  );
+  const qualification = workflow.slice(workflow.indexOf("\n  qualify:"));
+  assert.match(qualification, /needs\.operate\.result == 'success'/);
+  assert.match(
+    qualification,
+    /needs\.context\.outputs\.operation == 'qualify'/,
+  );
+  assert.match(qualification, /environment: dev/);
+  assert.doesNotMatch(
+    qualification,
+    /__dev\/reset|tofu |deploy-dev\.sh|secrets\.(CLOUDFLARE|DIGITALOCEAN|DEV_RESET|DEV_DEPLOY|TF_STATE)/,
+  );
   assert.match(readOnlyStep, /DEV_SMOKE_EXPECTED_RELEASE/);
 
   const fullSmoke = workflow.indexOf(
     "run: node scripts/dev-deploy-smoke.mjs\n",
-    readOnlySmoke,
+    0,
   );
   const fullSmokeStep = workflow.slice(
     workflow.lastIndexOf("- name:", fullSmoke),

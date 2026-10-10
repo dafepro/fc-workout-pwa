@@ -77,3 +77,13 @@ record_observability_gauge() {
 	mv -- "$temporary_metric" "$observability_directory/textfile/${metric_name}.prom"
 	trap - EXIT HUP INT TERM
 }
+
+
+is_image_digest() {
+	case "$1" in *@sha256:*) ;;
+		*) return 1 ;;
+	esac
+	image_digest=${1##*@sha256:}
+	case "$image_digest" in *[!0-9a-f]*|"") return 1 ;; esac
+	[ "${#image_digest}" -eq 64 ]
+}

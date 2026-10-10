@@ -39,6 +39,26 @@ export function validateManifest(manifest, sha, profile, checksum) {
       "Artifact manifest version, revision, profile or checksum mismatch",
     );
   }
+  if (profile !== "infrastructure") {
+    if (
+      !/^sha256:[0-9a-f]{64}$/.test(manifest.apiDigest) ||
+      !/^[0-9a-f]{40}$/.test(manifest.controllerSha)
+    ) {
+      throw new Error(
+        "Release manifest requires an immutable image and controller revision",
+      );
+    }
+    if (profile === "production" && manifest.controllerSha !== sha)
+      throw new Error(
+        "Production bundle must be built by its application revision",
+      );
+    if (
+      profile === "development" &&
+      !/^sha256:[0-9a-f]{64}$/.test(manifest.relayDigest)
+    ) {
+      throw new Error("Development manifest requires an immutable relay image");
+    }
+  }
 }
 
 async function checksum(file) {
@@ -75,6 +95,25 @@ async function list(path, field) {
 }
 
 async function resolve(profile, runId, sha) {
+  if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error("Invalid SHA");
+  if (profile === "development")
+    throw new Error("Development artifacts belong to the same workflow run");
+  if (runId === "latest") {
+    const runs = await list(
+      `actions/runs?head_sha=${sha}&branch=main&status=success`,
+      "workflow_runs",
+    );
+    const file =
+      profile === "infrastructure"
+        ? ".github/workflows/infra.yml"
+        : ".github/workflows/backend-image.yml";
+    const producer = runs.find(
+      (run) => run.path === file && run.head_sha === sha,
+    );
+    if (!producer)
+      throw new Error("No successful producer exists for the selected SHA");
+    runId = String(producer.id);
+  }
   if (!/^[0-9a-f]{40}$/.test(sha) || !/^\d+$/.test(runId))
     throw new Error("Invalid SHA or run ID");
   const workflowFile =
@@ -122,17 +161,32 @@ async function main() {
     throw new Error("Invalid artifact revision");
   const digest = await checksum(payloadOrSha);
   if (command === "create") {
-    await writeFile(
-      manifestFile,
-      `${JSON.stringify({ schema: 2, sha: shaOrRun, profile, checksum: digest }, null, 2)}\n`,
-    );
+    const metadata = { schema: 2, sha: shaOrRun, profile, checksum: digest };
+    if (profile !== "infrastructure") {
+      metadata.controllerSha = process.env.CONTROLLER_SHA;
+      metadata.apiDigest = process.env.API_DIGEST;
+      if (profile === "development")
+        metadata.relayDigest = process.env.RELAY_DIGEST;
+      validateManifest(metadata, shaOrRun, profile, digest);
+    }
+    await writeFile(manifestFile, `${JSON.stringify(metadata, null, 2)}\n`);
   } else if (command === "verify") {
-    validateManifest(
-      JSON.parse(await readFile(manifestFile, "utf8")),
-      shaOrRun,
-      profile,
-      digest,
-    );
+    const manifest = JSON.parse(await readFile(manifestFile, "utf8"));
+    validateManifest(manifest, shaOrRun, profile, digest);
+    if (profile !== "infrastructure" && process.env.GITHUB_ENV) {
+      const repository = process.env.GITHUB_REPOSITORY;
+      if (repository !== "dafepro/fc-workout-pwa")
+        throw new Error("Unexpected release repository");
+      await appendFile(
+        process.env.GITHUB_ENV,
+        `API_IMAGE_OVERRIDE=ghcr.io/${repository}/api@${manifest.apiDigest}\n`,
+      );
+      if (profile === "development")
+        await appendFile(
+          process.env.GITHUB_ENV,
+          `DEV_RELAY_IMAGE=ghcr.io/${repository}/api@${manifest.relayDigest}\n`,
+        );
+    }
   } else throw new Error("Invalid artifact command");
 }
 

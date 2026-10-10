@@ -7,13 +7,13 @@ on:
   workflow_dispatch:
     inputs:
       operation:
-        description: Create, update, reset, or destroy the disposable environment
+        description: Create, update, qualify, reset, or destroy the disposable environment
         required: true
         default: update
         type: choice
-        options: [create, update, reset, destroy]
+        options: [create, update, qualify, reset, destroy]
       ref:
-        description: Branch, tag, or SHA to deploy (unused by reset and destroy)
+        description: Revision to deploy; qualify requires the live full SHA (unused by reset/destroy)
         required: true
         default: main
         type: string
@@ -28,7 +28,7 @@ permissions:
 jobs:
   context:
     name: Resolve dev operation
-    if: github.event_name != 'push' || vars.DEV_AUTO_UPDATE_ENABLED != 'false'
+    if: github.ref == 'refs/heads/main' && (github.event_name != 'push' || vars.DEV_AUTO_UPDATE_ENABLED != 'false')
     runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
     outputs:
       operation: ${{ steps.resolve.outputs.operation }}
@@ -46,6 +46,10 @@ jobs:
             echo "operation=update" >>"$GITHUB_OUTPUT"
             echo "ref=$PUSH_SHA" >>"$GITHUB_OUTPUT"
           else
+            if [ "$MANUAL_OPERATION" = qualify ]; then
+              case "$MANUAL_REF" in *[!0-9a-f]* | "") echo "qualification requires a full lowercase SHA" >&2; exit 1 ;; esac
+              [ "${#MANUAL_REF}" -eq 40 ] || { echo "qualification requires a full SHA" >&2; exit 1; }
+            fi
             echo "operation=$MANUAL_OPERATION" >>"$GITHUB_OUTPUT"
             echo "ref=$MANUAL_REF" >>"$GITHUB_OUTPUT"
           fi
@@ -56,6 +60,9 @@ jobs:
     if: needs.context.outputs.operation == 'create' || needs.context.outputs.operation == 'update'
     runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
     timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: source
     env:
       ZOOMIGO_BUILD_PROFILE: development
     permissions:
@@ -63,9 +70,17 @@ jobs:
       packages: write
     outputs:
       revision: ${{ steps.revision.outputs.sha }}
+      artifact-id: ${{ steps.worker.outputs.artifact-id }}
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.sha }}
+          path: controller
+          persist-credentials: false
+
+      - uses: actions/checkout@v4
+        with:
+          path: source
           ref: ${{ needs.context.outputs.ref }}
           persist-credentials: false
 
@@ -73,21 +88,10 @@ jobs:
         id: revision
         run: echo "sha=$(git rev-parse HEAD)" >>"$GITHUB_OUTPUT"
 
-      - uses: pnpm/action-setup@v4
+      - uses: ./controller/.github/actions/setup
         with:
-          version: 11.21.0
-          dest: ${{ runner.temp }}/pnpm
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.20.0
-          cache: ${{ runner.environment == 'github-hosted' && 'pnpm' || '' }}
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: backend/go.mod
-          cache: ${{ runner.environment == 'github-hosted' }}
-          cache-dependency-path: backend/go.sum
+          go: "true"
+          root: source
 
       - name: Install the selected revision
         run: pnpm install --frozen-lockfile
@@ -119,35 +123,39 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish the dev-tagged API image
-        env:
-          RELEASE_SHA: ${{ steps.revision.outputs.sha }}
-        run: |
-          docker buildx build \
-            --file backend/Dockerfile \
-            --platform linux/amd64 \
-            --build-arg GO_BUILD_TAGS=dev \
-            --build-arg "APP_VERSION=$RELEASE_SHA" \
-            --tag "ghcr.io/${{ github.repository }}/api:sha-dev-$RELEASE_SHA" \
-            --provenance=mode=max \
-            --sbom=true \
-            --push \
-            backend
+        id: api
+        uses: docker/build-push-action@v6
+        with:
+          context: source/backend
+          file: source/backend/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/${{ github.repository }}/api:sha-dev-${{ steps.revision.outputs.sha }}
+          build-args: |
+            GO_BUILD_TAGS=dev
+            APP_VERSION=${{ steps.revision.outputs.sha }}
+          cache-from: type=gha,scope=development-api
+          cache-to: type=gha,mode=max,scope=development-api
+          provenance: mode=max
+          sbom: true
 
       - name: Publish the Team World relay image
-        env:
-          RELEASE_SHA: ${{ steps.revision.outputs.sha }}
-        run: |
-          docker buildx build \
-            --file services/team-world/Dockerfile \
-            --platform linux/amd64 \
-            --tag "ghcr.io/${{ github.repository }}/api:world-dev-$RELEASE_SHA" \
-            --provenance=mode=max \
-            --sbom=true \
-            --push .
+        id: relay
+        uses: docker/build-push-action@v6
+        with:
+          context: source
+          file: source/services/team-world/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/${{ github.repository }}/api:world-dev-${{ steps.revision.outputs.sha }}
+          cache-from: type=gha,scope=development-relay
+          cache-to: type=gha,mode=max,scope=development-relay
+          provenance: mode=max
+          sbom: true
 
       - name: Prove the isolated Team World image starts
         env:
-          RELEASE_SHA: ${{ steps.revision.outputs.sha }}
+          RELAY_DIGEST: ${{ steps.relay.outputs.digest }}
         run: |
           docker run --rm \
             --platform linux/amd64 \
@@ -155,7 +163,7 @@ jobs:
             -e TEAM_WORLD_ALLOWED_ORIGIN=http://localhost:3005 \
             -e TEAM_WORLD_API_URL=http://127.0.0.1:19080 \
             --entrypoint node \
-            "ghcr.io/${{ github.repository }}/api:world-dev-$RELEASE_SHA" \
+            "ghcr.io/${{ github.repository }}/api@$RELAY_DIGEST" \
             --input-type=module -e '
               import assert from "node:assert/strict";
               await import("./services/team-world/server.mjs");
@@ -165,10 +173,21 @@ jobs:
               process.exit(0);
             '
 
+      - name: Package matched immutable development artifacts
+        env:
+          API_DIGEST: ${{ steps.api.outputs.digest }}
+          RELAY_DIGEST: ${{ steps.relay.outputs.digest }}
+          CONTROLLER_SHA: ${{ github.sha }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/dev-release"
+          tar -czf "$RUNNER_TEMP/dev-release/worker.tgz" dist
+          node "$GITHUB_WORKSPACE/controller/scripts/artifact-provenance.mjs" create development "${{ steps.revision.outputs.sha }}" "$RUNNER_TEMP/dev-release/worker.tgz" "$RUNNER_TEMP/dev-release/release-manifest.json"
+
       - uses: actions/upload-artifact@v4
+        id: worker
         with:
-          name: dev-worker-${{ steps.revision.outputs.sha }}
-          path: dist
+          name: dev-worker-${{ steps.revision.outputs.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/dev-release
           if-no-files-found: error
           retention-days: 1
 
@@ -183,7 +202,7 @@ jobs:
       needs.build.result == 'success')
     runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
     timeout-minutes: 35
-    environment: production
+    environment: dev
     permissions:
       actions: read
       contents: read
@@ -194,19 +213,9 @@ jobs:
           ref: ${{ github.sha }}
           persist-credentials: false
 
-      - uses: pnpm/action-setup@v4
+      - uses: ./.github/actions/setup
         with:
-          version: 11.21.0
-          dest: ${{ runner.temp }}/pnpm
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.20.0
-          cache: ${{ runner.environment == 'github-hosted' && 'pnpm' || '' }}
-
-      - uses: opentofu/setup-opentofu@v1
-        with:
-          tofu_version: 1.10.6
+          tofu: "true"
 
       - name: Install trusted deployment tools
         run: pnpm install --frozen-lockfile
@@ -214,8 +223,15 @@ jobs:
       - uses: actions/download-artifact@v4
         if: needs.context.outputs.operation == 'create' || needs.context.outputs.operation == 'update'
         with:
-          name: dev-worker-${{ needs.build.outputs.revision }}
-          path: source/dist
+          artifact-ids: ${{ needs.build.outputs.artifact-id }}
+          merge-multiple: true
+          path: source
+
+      - name: Verify and unpack the selected application artifact
+        if: needs.context.outputs.operation == 'create' || needs.context.outputs.operation == 'update'
+        run: |
+          node scripts/artifact-provenance.mjs verify development "${{ needs.build.outputs.revision }}" source/worker.tgz source/release-manifest.json
+          tar -xzf source/worker.tgz -C source
 
       - name: Initialize disposable infrastructure state
         env:
@@ -250,8 +266,7 @@ jobs:
         working-directory: infra/dev
         run: |
           key_file="$RUNNER_TEMP/dev-deploy-key"
-          printf '%s\n' "$DEPLOY_KEY" >"$key_file"
-          chmod 0600 "$key_file"
+          (umask 077 && printf '%s\n' "$DEPLOY_KEY" >"$key_file")
           TF_VAR_ssh_public_key="$(ssh-keygen -y -f "$key_file")"
           export TF_VAR_ssh_public_key
           tofu fmt -check
@@ -289,7 +304,7 @@ jobs:
             *) echo "DEV_OPERATOR_SSH_PUBLIC_KEY is not a sanitized Ed25519 key" >&2; exit 1 ;;
           esac
           key_file="$RUNNER_TEMP/dev-deploy-key"
-          printf '%s\n' "$DEV_DEPLOY_SSH_KEY_VALUE" >"$key_file"
+          (umask 077 && printf '%s\n' "$DEV_DEPLOY_SSH_KEY_VALUE" >"$key_file")
           chmod 0600 "$key_file" "$RUNNER_TEMP/dev-known-hosts"
           host=$(cat "$RUNNER_TEMP/dev-host")
           printf '%s\n' "$DEV_OPERATOR_SSH_PUBLIC_KEY" | ssh \
@@ -346,6 +361,8 @@ jobs:
           DEV_ACCESS_PASSWORD: ${{ secrets.DEV_ACCESS_PASSWORD }}
           DEV_ACCESS_SESSION_KEY: ${{ secrets.DEV_ACCESS_SESSION_KEY }}
           STAFF_SECRET_KEY: ${{ secrets.DEV_STAFF_SECRET_KEY }}
+          DEV_API_IMAGE: ${{ env.API_IMAGE_OVERRIDE }}
+          DEV_RELAY_IMAGE: ${{ env.DEV_RELAY_IMAGE }}
           ZOOMIGO_API_BASE_URL: https://api-dev.zoomigo.quicktrack.cc
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -358,7 +375,7 @@ jobs:
           GRAFANA_METRICS_TOKEN: ${{ secrets.GRAFANA_DEV_METRICS_TOKEN }}
         run: |
           key_file="$RUNNER_TEMP/dev-deploy-key"
-          printf '%s\n' "$DEV_DEPLOY_SSH_KEY_VALUE" >"$key_file"
+          (umask 077 && printf '%s\n' "$DEV_DEPLOY_SSH_KEY_VALUE" >"$key_file")
           chmod 0600 "$key_file" "$RUNNER_TEMP/dev-known-hosts"
           DEPLOY_HOST="$(cat "$DEPLOY_HOST_FILE")"
           export DEPLOY_HOST
@@ -393,36 +410,6 @@ jobs:
             -H "X-Zoomigo-Dev-Reset: $DEV_RESET_KEY" \
             https://api-dev.zoomigo.quicktrack.cc/__dev/reset
 
-      - name: Prove the exact dev container is serving
-        if: needs.context.outputs.operation == 'create' || needs.context.outputs.operation == 'update'
-        env:
-          DEV_SMOKE_API_BASE_URL: https://api-dev.zoomigo.quicktrack.cc
-          DEV_API_GATEWAY_TOKEN: ${{ secrets.DEV_API_GATEWAY_TOKEN }}
-          DEV_SMOKE_EXPECTED_RELEASE: ${{ needs.build.outputs.revision }}
-        run: node scripts/dev-deploy-smoke.mjs --read-only
-
-      - name: Install the deployed-dev release browser
-        if: needs.context.outputs.operation == 'create' || needs.context.outputs.operation == 'update'
-        run: pnpm exec playwright install --with-deps chromium
-
-      - name: Prove a qualified player's visible Lounge avatar
-        if: needs.context.outputs.operation == 'create' || needs.context.outputs.operation == 'update'
-        env:
-          DEV_LOUNGE_RELEASE_GATE: "true"
-          DEV_SMOKE_API_BASE_URL: https://api-dev.zoomigo.quicktrack.cc
-          DEV_API_GATEWAY_TOKEN: ${{ secrets.DEV_API_GATEWAY_TOKEN }}
-          DEV_ACCESS_PASSWORD: ${{ secrets.DEV_ACCESS_PASSWORD }}
-          E2E_PWA_BASE_URL: https://dev.zoomigo.quicktrack.cc
-        run: pnpm exec playwright test e2e/dev-lounge-release-gate.spec.ts
-
-      - name: Prove Team World through the shared dev gate
-        if: needs.context.outputs.operation == 'create' || needs.context.outputs.operation == 'update'
-        env:
-          DEV_WORLD_RELEASE_GATE: "true"
-          DEV_ACCESS_PASSWORD: ${{ secrets.DEV_ACCESS_PASSWORD }}
-          E2E_PWA_BASE_URL: https://dev.zoomigo.quicktrack.cc
-        run: pnpm exec playwright test e2e/dev-team-world.spec.ts
-
       - name: Prove final disposable-dev flows
         if: needs.context.outputs.operation == 'create' || steps.infra.outputs.created == 'true'
         env:
@@ -451,8 +438,7 @@ jobs:
         working-directory: infra/dev
         run: |
           key_file="$RUNNER_TEMP/dev-deploy-key"
-          printf '%s\n' "$DEPLOY_KEY" >"$key_file"
-          chmod 0600 "$key_file"
+          (umask 077 && printf '%s\n' "$DEPLOY_KEY" >"$key_file")
           TF_VAR_ssh_public_key="$(ssh-keygen -y -f "$key_file")"
           export TF_VAR_ssh_public_key
           tofu destroy -input=false -auto-approve
@@ -468,7 +454,75 @@ jobs:
             if [ -n "${{ needs.build.outputs.revision }}" ]; then
               echo "- Application revision: \`${{ needs.build.outputs.revision }}\`"
             fi
+            if [ -f source/release-manifest.json ]; then
+              echo '```json'
+              cat source/release-manifest.json
+              echo '```'
+            fi
             if [ "${{ needs.context.outputs.operation }}" != "destroy" ]; then
               echo "- PWA: https://dev.zoomigo.quicktrack.cc"
             fi
+          } >>"$GITHUB_STEP_SUMMARY"
+
+      - name: Remove temporary deployment files
+        if: always()
+        run: |
+          rm -f -- "$RUNNER_TEMP/dev-deploy-key" "$RUNNER_TEMP/dev-host" "$RUNNER_TEMP/dev-known-hosts"
+          rm -rf -- infra/dev/.terraform source "$RUNNER_TEMP/dev-operator-access"
+
+  qualify:
+    name: Qualify the live development release
+    needs: [context, build, operate]
+    if: >-
+      always() && needs.context.result == 'success' &&
+      (needs.context.outputs.operation == 'qualify' ||
+      (needs.operate.result == 'success' && needs.build.result == 'success' &&
+      (needs.context.outputs.operation == 'create' || needs.context.outputs.operation == 'update')))
+    runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
+    timeout-minutes: 15
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - run: pnpm install --frozen-lockfile
+      - name: Prove the exact dev container is serving
+        env:
+          DEV_SMOKE_API_BASE_URL: https://api-dev.zoomigo.quicktrack.cc
+          DEV_API_GATEWAY_TOKEN: ${{ secrets.DEV_API_GATEWAY_TOKEN }}
+          DEV_SMOKE_EXPECTED_RELEASE: ${{ needs.build.outputs.revision || needs.context.outputs.ref }}
+        run: node scripts/dev-deploy-smoke.mjs --read-only
+
+      - name: Install the deployed-dev release browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Prove a qualified player's visible Lounge avatar
+        env:
+          DEV_LOUNGE_RELEASE_GATE: "true"
+          DEV_SMOKE_API_BASE_URL: https://api-dev.zoomigo.quicktrack.cc
+          DEV_API_GATEWAY_TOKEN: ${{ secrets.DEV_API_GATEWAY_TOKEN }}
+          DEV_ACCESS_PASSWORD: ${{ secrets.DEV_ACCESS_PASSWORD }}
+          E2E_PWA_BASE_URL: https://dev.zoomigo.quicktrack.cc
+        run: pnpm exec playwright test e2e/dev-lounge-release-gate.spec.ts
+
+      - name: Prove Team World through the shared dev gate
+        env:
+          DEV_WORLD_RELEASE_GATE: "true"
+          DEV_ACCESS_PASSWORD: ${{ secrets.DEV_ACCESS_PASSWORD }}
+          E2E_PWA_BASE_URL: https://dev.zoomigo.quicktrack.cc
+        run: pnpm exec playwright test e2e/dev-team-world.spec.ts
+
+      - name: Record the qualification receipt
+        if: always()
+        env:
+          EXPECTED_SHA: ${{ needs.build.outputs.revision || needs.context.outputs.ref }}
+        run: |
+          {
+            echo "### Live development qualification"
+            echo "- Expected application: $EXPECTED_SHA"
+            echo "- Trusted controller: $GITHUB_SHA"
+            echo "- Qualification: ${{ job.status }}"
+            echo "Deployment and fixture reset are never performed by this job."
           } >>"$GITHUB_STEP_SUMMARY"
