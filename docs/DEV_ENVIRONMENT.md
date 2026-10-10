@@ -74,8 +74,8 @@ These jobs share a host, so their separation is not a security sandbox; deploy
 only trusted repository revisions. The first checks out and builds the
 selected application revision without cloud, state, or runtime secrets. The
 second checks out only the workflow revision from `main`, downloads the built
-Worker artifact, and performs the deployment. This prevents branch code or a
-process left behind by its build from reading control-plane credentials.
+Worker artifact, and performs the deployment. The controller uses its own reviewed workflow revision; the selected application
+cannot replace its deployment scripts.
 
 The deployment job uses the existing `production` GitHub environment only as a
 control-plane credential vault. Its OpenTofu directory, state key, resource
