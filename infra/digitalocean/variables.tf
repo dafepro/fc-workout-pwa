@@ -59,7 +59,7 @@ variable "cloudflare_account_id" {
 }
 
 variable "alert_email_addresses" {
-  description = "Operator email destinations for DigitalOcean resource alerts; stored only in ignored inputs and encrypted state."
+  description = "Operator email destinations for DigitalOcean resource alerts; supplied privately and redacted from plan output."
   type        = list(string)
   sensitive   = true
 

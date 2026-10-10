@@ -44,6 +44,11 @@ jobs:
         with:
           node-version: 22.20.0
 
+      - name: Require encrypted plan artifacts
+        env:
+          TF_PLAN_ENCRYPTION_KEY: ${{ secrets.TF_PLAN_ENCRYPTION_KEY }}
+        run: node scripts/infra-plan-encryption.mjs
+
       - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1
         with:
           tofu_version: 1.10.10
@@ -85,6 +90,7 @@ jobs:
         env:
           DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TF_VAR_alert_email_addresses: ${{ secrets.ALERT_EMAIL_ADDRESSES }}
         run: |
           tofu plan -input=false -out=tfplan \
             -var="release_sha=${{ github.sha }}" \
@@ -94,7 +100,6 @@ jobs:
             -var="cloudflare_zone_id=${{ vars.CLOUDFLARE_ZONE_ID }}" \
             -var="cloudflare_account_id=${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" \
             -var='ssh_source_addresses=${{ vars.SSH_SOURCE_ADDRESSES }}' \
-            -var='alert_email_addresses=${{ vars.ALERT_EMAIL_ADDRESSES }}' \
             -var="backup_age_recipient=${{ vars.BACKUP_AGE_RECIPIENT }}" \
             -var="operator_ssh_public_key=${{ vars.OPERATOR_SSH_PUBLIC_KEY }}"
           tofu show -no-color tfplan
@@ -154,6 +159,11 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22.20.0
+
+      - name: Require encrypted plan artifacts
+        env:
+          TF_PLAN_ENCRYPTION_KEY: ${{ secrets.TF_PLAN_ENCRYPTION_KEY }}
+        run: node scripts/infra-plan-encryption.mjs
 
       - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1
         with:

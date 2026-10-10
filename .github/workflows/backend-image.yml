@@ -42,7 +42,7 @@ jobs:
           if [ "${{ github.event_name }}" = push ] && [ -n "$BEFORE_SHA" ] && [ "$BEFORE_SHA" != 0000000000000000000000000000000000000000 ]; then
             git fetch --depth=1 origin "$BEFORE_SHA"
             git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" >"$RUNNER_TEMP/changed-paths"
-            if ! grep -Eqv '^(docs/|infra/|\.github/|deploy/release/|AGENTS\.md$|scripts/(artifact-provenance|drill-result|runner-job-guard|install-mac-runner|observability-query|observability-host-diagnostic|lounge-placement-holds-monitor|deploy-dev|dev-deploy-smoke|retry-command|pin-host-key-branch)[./-])' "$RUNNER_TEMP/changed-paths"; then
+            if ! grep -Eqv '^(docs/|infra/|\.github/|deploy/release/|deploy/secrets/README\.md$|AGENTS\.md$|scripts/(artifact-provenance|infra-plan-encryption|drill-result|runner-job-guard|install-mac-runner|observability-query|observability-host-diagnostic|lounge-placement-holds-monitor|deploy-dev|dev-deploy-smoke|retry-command|pin-host-key-branch)[./-])' "$RUNNER_TEMP/changed-paths"; then
               publish=false
             fi
           fi
