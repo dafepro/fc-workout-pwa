@@ -29,10 +29,20 @@ jobs:
     runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
     timeout-minutes: 15
     environment: production
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@v4
+
+      - name: Isolate OpenTofu metadata
+        run: echo "TF_DATA_DIR=$RUNNER_TEMP/infra-${{ github.run_id }}-${{ github.run_attempt }}" >>"$GITHUB_ENV"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.20.0
 
       - uses: opentofu/setup-opentofu@v1
         with:
@@ -68,9 +78,7 @@ jobs:
             -backend-config="skip_region_validation=true" \
             -backend-config="skip_credentials_validation=true" \
             -backend-config="skip_requesting_account_id=true" \
-            -backend-config="skip_metadata_api_check=true" \
-            -backend-config="access_key=${{ secrets.TF_STATE_ACCESS_KEY_ID }}" \
-            -backend-config="secret_key=${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}"
+            -backend-config="skip_metadata_api_check=true"
 
       - name: tofu plan
         working-directory: infra/digitalocean
@@ -90,12 +98,16 @@ jobs:
             -var="backup_age_recipient=${{ vars.BACKUP_AGE_RECIPIENT }}" \
             -var="operator_ssh_public_key=${{ vars.OPERATOR_SSH_PUBLIC_KEY }}"
           tofu show -no-color tfplan
+          node "$GITHUB_WORKSPACE/scripts/artifact-provenance.mjs" create infrastructure "${{ github.sha }}" tfplan plan-manifest.json
 
       - uses: actions/upload-artifact@v4
         with:
-          name: tfplan
-          path: infra/digitalocean/tfplan
-          retention-days: 14
+          name: tfplan-v2-${{ github.run_attempt }}
+          path: |
+            infra/digitalocean/tfplan
+            infra/digitalocean/plan-manifest.json
+          retention-days: 3
+          if-no-files-found: error
 
       - name: Record the plan run ID and plan output
         working-directory: infra/digitalocean
@@ -114,12 +126,21 @@ jobs:
             echo "</details>"
           } >>"$GITHUB_STEP_SUMMARY"
 
+      - name: Remove private infrastructure files
+        if: always()
+        run: |
+          rm -rf -- "$TF_DATA_DIR" infra/digitalocean/.terraform
+          rm -f -- "$RUNNER_TEMP/deploy_ssh_key" infra/digitalocean/tfplan infra/digitalocean/plan-manifest.json
+
   apply:
     if: github.ref == 'refs/heads/main' && inputs.action == 'apply'
     name: tofu apply
     runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
     timeout-minutes: 15
     environment: production
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}
     permissions:
       # Pin updates go to a review branch, never directly to protected main.
       contents: write
@@ -127,14 +148,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Isolate OpenTofu metadata
+        run: echo "TF_DATA_DIR=$RUNNER_TEMP/infra-${{ github.run_id }}-${{ github.run_attempt }}" >>"$GITHUB_ENV"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.20.0
+
       - uses: opentofu/setup-opentofu@v1
         with:
           tofu_version: 1.10.10
 
+      - name: Validate the reviewed plan producer
+        id: producer
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PLAN_RUN_ID: ${{ inputs.plan_run_id }}
+        run: node scripts/artifact-provenance.mjs resolve infrastructure "$PLAN_RUN_ID" "${{ github.sha }}"
+
       - name: Download the reviewed plan
         uses: actions/download-artifact@v4
         with:
-          name: tfplan
+          artifact-ids: ${{ steps.producer.outputs.artifact-id }}
+          merge-multiple: true
           path: infra/digitalocean
           run-id: ${{ inputs.plan_run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -152,9 +188,10 @@ jobs:
             -backend-config="skip_region_validation=true" \
             -backend-config="skip_credentials_validation=true" \
             -backend-config="skip_requesting_account_id=true" \
-            -backend-config="skip_metadata_api_check=true" \
-            -backend-config="access_key=${{ secrets.TF_STATE_ACCESS_KEY_ID }}" \
-            -backend-config="secret_key=${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}"
+            -backend-config="skip_metadata_api_check=true"
+
+      - name: Verify the exact reviewed plan
+        run: node scripts/artifact-provenance.mjs verify infrastructure "${{ github.sha }}" infra/digitalocean/tfplan infra/digitalocean/plan-manifest.json
 
       - name: tofu apply
         working-directory: infra/digitalocean
@@ -224,3 +261,9 @@ jobs:
       - name: Record what was applied
         run: |
           echo "Applied the plan from run ${{ inputs.plan_run_id }}." >>"$GITHUB_STEP_SUMMARY"
+
+      - name: Remove private infrastructure files
+        if: always()
+        run: |
+          rm -rf -- "$TF_DATA_DIR" infra/digitalocean/.terraform
+          rm -f -- "$RUNNER_TEMP/deploy_ssh_key" infra/digitalocean/tfplan infra/digitalocean/plan-manifest.json

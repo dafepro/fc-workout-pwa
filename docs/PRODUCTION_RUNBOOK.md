@@ -26,8 +26,8 @@ domain during release.
   (`zoomigo-tfstate`) via the OpenTofu `s3` backend. No plaintext or encrypted
   state file is ever committed.
 - `infra.yml`'s `plan` action requires a clean, pushed revision; `apply`
-  downloads and applies only that exact reviewed plan artifact and is gated by
-  the protected `production` GitHub Environment reviewer.
+  downloads and applies only that exact reviewed plan artifact and validates the successful main plan producer, current SHA, versioned manifest
+  and checksum before applying.
 - The Droplet, Reserved IP, and firewall have `prevent_destroy` protection.
 - `main` is protected: changes require a pull request, resolved conversations,
   and the up-to-date `Static checks, tests, and build` check from GitHub Actions.
@@ -120,8 +120,9 @@ local file. Set the remaining secrets (`CLOUDFLARE_API_TOKEN`,
 `BACKUP_S3_ENDPOINT`/`BUCKET`/`PROVIDER`/`REGION`, `TF_STATE_BUCKET`/`ENDPOINT`,
 `CLOUDFLARE_ZONE_ID`, `SSH_SOURCE_ADDRESSES`, `ALERT_EMAIL_ADDRESSES`) with
 `gh secret set NAME --env production` / `gh variable set NAME --env production
---body VALUE`. Require the desired human reviewer on the `production`
-environment now, before the first plan.
+--body VALUE`. The `production` environment currently permits only `main` and has no required
+reviewers. Review each plan before manually dispatching apply; there is no
+automatic human approval gate.
 
 The staff console needs a few more. `STAFF_SECRET_KEY` encrypts stored second
 factors; rotating it makes every enrolled authenticator unreadable, so every
@@ -153,9 +154,13 @@ unexpected resource. The readiness
 alert may report the API down until the first release completes.
 
 Trigger `infra.yml` again with `action: apply` and `plan_run_id` set to the
-plan run's ID. The protected `production` environment reviewer gate applies
-here exactly as it does for application releases. `apply` downloads and
-applies only that exact plan artifact; it never re-plans.
+plan run's ID. The main-only `production` environment policy applies here as it does for
+application releases. No required reviewer is configured. `apply` downloads and
+applies only that exact plan artifact; it never re-plans. The producer must be a
+successful manual main `infra.yml` plan job at the current apply SHA. Legacy
+artifacts without the versioned manifest are rejected; if main changes, make a
+fresh plan. Rotate state credentials after migrating any consumers that previously
+persisted keys in backend configuration.
 
 If the host key changed, the apply summary links to a comparison for
 `codex/host-key-<run-id>-<attempt>`. Inspect the fingerprint and pin diff, open
@@ -273,10 +278,9 @@ the environment is resolved, so an environment variable is not visible there.
 Releases are manual. A push to `main` runs static checks, targeted tests, and
 builds, then publishes an immutable API image — and stops. It never deploys.
 
-To ship, dispatch "Verify and release ZoomiGo" with `deploy: true`. That job
+To ship, dispatch "Release ZoomiGo to production" with the full verified `release_sha`. That job
 backs up and deploys the VM, then deploys the Worker, reading every credential
-straight from the `production` environment's secrets/variables, and is gated by
-that environment's reviewer. `PRODUCTION_DEPLOY_ENABLED` is a kill switch on top
+straight from the `production` environment's secrets/variables, and follows its main-only branch policy. No required-reviewer gate is configured. `PRODUCTION_DEPLOY_ENABLED` is a kill switch on top
 of all that: set it to anything but `true` to block every release without
 editing the workflow. The same `release.sh` remains the incident fallback when
 GitHub Actions is impaired. Trigger the workflow manually with `run_e2e`
