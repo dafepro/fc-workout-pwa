@@ -29,7 +29,7 @@ jobs:
   deploy:
     name: Deploy VM and Cloudflare Worker
     if: github.ref == 'refs/heads/main' && vars.PRODUCTION_DEPLOY_ENABLED == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, macOS, ARM64, zoomigo-mac]
     timeout-minutes: 20
     environment: production
     permissions:

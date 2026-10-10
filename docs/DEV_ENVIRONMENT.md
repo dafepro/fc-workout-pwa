@@ -69,10 +69,12 @@ services.
 
 ## GitHub configuration
 
-The workflow uses two fresh runners. The first checks out and builds the
-selected application revision without cloud, state, or runtime secrets. The
-second checks out only the workflow revision from `main`, downloads the built
-Worker artifact, and performs the deployment. This prevents branch code or a
+The workflow uses separate build and operation jobs on the persistent Mac
+runner. The first checks out and builds the selected application revision without
+injecting cloud, state, or runtime secrets. The second checks out only the workflow
+revision from `main`, downloads the built Worker artifact, and performs the
+deployment. The jobs share a host, so this separation is not a security sandbox.
+Deploy only trusted repository revisions. The controller prevents branch code or a
 process left behind by its build from reading control-plane credentials.
 
 The deployment job uses the existing `production` GitHub environment only as a
@@ -219,3 +221,33 @@ workflow retains the existing Canvas Lounge proof and adds an opt-in two-player
 Team World proof through the public password gate. That proof creates and
 deletes only its own invented-player qualification entries and records no
 credential-directory traces, screenshots or videos.
+
+## Mac Actions runner
+
+Trusted jobs use the Apple Silicon runner `zoomigo-dcarrell-mac-arm64`, with
+labels `self-hosted`, `macOS`, `ARM64`, and `zoomigo-mac`. Fork PR verification
+uses GitHub-hosted Ubuntu. Repository-wide fork approval requires approval from
+all external contributors. The installed job-start hook rejects fork PRs, other
+repositories, missing event payloads, and unsupported event types before checkout.
+It is installed outside the runner directory; changing a workflow cannot remove
+that copy. This is a persistent personal Mac runner, not an isolated sandbox.
+Only repository collaborators' code should execute on it.
+
+The runner lives at `~/.local/share/zoomigo-actions-runner`; its private hook copy
+lives at `~/.local/share/zoomigo-runner-config`. The official `svc.sh` installs a
+user LaunchAgent that starts after login. Run `./svc.sh status`, `./svc.sh stop`,
+or `./svc.sh start` from the runner directory to manage it. Keep the Mac awake,
+connected, logged in, and Docker Desktop running for Docker jobs. A sleeping or
+logged-out Mac leaves jobs queued. The service uses separate GitHub CLI, Git,
+and Docker credential configuration from the interactive developer shell.
+
+To update the guard, stop the service, review and copy both
+`scripts/runner-job-guard.{sh,mjs}` into the private hook directory, then restart
+it. Do not point the hook at the mutable checkout. The guard's tests run in normal
+verification. Runner diagnostic logs are under the installation's `_diag`.
+
+Automatic dev deployment remains enabled unless the repository variable
+`DEV_AUTO_UPDATE_ENABLED` is exactly `false`. Use that temporary setting when
+merging infrastructure changes that must not deploy the application; manual dev
+operations remain available. Restore the previous variable after maintenance.
+Production deployment remains manual.
