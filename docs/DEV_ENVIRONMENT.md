@@ -131,6 +131,13 @@ cron triggers, service bindings, storage bindings, and variables.
 
 ## Operating flow
 
+The trusted main Lounge release gate uses the public password-gated dev directory,
+waits for QR credentials to resolve, accepts the current Team navigation, and
+verifies removal of its qualification entry by a 404 read. Cleanup preserves a
+primary test failure. Credential-bearing browser traces, screenshots and video
+are disabled. Keep this trusted gate compatible with the selected application;
+the application checkout never supplies deployment credentials or scripts.
+
 Every push to `main` automatically runs an `update` for that exact commit. The
 update verifies and packages the pushed revision, deploys it through the trusted
 workflow from the same commit, preserves the dev database, and proves the exact
