@@ -81,6 +81,9 @@ DOCKER_HOST=unix://$HOME/.docker/run/docker.sock
 npm_config_fetch_timeout=300000
 npm_config_network_concurrency=4
 npm_config_store_dir=$RUNNER_ROOT/pnpm-store
+PNPM_CONFIG_FETCH_TIMEOUT=300000
+PNPM_CONFIG_NETWORK_CONCURRENCY=4
+PNPM_CONFIG_STORE_DIR=$RUNNER_ROOT/pnpm-store
 ENV
 touch "$RUNNER_ROOT/config/$RUNNER_SLUG/gitconfig"
 printf '%s\n' '{"cliPluginsExtraDirs":["/Applications/Docker.app/Contents/Resources/cli-plugins"]}' > "$RUNNER_ROOT/config/$RUNNER_SLUG/docker/config.json"
