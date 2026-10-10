@@ -273,7 +273,9 @@ other repositories, apply that same cache policy and set `pnpm/action-setup`
 `dest: ${{ runner.temp }}/pnpm` so concurrent jobs cannot replace one another's
 pnpm installation. Workflows must support native macOS; use Docker CLI commands
 for Linux containers because GitHub job containers and service containers need
-a Linux runner. The original ZoomiGo store remains in its
+a Linux runner. Run droplet-image smoke checks with `--platform linux/amd64` so
+the ARM64 Mac pulls and tests the same platform as the dev host.
+The original ZoomiGo store remains in its
 legacy configuration directory. Diagnostic logs are under each runner's `_diag`.
 
 To update the guard, stop the services, review and copy

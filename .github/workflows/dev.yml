@@ -150,6 +150,7 @@ jobs:
           RELEASE_SHA: ${{ steps.revision.outputs.sha }}
         run: |
           docker run --rm \
+            --platform linux/amd64 \
             -e TEAM_WORLD_RELAY_KEY=local-container-contract-key-only-123456 \
             -e TEAM_WORLD_ALLOWED_ORIGIN=http://localhost:3005 \
             -e TEAM_WORLD_API_URL=http://127.0.0.1:19080 \
