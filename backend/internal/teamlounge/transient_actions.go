@@ -84,7 +84,7 @@ func (store *SQLiteStore) ResolveTransientAction(
 			AND unlock.item_kind = 'lounge_chat_pack' AND unlock.item_id = ?
 		))
 		ON CONFLICT(room_id, player_id) DO UPDATE SET available_at = excluded.available_at
-		WHERE julianday(team_lounge_emote_cooldowns.available_at) <= julianday(?)`,
+		WHERE zoomigo_instant(team_lounge_emote_cooldowns.available_at) <= zoomigo_instant(?)`,
 		now.Add(LoungeReactionCooldown).Format(time.RFC3339Nano), action.RoomID, teamID,
 		action.ParticipantID, today, today, requiredPrizeItemID, requiredPrizeItemID,
 		now.Format(time.RFC3339Nano))

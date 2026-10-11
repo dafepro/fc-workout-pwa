@@ -100,7 +100,7 @@ func (coordinator *SQLiteRoomCoordinator) RenewRoom(
 	renewed.LeaseExpiresAt = now.Add(ttl)
 	result, err := coordinator.db.ExecContext(ctx, `UPDATE team_lounge_room_ownership SET lease_expires_at = ?
 		WHERE room_id = ? AND replica_id = ? AND owner_id = ? AND lease_id = ? AND generation = ?
-		AND lease_expires_at = ? AND lease_expires_at > ?`, renewed.LeaseExpiresAt.Format(time.RFC3339Nano),
+		AND zoomigo_instant(lease_expires_at) = zoomigo_instant(?) AND zoomigo_instant(lease_expires_at) > zoomigo_instant(?)`, renewed.LeaseExpiresAt.Format(time.RFC3339Nano),
 		lease.RoomID, lease.ReplicaID, lease.OwnerID, lease.LeaseID, lease.Generation,
 		lease.LeaseExpiresAt.UTC().Format(time.RFC3339Nano), now.Format(time.RFC3339Nano))
 	if err != nil {
@@ -130,7 +130,7 @@ func (coordinator *SQLiteRoomCoordinator) ReleaseRoom(ctx context.Context, lease
 	result, err := coordinator.db.ExecContext(ctx, `UPDATE team_lounge_room_ownership SET
 		replica_id = NULL, owner_id = NULL, lease_id = NULL, lease_expires_at = NULL
 		WHERE room_id = ? AND replica_id = ? AND owner_id = ? AND lease_id = ? AND generation = ?
-		AND lease_expires_at = ?`, lease.RoomID, lease.ReplicaID, lease.OwnerID, lease.LeaseID,
+		AND zoomigo_instant(lease_expires_at) = zoomigo_instant(?)`, lease.RoomID, lease.ReplicaID, lease.OwnerID, lease.LeaseID,
 		lease.Generation, lease.LeaseExpiresAt.UTC().Format(time.RFC3339Nano))
 	if err != nil {
 		return fmt.Errorf("release lounge ownership: %w", err)

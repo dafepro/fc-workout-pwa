@@ -71,7 +71,7 @@ func (store *SQLiteStore) EditableItemIDs(
 		FROM team_lounge_placement_reservations
 		WHERE room_id = ? AND player_id = ? AND state = 'committed'
 		AND entity_id IS NOT NULL AND finalized_at IS NOT NULL
-		ORDER BY finalized_at, reservation_id`, roomID, playerID)
+		ORDER BY zoomigo_instant(finalized_at), reservation_id`, roomID, playerID)
 	if err != nil {
 		return nil, fmt.Errorf("list editable Lounge items: %w", err)
 	}
@@ -289,7 +289,7 @@ func itemMutationCurrentState(
 		position_x, position_y, rotation, scale
 		FROM team_lounge_item_mutation_permits
 		WHERE reservation_id = ? AND state = 'accepted'
-		ORDER BY item_revision, issued_at, permit_id`, reservationID)
+		ORDER BY item_revision, zoomigo_instant(issued_at), permit_id`, reservationID)
 	if err != nil {
 		return roomsdk.Transform{}, 0, fmt.Errorf("load accepted Lounge item mutations: %w", err)
 	}
@@ -564,7 +564,7 @@ func (store *SQLiteStore) PendingItemMutationCorrelations(
 ) ([]string, error) {
 	rows, err := store.db.QueryContext(ctx, `SELECT permit_id FROM team_lounge_item_mutation_permits
 		WHERE room_id = ? AND player_id = ? AND state = 'issued' AND mutation_key IS NOT NULL
-		ORDER BY issued_at, permit_id`, roomID, playerID)
+		ORDER BY zoomigo_instant(issued_at), permit_id`, roomID, playerID)
 	if err != nil {
 		return nil, fmt.Errorf("list pending Canvas item mutations: %w", err)
 	}

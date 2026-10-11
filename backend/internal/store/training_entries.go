@@ -259,7 +259,7 @@ func (store *Store) ListTrainingEntries(ctx context.Context, playerID string, li
 	}
 	rows, err := store.db.QueryContext(ctx, trainingEntrySelect+`
 		WHERE e.player_id = ? AND e.deleted_at IS NULL
-		ORDER BY e.occurred_at DESC, e.id DESC LIMIT ?`, playerID, limit)
+		ORDER BY zoomigo_instant(e.occurred_at) DESC, e.id DESC LIMIT ?`, playerID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("list training entries: %w", err)
 	}
@@ -368,13 +368,14 @@ func findIdempotentTrainingEntry(ctx context.Context, tx *sql.Tx, playerID, key 
 }
 
 func sameTrainingEntryRequest(entry TrainingEntry, request TrainingEntryRequest, occurredAt time.Time) bool {
+	storedInstant, err := time.Parse(time.RFC3339Nano, entry.OccurredAt)
 	assignmentMatches := (entry.AssignmentID == nil && request.AssignmentID == nil) ||
 		(entry.AssignmentID != nil && request.AssignmentID != nil && *entry.AssignmentID == *request.AssignmentID)
 	planMatches := (entry.Plan == nil && request.Plan == nil) ||
 		(entry.Plan != nil && request.Plan != nil && *entry.Plan == *request.Plan)
 	return entry.TeamID == request.TeamID &&
 		entry.ActivityDefinitionID == request.ActivityDefinitionID && assignmentMatches && planMatches &&
-		entry.OccurredAt == occurredAt.Format(time.RFC3339Nano) &&
+		err == nil && storedInstant.Equal(occurredAt) &&
 		entry.Result == request.Result && entry.EffortLevel == request.EffortLevel &&
 		entry.ExhaustionLevel == request.ExhaustionLevel &&
 		entry.CompletionOutcome == request.CompletionOutcome

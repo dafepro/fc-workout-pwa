@@ -74,3 +74,40 @@ func TestReactionInboxShowsSevenDaysInStableTwentyItemPages(t *testing.T) {
 		t.Fatalf("unexpected second page: %+v", second)
 	}
 }
+
+func TestReactionInboxPagesExactInstantsWithoutRounding(t *testing.T) {
+	repository, db := socialProjectionStore(t)
+	now := time.Date(2026, time.August, 8, 18, 0, 0, 0, time.UTC)
+	seedSocialProjection(t, db, now)
+	for _, fixture := range []struct{ id, stamp string }{
+		{"z", "2026-08-08T18:00:00Z"},
+		{"a", "2026-08-08T18:00:00.000000001Z"},
+		{"b", "2026-08-08T13:00:00.000000001-05:00"},
+		{"old", "2026-08-08T17:59:59.999999999Z"},
+	} {
+		if _, err := db.Exec(`INSERT INTO reactions (
+			id, sender_player_id, recipient_player_id, team_id, reaction_type,
+			context_type, context_period, team_day, idempotency_key, remaining_after_send, created_at
+		) VALUES (?, 'player-ava', 'player-mason', 'team-one', 'clap', 'team_progress', 'weekly', '2026-08-08', ?, 0, ?)`,
+			fixture.id, fixture.id, fixture.stamp); err != nil {
+			t.Fatal(err)
+		}
+	}
+	input := store.ListReactionBadgesInput{RecipientPlayerID: "player-mason", Since: now, Limit: 1}
+	for _, want := range []string{"b", "a", "z", ""} {
+		page, err := repository.ListReactionBadges(t.Context(), input)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if want == "" {
+			if len(page) != 0 {
+				t.Fatalf("rows before cutoff: %+v", page)
+			}
+			break
+		}
+		if len(page) != 1 || page[0].ID != want {
+			t.Fatalf("page = %+v; want %s", page, want)
+		}
+		input.BeforeCreatedAt, input.BeforeID = page[0].CreatedAt, page[0].ID
+	}
+}

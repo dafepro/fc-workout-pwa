@@ -144,7 +144,7 @@ func (store *Store) CreateReaction(ctx context.Context, input CreateReactionInpu
 	err = connection.QueryRowContext(ctx, `
 		SELECT COUNT(*) FROM reactions
 		WHERE sender_player_id = ? AND recipient_player_id = ? AND deleted_at IS NULL
-		  AND julianday(created_at) > julianday(?)`,
+		  AND zoomigo_instant(created_at) > zoomigo_instant(?)`,
 		input.SenderPlayerID, input.Request.RecipientPlayerID, windowStart,
 	).Scan(&count)
 	if err != nil {
@@ -226,16 +226,16 @@ func (store *Store) ListReactionBadges(ctx context.Context, input ListReactionBa
 		LEFT JOIN assignments a ON a.id = r.context_assignment_id
 		LEFT JOIN activity_definitions d ON d.id = a.activity_definition_id
 		WHERE r.recipient_player_id = ? AND r.deleted_at IS NULL
-		  AND julianday(r.created_at) >= julianday(?)`
+		  AND zoomigo_instant(r.created_at) >= zoomigo_instant(?)`
 	arguments := []any{input.RecipientPlayerID, input.Since.UTC().Format(time.RFC3339Nano)}
 	if input.BeforeCreatedAt != "" && input.BeforeID != "" {
 		query += ` AND (
-			julianday(r.created_at) < julianday(?)
-			OR (julianday(r.created_at) = julianday(?) AND r.id < ?)
+			zoomigo_instant(r.created_at) < zoomigo_instant(?)
+			OR (zoomigo_instant(r.created_at) = zoomigo_instant(?) AND r.id < ?)
 		)`
 		arguments = append(arguments, input.BeforeCreatedAt, input.BeforeCreatedAt, input.BeforeID)
 	}
-	query += ` ORDER BY julianday(r.created_at) DESC, r.id DESC LIMIT ?`
+	query += ` ORDER BY zoomigo_instant(r.created_at) DESC, r.id DESC LIMIT ?`
 	arguments = append(arguments, input.Limit)
 	rows, err := store.db.QueryContext(ctx, query, arguments...)
 	if err != nil {

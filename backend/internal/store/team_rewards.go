@@ -250,7 +250,7 @@ func visibleTeamReward(ctx context.Context, db *database.Handle, teamID string, 
 	var id string
 	err := db.QueryRowContext(ctx, `SELECT id FROM team_rewards
 		WHERE team_id = ? AND status IN ('active', 'achieved')
-		ORDER BY CASE status WHEN 'active' THEN 0 ELSE 1 END, updated_at DESC, id DESC LIMIT 1`, teamID).Scan(&id)
+		ORDER BY CASE status WHEN 'active' THEN 0 ELSE 1 END, zoomigo_instant(updated_at) DESC, id DESC LIMIT 1`, teamID).Scan(&id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return TeamReward{}, ErrTeamRewardUnavailable
 	}

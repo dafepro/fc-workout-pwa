@@ -51,6 +51,15 @@ Team-local dates determine membership, backdating, plan-day, Momentum, and
 weekly boundaries. Explicit partial work does not complete an assignment or
 plan block even if its numeric value reaches a target.
 
+Stored instants use RFC3339 timestamps. SQL compares and orders them through
+`zoomigo_instant`, a deterministic fixed-width UTC representation that preserves
+nanoseconds and treats equivalent timezone offsets equally. History limits,
+pagination, expiry, cooldowns and lease fencing use this exact comparison;
+team-local `YYYY-MM-DD` rules remain calendar comparisons. Invalid stored instants
+fail the query without echoing their value. Indexed training range scans use
+wider candidate bounds followed by exact predicates; no saved timestamps are
+rewritten.
+
 ## Progress and social projections
 
 Momentum, streaks, consistency, weekly completion, and challenge groups are

@@ -238,10 +238,10 @@ func (store *SQLiteStore) PlacementHoldReport(
 	var oldest sql.NullString
 	err := store.db.QueryRowContext(ctx, `SELECT
 		COUNT(*),
-		COALESCE(SUM(CASE WHEN mutation_key IS NULL AND permit_expires_at <= ? THEN 1 ELSE 0 END), 0),
+		COALESCE(SUM(CASE WHEN mutation_key IS NULL AND zoomigo_instant(permit_expires_at) <= zoomigo_instant(?) THEN 1 ELSE 0 END), 0),
 		COALESCE(SUM(CASE WHEN mutation_key IS NOT NULL THEN 1 ELSE 0 END), 0),
-		COALESCE(SUM(CASE WHEN mutation_key IS NOT NULL AND held_at <= ? THEN 1 ELSE 0 END), 0),
-		MIN(held_at)
+		COALESCE(SUM(CASE WHEN mutation_key IS NOT NULL AND zoomigo_instant(held_at) <= zoomigo_instant(?) THEN 1 ELSE 0 END), 0),
+		MIN(zoomigo_instant(held_at))
 		FROM team_lounge_placement_reservations WHERE state = 'held'`,
 		now.UTC().Format(time.RFC3339Nano),
 		now.Add(-staleAfter).UTC().Format(time.RFC3339Nano),
@@ -265,10 +265,10 @@ func (store *SQLiteStore) PlacementHoldReport(
 	oldest = sql.NullString{}
 	err = store.db.QueryRowContext(ctx, `SELECT
 		COUNT(*),
-		COALESCE(SUM(CASE WHEN mutation_key IS NULL AND permit_expires_at <= ? THEN 1 ELSE 0 END), 0),
+		COALESCE(SUM(CASE WHEN mutation_key IS NULL AND zoomigo_instant(permit_expires_at) <= zoomigo_instant(?) THEN 1 ELSE 0 END), 0),
 		COALESCE(SUM(CASE WHEN mutation_key IS NOT NULL THEN 1 ELSE 0 END), 0),
-		COALESCE(SUM(CASE WHEN mutation_key IS NOT NULL AND issued_at <= ? THEN 1 ELSE 0 END), 0),
-		MIN(issued_at)
+		COALESCE(SUM(CASE WHEN mutation_key IS NOT NULL AND zoomigo_instant(issued_at) <= zoomigo_instant(?) THEN 1 ELSE 0 END), 0),
+		MIN(zoomigo_instant(issued_at))
 		FROM team_lounge_item_mutation_permits WHERE state = 'issued'`,
 		now.UTC().Format(time.RFC3339Nano),
 		now.Add(-staleAfter).UTC().Format(time.RFC3339Nano),
@@ -299,7 +299,7 @@ func (store *SQLiteStore) PendingPlacementCorrelations(
 	rows, err := store.db.QueryContext(ctx, `SELECT reservation_id
 		FROM team_lounge_placement_reservations
 		WHERE room_id = ? AND player_id = ? AND state = 'held' AND mutation_key IS NOT NULL
-		ORDER BY held_at, reservation_id`, roomID, playerID)
+		ORDER BY zoomigo_instant(held_at), reservation_id`, roomID, playerID)
 	if err != nil {
 		return nil, fmt.Errorf("list pending Canvas placements: %w", err)
 	}
