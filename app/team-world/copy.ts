@@ -1,4 +1,6 @@
 export const worldCopy = {
+  graphicsUnavailable:
+    "Team World isn’t available in this browser. You can still use the training pages.",
   diagnostics: {
     title: "Dev controls",
     reference: "Independent motion reference",

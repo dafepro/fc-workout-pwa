@@ -20,7 +20,7 @@ the immutable `/team-world-assets/v0.1.4/` path to avoid stale catalog/model
 combinations. Source references, editable Blender geometry and fitted browser
 turnarounds live in the avatar repository.
 
-`/team-world` lazily loads zmap 0.1.11 and Avatar Studio 0.1.4 from pinned GitHub
+`/team-world` lazily loads zmap 0.1.12 and Avatar Studio 0.1.4 from pinned GitHub
 Release tarballs. The development Team hub exposes a Team World link after the
 existing check-in gate. Production navigation is unchanged during qualification.
 
@@ -246,16 +246,42 @@ E2E_RESET_KEY=local-team-world-e2e-only \
 pnpm test:browser e2e/pwa-team-world.spec.ts
 ```
 
-Omit the browser-channel override if Playwright Chromium is installed. The new
-suite is skipped unless explicitly enabled because the ordinary app E2E topology
-has no v3 relay. It resets only the fixture database identified by the local API
-and reset key. Do not run it against a shared development session.
+Gameplay requires hardware WebGL2; installed Chrome is the qualified local path.
+Known software rendering deliberately returns unavailable, so the full gameplay
+suite cannot qualify that path. The suite is skipped unless explicitly enabled
+because the ordinary app E2E topology has no v3 relay. It resets only the fixture
+database identified by the local API and reset key. Do not run it against a
+shared development session.
 
 `backend/compose.world-e2e.yaml` supplies the automated local relay overlay.
 `backend/compose.team-world.yaml` remains available for a host relay/PWA with only
 its API running in Docker; do not start a second API on the same ports.
 
 ## Verification and remaining gates
+
+The 0.1.12 recovery fix preserves pending kick/wave edges through the 250 ms
+held-input expiry and acknowledges them only after a consuming snapshot. Stale
+movement still stops, acknowledged edges do not replay, and health/lease
+thresholds are unchanged. Real relay and browser fixed-step regressions cover
+delayed delivery; the built local app covers repeated moving kicks, late join,
+steady authority and abrupt host loss with two distinct players on native Chrome.
+
+Known software WebGL renderers (SwiftShader, llvmpipe, softpipe and software
+rasterizer) are unsupported for this campus. Entry checks a disposable WebGL2
+context before obtaining a ticket, loading art or opening a room socket. Missing
+WebGL2 also returns the normal unavailable state; training remains usable.
+Private/unknown renderer information is admitted, not assumed to be hardware.
+The real forced-SwiftShader regression verifies repeated fallback with no room
+connection and a usable training route.
+
+This restriction follows a two-player built-app probe on the M4 Pro: the campus
+on SwiftShader had frame p95 around 120–136 ms and multi-second stalls. Half
+resolution, removing silhouette/comic effects, and even minimal capsule art did
+not produce stable software authority. The unchanged campus on Chrome's Metal
+M4 Pro renderer sampled about 17 ms frame p95, with an initial shader stall and
+subsequent recovery. These short samples justify the dev support boundary, not
+phone, full-room or sustained performance acceptance. Linux software-rendered
+Docker World play remains unqualified; its unavailable state is deliberate.
 
 Normal `pnpm verify` runs `test:world` and standalone Node contracts as well as
 application/Go/static/build checks. `pnpm test:e2e:world` builds a wholly local
@@ -351,22 +377,22 @@ phone host-loss recovery. It therefore remains unfinished. The current fresh
 World decision isolates Canvas state; it does not discard earned ownership or
 approve a rollback policy for future saved World edits.
 
-| Journey | Requirement coverage                       | Current evidence and result                                                                                                            | Work required for acceptance                                                                                                                                         |
-| ------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A-01    | Z-01, Z-02, Z-03, L-01, L-06, N-01         | Partial: real local browser movement, two-player presence, touch emulation and route/socket disposal in `e2e/pwa-team-world.spec.ts`.  | Named physical phones and desktop browser matrix; menu/input isolation, lifecycle and deployed access. D04, D11, D12.                                                |
-| A-02    | Z-04, Z-06                                 | Partial: authored bridge/underpass, static support/geometry checks in `services/team-world/campus-map.test.mjs`, shared soccer checks. | Two peers at the same screen position on different levels; wrong-level actions, ball slope behavior and human readability. D04, D06.                                 |
-| A-03    | Z-05, Z-06, Z-07                           | Partial: two-client balls, goals, tools, emotes and lamps synchronize locally.                                                         | Third client joining mid-action without reset; simultaneous actions and convergence under impairment. D04, D12.                                                      |
-| A-04    | Z-08, Z-09, Z-11, L-03                     | Untested: World has no durable placement UI/store; relay commits are rejected.                                                         | Inventory policy, trusted CAS/idempotency persistence, all edit/return commands and lost-reply/concurrent checks. D14–D16.                                           |
-| A-05    | Z-09, L-01, N-05                           | Partial: API/relay contracts check trusted access; browser session revocation is covered.                                              | Play versus edit rights, forged durable commands, stale authority and cross-team cases on deployed integration. D12, D14–D16.                                        |
-| A-06    | Z-12, N-04, N-06                           | Partial: local connection-loss/retry and two-client transient play.                                                                    | Abrupt host loss and phone suspension, recovery distribution, single accepted authority and preserved saved rights/edits. D04, D06, D12, D15.                        |
-| A-07    | Z-11, N-06                                 | Untested: current transient map resets when empty; no saved layouts exist.                                                             | Restart and room-sleep contract with persistent layouts/ownership; measure idle simulation and shared service costs. D04, D14, D15, D26.                             |
-| A-08    | Z-10, L-01, L-06, N-02                     | Partial: required-asset failure returns to usable training; all current art groups are mandatory.                                      | Cosmetic fallback that remains playable, unsupported graphics/context loss and distinct useful recovery states on devices. D05, D06, D11.                            |
-| A-09    | Z-13, Z-01, Z-12                           | Untested: linked travel/return is absent.                                                                                              | Implement destination policy and safe failure/return, or record an explicit owner scope revision. D12, D19.                                                          |
-| A-10    | Z-13, L-03                                 | Untested: map-generation migration for owned placements is absent.                                                                     | Compatible restore and incompatible archive/return policy, staff change and no entitlement loss. D14, D15, D19.                                                      |
-| A-11    | N-01, N-02, N-03, N-04, N-06               | Partial: local desktop entry/exit and asset measurements; no full-team or physical-phone cost qualification.                           | Named devices, distinct full room, 15-minute soak, complete critical/total bytes, real transport faults, CPU/memory/traffic/persistence/delivery cost. D04–D06, D12. |
-| A-12    | Z-07, Z-14, N-08                           | Partial: pinned public zmap packages and app-side map/behavior adapters.                                                               | Runnable independent consumer adding a map and toy solely through public interfaces; package docs/license/upgrade evidence. D18, D20.                                |
-| A-13    | Z-03, L-06, N-07                           | Partial: 320px/fullscreen touch emulation, public native controls and reduced-motion rendering paths.                                  | Physical portrait readability, keyboard-only menus/input isolation, muted/reduced effects and low-quality play. D04, D06, D11.                                       |
-| A-14    | Z-11, L-03, N-08; specification section 10 | Untested: production World navigation remains off; no pilot rollback with new placements has run.                                      | Immutable cutover and rollback preserving identity, inventory and post-cutover data under an approved migration policy. D14, D15, D20, D27.                          |
+| Journey | Requirement coverage                       | Current evidence and result                                                                                                                                     | Work required for acceptance                                                                                                                                         |
+| ------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A-01    | Z-01, Z-02, Z-03, L-01, L-06, N-01         | Partial: real local browser movement, two-player presence, touch emulation and route/socket disposal in `e2e/pwa-team-world.spec.ts`.                           | Named physical phones and desktop browser matrix; menu/input isolation, lifecycle and deployed access. D04, D11, D12.                                                |
+| A-02    | Z-04, Z-06                                 | Partial: authored bridge/underpass, static support/geometry checks in `services/team-world/campus-map.test.mjs`, shared soccer checks.                          | Two peers at the same screen position on different levels; wrong-level actions, ball slope behavior and human readability. D04, D06.                                 |
+| A-03    | Z-05, Z-06, Z-07                           | Partial: two-client balls, goals, tools, emotes and lamps synchronize locally; late join and repeated kicks retain stable authority on native Chrome.           | Third client joining mid-action without reset; simultaneous actions and convergence under impairment. D04, D12.                                                      |
+| A-04    | Z-08, Z-09, Z-11, L-03                     | Untested: World has no durable placement UI/store; relay commits are rejected.                                                                                  | Inventory policy, trusted CAS/idempotency persistence, all edit/return commands and lost-reply/concurrent checks. D14–D16.                                           |
+| A-05    | Z-09, L-01, N-05                           | Partial: API/relay contracts check trusted access; browser session revocation is covered.                                                                       | Play versus edit rights, forged durable commands, stale authority and cross-team cases on deployed integration. D12, D14–D16.                                        |
+| A-06    | Z-12, N-04, N-06                           | Partial: local connection-loss/retry and native two-client abrupt host loss restore transient play; delayed edge consumption has real relay/client regressions. | Phone suspension, recovery distribution under impairment, single accepted authority and preserved saved rights/edits. D04, D06, D12, D15.                            |
+| A-07    | Z-11, N-06                                 | Untested: current transient map resets when empty; no saved layouts exist.                                                                                      | Restart and room-sleep contract with persistent layouts/ownership; measure idle simulation and shared service costs. D04, D14, D15, D26.                             |
+| A-08    | Z-10, L-01, L-06, N-02                     | Partial: required-asset failure and forced software-WebGL rejection return to usable training; all current art groups are mandatory.                            | Cosmetic fallback that remains playable, missing-WebGL/context loss and distinct useful recovery states on physical devices. D05, D06, D11.                          |
+| A-09    | Z-13, Z-01, Z-12                           | Untested: linked travel/return is absent.                                                                                                                       | Implement destination policy and safe failure/return, or record an explicit owner scope revision. D12, D19.                                                          |
+| A-10    | Z-13, L-03                                 | Untested: map-generation migration for owned placements is absent.                                                                                              | Compatible restore and incompatible archive/return policy, staff change and no entitlement loss. D14, D15, D19.                                                      |
+| A-11    | N-01, N-02, N-03, N-04, N-06               | Partial: local desktop entry/exit and asset measurements; no full-team or physical-phone cost qualification.                                                    | Named devices, distinct full room, 15-minute soak, complete critical/total bytes, real transport faults, CPU/memory/traffic/persistence/delivery cost. D04–D06, D12. |
+| A-12    | Z-07, Z-14, N-08                           | Partial: pinned public zmap packages and app-side map/behavior adapters.                                                                                        | Runnable independent consumer adding a map and toy solely through public interfaces; package docs/license/upgrade evidence. D18, D20.                                |
+| A-13    | Z-03, L-06, N-07                           | Partial: 320px/fullscreen touch emulation, public native controls and reduced-motion rendering paths.                                                           | Physical portrait readability, keyboard-only menus/input isolation, muted/reduced effects and low-quality play. D04, D06, D11.                                       |
+| A-14    | Z-11, L-03, N-08; specification section 10 | Untested: production World navigation remains off; no pilot rollback with new placements has run.                                                               | Immutable cutover and rollback preserving identity, inventory and post-cutover data under an approved migration policy. D14, D15, D20, D27.                          |
 
 The journey table covers every Z-01–Z-14 and N-01–N-08 requirement. These three
 L requirements need additional evidence beyond that table. Z-10/L-03 also needs

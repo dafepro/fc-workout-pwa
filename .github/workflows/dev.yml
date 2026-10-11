@@ -512,6 +512,7 @@ jobs:
 
       - name: Prove Team World through the shared dev gate
         env:
+          E2E_BROWSER_CHANNEL: chrome
           DEV_WORLD_RELEASE_GATE: "true"
           DEV_ACCESS_PASSWORD: ${{ secrets.DEV_ACCESS_PASSWORD }}
           E2E_PWA_BASE_URL: https://dev.zoomigo.quicktrack.cc

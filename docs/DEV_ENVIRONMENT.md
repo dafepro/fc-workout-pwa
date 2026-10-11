@@ -158,13 +158,22 @@ an authority change intentionally resets those settings, so a two-player release
 gate cannot require them to persist through a host handoff.
 Keep credentials and credential-page recordings out of retained evidence.
 
+The World gate uses installed Chrome on the guarded Mac and records the actual
+WebGL renderer for both players in `WORLD_RENDERERS` and a bounded attachment.
+It fails software or unavailable renderer information rather than counting an
+unobserved renderer as hardware qualification. The app rejects known software
+renderers before joining, while training stays usable. Unknown/private renderer
+information is admitted by the app but cannot pass this hardware release gate.
+This proves only the named desktop path; physical phones and full rooms remain
+open. See TEAM_WORLD.md for the measured support decision and recovery coverage.
+
 Training eligibility compares parsed instants against the inclusive team-day
 start and current time. Whole-second and fractional timestamps, including
 offset-bearing restored fixtures, must agree; future, prior-day, partial and
 deleted entries cannot unlock the Lounge or World. The live gates retain their
 unlocked-player assertions rather than retrying around timestamp boundaries.
 
-The matched runtime packages are `zmap` 0.1.11, Avatar Studio 0.1.4 and vendored
+The matched runtime packages are `zmap` 0.1.12, Avatar Studio 0.1.4 and vendored
 Canvas 0.6.2. App-owned assets are validated against
 `assets/team-world/manifest.json`. Keep dependency patches and any remaining
 advisory follow-up in ROADMAP.md rather than maintaining a second release journal.
