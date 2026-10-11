@@ -303,7 +303,8 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
       if (!cancelled) {
         setFailed(
           error instanceof Error &&
-            [copy.locked, copy.graphicsUnavailable].includes(error.message)
+            (error.message === copy.locked ||
+              error.message === copy.graphicsUnavailable)
             ? error.message
             : copy.unavailable,
         );
