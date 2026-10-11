@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/dafepro/canvas/server/pkg/roomsdk"
+	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 )
 
@@ -320,7 +321,7 @@ func (store *SQLiteStore) reconcileNormalizedSnapshotItemOwnership(
 			FROM team_lounge_placement_reservations
 			WHERE room_id = ? AND player_id = ? AND definition_id = ? AND definition_version = ?
 			AND state = 'committed' AND entity_id IS NOT NULL
-			ORDER BY finalized_at, reservation_id`, roomID, key.ownerID, key.definitionID, key.definitionVersion)
+			ORDER BY zoomigo_instant(finalized_at), reservation_id`, roomID, key.ownerID, key.definitionID, key.definitionVersion)
 		if queryErr != nil {
 			return fmt.Errorf("reconcile lounge snapshot ownership: %w", queryErr)
 		}
@@ -553,7 +554,7 @@ func (store *SQLiteStore) ListVisitTraces(
 	rows, err := store.db.QueryContext(ctx, `SELECT player_id
 		FROM team_lounge_visits
 		WHERE room_id = ? AND player_id <> ?
-		ORDER BY last_visited_at DESC, player_id
+		ORDER BY zoomigo_instant(last_visited_at) DESC, player_id
 		LIMIT ?`, roomID, excludePlayerID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("list lounge visits: %w", err)
@@ -600,10 +601,13 @@ func (store *SQLiteStore) PlacementBudget(
 		return PlacementBudget{}, fmt.Errorf("begin lounge placement reconciliation: %w", err)
 	}
 	defer tx.Rollback()
+	lower, upper := database.InstantCandidates(week.Start, week.End)
 	rows, err := tx.QueryContext(ctx, `SELECT id, occurred_at FROM training_entries
 		WHERE team_id = ? AND player_id = ? AND deleted_at IS NULL
-		AND occurred_at >= ? AND occurred_at < ? ORDER BY occurred_at, id`,
-		teamID, playerID, week.Start.UTC().Format(time.RFC3339Nano), week.End.UTC().Format(time.RFC3339Nano))
+		AND occurred_at >= ? AND occurred_at < ?
+		AND zoomigo_instant(occurred_at) >= zoomigo_instant(?) AND zoomigo_instant(occurred_at) < zoomigo_instant(?)
+		ORDER BY zoomigo_instant(occurred_at), id`,
+		teamID, playerID, lower, upper, week.Start.UTC().Format(time.RFC3339Nano), week.End.UTC().Format(time.RFC3339Nano))
 	if err != nil {
 		return PlacementBudget{}, fmt.Errorf("list lounge training check-ins: %w", err)
 	}

@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/dafepro/fc-workout-pwa/backend/internal/database"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/domain"
 	"github.com/dafepro/fc-workout-pwa/backend/internal/momentum"
 )
@@ -189,7 +190,7 @@ func (store *Store) currentTrainingPlan(ctx context.Context, playerID, teamID, t
 		FROM training_plans p
 		JOIN training_plan_days d ON d.plan_id = p.id
 		WHERE p.team_id = ? AND p.status = 'published' AND d.occurs_on = ?
-		ORDER BY p.created_at DESC LIMIT 1`, teamID, teamDay).Scan(&planID)
+		ORDER BY zoomigo_instant(p.created_at) DESC, p.id DESC LIMIT 1`, teamID, teamDay).Scan(&planID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -391,7 +392,7 @@ func (store *Store) activeAssignment(ctx context.Context, teamID, teamDay string
 		FROM assignments a
 		JOIN activity_definitions d ON d.id = a.activity_definition_id
 		WHERE a.team_id = ? AND a.starts_on <= ? AND a.due_on >= ?
-		ORDER BY a.due_on, a.created_at DESC LIMIT 1`, teamID, teamDay, teamDay).Scan(
+		ORDER BY a.due_on, zoomigo_instant(a.created_at) DESC, a.id DESC LIMIT 1`, teamID, teamDay, teamDay).Scan(
 		&item.ID, &item.ActivityDefinitionID, &item.CatalogKey, &item.TargetValue,
 		&item.TargetUnit, &item.StartsOn, &item.DueOn, &item.ActivityName)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -476,20 +477,22 @@ func weeklyMomentumCredits(entries []domain.ProjectionEntry, restDays []string, 
 }
 
 func (store *Store) activeTeamMembersThisWeek(ctx context.Context, teamID string, start, now time.Time, weekStartDay, teamDay string) (int, error) {
+	lower, upper := database.InstantCandidates(start, now)
 	var count int
 	err := store.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM (
 		SELECT e.player_id FROM training_entries e
 		JOIN team_memberships m ON m.team_id = e.team_id AND m.player_id = e.player_id
 		WHERE e.team_id = ? AND e.deleted_at IS NULL
 		  AND (e.completion_outcome IS NULL OR e.completion_outcome <> 'partial')
-		  AND e.occurred_at >= ? AND e.occurred_at <= ?
+		  AND e.occurred_at >= ? AND e.occurred_at < ?
+		  AND zoomigo_instant(e.occurred_at) >= zoomigo_instant(?) AND zoomigo_instant(e.occurred_at) <= zoomigo_instant(?)
 		  AND m.active_from <= ? AND (m.active_to IS NULL OR m.active_to >= ?)
 		UNION
 		SELECT r.player_id FROM planned_rest_check_ins r
 		JOIN team_memberships m ON m.team_id = r.team_id AND m.player_id = r.player_id
 		WHERE r.team_id = ? AND r.occurs_on >= ? AND r.occurs_on <= ?
 		  AND m.active_from <= ? AND (m.active_to IS NULL OR m.active_to >= ?)
-	)`, teamID, start.UTC().Format(time.RFC3339Nano), now.UTC().Format(time.RFC3339Nano), teamDay, teamDay,
+	)`, teamID, lower, upper, start.UTC().Format(time.RFC3339Nano), now.UTC().Format(time.RFC3339Nano), teamDay, teamDay,
 		teamID, weekStartDay, teamDay, teamDay, teamDay).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("count completed team participation: %w", err)
@@ -498,63 +501,45 @@ func (store *Store) activeTeamMembersThisWeek(ctx context.Context, teamID string
 }
 
 func (store *Store) teamPulseUnlocked(ctx context.Context, playerID, teamID string, dayStart, now time.Time, teamDay string) (bool, error) {
-	// Restored and seeded timestamps can carry offsets; candidate bounds leave room for those before exact instant checks.
-	const candidateFormat = "2006-01-02T15:04:05"
-	rows, err := store.db.QueryContext(ctx, `SELECT occurred_at, 0 FROM training_entries
+	lower, upper := database.InstantCandidates(dayStart, now)
+	var unlocked bool
+	err := store.db.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM training_entries
 		WHERE player_id = ? AND team_id = ? AND deleted_at IS NULL
 		  AND (completion_outcome IS NULL OR completion_outcome <> 'partial')
 		  AND occurred_at >= ? AND occurred_at < ?
+		  AND zoomigo_instant(occurred_at) >= zoomigo_instant(?) AND zoomigo_instant(occurred_at) <= zoomigo_instant(?)
 		UNION ALL
-		SELECT '', 1 FROM planned_rest_check_ins
+		SELECT 1 FROM planned_rest_check_ins
 		WHERE player_id = ? AND team_id = ? AND occurs_on = ?
-	`, playerID, teamID, dayStart.UTC().Add(-48*time.Hour).Format(candidateFormat), now.UTC().Add(48*time.Hour).Format(candidateFormat),
-		playerID, teamID, teamDay)
+	)`, playerID, teamID, lower, upper, dayStart.UTC().Format(time.RFC3339Nano), now.UTC().Format(time.RFC3339Nano),
+		playerID, teamID, teamDay).Scan(&unlocked)
 	if err != nil {
 		return false, fmt.Errorf("load team pulse access: %w", err)
 	}
-	defer rows.Close()
-	for rows.Next() {
-		var stamp string
-		var plannedRest bool
-		if err := rows.Scan(&stamp, &plannedRest); err != nil {
-			return false, fmt.Errorf("scan team pulse access: %w", err)
-		}
-		if plannedRest {
-			return true, nil
-		}
-		occurredAt, err := time.Parse(time.RFC3339Nano, stamp)
-		if err != nil {
-			return false, fmt.Errorf("parse team pulse activity: %w", err)
-		}
-		if !occurredAt.Before(dayStart) && !occurredAt.After(now) {
-			return true, nil
-		}
-	}
-	if err := rows.Err(); err != nil {
-		return false, fmt.Errorf("iterate team pulse access: %w", err)
-	}
-	return false, nil
+	return unlocked, nil
 }
 
 func (store *Store) recentTeamActivities(ctx context.Context, playerID, teamID string, start, now time.Time, teamDay string, location *time.Location) ([]TeamPulseActivity, error) {
+	lower, upper := database.InstantCandidates(start, now)
 	rows, err := store.db.QueryContext(ctx, `SELECT player_id, first_name, last_initial, activity_name, event_at FROM (
-		SELECT e.player_id, p.first_name, p.last_initial, d.name AS activity_name, e.occurred_at AS event_at
+		SELECT e.player_id, p.first_name, p.last_initial, d.name AS activity_name, e.occurred_at AS event_at, e.id AS event_id
 		FROM training_entries e
 		JOIN players p ON p.id = e.player_id
 		JOIN activity_definitions d ON d.id = e.activity_definition_id
 		JOIN team_memberships m ON m.team_id = e.team_id AND m.player_id = e.player_id
 		WHERE e.team_id = ? AND e.player_id <> ? AND e.deleted_at IS NULL
 		  AND (e.completion_outcome IS NULL OR e.completion_outcome <> 'partial')
-		  AND e.occurred_at >= ? AND e.occurred_at <= ?
+		  AND e.occurred_at >= ? AND e.occurred_at < ?
+		  AND zoomigo_instant(e.occurred_at) >= zoomigo_instant(?) AND zoomigo_instant(e.occurred_at) <= zoomigo_instant(?)
 		  AND m.active_from <= ? AND (m.active_to IS NULL OR m.active_to >= ?)
 		UNION ALL
-		SELECT r.player_id, p.first_name, p.last_initial, 'Planned rest' AS activity_name, r.created_at AS event_at
+		SELECT r.player_id, p.first_name, p.last_initial, 'Planned rest' AS activity_name, r.created_at AS event_at, r.id AS event_id
 		FROM planned_rest_check_ins r
 		JOIN players p ON p.id = r.player_id
 		JOIN team_memberships m ON m.team_id = r.team_id AND m.player_id = r.player_id
 		WHERE r.team_id = ? AND r.player_id <> ? AND r.occurs_on >= ? AND r.occurs_on <= ?
 		  AND m.active_from <= ? AND (m.active_to IS NULL OR m.active_to >= ?)
-	) ORDER BY event_at DESC`, teamID, playerID, start.UTC().Format(time.RFC3339Nano), now.UTC().Format(time.RFC3339Nano), teamDay, teamDay,
+	) ORDER BY zoomigo_instant(event_at) DESC, event_id DESC, player_id DESC`, teamID, playerID, lower, upper, start.UTC().Format(time.RFC3339Nano), now.UTC().Format(time.RFC3339Nano), teamDay, teamDay,
 		teamID, playerID, start.In(location).Format("2006-01-02"), teamDay, teamDay, teamDay)
 	if err != nil {
 		return nil, fmt.Errorf("list recent team activity: %w", err)

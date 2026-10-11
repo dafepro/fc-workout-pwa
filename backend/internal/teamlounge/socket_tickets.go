@@ -27,7 +27,7 @@ func (store *SQLiteStore) IssueSocketTicket(
 	ticket := base64.RawURLEncoding.EncodeToString(random)
 	hash := sha256.Sum256([]byte(ticket))
 	now = now.UTC()
-	if _, err := store.db.ExecContext(ctx, `DELETE FROM team_lounge_socket_tickets WHERE expires_at <= ?`,
+	if _, err := store.db.ExecContext(ctx, `DELETE FROM team_lounge_socket_tickets WHERE zoomigo_instant(expires_at) <= zoomigo_instant(?)`,
 		now.Format(time.RFC3339Nano)); err != nil {
 		return "", fmt.Errorf("prune lounge socket tickets: %w", err)
 	}
@@ -50,7 +50,7 @@ func (store *SQLiteStore) ConsumeSocketTicket(
 	hash := sha256.Sum256([]byte(ticket))
 	var playerID string
 	err := store.db.QueryRowContext(ctx, `DELETE FROM team_lounge_socket_tickets
-		WHERE ticket_hash = ? AND room_id = ? AND expires_at > ? RETURNING player_id`,
+		WHERE ticket_hash = ? AND room_id = ? AND zoomigo_instant(expires_at) > zoomigo_instant(?) RETURNING player_id`,
 		hash[:], roomID, now.UTC().Format(time.RFC3339Nano)).Scan(&playerID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", false

@@ -451,7 +451,7 @@ func credentialStatus(ctx context.Context, arguments []string, stdout io.Writer)
 	}
 	var activeSessions int
 	if err = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM auth_sessions
-		WHERE account_id = ? AND revoked_at IS NULL AND expires_at > ?`,
+		WHERE account_id = ? AND revoked_at IS NULL AND zoomigo_instant(expires_at) > zoomigo_instant(?)`,
 		accountID, time.Now().UTC().Format(time.RFC3339Nano)).Scan(&activeSessions); err != nil {
 		return err
 	}
@@ -510,10 +510,10 @@ func auditEvents(ctx context.Context, arguments []string, stdout io.Writer) erro
 		parameters = append(parameters, *playerID)
 	}
 	if *since != "" {
-		query += ` AND e.occurred_at >= ?`
+		query += ` AND zoomigo_instant(e.occurred_at) >= zoomigo_instant(?)`
 		parameters = append(parameters, *since)
 	}
-	query += ` ORDER BY e.occurred_at DESC, e.id DESC LIMIT ?`
+	query += ` ORDER BY zoomigo_instant(e.occurred_at) DESC, e.id DESC LIMIT ?`
 	parameters = append(parameters, *limit)
 	rows, err := db.QueryContext(ctx, query, parameters...)
 	if err != nil {
@@ -566,10 +566,10 @@ func managementActions(ctx context.Context, db *sql.DB, playerID, since string, 
 		parameters = append(parameters, playerID)
 	}
 	if since != "" {
-		query += ` AND occurred_at >= ?`
+		query += ` AND zoomigo_instant(occurred_at) >= zoomigo_instant(?)`
 		parameters = append(parameters, since)
 	}
-	query += ` ORDER BY occurred_at DESC, id DESC LIMIT ?`
+	query += ` ORDER BY zoomigo_instant(occurred_at) DESC, id DESC LIMIT ?`
 	rows, err := db.QueryContext(ctx, query, append(parameters, limit)...)
 	if err != nil {
 		return nil, err

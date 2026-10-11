@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/dafepro/fc-workout-pwa/backend/migrations"
-	_ "modernc.org/sqlite"
 )
 
 func Open(ctx context.Context, databaseURL string) (*sql.DB, error) {

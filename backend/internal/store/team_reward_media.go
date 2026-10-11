@@ -141,9 +141,9 @@ func (staff *StaffStore) TeamRewardMediaForPlayer(ctx context.Context, actor dom
 func (staff *StaffStore) ExpireUnattachedTeamRewardMedia(ctx context.Context, before, now time.Time) ([]TeamRewardMedia, error) {
 	rows, err := staff.db.QueryContext(ctx, `SELECT id, team_id, storage_key, sha256, mime_type, width, height,
 		byte_size, alt_kind, created_by_account_id, created_at, deleted_at FROM team_reward_media m
-		WHERE m.deleted_at IS NULL AND m.created_at < ?
+		WHERE m.deleted_at IS NULL AND zoomigo_instant(m.created_at) < zoomigo_instant(?)
 		AND NOT EXISTS (SELECT 1 FROM team_rewards r WHERE r.media_id = m.id)
-		ORDER BY m.created_at, m.id`, before.UTC().Format(time.RFC3339Nano))
+		ORDER BY zoomigo_instant(m.created_at), m.id`, before.UTC().Format(time.RFC3339Nano))
 	if err != nil {
 		return nil, fmt.Errorf("list expired reward media: %w", err)
 	}

@@ -102,7 +102,8 @@ jobs:
           merge-multiple: true
           path: ${{ runner.temp }}/production-release
 
-      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: ./.github/actions/buildx
+        id: buildx
 
       - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
@@ -114,6 +115,7 @@ jobs:
         id: image
         with:
           context: backend
+          builder: ${{ steps.buildx.outputs.name }}
           file: backend/Dockerfile
           platforms: linux/amd64
           push: true
@@ -121,8 +123,8 @@ jobs:
             ghcr.io/${{ github.repository }}/api:sha-${{ github.sha }}
             ghcr.io/${{ github.repository }}/api:main
           build-args: APP_VERSION=${{ github.sha }}
-          cache-from: type=gha,scope=production-api
-          cache-to: type=gha,mode=max,scope=production-api
+          cache-from: ${{ runner.environment == 'github-hosted' && 'type=gha,scope=production-api' || '' }}
+          cache-to: ${{ runner.environment == 'github-hosted' && 'type=gha,mode=max,scope=production-api' || '' }}
           provenance: mode=max
           sbom: true
 

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -275,7 +276,7 @@ func (staff *StaffStore) Roster(ctx context.Context, teamID string) ([]RosterEnt
 // whether they can sign in, and nothing about how fast anyone ran.
 const rosterQuery = `SELECT p.id, p.first_name, p.last_initial, a.id, a.status,
 	c.id, c.locked_until, m.active_from, m.active_to,
-	(SELECT MAX(e.occurred_at) FROM training_entries e WHERE e.player_id = p.id AND e.deleted_at IS NULL)
+	(SELECT e.occurred_at FROM training_entries e WHERE e.player_id = p.id AND e.deleted_at IS NULL ORDER BY zoomigo_instant(e.occurred_at) DESC, e.id DESC LIMIT 1)
 	FROM players p
 	JOIN accounts a ON a.player_id = p.id
 	JOIN team_memberships m ON m.player_id = p.id
@@ -357,7 +358,7 @@ func (staff *StaffStore) PlayerDetail(ctx context.Context, playerID string) (Pla
 	var accountID string
 	var lastActivity sql.NullString
 	err := staff.db.QueryRowContext(ctx, `SELECT p.first_name, p.last_initial, a.id, a.status, p.club_id, c.name,
-		(SELECT MAX(e.occurred_at) FROM training_entries e WHERE e.player_id = p.id AND e.deleted_at IS NULL)
+		(SELECT e.occurred_at FROM training_entries e WHERE e.player_id = p.id AND e.deleted_at IS NULL ORDER BY zoomigo_instant(e.occurred_at) DESC, e.id DESC LIMIT 1)
 		FROM players p JOIN accounts a ON a.player_id = p.id JOIN clubs c ON c.id = p.club_id WHERE p.id = ?`, playerID).
 		Scan(&detail.Player.FirstName, &detail.Player.LastInitial, &accountID, &detail.Player.AccountStatus,
 			&detail.ClubID, &detail.ClubName, &lastActivity)
@@ -395,7 +396,7 @@ func (staff *StaffStore) PlayerDetail(ctx context.Context, playerID string) (Pla
 	detail.Player.CredentialState = detail.Credential.State
 
 	events, err := staff.db.QueryContext(ctx, `SELECT occurred_at, event_type, detail_code FROM auth_audit_events
-		WHERE account_id = ? ORDER BY occurred_at DESC, id DESC LIMIT 20`, accountID)
+		WHERE account_id = ? ORDER BY zoomigo_instant(occurred_at) DESC, id DESC LIMIT 20`, accountID)
 	if err != nil {
 		return PlayerDetail{}, err
 	}
@@ -424,7 +425,7 @@ func (staff *StaffStore) credentialInfo(ctx context.Context, accountID string, n
 	}
 	info.State = credentialStateOf(credentialID, lockedUntil, now)
 	info.IssuedAt, info.LastUsedAt, info.LockedUntil = issuedAt.String, lastUsedAt.String, lockedUntil.String
-	if err = staff.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM auth_sessions WHERE account_id = ? AND revoked_at IS NULL AND expires_at > ?`,
+	if err = staff.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM auth_sessions WHERE account_id = ? AND revoked_at IS NULL AND zoomigo_instant(expires_at) > zoomigo_instant(?)`,
 		accountID, now.Format(time.RFC3339Nano)).Scan(&info.ActiveSessions); err != nil {
 		return CredentialInfo{}, err
 	}
@@ -808,7 +809,7 @@ func validAssignmentWindow(update AssignmentUpdate) error {
 func (staff *StaffStore) ListAssignments(ctx context.Context, teamID string) ([]AssignmentSummary, error) {
 	rows, err := staff.db.QueryContext(ctx, `SELECT a.id, a.catalog_key, d.name, a.target_value, a.target_unit, a.starts_on, a.due_on, a.created_at
 		FROM assignments a JOIN activity_definitions d ON d.id = a.activity_definition_id
-		WHERE a.team_id = ? ORDER BY a.due_on DESC, a.created_at DESC`, teamID)
+		WHERE a.team_id = ? ORDER BY a.due_on DESC, zoomigo_instant(a.created_at) DESC, a.id DESC`, teamID)
 	if err != nil {
 		return nil, err
 	}
@@ -855,7 +856,7 @@ func (staff *StaffStore) CurrentAssignmentCompletion(ctx context.Context, teamID
 	err = staff.db.QueryRowContext(ctx, `SELECT a.id, a.catalog_key, d.name, a.target_value, a.target_unit, a.starts_on, a.due_on
 		FROM assignments a JOIN activity_definitions d ON d.id = a.activity_definition_id
 		WHERE a.team_id = ? AND a.starts_on <= ? AND a.due_on >= ?
-		ORDER BY a.due_on, a.created_at DESC LIMIT 1`, teamID, teamDay, teamDay).Scan(
+		ORDER BY a.due_on, zoomigo_instant(a.created_at) DESC, a.id DESC LIMIT 1`, teamID, teamDay, teamDay).Scan(
 		&assignment.ID, &assignment.CatalogKey, &assignment.ActivityName, &assignment.TargetValue,
 		&assignment.TargetUnit, &assignment.StartsOn, &assignment.DueOn)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -977,10 +978,10 @@ func (staff *StaffStore) Audit(ctx context.Context, filter AuditFilter) ([]Admin
 		parameters = append(parameters, filter.AccountID)
 	}
 	if filter.Since != "" {
-		authQuery += ` AND occurred_at >= ?`
+		authQuery += ` AND zoomigo_instant(occurred_at) >= zoomigo_instant(?)`
 		parameters = append(parameters, filter.Since)
 	}
-	authQuery += ` ORDER BY occurred_at DESC, id DESC LIMIT ?`
+	authQuery += ` ORDER BY zoomigo_instant(occurred_at) DESC, id DESC LIMIT ?`
 	rows, err := staff.db.QueryContext(ctx, authQuery, append(parameters, filter.Limit)...)
 	if err != nil {
 		return nil, err
@@ -1005,10 +1006,10 @@ func (staff *StaffStore) Audit(ctx context.Context, filter AuditFilter) ([]Admin
 		parameters = append(parameters, filter.AccountID, filter.AccountID)
 	}
 	if filter.Since != "" {
-		adminQuery += ` AND occurred_at >= ?`
+		adminQuery += ` AND zoomigo_instant(occurred_at) >= zoomigo_instant(?)`
 		parameters = append(parameters, filter.Since)
 	}
-	adminQuery += ` ORDER BY occurred_at DESC, id DESC LIMIT ?`
+	adminQuery += ` ORDER BY zoomigo_instant(occurred_at) DESC, id DESC LIMIT ?`
 	adminRows, err := staff.db.QueryContext(ctx, adminQuery, append(parameters, filter.Limit)...)
 	if err != nil {
 		return nil, err
@@ -1024,7 +1025,9 @@ func (staff *StaffStore) Audit(ctx context.Context, filter AuditFilter) ([]Admin
 	if err = adminRows.Err(); err != nil {
 		return nil, err
 	}
-	sortByOccurredDescending(entries)
+	if err := sortByOccurredDescending(entries); err != nil {
+		return nil, err
+	}
 	if len(entries) > filter.Limit {
 		entries = entries[:filter.Limit]
 	}
@@ -1081,12 +1084,19 @@ func (staff *StaffStore) recordAction(ctx context.Context, source, actorAccountI
 	return err
 }
 
-func sortByOccurredDescending(entries []AdminAuditEntry) {
-	for outer := 1; outer < len(entries); outer++ {
-		for inner := outer; inner > 0 && entries[inner].OccurredAt > entries[inner-1].OccurredAt; inner-- {
-			entries[inner], entries[inner-1] = entries[inner-1], entries[inner]
+func sortByOccurredDescending(entries []AdminAuditEntry) error {
+	instants := make(map[string]time.Time, len(entries))
+	for _, entry := range entries {
+		instant, err := time.Parse(time.RFC3339Nano, entry.OccurredAt)
+		if err != nil {
+			return errors.New("invalid stored instant")
 		}
+		instants[entry.OccurredAt] = instant
 	}
+	sort.SliceStable(entries, func(left, right int) bool {
+		return instants[entries[left].OccurredAt].After(instants[entries[right].OccurredAt])
+	})
+	return nil
 }
 
 func placeholders(count int) string {

@@ -332,6 +332,28 @@ the ARM64 Mac pulls and tests the same platform as the dev host.
 The original ZoomiGo store remains in its
 legacy configuration directory. Diagnostic logs are under each runner's `_diag`.
 
+API and relay builds share a repository-ID-scoped Docker-container BuildKit
+builder on the trusted Mac. Job cleanup removes the builder container and
+temporary configuration while retaining its cache volume. Docker login still
+logs out after each job; the cache does not retain job credentials. Other
+repositories must use their own repository-ID builder names. Fork jobs retain
+the GitHub-hosted path and never share this builder. Hosted image builds retain
+their scoped GitHub Actions cache import/export; Mac image builds use local state
+without uploading or downloading that cache or the Buildx binary cache.
+
+The pinned BuildKit configuration targets 6 GB of cache, reserves 1 GB, leaves
+10 GB of disk free, and limits build parallelism to two. These are garbage
+collection targets for reclaimable state, not a hard disk quota; active builds
+can temporarily exceed them. Do not globally prune the shared Docker daemon.
+
+An isolated Linux/amd64 development API cache-only benchmark at revision `8eacea7a`
+measured 193 seconds cold, 1 second after removing/recreating the builder with
+state retained, and 41 seconds after a source change. The retained cache was
+1.27 GB. Earlier successful Actions builds spent about 269 seconds transferring
+remote cache versus about 38 seconds compiling Go. These are individual samples,
+not percentiles; publication, image push, runner queue and deployment are separate
+costs. Compare subsequent successful job timings before adding runner capacity.
+
 To update the guard, stop the services, review and copy
 `scripts/runner-job-guard.{sh,mjs}` into the maintained guard directory, then restart
 services. Review and refresh the installer copy under `github-mac-runners/bootstrap`

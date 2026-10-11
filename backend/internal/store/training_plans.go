@@ -239,7 +239,7 @@ func (staff *StaffStore) insertTrainingPlan(ctx context.Context, tx *database.Tr
 
 func (staff *StaffStore) ListTrainingPlans(ctx context.Context, teamID string) ([]TrainingPlan, error) {
 	rows, err := staff.db.QueryContext(ctx, `SELECT id FROM training_plans
-		WHERE team_id = ? ORDER BY starts_on DESC, created_at DESC`, teamID)
+		WHERE team_id = ? ORDER BY starts_on DESC, zoomigo_instant(created_at) DESC, id DESC`, teamID)
 	if err != nil {
 		return nil, err
 	}

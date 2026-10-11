@@ -300,7 +300,7 @@ func (store *Store) ListPlayerUnlocks(ctx context.Context, playerID string, kind
 	}
 	rows, err := store.db.QueryContext(ctx, `SELECT item_id, source, unlocked_at, viewed_at
 		FROM player_unlocks WHERE player_id = ? AND item_kind = ?
-		ORDER BY unlocked_at DESC, item_id`, playerID, kind)
+		ORDER BY zoomigo_instant(unlocked_at) DESC, item_id`, playerID, kind)
 	if err != nil {
 		return nil, fmt.Errorf("list player unlocks: %w", err)
 	}
@@ -366,7 +366,7 @@ func loadDailyPrizeBox(ctx context.Context, query prizeBoxQuery, where, playerID
 
 func listUnopenedPrizeBoxes(ctx context.Context, query prizeBoxQuery, playerID string) ([]PrizeBox, error) {
 	rows, err := query.QueryContext(ctx, `SELECT id, source, earned_at FROM prize_boxes
-		WHERE player_id = ? AND opened_at IS NULL ORDER BY earned_at, id`, playerID)
+		WHERE player_id = ? AND opened_at IS NULL ORDER BY zoomigo_instant(earned_at), id`, playerID)
 	if err != nil {
 		return nil, fmt.Errorf("list unopened prize boxes: %w", err)
 	}
@@ -436,7 +436,7 @@ func loadOwnedPrizeIDs(ctx context.Context, query prizeBoxQuery, playerID string
 
 func listRecentPlayerUnlocks(ctx context.Context, query prizeBoxQuery, playerID string, limit int) ([]PlayerUnlock, error) {
 	rows, err := query.QueryContext(ctx, `SELECT item_id, source, unlocked_at, viewed_at
-		FROM player_unlocks WHERE player_id = ? ORDER BY unlocked_at DESC, item_id LIMIT ?`, playerID, limit)
+		FROM player_unlocks WHERE player_id = ? ORDER BY zoomigo_instant(unlocked_at) DESC, item_id LIMIT ?`, playerID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("list recent player unlocks: %w", err)
 	}
