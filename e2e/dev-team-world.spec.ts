@@ -30,6 +30,7 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
   const state: { session?: string; simulation?: Simulation } = {};
   const peer: { simulation?: Simulation } = {};
   let peerSawKick = false;
+  const renderers: string[] = [];
   page.on("websocket", (socket) =>
     socket.on("framereceived", ({ payload }) => {
       const m = JSON.parse(String(payload));
@@ -97,6 +98,20 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
       await expect(p.getByText("Live together", { exact: true })).toBeVisible({
         timeout: 30000,
       });
+      const renderer = await p
+        .locator(".team-world-canvas canvas")
+        .evaluate((canvas: HTMLCanvasElement) => {
+          const gl = canvas.getContext("webgl2")!;
+          const info = gl.getExtension("WEBGL_debug_renderer_info");
+          return info
+            ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL))
+            : "unavailable";
+        });
+      renderers.push(renderer);
+      expect(renderer).not.toMatch(/SwiftShader|llvmpipe|softpipe|software/i);
+      expect(renderer).toMatch(
+        /Apple|NVIDIA|GeForce|Radeon|AMD|Intel|Adreno|Mali|PowerVR/i,
+      );
     }
     await expect(page.getByText("2 players", { exact: true })).toBeVisible();
     await expect
@@ -229,6 +244,14 @@ test("dev keeps the outer gate and supports two qualified Team World players", a
       );
     throw error;
   } finally {
+    console.log("WORLD_RENDERERS", JSON.stringify(renderers));
+    await test.info().attach("world-renderers", {
+      body: JSON.stringify({
+        channel: process.env.E2E_BROWSER_CHANNEL ?? "chromium",
+        renderers,
+      }),
+      contentType: "application/json",
+    });
     await page.keyboard.up("d").catch(() => undefined);
     for (const { page: p, id } of entries) {
       const removed = await p.request.delete(

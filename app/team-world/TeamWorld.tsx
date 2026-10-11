@@ -45,6 +45,7 @@ import mapJSON from "./world.json";
 import { worldCopy as copy } from "./copy";
 import "./world.css";
 import { renderPixelRatio } from "./render-budget";
+import { worldGraphicsAvailable } from "./renderer-policy";
 const defaultBallTuning = readBallTuning(mapJSON as unknown as WorldMap);
 function setCameraZoom(world: Zoomap, zoom: number) {
   world.view.camera.zoom = zoom;
@@ -144,6 +145,7 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
       kit?.dispose();
     };
     void (async () => {
+      if (!worldGraphicsAvailable()) throw Error(copy.graphicsUnavailable);
       const ticket = await requestWorldTicket(teamID, controller.signal);
       if (cancelled) return;
       kit = await loadActionKit(
@@ -300,8 +302,9 @@ export default function TeamWorld({ teamID }: { teamID: string }) {
     })().catch((error: unknown) => {
       if (!cancelled) {
         setFailed(
-          error instanceof Error && error.message === copy.locked
-            ? copy.locked
+          error instanceof Error &&
+            [copy.locked, copy.graphicsUnavailable].includes(error.message)
+            ? error.message
             : copy.unavailable,
         );
         setStatus("failed");

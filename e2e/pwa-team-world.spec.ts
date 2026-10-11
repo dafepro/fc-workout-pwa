@@ -1,8 +1,9 @@
 import { writeFileSync } from "node:fs";
 import * as THREE from "three";
-import { expect, request, test, type Page } from "@playwright/test";
+import { chromium, expect, request, test, type Page } from "@playwright/test";
 import type { Simulation } from "zmap";
 import { worldAssetUrl } from "../app/team-world/assets";
+import { createWorldProtocolProbe } from "./world-diagnostics";
 import {
   loginAsMason as signInMason,
   loginAsAva as signInAva,
@@ -186,20 +187,185 @@ test.beforeEach(async () => {
   await api.dispose();
 });
 function observe(page: Page) {
-  const data: { session?: string; state?: Simulation; errors: string[] } = {
+  const protocol = createWorldProtocolProbe(() => "local-world");
+  const data: {
+    session?: string;
+    state?: Simulation;
+    errors: string[];
+    protocol: ReturnType<typeof createWorldProtocolProbe>;
+  } = {
     errors: [],
+    protocol,
   };
   page.on("pageerror", (error) => data.errors.push(error.message));
   page.on("websocket", (socket) => {
     if (new URL(socket.url()).pathname !== "/room") return;
+    socket.on("framesent", ({ payload }) =>
+      protocol.sent(JSON.parse(String(payload))),
+    );
     socket.on("framereceived", ({ payload }) => {
       const m = JSON.parse(String(payload));
+      protocol.received(m);
       if (m.type === "welcome") data.session = m.session;
       if (m.type === "room" || m.type === "snapshot") data.state = m.state;
     });
   });
   return data;
 }
+
+test.describe("renderer and recovery", () => {
+  test("software WebGL stops before joining and leaves training usable", async () => {
+    const browser = await chromium.launch({
+      args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"],
+    });
+    const context = await browser.newContext({
+      baseURL: process.env.E2E_PWA_BASE_URL ?? "http://pwa:3000",
+    });
+    const page = await context.newPage();
+    let sockets = 0;
+    page.on("websocket", () => sockets++);
+    try {
+      await loginAsMason(page);
+      const renderer = await page.evaluate(() => {
+        const gl = document.createElement("canvas").getContext("webgl2")!;
+        try {
+          const info = gl.getExtension("WEBGL_debug_renderer_info")!;
+          return String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL));
+        } finally {
+          gl.getExtension("WEBGL_lose_context")?.loseContext();
+        }
+      });
+      expect(renderer).toContain("SwiftShader");
+      for (let i = 0; i < 2; i++) {
+        await page.goto("/team-world");
+        await expect(
+          page
+            .getByText(
+              "Team World isn’t available in this browser. You can still use the training pages.",
+            )
+            .first(),
+        ).toBeVisible();
+        await expect(
+          page.getByRole("button", { name: "Kick ball", exact: true }),
+        ).toBeDisabled();
+        await expect(page.locator(".team-world-canvas canvas")).toHaveCount(0);
+        expect(sockets).toBe(0);
+        await page
+          .getByRole("link", { name: "Back to Team", exact: true })
+          .first()
+          .click();
+        await page.goto("/log");
+        await expect(page.getByLabel("Reps completed")).toBeEnabled();
+      }
+    } finally {
+      await browser.close();
+    }
+  });
+
+  test("late join keeps moving kicks and host stable, then host loss restores play", async ({
+    page,
+    browser,
+  }) => {
+    test.setTimeout(90000);
+    const local = observe(page);
+    const friend = await browser.newContext();
+    const other = await friend.newPage();
+    const peer = observe(other);
+    try {
+      await loginAsMason(page);
+      await page.goto("/team-world");
+      await expect(
+        page.getByText("Live together", { exact: true }),
+      ).toBeVisible({ timeout: 20000 });
+      const renderer = await page
+        .locator("canvas")
+        .evaluate((canvas: HTMLCanvasElement) => {
+          const gl = canvas.getContext("webgl2")!;
+          const extension = gl.getExtension("WEBGL_debug_renderer_info")!;
+          return String(gl.getParameter(extension.UNMASKED_RENDERER_WEBGL));
+        });
+      expect(renderer).not.toMatch(/SwiftShader|llvmpipe|softpipe|software/i);
+      await loginAsAva(other);
+      await other.goto("/team-world");
+      await expect(
+        other.getByText("Live together", { exact: true }),
+      ).toBeVisible({ timeout: 20000 });
+      await expect(page.getByText("2 players", { exact: true })).toBeVisible();
+      await expect
+        .poll(() => peer.state?.players[local.session!])
+        .not.toBeUndefined();
+      const epoch = local.protocol.snapshot().epoch;
+      for (let i = 0; i < 3; i++) {
+        const canvas = page.locator(".team-world-canvas canvas");
+        const start = { ...peer.state!.players[local.session!] };
+        const inputs = local.protocol.kickCount();
+        const kicks = peer.protocol.snapshot().peerKickSnapshots;
+        await canvas.focus();
+        await page.keyboard.down("d");
+        try {
+          await page
+            .getByRole("button", { name: "Kick ball", exact: true })
+            .click();
+          await expect.poll(() => local.protocol.kickCount()).toBe(inputs + 1);
+          await expect
+            .poll(() => peer.protocol.snapshot().peerKickSnapshots)
+            .toBeGreaterThan(kicks);
+          await expect(canvas).toBeFocused();
+          await expect
+            .poll(() =>
+              Math.hypot(
+                (peer.state?.players[local.session!]?.x ?? start.x) - start.x,
+                (peer.state?.players[local.session!]?.z ?? start.z) - start.z,
+              ),
+            )
+            .toBeGreaterThan(0.3);
+        } finally {
+          await page.keyboard.up("d");
+        }
+        await page.waitForTimeout(1000);
+      }
+      const tick = peer.state!.tick;
+      await page.waitForTimeout(5000);
+      expect(peer.state!.tick - tick).toBeGreaterThanOrEqual(120);
+      expect(local.protocol.snapshot().epoch).toBe(epoch);
+      expect(peer.protocol.snapshot().epoch).toBe(epoch);
+      const hostIsLocal = local.protocol.snapshot().isHost;
+      const survivor = hostIsLocal ? other : page;
+      const surviving = hostIsLocal ? peer : local;
+      await (hostIsLocal ? page : other).close();
+      await expect
+        .poll(() => surviving.protocol.snapshot().isHost, { timeout: 5000 })
+        .toBe(true);
+      await expect(
+        survivor.getByText("Live together", { exact: true }),
+      ).toBeVisible();
+      const kicks = surviving.protocol.snapshot().localKickSnapshots;
+      await survivor
+        .getByRole("button", { name: "Kick ball", exact: true })
+        .click();
+      await expect
+        .poll(() => surviving.protocol.snapshot().localKickSnapshots)
+        .toBeGreaterThan(kicks);
+      await survivor
+        .getByRole("link", { name: "Back to Team", exact: true })
+        .click();
+      await expect(survivor.locator(".team-world-canvas canvas")).toHaveCount(
+        0,
+      );
+      expect(local.errors).toEqual([]);
+      expect(peer.errors).toEqual([]);
+    } finally {
+      await test.info().attach("world-recovery", {
+        body: JSON.stringify({
+          local: local.protocol.snapshot(),
+          peer: peer.protocol.snapshot(),
+        }),
+        contentType: "application/json",
+      });
+      await friend.close();
+    }
+  });
+});
 test("two real accounts share movement, tools and emotes; route exit releases the world", async ({
   page,
   browser,
@@ -602,6 +768,18 @@ test("short ground taps beside an item walk while distant taps build to a sprint
     .filter({ hasText: /^Move & play$/ })
     .click();
   await page.getByRole("button", { name: "Full screen", exact: true }).click();
+  await expect
+    .poll(() =>
+      page.locator(".team-world-canvas canvas").evaluate((canvas) => {
+        const c = canvas as HTMLCanvasElement;
+        return (
+          Math.abs(c.clientWidth - innerWidth) < 1 &&
+          Math.abs(c.clientHeight - innerHeight) < 1 &&
+          Math.abs(c.width / c.height - c.clientWidth / c.clientHeight) < 0.01
+        );
+      }),
+    )
+    .toBe(true);
   await expect
     .poll(() => observed.state?.players[observed.session!]?.x)
     .not.toBeUndefined();
