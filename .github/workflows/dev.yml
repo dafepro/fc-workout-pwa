@@ -186,7 +186,7 @@ jobs:
           tar -czf "$RUNNER_TEMP/dev-release/worker.tgz" dist
           node "$GITHUB_WORKSPACE/controller/scripts/artifact-provenance.mjs" create development "${{ steps.revision.outputs.sha }}" "$RUNNER_TEMP/dev-release/worker.tgz" "$RUNNER_TEMP/dev-release/release-manifest.json"
 
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         id: worker
         with:
           name: dev-worker-${{ steps.revision.outputs.sha }}-${{ github.run_attempt }}
@@ -343,7 +343,7 @@ jobs:
           install -m 0600 "$RUNNER_TEMP/dev-host" "$access_directory/host"
           install -m 0600 "$RUNNER_TEMP/dev-known-hosts" "$access_directory/known_hosts"
 
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: needs.context.outputs.operation == 'create' || needs.context.outputs.operation == 'update'
         with:
           name: dev-operator-access-${{ github.run_id }}
