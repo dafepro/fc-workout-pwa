@@ -114,7 +114,8 @@ jobs:
           go -C backend test ./...
           go -C backend test -tags=dev ./...
 
-      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: ./controller/.github/actions/buildx
+        id: buildx
 
       - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
@@ -127,6 +128,7 @@ jobs:
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: source/backend
+          builder: ${{ steps.buildx.outputs.name }}
           file: source/backend/Dockerfile
           platforms: linux/amd64
           push: true
@@ -134,8 +136,8 @@ jobs:
           build-args: |
             GO_BUILD_TAGS=dev
             APP_VERSION=${{ steps.revision.outputs.sha }}
-          cache-from: type=gha,scope=development-api
-          cache-to: type=gha,mode=max,scope=development-api
+          cache-from: ${{ runner.environment == 'github-hosted' && 'type=gha,scope=development-api' || '' }}
+          cache-to: ${{ runner.environment == 'github-hosted' && 'type=gha,mode=max,scope=development-api' || '' }}
           provenance: mode=max
           sbom: true
 
@@ -144,12 +146,13 @@ jobs:
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: source
+          builder: ${{ steps.buildx.outputs.name }}
           file: source/services/team-world/Dockerfile
           platforms: linux/amd64
           push: true
           tags: ghcr.io/${{ github.repository }}/api:world-dev-${{ steps.revision.outputs.sha }}
-          cache-from: type=gha,scope=development-relay
-          cache-to: type=gha,mode=max,scope=development-relay
+          cache-from: ${{ runner.environment == 'github-hosted' && 'type=gha,scope=development-relay' || '' }}
+          cache-to: ${{ runner.environment == 'github-hosted' && 'type=gha,mode=max,scope=development-relay' || '' }}
           provenance: mode=max
           sbom: true
 

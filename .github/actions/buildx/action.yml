@@ -1,0 +1,26 @@
+name: Set up repository build cache
+description: Reuse bounded BuildKit state on trusted local runners
+outputs:
+  name:
+    description: Builder for the image steps
+    value: ${{ steps.builder.outputs.name }}
+runs:
+  using: composite
+  steps:
+    - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      id: builder
+      with:
+        name: ${{ runner.environment == 'self-hosted' && format('zoomigo-{0}-amd64', github.repository_id) || '' }}
+        driver: docker-container
+        driver-opts: image=moby/buildkit@sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea
+        keep-state: ${{ runner.environment == 'self-hosted' }}
+        cleanup: true
+        cache-binary: ${{ runner.environment == 'github-hosted' }}
+        buildkitd-flags: --oci-worker-gc=true
+        buildkitd-config-inline: |
+          [worker.oci]
+            gc = true
+            reservedSpace = "1GB"
+            maxUsedSpace = "6GB"
+            minFreeSpace = "10GB"
+            max-parallelism = 2
