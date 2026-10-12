@@ -4,16 +4,16 @@ name: Operate disposable ZoomiGo dev
     branches:
       - main
     paths-ignore:
-      - ".github/**"
-      - "docs/**"
-      - "AGENTS.md"
-      - "scripts/hosted-fallback.mjs"
-      - "scripts/runner-job-guard*"
-      - "scripts/runner-repository.json"
-      - "scripts/install-mac-runner.sh"
-      - "scripts/unix-automation-contract.test.mjs"
-      - "scripts/dev-deploy-smoke.test.mjs"
-      - "scripts/artifact-provenance*"
+      - .github/**
+      - docs/**
+      - AGENTS.md
+      - scripts/hosted-fallback.mjs
+      - scripts/runner-job-guard*
+      - scripts/runner-repository.json
+      - scripts/install-mac-runner.sh
+      - scripts/unix-automation-contract.test.mjs
+      - scripts/dev-deploy-smoke.test.mjs
+      - scripts/artifact-provenance*
   workflow_dispatch:
     inputs:
       operation:
@@ -32,6 +32,15 @@ name: Operate disposable ZoomiGo dev
         required: true
         default: main
         type: string
+      build_runner:
+        description: Use the repository preference, Mac, or GitHub-hosted Ubuntu
+        required: false
+        type: choice
+        default: default
+        options:
+          - default
+          - mac
+          - github
 concurrency:
   group: zoomigo-disposable-dev
   cancel-in-progress: false
@@ -42,10 +51,9 @@ jobs:
     name: Resolve dev operation
     if: github.ref == 'refs/heads/main' && (github.event_name != 'push' || vars.DEV_AUTO_UPDATE_ENABLED != 'false')
     runs-on:
-      - self-hosted
-      - macOS
-      - ARM64
-      - dcarrell-mac
+      ${{ (github.repository == 'dafepro/fc-workout-pwa' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name
+      == github.repository && github.event.pull_request.user.id == 313492551))) && (github.event.inputs.build_runner == 'mac' || (github.event.inputs.build_runner
+      != 'github' && vars.BUILD_RUNNER != 'github')) && fromJSON('["self-hosted","macOS","ARM64","dcarrell-mac"]') || 'ubuntu-24.04' }}
     outputs:
       operation: ${{ steps.resolve.outputs.operation }}
       ref: ${{ steps.resolve.outputs.ref }}
@@ -74,7 +82,10 @@ jobs:
     needs:
       - context
     if: ${{ !cancelled() && (needs.context.outputs.operation == 'create' || needs.context.outputs.operation == 'update') }}
-    runs-on: ubuntu-24.04
+    runs-on:
+      ${{ (github.repository == 'dafepro/fc-workout-pwa' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name
+      == github.repository && github.event.pull_request.user.id == 313492551))) && (github.event.inputs.build_runner == 'mac' || (github.event.inputs.build_runner
+      != 'github' && vars.BUILD_RUNNER != 'github')) && fromJSON('["self-hosted","macOS","ARM64","dcarrell-mac"]') || 'ubuntu-24.04' }}
     timeout-minutes: 30
     defaults:
       run:
@@ -89,8 +100,7 @@ jobs:
     outputs:
       revision: ${{ steps.revision.outputs.sha }}
       artifact-id: ${{ steps.worker.outputs.artifact-id }}
-      fallback_completed: ${{ steps.fallback_completed.outputs.completed }}
-    steps: &id001
+    steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.sha }}
@@ -101,52 +111,36 @@ jobs:
           path: source
           ref: ${{ needs.context.outputs.ref }}
           persist-credentials: false
-      - name: Check whether GitHub-hosted startup permits a Mac fallback
-        id: runner_fallback
-        if: runner.environment == 'self-hosted'
-        uses: ./controller/.github/actions/hosted-fallback
-        with:
-          job-name: Verify and package the selected application
-          root: controller
       - name: Resolve the deployed revision
         id: revision
         run: echo "sha=$(git rev-parse HEAD)" >>"$GITHUB_OUTPUT"
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - uses: ./controller/.github/actions/setup
         with:
           go: "true"
           root: source
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - name: Install the selected revision
         run: pnpm install --frozen-lockfile
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - name: Test the player application
         run: |
           pnpm test
           pnpm test:world
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - name: Type-check and build the development application
         run: |
           pnpm typecheck
           pnpm build
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - name: Enforce the dev Worker delivery budget
         run: pnpm verify:worker-upload
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - name: Test the API in production and development build modes
         run: |
           go -C backend test ./...
           go -C backend test -tags=dev ./...
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - uses: ./controller/.github/actions/buildx
         id: buildx
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - name: Publish the dev-tagged API image
         id: api
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
@@ -164,7 +158,6 @@ jobs:
           cache-to: ${{ runner.environment == 'github-hosted' && 'type=gha,mode=max,scope=development-api' || '' }}
           provenance: mode=max
           sbom: true
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - name: Publish the Team World relay image
         id: relay
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
@@ -179,7 +172,6 @@ jobs:
           cache-to: ${{ runner.environment == 'github-hosted' && 'type=gha,mode=max,scope=development-relay' || '' }}
           provenance: mode=max
           sbom: true
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - name: Prove the isolated Team World image starts
         env:
           RELAY_DIGEST: ${{ steps.relay.outputs.digest }}
@@ -199,7 +191,6 @@ jobs:
               console.log("Isolated Team World image is healthy");
               process.exit(0);
             '
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - name: Package matched immutable development artifacts
         env:
           API_DIGEST: ${{ steps.api.outputs.digest }}
@@ -209,7 +200,6 @@ jobs:
           mkdir -p "$RUNNER_TEMP/dev-release"
           tar -czf "$RUNNER_TEMP/dev-release/worker.tgz" dist
           node "$GITHUB_WORKSPACE/controller/scripts/artifact-provenance.mjs" create development "${{ steps.revision.outputs.sha }}" "$RUNNER_TEMP/dev-release/worker.tgz" "$RUNNER_TEMP/dev-release/release-manifest.json"
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         id: worker
         with:
@@ -217,55 +207,14 @@ jobs:
           path: ${{ runner.temp }}/dev-release
           if-no-files-found: error
           retention-days: 1
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
-      - name: Record completed build
-        id: fallback_completed
-        run: echo "completed=true" >>"$GITHUB_OUTPUT"
-        working-directory: ${{ github.workspace }}
-    continue-on-error:
-      ${{ github.repository == 'dafepro/fc-workout-pwa' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') ||
-      (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.id == 313492551)) }}
-  build_mac:
-    name: Verify and package the selected application (Mac fallback)
-    needs:
-      - context
-      - build
-    if:
-      ${{ !cancelled() && (github.repository == 'dafepro/fc-workout-pwa' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target')
-      || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.id == 313492551))) && needs.build.result != 'skipped'
-      && needs.build.outputs.fallback_completed != 'true' }}
-    runs-on:
-      - self-hosted
-      - macOS
-      - ARM64
-      - dcarrell-mac
-    timeout-minutes: 30
-    defaults:
-      run:
-        working-directory: source
-    env:
-      ZOOMIGO_BUILD_PROFILE: development
-    permissions:
-      contents: read
-      packages: write
-      actions: read
-      checks: read
-    outputs:
-      revision: ${{ steps.revision.outputs.sha }}
-      artifact-id: ${{ steps.worker.outputs.artifact-id }}
-      fallback_completed: ${{ steps.fallback_completed.outputs.completed }}
-    steps: *id001
-    continue-on-error: false
   operate:
     name: Operate isolated dev infrastructure
     needs:
       - context
       - build
-      - build_mac
     if:
-      ${{ !cancelled() && (needs.build.outputs.fallback_completed == 'true' || needs.build_mac.outputs.fallback_completed == 'true' || (needs.build.result == 'skipped'
-      && needs.build_mac.result == 'skipped')) && (always() && needs.context.result == 'success' && (needs.context.outputs.operation == 'reset' || needs.context.outputs.operation
-      == 'destroy' || (needs.build.outputs.fallback_completed == 'true' || needs.build_mac.outputs.fallback_completed == 'true'))) }}
+      ${{ !cancelled() && (needs.build.result == 'success' || (needs.build.result == 'skipped')) && (always() && needs.context.result == 'success' && (needs.context.outputs.operation
+      == 'reset' || needs.context.outputs.operation == 'destroy' || (needs.build.result == 'success'))) }}
     runs-on:
       - self-hosted
       - macOS
@@ -290,13 +239,13 @@ jobs:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         if: needs.context.outputs.operation == 'create' || needs.context.outputs.operation == 'update'
         with:
-          artifact-ids: ${{ (needs.build.outputs.artifact-id || needs.build_mac.outputs.artifact-id) }}
+          artifact-ids: ${{ needs.build.outputs.artifact-id }}
           merge-multiple: true
           path: source
       - name: Verify and unpack the selected application artifact
         if: needs.context.outputs.operation == 'create' || needs.context.outputs.operation == 'update'
         run: |
-          node scripts/artifact-provenance.mjs verify development "${{ (needs.build.outputs.revision || needs.build_mac.outputs.revision) }}" source/worker.tgz source/release-manifest.json
+          node scripts/artifact-provenance.mjs verify development "${{ needs.build.outputs.revision }}" source/worker.tgz source/release-manifest.json
           tar -xzf source/worker.tgz -C source
       - name: Initialize disposable infrastructure state
         env:
@@ -442,7 +391,7 @@ jobs:
           export DEV_KNOWN_HOSTS_FILE="$RUNNER_TEMP/dev-known-hosts"
           ./deploy/release/deploy-dev.sh \
             "${{ github.sha }}" \
-            "${{ (needs.build.outputs.revision || needs.build_mac.outputs.revision) }}" \
+            "${{ needs.build.outputs.revision }}" \
             "$GITHUB_WORKSPACE/source"
       - name: Seed a newly created preview
         if: needs.context.outputs.operation == 'create' || steps.infra.outputs.created == 'true'
@@ -471,7 +420,7 @@ jobs:
         env:
           DEV_SMOKE_API_BASE_URL: https://api-dev.zoomigo.quicktrack.cc
           DEV_API_GATEWAY_TOKEN: ${{ secrets.DEV_API_GATEWAY_TOKEN }}
-          DEV_SMOKE_EXPECTED_RELEASE: ${{ (needs.build.outputs.revision || needs.build_mac.outputs.revision) }}
+          DEV_SMOKE_EXPECTED_RELEASE: ${{ needs.build.outputs.revision }}
         run: node scripts/dev-deploy-smoke.mjs
       - name: Remove Worker
         if: needs.context.outputs.operation == 'destroy'
@@ -504,8 +453,8 @@ jobs:
             echo ""
             echo "- Operation: \`${{ needs.context.outputs.operation }}\`"
             echo "- Trusted deployment revision: \`${{ github.sha }}\`"
-            if [ -n "${{ (needs.build.outputs.revision || needs.build_mac.outputs.revision) }}" ]; then
-              echo "- Application revision: \`${{ (needs.build.outputs.revision || needs.build_mac.outputs.revision) }}\`"
+            if [ -n "${{ needs.build.outputs.revision }}" ]; then
+              echo "- Application revision: \`${{ needs.build.outputs.revision }}\`"
             fi
             if [ -f source/release-manifest.json ]; then
               echo '```json'
@@ -526,13 +475,11 @@ jobs:
     needs:
       - context
       - build
-      - build_mac
       - operate
     if:
-      ${{ !cancelled() && (needs.build.outputs.fallback_completed == 'true' || needs.build_mac.outputs.fallback_completed == 'true' || (needs.build.result == 'skipped'
-      && needs.build_mac.result == 'skipped')) && (always() && needs.context.result == 'success' && (needs.context.outputs.operation == 'qualify' || (needs.operate.result
-      == 'success' && (needs.build.outputs.fallback_completed == 'true' || needs.build_mac.outputs.fallback_completed == 'true') && (needs.context.outputs.operation
-      == 'create' || needs.context.outputs.operation == 'update')))) }}
+      ${{ !cancelled() && (needs.build.result == 'success' || (needs.build.result == 'skipped')) && (always() && needs.context.result == 'success' && (needs.context.outputs.operation
+      == 'qualify' || (needs.operate.result == 'success' && (needs.build.result == 'success') && (needs.context.outputs.operation == 'create' || needs.context.outputs.operation
+      == 'update')))) }}
     runs-on:
       - self-hosted
       - macOS
@@ -551,7 +498,7 @@ jobs:
         env:
           DEV_SMOKE_API_BASE_URL: https://api-dev.zoomigo.quicktrack.cc
           DEV_API_GATEWAY_TOKEN: ${{ secrets.DEV_API_GATEWAY_TOKEN }}
-          DEV_SMOKE_EXPECTED_RELEASE: ${{ (needs.build.outputs.revision || needs.build_mac.outputs.revision) || needs.context.outputs.ref }}
+          DEV_SMOKE_EXPECTED_RELEASE: ${{ needs.build.outputs.revision || needs.context.outputs.ref }}
         run: node scripts/dev-deploy-smoke.mjs --read-only
       - name: Install the deployed-dev release browser
         run: pnpm exec playwright install --with-deps chromium
@@ -573,7 +520,7 @@ jobs:
       - name: Record the qualification receipt
         if: always()
         env:
-          EXPECTED_SHA: ${{ (needs.build.outputs.revision || needs.build_mac.outputs.revision) || needs.context.outputs.ref }}
+          EXPECTED_SHA: ${{ needs.build.outputs.revision || needs.context.outputs.ref }}
         run: |
           {
             echo "### Live development qualification"
