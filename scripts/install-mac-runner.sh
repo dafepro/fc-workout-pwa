@@ -4,23 +4,19 @@ umask 077
 
 SCRIPT_DIRECTORY=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 RUNNER_ROOT="$HOME/.local/share/github-mac-runners"
-REPOSITORY=${1:-}
+REPOSITORY=${1:-dafepro/deploy}
+case "$REPOSITORY" in
+  dafepro/deploy|dafepro/fc-workout-pwa|dafepro/openGym) ;;
+  *) echo 'Only the active deploy, ZoomiGo and openGym repositories are supported.' >&2; exit 1 ;;
+esac
 github() {
-  GH_TOKEN="$(gh auth token -h github.com -u dafepro)" gh "$@"
+  gh "$@"
 }
 
-if [ "$REPOSITORY" = '--all' ]; then
-  github repo list dafepro --limit 1000 --json nameWithOwner,isArchived,isFork \
-    --jq '.[] | select(.isArchived == false and .isFork == false) | .nameWithOwner' |
-    while IFS= read -r runner_repository; do
-      "$0" "$runner_repository"
-   done
-  exit 0
-fi
-if ! [[ "$REPOSITORY" =~ ^dafepro/[a-zA-Z0-9_.-]+$ ]]; then
-  echo 'usage: github-mac-runner dafepro/REPOSITORY | --all' >&2
+[ "$(github api user --jq .login)" = dafepro ] || {
+  echo 'Use gh auth switch --user dafepro before runner setup.' >&2
   exit 1
-fi
+}
 if [ "$(uname -s)/$(uname -m)" != 'Darwin/arm64' ]; then
   echo 'This installer requires the Apple Silicon Mac.' >&2
   exit 1
@@ -34,26 +30,34 @@ github api "repos/$REPOSITORY" --jq 'select(.permissions.admin == true and .arch
 
 RUNNER_SLUG=${REPOSITORY//\//--}
 RUNNER_DIRECTORY="$RUNNER_ROOT/$RUNNER_SLUG"
-if [ "$REPOSITORY" = 'dafepro/fc-workout-pwa' ] &&
-   [ -f "$HOME/.local/share/zoomigo-actions-runner/.runner" ]; then
+if [ "$REPOSITORY" = dafepro/fc-workout-pwa ] && [ -f "$HOME/.local/share/zoomigo-actions-runner/.runner" ]; then
   RUNNER_DIRECTORY="$HOME/.local/share/zoomigo-actions-runner"
 fi
-if [ -f "$RUNNER_DIRECTORY/.runner" ]; then
-  RUNNER_ID=$(jq -r .agentId "$RUNNER_DIRECTORY/.runner")
-  github api --method POST "repos/$REPOSITORY/actions/runners/$RUNNER_ID/labels" \
-    -f 'labels[]=dcarrell-mac' >/dev/null
-  (cd "$RUNNER_DIRECTORY" && ./svc.sh status)
-  exit 0
-fi
 
-mkdir -p "$RUNNER_ROOT/packages" "$RUNNER_ROOT/guard" "$RUNNER_ROOT/config/$RUNNER_SLUG/docker" \
+mkdir -p "$RUNNER_ROOT/packages" "$RUNNER_DIRECTORY/guard" "$RUNNER_ROOT/config/$RUNNER_SLUG/docker" \
   "$RUNNER_ROOT/config/$RUNNER_SLUG/gh" "$RUNNER_ROOT/pnpm-store" "$RUNNER_DIRECTORY"
 chmod 700 "$RUNNER_ROOT" "$RUNNER_DIRECTORY"
 for guard_file in runner-job-guard.sh runner-job-guard.mjs; do
-  cp "$SCRIPT_DIRECTORY/$guard_file" "$RUNNER_ROOT/guard/$guard_file.new"
-  mv "$RUNNER_ROOT/guard/$guard_file.new" "$RUNNER_ROOT/guard/$guard_file"
+  cp "$SCRIPT_DIRECTORY/$guard_file" "$RUNNER_DIRECTORY/guard/$guard_file.new"
+  mv "$RUNNER_DIRECTORY/guard/$guard_file.new" "$RUNNER_DIRECTORY/guard/$guard_file"
 done
-chmod 700 "$RUNNER_ROOT/guard/runner-job-guard.sh"
+chmod 700 "$RUNNER_DIRECTORY/guard/runner-job-guard.sh"
+printf '{"repository":"%s"}\n' "$REPOSITORY" > "$RUNNER_DIRECTORY/guard/runner-repository.json"
+if [ -f "$RUNNER_DIRECTORY/.runner" ]; then
+  python3 - "$RUNNER_DIRECTORY/.env" "$RUNNER_DIRECTORY/guard/runner-job-guard.sh" <<'PY'
+import sys
+from pathlib import Path
+p=Path(sys.argv[1]); lines=p.read_text().splitlines()
+assert sum(line.startswith('ACTIONS_RUNNER_HOOK_JOB_STARTED=') for line in lines)==1
+p.write_text('\n'.join('ACTIONS_RUNNER_HOOK_JOB_STARTED='+sys.argv[2] if line.startswith('ACTIONS_RUNNER_HOOK_JOB_STARTED=') else line for line in lines)+'\n')
+PY
+  RUNNER_ID=$(jq -r .agentId "$RUNNER_DIRECTORY/.runner")
+  github api --method POST "repos/$REPOSITORY/actions/runners/$RUNNER_ID/labels" \
+    -f 'labels[]=dcarrell-mac' >/dev/null
+  (cd "$RUNNER_DIRECTORY" && ./svc.sh stop && ./svc.sh start && ./svc.sh status)
+  exit 0
+fi
+
 RUNNER_METADATA=$(github api "repos/$REPOSITORY/actions/runners/downloads" \
   --jq '.[] | select(.os == "osx" and .architecture == "arm64") | [.filename, .sha256_checksum, .download_url] | @tsv')
 IFS=$'\t' read -r RUNNER_FILENAME RUNNER_CHECKSUM RUNNER_URL <<<"$RUNNER_METADATA"
@@ -73,7 +77,7 @@ RUNNER_TOKEN=$(github api --method POST "repos/$REPOSITORY/actions/runners/regis
   --name "dcarrell-mac-arm64-${REPOSITORY#*/}" --labels dcarrell-mac --work _work
 unset RUNNER_TOKEN
 cat > .env <<ENV
-ACTIONS_RUNNER_HOOK_JOB_STARTED=$RUNNER_ROOT/guard/runner-job-guard.sh
+ACTIONS_RUNNER_HOOK_JOB_STARTED=$RUNNER_DIRECTORY/guard/runner-job-guard.sh
 GH_CONFIG_DIR=$RUNNER_ROOT/config/$RUNNER_SLUG/gh
 GIT_CONFIG_GLOBAL=$RUNNER_ROOT/config/$RUNNER_SLUG/gitconfig
 DOCKER_CONFIG=$RUNNER_ROOT/config/$RUNNER_SLUG/docker

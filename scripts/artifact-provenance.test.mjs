@@ -33,6 +33,31 @@ const artifacts = [{ id: 7, name: "tfplan-v2", expired: false }];
 test("accepts only the successful expected main producer and unique live artifact", () => {
   assert.equal(validateProducer(run, jobs, artifacts, expected).id, 7);
 });
+test("Mac build fallback is accepted only for the allowlisted application producer role", () => {
+  const build = {
+    ...expected,
+    workflow: ".github/workflows/backend-image.yml",
+    job: "Publish immutable GHCR image",
+  };
+  const buildRun = { ...run, path: build.workflow };
+  assert.equal(
+    validateProducer(
+      buildRun,
+      [{ name: build.job + " (Mac fallback)", conclusion: "success" }],
+      artifacts,
+      build,
+    ).id,
+    7,
+  );
+  assert.throws(() =>
+    validateProducer(
+      run,
+      [{ name: expected.job + " (Mac fallback)", conclusion: "success" }],
+      artifacts,
+      expected,
+    ),
+  );
+});
 
 for (const [field, value] of [
   ["repository", { full_name: "attacker/repo" }],

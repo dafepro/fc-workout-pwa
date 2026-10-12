@@ -1,7 +1,6 @@
 name: Verify and publish ZoomiGo
-
-on:
-  pull_request:
+"on":
+  pull_request: null
   push:
     branches:
       - main
@@ -12,27 +11,31 @@ on:
         required: false
         type: boolean
         default: false
-
 concurrency:
   group: backend-image-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-
 permissions:
   contents: read
-
 jobs:
   verify:
-    name: Static checks, tests, and build
-    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && fromJSON('["ubuntu-24.04"]') || fromJSON('["self-hosted", "macOS", "ARM64", "dcarrell-mac"]') }}
+    name: Static checks, tests, and build (GitHub-hosted)
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     outputs:
       publish: ${{ steps.changes.outputs.publish }}
       worker-artifact: ${{ steps.worker.outputs.artifact-id }}
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      fallback_completed: ${{ steps.fallback_completed.outputs.completed }}
+    steps: &id001
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 2
-
+      - name: Check whether GitHub-hosted startup permits a Mac fallback
+        id: runner_fallback
+        if: runner.environment == 'self-hosted'
+        uses: ./.github/actions/hosted-fallback
+        with:
+          job-name: Static checks, tests, and build (GitHub-hosted)
+          root: .
       - name: Determine whether publication is needed
         id: changes
         env:
@@ -42,76 +45,138 @@ jobs:
           if [ "${{ github.event_name }}" = push ] && [ -n "$BEFORE_SHA" ] && [ "$BEFORE_SHA" != 0000000000000000000000000000000000000000 ]; then
             git fetch --depth=1 origin "$BEFORE_SHA"
             git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" >"$RUNNER_TEMP/changed-paths"
-            if ! grep -Eqv '^(docs/|infra/|\.github/|deploy/release/|deploy/secrets/README\.md$|AGENTS\.md$|scripts/(artifact-provenance|infra-plan-encryption|drill-result|runner-job-guard|install-mac-runner|observability-query|observability-host-diagnostic|lounge-placement-holds-monitor|deploy-dev|dev-deploy-smoke|retry-command|pin-host-key-branch)[./-])' "$RUNNER_TEMP/changed-paths"; then
+            if ! grep -Eqv '^(docs/|infra/|\.github/|deploy/release/|deploy/secrets/README\.md$|AGENTS\.md$|scripts/(artifact-provenance|infra-plan-encryption|drill-result|runner-job-guard|install-mac-runner|observability-query|observability-host-diagnostic|lounge-placement-holds-monitor|deploy-dev|dev-deploy-smoke|retry-command|pin-host-key-branch|runner-repository|hosted-fallback|unix-automation-contract)[./-])' "$RUNNER_TEMP/changed-paths"; then
               publish=false
             fi
           fi
           echo "publish=$publish" >>"$GITHUB_OUTPUT"
-
+        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - uses: ./.github/actions/setup
         with:
           go: "true"
           tofu: "true"
-
+        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - name: Validate workflow syntax
         run: |
           GOBIN="$RUNNER_TEMP/workflow-tools" go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
           "$RUNNER_TEMP/workflow-tools/actionlint" -shellcheck= -pyflakes=
-
+        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - name: Static checks, unit tests, builds, and contracts
-        if: github.event_name != 'workflow_dispatch' || !inputs.run_e2e
+        if:
+          ${{ (github.event_name != 'workflow_dispatch' || !inputs.run_e2e) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false')
+          }}
         run: ./scripts/verify.sh
-
       - name: Intentional full verification
-        if: github.event_name == 'workflow_dispatch' && inputs.run_e2e
+        if:
+          ${{ (github.event_name == 'workflow_dispatch' && inputs.run_e2e) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false')
+          }}
         run: ./scripts/verify.sh --all
-
       - name: Package the verified production Worker
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.changes.outputs.publish == 'true'
+        if:
+          ${{ (github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.changes.outputs.publish == 'true') && (runner.environment != 'self-hosted'
+          || steps.runner_fallback.outputs.run != 'false') }}
         run: |
           mkdir -p "$RUNNER_TEMP/production-worker"
           tar -czf "$RUNNER_TEMP/production-worker/worker.tgz" dist drizzle
-
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         id: worker
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.changes.outputs.publish == 'true'
+        if:
+          ${{ (github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.changes.outputs.publish == 'true') && (runner.environment != 'self-hosted'
+          || steps.runner_fallback.outputs.run != 'false') }}
         with:
           name: production-worker-${{ github.sha }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/production-worker/worker.tgz
           retention-days: 30
           if-no-files-found: error
-
+      - name: Record completed build
+        id: fallback_completed
+        run: echo "completed=true" >>"$GITHUB_OUTPUT"
+        working-directory: ${{ github.workspace }}
+    continue-on-error:
+      ${{ github.repository == 'dafepro/fc-workout-pwa' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') ||
+      (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.id == 313492551)) }}
+    permissions:
+      contents: read
+      actions: read
+      checks: read
+  verify_mac:
+    name: Static checks, tests, and build (Mac fallback)
+    runs-on:
+      - self-hosted
+      - macOS
+      - ARM64
+      - dcarrell-mac
+    timeout-minutes: 30
+    outputs:
+      publish: ${{ steps.changes.outputs.publish }}
+      worker-artifact: ${{ steps.worker.outputs.artifact-id }}
+      fallback_completed: ${{ steps.fallback_completed.outputs.completed }}
+    steps: *id001
+    continue-on-error: false
+    permissions:
+      contents: read
+      actions: read
+      checks: read
+    needs:
+      - verify
+    if:
+      ${{ !cancelled() && (github.repository == 'dafepro/fc-workout-pwa' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target')
+      || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.id == 313492551))) && needs.verify.result != 'skipped'
+      && needs.verify.outputs.fallback_completed != 'true' }}
+  verify_status:
+    name: Static checks, tests, and build
+    needs: [verify, verify_mac]
+    if: ${{ always() && !cancelled() }}
+    runs-on: ${{ needs.verify.outputs.fallback_completed == 'true' && 'ubuntu-24.04' || github.repository == 'dafepro/fc-workout-pwa' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.id == 313492551)) && fromJSON('["self-hosted","macOS","ARM64","dcarrell-mac"]') || 'ubuntu-24.04' }}
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Require a completed verification attempt
+        env:
+          COMPLETED: ${{ needs.verify.outputs.fallback_completed || needs.verify_mac.outputs.fallback_completed }}
+        run: test "$COMPLETED" = true
   publish:
     name: Publish immutable GHCR image
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.verify.outputs.publish == 'true'
-    needs: verify
-    runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
+    if:
+      ${{ !cancelled() && (needs.verify.outputs.fallback_completed == 'true' || needs.verify_mac.outputs.fallback_completed == 'true') && (github.event_name !=
+      'pull_request' && github.ref == 'refs/heads/main' && (needs.verify.outputs.publish || needs.verify_mac.outputs.publish) == 'true') }}
+    needs:
+      - verify
+      - verify_mac
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
       contents: read
       packages: write
       actions: read
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-
-      - uses: ./.github/actions/setup
-
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      checks: read
+    steps: &id002
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Check whether GitHub-hosted startup permits a Mac fallback
+        id: runner_fallback
+        if: runner.environment == 'self-hosted'
+        uses: ./.github/actions/hosted-fallback
         with:
-          artifact-ids: ${{ needs.verify.outputs.worker-artifact }}
+          job-name: Publish immutable GHCR image
+          root: .
+      - uses: ./.github/actions/setup
+        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          artifact-ids: ${{ (needs.verify.outputs.worker-artifact || needs.verify_mac.outputs.worker-artifact) }}
           merge-multiple: true
           path: ${{ runner.temp }}/production-release
-
+        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - uses: ./.github/actions/buildx
         id: buildx
-
-      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
         id: image
         with:
           context: backend
@@ -127,16 +192,51 @@ jobs:
           cache-to: ${{ runner.environment == 'github-hosted' && 'type=gha,mode=max,scope=production-api' || '' }}
           provenance: mode=max
           sbom: true
-
+        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - name: Record matched immutable production artifacts
         env:
           API_DIGEST: ${{ steps.image.outputs.digest }}
           CONTROLLER_SHA: ${{ github.sha }}
         run: node scripts/artifact-provenance.mjs create production "$GITHUB_SHA" "$RUNNER_TEMP/production-release/worker.tgz" "$RUNNER_TEMP/production-release/release-manifest.json"
-
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: production-release-${{ github.sha }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/production-release
           retention-days: 30
           if-no-files-found: error
+        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
+      - name: Record completed build
+        id: fallback_completed
+        run: echo "completed=true" >>"$GITHUB_OUTPUT"
+        working-directory: ${{ github.workspace }}
+    continue-on-error:
+      ${{ github.repository == 'dafepro/fc-workout-pwa' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') ||
+      (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.id == 313492551)) }}
+    outputs:
+      fallback_completed: ${{ steps.fallback_completed.outputs.completed }}
+  publish_mac:
+    name: Publish immutable GHCR image (Mac fallback)
+    if:
+      ${{ !cancelled() && (github.repository == 'dafepro/fc-workout-pwa' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target')
+      || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.id == 313492551))) && needs.publish.result != 'skipped'
+      && needs.publish.outputs.fallback_completed != 'true' }}
+    needs:
+      - verify
+      - verify_mac
+      - publish
+    runs-on:
+      - self-hosted
+      - macOS
+      - ARM64
+      - dcarrell-mac
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+      actions: read
+      checks: read
+    steps: *id002
+    continue-on-error: false
+    outputs:
+      fallback_completed: ${{ steps.fallback_completed.outputs.completed }}
