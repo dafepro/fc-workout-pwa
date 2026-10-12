@@ -9,6 +9,7 @@ name: Operate disposable ZoomiGo dev
       - "AGENTS.md"
       - "scripts/hosted-fallback.mjs"
       - "scripts/runner-job-guard*"
+      - "scripts/runner-repository.json"
       - "scripts/install-mac-runner.sh"
       - "scripts/unix-automation-contract.test.mjs"
       - "scripts/artifact-provenance*"
