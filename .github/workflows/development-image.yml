@@ -3,7 +3,17 @@ name: Publish development build outputs
   push:
     branches:
       - main
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      build_runner:
+        description: Use the repository preference, Mac, or GitHub-hosted Ubuntu
+        required: false
+        type: choice
+        default: default
+        options:
+          - default
+          - mac
+          - github
 concurrency:
   group: development-build-${{ github.ref }}
   cancel-in-progress: false
@@ -13,7 +23,10 @@ jobs:
   build:
     name: Verify and package the selected application
     if: github.ref == 'refs/heads/main' && vars.DEV_RELEASE_BUILDS_ENABLED == 'true'
-    runs-on: ubuntu-24.04
+    runs-on:
+      ${{ (github.repository == 'dafepro/fc-workout-pwa' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name
+      == github.repository && github.event.pull_request.user.id == 313492551))) && (github.event.inputs.build_runner == 'mac' || (github.event.inputs.build_runner
+      != 'github' && vars.BUILD_RUNNER != 'github')) && fromJSON('["self-hosted","macOS","ARM64","dcarrell-mac"]') || 'ubuntu-24.04' }}
     timeout-minutes: 30
     defaults:
       run:
@@ -28,8 +41,7 @@ jobs:
     outputs:
       revision: ${{ steps.revision.outputs.sha }}
       artifact-id: ${{ steps.worker.outputs.artifact-id }}
-      fallback_completed: ${{ steps.fallback_completed.outputs.completed }}
-    steps: &id001
+    steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.sha }}
@@ -40,52 +52,36 @@ jobs:
           path: source
           ref: ${{ github.sha }}
           persist-credentials: false
-      - name: Check whether GitHub-hosted startup permits a Mac fallback
-        id: runner_fallback
-        if: runner.environment == 'self-hosted'
-        uses: ./controller/.github/actions/hosted-fallback
-        with:
-          job-name: Verify and package the selected application
-          root: controller
       - name: Resolve the deployed revision
         id: revision
         run: echo "sha=$(git rev-parse HEAD)" >>"$GITHUB_OUTPUT"
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - uses: ./controller/.github/actions/setup
         with:
           go: "true"
           root: source
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - name: Install the selected revision
         run: pnpm install --frozen-lockfile
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - name: Test the player application
         run: |
           pnpm test
           pnpm test:world
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - name: Type-check and build the development application
         run: |
           pnpm typecheck
           pnpm build
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - name: Enforce the dev Worker delivery budget
         run: pnpm verify:worker-upload
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - name: Test the API in production and development build modes
         run: |
           go -C backend test ./...
           go -C backend test -tags=dev ./...
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - uses: ./controller/.github/actions/buildx
         id: buildx
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - name: Publish the dev-tagged API image
         id: api
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
@@ -103,7 +99,6 @@ jobs:
           cache-to: ${{ runner.environment == 'github-hosted' && 'type=gha,mode=max,scope=development-api' || '' }}
           provenance: mode=max
           sbom: true
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - name: Publish the Team World relay image
         id: relay
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
@@ -118,7 +113,6 @@ jobs:
           cache-to: ${{ runner.environment == 'github-hosted' && 'type=gha,mode=max,scope=development-relay' || '' }}
           provenance: mode=max
           sbom: true
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - name: Prove the isolated Team World image starts
         env:
           RELAY_DIGEST: ${{ steps.relay.outputs.digest }}
@@ -138,7 +132,6 @@ jobs:
               console.log("Isolated Team World image is healthy");
               process.exit(0);
             '
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - name: Package matched immutable development artifacts
         env:
           API_DIGEST: ${{ steps.api.outputs.digest }}
@@ -148,7 +141,6 @@ jobs:
           mkdir -p "$RUNNER_TEMP/dev-release"
           tar -czf "$RUNNER_TEMP/dev-release/worker.tgz" dist
           node "$GITHUB_WORKSPACE/controller/scripts/artifact-provenance.mjs" create development "${{ steps.revision.outputs.sha }}" "$RUNNER_TEMP/dev-release/worker.tgz" "$RUNNER_TEMP/dev-release/release-manifest.json"
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         id: worker
         with:
@@ -156,47 +148,8 @@ jobs:
           path: ${{ runner.temp }}/dev-release
           if-no-files-found: error
           retention-days: 1
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - name: Publish retained release and request a deployment PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEPLOY_REQUEST_TOKEN: ${{ secrets.DEPLOY_REQUEST_TOKEN }}
         run: python3 "$GITHUB_WORKSPACE/controller/scripts/publish-release.py" zoomigo development zoomigo "$RUNNER_TEMP/dev-release"
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
-      - name: Record completed build
-        id: fallback_completed
-        run: echo "completed=true" >>"$GITHUB_OUTPUT"
-        working-directory: ${{ github.workspace }}
-    continue-on-error:
-      ${{ github.repository == 'dafepro/fc-workout-pwa' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') ||
-      (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.id == 313492551)) }}
-  build_mac:
-    name: Verify and package the selected application (Mac fallback)
-    if:
-      ${{ !cancelled() && (github.repository == 'dafepro/fc-workout-pwa' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target')
-      || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.id == 313492551))) && needs.build.result != 'skipped'
-      && needs.build.outputs.fallback_completed != 'true' }}
-    runs-on:
-      - self-hosted
-      - macOS
-      - ARM64
-      - dcarrell-mac
-    timeout-minutes: 30
-    defaults:
-      run:
-        working-directory: source
-    env:
-      ZOOMIGO_BUILD_PROFILE: development
-    permissions:
-      contents: write
-      packages: write
-      actions: read
-      checks: read
-    outputs:
-      revision: ${{ steps.revision.outputs.sha }}
-      artifact-id: ${{ steps.worker.outputs.artifact-id }}
-      fallback_completed: ${{ steps.fallback_completed.outputs.completed }}
-    steps: *id001
-    continue-on-error: false
-    needs:
-      - build
