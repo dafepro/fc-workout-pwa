@@ -3,6 +3,11 @@ import { appendFile, readFile, writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
 export function validateProducer(run, jobs, artifacts, expected) {
+  const macBuild =
+    (expected.workflow === ".github/workflows/backend-image.yml" &&
+      expected.job === "Publish immutable GHCR image") ||
+    (expected.workflow === ".github/workflows/dev.yml" &&
+      expected.job === "Verify and package the selected application");
   if (
     run.repository?.full_name !== expected.repository ||
     run.head_repository?.full_name !== expected.repository ||
@@ -14,7 +19,10 @@ export function validateProducer(run, jobs, artifacts, expected) {
     run.status !== "completed" ||
     run.conclusion !== "success" ||
     !jobs.some(
-      (job) => job.name === expected.job && job.conclusion === "success",
+      (job) =>
+        (job.name === expected.job ||
+          (macBuild && job.name === expected.job + " (Mac fallback)")) &&
+        job.conclusion === "success",
     )
   )
     throw new Error(

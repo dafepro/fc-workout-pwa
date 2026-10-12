@@ -1,0 +1,28 @@
+name: Check hosted runner availability
+description: Permit Mac builds only after a hosted billing or runner-allocation startup failure
+inputs:
+  job-name:
+    description: Exact display name of the corresponding hosted job
+    required: true
+  root:
+    description: Checkout directory relative to the workspace
+    default: .
+outputs:
+  run:
+    description: Whether the Mac must execute this build
+    value: ${{ steps.gate.outputs.run }}
+runs:
+  using: composite
+  steps:
+    - id: gate
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+      env:
+        HOSTED_JOB_NAME: ${{ inputs.job-name }}
+        FALLBACK_ROOT: ${{ inputs.root }}
+      with:
+        script: |
+          const { pathToFileURL } = await import('node:url');
+          const { resolve } = await import('node:path');
+          const path = resolve(process.env.GITHUB_WORKSPACE, process.env.FALLBACK_ROOT, 'scripts/hosted-fallback.mjs');
+          const { default: fallback } = await import(pathToFileURL(path).href);
+          await fallback({github, context, core, name: process.env.HOSTED_JOB_NAME});
