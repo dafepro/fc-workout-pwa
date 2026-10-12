@@ -148,7 +148,7 @@ test("macOS and Linux are the canonical local automation path", async () => {
   assert.match(workflow, /run_e2e:[\s\S]*type: boolean[\s\S]*default: false/);
   assert.match(
     workflow,
-    /if:\s*\$\{\{ \(github\.event_name == 'workflow_dispatch' && inputs\.run_e2e\)/,
+    /if:\s*\$\{\{ github\.event_name == 'workflow_dispatch' && inputs\.run_e2e \}\}/,
   );
   assert.doesNotMatch(workflow, /\.ps1/);
   assert.match(runbook, /infra\/digitalocean\/provision\.sh/);
