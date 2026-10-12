@@ -127,7 +127,7 @@ jobs:
     name: Static checks, tests, and build
     needs: [verify, verify_mac]
     if: ${{ always() && !cancelled() }}
-    runs-on: ${{ github.repository == 'dafepro/fc-workout-pwa' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.id == 313492551)) && fromJSON('["self-hosted","macOS","ARM64","dcarrell-mac"]') || 'ubuntu-24.04' }}
+    runs-on: ${{ needs.verify.outputs.fallback_completed == 'true' && 'ubuntu-24.04' || github.repository == 'dafepro/fc-workout-pwa' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.id == 313492551)) && fromJSON('["self-hosted","macOS","ARM64","dcarrell-mac"]') || 'ubuntu-24.04' }}
     timeout-minutes: 5
     permissions: {}
     steps:
