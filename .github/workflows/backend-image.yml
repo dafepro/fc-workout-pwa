@@ -18,7 +18,7 @@ permissions:
   contents: read
 jobs:
   verify:
-    name: Static checks, tests, and build
+    name: Static checks, tests, and build (GitHub-hosted)
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     outputs:
@@ -34,7 +34,7 @@ jobs:
         if: runner.environment == 'self-hosted'
         uses: ./.github/actions/hosted-fallback
         with:
-          job-name: Static checks, tests, and build
+          job-name: Static checks, tests, and build (GitHub-hosted)
           root: .
       - name: Determine whether publication is needed
         id: changes
@@ -123,6 +123,18 @@ jobs:
       ${{ !cancelled() && (github.repository == 'dafepro/fc-workout-pwa' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target')
       || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.id == 313492551))) && needs.verify.result != 'skipped'
       && needs.verify.outputs.fallback_completed != 'true' }}
+  verify_status:
+    name: Static checks, tests, and build
+    needs: [verify, verify_mac]
+    if: ${{ always() && !cancelled() }}
+    runs-on: ${{ github.repository == 'dafepro/fc-workout-pwa' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.id == 313492551)) && fromJSON('["self-hosted","macOS","ARM64","dcarrell-mac"]') || 'ubuntu-24.04' }}
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Require a completed verification attempt
+        env:
+          COMPLETED: ${{ needs.verify.outputs.fallback_completed || needs.verify_mac.outputs.fallback_completed }}
+        run: test "$COMPLETED" = true
   publish:
     name: Publish immutable GHCR image
     if:
