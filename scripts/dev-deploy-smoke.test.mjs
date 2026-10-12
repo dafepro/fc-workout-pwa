@@ -263,7 +263,7 @@ test("updates prove the exact container and new infrastructure proves final flow
     /(?:needs\.build\.outputs\.revision|\(needs\.build\.outputs\.revision \|\| needs\.build_mac\.outputs\.revision\)) \|\| needs\.context\.outputs\.ref/,
   );
   const qualification = workflow.slice(workflow.indexOf("\n  qualify:"));
-  assert.match(qualification, /needs\.operate\.result == 'success'/);
+  assert.match(qualification, /needs\.operate\.result\s+== 'success'/);
   assert.match(
     qualification,
     /needs\.context\.outputs\.operation == 'qualify'/,
