@@ -23,7 +23,6 @@ def api(path, method='GET', payload=None, token=None):
 def publish(app, environment, variant, directory):
     repo = os.environ['GITHUB_REPOSITORY']
     expected = {'zoomigo': ('dafepro/fc-workout-pwa', 'main'),
-                'original': ('dafepro/uplift', 'main'),
                 'opengym': ('dafepro/openGym', 'codex/focused-workout-overlay')}
     if variant not in expected or expected[variant][0] != repo or environment not in ('production', 'development') or (
         app == 'uplift' and environment != 'production') or os.environ['GITHUB_REF'] != 'refs/heads/' + expected[variant][1]:
