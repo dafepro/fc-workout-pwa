@@ -266,7 +266,7 @@ test("updates prove the exact container and new infrastructure proves final flow
   assert.match(qualification, /needs\.operate\.result\s+== 'success'/);
   assert.match(
     qualification,
-    /needs\.context\.outputs\.operation == 'qualify'/,
+    /needs\.context\.outputs\.operation\s+== 'qualify'/,
   );
   assert.match(qualification, /environment: dev/);
   assert.doesNotMatch(

@@ -507,4 +507,4 @@ Backup formats, the logical export, and isolated restore details remain in
 `docs/backend/BACKUP_AND_RESTORE.md`; production cutover and rollback are in
 `docs/backend/LIVE_RESTORE_RUNBOOK.md`.
 
-Builds use GitHub-hosted Ubuntu first, then the registered Mac only for verified billing or runner-allocation startup errors. Failed tests do not trigger a Mac build retry. CI-only runner/controller changes do not automatically update the disposable dev environment; manual lifecycle operations retain their existing behavior.
+Builds prefer the registered Mac. Set repository variable `BUILD_RUNNER=github`, or manual input `build_runner=github`, to use GitHub-hosted Ubuntu when the Mac is unavailable. Selection is explicit; offline Mac jobs are not automatically rerouted. Failed builds and tests remain failures. CI-only runner/controller changes do not automatically update the disposable dev environment; manual lifecycle operations retain their existing behavior.
