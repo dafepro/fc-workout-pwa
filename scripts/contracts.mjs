@@ -188,7 +188,7 @@ async function deploymentContract() {
     "Release workflow",
   );
   requireCondition(
-    /^    if: github\.ref == 'refs\/heads\/main' && vars\.PRODUCTION_DEPLOY_ENABLED == 'true'$/m.test(
+    /^    if: github\.ref == 'refs\/heads\/main' && vars\.PRODUCTION_DEPLOY_ENABLED == 'true' && vars\.DEPLOY_AUTHORITY != 'central'$/m.test(
       workflow,
     ),
     "The production release job must run only from the main workflow ref.",
@@ -289,13 +289,13 @@ async function secretContract() {
     "Infrastructure workflow",
   );
   requireCondition(
-    /^    if: github\.ref == 'refs\/heads\/main' && inputs\.action == 'plan'$/m.test(
+    /^    if: github\.ref == 'refs\/heads\/main' && inputs\.action == 'plan' && vars\.DEPLOY_AUTHORITY != 'central'$/m.test(
       infraWorkflow,
     ),
     "The production infrastructure plan must run only from the main workflow ref.",
   );
   requireCondition(
-    /^    if: github\.ref == 'refs\/heads\/main' && inputs\.action == 'apply'$/m.test(
+    /^    if: github\.ref == 'refs\/heads\/main' && inputs\.action == 'apply' && vars\.DEPLOY_AUTHORITY != 'central'$/m.test(
       infraWorkflow,
     ),
     "The production infrastructure apply must run only from the main workflow ref.",

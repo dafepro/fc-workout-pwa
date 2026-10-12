@@ -24,7 +24,7 @@ permissions:
 
 jobs:
   plan:
-    if: github.ref == 'refs/heads/main' && inputs.action == 'plan'
+    if: github.ref == 'refs/heads/main' && inputs.action == 'plan' && vars.DEPLOY_AUTHORITY != 'central'
     name: tofu plan
     runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
     timeout-minutes: 15
@@ -138,7 +138,7 @@ jobs:
           rm -f -- "$RUNNER_TEMP/deploy_ssh_key" infra/digitalocean/tfplan infra/digitalocean/plan-manifest.json
 
   apply:
-    if: github.ref == 'refs/heads/main' && inputs.action == 'apply'
+    if: github.ref == 'refs/heads/main' && inputs.action == 'apply' && vars.DEPLOY_AUTHORITY != 'central'
     name: tofu apply
     runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
     timeout-minutes: 15

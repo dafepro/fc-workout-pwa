@@ -92,7 +92,7 @@ jobs:
   # is invisible here and the job would silently skip.
   host-checks:
     name: Read-only checks on the production VM
-    if: github.ref == 'refs/heads/main' && inputs.host_checks && vars.PRODUCTION_DRILLS_ENABLED == 'true'
+    if: (github.ref == 'refs/heads/main' && inputs.host_checks && vars.PRODUCTION_DRILLS_ENABLED == 'true') && vars.DEPLOY_AUTHORITY != 'central'
     runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
     timeout-minutes: 15
     environment: production

@@ -28,7 +28,7 @@ permissions:
 jobs:
   context:
     name: Resolve dev operation
-    if: github.ref == 'refs/heads/main' && (github.event_name != 'push' || vars.DEV_AUTO_UPDATE_ENABLED != 'false')
+    if: (github.ref == 'refs/heads/main' && (github.event_name != 'push' || vars.DEV_AUTO_UPDATE_ENABLED != 'false')) && vars.DEV_DEPLOY_AUTHORITY != 'central'
     runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
     outputs:
       operation: ${{ steps.resolve.outputs.operation }}

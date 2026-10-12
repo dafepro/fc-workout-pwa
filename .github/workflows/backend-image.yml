@@ -88,7 +88,7 @@ jobs:
     runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
     timeout-minutes: 20
     permissions:
-      contents: read
+      contents: write
       packages: write
       actions: read
     steps:
@@ -140,3 +140,9 @@ jobs:
           path: ${{ runner.temp }}/production-release
           retention-days: 30
           if-no-files-found: error
+      - name: Publish retained release and request a deployment PR
+        if: vars.DEPLOY_REQUESTS_ENABLED == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPLOY_REQUEST_TOKEN: ${{ secrets.DEPLOY_REQUEST_TOKEN }}
+        run: python3 scripts/publish-release.py zoomigo production zoomigo "$RUNNER_TEMP/production-release"
