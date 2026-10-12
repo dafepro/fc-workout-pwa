@@ -17,6 +17,7 @@ function run(eventName, payload, environment = {}) {
         GITHUB_REPOSITORY: repository,
         GITHUB_EVENT_NAME: eventName,
         GITHUB_EVENT_PATH: eventPath,
+        GITHUB_REF: "refs/heads/main",
         ...environment,
       },
       encoding: "utf8",
@@ -34,6 +35,7 @@ function pullRequest(headRepository) {
   return {
     ...trusted,
     pull_request: {
+      user: { id: 313492551 },
       head: { repo: headRepository && { full_name: headRepository } },
       base: { repo: { full_name: repository } },
     },
@@ -72,9 +74,9 @@ test("rejects unreadable event payload", () => {
   );
 });
 
-test("allows another repository owned by the same account", () => {
+test("rejects another owned repository on this fixed registration", () => {
   const otherRepository = "dafepro/zmap";
-  assert.equal(
+  assert.notEqual(
     run(
       "push",
       { repository: { full_name: otherRepository } },
@@ -95,9 +97,9 @@ test("rejects a matching repository belonging to a different account", () => {
   );
 });
 
-test("allows an internal PR in another owned repository", () => {
+test("rejects an internal PR on another registration", () => {
   const other = "dafepro/zmap";
-  assert.equal(
+  assert.notEqual(
     run(
       "pull_request",
       {

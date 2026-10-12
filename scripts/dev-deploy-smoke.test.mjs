@@ -260,10 +260,10 @@ test("updates prove the exact container and new infrastructure proves final flow
   );
   assert.match(
     readOnlyStep,
-    /needs\.build\.outputs\.revision \|\| needs\.context\.outputs\.ref/,
+    /(?:needs\.build\.outputs\.revision|\(needs\.build\.outputs\.revision \|\| needs\.build_mac\.outputs\.revision\)) \|\| needs\.context\.outputs\.ref/,
   );
   const qualification = workflow.slice(workflow.indexOf("\n  qualify:"));
-  assert.match(qualification, /needs\.operate\.result == 'success'/);
+  assert.match(qualification, /needs\.operate\.result\s+== 'success'/);
   assert.match(
     qualification,
     /needs\.context\.outputs\.operation == 'qualify'/,
@@ -341,7 +341,7 @@ test("main pushes resolve to exact-sha dev updates while manual operations remai
 
   assert.match(
     workflow,
-    /on:\n  push:\n    branches:\n      - main\n  workflow_dispatch:/,
+    /["']?on["']?:\n  push:\n    branches:\n      - main\n(?:    paths-ignore:\n(?:      - .*\n)+)?  workflow_dispatch:/,
   );
   assert.match(workflow, /name: Resolve dev operation/);
   assert.match(workflow, /EVENT_NAME: \$\{\{ github\.event_name \}\}/);
