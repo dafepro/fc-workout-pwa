@@ -12,6 +12,7 @@ name: Operate disposable ZoomiGo dev
       - "scripts/runner-repository.json"
       - "scripts/install-mac-runner.sh"
       - "scripts/unix-automation-contract.test.mjs"
+      - "scripts/dev-deploy-smoke.test.mjs"
       - "scripts/artifact-provenance*"
   workflow_dispatch:
     inputs:
