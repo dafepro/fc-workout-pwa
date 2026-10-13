@@ -139,7 +139,7 @@ jobs:
           CONTROLLER_SHA: ${{ github.sha }}
         run: |
           mkdir -p "$RUNNER_TEMP/dev-release"
-          tar -czf "$RUNNER_TEMP/dev-release/worker.tgz" dist
+          COPYFILE_DISABLE=1 tar -czf "$RUNNER_TEMP/dev-release/worker.tgz" dist
           node "$GITHUB_WORKSPACE/controller/scripts/artifact-provenance.mjs" create development "${{ steps.revision.outputs.sha }}" "$RUNNER_TEMP/dev-release/worker.tgz" "$RUNNER_TEMP/dev-release/release-manifest.json"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         id: worker
