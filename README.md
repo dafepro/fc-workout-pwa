@@ -78,6 +78,22 @@ contacts the registry, so it is not part of the offline-default test command.
 An advisory count is not an exposure assessment; investigate affected runtime
 paths and record any remaining advisories without blanket suppression.
 
+## One-time deployment credential handoff
+
+`seal-deploy-credentials.yml` is a manual, dafepro-only trusted-main workflow
+for the central deployment migration. It encrypts named existing production/dev
+credentials for `dafepro/deploy` using GitHub's pinned repository public key,
+and the shared Issues-only request token for deploy and tcg-scan. The agent never
+receives plaintext. The workflow installs pinned LibSodium bindings before any
+credential inputs, tests destination isolation with generated fixture keys,
+and retains only ciphertext for one day. It neither writes destination secrets
+nor deploys anything; the operator verifies the successful run and destination
+public keys before applying the encrypted records with GitHub's Secrets API.
+Key rotation requires a reviewed public-key update. Existing values are copied,
+not rotated, preserving staff encryption, backup identity and infrastructure
+state access. Production approval and backup-recovery custody decisions remain
+in the existing runbooks.
+
 ## Real-data boundary
 
 Infrastructure and encrypted backup/restore paths are implemented, but the
