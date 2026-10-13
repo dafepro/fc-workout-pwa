@@ -11,7 +11,7 @@ import {
 import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { hostKeyBranch, publishHostKeyBranch } from "./pin-host-key-branch.mjs";
-import { join, resolve } from "node:path";
+import { join, matchesGlob, resolve } from "node:path";
 import test from "node:test";
 
 const root = resolve(import.meta.dirname, "..");
@@ -171,6 +171,53 @@ test("macOS and Linux are the canonical local automation path", async () => {
     );
   }
   assert.match(contracts, /ZoomiGo production automation contract passed/);
+});
+
+test("CI-only migration files do not publish images or trigger automatic dev deployments", async () => {
+  const [backend, dev] = await Promise.all([
+    readFile(join(root, ".github/workflows/backend-image.yml"), "utf8"),
+    readFile(join(root, ".github/workflows/dev.yml"), "utf8"),
+  ]);
+  const publicationIgnores = new RegExp(
+    backend.match(/grep -Eqv '([^']+)'/)[1],
+  );
+  const devIgnores = dev
+    .match(/    paths-ignore:\n((?:      - .+\n)+)/)[1]
+    .trim()
+    .split("\n")
+    .map((line) => line.trim().slice(2));
+  const ciFiles = [
+    ".github/workflows/development-image.yml",
+    "docs/CENTRAL_DEPLOYMENT.md",
+    "scripts/publish-release.py",
+    "scripts/contracts.mjs",
+    "scripts/unix-automation-contract.test.mjs",
+  ];
+  const appFiles = [
+    "app/page.tsx",
+    "backend/cmd/api/main.go",
+    "services/team-world/server.mjs",
+    "scripts/prepare-team-world.mjs",
+    "package.json",
+    "wrangler.jsonc",
+  ];
+  for (const [files, ignored] of [
+    [ciFiles, true],
+    [appFiles, false],
+  ]) {
+    for (const file of files) {
+      assert.equal(
+        publicationIgnores.test(file),
+        ignored,
+        `${file}: publication`,
+      );
+      assert.equal(
+        devIgnores.some((pattern) => matchesGlob(file, pattern)),
+        ignored,
+        `${file}: automatic dev deployment`,
+      );
+    }
+  }
 });
 
 test("the browser image runs Playwright without recursing into Docker", async () => {

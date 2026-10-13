@@ -1,0 +1,155 @@
+name: Publish development build outputs
+"on":
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      build_runner:
+        description: Use the repository preference, Mac, or GitHub-hosted Ubuntu
+        required: false
+        type: choice
+        default: default
+        options:
+          - default
+          - mac
+          - github
+concurrency:
+  group: development-build-${{ github.ref }}
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  build:
+    name: Verify and package the selected application
+    if: github.ref == 'refs/heads/main' && vars.DEV_RELEASE_BUILDS_ENABLED == 'true'
+    runs-on:
+      ${{ (github.repository == 'dafepro/fc-workout-pwa' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name
+      == github.repository && github.event.pull_request.user.id == 313492551))) && (github.event.inputs.build_runner == 'mac' || (github.event.inputs.build_runner
+      != 'github' && vars.BUILD_RUNNER != 'github')) && fromJSON('["self-hosted","macOS","ARM64","dcarrell-mac"]') || 'ubuntu-24.04' }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: source
+    env:
+      ZOOMIGO_BUILD_PROFILE: development
+    permissions:
+      contents: write
+      packages: write
+      actions: read
+      checks: read
+    outputs:
+      revision: ${{ steps.revision.outputs.sha }}
+      artifact-id: ${{ steps.worker.outputs.artifact-id }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          path: controller
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: source
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Resolve the deployed revision
+        id: revision
+        run: echo "sha=$(git rev-parse HEAD)" >>"$GITHUB_OUTPUT"
+      - uses: ./controller/.github/actions/setup
+        with:
+          go: "true"
+          root: source
+      - name: Install the selected revision
+        run: pnpm install --frozen-lockfile
+      - name: Test the player application
+        run: |
+          pnpm test
+          pnpm test:world
+      - name: Type-check and build the development application
+        run: |
+          pnpm typecheck
+          pnpm build
+      - name: Enforce the dev Worker delivery budget
+        run: pnpm verify:worker-upload
+      - name: Test the API in production and development build modes
+        run: |
+          go -C backend test ./...
+          go -C backend test -tags=dev ./...
+      - uses: ./controller/.github/actions/buildx
+        id: buildx
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish the dev-tagged API image
+        id: api
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: source/backend
+          builder: ${{ steps.buildx.outputs.name }}
+          file: source/backend/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/${{ github.repository }}/api:sha-dev-${{ steps.revision.outputs.sha }}
+          build-args: |
+            GO_BUILD_TAGS=dev
+            APP_VERSION=${{ steps.revision.outputs.sha }}
+          cache-from: ${{ runner.environment == 'github-hosted' && 'type=gha,scope=development-api' || '' }}
+          cache-to: ${{ runner.environment == 'github-hosted' && 'type=gha,mode=max,scope=development-api' || '' }}
+          provenance: mode=max
+          sbom: true
+      - name: Publish the Team World relay image
+        id: relay
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: source
+          builder: ${{ steps.buildx.outputs.name }}
+          file: source/services/team-world/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/${{ github.repository }}/api:world-dev-${{ steps.revision.outputs.sha }}
+          cache-from: ${{ runner.environment == 'github-hosted' && 'type=gha,scope=development-relay' || '' }}
+          cache-to: ${{ runner.environment == 'github-hosted' && 'type=gha,mode=max,scope=development-relay' || '' }}
+          provenance: mode=max
+          sbom: true
+      - name: Prove the isolated Team World image starts
+        env:
+          RELAY_DIGEST: ${{ steps.relay.outputs.digest }}
+        run: |
+          docker run --rm \
+            --platform linux/amd64 \
+            -e TEAM_WORLD_RELAY_KEY=local-container-contract-key-only-123456 \
+            -e TEAM_WORLD_ALLOWED_ORIGIN=http://localhost:3005 \
+            -e TEAM_WORLD_API_URL=http://127.0.0.1:19080 \
+            --entrypoint node \
+            "ghcr.io/${{ github.repository }}/api@$RELAY_DIGEST" \
+            --input-type=module -e '
+              import assert from "node:assert/strict";
+              await import("./services/team-world/server.mjs");
+              const response = await fetch("http://127.0.0.1:8795/healthz");
+              assert.equal(response.status, 200);
+              console.log("Isolated Team World image is healthy");
+              process.exit(0);
+            '
+      - name: Package matched immutable development artifacts
+        env:
+          API_DIGEST: ${{ steps.api.outputs.digest }}
+          RELAY_DIGEST: ${{ steps.relay.outputs.digest }}
+          CONTROLLER_SHA: ${{ github.sha }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/dev-release"
+          COPYFILE_DISABLE=1 tar -czf "$RUNNER_TEMP/dev-release/worker.tgz" dist
+          node "$GITHUB_WORKSPACE/controller/scripts/artifact-provenance.mjs" create development "${{ steps.revision.outputs.sha }}" "$RUNNER_TEMP/dev-release/worker.tgz" "$RUNNER_TEMP/dev-release/release-manifest.json"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        id: worker
+        with:
+          name: dev-worker-${{ steps.revision.outputs.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/dev-release
+          if-no-files-found: error
+          retention-days: 1
+      - name: Publish retained release and request a deployment PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPLOY_REQUEST_TOKEN: ${{ secrets.DEPLOY_REQUEST_TOKEN }}
+        run: python3 "$GITHUB_WORKSPACE/controller/scripts/publish-release.py" zoomigo development zoomigo "$RUNNER_TEMP/dev-release"

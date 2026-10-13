@@ -38,6 +38,9 @@ rules into a maintained document, move unfinished trigger-based ideas to
 
 ## Engineering and operations
 
+- [CENTRAL_DEPLOYMENT.md](CENTRAL_DEPLOYMENT.md) — staged migration of environment
+  deployment to dafepro/deploy with retained immutable build outputs
+
 - [TEAM_WORLD_CAMPUS_TODO.md](TEAM_WORLD_CAMPUS_TODO.md) — current campus ownership, extent and rendering/qualification contracts
 - [TEAM_WORLD.md](TEAM_WORLD.md) — fresh v3 integration scope, replacement acceptance ledger and qualification
 

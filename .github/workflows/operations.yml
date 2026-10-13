@@ -46,7 +46,7 @@ permissions:
 
 jobs:
   query:
-    if: github.ref == 'refs/heads/main' && inputs.mode == 'query'
+    if: (github.ref == 'refs/heads/main' && inputs.mode == 'query') && vars.DEPLOY_AUTHORITY != 'central'
     runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
     timeout-minutes: 5
     environment: production
@@ -96,7 +96,7 @@ jobs:
           if-no-files-found: error
 
   host-diagnostic:
-    if: github.ref == 'refs/heads/main' && inputs.mode == 'host-diagnostic'
+    if: (github.ref == 'refs/heads/main' && inputs.mode == 'host-diagnostic') && vars.DEPLOY_AUTHORITY != 'central'
     runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
     timeout-minutes: 5
     environment: production

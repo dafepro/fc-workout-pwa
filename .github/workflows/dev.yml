@@ -11,8 +11,9 @@ name: Operate disposable ZoomiGo dev
       - scripts/runner-job-guard*
       - scripts/runner-repository.json
       - scripts/install-mac-runner.sh
-      - scripts/unix-automation-contract.test.mjs
-      - scripts/dev-deploy-smoke.test.mjs
+      - scripts/*.test.mjs
+      - scripts/contracts.mjs
+      - scripts/publish-release.py
       - scripts/artifact-provenance*
   workflow_dispatch:
     inputs:
@@ -49,7 +50,7 @@ permissions:
 jobs:
   context:
     name: Resolve dev operation
-    if: github.ref == 'refs/heads/main' && (github.event_name != 'push' || vars.DEV_AUTO_UPDATE_ENABLED != 'false')
+    if: (github.ref == 'refs/heads/main' && (github.event_name != 'push' || vars.DEV_AUTO_UPDATE_ENABLED != 'false')) && vars.DEV_DEPLOY_AUTHORITY != 'central'
     runs-on:
       ${{ (github.repository == 'dafepro/fc-workout-pwa' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name
       == github.repository && github.event.pull_request.user.id == 313492551))) && (github.event.inputs.build_runner == 'mac' || (github.event.inputs.build_runner

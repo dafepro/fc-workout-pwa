@@ -49,7 +49,7 @@ jobs:
           if [ "${{ github.event_name }}" = push ] && [ -n "$BEFORE_SHA" ] && [ "$BEFORE_SHA" != 0000000000000000000000000000000000000000 ]; then
             git fetch --depth=1 origin "$BEFORE_SHA"
             git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" >"$RUNNER_TEMP/changed-paths"
-            if ! grep -Eqv '^(docs/|infra/|\.github/|deploy/release/|deploy/secrets/README\.md$|AGENTS\.md$|scripts/(artifact-provenance|infra-plan-encryption|drill-result|runner-job-guard|install-mac-runner|observability-query|observability-host-diagnostic|lounge-placement-holds-monitor|deploy-dev|dev-deploy-smoke|retry-command|pin-host-key-branch|runner-repository|hosted-fallback|unix-automation-contract)[./-])' "$RUNNER_TEMP/changed-paths"; then
+            if ! grep -Eqv '^(docs/|infra/|\.github/|deploy/release/|deploy/secrets/README\.md$|AGENTS\.md$|scripts/(artifact-provenance|infra-plan-encryption|drill-result|runner-job-guard|install-mac-runner|observability-query|observability-host-diagnostic|lounge-placement-holds-monitor|deploy-dev|dev-deploy-smoke|retry-command|pin-host-key-branch|runner-repository|hosted-fallback|unix-automation-contract|publish-release|contracts)[./-])' "$RUNNER_TEMP/changed-paths"; then
               publish=false
             fi
           fi
@@ -72,7 +72,7 @@ jobs:
         if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.changes.outputs.publish == 'true' }}
         run: |
           mkdir -p "$RUNNER_TEMP/production-worker"
-          tar -czf "$RUNNER_TEMP/production-worker/worker.tgz" dist drizzle
+          COPYFILE_DISABLE=1 tar -czf "$RUNNER_TEMP/production-worker/worker.tgz" dist drizzle
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         id: worker
         if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.changes.outputs.publish == 'true' }}
@@ -98,7 +98,7 @@ jobs:
       != 'github' && vars.BUILD_RUNNER != 'github')) && fromJSON('["self-hosted","macOS","ARM64","dcarrell-mac"]') || 'ubuntu-24.04' }}
     timeout-minutes: 20
     permissions:
-      contents: read
+      contents: write
       packages: write
       actions: read
       checks: read
@@ -144,3 +144,9 @@ jobs:
           path: ${{ runner.temp }}/production-release
           retention-days: 30
           if-no-files-found: error
+      - name: Publish retained release and request a deployment PR
+        if: ${{ vars.DEPLOY_REQUESTS_ENABLED == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPLOY_REQUEST_TOKEN: ${{ secrets.DEPLOY_REQUEST_TOKEN }}
+        run: python3 scripts/publish-release.py zoomigo production zoomigo "$RUNNER_TEMP/production-release"
