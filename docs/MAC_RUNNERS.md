@@ -32,4 +32,5 @@ flowchart LR
 
 Mac publishing exports the Linux OCI image and uploads it through a job-local
 GHCR tunnel bound to the Mac's LAN interface. The client validates TLS and checks
-both GHCR tags against the build digest before announcing the release. The tunnel serves only the publishing job.
+both GHCR tags against the build digest before announcing the release. Dedicated endpoint lists also cover OpenTofu's
+signed provider downloads and the GitHub release handoff.

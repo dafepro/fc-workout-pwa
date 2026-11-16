@@ -48,7 +48,11 @@ node --test scripts/*.test.mjs deploy/observability/config_test.mjs
 
 cd "$REPOSITORY_ROOT/infra/digitalocean"
 tofu fmt -check
-tofu init -backend=false -input=false
+if [ "${RUNNER_OS:-}" = macOS ] && [ "${GITHUB_ACTIONS:-}" = true ]; then
+    python3 "$SCRIPT_DIRECTORY/mac-artifact-connect.py" downloads tofu init -backend=false -input=false
+else
+    tofu init -backend=false -input=false
+fi
 tofu validate
 
 if [ "$RUN_E2E" = true ]; then

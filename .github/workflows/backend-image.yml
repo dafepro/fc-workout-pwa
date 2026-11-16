@@ -49,7 +49,7 @@ jobs:
           if [ "${{ github.event_name }}" = push ] && [ -n "$BEFORE_SHA" ] && [ "$BEFORE_SHA" != 0000000000000000000000000000000000000000 ]; then
             git fetch --depth=1 origin "$BEFORE_SHA"
             git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" >"$RUNNER_TEMP/changed-paths"
-            if ! grep -Eqv '^(docs/|infra/|\.github/|deploy/release/|deploy/secrets/README\.md$|AGENTS\.md$|scripts/(artifact-provenance|infra-plan-encryption|drill-result|runner-job-guard|install-mac-runner|observability-query|observability-host-diagnostic|lounge-placement-holds-monitor|deploy-dev|dev-deploy-smoke|retry-command|pin-host-key-branch|runner-repository|hosted-fallback|unix-automation-contract|publish-release|ghcr-mac-connect|publish-mac-image|contracts)[./-])' "$RUNNER_TEMP/changed-paths"; then
+            if ! grep -Eqv '^(docs/|infra/|\.github/|deploy/release/|deploy/secrets/README\.md$|AGENTS\.md$|scripts/(artifact-provenance|infra-plan-encryption|drill-result|runner-job-guard|install-mac-runner|observability-query|observability-host-diagnostic|lounge-placement-holds-monitor|deploy-dev|dev-deploy-smoke|retry-command|pin-host-key-branch|runner-repository|hosted-fallback|unix-automation-contract|publish-release|mac-artifact-connect|publish-mac-image|verify|contracts)[./-])' "$RUNNER_TEMP/changed-paths"; then
               publish=false
             fi
           fi
@@ -161,4 +161,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEPLOY_REQUEST_TOKEN: ${{ secrets.DEPLOY_REQUEST_TOKEN }}
-        run: python3 scripts/publish-release.py zoomigo production zoomigo "$RUNNER_TEMP/production-release"
+        run: |
+          set -- python3 scripts/publish-release.py zoomigo production zoomigo "$RUNNER_TEMP/production-release"
+          if [ "$RUNNER_OS" = macOS ]; then
+            python3 scripts/mac-artifact-connect.py handoff "$@"
+          else
+            "$@"
+          fi
