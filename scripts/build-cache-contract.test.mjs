@@ -27,14 +27,14 @@ test("persistent BuildKit state is scoped to a repository and trusted local runn
 });
 
 test("image jobs preserve hosted fallback without local remote-cache transfer", async () => {
-  for (const workflow of ["backend-image", "dev"]) {
+  for (const workflow of ["backend-image"]) {
     const source = await readFile(
       new URL(`.github/workflows/${workflow}.yml`, root),
       "utf8",
     );
     assert.match(source, /id: buildx/);
     const builds = source.split(/uses: docker\/build-push-action@/).slice(1);
-    assert.equal(builds.length, workflow === "dev" ? 2 : 1);
+    assert.equal(builds.length, 1);
     for (const build of builds) {
       assert.match(build, /builder: \$\{\{ steps\.buildx\.outputs\.name \}\}/);
       assert.match(build, /platforms: linux\/amd64/);

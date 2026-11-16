@@ -1,6 +1,6 @@
 # Delivery roadmap
 
-**Status:** Maintained — dev-first queue, reconciled October 10, 2026.
+**Status:** Maintained — local qualification; hosted dev retired November 16, 2026.
 
 The goal is a simple, safe training PWA with private progress and team motivation,
 plus reusable Zoomap play that cannot change training results. Zoomigo owns
@@ -12,11 +12,9 @@ campus alone does not finish those requirements.
 ## Baseline and evidence
 
 The canonical implementation is `main`, which includes the campus candidate
-and reviewed deployment-controller fixes. Read the deployed API SHA from
-[`/readyz`](https://api-dev.zoomigo.quicktrack.cc/readyz) and use the matching
-Actions run for deployment and qualification evidence. App and trusted
-deployment-controller SHAs are distinct; see
-[DEV_ENVIRONMENT.md](DEV_ENVIRONMENT.md) for the qualification boundary.
+and reviewed deployment-controller fixes. Hosted dev is retired by owner decision.
+Qualify locally; production release evidence belongs to the central controller.
+See [DEV_ENVIRONMENT.md](DEV_ENVIRONMENT.md).
 
 Runtime packages: `zmap` 0.1.12, `@zmap/avatar-studio` 0.1.4, Canvas 0.6.2.
 Map art: `campus-v2`; avatar assets have their own immutable version. Connected
