@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import test from "node:test";
 const script = resolve(
@@ -52,24 +51,6 @@ test("the Lounge monitor fails closed on malformed report data", async () => {
     assert.match(error.stderr, /invalid Lounge placement hold report/);
     return true;
   });
-});
-
-test("the scheduled workflow is read-only and uses the production host boundary", async () => {
-  const workflow = await readFile(
-    resolve(
-      import.meta.dirname,
-      "../.github/workflows/lounge-placement-holds.yml",
-    ),
-    "utf8",
-  );
-  assert.match(workflow, /schedule:/);
-  assert.match(workflow, /workflow_dispatch:/);
-  assert.match(workflow, /environment: production/);
-  assert.match(workflow, /lounge-placement-holds --stale-after 24h/);
-  assert.match(workflow, /lounge-placement-holds-monitor\.mjs/);
-  assert.match(workflow, /StrictHostKeyChecking=yes/);
-  assert.match(workflow, /UserKnownHostsFile=infra\/known_hosts/);
-  assert.doesNotMatch(workflow, /refund|release-hold|UPDATE|DELETE FROM/i);
 });
 
 function runMonitor(report) {

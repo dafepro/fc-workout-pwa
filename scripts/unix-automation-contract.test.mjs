@@ -111,12 +111,6 @@ test("host-key handoff pushes only the pin feature branch and leaves main unchan
       git("ls-remote", "origin", "refs/heads/main").split(/\s/)[0],
       original,
     );
-    const workflow = await readFile(
-      join(root, ".github/workflows/infra.yml"),
-      "utf8",
-    );
-    assert.match(workflow, /node scripts\/pin-host-key-branch\.mjs/);
-    assert.doesNotMatch(workflow, /git push|pull-requests: write|gh pr create/);
   } finally {
     await rm(fixture, { recursive: true, force: true });
   }
@@ -151,8 +145,7 @@ test("macOS and Linux are the canonical local automation path", async () => {
     /if:\s*\$\{\{ github\.event_name == 'workflow_dispatch' && inputs\.run_e2e \}\}/,
   );
   assert.doesNotMatch(workflow, /\.ps1/);
-  assert.match(runbook, /infra\/digitalocean\/provision\.sh/);
-  assert.match(runbook, /infra\/digitalocean\/adopt-host\.sh/);
+  assert.match(runbook, /dafepro\/deploy/);
   assert.doesNotMatch(runbook, /PowerShell|Git Bash|WSL/);
   assert.equal(
     JSON.parse(packageDocument).scripts.verify,
@@ -173,17 +166,36 @@ test("macOS and Linux are the canonical local automation path", async () => {
   assert.match(contracts, /ZoomiGo production automation contract passed/);
 });
 
-test("CI-only migration files do not publish images or trigger automatic dev deployments", async () => {
-  const [backend, dev] = await Promise.all([
-    readFile(join(root, ".github/workflows/backend-image.yml"), "utf8"),
-    readFile(join(root, ".github/workflows/dev.yml"), "utf8"),
-  ]);
+test("source CI excludes retired deployment paths and publishes app changes", async () => {
+  const backend = await readFile(
+    join(root, ".github/workflows/backend-image.yml"),
+    "utf8",
+  );
+  const workflows = await readdir(join(root, ".github/workflows"));
+  for (const retired of [
+    "dev",
+    "development-image",
+    "infra",
+    "release",
+    "lounge-placement-holds",
+    "operations",
+    "seal-deploy-credentials",
+  ]) {
+    assert.ok(!workflows.includes(`${retired}.yml`), retired);
+  }
+  const drills = await readFile(
+    join(root, ".github/workflows/production-drills.yml"),
+    "utf8",
+  );
+  assert.doesNotMatch(
+    drills,
+    /secrets[.:]|environment:\s*production|host_checks/,
+  );
   const publicationIgnores = new RegExp(
     backend.match(/grep -Eqv '([^']+)'/)[1],
   );
-  assert.doesNotMatch(dev, /push:|schedule:|secrets[.:]/);
   const ciFiles = [
-    ".github/workflows/development-image.yml",
+    ".github/workflows/request-infrastructure.yml",
     "docs/CENTRAL_DEPLOYMENT.md",
     "scripts/publish-release.py",
     "scripts/contracts.mjs",

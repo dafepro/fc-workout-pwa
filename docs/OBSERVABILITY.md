@@ -69,12 +69,8 @@ approved product behavior.
 
 ## Manual diagnostics
 
-Dispatch `operations.yml` (**Read-only operations**) from `main`. Mode `query`
-uses only the Grafana read credential, reviewed presets and a one-day sanitized
-artifact. Mode `host-diagnostic` uses only the production SSH credential and
-runs the fixed collector diagnostic script against the pinned host. Query
-parameters are unused in host mode; neither mode accepts an arbitrary command
-or query expression.
+Use `zoomigo-operations.yml` in [dafepro/deploy](https://github.com/dafepro/deploy)
+for reviewed aggregate queries and pinned host diagnostics.
 
 ## Lounge hold monitoring activation
 

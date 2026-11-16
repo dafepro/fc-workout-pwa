@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { resolve } from "node:path";
 import test from "node:test";
@@ -220,14 +219,3 @@ async function readBody(request) {
   for await (const chunk of request) chunks.push(chunk);
   return Buffer.concat(chunks).toString("utf8");
 }
-
-test("hosted dev workflows cannot deploy or acquire credentials", async () => {
-  for (const name of ["dev.yml", "development-image.yml"]) {
-    const workflow = await readFile(
-      resolve(import.meta.dirname, "../.github/workflows", name),
-      "utf8",
-    );
-    assert.doesNotMatch(workflow, /secrets[.:]|push:|schedule:|environment:/);
-    assert.match(workflow, /exit 1/);
-  }
-});
