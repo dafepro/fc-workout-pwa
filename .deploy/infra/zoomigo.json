@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "app": "zoomigo",
+  "environment": "production",
+  "settings": {
+    "uptimeEnabled": true,
+    "uptimePeriod": "5m"
+  }
+}
