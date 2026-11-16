@@ -1,7 +1,7 @@
 # Central production deployment
 
 `dafepro/deploy` owns production deployment and shared infrastructure state.
-Hosted dev is retired; its source workflows and `deploy:dev` cannot deploy or publish.
+Hosted dev is retired.
 Local development and dev-tagged test fixtures remain available.
 
 ```mermaid
@@ -13,8 +13,8 @@ flowchart LR
   P --> H[Separate shared-host state]
 ```
 
-- `DEPLOY_AUTHORITY=central` gates legacy production writers.
-  `DEPLOY_REQUESTS_ENABLED` controls publication of production requests independently.
+- `DEPLOY_REQUESTS_ENABLED` controls release requests. Request app infrastructure
+  through `.deploy/infra/zoomigo.json` and the source request workflow.
 - The source's cross-repository `DEPLOY_REQUEST_TOKEN` has Issues-write access only.
   Cloud, host and state credentials stay in trusted central controllers.
 - Production releases share a central mutation lock and pinned SSH trust.

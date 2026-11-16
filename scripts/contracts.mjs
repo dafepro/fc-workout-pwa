@@ -79,7 +79,6 @@ function containsEvery(contents, required, label) {
 async function deploymentContract() {
   const requiredFiles = [
     ".github/workflows/backend-image.yml",
-    ".github/workflows/release.yml",
     "deploy/vm/compose.yaml",
     "deploy/vm/systemd/zoomigo-backup.service",
     "deploy/vm/systemd/zoomigo-backup.timer",
@@ -181,18 +180,6 @@ async function deploymentContract() {
     await rm(contractRoot, { recursive: true, force: true });
   }
 
-  const workflow = await text(".github/workflows/release.yml");
-  containsEvery(
-    workflow,
-    ["deploy/release/release.sh", "PRODUCTION_DEPLOY_ENABLED"],
-    "Release workflow",
-  );
-  requireCondition(
-    /^    if: github\.ref == 'refs\/heads\/main' && vars\.PRODUCTION_DEPLOY_ENABLED == 'true' && vars\.DEPLOY_AUTHORITY != 'central'$/m.test(
-      workflow,
-    ),
-    "The production release job must run only from the main workflow ref.",
-  );
   const deployScript = await text("deploy/vm/scripts/deploy.sh");
   containsEvery(
     deployScript,
@@ -235,7 +222,6 @@ async function deploymentContract() {
 
 async function secretContract() {
   await requireFile("deploy/secrets/README.md");
-  await requireFile(".github/workflows/infra.yml");
 
   const obsolete = [
     "deploy/secrets/manage-production-secrets.mjs",
@@ -254,57 +240,14 @@ async function secretContract() {
     }
   }
 
-  const workflow = await text(".github/workflows/release.yml");
-  containsEvery(
-    workflow,
-    [
-      "ZOOMIGO_DEPLOY_SSH_KEY",
-      "secrets.CLOUDFLARE_API_TOKEN",
-      "secrets.CLOUDFLARE_ACCOUNT_ID",
-      "secrets.BACKUP_S3_ACCESS_KEY_ID",
-      "secrets.BACKUP_S3_SECRET_ACCESS_KEY",
-      "vars.DEPLOY_HOST",
-      "vars.ZOOMIGO_API_BASE_URL",
-    ],
-    "Release workflow secrets",
-  );
-  requireCondition(
-    !workflow.includes("ZOOMIGO_DEPLOY_AGE_IDENTITY"),
-    "The retired deployment bundle identity must not be referenced.",
-  );
-
-  const infraWorkflow = await text(".github/workflows/infra.yml");
-  containsEvery(
-    infraWorkflow,
-    [
-      "secrets.DIGITALOCEAN_TOKEN",
-      "secrets.TF_STATE_ACCESS_KEY_ID",
-      "secrets.TF_STATE_SECRET_ACCESS_KEY",
-      "secrets.CLOUDFLARE_ACCOUNT_ID",
-      "vars.TF_STATE_BUCKET",
-      "vars.TF_STATE_ENDPOINT",
-      "environment: production",
-      "tofu apply",
-    ],
-    "Infrastructure workflow",
-  );
-  requireCondition(
-    /^    if: github\.ref == 'refs\/heads\/main' && inputs\.action == 'plan' && vars\.DEPLOY_AUTHORITY != 'central'$/m.test(
-      infraWorkflow,
-    ),
-    "The production infrastructure plan must run only from the main workflow ref.",
-  );
-  requireCondition(
-    /^    if: github\.ref == 'refs\/heads\/main' && inputs\.action == 'apply' && vars\.DEPLOY_AUTHORITY != 'central'$/m.test(
-      infraWorkflow,
-    ),
-    "The production infrastructure apply must run only from the main workflow ref.",
-  );
-  requireCondition(
-    infraWorkflow.includes("node scripts/pin-host-key-branch.mjs") &&
-      !/git push|pull-requests: write|gh pr create/.test(infraWorkflow),
-    "Infrastructure host-key changes must use a feature-branch PR handoff without bypassing protected main.",
-  );
+  const workflows = await readdir(join(ROOT, ".github/workflows"));
+  for (const file of workflows.filter((path) => path.endsWith(".yml"))) {
+    const workflow = await text(`.github/workflows/${file}`);
+    requireCondition(
+      !/^\s*environment: production\s*$/m.test(workflow),
+      `Production credentials belong to deploy: ${file}`,
+    );
+  }
 
   const gitignore = await text(".gitignore");
   containsEvery(
@@ -323,25 +266,6 @@ async function releaseContract() {
     "deploy/vm/scripts/set-release.sh",
   ];
   await Promise.all(required.map(requireFile));
-  const workflow = await text(".github/workflows/release.yml");
-  containsEvery(
-    workflow,
-    [
-      "PRODUCTION_DEPLOY_ENABLED",
-      "ZOOMIGO_DEPLOY_SSH_KEY",
-      "environment: production",
-      "deploy/release/release.sh",
-    ],
-    "Release workflow",
-  );
-  requireCondition(
-    !workflow.includes("ZOOMIGO_DEPLOY_AGE_IDENTITY"),
-    "The release workflow must not depend on the retired deployment bundle identity.",
-  );
-  requireCondition(
-    !workflow.includes("vars.ANALYTICS_D1_DATABASE_ID"),
-    "The release workflow must discover D1 instead of copying its identifier into GitHub.",
-  );
   const release = await text("deploy/release/release.sh");
   requireCondition(
     !release.includes("open-production-secrets.sh") &&

@@ -5,21 +5,20 @@ import { evaluateDrills } from "./drill-result.mjs";
 const partial = {
   container: "success",
   releaseCandidate: "success",
-  host: "skipped",
   fullRequested: true,
-  hostRequested: false,
-  hostEnabled: false,
 };
 
-test("successful requested subsets pass without claiming full qualification", () => {
+test("successful requested source checks report where live-host qualification runs", () => {
   for (const input of [
     partial,
     { ...partial, fullRequested: false, releaseCandidate: "skipped" },
   ]) {
     const result = evaluateDrills(input);
     assert.equal(result.passed, true);
-    assert.equal(result.complete, false);
-    assert.match(result.summary, /Full automated qualification is incomplete/);
+    assert.match(
+      result.summary,
+      /Live-host qualification runs in dafepro\/deploy/,
+    );
   }
 });
 
@@ -33,33 +32,5 @@ test("failed, cancelled, skipped or unknown requested jobs fail", () => {
       evaluateDrills({ ...partial, releaseCandidate: status }).passed,
       false,
     );
-    assert.equal(
-      evaluateDrills({
-        ...partial,
-        hostRequested: true,
-        hostEnabled: true,
-        host: status,
-      }).passed,
-      false,
-    );
   }
-});
-
-test("requested but disabled host checks fail explicitly", () => {
-  const result = evaluateDrills({ ...partial, hostRequested: true });
-  assert.equal(result.passed, false);
-  assert.match(result.summary, /disabled by PRODUCTION_DRILLS_ENABLED/);
-});
-
-test("all successful checks prove automated mechanics only", () => {
-  const result = evaluateDrills({
-    ...partial,
-    hostRequested: true,
-    hostEnabled: true,
-    host: "success",
-  });
-  assert.equal(result.passed, true);
-  assert.equal(result.complete, true);
-  assert.match(result.summary, /Full automated qualification passed/);
-  assert.match(result.summary, /Alert delivery, timed real-archive restore/);
 });

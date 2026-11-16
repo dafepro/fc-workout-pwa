@@ -100,11 +100,10 @@ test("Deployment enforces host admission before enabling Alloy", async () => {
   assert.doesNotMatch(throttle, /"client",\s*client/);
 });
 
-test("dashboard, paused alerts, and diagnostic workflow cover the reviewed operations", async () => {
-  const [dashboardText, alerts, workflow] = await Promise.all([
+test("dashboard and paused alerts cover the reviewed operations", async () => {
+  const [dashboardText, alerts] = await Promise.all([
     read("../../infra/observability/dashboards/backend-overview.json"),
     read("../../infra/observability/alerts/backend.yaml"),
-    read("../../.github/workflows/operations.yml"),
   ]);
   const dashboard = JSON.parse(dashboardText);
   const titles = dashboard.panels.map((panel) => panel.title);
@@ -131,19 +130,4 @@ test("dashboard, paused alerts, and diagnostic workflow cover the reviewed opera
     assert.match(alerts, new RegExp(rule));
   }
   assert.match(alerts, /isPaused: true/g);
-  const queryJob = workflow.slice(
-    workflow.indexOf("\n  query:"),
-    workflow.indexOf("\n  host-diagnostic:"),
-  );
-  const hostJob = workflow.slice(workflow.indexOf("\n  host-diagnostic:"));
-  assert.match(workflow, /api-errors/);
-  assert.match(workflow, /request-id/);
-  assert.match(workflow, /retention-days: 1/);
-  assert.match(queryJob, /GRAFANA_READ_TOKEN/);
-  assert.doesNotMatch(queryJob, /ssh|DEPLOY_HOST/i);
-  assert.match(queryJob, /github\.ref == 'refs\/heads\/main'/);
-  assert.match(hostJob, /github\.ref == 'refs\/heads\/main'/);
-  assert.match(hostJob, /observability-host-diagnostic\.sh/);
-  assert.match(hostJob, /StrictHostKeyChecking=yes/);
-  assert.doesNotMatch(hostJob, /GRAFANA_READ_TOKEN/);
 });

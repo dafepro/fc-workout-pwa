@@ -1,7 +1,6 @@
 name: Production operations drills
 
-# Container and release-candidate checks need no secrets. Live-host checks use
-# the main-only production environment and PRODUCTION_DRILLS_ENABLED kill switch.
+# Live-host drills are owned by dafepro/deploy.
 
 on:
   workflow_dispatch:
@@ -11,11 +10,6 @@ on:
         required: false
         type: boolean
         default: true
-      host_checks:
-        description: Also run read-only checks against the live production VM
-        required: false
-        type: boolean
-        default: false
 
 concurrency:
   group: production-drills-${{ github.ref }}
@@ -87,84 +81,10 @@ jobs:
           retention-days: 30
           if-no-files-found: ignore
 
-  # PRODUCTION_DRILLS_ENABLED must be repository-scoped: a job-level `if` is
-  # evaluated before the environment resolves, so an environment-scoped variable
-  # is invisible here and the job would silently skip.
-  host-checks:
-    name: Read-only checks on the production VM
-    if: (github.ref == 'refs/heads/main' && inputs.host_checks && vars.PRODUCTION_DRILLS_ENABLED == 'true') && vars.DEPLOY_AUTHORITY != 'central'
-    runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
-    timeout-minutes: 15
-    environment: production
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-
-      - name: Confirm the DigitalOcean alerts and uptime check are live
-        env:
-          DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
-        run: |
-          set -euo pipefail
-          api() {
-            curl --fail --silent --show-error \
-              --header "Authorization: Bearer $DIGITALOCEAN_TOKEN" \
-              "https://api.digitalocean.com/v2/$1"
-          }
-          enabled_alerts=$(api "monitoring/alerts?per_page=200" |
-            jq '[.policies[] | select(.enabled) | select(.alerts.email | length > 0)] | length')
-          echo "Enabled resource alert policies with an email target: $enabled_alerts"
-          if [ "$enabled_alerts" -lt 3 ]; then
-            echo "::error::expected at least 3 enabled resource alerts (CPU, memory, disk), found $enabled_alerts"
-            exit 1
-          fi
-          check_id=$(api "uptime/checks?per_page=200" |
-            jq -r 'first(.checks[] | select(.enabled) | .id) // ""')
-          if [ -z "$check_id" ]; then
-            echo "::error::no enabled uptime check exists"
-            exit 1
-          fi
-          down_alerts=$(api "uptime/checks/$check_id/alerts" |
-            jq '[.alerts[] | select(.type == "down_global")] | length')
-          echo "Enabled uptime check $check_id with down_global alerts: $down_alerts"
-          if [ "$down_alerts" -lt 1 ]; then
-            echo "::error::the uptime check has no down_global alert"
-            exit 1
-          fi
-          echo "Alert definitions are live. Whether the email arrives is not something a runner can see."
-
-      # Read-only by construction, and the age identity stays with its custodian
-      # and is never available here, so nothing in this job can decrypt or
-      # restore anything. The script is piped in rather than run from the host's
-      # own checkout so this run tests this revision's checks.
-      - name: Host readiness, bounded logs, and retention horizon
-        env:
-          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
-          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
-          ZOOMIGO_DEPLOY_SSH_KEY: ${{ secrets.ZOOMIGO_DEPLOY_SSH_KEY }}
-        run: |
-          set -euo pipefail
-          identity="$RUNNER_TEMP/deploy_ssh_key"
-          trap 'rm -f -- "$identity"' EXIT
-          (umask 077 && printf '%s\n' "$ZOOMIGO_DEPLOY_SSH_KEY" >"$identity")
-          ssh -i "$identity" \
-            -o BatchMode=yes \
-            -o IdentitiesOnly=yes \
-            -o StrictHostKeyChecking=yes \
-            -o UserKnownHostsFile=infra/known_hosts \
-            "${DEPLOY_USER}@${DEPLOY_HOST}" sh -s -- /opt/app/deploy/vm \
-            <scripts/host-drills.sh 2>&1 | tee "$RUNNER_TEMP/host-checks.log"
-
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        if: always()
-        with:
-          name: log-host-checks
-          path: ${{ runner.temp }}/host-checks.log
-          retention-days: 30
-          if-no-files-found: ignore
-
   gate:
     name: Requested drill results
     if: always() && github.ref == 'refs/heads/main'
-    needs: [container-drills, release-candidate, host-checks]
+    needs: [container-drills, release-candidate]
     runs-on: [self-hosted, macOS, ARM64, dcarrell-mac]
     timeout-minutes: 5
     steps:
@@ -176,8 +96,5 @@ jobs:
         env:
           CONTAINER_DRILLS: ${{ needs.container-drills.result }}
           RELEASE_CANDIDATE: ${{ needs.release-candidate.result }}
-          HOST_CHECKS: ${{ needs.host-checks.result }}
           FULL_REQUESTED: ${{ inputs.full_verify }}
-          HOST_REQUESTED: ${{ inputs.host_checks }}
-          DRILLS_ENABLED: ${{ vars.PRODUCTION_DRILLS_ENABLED }}
         run: node scripts/drill-result.mjs

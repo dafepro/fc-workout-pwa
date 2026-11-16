@@ -79,21 +79,16 @@ For each task, report:
 
 ## Operator hints
 
-Hard-won specifics that are easy to lose hours on. Host addresses and key
-material live in `infra/` outputs and the `production` environment, not here.
+Hard-won specifics that are easy to lose hours on. Host addresses and credential bindings are documented in `dafepro/deploy`.
 
 **GitHub.** The repo is `dafepro`; your `gh` session is probably a different
 account with no admin, so write APIs return `403`. `git push` already works via a
 repo-local credential helper. The `gh` API needs the token passed explicitly:
 `GH_TOKEN="$(gh auth token -h github.com -u dafepro)" gh ...`.
 
-**Releases are manual.** A push to `main` verifies and publishes an image but
-never deploys. To ship, dispatch `release.yml` with the 40-character
-`release_sha` whose image was already published; it never rebuilds the image and
-refuses a SHA with no published image or one that is not an ancestor of `main`.
-`PRODUCTION_DEPLOY_ENABLED` must be _repository_-scoped: a job-level `if` is
-evaluated before the environment resolves, so an environment-scoped variable is
-invisible there and the job silently skips.
+**Releases go through deploy.** Source CI publishes immutable artifacts and
+submits release requests. Promote the verified selection in `dafepro/deploy`.
+Use the central host contract and SSH pin for production operations.
 
 **SSH.** Connect as `zoomigo`, not root. The host key is pinned in
 `infra/known_hosts`, not `~/.ssh/known_hosts` — pass

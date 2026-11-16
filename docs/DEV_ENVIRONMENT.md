@@ -2,7 +2,6 @@
 
 Hosted dev is retired by owner decision. The former Worker, DNS and droplet are
 managed through the retirement records in [dafepro/deploy](https://github.com/dafepro/deploy).
-`deploy:dev` rejects requests; dev image/deployment workflows cannot run cloud work.
 
 ```mermaid
 flowchart LR
