@@ -1,0 +1,34 @@
+name: Request app infrastructure
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        type: choice
+        required: true
+        options: [zoomigo]
+permissions:
+  contents: read
+jobs:
+  request:
+    if: github.actor_id == '313492551' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: {persist-credentials: false}
+      - name: Submit immutable declaration for central review
+        env:
+          GH_TOKEN: ${{ secrets.DEPLOY_REQUEST_TOKEN }}
+          APP: ${{ inputs.app }}
+        run: |
+          python3 - <<'PYTHON'
+          import json,os
+          from pathlib import Path
+          app=os.environ['APP']
+          allowed=['zoomigo']
+          if app not in allowed:raise SystemExit('Unknown application')
+          contract=json.loads(Path('.deploy/infra',app+'.json').read_text())
+          if contract.get('app')!=app or contract.get('environment')!='production':raise SystemExit('Wrong app declaration')
+          request={'title':'Release request: infrastructure/'+app,'body':'dafepro-infrastructure-request-v1\n'+json.dumps({'app':app,'sha':os.environ['GITHUB_SHA']})}
+          Path(os.environ['RUNNER_TEMP'],'infra-request.json').write_text(json.dumps(request))
+          PYTHON
+          gh api --method POST repos/dafepro/deploy/issues --input "$RUNNER_TEMP/infra-request.json" --jq .html_url
