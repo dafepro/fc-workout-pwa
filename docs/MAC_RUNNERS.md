@@ -29,3 +29,7 @@ flowchart LR
   five-minute fetch timeouts and four concurrent downloads.
 - Use Docker CLI for Linux services and `--platform linux/amd64` for droplet images.
   GitHub job/service containers require a Linux runner.
+
+Mac publishing exports the Linux OCI image and uploads it through a job-local
+GHCR tunnel bound to the Mac's LAN interface. The client validates TLS and checks
+both GHCR tags against the build digest before announcing the release. The tunnel serves only the publishing job.
