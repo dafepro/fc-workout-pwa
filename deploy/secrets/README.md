@@ -1,86 +1,11 @@
-# Production secrets
+# ZoomiGo credential custody
 
-**Status:** Maintained
+Production credentials live in the trusted `dafepro/deploy` controllers. Use
+the [central configuration guide](https://github.com/dafepro/deploy/blob/main/docs/configuration.md)
+for secret and variable names, and the
+[recovery guide](https://github.com/dafepro/deploy/blob/main/docs/shared-hosts.md)
+for the backup and restore process.
 
-ZoomiGo keeps no checked-in plaintext or encrypted-bundle copy of production
-credentials. GitHub Actions reads its automation inputs directly from the
-protected `production` environment; nothing decrypts a repository file to reach
-them. Credentials intentionally installed on the VM and the separate offline
-backup-recovery copy are documented below.
-
-## GitHub `production` environment secrets
-
-| Secret                                                               | Used by                 | Purpose                                                                                                                                                                                                                                     |
-| -------------------------------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ZOOMIGO_DEPLOY_SSH_KEY`                                             | release, infra          | Private half of the dedicated deploy key. The public half is derived with `ssh-keygen -y` at plan/apply and release time.                                                                                                                   |
-| `CLOUDFLARE_API_TOKEN`                                               | release, infra          | Edits DNS for `quicktrack.cc` and deploys Workers/custom domains.                                                                                                                                                                           |
-| `CLOUDFLARE_ACCOUNT_ID`                                              | release                 | Cloudflare account for the Worker deploy.                                                                                                                                                                                                   |
-| `BACKUP_S3_ACCESS_KEY_ID` / `BACKUP_S3_SECRET_ACCESS_KEY`            | release                 | R2 credentials installed on the VM for encrypted-backup uploads.                                                                                                                                                                            |
-| `DIGITALOCEAN_TOKEN`                                                 | infra                   | Manages the Droplet, firewall, monitoring, and reserved IP.                                                                                                                                                                                 |
-| `TF_STATE_ACCESS_KEY_ID` / `TF_STATE_SECRET_ACCESS_KEY`              | release, infra          | R2 credentials for the OpenTofu state bucket (`zoomigo-tfstate`).                                                                                                                                                                           |
-| `TF_PLAN_ENCRYPTION_KEY`                                             | infra plan/apply        | 32 random bytes encoded as 64 lowercase hexadecimal characters. Enforces saved-plan encryption without changing state format; retire pending plans before rotating it.                                                                      |
-| `ALERT_EMAIL_ADDRESSES`                                              | infra plan              | JSON list of operator email addresses for CPU/memory/disk alerts. Passed through `TF_VAR_alert_email_addresses`; never store it as an Actions variable.                                                                                     |
-| `BACKUP_AGE_IDENTITY`                                                | on-demand restore drill | Private half of the one remaining `age` identity; decrypts SQLite backups.                                                                                                                                                                  |
-| `STAFF_SECRET_KEY`                                                   | release                 | 32 base64 bytes encrypting stored staff second factors. Rotating it makes every enrolled authenticator unreadable, so every staff account must re-enrol. Absent, the API refuses staff sign-in rather than running without a second factor. |
-| `ANALYTICS_SUBJECT_KEY`                                              | release                 | At least 32 random bytes used only as the HMAC key for pseudonymous player and team analytics keys. Rotating it intentionally breaks historical user continuity.                                                                            |
-| `GRAFANA_DEV_LOGS_TOKEN` / `GRAFANA_DEV_METRICS_TOKEN`               | dev release             | Separate Grafana Cloud write tokens scoped only to `logs:write` and `metrics:write` for dev.                                                                                                                                                |
-| `GRAFANA_PRODUCTION_LOGS_TOKEN` / `GRAFANA_PRODUCTION_METRICS_TOKEN` | release                 | Separate Grafana Cloud write tokens scoped only to `logs:write` and `metrics:write` for production. Keep unset until the production host passes admission.                                                                                  |
-| `GRAFANA_READ_TOKEN`                                                 | observability query     | Stack-scoped diagnostic token with only `logs:read` and `metrics:read`; it is never installed on a VM.                                                                                                                                      |
-
-## GitHub `production` environment variables (not secret)
-
-| Variable                                                                              | Purpose                                                                                                                                                                                                                                                              |
-| ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DEPLOY_HOST`                                                                         | Droplet reserved IPv4 address. Updated by `infra/digitalocean/adopt-host.mjs`.                                                                                                                                                                                       |
-| `DEPLOY_USER`                                                                         | SSH login user on the VM (`zoomigo`).                                                                                                                                                                                                                                |
-| `ZOOMIGO_API_BASE_URL`                                                                | Public API origin, e.g. `https://api.quicktrack.cc`.                                                                                                                                                                                                                 |
-| `BACKUP_AGE_RECIPIENT`                                                                | Public `age1...` recipient for encrypting SQLite backups.                                                                                                                                                                                                            |
-| `BACKUP_S3_ENDPOINT` / `BACKUP_S3_BUCKET` / `BACKUP_S3_PROVIDER` / `BACKUP_S3_REGION` | R2 backup bucket connection details.                                                                                                                                                                                                                                 |
-| `TF_STATE_BUCKET` / `TF_STATE_ENDPOINT`                                               | R2 state bucket connection details.                                                                                                                                                                                                                                  |
-| `CLOUDFLARE_ZONE_ID`                                                                  | Zone ID for `quicktrack.cc`.                                                                                                                                                                                                                                         |
-| `SSH_SOURCE_ADDRESSES`                                                                | OpenTofu list literal. Normally `["0.0.0.0/0", "::/0"]` — neither the operator's laptop nor the CI runner has a stable IP, so SSH is protected by key-only auth instead of a source-IP allowlist.                                                                    |
-| `OPERATOR_SSH_PUBLIC_KEY`                                                             | Optional. Your own public key (not secret), authorized on the `zoomigo` user alongside the dedicated deploy key, for direct troubleshooting SSH access. Leave unset to skip.                                                                                         |
-| `PLAYER_LOGIN_URL` / `STAFF_SETUP_URL`                                                | Absolute https URLs on the PWA hostname. The console builds a player's QR link and a coach's one-time setup link from these.                                                                                                                                         |
-| `PRODUCTION_DATA_APPROVED`                                                            | `true` allows the console and the CLI to create real player accounts. Keep it unset or `false` until the approval checklist is recorded.                                                                                                                             |
-| `PRODUCTION_DEPLOY_ENABLED`                                                           | Repository-scoped, not environment-scoped (a job-level `if` cannot see environment variables). Kill switch: releases also require dispatching the workflow with `deploy: true`, so `true` here never deploys on its own. Set to anything else to block all releases. |
-| `DEV_OBSERVABILITY_ENABLED` / `PRODUCTION_OBSERVABILITY_ENABLED`                      | Explicit per-environment collector switches. Enable only after the corresponding 1 GiB host passes the observability admission and privacy checks.                                                                                                                   |
-| `GRAFANA_DEV_LOGS_URL` / `GRAFANA_DEV_LOGS_USERNAME`                                  | Dev Loki push endpoint and stack username.                                                                                                                                                                                                                           |
-| `GRAFANA_DEV_METRICS_URL` / `GRAFANA_DEV_METRICS_USERNAME`                            | Dev Prometheus remote-write endpoint and stack username.                                                                                                                                                                                                             |
-| `GRAFANA_PRODUCTION_LOGS_URL` / `GRAFANA_PRODUCTION_LOGS_USERNAME`                    | Production Loki push endpoint and stack username.                                                                                                                                                                                                                    |
-| `GRAFANA_PRODUCTION_METRICS_URL` / `GRAFANA_PRODUCTION_METRICS_USERNAME`              | Production Prometheus remote-write endpoint and stack username.                                                                                                                                                                                                      |
-| `GRAFANA_LOGS_QUERY_URL` / `GRAFANA_LOGS_USERNAME`                                    | Loki query-range endpoint and read username used only by `operations.yml` query mode.                                                                                                                                                                                |
-| `GRAFANA_METRICS_QUERY_URL` / `GRAFANA_METRICS_USERNAME`                              | Prometheus query-range endpoint and read username used only by `operations.yml` query mode.                                                                                                                                                                          |
-
-Set these with `gh secret set NAME --env production` and
-`gh variable set NAME --env production --body VALUE`.
-
-## The one remaining `age` identity
-
-`age` now protects exactly one thing: SQLite backup archives at rest in R2.
-There is no "operator identity" or "CI identity" for deployment secrets
-anymore, because there is no bundle to decrypt.
-
-One-time setup:
-
-```sh
-age-keygen -o backup-identity.txt
-```
-
-The file's `# public key:` comment line is `BACKUP_AGE_RECIPIENT` (a plain
-GitHub variable). The `AGE-SECRET-KEY-...` line is `BACKUP_AGE_IDENTITY`, which
-the current on-demand restore-drill workflow reads from the protected GitHub
-environment. Keep a separate offline recovery copy of `backup-identity.txt`
-somewhere durable outside GitHub for loss of account access, and delete the
-temporary local file after both destinations are verified.
-
-Long-term GitHub custody versus temporary population is not yet owner-approved;
-record that decision in
-[`docs/backend/PRODUCTION_APPROVAL_CHECKLIST.md`](../../docs/backend/PRODUCTION_APPROVAL_CHECKLIST.md)
-before treating the recovery process as production-approved.
-
-## Rotating a credential
-
-Rotate a credential by creating the new value at its provider, updating the
-matching GitHub secret with `gh secret set`, and confirming the next release
-or `infra.yml` run succeeds before revoking the old value. Nothing needs to
-be resealed or recommitted, because nothing is committed.
+Keep an offline recovery copy of the age identity in approved custody. The age
+recipient is public and can be derived from the identity. Keep private keys,
+temporary env files, and backups out of Git.

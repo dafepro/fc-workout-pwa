@@ -56,7 +56,7 @@ Recommended initial policy:
 - a second trusted adult holds the encrypted recovery-key copy and can take over after documented verification;
 - the age identity never lives on the VM, in Cloudflare, in email, or beside an
   encrypted backup;
-- decide whether the protected GitHub `BACKUP_AGE_IDENTITY` used by the current
+- decide whether the central GitHub `PLATFORM_BACKUP_AGE_IDENTITY` used by the
   on-demand restore-drill workflow is approved for long-term custody or may be
   populated only temporarily; keep a separate offline recovery copy either way;
 - S3-compatible credentials are bucket-scoped and stored only in root-readable `/etc/zoomigo/backup-s3.env`;

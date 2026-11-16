@@ -90,10 +90,8 @@ repo-local credential helper. The `gh` API needs the token passed explicitly:
 submits release requests. Promote the verified selection in `dafepro/deploy`.
 Use the central host contract and SSH pin for production operations.
 
-**SSH.** Connect as `zoomigo`, not root. The host key is pinned in
-`infra/known_hosts`, not `~/.ssh/known_hosts` — pass
-`-o UserKnownHostsFile=infra/known_hosts` or the connection dies with "Host key
-verification failed". Pin, don't weaken `StrictHostKeyChecking`. Use the
+**SSH.** Connect as `zoomigo`, not root. Use `hosts/shared-01.known_hosts` from
+`dafepro/deploy` with `UserKnownHostsFile` and `StrictHostKeyChecking=yes`. Use the
 reserved IP (it survives Droplet rebuilds), not the Droplet's own. zsh does not
 word-split unquoted variables, so `SSH="ssh -i ..."; $SSH host cmd` fails — put
 the invocation in a small `.sh` wrapper. The key is `~/.ssh/id_ed25519`;
