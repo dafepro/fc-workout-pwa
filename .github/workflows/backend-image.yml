@@ -49,7 +49,7 @@ jobs:
           if [ "${{ github.event_name }}" = push ] && [ -n "$BEFORE_SHA" ] && [ "$BEFORE_SHA" != 0000000000000000000000000000000000000000 ]; then
             git fetch --depth=1 origin "$BEFORE_SHA"
             git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" >"$RUNNER_TEMP/changed-paths"
-            if ! grep -Eqv '^(docs/|infra/|\.github/|deploy/release/|deploy/secrets/README\.md$|AGENTS\.md$|scripts/(artifact-provenance|infra-plan-encryption|drill-result|runner-job-guard|install-mac-runner|observability-query|observability-host-diagnostic|lounge-placement-holds-monitor|deploy-dev|dev-deploy-smoke|retry-command|pin-host-key-branch|runner-repository|hosted-fallback|unix-automation-contract|publish-release|contracts)[./-])' "$RUNNER_TEMP/changed-paths"; then
+            if ! grep -Eqv '^(docs/|infra/|\.github/|deploy/release/|deploy/secrets/README\.md$|AGENTS\.md$|scripts/(artifact-provenance|infra-plan-encryption|drill-result|runner-job-guard|install-mac-runner|observability-query|observability-host-diagnostic|lounge-placement-holds-monitor|deploy-dev|dev-deploy-smoke|retry-command|pin-host-key-branch|runner-repository|hosted-fallback|unix-automation-contract|publish-release|ghcr-mac-connect|publish-mac-image|contracts)[./-])' "$RUNNER_TEMP/changed-paths"; then
               publish=false
             fi
           fi
@@ -113,6 +113,7 @@ jobs:
       - uses: ./.github/actions/buildx
         id: buildx
       - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        if: runner.os != 'macOS'
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -124,7 +125,8 @@ jobs:
           builder: ${{ steps.buildx.outputs.name }}
           file: backend/Dockerfile
           platforms: linux/amd64
-          push: true
+          push: ${{ runner.os != 'macOS' }}
+          outputs: ${{ runner.os == 'macOS' && format('type=oci,dest={0}/production-api.oci.tar', runner.temp) || '' }}
           tags: |
             ghcr.io/${{ github.repository }}/api:sha-${{ github.sha }}
             ghcr.io/${{ github.repository }}/api:main
@@ -133,9 +135,19 @@ jobs:
           cache-to: ${{ runner.environment == 'github-hosted' && 'type=gha,mode=max,scope=production-api' || '' }}
           provenance: mode=max
           sbom: true
+      - name: Publish and verify the Mac-built image over GHCR TLS
+        if: runner.os == 'macOS'
+        id: mac-image
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EXPECTED_IMAGE_DIGEST: ${{ steps.image.outputs.digest }}
+        run: bash scripts/publish-mac-image.sh "$RUNNER_TEMP/production-api.oci.tar"
+      - name: Remove the local OCI archive
+        if: always() && runner.os == 'macOS'
+        run: rm -f -- "$RUNNER_TEMP/production-api.oci.tar"
       - name: Record matched immutable production artifacts
         env:
-          API_DIGEST: ${{ steps.image.outputs.digest }}
+          API_DIGEST: ${{ runner.os == 'macOS' && steps.mac-image.outputs.digest || steps.image.outputs.digest }}
           CONTROLLER_SHA: ${{ github.sha }}
         run: node scripts/artifact-provenance.mjs create production "$GITHUB_SHA" "$RUNNER_TEMP/production-release/worker.tgz" "$RUNNER_TEMP/production-release/release-manifest.json"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
