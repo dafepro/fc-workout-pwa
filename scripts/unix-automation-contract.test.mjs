@@ -11,7 +11,7 @@ import {
 import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { hostKeyBranch, publishHostKeyBranch } from "./pin-host-key-branch.mjs";
-import { join, matchesGlob, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import test from "node:test";
 
 const root = resolve(import.meta.dirname, "..");
@@ -181,11 +181,7 @@ test("CI-only migration files do not publish images or trigger automatic dev dep
   const publicationIgnores = new RegExp(
     backend.match(/grep -Eqv '([^']+)'/)[1],
   );
-  const devIgnores = dev
-    .match(/    paths-ignore:\n((?:      - .+\n)+)/)[1]
-    .trim()
-    .split("\n")
-    .map((line) => line.trim().slice(2));
+  assert.doesNotMatch(dev, /push:|schedule:|secrets[.:]/);
   const ciFiles = [
     ".github/workflows/development-image.yml",
     "docs/CENTRAL_DEPLOYMENT.md",
@@ -210,11 +206,6 @@ test("CI-only migration files do not publish images or trigger automatic dev dep
         publicationIgnores.test(file),
         ignored,
         `${file}: publication`,
-      );
-      assert.equal(
-        devIgnores.some((pattern) => matchesGlob(file, pattern)),
-        ignored,
-        `${file}: automatic dev deployment`,
       );
     }
   }

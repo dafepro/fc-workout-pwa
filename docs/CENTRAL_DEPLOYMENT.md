@@ -1,13 +1,28 @@
-# Central environment deployment
+# Central production deployment
 
-**Status:** Maintained
+`dafepro/deploy` owns production deployment and shared infrastructure state.
+Hosted dev is retired; its source workflows and `deploy:dev` cannot deploy or publish.
+Local development and dev-tagged test fixtures remain available.
 
-The migration to private `dafepro/deploy` separates tested build outputs from environment deployment. Production remains manually promoted. This repository publishes immutable API/relay digests, matched prebuilt Worker bundles/migrations and retained GitHub releases; its only cross-repository credential is a deploy-scoped Issues-write-only `DEPLOY_REQUEST_TOKEN` used to request a deployment PR.
+```mermaid
+flowchart LR
+  S[App source + tests] --> B[backend-image.yml: immutable artifacts]
+  B --> R[Retained release + deployment request]
+  R --> P[dafepro/deploy: reviewed manual promotion]
+  P --> A[App-specific production resources]
+  P --> H[Separate shared-host state]
+```
 
-The new `development-image.yml` builds the distinct development API, Team World relay and development Worker profile. `backend-image.yml` continues to verify/publish production. Neither central-build path has cloud or host credentials.
+- `DEPLOY_AUTHORITY=central` gates legacy production writers.
+  `DEPLOY_REQUESTS_ENABLED` controls publication of production requests independently.
+- The source's cross-repository `DEPLOY_REQUEST_TOKEN` has Issues-write access only.
+  Cloud, host and state credentials stay in trusted central controllers.
+- Production releases share a central mutation lock and pinned SSH trust.
+  App releases do not own the shared droplet lifecycle.
+- Mac builds use the registered runner. `BUILD_RUNNER=github` or the manual
+  `build_runner=github` input explicitly selects hosted Ubuntu; fork PRs remain hosted.
+  See [Mac runners](MAC_RUNNERS.md) for registration and cache operations.
+- Real-data, analytics and backup-custody approvals are independent of deployment ownership.
 
-The existing workflows remain the active fallback until cutover. Repository variable `DEPLOY_AUTHORITY=central` disables legacy production release/infrastructure/operations and transfers only deployment authority. Set `DEPLOY_REQUESTS_ENABLED=true` independently to publish/request retained production releases while the legacy authority still works. `DEV_DEPLOY_AUTHORITY=central` disables the old dev controller and transfers only development deployment authority. Set `DEV_RELEASE_BUILDS_ENABLED=true` independently to test development publication/requests before cutover. Do not enable central deployment until target secrets, state backends, pinned host keys and retained rollback inputs are verified. The central controller shares a mutation lock for release/infra/host operations and stages trusted controller files over pinned SSH without moving existing data or checking its SHA out of this app origin.
-
-Follow [central cutover](https://github.com/dafepro/deploy/blob/main/docs/cutover.md). The original production/dev runbooks and local deployment/controller contracts remain valid for the gated legacy path until successful cutover. Remove those files and obsolete cloud secrets only in a later reviewed cleanup after that evidence exists. Preserve real-data, analytics and backup-custody approvals; changing deployment ownership grants none of those approvals.
-
-Build and verification jobs prefer the registered Mac. Repository variable `BUILD_RUNNER=github`, or a manual `build_runner=github` input, selects GitHub-hosted Ubuntu when the Mac is unavailable. Selection is explicit, because GitHub does not automatically reroute offline Mac jobs. Fork/other-author PRs always remain hosted. Failed builds and tests remain failures. The production and distinct development publish jobs follow the same policy.
+Canonical ownership, recovery and operational status:
+[central state map](https://github.com/dafepro/deploy/blob/main/docs/state-separation.md).
